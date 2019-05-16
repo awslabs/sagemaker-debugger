@@ -1,0 +1,37 @@
+import os
+import sys
+import setuptools
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+def compile_summary_protobuf():
+    proto_path = 'tornasole_numpy/proto'
+    proto_files = os.path.join(proto_path, '*.proto')
+    cmd = 'protoc ' + proto_files + ' --python_out=.'
+    print('compiling protobuf files in {}'.format(proto_path))
+    return os.system('set -ex &&' + cmd)
+
+
+if compile_summary_protobuf() != 0:
+    print('ERROR: Compiling summary protocol buffers failed. You will not be '
+          'able to use the logging APIs for visualizing MXNet data in TensorBoard. '
+          'Please make sure that you have installed protobuf3 compiler and runtime correctly.')
+    sys.exit(1)
+
+setuptools.setup(
+    name="tornasole_numpy",
+    version="0.1",
+    author="The Tornasole Team",
+    author_email="tornasole@amazon.com",
+    description="Tornasole Numpy",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/andreaolgiati/tornasole_numpy",
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
+    ],
+)
