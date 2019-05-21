@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 def compile_summary_protobuf():
-    proto_path = 'tornasole_numpy/proto'
+    proto_path = 'tornasole_numpy/tfevent'
     proto_files = os.path.join(proto_path, '*.proto')
     cmd = 'protoc ' + proto_files + ' --python_out=.'
     print('compiling protobuf files in {}'.format(proto_path))

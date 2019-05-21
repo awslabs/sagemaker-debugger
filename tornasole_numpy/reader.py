@@ -18,10 +18,10 @@
 """APIs for logging data in the event file."""
 
 import time
-from tornasole_numpy.tfevent.event_file_writer import EventFileWriter
+from tornasole_numpy.tfevent.event_file_reader import EventFileReader
 
-class FileWriter():
-    def __init__(self, logdir, wtype='tfevent', max_queue=10, flush_secs=120, filename_suffix='', verbose=True):
+class FileReader():
+    def __init__(self, fname, wtype='tfevent', verbose=True):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
  
@@ -39,7 +39,7 @@ class FileWriter():
                 Determines whether to print logging messages.
         """
         if wtype == 'tfevent':
-            self._writer = EventFileWriter(logdir, max_queue, flush_secs, filename_suffix, verbose)
+            self._reader = EventFileReader(fname=fname, verbose=verbose)
         else:
             assert False
         
@@ -50,30 +50,13 @@ class FileWriter():
 
     def __exit__(self, unused_type, unused_value, unused_traceback):
         """Make usable with "with" statement."""
-        self.close()
+        self.__del__()
 
-    def add_tensor(self, a, trial, step, tensor, worker):
-        self._writer.add_tensor(a, trial, step, tensor, worker)
+    def read_tensors(self):
+        return self._reader.read_tensors()
 
-    def flush(self):
-        """Flushes the event file to disk.
-        Call this method to make sure that all pending events have been written to disk.
-        """
-        self._writer.flush()
-
-    def close(self):
-        """Flushes the event file to disk and close the file.
-        Call this method when you do not need the summary writer anymore.
-        """
-        self._writer.close()
-
-    def reopen(self):
-        """Reopens the EventFileWriter.
-        Can be called after `close()` to add more events in the same directory.
-        The events will go into a new events file. Does nothing if the EventFileWriter
-        was not closed.
-        """
-        self._writer.reopen()
+    def __del__(self):
+        self._reader.__del__()
 
     def name(self):
-        return self._writer.name()
+        return self._reader.name()

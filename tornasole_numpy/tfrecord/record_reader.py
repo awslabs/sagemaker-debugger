@@ -15,15 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Writer for writing events to the event file."""
-
-from __future__ import absolute_import
 import struct
 from ._crc32c import crc32c
 
-
-class RecordWriter(object):
-    """Write records in the following format for a single record event_str:
+class RecordReader(object):
+    """Read records in the following format for a single record event_str:
     uint64 len(event_str)
     uint32 masked crc of len(event_str)
     byte event_str
@@ -35,33 +31,45 @@ class RecordWriter(object):
     In TensorFlow, _dest is a object instance of ZlibOutputBuffer (C++) which has its own flush
     and close mechanism defined."""
     def __init__(self, path):
-        self._writer = None
+        self._reader = None
         try:
-            self._writer = open(path, 'wb')
+            self._reader = open(path, 'rb')
         except (OSError, IOError) as err:
             raise ValueError('failed to open file {}: {}'.format(path, str(err)))
 
     def __del__(self):
         self.close()
 
-    def write_record(self, event_str):
-        """Writes a serialized event to file."""
-        header = struct.pack('Q', len(event_str))
-        header += struct.pack('I', masked_crc32c(header))
-        footer = struct.pack('I', masked_crc32c(event_str))
-        self._writer.write(header + event_str + footer)
+    def has_data(self):
+        readdata = self._reader.read(1)
+        if readdata == b'':
+            return False
+        self._reader.seek(-1,1)
+        return True
+
+    def read_record(self):
+        strlen_bytes = self._reader.read(8)
+        strlen = struct.unpack('Q', strlen_bytes)[0]
+        saved_len_crc = struct.unpack('I', self._reader.read(4))[0]
+        computed_len_crc = masked_crc32c(strlen_bytes)
+        assert saved_len_crc == computed_len_crc
+        #print( f'Payload_Len={strlen} LENCRC={saved_len_crc},{computed_len_crc}')
+        payload = self._reader.read(strlen)
+        saved_payload_crc = struct.unpack('I', self._reader.read(4))[0]
+        computed_payload_crc = masked_crc32c(payload)
+        assert saved_payload_crc == computed_payload_crc
+        #print( f'Payload_CRC={saved_payload_crc},{computed_payload_crc}')
+        return payload
 
     def flush(self):
-        """Flushes the event string to file."""
-        assert self._writer is not None
-        self._writer.flush()
+        assert False
+        pass
 
     def close(self):
         """Closes the record writer."""
-        if self._writer is not None:
-            self.flush()
-            self._writer.close()
-            self._writer = None
+        if self._reader is not None:
+            self._reader.close()
+            self._reader = None
 
 
 def masked_crc32c(data):
