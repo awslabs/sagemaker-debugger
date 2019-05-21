@@ -57,6 +57,3 @@ class FileReader():
 
     def __del__(self):
         self._reader.__del__()
-
-    def name(self):
-        return self._reader.name()

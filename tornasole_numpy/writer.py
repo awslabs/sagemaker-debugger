@@ -41,7 +41,7 @@ class FileWriter():
         if wtype == 'tfevent':
             self._writer = EventFileWriter(logdir, max_queue, flush_secs, filename_suffix, verbose)
         else:
-            assert False
+            assert False, 'Writer type not supported: {}'.format(wtype)
         
 
     def __enter__(self):
@@ -52,7 +52,7 @@ class FileWriter():
         """Make usable with "with" statement."""
         self.close()
 
-    def add_tensor(self, a, trial, step, tensor, worker):
+    def write_tensor(self, a, trial, step, tensor, worker):
         self._writer.add_tensor(a, trial, step, tensor, worker)
 
     def flush(self):

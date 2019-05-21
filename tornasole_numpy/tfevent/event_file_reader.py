@@ -67,16 +67,15 @@ class EventsReader(object):
     def __del__(self):
         self._tfrecord_reader.__del__()
 
-    def has_data(self):
-        return self._tfrecord_reader.has_data()
+    #def has_data(self):
+    #    return self._tfrecord_reader.has_data()
 
-    def read_event(self):
-        if not self._tfrecord_reader.has_data():
-            return None
-        rec = self._tfrecord_reader.read_record()
-        event = Event()
-        event.ParseFromString(rec)
-        return event
+    def read_events(self):
+        while self._tfrecord_reader.has_data():
+            rec = self._tfrecord_reader.read_record()
+            event = Event()
+            event.ParseFromString(rec)
+            yield event
         
 
 
@@ -104,26 +103,19 @@ class EventFileReader():
         self._ev_reader.__del__()
 
     def read_tensors(self):
-        summary = self.read_summary()
-        if summary is None:
-            return None
-        res = []
-        for v in summary.value:
-            assert v.WhichOneof('value') == 'tensor'
-            tensor_name = v.tag
-            
-            # We have found the right tensor at the right step
-            tensor_data = get_tensor_data(v.tensor)
-            res.append((tensor_name, tensor_data))
-        return res
+        for summ in self.read_summaries():
+            for v in summ.value:
+                assert v.WhichOneof('value') == 'tensor'
+                tensor_name = v.tag
+                # We have found the right tensor at the right step
+                tensor_data = get_tensor_data(v.tensor)
+                yield (tensor_name, tensor_data)
 
-    def read_summary(self):
-        event = self.read_event()
-        if event is None:
-            return None
-        assert event.HasField('summary')
-        return event.summary
+    def read_summaries(self):
+        for ev in self.read_events():
+            assert ev.HasField('summary')
+            yield ev.summary
 
-    def read_event(self):
-        return self._ev_reader.read_event()
+    def read_events(self):
+        return self._ev_reader.read_events()
 
