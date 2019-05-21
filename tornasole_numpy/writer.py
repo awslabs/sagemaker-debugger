@@ -21,7 +21,10 @@ import time
 from tornasole_numpy.tfevent.event_file_writer import EventFileWriter
 
 class FileWriter():
-    def __init__(self, logdir, wtype='tfevent', max_queue=10, flush_secs=120, filename_suffix='', verbose=True):
+    def __init__(self, logdir, trial=None, step=None, worker=None,
+                    wtype='tfevent', 
+                    max_queue=10, flush_secs=120, 
+                    filename_suffix='', verbose=True):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
  
@@ -38,6 +41,10 @@ class FileWriter():
             verbose : bool
                 Determines whether to print logging messages.
         """
+        self.trial = trial
+        self.step = step
+        self.worker = worker
+
         if wtype == 'tfevent':
             self._writer = EventFileWriter(logdir, max_queue, flush_secs, filename_suffix, verbose)
         else:
@@ -52,8 +59,17 @@ class FileWriter():
         """Make usable with "with" statement."""
         self.close()
 
-    def write_tensor(self, a, trial, step, tensor, worker):
-        self._writer.add_tensor(a, trial, step, tensor, worker)
+    def write_tensor(self, tdata, tname, trial=None, step=None, worker=None):
+        if trial is None:
+            assert self.trial is not None
+            trial = self.trial
+        if step is None:
+            assert self.step is not None
+            step = self.step
+        if worker is None:
+            assert self.worker is not None
+            worker = self.worker
+        self._writer.write_tensor(tdata, tname, trial, step, worker)
 
     def flush(self):
         """Flushes the event file to disk.

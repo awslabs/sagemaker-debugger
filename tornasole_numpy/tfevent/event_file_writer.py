@@ -179,28 +179,28 @@ class EventFileWriter():
             self._worker.start()
             self._closed = False
 
-    def add_graph(self, graph):
+    def write_graph(self, graph):
         """Adds a `Graph` protocol buffer to the event file."""
         event = Event(graph_def=graph.SerializeToString())
-        self.add_event(event)
+        self.write_event(event)
 
 
-    def add_tensor(self, a, trial, step, tensor_name, worker):
+    def write_tensor(self, tdata, tname, trial, step, worker):
         plugin_data = [SummaryMetadata.PluginData(plugin_name='tensor')]
         smd = SummaryMetadata(plugin_data=plugin_data)
-        value = make_numpy_array(a)
-        tag = tensor_name
+        value = make_numpy_array(tdata)
+        tag = tname
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
         s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
-        self.add_summary(s, step)
+        self.write_summary(s, step)
 
-    def add_summary(self, summary, step):
+    def write_summary(self, summary, step):
         event = Event(summary=summary)
         event.wall_time = time.time()
         event.step = step
-        self.add_event(event)
+        self.write_event(event)
 
-    def add_event(self, event):
+    def write_event(self, event):
         """Adds an event to the event file."""
         if not self._closed:
             self._event_queue.put(event)
@@ -217,7 +217,7 @@ class EventFileWriter():
         Call this method when you do not need the summary writer anymore.
         """
         if not self._closed:
-            self.add_event(self._sentinel_event)
+            self.write_event(self._sentinel_event)
             self.flush()
             self._worker.join()
             self._ev_writer.close()
