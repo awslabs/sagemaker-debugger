@@ -25,7 +25,7 @@ import time
 
 from .event_pb2 import Event
 from .summary_pb2 import Summary, SummaryMetadata
-from tornasole_numpy.tfrecord.record_reader import RecordReader
+from tornasole_core.tfrecord.record_reader import RecordReader
 
 logging.basicConfig()
 

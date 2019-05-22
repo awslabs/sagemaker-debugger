@@ -1,6 +1,6 @@
 import numpy as np
-from tornasole_numpy.writer import FileWriter
-from tornasole_numpy.reader import FileReader
+from tornasole_core.writer import FileWriter
+from tornasole_core.reader import FileReader
 
 def test_basic():
     """

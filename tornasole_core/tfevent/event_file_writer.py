@@ -28,7 +28,7 @@ import six
 
 from .event_pb2 import Event
 from .summary_pb2 import Summary, SummaryMetadata
-from tornasole_numpy.tfrecord.record_writer import RecordWriter
+from tornasole_core.tfrecord.record_writer import RecordWriter
 from .util import make_tensor_proto
 
 logging.basicConfig()

@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 def compile_summary_protobuf():
-    proto_path = 'tornasole_numpy/tfevent'
+    proto_path = 'tornasole_core/tfevent'
     proto_files = os.path.join(proto_path, '*.proto')
     cmd = 'protoc ' + proto_files + ' --python_out=.'
     print('compiling protobuf files in {}'.format(proto_path))
@@ -20,14 +20,14 @@ if compile_summary_protobuf() != 0:
     sys.exit(1)
 
 setuptools.setup(
-    name="tornasole_numpy",
+    name="tornasole_core",
     version="0.1",
     author="The Tornasole Team",
     author_email="tornasole@amazon.com",
     description="Tornasole Numpy",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/andreaolgiati/tornasole_numpy",
+    url="https://github.com/andreaolgiati/tornasole_core",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -6,9 +6,9 @@ option java_outer_classname = "TensorProtos";
 option java_multiple_files = true;
 option java_package = "org.tensorflow.framework";
 
-import "tornasole_numpy/tfevent/resource_handle.proto";
-import "tornasole_numpy/tfevent/tensor_shape.proto";
-import "tornasole_numpy/tfevent/types.proto";
+import "tornasole_core/tfevent/resource_handle.proto";
+import "tornasole_core/tfevent/tensor_shape.proto";
+import "tornasole_core/tfevent/types.proto";
 
 // Protocol buffer representing a tensor.
 message TensorProto {

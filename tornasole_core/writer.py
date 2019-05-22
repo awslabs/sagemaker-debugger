@@ -18,10 +18,13 @@
 """APIs for logging data in the event file."""
 
 import time
-from tornasole_numpy.tfevent.event_file_reader import EventFileReader
+from tornasole_core.tfevent.event_file_writer import EventFileWriter
 
-class FileReader():
-    def __init__(self, fname, wtype='tfevent', verbose=True):
+class FileWriter():
+    def __init__(self, logdir, trial=None, step=None, worker=None,
+                    wtype='tfevent', 
+                    max_queue=10, flush_secs=120, 
+                    filename_suffix='', verbose=True):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
  
@@ -38,10 +41,14 @@ class FileReader():
             verbose : bool
                 Determines whether to print logging messages.
         """
+        self.trial = trial
+        self.step = step
+        self.worker = worker
+
         if wtype == 'tfevent':
-            self._reader = EventFileReader(fname=fname, verbose=verbose)
+            self._writer = EventFileWriter(logdir, max_queue, flush_secs, filename_suffix, verbose)
         else:
-            assert False
+            assert False, 'Writer type not supported: {}'.format(wtype)
         
 
     def __enter__(self):
@@ -50,10 +57,39 @@ class FileReader():
 
     def __exit__(self, unused_type, unused_value, unused_traceback):
         """Make usable with "with" statement."""
-        self.__del__()
+        self.close()
 
-    def read_tensors(self):
-        return self._reader.read_tensors()
+    def write_tensor(self, tdata, tname, trial=None, step=None, worker=None):
+        if trial is None:
+            assert self.trial is not None
+            trial = self.trial
+        if step is None:
+            assert self.step is not None
+            step = self.step
+        if worker is None:
+            assert self.worker is not None
+            worker = self.worker
+        self._writer.write_tensor(tdata, tname, trial, step, worker)
 
-    def __del__(self):
-        self._reader.__del__()
+    def flush(self):
+        """Flushes the event file to disk.
+        Call this method to make sure that all pending events have been written to disk.
+        """
+        self._writer.flush()
+
+    def close(self):
+        """Flushes the event file to disk and close the file.
+        Call this method when you do not need the summary writer anymore.
+        """
+        self._writer.close()
+
+    def reopen(self):
+        """Reopens the EventFileWriter.
+        Can be called after `close()` to add more events in the same directory.
+        The events will go into a new events file. Does nothing if the EventFileWriter
+        was not closed.
+        """
+        self._writer.reopen()
+
+    def name(self):
+        return self._writer.name()
