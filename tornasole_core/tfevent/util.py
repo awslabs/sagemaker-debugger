@@ -30,7 +30,6 @@ def _get_proto_dtype(npdtype):
 
 def make_tensor_proto(nparray_data, tag):
     dimensions = [TensorShapeProto.Dim(size=d, name="{0}_{1}".format(tag, d)) for d in nparray_data.shape]
-    print("TP=",nparray_data.dtype)
     tensor_proto = TensorProto(dtype=_get_proto_dtype(nparray_data.dtype),
                                tensor_content=nparray_data.tostring(),
                                tensor_shape=TensorShapeProto(dim=dimensions))

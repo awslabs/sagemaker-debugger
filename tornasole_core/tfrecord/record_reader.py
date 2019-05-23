@@ -17,8 +17,12 @@
 
 import struct
 from ._crc32c import crc32c
+from tornasole_core.access_layer.base import TSAccessFile
+from tornasole_core.access_layer.s3 import TSAccessS3
+from tornasole_core.tfrecord.util import is_s3
 
-class RecordReader(object):
+
+class RecordReader:
     """Read records in the following format for a single record event_str:
     uint64 len(event_str)
     uint32 masked crc of len(event_str)
@@ -31,21 +35,27 @@ class RecordReader(object):
     In TensorFlow, _dest is a object instance of ZlibOutputBuffer (C++) which has its own flush
     and close mechanism defined."""
     def __init__(self, path):
-        self._reader = None
+        s3, bucket_name, key_name = is_s3(path)
         try:
-            self._reader = open(path, 'rb')
+            if s3:
+                self._reader = TSAccessS3(bucket_name, key_name)
+            else:
+                self._reader = TSAccessFile(path, 'rb')
         except (OSError, IOError) as err:
-            raise ValueError('failed to open file {}: {}'.format(path, str(err)))
+            raise ValueError('failed to open {}: {}'.format(path, str(err)))
+        except:
+            raise
+        self._reader.ingest_all()
 
     def __del__(self):
         self.close()
 
     def has_data(self):
-        readdata = self._reader.read(1)
-        if readdata == b'':
-            return False
-        self._reader.seek(-1,1)
-        return True
+        has = self._reader.has_data()
+        print("HASDATA=", has)
+        return has
+
+        
 
     def read_record(self):
         strlen_bytes = self._reader.read(8)
