@@ -52,22 +52,24 @@ class RecordReader:
 
     def has_data(self):
         has = self._reader.has_data()
-        print("HASDATA=", has)
+        #print("HASDATA=", has)
         return has
 
         
 
-    def read_record(self):
+    def read_record(self, check=True):
         strlen_bytes = self._reader.read(8)
         strlen = struct.unpack('Q', strlen_bytes)[0]
         saved_len_crc = struct.unpack('I', self._reader.read(4))[0]
-        computed_len_crc = masked_crc32c(strlen_bytes)
-        assert saved_len_crc == computed_len_crc
+        if check:
+            computed_len_crc = masked_crc32c(strlen_bytes)
+            assert saved_len_crc == computed_len_crc
         #print( f'Payload_Len={strlen} LENCRC={saved_len_crc},{computed_len_crc}')
         payload = self._reader.read(strlen)
         saved_payload_crc = struct.unpack('I', self._reader.read(4))[0]
-        computed_payload_crc = masked_crc32c(payload)
-        assert saved_payload_crc == computed_payload_crc
+        if check:
+            computed_payload_crc = masked_crc32c(payload)
+            assert saved_payload_crc == computed_payload_crc
         #print( f'Payload_CRC={saved_payload_crc},{computed_payload_crc}')
         return payload
 

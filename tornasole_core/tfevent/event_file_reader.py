@@ -17,6 +17,7 @@
 
 """Reads events from disk."""
 
+import tornasole_core.tfevent.types_pb2 as types_pb2
 import logging
 import numpy as np
 import os.path
@@ -25,23 +26,47 @@ import time
 
 from .event_pb2 import Event
 from .summary_pb2 import Summary, SummaryMetadata
+
 from tornasole_core.tfrecord.record_reader import RecordReader
 
 logging.basicConfig()
 
+def as_dtype(t):
+    _INTERN_TABLE = {
+        types_pb2.DT_HALF: np.float16,
+        types_pb2.DT_FLOAT: np.float32,
+        types_pb2.DT_DOUBLE: np.float64,
+        types_pb2.DT_INT32: np.int32,
+        types_pb2.DT_INT64: np.int64,
+        types_pb2.DT_STRING: np.str,
+        types_pb2.DT_BOOL: np.bool
+    }
+    return _INTERN_TABLE[t]
+
+
+
 def get_tensor_data(tensor):
     shape = [d.size for d in tensor.tensor_shape.dim]
     # num_elements = np.prod(shape, dtype=np.int64)
-    #tensor_dtype = dtypes.as_dtype(tensor.dtype)
+    dtype = as_dtype(tensor.dtype)
     #dtype = tensor_dtype.as_numpy_dtype
-    dtype = np.float32
+    #dtype = np.float32
+    #print("FOO=", tensor)
+    #print("FOOTYPE=", tensor.dtype)
     if tensor.tensor_content:
         return (np.frombuffer(tensor.tensor_content, dtype=dtype).copy().reshape(shape))
     elif dtype == np.int32:
-        assert len(tensor.int_val) > 0
-        return np.int32(tensor.int_val)
+        if len(tensor.int_val) > 0:
+            return np.int32(tensor.int_val)
+        else:
+            return None
+    elif dtype == np.int64:
+        if len(tensor.int64_val) > 0:
+            return np.int64(tensor.int64_val)
+        else:
+            return None
     elif dtype == np.float32:
-        assert len(tensor.float_val) > 0
+        assert len(tensor.float_val) > 0, tensor    
         return np.float32(tensor.float_val)
     elif dtype == np.bool:
         assert len(tensor.bool_val) > 0
@@ -70,9 +95,9 @@ class EventsReader(object):
     #def has_data(self):
     #    return self._tfrecord_reader.has_data()
 
-    def read_events(self):
+    def read_events(self, check=True):
         while self._tfrecord_reader.has_data():
-            rec = self._tfrecord_reader.read_record()
+            rec = self._tfrecord_reader.read_record(check=check)
             event = Event()
             event.ParseFromString(rec)
             yield event
@@ -102,20 +127,26 @@ class EventFileReader():
     def __del__(self):
         self._ev_reader.__del__()
 
-    def read_tensors(self):
-        for summ in self.read_summaries():
+    def read_tensors(self, read_data=False, check=False):
+        for (step,summ) in self.read_summaries(check=check):
             for v in summ.value:
                 assert v.WhichOneof('value') == 'tensor'
                 tensor_name = v.tag
                 # We have found the right tensor at the right step
-                tensor_data = get_tensor_data(v.tensor)
-                yield (tensor_name, tensor_data)
+                if read_data:
+                    tensor_data = get_tensor_data(v.tensor)
+                else:
+                    tensor_data = None
+                yield (tensor_name, step, tensor_data)
 
-    def read_summaries(self):
-        for ev in self.read_events():
+    def read_summaries(self, check=True):
+        for ev in self.read_events(check=check):
+            #assert ev.HasField('step')
+            if not ev.HasField('summary'):
+                continue
             assert ev.HasField('summary')
-            yield ev.summary
+            yield (ev.step, ev.summary)
 
-    def read_events(self):
-        return self._ev_reader.read_events()
+    def read_events(self,check=True):
+        return self._ev_reader.read_events(check=check)
 

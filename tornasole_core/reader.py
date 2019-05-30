@@ -43,7 +43,6 @@ class FileReader():
         else:
             assert False
         
-
     def __enter__(self):
         """Make usable with "with" statement."""
         return self
@@ -52,8 +51,8 @@ class FileReader():
         """Make usable with "with" statement."""
         self.__del__()
 
-    def read_tensors(self):
-        return self._reader.read_tensors()
+    def read_tensors(self, read_data=True, check=True):
+        return self._reader.read_tensors(read_data=read_data, check=check)
 
     def __del__(self):
         self._reader.__del__()

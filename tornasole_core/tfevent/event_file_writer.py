@@ -217,7 +217,7 @@ class EventFileWriter():
         Call this method when you do not need the summary writer anymore.
         """
         if not self._closed:
-            print("Emitting sentinel")
+            #print("Emitting sentinel")
             self.write_event(self._sentinel_event)
             self.flush()
             self._worker.join()
@@ -235,7 +235,7 @@ class _EventLoggerThread(threading.Thread):
     def __init__(self, queue, ev_writer, flush_secs, sentinel_event):
         """Creates an _EventLoggerThread."""
         threading.Thread.__init__(self)
-        print( "THREAD")
+        #print( "THREAD")
         self.daemon = True
         self._queue = queue
         self._ev_writer = ev_writer
@@ -248,7 +248,7 @@ class _EventLoggerThread(threading.Thread):
         while True:
             event = self._queue.get()
             if event is self._sentinel_event:
-                print("Retrieving Sentinel")
+                #print("Retrieving Sentinel")
                 self._queue.task_done()
                 break
             try:
@@ -260,5 +260,5 @@ class _EventLoggerThread(threading.Thread):
                     # Do it again in two minutes.
                     self._next_event_flush_time = now + self._flush_secs
             finally:
-                print("FINAL")
+                #print("FINAL")
                 self._queue.task_done()

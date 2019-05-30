@@ -30,7 +30,6 @@ class TSAccessFile(TSAccessBase):
         self._accessor = open(path, mode)
 
     def write(self, _str):
-        print( "writing", len(_str))
         self._accessor.write(_str)
 
     def flush(self):
@@ -43,10 +42,10 @@ class TSAccessFile(TSAccessBase):
         self._data = self._accessor.read()
         self._datalen = len(self._data)
         self._position = 0
-        print( "Ingesting All", self._datalen)
+        #print( "Ingesting All", self._datalen)
     
     def read(self,n):
-        print( f'Pos={self._position}, N={n}, DataLen={self._datalen}')
+        #print( f'Pos={self._position}, N={n}, DataLen={self._datalen}')
         assert self._position+n <= self._datalen
         res = self._data[self._position:self._position+n]
         self._position += n

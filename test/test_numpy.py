@@ -16,9 +16,12 @@ def rw(path):
             fw.write_tensor(tdata=data, tname=f'foo_{i}')
 
     fr = FileReader(fname=fname)
-    for i,ts in enumerate(fr.read_tensors()):
+    for i,ts in enumerate(fr.read_tensors(read_data=True)):
+        """
+        read_data returns name, step and data (if read_data==True)
+        """
         print(i,ts)
-        assert np.all(ts[1]==i)
+        assert np.all(ts[2]==i)
     pass
 
 #@pytest.mark.skip(reason="Local")
