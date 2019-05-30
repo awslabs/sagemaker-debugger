@@ -7,8 +7,6 @@ class TSAccessS3(TSAccessBase):
         self.bucket_name = bucket_name
         self.key_name = key_name
         print( "connect")
-        self.s3_connection = boto.connect_s3(aws_access_key_id=aws_access_key_id, 
-                                             aws_secret_access_key=aws_secret_access_key)
         self.data = bytearray()
         self.flushed = False
 
@@ -25,14 +23,9 @@ class TSAccessS3(TSAccessBase):
             return
         
         print(f'Writing to {self.key_name}, bytes={len(self.data)}')
-        if False:
-            self.bucket = self.s3_connection.get_bucket(self.bucket_name)
-            self.key = boto.s3.key.Key(self.bucket, self.key_name) 
-            self.key.set_contents_from_string(self.data)
-        else:
-            s3 = boto3.resource('s3')
-            key = s3.Object(self.bucket_name, self.key_name)
-            key.put(Body=self.data)
+        s3 = boto3.resource('s3')
+        key = s3.Object(self.bucket_name, self.key_name)
+        key.put(Body=self.data)
 
         self.data = bytearray()
         self.flushed = True
