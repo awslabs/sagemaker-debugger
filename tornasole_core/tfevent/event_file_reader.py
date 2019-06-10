@@ -48,6 +48,15 @@ def as_dtype(t):
 def get_tensor_data(tensor):
     shape = [d.size for d in tensor.tensor_shape.dim]
     # num_elements = np.prod(shape, dtype=np.int64)
+    if tensor.dtype == 0 and tensor.string_val:
+        assert len(shape)==1
+        res = []
+        for i in range(shape[0]):
+            r = tensor.string_val[i]
+            r = r.decode('utf-8')
+            res.append(r)
+        return res
+
     dtype = as_dtype(tensor.dtype)
     #dtype = tensor_dtype.as_numpy_dtype
     #dtype = np.float32
@@ -89,8 +98,8 @@ class EventsReader(object):
         self._logger = logging.getLogger(__name__)
         self._logger.setLevel(logging.INFO)
 
-    def __del__(self):
-        self._tfrecord_reader.__del__()
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._tfrecord_reader.__exit__(exc_type, exc_value, traceback)
 
     #def has_data(self):
     #    return self._tfrecord_reader.has_data()
@@ -124,8 +133,8 @@ class EventFileReader():
         self._filename = fname
         self._ev_reader = EventsReader(self._filename, verbose=verbose)
 
-    def __del__(self):
-        self._ev_reader.__del__()
+    def __exit__(self,exc_type, exc_value, traceback):
+        self._ev_reader.__exit__(exc_type, exc_value, traceback)
 
     def read_tensors(self, read_data=False, check=False):
         for (step,summ) in self.read_summaries(check=check):

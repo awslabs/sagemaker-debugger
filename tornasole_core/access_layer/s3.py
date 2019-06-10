@@ -57,3 +57,9 @@ class TSAccessS3(TSAccessBase):
 
     def has_data(self):
         return self._position < self._datalen
+
+    def __enter__(self):
+        return self
+
+    def __exit(self, exc_type, exc_value, traceback):
+        self.close()

@@ -22,15 +22,25 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
 }
 
 def _get_proto_dtype(npdtype):
+    if npdtype.kind == 'U':
+        return (False, "DT_STRING")
     if npdtype == np.float64:
-        return "DT_DOUBLE"
+        return (True, "DT_DOUBLE")
     if npdtype == np.float32:
-        return "DT_FLOAT"
-    return _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype]
+        return (True, "DT_FLOAT")
+    return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
 
 def make_tensor_proto(nparray_data, tag):
+    (isnum, dtype) = _get_proto_dtype(nparray_data.dtype)
     dimensions = [TensorShapeProto.Dim(size=d, name="{0}_{1}".format(tag, d)) for d in nparray_data.shape]
-    tensor_proto = TensorProto(dtype=_get_proto_dtype(nparray_data.dtype),
-                               tensor_content=nparray_data.tostring(),
-                               tensor_shape=TensorShapeProto(dim=dimensions))
+    tps = TensorShapeProto(dim=dimensions)
+    if isnum:
+        tensor_proto = TensorProto(dtype=dtype,
+                                   tensor_content=nparray_data.tostring(),
+                                   tensor_shape=TensorShapeProto(dim=dimensions))
+    else:
+        tensor_proto = TensorProto(tensor_shape=tps)
+        for s in nparray_data:
+            sb = bytes(s,encoding='utf-8')
+            tensor_proto.string_val.append(sb)
     return tensor_proto

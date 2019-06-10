@@ -47,12 +47,12 @@ class FileReader():
         """Make usable with "with" statement."""
         return self
 
-    def __exit__(self, unused_type, unused_value, unused_traceback):
+    def __exit__(self, exc_type, exc_value, traceback):
         """Make usable with "with" statement."""
-        self.__del__()
+        self.__exit__(exc_type, exc_value, traceback)
 
     def read_tensors(self, read_data=True, check=True):
         return self._reader.read_tensors(read_data=read_data, check=check)
 
-    def __del__(self):
-        self._reader.__del__()
+    #def __del__(self):
+    #    self._reader.__del__()

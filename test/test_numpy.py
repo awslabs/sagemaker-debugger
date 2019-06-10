@@ -41,3 +41,16 @@ def test_s3():
     print("Saving to Location")
     rw(location)
 
+#@pytest.mark.skip(reason="No string support")
+def test_string():
+    with FileWriter(logdir="./ts_output", trial='my_trial', step=20, worker='algo-1') as fw:
+        fname = fw.name()
+        print( f'Saving string data in {fname}')
+        s_written = np.array(['foo', 'barz'])
+        fw.write_tensor(tdata=s_written, tname=f'foo_string')
+
+    fr = FileReader(fname=fname)
+    read = list(fr.read_tensors(read_data=True))
+    assert len(read)==1
+    s_read = np.array(read[0][2])
+    assert np.all(s_written == s_read)

@@ -47,7 +47,7 @@ class RecordReader:
             raise
         self._reader.ingest_all()
 
-    def __del__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
     def has_data(self):
@@ -78,7 +78,8 @@ class RecordReader:
         pass
 
     def close(self):
-        """Closes the record writer."""
+        """Closes the record reader."""
+        print( "Closing READER", self)
         if self._reader is not None:
             self._reader.close()
             self._reader = None
