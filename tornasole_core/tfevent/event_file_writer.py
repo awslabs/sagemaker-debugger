@@ -23,6 +23,7 @@ import os.path
 import socket
 import threading
 import time
+import uuid
 
 import six
 
@@ -75,8 +76,8 @@ class EventsWriter(object):
     def _init_if_needed(self):
         if self.tfrecord_writer is not None:
             return
-        self._filename = self._file_prefix + ".out.tfevents." + str(time.time())[:10]\
-                         + "." + socket.gethostname() + self._file_suffix
+        self._filename = self._file_prefix + ".out._tfevents." + str(time.time())[:10]\
+                         + "." + str(uuid.uuid4()) + "." + socket.gethostname() + self._file_suffix
         self.tfrecord_writer = RecordWriter(self._filename)
         if self._logger is not None:
                 ('successfully opened events file: %s', self._filename)

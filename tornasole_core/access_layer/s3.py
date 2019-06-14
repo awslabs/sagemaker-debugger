@@ -1,11 +1,13 @@
 import boto
 import boto3
+import re
 from tornasole_core.access_layer.base import TSAccessBase
 
 class TSAccessS3(TSAccessBase):
     def __init__(self, bucket_name, key_name, aws_access_key_id=None, aws_secret_access_key=None):
         self.bucket_name = bucket_name
-        self.key_name = key_name
+        # S3 is not like a Unix file system where multiple slashes are normalized to one
+        self.key_name = re.sub('/+', '/', key_name )
         self.s3_connection = boto.connect_s3(aws_access_key_id=aws_access_key_id, 
                                              aws_secret_access_key=aws_secret_access_key)
         self.data = bytearray()

@@ -28,6 +28,10 @@ def _get_proto_dtype(npdtype):
         return (True, "DT_DOUBLE")
     if npdtype == np.float32:
         return (True, "DT_FLOAT")
+    if npdtype == np.int32:
+        return (True, "DT_INT32")
+    if npdtype == np.int64:
+        return (True, "DT_INT64")
     return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
 
 def make_tensor_proto(nparray_data, tag):
