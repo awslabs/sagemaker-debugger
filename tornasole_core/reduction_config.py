@@ -1,5 +1,5 @@
-ALLOWED_REDUCTIONS=['min','max','median','mean','std','var','sum','prod']
-ALLOWED_NORMS=['l1','l2', 'euclidian']
+ALLOWED_REDUCTIONS=['min','max','mean','std','variance','sum','prod']
+ALLOWED_NORMS=['l1','l2', 'euclidean']
 REDUCTION_CONFIG_VERSION_NUM = 'v0'
 
 class ReductionConfig:
