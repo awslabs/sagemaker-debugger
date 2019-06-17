@@ -21,8 +21,7 @@ class SaveConfig:
     save at all the steps given in this list.
     if this is given, it ignores the save_interval
 
-  #todo: evaluate if it can only be str
-  when_nan: list (tensor or str (tf) / block (gluon))
+  when_nan: list of str representing name of tensor
     saves whenever any of the tensors in this list become nan.
     overrides all the others for now.
   """
@@ -68,3 +67,14 @@ class SaveConfig:
            self.save_steps == other.save_steps and \
            self.skip_num_steps == other.skip_num_steps and \
            self.when_nan == other.when_nan
+
+  def should_save_step(self, step_num):
+    rval = {'step': False, 'when_nan': False}
+    if self.save_steps and self.step in self.save_steps:
+      rval['step'] = True
+    elif step_num >= self.skip_num_steps and step_num % self.save_interval == 0:
+      rval['step'] = True
+    elif self.when_nan:
+      rval['when_nan'] = True
+    return rval
+
