@@ -30,7 +30,10 @@ class TSAccessFile(TSAccessBase):
         self._accessor = open(path, mode)
 
     def write(self, _str):
+        start = self._accessor.tell()
         self._accessor.write(_str)
+        end = self._accessor.tell()
+        return [start, end]
 
     def flush(self):
         self._accessor.flush()

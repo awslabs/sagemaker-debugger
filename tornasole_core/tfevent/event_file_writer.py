@@ -31,7 +31,9 @@ from .event_pb2 import Event
 from .summary_pb2 import Summary, SummaryMetadata
 from tornasole_core.tfrecord.record_writer import RecordWriter
 from .util import make_tensor_proto
-
+from tornasole_core.access_layer.base import TSAccessFile
+from tornasole_core.access_layer.s3 import TSAccessS3
+from tornasole_core.tfrecord.util import is_s3
 logging.basicConfig()
 
 def size_and_shape( t ):
@@ -51,6 +53,55 @@ def make_numpy_array( x ):
                             ' while received type {}'.format(str(type(x))))
 
 
+class IndexWriter(object):
+
+    def __init__(self, filepath):
+        self.start = 0
+        self.filepath = filepath
+        self.writer = None
+
+    def __del__(self):
+        self.close()
+
+    def add_index(self, tensorname, start, end):
+        if self.writer == None:
+            s3, bucket_name, key_name = is_s3(self.filepath)
+            if s3:
+                self.writer = TSAccessS3(bucket_name, key_name)
+            if not s3:
+
+                self.writer = TSAccessFile(self.filepath, 'a+')
+
+        self.start = start
+        self.writer.write(str(tensorname) + "," + str(self.start) + "," + str(end) + "\n")
+
+
+
+    def flush(self):
+        """Flushes the event string to file."""
+        assert self.writer is not None
+        self._writer.flush()
+
+    def close(self):
+        """Closes the record writer."""
+        if self._writer is not None:
+            self.flush()
+            self._writer.close()
+            self._writer = None
+
+
+class IndexArgs(object):
+    def __init__(self, event, tensorname):
+        self.event = event
+        self.tensorname = tensorname
+
+    def get_event(self):
+        return self.event
+
+    def get_tensorname(self):
+        return self.tensorname
+
+
 class EventsWriter(object):
     """Writes `Event` protocol buffers to an event file. This class is ported from
     EventsWriter defined in
@@ -66,6 +117,8 @@ class EventsWriter(object):
         self.tfrecord_writer = None
         self._num_outstanding_events = 0
         self._logger = None
+        file_path = file_prefix.replace('/events', '')
+        self.indexwriter = IndexWriter(file_path + "/index.csv")
         if verbose:
             self._logger = logging.getLogger(__name__)
             self._logger.setLevel(logging.INFO)
@@ -103,7 +156,8 @@ class EventsWriter(object):
         if self.tfrecord_writer is None:
             self._init_if_needed()
         self._num_outstanding_events += 1
-        self.tfrecord_writer.write_record(event_str)
+        length = self.tfrecord_writer.write_record(event_str)
+        return length
 
     def flush(self):
         """Flushes the event file to disk."""
@@ -193,7 +247,13 @@ class EventFileWriter():
         tag = tname
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
         s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
-        self.write_summary(s, step)
+        self.write_summary(s, step,tag)
+
+    def write_summary(self, summary, step, tname):
+        event = Event(summary=summary)
+        event.wall_time = time.time()
+        event.step = step
+        return self.write_event(IndexArgs(event, tname))
 
     def write_summary(self, summary, step):
         event = Event(summary=summary)
@@ -247,13 +307,21 @@ class _EventLoggerThread(threading.Thread):
 
     def run(self):
         while True:
-            event = self._queue.get()
+            obj = self._queue.get()
+            if isinstance(obj, IndexArgs):
+                event = obj.get_event()
+            else:
+                event = obj
             if event is self._sentinel_event:
                 #print("Retrieving Sentinel")
                 self._queue.task_done()
                 break
             try:
-                self._ev_writer.write_event(event)
+                value = self._ev_writer.write_event(event)
+                if isinstance(obj, IndexArgs):
+
+                       self._ev_writer.indexwriter.add_index(obj.tensorname, value[0], value[1])
+
                 # Flush the event writer every so often.
                 now = time.time()
                 if now > self._next_event_flush_time:
