@@ -17,7 +17,7 @@
 
 import struct
 from ._crc32c import crc32c
-from tornasole_core.access_layer.base import TSAccessFile
+from tornasole_core.access_layer.file import TSAccessFile
 from tornasole_core.access_layer.s3 import TSAccessS3
 from tornasole_core.tfrecord.util import is_s3
 
