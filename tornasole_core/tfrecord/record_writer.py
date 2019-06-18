@@ -53,8 +53,7 @@ class RecordWriter:
         header = struct.pack('Q', len(event_str))
         header += struct.pack('I', masked_crc32c(header))
         footer = struct.pack('I', masked_crc32c(event_str))
-        length = self._writer.write(header + event_str + footer)
-        return length
+        self._writer.write(header + event_str + footer)
 
     def flush(self):
         """Flushes the event string to file."""

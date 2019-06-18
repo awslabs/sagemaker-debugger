@@ -12,18 +12,13 @@ class TSAccessS3(TSAccessBase):
                                              aws_secret_access_key=aws_secret_access_key)
         self.data = bytearray()
         self.flushed = False
-        self.start = 0
-        self.end = 0
 
     def open(self,bucket_name,mode):
         raise NotImplementedError
 
     def write(self, _data):
         #print( "Adding data:", len(_data))
-        self.start = len(self.data)
         self.data += _data
-        self.end=len(self.data)
-        return [self.start, self.end]
         #print( "Current buffer size:", len(self.data))
 
     def close(self):
