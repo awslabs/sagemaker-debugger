@@ -36,5 +36,5 @@ setuptools.setup(
     ],
     install_requires = ['boto'],
     setup_requires=["pytest-runner"],
-    tests_require=["pytest"],
+    tests_require=["pytest", "tensorflow"],
 )
