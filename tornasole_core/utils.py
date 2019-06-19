@@ -40,11 +40,9 @@ def get_logger(path=os.getcwd()):
   # logger.propagate = False
   return logger
 
-
 def get_immediate_subdirectories(a_dir):
   return [name for name in os.listdir(a_dir)
           if os.path.isdir(os.path.join(a_dir, name))]
-
 
 def get_reduction_tensor_name(tensorname, reduction_name, abs):
     tname = re.sub(r':\d+', '', f'{reduction_name}/{tensorname}')
@@ -52,3 +50,9 @@ def get_reduction_tensor_name(tensorname, reduction_name, abs):
         tname = 'abs_' + tname
     tname = "tornasole/reductions/" + tname
     return tname
+
+def is_s3(path):
+    m = re.match(r's3://([^/]+)/(.*)', path)
+    if not m:
+        return (False, None, None)
+    return (True, m[1], m[2])

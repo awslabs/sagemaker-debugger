@@ -21,7 +21,7 @@ import struct
 from ._crc32c import crc32c
 from tornasole_core.access_layer.file import TSAccessFile
 from tornasole_core.access_layer.s3 import TSAccessS3
-from tornasole_core.tfrecord.util import is_s3
+from tornasole_core.utils import is_s3
 
 class RecordWriter:
     """Write records in the following format for a single record event_str:
