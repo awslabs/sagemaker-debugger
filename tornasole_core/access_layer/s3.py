@@ -5,6 +5,7 @@ from tornasole_core.access_layer.base import TSAccessBase
 
 class TSAccessS3(TSAccessBase):
     def __init__(self, bucket_name, key_name, aws_access_key_id=None, aws_secret_access_key=None):
+        super().__init__()
         self.bucket_name = bucket_name
         # S3 is not like a Unix file system where multiple slashes are normalized to one
         self.key_name = re.sub('/+', '/', key_name )

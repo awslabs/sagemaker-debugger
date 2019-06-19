@@ -41,6 +41,15 @@ class CollectionManager:
         line = f.readline()
     return cm
 
+  @staticmethod
+  def load_from_string(s):
+    cm = CollectionManager(create_default=False)
+    lines = s.split('\n')
+    for line in lines:
+      c = Collection.load(line.rstrip())
+      cm.add(c)
+    return cm
+
   def __eq__(self, other):
     if not isinstance(other, CollectionManager):
       return NotImplemented

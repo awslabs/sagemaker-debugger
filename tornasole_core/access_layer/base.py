@@ -1,7 +1,9 @@
 import os
+from tornasole_core.utils import get_logger
 
 class TSAccessBase:
     def __init__(self):
+        self.logger = get_logger()
         pass
 
     def open(self):
