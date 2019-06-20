@@ -77,12 +77,9 @@ class Collection:
   def exclude(self, t):
     self.exclude_regex.append(t)
 
-  def add_name(self, s):
-    self.tensor_names.append(s)
-
   def add_tensor(self, t):
     if t.name not in self.tensor_names:
-      self.add_name(t.name)
+      self.tensor_names.append(t.name)
       self.tensors.append(t)
 
   def remove_tensor(self, t):
