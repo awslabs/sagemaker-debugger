@@ -29,6 +29,7 @@ from .summary_pb2 import Summary, SummaryMetadata
 
 from tornasole_core.tfrecord.record_reader import RecordReader
 
+#todo: remove this logger perhaps
 logging.basicConfig()
 
 def as_dtype(t):
