@@ -72,10 +72,20 @@ class Collection:
     return self.include_regex
 
   def include(self, t):
-    self.include_regex.append(t)
+    if isinstance(t, list):
+      self.include_regex.extend(t)
+    elif isinstance(t, str):
+      self.include_regex.append(t)
+    else:
+      raise TypeError("Can only include str or list")
 
   def exclude(self, t):
-    self.exclude_regex.append(t)
+    if isinstance(t, list):
+      self.exclude_regex.extend(t)
+    elif isinstance(t, str):
+      self.exclude_regex.append(t)
+    else:
+      raise TypeError("Can only include str or list")
 
   def add_tensor(self, t):
     if t.name not in self.tensor_names:
