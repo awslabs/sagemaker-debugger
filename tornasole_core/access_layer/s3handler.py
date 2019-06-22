@@ -13,7 +13,7 @@ class ReadObjectRequest:
         if not self.is_s3:
             self.path = path
             self.bucket = None
-        assert start >= 0
+        assert start >= 0 and (start == 0 or length is not None)
         self.start = start
         self.length = length
         self.download_entire_file = (self.start == 0 and self.length is None)
