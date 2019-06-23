@@ -1,6 +1,12 @@
 import os
 import re
 import logging
+import struct
+from tornasole_core.tfrecord._crc32c import *
+from tornasole_core.tfevent.event_pb2 import Event
+from tornasole_core.tfevent.event_file_reader import get_tensor_data
+from tornasole_core.tfevent.util import make_tensor_proto
+from tornasole_core.tfevent.summary_pb2 import Summary, SummaryMetadata
 
 def flatten(lis):
   """Given a list, possibly nested to any level, return it flattened."""
@@ -56,3 +62,29 @@ def is_s3(path):
     if not m:
         return (False, None, None)
     return (True, m[1], m[2])
+
+def read_record(data):
+    payload = None
+    strlen_bytes = data[:8]
+    data = data[8:]
+    # will give you payload for the record, which is essentially the event.
+    strlen = struct.unpack('Q', strlen_bytes)[0]
+    saved_len_crc = struct.unpack('I', data[:4])[0]
+    data = data[4:]
+    payload = data[:strlen]
+    data = data[strlen:]
+    saved_payload_crc = struct.unpack('I', data[:4])[0]
+    return payload
+
+def read_tensor_from_record(data):
+    event_str = read_record(data)
+    event = Event()
+    event.ParseFromString(event_str)
+    assert event.HasField('summary')
+    summ = event.summary
+    tensors = []
+    for v in summ.value:    
+        tensor_name = v.tag
+        tensor_data = get_tensor_data(v.tensor)
+        tensors += [tensor_data]
+    return tensors
