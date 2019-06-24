@@ -55,8 +55,6 @@ class RecordReader:
         #print("HASDATA=", has)
         return has
 
-        
-
     def read_record(self, check=True):
         strlen_bytes = self._reader.read(8)
         strlen = struct.unpack('Q', strlen_bytes)[0]

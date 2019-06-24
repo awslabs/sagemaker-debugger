@@ -1,4 +1,6 @@
 from .collection import Collection
+from .access_layer import TSAccessFile, TSAccessS3
+from .utils import is_s3
 
 class CollectionManager:
   """
@@ -26,9 +28,15 @@ class CollectionManager:
     return self.collections[name]
 
   def export(self, filename):
-    with open(filename, 'w') as f:
-      for n,c in self.collections.items():
-        f.write(c.export() + '\n')
+    on_s3, bucket, obj = is_s3(filename)
+    if on_s3:
+      f = TSAccessS3(bucket_name=bucket, key_name=obj, binary=False)
+    else:
+      f = TSAccessFile(filename, 'w')
+
+    for n,c in self.collections.items():
+      f.write(c.export() + '\n')
+    f.close()
 
   @staticmethod
   def load(filename):

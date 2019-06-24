@@ -4,15 +4,24 @@ import re
 from tornasole_core.access_layer.base import TSAccessBase
 
 class TSAccessS3(TSAccessBase):
-    def __init__(self, bucket_name, key_name, aws_access_key_id=None, aws_secret_access_key=None):
+    def __init__(self, bucket_name, key_name,
+                 aws_access_key_id=None, aws_secret_access_key=None,
+                 binary=True):
         super().__init__()
         self.bucket_name = bucket_name
         # S3 is not like a Unix file system where multiple slashes are normalized to one
         self.key_name = re.sub('/+', '/', key_name )
         self.s3_connection = boto.connect_s3(aws_access_key_id=aws_access_key_id, 
                                              aws_secret_access_key=aws_secret_access_key)
-        self.data = bytearray()
+        self.binary = binary
+        self._init_data()
         self.flushed = False
+
+    def _init_data(self):
+        if self.binary:
+            self.data = bytearray()
+        else:
+            self.data = ''
 
     def open(self,bucket_name,mode):
         raise NotImplementedError
@@ -36,7 +45,7 @@ class TSAccessS3(TSAccessBase):
             key = s3.Object(self.bucket_name, self.key_name)
             key.put(Body=self.data)
 
-        self.data = bytearray()
+        self._init_data()
         self.flushed = True
         pass
 
