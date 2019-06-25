@@ -5,7 +5,7 @@ import numpy as np
 # hash value of ndarray.dtype is not the same as np.float class
 # so we need to convert the type classes below to np.dtype object
 _NP_DATATYPE_TO_PROTO_DATATYPE = {
-    np.dtype(np.float16): "DT_FLOAT16",
+    np.dtype(np.float16): "DT_INT32",
     np.dtype(np.float32):"DT_FLOAT",
     np.dtype(np.float64):"DT_DOUBLE",
     np.dtype(np.int32):"DT_INT32",
@@ -33,7 +33,7 @@ def make_tensor_proto(nparray_data, tag):
     if isnum:
         tensor_proto = TensorProto(dtype=dtype,
                                    tensor_content=nparray_data.tostring(),
-                                   tensor_shape=TensorShapeProto(dim=dimensions))
+                                   tensor_shape=tps)
     else:
         tensor_proto = TensorProto(tensor_shape=tps)
         for s in nparray_data:
