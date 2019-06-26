@@ -16,13 +16,6 @@ class TSAccessS3(TSAccessBase):
         self.binary = binary
         self._init_data()
         self.flushed = False
-        self.current_len=0
-
-    def _init_data(self):
-        if self.binary:
-            self.data = bytearray()
-        else:
-            self.data = ''
 
     def _init_data(self):
         if self.binary:
@@ -33,13 +26,10 @@ class TSAccessS3(TSAccessBase):
     def open(self,bucket_name,mode):
         raise NotImplementedError
 
-    
     def write(self, _data):
-        start = self.current_len
+        #print( "Adding data:", len(_data))
         self.data += _data
-        length = len(_data)
-        self.current_len = self.current_len + length
-        return [start, length]
+        #print( "Current buffer size:", len(self.data))
 
     def close(self):
         if self.flushed:
@@ -85,4 +75,3 @@ class TSAccessS3(TSAccessBase):
 
     def __exit(self, exc_type, exc_value, traceback):
         self.close()
-
