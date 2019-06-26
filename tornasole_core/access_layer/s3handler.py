@@ -73,8 +73,9 @@ class S3Handler:
         async for page in page_iterator:
             if delimiter:
                 try:
-                    for pre in page['CommonPrefixes']:
-                        keys += [pre['Prefix']]
+                    if 'CommonPrefixes' in page.keys():
+                        for pre in page['CommonPrefixes']:
+                            keys += [pre['Prefix']]
                     if 'Contents' in page.keys():
                         for obj in page['Contents']:
                             keys += [obj['Key']]
@@ -176,4 +177,6 @@ class S3Handler:
         task = self.loop.create_task(self._close_client())
         done = self.loop.run_until_complete(task)
         return done
-
+    
+    def __del__(self):
+        self.close_client()
