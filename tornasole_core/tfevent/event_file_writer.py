@@ -24,22 +24,31 @@ import socket
 import threading
 import time
 import uuid
-
+import os
 import six
 
 from .event_pb2 import Event
 from .summary_pb2 import Summary, SummaryMetadata
 from tornasole_core.tfrecord.record_writer import RecordWriter
 from .util import make_tensor_proto
-
+from tornasole_core.access_layer.file import TSAccessFile
+from tornasole_core.access_layer.s3 import TSAccessS3
+from tornasole_core.utils import is_s3
+from tornasole_core.indexutils import *
 logging.basicConfig()
 
-def size_and_shape( t ):
+
+def size_and_shape(t):
     if type(t) == bytes or type(t) == str:
         return (len(t), [len(t)])
     return (t.nbytes, t.shape)
 
-def make_numpy_array( x ):
+
+def step_parent(step):
+    return step // 1000
+
+
+def make_numpy_array(x):
     if isinstance(x, np.ndarray):
         return x
     elif np.isscalar(x):
@@ -48,24 +57,87 @@ def make_numpy_array( x ):
         return np.asarray(x, dtype=x.dtype)
     else:
         raise TypeError('_make_numpy_array only accepts input types of numpy.ndarray, scalar,'
-                            ' while received type {}'.format(str(type(x))))
+                        ' while received type {}'.format(str(type(x))))
 
+def get_event_key_for_step(run_dir, step_num, worker_name, gpu_rank=0):
+      step_num_str = format(step_num, '016')
+      event_filename = step_num_str+"_"+str(worker_name)+"_"+str(gpu_rank)+".tfevents"
+      event_key = str(run_dir)+"/events/"+str(step_num_str)+"/"+str(event_filename)
+      return event_key
+
+
+class IndexWriter(object):
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.writer = None
+        s3, bucket_name, key_name = is_s3(self.file_path)
+        if s3:
+
+            self.writer = TSAccessS3(bucket_name, key_name,binary=False)
+        else:
+            self.writer = TSAccessFile(self.file_path, 'a+')
+
+    def __del__(self):
+        self.close()
+
+    def add_index(self, tensorlocation):
+        if self.writer is None:
+            s3, bucket_name, key_name = is_s3(self.file_path)
+            if s3:
+                self.writer = TSAccessS3(bucket_name, key_name,binary=False)
+            else:
+                self.writer = TSAccessFile(self.file_path, 'a+')
+
+        self.writer.write(tensorlocation.serialize()+"\n")
+
+    def flush(self):
+        """Flushes the event string to file."""
+        assert self.writer is not None
+        self.writer.flush()
+
+    def close(self):
+        """Closes the record writer."""
+        if self.writer is not None:
+            self.flush()
+            self.writer.close()
+            self.writer = None
+
+
+class IndexArgs(object):
+    def __init__(self, event, tensorname):
+        self.event = event
+        self.tensorname = tensorname
+
+    def get_event(self):
+        return self.event
+
+    def get_tensorname(self):
+        return self.tensorname
 
 class EventsWriter(object):
     """Writes `Event` protocol buffers to an event file. This class is ported from
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
-    def __init__(self, file_prefix, verbose=True):
+
+    def __init__(self, logdir, trial, worker, rank, step, part, verbose=True):
         """
         Events files have a name of the form
         '/file/path/events.out.tfevents.[timestamp].[hostname][file_suffix]'
         """
-        self._file_prefix = file_prefix
-        self._file_suffix = ''
+        self.file_prefix = os.path.join(logdir,trial)
         self._filename = None
         self.tfrecord_writer = None
         self._num_outstanding_events = 0
         self._logger = None
+        self.step = step
+        self.worker = worker
+        self.rank = rank
+
+        if worker is None:
+            self.worker = socket.gethostname()
+
+        self.indexwriter = IndexWriter(IndexUtil.get_index_key_for_step(self.file_prefix, step,self.worker,rank))
         if verbose:
             self._logger = logging.getLogger(__name__)
             self._logger.setLevel(logging.INFO)
@@ -76,15 +148,11 @@ class EventsWriter(object):
     def _init_if_needed(self):
         if self.tfrecord_writer is not None:
             return
-        self._filename = self._file_prefix + ".out._tfevents." + str(time.time())[:10]\
-                         + "." + str(uuid.uuid4()) + "." + socket.gethostname() + self._file_suffix
+
+        self._filename = get_event_key_for_step(self.file_prefix, self.step, self.worker, self.rank)
         self.tfrecord_writer = RecordWriter(self._filename)
         if self._logger is not None:
-                ('successfully opened events file: %s', self._filename)
-        #event = Event()
-        #event.wall_time = time.time()
-        #self.write_event(event)
-        #self.flush()  # flush the first event
+            ('successfully opened events file: %s', self._filename)
 
     def init_with_suffix(self, file_suffix):
         """Initializes the events writer with file_suffix"""
@@ -103,7 +171,8 @@ class EventsWriter(object):
         if self.tfrecord_writer is None:
             self._init_if_needed()
         self._num_outstanding_events += 1
-        self.tfrecord_writer.write_record(event_str)
+        position_and_length_of_record = self.tfrecord_writer.write_record(event_str)
+        return position_and_length_of_record
 
     def flush(self):
         """Flushes the event file to disk."""
@@ -140,7 +209,8 @@ class EventFileWriter():
     is encoded using the tfrecord format, which is similar to RecordIO.
     """
 
-    def __init__(self, logdir, max_queue=10, flush_secs=120, filename_suffix='', verbose=True):
+    def __init__(self, logdir, trial, worker, rank, step, part=0, max_queue=10, flush_secs=120, filename_suffix='',
+                 verbose=True):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
         This event file will contain `Event` protocol buffers, which are written to
@@ -148,20 +218,19 @@ class EventFileWriter():
         The other arguments to the constructor control the asynchronous writes to
         the event file:
         """
+
         self._logdir = logdir
         if not os.path.exists(self._logdir):
             os.makedirs(self._logdir)
         self._event_queue = six.moves.queue.Queue(max_queue)
-        self._ev_writer = EventsWriter(os.path.join(self._logdir, "events"), verbose=verbose)
+        self._ev_writer = EventsWriter(self._logdir, trial, worker, rank, step, part, verbose=verbose)
         self._ev_writer.init_with_suffix(filename_suffix)
         self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()
-        #if filename_suffix is not None:
-        #     self._ev_writer.init_with_suffix(filename_suffix)        
+        self.step = step
         self._closed = False
         self._worker = _EventLoggerThread(self._event_queue, self._ev_writer,
                                           self._flush_secs, self._sentinel_event)
-
         self._worker.start()
 
     def get_logdir(self):
@@ -185,21 +254,26 @@ class EventFileWriter():
         event = Event(graph_def=graph.SerializeToString())
         self.write_event(event)
 
-
-    def write_tensor(self, tdata, tname, trial, step, worker):
+    def write_tensor(self, tdata, tname):
         plugin_data = [SummaryMetadata.PluginData(plugin_name='tensor')]
         smd = SummaryMetadata(plugin_data=plugin_data)
         value = make_numpy_array(tdata)
         tag = tname
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
         s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
-        self.write_summary(s, step)
+        self.write_summary_with_index(s, self.step, tname)
 
     def write_summary(self, summary, step):
         event = Event(summary=summary)
         event.wall_time = time.time()
         event.step = step
         self.write_event(event)
+
+    def write_summary_with_index(self, summary, step, tname):
+        event = Event(summary=summary)
+        event.wall_time = time.time()
+        event.step = step
+        return self.write_event(IndexArgs(event, tname))
 
     def write_event(self, event):
         """Adds an event to the event file."""
@@ -218,10 +292,10 @@ class EventFileWriter():
         Call this method when you do not need the summary writer anymore.
         """
         if not self._closed:
-            #print("Emitting sentinel")
             self.write_event(self._sentinel_event)
             self.flush()
             self._worker.join()
+            self._ev_writer.indexwriter.close()
             self._ev_writer.close()
             self._closed = True
 
@@ -236,7 +310,6 @@ class _EventLoggerThread(threading.Thread):
     def __init__(self, queue, ev_writer, flush_secs, sentinel_event):
         """Creates an _EventLoggerThread."""
         threading.Thread.__init__(self)
-        #print( "THREAD")
         self.daemon = True
         self._queue = queue
         self._ev_writer = ev_writer
@@ -247,13 +320,23 @@ class _EventLoggerThread(threading.Thread):
 
     def run(self):
         while True:
-            event = self._queue.get()
+            event_in_queue = self._queue.get()
+
+            if isinstance(event_in_queue, IndexArgs):
+                # checking whether there is an object of IndexArgs, which is written by write_summary_with_index
+                event = event_in_queue.get_event()
+            else:
+                event = event_in_queue
             if event is self._sentinel_event:
-                #print("Retrieving Sentinel")
                 self._queue.task_done()
                 break
             try:
-                self._ev_writer.write_event(event)
+                positions = self._ev_writer.write_event(event)
+                if isinstance(event_in_queue, IndexArgs):
+                    tname=event_in_queue.tensorname
+                    eventfile=os.path.abspath(self._ev_writer.name())
+                    tensorlocation = TensorLocation(tname,eventfile, positions[0], positions[1])
+                    self._ev_writer.indexwriter.add_index(tensorlocation)
                 # Flush the event writer every so often.
                 now = time.time()
                 if now > self._next_event_flush_time:
@@ -261,5 +344,4 @@ class _EventLoggerThread(threading.Thread):
                     # Do it again in two minutes.
                     self._next_event_flush_time = now + self._flush_secs
             finally:
-                #print("FINAL")
                 self._queue.task_done()

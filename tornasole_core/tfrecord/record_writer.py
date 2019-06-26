@@ -22,6 +22,12 @@ from ._crc32c import crc32c
 from tornasole_core.access_layer.file import TSAccessFile
 from tornasole_core.access_layer.s3 import TSAccessS3
 from tornasole_core.utils import is_s3
+import os
+
+def ensure_dir(file_path):
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
 class RecordWriter:
     """Write records in the following format for a single record event_str:
@@ -35,12 +41,14 @@ class RecordWriter:
     The flush and close mechanism is totally controlled in this class.
     In TensorFlow, _dest is a object instance of ZlibOutputBuffer (C++) which has its own flush
     and close mechanism defined."""
+
     def __init__(self, path):
         s3, bucket_name, key_name = is_s3(path)
         try:
             if s3:
                 self._writer = TSAccessS3(bucket_name, key_name)
             else:
+                ensure_dir(path)
                 self._writer = TSAccessFile(path, 'wb')
         except (OSError, IOError) as err:
             raise ValueError('failed to open {}: {}'.format(path, str(err)))
@@ -53,7 +61,8 @@ class RecordWriter:
         header = struct.pack('Q', len(event_str))
         header += struct.pack('I', masked_crc32c(header))
         footer = struct.pack('I', masked_crc32c(event_str))
-        self._writer.write(header + event_str + footer)
+        position_and_length_of_record = self._writer.write(header + event_str + footer)
+        return position_and_length_of_record
 
     def flush(self):
         """Flushes the event string to file."""
