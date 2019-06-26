@@ -73,7 +73,8 @@ class Collection:
 
   def include(self, t):
     if isinstance(t, list):
-      self.include_regex.extend(t)
+      for i in t:
+        self.include(i)
     elif isinstance(t, str):
       self.include_regex.append(t)
     else:
@@ -81,7 +82,8 @@ class Collection:
 
   def exclude(self, t):
     if isinstance(t, list):
-      self.exclude_regex.extend(t)
+      for i in t:
+        self.exclude(i)
     elif isinstance(t, str):
       self.exclude_regex.append(t)
     else:
