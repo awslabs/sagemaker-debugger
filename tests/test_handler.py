@@ -90,11 +90,11 @@ def test_list_objects():
     req1 = ListRequest('ljain-tests', 'tfevents', '', '')
     req2 = ListRequest('ljain-tests', 'rand_4mb_1000', '', '')
     req3 = ListRequest('ljain-tests', 'rand_8mb_1000', '', '')
-    req4 = ListRequest('ljain-tests', 'demo_dir_structure/', '/')
-    req5 = ListRequest('ljain-tests', 'demo_dir_structure/', '/', 'demo_dir_structure/help')
+    req4 = ListRequest('ljain-tests', 'demo_dir_structure/attempts/', '/')
+    req5 = ListRequest('ljain-tests', 'demo_dir_structure/attempts/', '/', 'demo_dir_structure/attempts/help')
     files = s3_handler.list_prefixes([req1, req2, req3, req4, req5])
     # test StartAfter and delimiters
-    assert len(files[3]) == 3 and len(files[4]) == 2
+    assert len(files[3]) == 5 and len(files[4]) == 3
     assert len(files[0]) == 5000
     assert len(files[1]) == 1001 
     assert len(files[2]) == 1001

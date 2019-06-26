@@ -75,8 +75,12 @@ class S3Handler:
                 try:
                     for pre in page['CommonPrefixes']:
                         keys += [pre['Prefix']]
-                except:
-                    msg = "Could not list directories for " + str(bucket) 
+                    if 'Contents' in page.keys():
+                        for obj in page['Contents']:
+                            keys += [obj['Key']]
+                except Exception as e:
+                    self.logger.warn(e)
+                    msg = "Could not list files for " + str(bucket) 
                     if prefix:
                         msg += " with prefix " + str(prefix) 
                     msg += " and delimiter " + str(delimiter)
@@ -88,7 +92,8 @@ class S3Handler:
                     for obj in page['Contents']:
                         key = obj['Key']
                         keys += [key]
-                except:
+                except Exception as e:
+                    self.logger.warn(e)
                     msg = "Could not list directories for " + str(bucket) 
                     if prefix:
                         msg += " with prefix " + str(prefix) 
