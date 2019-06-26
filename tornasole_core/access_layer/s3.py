@@ -15,6 +15,8 @@ class TSAccessS3(TSAccessBase):
         self._init_data()
         self.flushed = False
         self.current_len=0
+        self.s3 = boto3.resource('s3')
+        self.s3_client = boto3.client('s3')
 
     def _init_data(self):
         if self.binary:
@@ -42,8 +44,7 @@ class TSAccessS3(TSAccessBase):
     def close(self):
         if self.flushed:
             return
-        s3 = boto3.resource('s3')
-        key = s3.Object(self.bucket_name, self.key_name)
+        key = self.s3.Object(self.bucket_name, self.key_name)
         key.put(Body=self.data)
         self._init_data()
         self.flushed = True
@@ -53,8 +54,7 @@ class TSAccessS3(TSAccessBase):
         pass
 
     def ingest_all(self):
-        s3_client = boto3.client('s3')
-        s3_response_object = s3_client.get_object(Bucket=self.bucket_name, Key=self.key_name)
+        s3_response_object = self.s3_client.get_object(Bucket=self.bucket_name, Key=self.key_name)
         self._data = s3_response_object['Body'].read()
         self._datalen = len(self._data)
         self._position = 0
