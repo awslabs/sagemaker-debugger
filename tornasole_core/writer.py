@@ -20,6 +20,7 @@
 import time
 from tornasole_core.tfevent.event_file_writer import EventFileWriter
 import socket
+
 class FileWriter():
     def __init__(self, logdir, trial, step, worker=None, rank=0, part=0,
                  wtype='tfevent',
@@ -48,12 +49,10 @@ class FileWriter():
             self.worker = socket.gethostname()
 
         if wtype == 'tfevent':
-            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker, rank=rank,step= self.step, part=part, max_queue=max_queue,
-                                           flush_secs=flush_secs, filename_suffix=filename_suffix, verbose=verbose)
-
+            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker, rank=rank, step=self.step, part=part,
+                                           max_queue=max_queue,flush_secs=flush_secs, filename_suffix=filename_suffix, verbose=verbose)
         else:
             assert False, 'Writer type not supported: {}'.format(wtype)
-        
 
     def __enter__(self):
         """Make usable with "with" statement."""
@@ -63,8 +62,8 @@ class FileWriter():
         """Make usable with "with" statement."""
         self.close()
 
-    def write_tensor(self, tdata, tname):
-        self._writer.write_tensor(tdata, tname)
+    def write_tensor(self, tdata, tname, write_index=True):
+        self._writer.write_tensor(tdata, tname, write_index)
 
     def flush(self):
         """Flushes the event file to disk.
