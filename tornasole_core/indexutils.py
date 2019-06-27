@@ -31,7 +31,8 @@ class IndexUtil:
     @staticmethod
     def indexS3Key(trial_prefix, index_prefix_for_step_str, step_num, worker_name, gpurank=0):
         step_num_str = format(step_num, '012')
-        index_filename = format(f"{step_num_str}_{worker_name}_{gpurank}.csv")
+        gpurank_str = format(gpurank, '04')
+        index_filename = format(f"{step_num_str}_{worker_name}_{gpurank_str}.csv")
         index_key = format(f"{trial_prefix}/index/{index_prefix_for_step_str}/{index_filename}")
         return index_key
 
