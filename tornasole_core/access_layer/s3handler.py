@@ -117,12 +117,14 @@ class S3Handler:
                 body = await resp['Body'].read()
             except Exception as e:
                 self.logger.warn(str(e))
-                self.logger.warn("Unable to read tensor from object " + str(bucket) + "/" 
-                                + str(key) + " with offset " + str(start) + "-" + str(start + length))
+                msg = "Unable to read tensor from object " + str(bucket) + "/" + str(key)
+                if length is not None:
+                    msg += " from bytes " + str(start) + "-" + str(start + length)
+                self.logger.warn(msg)
                 body = None
             count += 1
         if body is None:
-            self.logger.warn("Unable to find file " + key)
+            self.logger.warn("Unable to find file " + str(key))
         return body
 
     # object_requests: a list of ObjectRequest objects.
@@ -153,6 +155,8 @@ class S3Handler:
     # timer: boolean, allows timing measurement of total operation
     # returns list of all data downloaded.
     def get_objects(self, object_requests, num_async_calls = 500, timer=False):
+        if type(object_requests) != list:
+            raise TypeError("get_objects accepts a list of ObjectRequest objects.")
         if timer:
             start = time.time()
         idx = 0
@@ -168,6 +172,8 @@ class S3Handler:
 
     # accepts a list of ListRequest objects, returns list of lists of files fetched.
     def list_prefixes(self, list_requests):
+        if type(list_requests) != list:
+            raise TypeError("list_prefixes accepts a list of ListRequest objects.")
         task = self.loop.create_task(self._list_files_from_requests(list_requests))
         done = self.loop.run_until_complete(task)
         return done 
