@@ -2,6 +2,9 @@ import os
 import re
 import logging
 
+class TensorsUnsatisfiableError(Exception):
+    pass
+
 def flatten(lis):
   """Given a list, possibly nested to any level, return it flattened."""
   new_lis = []

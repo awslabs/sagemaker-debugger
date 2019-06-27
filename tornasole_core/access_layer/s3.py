@@ -11,8 +11,6 @@ class TSAccessS3(TSAccessBase):
         self.bucket_name = bucket_name
         # S3 is not like a Unix file system where multiple slashes are normalized to one
         self.key_name = re.sub('/+', '/', key_name )
-        self.s3_connection = boto.connect_s3(aws_access_key_id=aws_access_key_id, 
-                                             aws_secret_access_key=aws_secret_access_key)
         self.binary = binary
         self._init_data()
         self.flushed = False
@@ -27,27 +25,17 @@ class TSAccessS3(TSAccessBase):
         raise NotImplementedError
 
     def write(self, _data):
-        #print( "Adding data:", len(_data))
         self.data += _data
-        #print( "Current buffer size:", len(self.data))
 
     def close(self):
         if self.flushed:
             return
-        
-        #print(f'Writing to {self.key_name}, bytes={len(self.data)}')
-        if False:
-            self.bucket = self.s3_connection.get_bucket(self.bucket_name)
-            self.key = boto.s3.key.Key(self.bucket, self.key_name) 
-            self.key.set_contents_from_string(self.data)
-        else:
-            s3 = boto3.resource('s3')
-            key = s3.Object(self.bucket_name, self.key_name)
-            key.put(Body=self.data)
-
+        s3 = boto3.resource('s3')
+        key = s3.Object(self.bucket_name, self.key_name)
+        key.put(Body=self.data)
         self._init_data()
         self.flushed = True
-        pass
+
 
     def flush(self):
         pass
@@ -58,10 +46,8 @@ class TSAccessS3(TSAccessBase):
         self._data = s3_response_object['Body'].read()
         self._datalen = len(self._data)
         self._position = 0
-        #print( "Ingesting All", self._datalen)
     
     def read(self,n):
-        #print( f'Pos={self._position}, N={n}, DataLen={self._datalen}')
         assert self._position+n <= self._datalen
         res = self._data[self._position:self._position+n]
         self._position += n
