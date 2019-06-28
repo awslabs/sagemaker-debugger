@@ -25,7 +25,7 @@ class FileWriter():
     def __init__(self, logdir, trial, step, worker=None, rank=0, part=0,
                  wtype='tfevent',
                  max_queue=10, flush_secs=120,
-                 filename_suffix='', verbose=True):
+                 filename_suffix='', verbose=True, write_checksum=False):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
  
@@ -49,8 +49,11 @@ class FileWriter():
             self.worker = socket.gethostname()
 
         if wtype == 'tfevent':
-            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker, rank=rank, step=self.step, part=part,
-                                           max_queue=max_queue,flush_secs=flush_secs, filename_suffix=filename_suffix, verbose=verbose)
+            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker, rank=rank,
+                                           step=self.step, part=part,
+                                           max_queue=max_queue, flush_secs=flush_secs, filename_suffix=filename_suffix,
+                                           verbose=verbose, write_checksum=write_checksum)
+
         else:
             assert False, 'Writer type not supported: {}'.format(wtype)
 

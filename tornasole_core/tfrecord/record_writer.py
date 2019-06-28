@@ -29,6 +29,9 @@ def ensure_dir(file_path):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
+CHECKSUM_MAGIC_BYTES = b'0x12345678'
+
+
 class RecordWriter:
     """Write records in the following format for a single record event_str:
     uint64 len(event_str)
@@ -42,7 +45,8 @@ class RecordWriter:
     In TensorFlow, _dest is a object instance of ZlibOutputBuffer (C++) which has its own flush
     and close mechanism defined."""
 
-    def __init__(self, path):
+    def __init__(self, path, write_checksum):
+        self.write_checksum = write_checksum
         s3, bucket_name, key_name = is_s3(path)
         try:
             if s3:
@@ -60,10 +64,13 @@ class RecordWriter:
         """Writes a serialized event to file."""
         header = struct.pack('Q', len(event_str))
         header += struct.pack('I', masked_crc32c(header))
-        footer = struct.pack('I', masked_crc32c(event_str))
+        if self.write_checksum:
+            footer = struct.pack('I', masked_crc32c(event_str))
+        else:
+            footer = struct.pack('I', masked_crc32c(CHECKSUM_MAGIC_BYTES))
         position_and_length_of_record = self._writer.write(header + event_str + footer)
         return position_and_length_of_record
-
+      
     def flush(self):
         """Flushes the event string to file."""
         assert self._writer is not None
