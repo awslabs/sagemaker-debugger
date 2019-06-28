@@ -5,6 +5,7 @@ from tornasole_core.tfevent.event_pb2 import Event
 from tornasole_core.tfevent.event_file_reader import get_tensor_data
 from tornasole_core.tfevent.util import make_tensor_proto
 from tornasole_core.tfevent.summary_pb2 import Summary, SummaryMetadata
+import pytest
 ######## HELPER CLASSES AND FUNCTIONS #######
 class TensorLocation:
     def __init__(self, event_file_name, start=0, length=None):
