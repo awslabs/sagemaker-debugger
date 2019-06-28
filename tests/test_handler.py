@@ -96,7 +96,7 @@ def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
 ##########################################################
 ## Tests that downloads of objects from S3 handler are working correctly
 ## Downloads and checks values of 100 numpy tensors asynchronously from the S3 bucket ljain-tests
-
+@pytest.mark.skip(reason="No bucket access")
 def test_download_objects(compare_speeds = False):
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     index = load_index()
@@ -117,7 +117,7 @@ def test_download_objects(compare_speeds = False):
 ## Tests that listing of objects from S3 handler are working correctly
 ## Lists files from 4 different directories
 ## Also tests the StartAfter functionality and the delimiter and prefix functionality
-
+@pytest.mark.skip(reason="No bucket access")
 def test_list_objects():
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     s3_handler = S3Handler()
