@@ -19,12 +19,12 @@
 
 import time
 from tornasole_core.tfevent.event_file_writer import EventFileWriter
-import socket
+
 class FileWriter():
-    def __init__(self, logdir, trial, step, worker=None, rank=0, part=0,
-                 wtype='tfevent',
-                 max_queue=10, flush_secs=120,
-                 filename_suffix='', verbose=True):
+    def __init__(self, logdir, trial=None, step=None, worker=None,
+                    wtype='tfevent', 
+                    max_queue=10, flush_secs=120, 
+                    filename_suffix='', verbose=True):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
  
@@ -44,13 +44,9 @@ class FileWriter():
         self.trial = trial
         self.step = step
         self.worker = worker
-        if worker is None:
-            self.worker = socket.gethostname()
 
         if wtype == 'tfevent':
-            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker, rank=rank,step= self.step, part=part, max_queue=max_queue,
-                                           flush_secs=flush_secs, filename_suffix=filename_suffix, verbose=verbose)
-
+            self._writer = EventFileWriter(logdir, max_queue, flush_secs, filename_suffix, verbose)
         else:
             assert False, 'Writer type not supported: {}'.format(wtype)
         
@@ -63,8 +59,17 @@ class FileWriter():
         """Make usable with "with" statement."""
         self.close()
 
-    def write_tensor(self, tdata, tname):
-        self._writer.write_tensor(tdata, tname)
+    def write_tensor(self, tdata, tname, trial=None, step=None, worker=None):
+        if trial is None:
+            assert self.trial is not None
+            trial = self.trial
+        if step is None:
+            assert self.step is not None
+            step = self.step
+        if worker is None:
+            assert self.worker is not None
+            worker = self.worker
+        self._writer.write_tensor(tdata, tname, trial, step, worker)
 
     def flush(self):
         """Flushes the event file to disk.

@@ -1,17 +1,10 @@
 from .base import TSAccessBase
-import os
-
-def ensure_dir(file_path):
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
 
 class TSAccessFile(TSAccessBase):
   def __init__(self, path, mode):
     super().__init__()
     self.path = path
     self.mode = mode
-    ensure_dir(path)
     self.open(path, mode)
 
   def open(self, path, mode):
