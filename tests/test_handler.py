@@ -135,6 +135,4 @@ def test_list_objects():
     assert len(files[2]) == 1001
     s3_handler.close_client()
     
-test_list_objects()
-test_download_objects(compare_speeds = True)
 
