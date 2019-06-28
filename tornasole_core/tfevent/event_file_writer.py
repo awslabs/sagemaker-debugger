@@ -56,8 +56,7 @@ def make_numpy_array(x):
 
 def get_event_key_for_step(run_dir, step_num, worker_name, gpu_rank=0):
     step_num_str = format(step_num, '012')
-    gpu_rank_str = format(gpu_rank, '04')
-    event_filename = step_num_str + "_" + str(worker_name) + "_" + str(gpu_rank_str) + ".tfevents"
+    event_filename = step_num_str + "_" + str(worker_name) + "_" + str(gpu_rank) + ".tfevents"
     event_key = os.path.join(str(run_dir), "events", str(step_num_str), str(event_filename))
     return event_key
 
