@@ -117,7 +117,8 @@ class EventsWriter(object):
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
-    def __init__(self, logdir, trial, worker, rank, step, part, verbose=True):
+    def __init__(self, logdir, trial, worker, rank, step, part, verbose=True, write_checksum=False):
+
         """
         Events files have a name of the form
         '/file/path/events.out.tfevents.[timestamp].[hostname][file_suffix]'
@@ -131,6 +132,7 @@ class EventsWriter(object):
         self.step = step
         self.worker = worker
         self.rank = rank
+        self.write_checksum = write_checksum
 
         if worker is None:
             self.worker = socket.gethostname()
@@ -147,7 +149,7 @@ class EventsWriter(object):
         if self.tfrecord_writer is not None:
             return
         self._filename = get_event_key_for_step(self.file_prefix, self.step, self.worker, self.rank)
-        self.tfrecord_writer = RecordWriter(self._filename)
+        self.tfrecord_writer = RecordWriter(self._filename, self.write_checksum)
         if self._logger is not None:
             ('successfully opened events file: %s', self._filename)
 
@@ -207,7 +209,7 @@ class EventFileWriter():
     """
 
     def __init__(self, logdir, trial, worker, rank, step, part=0, max_queue=10,
-                 flush_secs=120, filename_suffix='', verbose=True):
+                 flush_secs=120, filename_suffix='', verbose=True, write_checksum=False):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
         This event file will contain `Event` protocol buffers, which are written to
@@ -221,7 +223,7 @@ class EventFileWriter():
             os.makedirs(self._logdir)
         self._event_queue = six.moves.queue.Queue(max_queue)
         self._ev_writer = EventsWriter(logdir=self._logdir, trial=trial, worker=worker,
-                                       rank=rank, step=step, part=part, verbose=verbose)
+                                       rank=rank, step=step, part=part, verbose=verbose, write_checksum=write_checksum)
         self._ev_writer.init_with_suffix(filename_suffix)
         self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()
