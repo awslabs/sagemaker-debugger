@@ -1,6 +1,10 @@
-#from tornasole_rules.trial import S3Trial
 from tornasole_core.access_layer.s3handler import *
-from tornasole_core.utils import read_tensor_from_record
+import struct
+from tornasole_core.tfrecord._crc32c import *
+from tornasole_core.tfevent.event_pb2 import Event
+from tornasole_core.tfevent.event_file_reader import get_tensor_data
+from tornasole_core.tfevent.util import make_tensor_proto
+from tornasole_core.tfevent.summary_pb2 import Summary, SummaryMetadata
 ######## HELPER CLASSES AND FUNCTIONS #######
 class TensorLocation:
     def __init__(self, event_file_name, start=0, length=None):
@@ -27,6 +31,36 @@ class Index():
 
 def load_index():
     return Index()
+
+######### HELPER FUNCTIONS ######
+
+def read_tensor_from_record(data):
+    event_str = read_record(data)
+    event = Event()
+    event.ParseFromString(event_str)
+    assert event.HasField('summary')
+    summ = event.summary
+    tensors = []
+    for v in summ.value:
+        tensor_name = v.tag
+        tensor_data = get_tensor_data(v.tensor)
+        tensors += [tensor_data]
+    return tensors
+
+def read_record(data, check=True):
+    payload = None
+    strlen_bytes = data[:8]
+    data = data[8:]
+    # will give you payload for the record, which is essentially the event.
+    strlen = struct.unpack('Q', strlen_bytes)[0]
+    saved_len_crc = struct.unpack('I', data[:4])[0]
+    data = data[4:]
+    payload = data[:strlen]
+    data = data[strlen:]
+    saved_payload_crc = struct.unpack('I', data[:4])[0]
+    return payload
+
+##########################################
 
 # tlist should be a list of [(tname, [steps])]. This method will return a 
 # dictionary with key = (tname, step) and value being the corresponding tensor.
@@ -102,3 +136,4 @@ def test_list_objects():
     
 test_list_objects()
 test_download_objects(compare_speeds = True)
+
