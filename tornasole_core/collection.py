@@ -35,8 +35,6 @@ class Collection:
   """
   def __init__(self, name,
                include_regex=None, exclude_regex=None,
-               tensor_names=None,
-               reduction_tensor_names=None,
                reduction_config=None, save_config=None):
     self.name = name
 
@@ -53,16 +51,12 @@ class Collection:
     self.reduction_config = reduction_config
     self.save_config = save_config
 
-    if not tensor_names:
-      tensor_names = []
-    self.tensor_names = tensor_names
+    self.tensor_names = []
     # when loaded by passing names, tensors method is unsafe
     # todo: handle this
     self.tensors = []
 
-    if not reduction_tensor_names:
-      reduction_tensor_names = []
-    self.reduction_tensor_names = reduction_tensor_names
+    self.reduction_tensor_names = []
     self.reduction_tensors = []
 
   def get_exclude_regex(self):
@@ -88,6 +82,22 @@ class Collection:
       self.exclude_regex.append(t)
     else:
       raise TypeError("Can only include str or list")
+
+  def get_reduction_config(self):
+    return self.reduction_config
+
+  def get_save_config(self):
+    return self.save_config
+
+  def set_reduction_config(self, red_cfg):
+    if not isinstance(red_cfg, ReductionConfig):
+      raise TypeError('Can only take an instance of ReductionConfig')
+    self.reduction_config = red_cfg
+
+  def set_save_config(self, save_cfg):
+    if not isinstance(save_cfg, SaveConfig):
+      raise TypeError('Can only take an instance of SaveConfig')
+    self.save_config = save_cfg
 
   def add_tensor(self, t):
     if t.name not in self.tensor_names:
@@ -155,9 +165,11 @@ class Collection:
       reduction_tensor_names = [x for x in parts[5].split(list_separator) if x]
       reduction_config = ReductionConfig.load(parts[6])
       save_config = SaveConfig.load(parts[7])
-      return Collection(name, include_regex=include, exclude_regex=exclude,
-                        tensor_names=tensor_names, reduction_tensor_names=reduction_tensor_names,
+      c = Collection(name, include_regex=include, exclude_regex=exclude,
                         reduction_config=reduction_config, save_config=save_config)
+      c.reduction_tensor_names = reduction_tensor_names
+      c.tensor_names = tensor_names
+      return c
 
   def __eq__(self, other):
     if not isinstance(other, Collection):
