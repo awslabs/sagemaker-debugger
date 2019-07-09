@@ -14,6 +14,7 @@ class TSAccessS3(TSAccessBase):
         self.binary = binary
         self._init_data()
         self.flushed = False
+        
         self.current_len=0
         self.s3 = boto3.resource('s3')
         self.s3_client = boto3.client('s3')
@@ -35,10 +36,9 @@ class TSAccessS3(TSAccessBase):
 
     
     def write(self, _data):
-        start = self.current_len
+        start = len(self.data)
         self.data += _data
         length = len(_data)
-        self.current_len = self.current_len + length
         return [start, length]
 
     def close(self):
@@ -51,7 +51,7 @@ class TSAccessS3(TSAccessBase):
 
 
     def flush(self):
-        pass
+        pass 
 
     def ingest_all(self):
         s3_response_object = self.s3_client.get_object(Bucket=self.bucket_name, Key=self.key_name)

@@ -70,7 +70,7 @@ class SaveConfig:
   def should_save_step(self, step_num):
     rval = {'step': False, 'when_nan': False}
     if self.save_steps:
-      if self.step in self.save_steps:
+      if step_num in self.save_steps:
         rval['step'] = True
     elif step_num >= self.skip_num_steps and step_num % self.save_interval == 0:
       rval['step'] = True
