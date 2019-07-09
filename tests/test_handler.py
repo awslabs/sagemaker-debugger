@@ -1,6 +1,5 @@
-#from tornasole_rules.trial import S3Trial
+import pytest
 from tornasole_core.access_layer.s3handler import *
-from tornasole_core.utils import read_tensor_from_record
 ######## HELPER CLASSES AND FUNCTIONS #######
 class TensorLocation:
     def __init__(self, event_file_name, start=0, length=None):
@@ -62,7 +61,7 @@ def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
 ##########################################################
 ## Tests that downloads of objects from S3 handler are working correctly
 ## Downloads and checks values of 100 numpy tensors asynchronously from the S3 bucket ljain-tests
-
+@pytest.mark.skip
 def test_download_objects(compare_speeds = False):
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     index = load_index()
@@ -83,7 +82,7 @@ def test_download_objects(compare_speeds = False):
 ## Tests that listing of objects from S3 handler are working correctly
 ## Lists files from 4 different directories
 ## Also tests the StartAfter functionality and the delimiter and prefix functionality
-
+@pytest.mark.skip
 def test_list_objects():
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     s3_handler = S3Handler()
@@ -99,6 +98,3 @@ def test_list_objects():
     assert len(files[1]) == 1001 
     assert len(files[2]) == 1001
     s3_handler.close_client()
-    
-test_list_objects()
-test_download_objects(compare_speeds = True)

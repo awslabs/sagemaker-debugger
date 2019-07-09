@@ -20,11 +20,6 @@ class Collection:
   list of regex expressions representing names of tensors (tf) or blocks(gluon)
   to include for this collection
 
-  exclude_regex: list of (str representing regex for tensor names or block names)
-  list of regex expressions representing names of tensors (tf) or blocks(gluon)
-  to exclude for this collection.
-  These objects are removed from the set which match include_regex.
-
   reduction_config: ReductionConfig object
   reduction config to be applied for this collection.
   if this is not passed, uses the default reduction_config
@@ -33,8 +28,7 @@ class Collection:
   save config to be applied for this collection.
   if this is not passed, uses the default save_config
   """
-  def __init__(self, name,
-               include_regex=None, exclude_regex=None,
+  def __init__(self, name, include_regex=None,
                reduction_config=None, save_config=None):
     self.name = name
 
@@ -44,9 +38,6 @@ class Collection:
     if not include_regex:
       include_regex = []
     self.include_regex = include_regex
-    if not exclude_regex:
-      exclude_regex = []
-    self.exclude_regex = exclude_regex
 
     self.reduction_config = reduction_config
     self.save_config = save_config
@@ -59,9 +50,6 @@ class Collection:
     self.reduction_tensor_names = []
     self.reduction_tensors = []
 
-  def get_exclude_regex(self):
-    return self.exclude_regex
-
   def get_include_regex(self):
     return self.include_regex
 
@@ -71,15 +59,6 @@ class Collection:
         self.include(i)
     elif isinstance(t, str):
       self.include_regex.append(t)
-    else:
-      raise TypeError("Can only include str or list")
-
-  def exclude(self, t):
-    if isinstance(t, list):
-      for i in t:
-        self.exclude(i)
-    elif isinstance(t, str):
-      self.exclude_regex.append(t)
     else:
       raise TypeError("Can only include str or list")
 
@@ -126,7 +105,8 @@ class Collection:
     # here, it is a simple line of the following format
     # >> versionNumber <separator>
     # >> CollectionName <separator>
-    # >> names of reduction operations separated by comma <separator>
+    # >> include_regex <separator>
+    # >> names of tensors separated by comma <separator>
     # >> names of abs_reductions separated by comma <separator>
     # >> reduction_config export <separator>
     # >> save_config export
@@ -136,7 +116,6 @@ class Collection:
     list_separator = ','
     parts = [COLLECTION_VERSION_NUM, self.name,
              list_separator.join(self.include_regex),
-             list_separator.join(self.exclude_regex),
              list_separator.join(self.tensor_names),
              list_separator.join(self.reduction_tensor_names),
              self.reduction_config.export() if self.reduction_config else str(None),
@@ -144,8 +123,8 @@ class Collection:
     return separator.join(parts)
 
   def __str__(self):
-    return f'collection_name: {self.name}, include_regex:{self.include_regex}, exclude_regex:{self.exclude_regex},' \
-           f'tensors: {self.tensor_names}, reduction_tensors{self.reduction_tensors}, ' \
+    return f'collection_name: {self.name}, include_regex:{self.include_regex},' \
+           f'tensors: {self.tensor_names}, reduction_tensors{self.reduction_tensor_names}, ' \
            f'reduction_config:{self.reduction_config}, save_config:{self.save_config}'
 
   @staticmethod
@@ -156,17 +135,16 @@ class Collection:
     separator = '!@'
     parts = s.split(separator)
     if parts[0] == 'v0':
-      assert len(parts) == 8
+      assert len(parts) == 7
       list_separator = ','
       name = parts[1]
       include = [x for x in parts[2].split(list_separator) if x]
-      exclude = [x for x in parts[3].split(list_separator) if x]
-      tensor_names = [x for x in parts[4].split(list_separator) if x]
-      reduction_tensor_names = [x for x in parts[5].split(list_separator) if x]
-      reduction_config = ReductionConfig.load(parts[6])
-      save_config = SaveConfig.load(parts[7])
-      c = Collection(name, include_regex=include, exclude_regex=exclude,
-                        reduction_config=reduction_config, save_config=save_config)
+      tensor_names = [x for x in parts[3].split(list_separator) if x]
+      reduction_tensor_names = [x for x in parts[4].split(list_separator) if x]
+      reduction_config = ReductionConfig.load(parts[5])
+      save_config = SaveConfig.load(parts[6])
+      c = Collection(name, include_regex=include,
+                      reduction_config=reduction_config, save_config=save_config)
       c.reduction_tensor_names = reduction_tensor_names
       c.tensor_names = tensor_names
       return c
@@ -177,7 +155,6 @@ class Collection:
 
     return self.name == other.name and \
            self.include_regex == other.include_regex and \
-           self.exclude_regex == other.exclude_regex and \
            self.tensor_names == other.tensor_names and \
            self.reduction_tensor_names == other.reduction_tensor_names and \
            self.reduction_config == other.reduction_config and \
