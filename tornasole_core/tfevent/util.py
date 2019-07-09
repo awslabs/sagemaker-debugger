@@ -1,6 +1,9 @@
 from .tensor_pb2 import TensorProto
 from .tensor_shape_pb2 import TensorShapeProto
 import numpy as np
+import os, re
+from tornasole_core.utils import get_immediate_subdirectories
+from tornasole_core.utils import logger
 
 # hash value of ndarray.dtype is not the same as np.float class
 # so we need to convert the type classes below to np.dtype object
@@ -40,3 +43,43 @@ def make_tensor_proto(nparray_data, tag):
             sb = bytes(s,encoding='utf-8')
             tensor_proto.string_val.append(sb)
     return tensor_proto
+
+STEP_NUMBER_FORMATTING_LENGTH = '012'
+
+class EventFileLocation:
+    def __init__(self, step_num, worker_name):
+        self.step_num = int(step_num)
+        self.worker_name = worker_name
+
+    def get_location(self, run_dir=''):
+        step_num_str = str(format(self.step_num, STEP_NUMBER_FORMATTING_LENGTH))
+        event_filename = step_num_str + "_" + self.worker_name + ".tfevents"
+        if run_dir:
+            event_key_prefix = os.path.join(run_dir, "events")
+        else:
+            event_key_prefix = "events"
+        return os.path.join(event_key_prefix, step_num_str, event_filename)
+
+    @staticmethod
+    def match_regex(s):
+        return EventFileLocation.load_filename(s, print_error=False)
+
+    @staticmethod
+    def load_filename(s, print_error=True):
+        m = re.search('(\d+)_(.*).tfevents', s)
+        if m:
+            step_num = m.group(1)
+            worker_name = m.group(2)
+            return EventFileLocation(step_num=step_num, worker_name=worker_name)
+        else:
+            if print_error:
+                logger.error('Failed to load efl: ', s)
+            return None
+
+    @staticmethod
+    def get_step_dirs(trial_dir):
+        return get_immediate_subdirectories(os.path.join(trial_dir, 'events'))
+
+    @staticmethod
+    def get_step_dir_path(trial_dir, step_num):
+        return os.path.join(trial_dir, 'events', step_num)

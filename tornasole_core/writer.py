@@ -22,7 +22,7 @@ from tornasole_core.tfevent.event_file_writer import EventFileWriter
 import socket
 
 class FileWriter():
-    def __init__(self, logdir, trial, step, worker=None, rank=0, part=0,
+    def __init__(self, logdir, trial, step, worker=None, part=0,
                  wtype='tfevent',
                  max_queue=10, flush_secs=120,
                  filename_suffix='', verbose=True, write_checksum=False):
@@ -49,9 +49,10 @@ class FileWriter():
             self.worker = socket.gethostname()
 
         if wtype == 'tfevent':
-            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker, rank=rank,
+            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker,
                                            step=self.step, part=part,
-                                           max_queue=max_queue, flush_secs=flush_secs, filename_suffix=filename_suffix,
+                                           max_queue=max_queue, flush_secs=flush_secs,
+                                           filename_suffix=filename_suffix,
                                            verbose=verbose, write_checksum=write_checksum)
 
         else:
