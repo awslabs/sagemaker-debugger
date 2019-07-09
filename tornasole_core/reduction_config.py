@@ -17,23 +17,24 @@ class ReductionConfig:
   ----------
   only_shape: bool
       If this is set, only the shape of tensor is saved.
+      Not yet supported.
 
   reductions: list of str
       takes list of names of reductions to be computed.
-      should be one of 'min', 'max', 'median', 'mean', 'std', 'var', 'sum', 'prod'
+      should be one of 'min', 'max', 'median', 'mean', 'std', 'variance', 'sum', 'prod'
 
   abs_reductions: list of str
       takes list of names of reductions to be computed after converting the tensor
       to abs(tensor) i.e. reductions are applied on the absolute values of tensor.
-      should be one of 'min', 'max', 'median', 'mean', 'std', 'var', 'sum', 'prod'
+      should be one of 'min', 'max', 'median', 'mean', 'std', 'variance', 'sum', 'prod'
 
   norms: list of str
       takes names of norms to be computed of the tensor.
-      should be one of 'l1', 'l2', 'euclidian'
+      should be one of 'l1', 'l2'
 
   abs_norms: list of str
         takes names of norms to be computed of the tensor after taking absolute value
-        should be one of 'l1', 'l2', 'euclidian'
+        should be one of 'l1', 'l2'
   """
 
   def __init__(self, only_shape=False,
