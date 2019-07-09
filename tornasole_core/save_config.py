@@ -23,7 +23,6 @@ class SaveConfig:
 
   when_nan: list of str representing name of tensor
     saves whenever any of the tensors in this list become nan.
-    overrides all the others for now.
   """
 
   def __init__(self, save_interval=100, skip_num_steps=0, save_steps=None, when_nan=None):
@@ -70,8 +69,9 @@ class SaveConfig:
 
   def should_save_step(self, step_num):
     rval = {'step': False, 'when_nan': False}
-    if self.save_steps and self.step in self.save_steps:
-      rval['step'] = True
+    if self.save_steps:
+      if self.step in self.save_steps:
+        rval['step'] = True
     elif step_num >= self.skip_num_steps and step_num % self.save_interval == 0:
       rval['step'] = True
     elif self.when_nan:
