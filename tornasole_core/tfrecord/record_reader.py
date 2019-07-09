@@ -20,7 +20,7 @@ from ._crc32c import crc32c
 from tornasole_core.access_layer.file import TSAccessFile
 from tornasole_core.access_layer.s3 import TSAccessS3
 from tornasole_core.utils import is_s3
-
+from tornasole_core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
 
 class RecordReader:
     """Read records in the following format for a single record event_str:
@@ -68,6 +68,10 @@ class RecordReader:
         if check:
             computed_payload_crc = masked_crc32c(payload)
             assert saved_payload_crc == computed_payload_crc
+        else:
+            computed_payload_crc = masked_crc32c(CHECKSUM_MAGIC_BYTES)
+            assert saved_payload_crc == computed_payload_crc
+
         #print( f'Payload_CRC={saved_payload_crc},{computed_payload_crc}')
         return payload
 

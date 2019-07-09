@@ -33,6 +33,7 @@ from tornasole_core.tfrecord.record_writer import RecordWriter
 from .util import make_tensor_proto, EventFileLocation
 from tornasole_core.indexutils import *
 from tornasole_core.tfevent.index_file_writer import IndexWriter, IndexArgs
+from tornasole_core.utils import is_s3
 logging.basicConfig()
 
 def size_and_shape(t):
@@ -281,7 +282,10 @@ class _EventLoggerThread(threading.Thread):
                 positions = self._ev_writer.write_event(event)
                 if isinstance(event_in_queue, IndexArgs):
                     tname = event_in_queue.tensorname
-                    eventfile = os.path.abspath(self._ev_writer.name())
+                    eventfile = self._ev_writer.name()
+                    s3, _, _ = is_s3(eventfile)
+                    if not s3:
+                        eventfile = os.path.abspath(self._ev_writer.name())
                     tensorlocation = TensorLocation(tname, eventfile, positions[0], positions[1])
                     self._ev_writer.indexwriter.add_index(tensorlocation)
                 # Flush the event writer every so often.

@@ -110,8 +110,8 @@ class S3Handler:
         while count < self.num_retries and body is None:
             try:
                 if length is not None:
-                    bytes_range = "bytes=" + str(start) + "-" + str(start + length)
-                    resp = await self.client.get_object(Bucket=bucket, Key=key, bytes_range=bytes_range)
+                    bytes_range = "bytes=" + str(start) + "-" + str(start + length - 1)
+                    resp = await self.client.get_object(Bucket=bucket, Key=key, Range=bytes_range)
                 else:
                     resp = await self.client.get_object(Bucket=bucket, Key=key)
                 body = await resp['Body'].read()
@@ -119,7 +119,7 @@ class S3Handler:
                 self.logger.warn(str(e))
                 msg = "Unable to read tensor from object " + str(bucket) + "/" + str(key)
                 if length is not None:
-                    msg += " from bytes " + str(start) + "-" + str(start + length)
+                    msg += " from bytes " + str(start) + "-" + str(start + length - 1)
                 self.logger.warn(msg)
                 body = None
             count += 1
