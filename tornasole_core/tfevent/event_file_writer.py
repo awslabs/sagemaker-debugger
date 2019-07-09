@@ -219,8 +219,6 @@ class EventFileWriter():
         """
 
         self._logdir = logdir
-        if not os.path.exists(self._logdir):
-            os.makedirs(self._logdir)
         self._event_queue = six.moves.queue.Queue(max_queue)
         self._ev_writer = EventsWriter(logdir=self._logdir, trial=trial, worker=worker,
                                        rank=rank, step=step, part=part, verbose=verbose, write_checksum=write_checksum)

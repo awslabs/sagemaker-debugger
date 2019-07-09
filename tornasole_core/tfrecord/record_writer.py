@@ -24,11 +24,6 @@ from tornasole_core.access_layer.s3 import TSAccessS3
 from tornasole_core.utils import is_s3
 import os
 
-def ensure_dir(file_path):
-        directory = os.path.dirname(file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
 CHECKSUM_MAGIC_BYTES = b'0x12345678'
 
 
@@ -52,7 +47,6 @@ class RecordWriter:
             if s3:
                 self._writer = TSAccessS3(bucket_name, key_name)
             else:
-                ensure_dir(path)
                 self._writer = TSAccessFile(path, 'wb')
         except (OSError, IOError) as err:
             raise ValueError('failed to open {}: {}'.format(path, str(err)))
