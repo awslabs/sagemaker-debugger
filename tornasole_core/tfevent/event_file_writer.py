@@ -30,21 +30,15 @@ import six
 from .event_pb2 import Event
 from .summary_pb2 import Summary, SummaryMetadata
 from tornasole_core.tfrecord.record_writer import RecordWriter
-from .util import make_tensor_proto
-from tornasole_core.access_layer.file import TSAccessFile
-from tornasole_core.access_layer.s3 import TSAccessS3
-from tornasole_core.utils import is_s3
+from .util import make_tensor_proto, EventFileLocation
 from tornasole_core.indexutils import *
-
+from tornasole_core.tfevent.index_file_writer import IndexWriter, IndexArgs
 logging.basicConfig()
 
 def size_and_shape(t):
     if type(t) == bytes or type(t) == str:
         return (len(t), [len(t)])
     return (t.nbytes, t.shape)
-
-def step_parent(step):
-    return step // 1000
 
 def make_numpy_array(x):
     if isinstance(x, np.ndarray):
@@ -57,67 +51,12 @@ def make_numpy_array(x):
         raise TypeError('_make_numpy_array only accepts input types of numpy.ndarray, scalar,'
                         ' while received type {}'.format(str(type(x))))
 
-
-def get_event_key_for_step(run_dir, step_num, worker_name, gpu_rank=0):
-    step_num_str = format(step_num, '012')
-    gpu_rank_str = format(gpu_rank, '04')
-    event_filename = step_num_str + "_" + str(worker_name) + "_" + str(gpu_rank_str) + ".tfevents"
-    event_key = os.path.join(str(run_dir), "events", str(step_num_str), str(event_filename))
-    return event_key
-
-class IndexWriter(object):
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.writer = None
-        s3, bucket_name, key_name = is_s3(self.file_path)
-        if s3:
-
-            self.writer = TSAccessS3(bucket_name, key_name, binary=False)
-        else:
-            self.writer = TSAccessFile(self.file_path, 'a+')
-
-    def __del__(self):
-        self.close()
-
-    def add_index(self, tensorlocation):
-        if self.writer is None:
-            s3, bucket_name, key_name = is_s3(self.file_path)
-            if s3:
-                self.writer = TSAccessS3(bucket_name, key_name, binary=False)
-            else:
-                self.writer = TSAccessFile(self.file_path, 'a+')
-
-        self.writer.write(tensorlocation.serialize() + "\n")
-
-    def flush(self):
-        """Flushes the event string to file."""
-        assert self.writer is not None
-        self.writer.flush()
-
-    def close(self):
-        """Closes the record writer."""
-        if self.writer is not None:
-            self.flush()
-            self.writer.close()
-            self.writer = None
-
-class IndexArgs(object):
-    def __init__(self, event, tensorname):
-        self.event = event
-        self.tensorname = tensorname
-
-    def get_event(self):
-        return self.event
-
-    def get_tensorname(self):
-        return self.tensorname
-
 class EventsWriter(object):
     """Writes `Event` protocol buffers to an event file. This class is ported from
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
-    def __init__(self, logdir, trial, worker, rank, step, part, verbose=True, write_checksum=False):
+    def __init__(self, logdir, trial, worker, step, part, verbose=True, write_checksum=False):
 
         """
         Events files have a name of the form
@@ -131,13 +70,13 @@ class EventsWriter(object):
         self._logger = None
         self.step = step
         self.worker = worker
-        self.rank = rank
         self.write_checksum = write_checksum
 
         if worker is None:
             self.worker = socket.gethostname()
 
-        self.indexwriter = IndexWriter(IndexUtil.get_index_key_for_step(self.file_prefix, step, self.worker, rank))
+        index_file_path = IndexUtil.get_index_key_for_step(self.file_prefix, step, self.worker)
+        self.indexwriter = IndexWriter(index_file_path)
         if verbose:
             self._logger = logging.getLogger(__name__)
             self._logger.setLevel(logging.INFO)
@@ -148,7 +87,11 @@ class EventsWriter(object):
     def _init_if_needed(self):
         if self.tfrecord_writer is not None:
             return
-        self._filename = get_event_key_for_step(self.file_prefix, self.step, self.worker, self.rank)
+
+        el = EventFileLocation(step_num=self.step,
+                               worker_name=self.worker)
+        self._filename = el.get_location(run_dir=self.file_prefix)
+
         self.tfrecord_writer = RecordWriter(self._filename, self.write_checksum)
         if self._logger is not None:
             ('successfully opened events file: %s', self._filename)
@@ -208,7 +151,7 @@ class EventFileWriter():
     is encoded using the tfrecord format, which is similar to RecordIO.
     """
 
-    def __init__(self, logdir, trial, worker, rank, step, part=0, max_queue=10,
+    def __init__(self, logdir, trial, worker, step, part=0, max_queue=10,
                  flush_secs=120, filename_suffix='', verbose=True, write_checksum=False):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
@@ -221,7 +164,7 @@ class EventFileWriter():
         self._logdir = logdir
         self._event_queue = six.moves.queue.Queue(max_queue)
         self._ev_writer = EventsWriter(logdir=self._logdir, trial=trial, worker=worker,
-                                       rank=rank, step=step, part=part, verbose=verbose, write_checksum=write_checksum)
+                                       step=step, part=part, verbose=verbose, write_checksum=write_checksum)
         self._ev_writer.init_with_suffix(filename_suffix)
         self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()

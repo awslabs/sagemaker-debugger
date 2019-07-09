@@ -1,11 +1,8 @@
-import tensorflow as tf
-from tornasole_core.writer import FileWriter
-import numpy as np
 import csv
+from tornasole_core.writer import FileWriter
 from tornasole_core.tfevent.event_file_writer import *
 from tornasole_core.reader import FileReader
-from tornasole_core.reader import FileReader
-from tornasole_core.tfevent.event_file_reader import get_tensor_data
+from tornasole_core.tfevent.util import EventFileLocation
 from tornasole_core.indexutils import *
 import shutil
 import os
@@ -23,7 +20,8 @@ def test_index():
         writer.write_tensor(tdata=numpy_tensor[i], tname=n)
     writer.flush()
     writer.close()
-    eventfile = get_event_key_for_step(run_dir=run_dir,step_num=step,worker_name=worker,gpu_rank=0)
+    efl = EventFileLocation(step_num=step, worker_name=worker, rank=0)
+    eventfile = efl.get_location(run_dir=run_dir)
     indexfile = IndexUtil.get_index_key_for_step(run_dir, step,worker,0)
 
     fo = open(eventfile, "rb")

@@ -29,21 +29,19 @@ class IndexUtil:
         return format(index_prefix_for_step + 1, '09')
 
     @staticmethod
-    def indexS3Key(trial_prefix, index_prefix_for_step_str, step_num, worker_name, gpurank=0):
+    def indexS3Key(trial_prefix, index_prefix_for_step_str, step_num, worker_name):
         step_num_str = format(step_num, '012')
-        gpurank_str = format(gpurank, '04')
-        index_filename = format(f"{step_num_str}_{worker_name}_{gpurank_str}.csv")
+        index_filename = format(f"{step_num_str}_{worker_name}.csv")
         index_key = format(f"{trial_prefix}/index/{index_prefix_for_step_str}/{index_filename}")
         return index_key
 
     # for a step_num index files lies in prefix step_num/MAX_INDEX_FILE_NUM_IN_INDEX_PREFIX
-
     @staticmethod
-    def get_index_key_for_step(trial_prefix, step_num, worker_name, gpurank=0):
+    def get_index_key_for_step(trial_prefix, step_num, worker_name):
         index_prefix_for_step_str = IndexUtil.get_index_prefix_for_step(step_num)
-        return IndexUtil.indexS3Key(trial_prefix, index_prefix_for_step_str, step_num, worker_name,
-                                    gpurank)  # let's assume worker_rank and gpu_rank is 0 for now, that is no distibuted support
-        # We need to think on naming conventions and access patterns for -
+        return IndexUtil.indexS3Key(trial_prefix, index_prefix_for_step_str, step_num, worker_name)
+        # let's assume worker_name is given by hook
+        # We need to think on naming conventions and access patterns for:
         # 1) muti-node training --> data parallel
         # 2) multi gpu training --> model parallel
 
