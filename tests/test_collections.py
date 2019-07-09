@@ -17,7 +17,6 @@ def test_manager_export_load():
   cm = CollectionManager()
   cm.get('default').include('loss')
   cm.add(Collection('trial1'))
-  cm.get('trial1').exclude('losses')
   cm.add('trial2')
   cm.get('trial2').include('total_loss')
   cm.export('cm.ts')
@@ -28,11 +27,9 @@ def test_manager():
   cm = CollectionManager()
   cm.get('default').include('loss')
   cm.add(Collection('trial1'))
-  cm.get('trial1').exclude('losses')
   cm.add('trial2')
   cm.get('trial2').include('total_loss')
   assert len(cm.collections) == 3
   assert cm.get('default') == cm.collections['default']
   assert 'loss' in cm.get('default').include_regex
-  assert 'losses' in cm.get('trial1').exclude_regex
   assert 'total_loss' in cm.collections['trial2'].include_regex
