@@ -26,7 +26,7 @@ class SaveConfig:
   """
 
   def __init__(self, save_interval=100, skip_num_steps=0, save_steps=None, when_nan=None):
-    self.save_interval = save_interval
+    self.save_interval = int(save_interval)
     self.save_steps = save_steps if save_steps is not None else []
     self.skip_num_steps = skip_num_steps
     self.when_nan = when_nan if when_nan is not None else []
