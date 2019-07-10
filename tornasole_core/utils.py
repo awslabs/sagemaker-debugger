@@ -71,3 +71,15 @@ def is_s3(path):
     if not m:
         return (False, None, None)
     return (True, m[1], m[2])
+
+def check_dir_exists(path):
+    from tornasole_core.access_layer.s3handler import S3Handler, ListRequest
+    s3, bucket_name, key_name = is_s3(path)
+    if s3:
+        s3_handler = S3Handler()
+        request = ListRequest(bucket_name, key_name)
+        folder = s3_handler.list_prefixes([request])[0]
+        if len(folder) > 0:
+            raise RuntimeError('The path:{} already exists in s3'.format(path))
+    elif os.path.exists(path):
+        raise RuntimeError('The path:{} already exists in local disk'.format(path))
