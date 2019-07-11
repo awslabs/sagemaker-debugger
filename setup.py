@@ -34,7 +34,7 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-    install_requires = ['boto'],
+    install_requires = ['aioboto3'],
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "tensorflow"],
 )
