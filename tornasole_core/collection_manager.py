@@ -16,6 +16,9 @@ class CollectionManager:
   def get_new_collection(self, name):
     return Collection(name)
 
+  def get_collections(self):
+    return self.collections
+
   def add(self, arg):
     if isinstance(arg, str):
       if arg not in self.collections:

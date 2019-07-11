@@ -2,11 +2,6 @@ import os
 import re
 import logging
 
-class TensorsUnsatisfiableError(Exception):
-    pass
-
-class NoMoreDataError(Exception):
-    pass
 
 DEFAULT_PREFIX_FOR_S3_TRIAL_NAME = "__trial__"
 

@@ -53,6 +53,9 @@ class Collection:
   def get_include_regex(self):
     return self.include_regex
 
+  def get_tensor_names(self):
+    return self.tensor_names
+
   def include(self, t):
     if isinstance(t, list):
       for i in t:
