@@ -6,7 +6,7 @@ class SageMakerUtils:
         if returnMock is not None:
             return returnMock
         client = boto3.client('sagemaker')
-        response = client.describe_training_job(TrainingJobName=jobid)    
+        response = client.describe_training_job(TrainingJobName=jobname)
         status = response['TrainingJobStatus']
         if status in ['InProgress', 'Stopping']:
             return False
