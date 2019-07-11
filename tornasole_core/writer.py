@@ -25,7 +25,7 @@ class FileWriter():
     def __init__(self, logdir, trial, step, worker=None, rank=0, part=0,
                  wtype='tfevent',
                  max_queue=10, flush_secs=120,
-                 filename_suffix='', verbose=True, write_checksum=False):
+                 filename_suffix='', verbose=False, write_checksum=False):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
  

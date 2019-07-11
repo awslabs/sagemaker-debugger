@@ -57,7 +57,7 @@ class EventsWriter(object):
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
-    def __init__(self, logdir, trial, worker, step, part, verbose=True, write_checksum=False):
+    def __init__(self, logdir, trial, worker, step, part, verbose=False, write_checksum=False):
 
         """
         Events files have a name of the form
@@ -153,7 +153,7 @@ class EventFileWriter():
     """
 
     def __init__(self, logdir, trial, worker, step, part=0, max_queue=10,
-                 flush_secs=120, filename_suffix='', verbose=True, write_checksum=False):
+                 flush_secs=120, filename_suffix='', verbose=False, write_checksum=False):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
         This event file will contain `Event` protocol buffers, which are written to

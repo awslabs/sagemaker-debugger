@@ -96,14 +96,9 @@ class EventsReader(object):
         """
         self._filename = filename
         self._tfrecord_reader = RecordReader(self._filename)
-        self._logger = logging.getLogger(__name__)
-        self._logger.setLevel(logging.INFO)
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._tfrecord_reader.__exit__(exc_type, exc_value, traceback)
-
-    #def has_data(self):
-    #    return self._tfrecord_reader.has_data()
 
     def read_events(self, check=True):
         while self._tfrecord_reader.has_data():
