@@ -1,5 +1,7 @@
 import pytest
+import numpy as np
 from tornasole_core.access_layer.s3handler import *
+from tornasole_core.tfrecord.tensor_reader import *
 ######## HELPER CLASSES AND FUNCTIONS #######
 class TensorLocation:
     def __init__(self, event_file_name, start=0, length=None):
@@ -11,7 +13,7 @@ class Index():
     def __init__(self):
         self.dummy = dict()
         self.dummy["s3://ljain-tests/tfevents"] = dict()
-        for i in range(5000): 
+        for i in range(5000):
             self.dummy["s3://ljain-tests/tfevents"]["demo_" + str(i)] = [(0, TensorLocation("s3://ljain-tests/tfevents/demo_"+str(i)+".out.tfevents"))]
 
     # input to get_index_for_tensors is a dict {path:{tensornames:[step_nums]}}
@@ -50,18 +52,19 @@ def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
     tensors = dict()
     for i in range(len(raw_data)):
         data = raw_data[i]
-        if data is None:
-            tensors[key_lst[i]] = None
-            continue
+        assert data is not None
+        tensors += [data]
+        # tensors[key_lst[i]] = None
+        # continue
         # as read_tensor_from_record returns a list containing tensors and as this file only has one tensor
         # take the first/only element of the list
-        tensors[key_lst[i]] = read_tensor_from_record(data)[0] 
+        # tensors[key_lst[i]] = list(TensorReader(data).read_tensors())[0]
     return tensors
 
 ##########################################################
 ## Tests that downloads of objects from S3 handler are working correctly
 ## Downloads and checks values of 100 numpy tensors asynchronously from the S3 bucket ljain-tests
-@pytest.mark.skip
+@pytest.mark.skip("No bucket access")
 def test_download_objects(compare_speeds = False):
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     index = load_index()
@@ -82,7 +85,7 @@ def test_download_objects(compare_speeds = False):
 ## Tests that listing of objects from S3 handler are working correctly
 ## Lists files from 4 different directories
 ## Also tests the StartAfter functionality and the delimiter and prefix functionality
-@pytest.mark.skip
+@pytest.mark.skip("No bucket access")
 def test_list_objects():
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     s3_handler = S3Handler()

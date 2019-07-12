@@ -3,7 +3,9 @@ import asyncio
 from tornasole_core.utils import is_s3, get_logger
 import logging
 import time
-import numpy as np
+import nest_asyncio
+nest_asyncio.apply()
+
 
 # Must be created for ANY file read request, whether from S3 or Local
 # If you wish to download entire file, leave length as None and start as 0.
@@ -22,7 +24,7 @@ class ReadObjectRequest:
         self.download_entire_file = (self.start == 0 and self.length is None)
 
 
-# Only to list files in S3. Accepts strings Bucket, Prefix, Delimiter, and StartAfter 
+# Only to list files in S3. Accepts strings Bucket, Prefix, Delimiter, and StartAfter
 # parameters that serve the same role here as they would in boto3.
 class ListRequest:
     def __init__(self, Bucket, Prefix="", Delimiter="", StartAfter=""):
@@ -31,13 +33,14 @@ class ListRequest:
         self.delimiter = Delimiter
         self.start_after = StartAfter
 
+
 class S3Handler:
     # For debug flag, first set PYTHONASYNCIODEBUG=1 in terminal.
     # This provides terminal output revealing details about the AsyncIO calls and timings that may be useful.
     # num_retries: the number of times to retry a download or connection before logging an exception.
     def __init__(self, num_retries=5, debug=False):
         self.loop = asyncio.get_event_loop()
-        self.client = aioboto3.client('s3', loop=self.loop)
+        self.client = aioboto3.session.Session().client('s3')
         self.num_retries = num_retries
         self.logger = get_logger()
         if debug:
@@ -46,13 +49,13 @@ class S3Handler:
             logging.basicConfig(level=logging.DEBUG)
             aioboto3.set_stream_logger(name='boto3', level=logging.DEBUG, format_string=None)
 
-    # Accepts a bucket, prefix, delimiter, and start token 
+    # Accepts a bucket, prefix, delimiter, and start token
     # and returns list of all file names from that bucket that matches the given configuration
     # E.g. bucket='ljain-tests', prefix="rand_1mb_1000", start_after="rand_1mb_1000/demo_96.out.tfevents"
-    # Would list all files in the subdirectory 'ljain-tests/rand_1mb_1000' with filenames lexicographically 
+    # Would list all files in the subdirectory 'ljain-tests/rand_1mb_1000' with filenames lexicographically
     # less than demo_96.out.tfevents.
     # If request made is invalid, this returns an empty list and logs the exception in the log.
-    # 
+    #
     async def _list_files(self, bucket, prefix="", delimiter="", start_after=""):
         count = 0
         success = False
@@ -60,47 +63,31 @@ class S3Handler:
         while count < self.num_retries and not success:
             try:
                 paginator = self.client.get_paginator('list_objects_v2')
-                page_iterator = paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter=delimiter, 
-                                                    StartAfter=start_after, PaginationConfig={'PageSize': 1000})
+                page_iterator = paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter=delimiter,
+                                                   StartAfter=start_after, PaginationConfig={'PageSize': 1000})
                 success = True
             except Exception as e:
-                self.logger.info(str(e))
+                self.logger.warning(str(e))
             count += 1
         if not success:
-            self.logger.warn("Unable to list files for " + bucket + " with prefix " + prefix)
+            self.logger.warning("Unable to list files for " + bucket + " with prefix " + prefix)
             return []
         keys = []
         async for page in page_iterator:
             if delimiter:
-                try:
-                    if 'CommonPrefixes' in page.keys():
-                        for pre in page['CommonPrefixes']:
+                if 'CommonPrefixes' in page.keys():
+                    for pre in page['CommonPrefixes']:
+                        if 'Prefix' in pre.keys():
                             keys += [pre['Prefix']]
-                    if 'Contents' in page.keys():
-                        for obj in page['Contents']:
-                            keys += [obj['Key']]
-                except Exception as e:
-                    self.logger.warn(e)
-                    msg = "Could not list files for " + str(bucket) 
-                    if prefix:
-                        msg += " with prefix " + str(prefix) 
-                    msg += " and delimiter " + str(delimiter)
-                    if start_after:
-                        msg += " starting after " + str(start_after)
-                    self.logger.warn(msg)
-            else:
-                try:
+                if 'Contents' in page.keys():
                     for obj in page['Contents']:
-                        key = obj['Key']
-                        keys += [key]
-                except Exception as e:
-                    self.logger.warn(e)
-                    msg = "Could not list directories for " + str(bucket) 
-                    if prefix:
-                        msg += " with prefix " + str(prefix) 
-                    if start_after:
-                        msg += " starting after " + str(start_after)
-                    self.logger.warn(msg) 
+                        if 'Key' in obj.keys():
+                            keys += [obj['Key']]
+            else:
+                if 'Contents' in page.keys():
+                    for obj in page['Contents']:
+                        if 'Key' in obj.keys():
+                            keys += [obj['Key']]
         return keys
 
     # accepts a bucket and key and fetches data from s3 beginning at the offset = start with the provided length
@@ -116,7 +103,7 @@ class S3Handler:
                     resp = await self.client.get_object(Bucket=bucket, Key=key)
                 body = await resp['Body'].read()
             except Exception as e:
-                self.logger.warn(str(e))
+                self.logger.warning(str(e))
                 msg = "Unable to read tensor from object " + str(bucket) + "/" + str(key)
                 if length is not None:
                     msg += " from bytes " + str(start) + "-" + str(start + length - 1)
@@ -124,7 +111,7 @@ class S3Handler:
                 body = None
             count += 1
         if body is None:
-            self.logger.warn("Unable to find file " + str(key))
+            self.logger.warning("Unable to find file " + str(key))
         return body
 
     # object_requests: a list of ObjectRequest objects.
@@ -133,17 +120,18 @@ class S3Handler:
         request_params = []
         for obj in object_requests:
             request_params += [(obj.bucket, obj.path, obj.start, obj.length)]
-        data = await asyncio.gather(*[self._get_object(bucket, key, start, length) for bucket, key, start, length in request_params])
+        data = await asyncio.gather(
+            *[self._get_object(bucket, key, start, length) for bucket, key, start, length in request_params])
         return data
 
-    # list_requests: a list of ListRequest objects 
+    # list_requests: a list of ListRequest objects
     # Returns list of lists of files fetched
     async def _list_files_from_requests(self, list_requests):
         request_params = []
         for req in list_requests:
             request_params += [(req.bucket, req.prefix, req.delimiter, req.start_after)]
-        data = await asyncio.gather(*[self._list_files(bucket, prefix, delimiter, start_after) 
-                                        for bucket, prefix, delimiter, start_after in request_params])
+        data = await asyncio.gather(*[self._list_files(bucket, prefix, delimiter, start_after)
+                                      for bucket, prefix, delimiter, start_after in request_params])
         return data
 
     # Closes the client
@@ -151,10 +139,10 @@ class S3Handler:
         await self.client.close()
 
     # object_requests: list of ObjectRequest objects.
-    # num_async_calls: the number of asynchronous calls to do at once. 
+    # num_async_calls: the number of asynchronous calls to do at once.
     # timer: boolean, allows timing measurement of total operation
     # returns list of all data downloaded.
-    def get_objects(self, object_requests, num_async_calls = 500, timer=False):
+    def get_objects(self, object_requests, num_async_calls=500, timer=False):
         if type(object_requests) != list:
             raise TypeError("get_objects accepts a list of ObjectRequest objects.")
         if timer:
@@ -167,8 +155,9 @@ class S3Handler:
             data += done
             idx += num_async_calls
         if timer:
-            self.logger.info("total time taken for " + str(len(object_requests)) + " requests: " + str(time.time() - start))
-        return data 
+            self.logger.info(
+                "total time taken for " + str(len(object_requests)) + " requests: " + str(time.time() - start))
+        return data
 
     # accepts a list of ListRequest objects, returns list of lists of files fetched.
     def list_prefixes(self, list_requests):
@@ -176,13 +165,14 @@ class S3Handler:
             raise TypeError("list_prefixes accepts a list of ListRequest objects.")
         task = self.loop.create_task(self._list_files_from_requests(list_requests))
         done = self.loop.run_until_complete(task)
-        return done 
+        return done
 
     # Public facing function to close the client.
     def close_client(self):
         task = self.loop.create_task(self._close_client())
         done = self.loop.run_until_complete(task)
         return done
-    
+
+    # Destructor to close client upon deletion
     def __del__(self):
         self.close_client()
