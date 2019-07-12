@@ -29,6 +29,36 @@ class Index():
 def load_index():
     return Index()
 
+######### HELPER FUNCTIONS ######
+
+def read_tensor_from_record(data):
+    event_str = read_record(data)
+    event = Event()
+    event.ParseFromString(event_str)
+    assert event.HasField('summary')
+    summ = event.summary
+    tensors = []
+    for v in summ.value:
+        tensor_name = v.tag
+        tensor_data = get_tensor_data(v.tensor)
+        tensors += [tensor_data]
+    return tensors
+
+def read_record(data, check=True):
+    payload = None
+    strlen_bytes = data[:8]
+    data = data[8:]
+    # will give you payload for the record, which is essentially the event.
+    strlen = struct.unpack('Q', strlen_bytes)[0]
+    saved_len_crc = struct.unpack('I', data[:4])[0]
+    data = data[4:]
+    payload = data[:strlen]
+    data = data[strlen:]
+    saved_payload_crc = struct.unpack('I', data[:4])[0]
+    return payload
+
+##########################################
+
 # tlist should be a list of [(tname, [steps])]. This method will return a 
 # dictionary with key = (tname, step) and value being the corresponding tensor.
 # If the corresponding tensor is not fetchable, then None is stored for its dictionary entry.
