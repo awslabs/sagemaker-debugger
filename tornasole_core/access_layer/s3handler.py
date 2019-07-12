@@ -3,6 +3,8 @@ import asyncio
 from tornasole_core.utils import is_s3, get_logger
 import logging
 import time
+import nest_asyncio
+nest_asyncio.apply()
 
 
 # Must be created for ANY file read request, whether from S3 or Local
@@ -38,7 +40,7 @@ class S3Handler:
     # num_retries: the number of times to retry a download or connection before logging an exception.
     def __init__(self, num_retries=5, debug=False):
         self.loop = asyncio.get_event_loop()
-        self.client = aioboto3.client('s3', loop=self.loop)
+        self.client = aioboto3.session.Session().client('s3')
         self.num_retries = num_retries
         self.logger = get_logger()
         if debug:
@@ -171,5 +173,6 @@ class S3Handler:
         done = self.loop.run_until_complete(task)
         return done
 
+    # Destructor to close client upon deletion
     def __del__(self):
         self.close_client()
