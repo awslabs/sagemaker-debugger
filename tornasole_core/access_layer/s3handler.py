@@ -40,7 +40,7 @@ class S3Handler:
     # num_retries: the number of times to retry a download or connection before logging an exception.
     def __init__(self, num_retries=5, debug=False):
         self.loop = asyncio.get_event_loop()
-        self.client = aioboto3.session.Session().client('s3')
+        self.client = aioboto3.client('s3', loop=self.loop)
         self.num_retries = num_retries
         self.logger = get_logger()
         if debug:
