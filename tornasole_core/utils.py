@@ -5,6 +5,11 @@ import logging
 
 DEFAULT_PREFIX_FOR_S3_TRIAL_NAME = "__trial__"
 
+class NoMoreDataError(Exception):
+    pass
+
+DEFAULT_PREFIX_FOR_S3_TRIAL_NAME = "__trial__"
+
 def flatten(lis):
   """Given a list, possibly nested to any level, return it flattened."""
   new_lis = []
