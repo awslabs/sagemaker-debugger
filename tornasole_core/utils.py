@@ -1,14 +1,8 @@
 import os
 import re
 import logging
+from botocore.exceptions import ClientError
 
-
-DEFAULT_PREFIX_FOR_S3_TRIAL_NAME = "__trial__"
-
-class NoMoreDataError(Exception):
-    pass
-
-DEFAULT_PREFIX_FOR_S3_TRIAL_NAME = "__trial__"
 
 def flatten(lis):
   """Given a list, possibly nested to any level, return it flattened."""
@@ -59,6 +53,7 @@ def get_immediate_subdirectories(a_dir):
   return [name for name in os.listdir(a_dir)
           if os.path.isdir(os.path.join(a_dir, name))]
 
+
 def get_reduction_tensor_name(tensorname, reduction_name, abs):
     tname = re.sub(r':\d+', '', f'{reduction_name}/{tensorname}')
     if abs:
@@ -66,20 +61,38 @@ def get_reduction_tensor_name(tensorname, reduction_name, abs):
     tname = "tornasole/reductions/" + tname
     return tname
 
+
 def is_s3(path):
-    m = re.match(r's3://([^/]+)/(.*)', path)
-    if not m:
-        return (False, None, None)
-    return (True, m[1], m[2])
+    if path.startswith('s3://'):
+        try:
+            parts = path[5:].split('/', 1)
+            return True, parts[0], parts[1]
+        except IndexError:
+            return True, path[5:], ''
+    else:
+        return False, None, None
+
 
 def check_dir_exists(path):
     from tornasole_core.access_layer.s3handler import S3Handler, ListRequest
     s3, bucket_name, key_name = is_s3(path)
     if s3:
-        s3_handler = S3Handler()
-        request = ListRequest(bucket_name, key_name)
-        folder = s3_handler.list_prefixes([request])[0]
-        if len(folder) > 0:
-            raise RuntimeError('The path:{} already exists in s3'.format(path))
+        try:
+            s3_handler = S3Handler()
+            request = ListRequest(bucket_name, key_name)
+            folder = s3_handler.list_prefixes([request])[0]
+            if len(folder) > 0:
+                raise RuntimeError('The path:{} already exists on s3. '
+                                   'Please provide a directory path that does '
+                                   'not already exist.'.format(path))
+        except ClientError as ex:
+            if ex.response['Error']['Code'] == 'NoSuchBucket':
+                # then we do not need to raise any error
+                pass
+            else:
+                # do not know the error
+                raise ex
     elif os.path.exists(path):
-        raise RuntimeError('The path:{} already exists in local disk'.format(path))
+        raise RuntimeError('The path:{} already exists on local disk'
+                           'Please provide a directory path that does '
+                           'not already exist'.format(path))

@@ -6,6 +6,7 @@ from tornasole_core.tfevent.util import EventFileLocation
 from tornasole_core.indexutils import *
 import shutil
 import os
+
 def test_index():
     numpy_tensor = [np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
                     np.array([[1.0, 2.0, 4.0], [3.0, 4.0, 5.0]], dtype=np.float32)]
@@ -20,9 +21,9 @@ def test_index():
         writer.write_tensor(tdata=numpy_tensor[i], tname=n)
     writer.flush()
     writer.close()
-    efl = EventFileLocation(step_num=step, worker_name=worker, rank=0)
+    efl = EventFileLocation(step_num=step, worker_name=worker)
     eventfile = efl.get_location(run_dir=run_dir)
-    indexfile = IndexUtil.get_index_key_for_step(run_dir, step,worker,0)
+    indexfile = IndexUtil.get_index_key_for_step(run_dir, step,worker)
 
     fo = open(eventfile, "rb")
 
