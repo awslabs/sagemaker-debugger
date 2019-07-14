@@ -33,7 +33,7 @@ from tornasole_core.tfrecord.record_writer import RecordWriter
 from .util import make_tensor_proto, EventFileLocation
 from tornasole_core.indexutils import *
 from tornasole_core.tfevent.index_file_writer import IndexWriter, IndexArgs
-from tornasole_core.utils import is_s3
+from tornasole_core.utils import is_s3, get_logger
 logging.basicConfig()
 
 def size_and_shape(t):
@@ -68,7 +68,7 @@ class EventsWriter(object):
         self._filename = None
         self.tfrecord_writer = None
         self._num_outstanding_events = 0
-        self._logger = None
+        self._logger = get_logger()
         self.step = step
         self.worker = worker
         self.write_checksum = write_checksum
@@ -78,9 +78,6 @@ class EventsWriter(object):
 
         index_file_path = IndexUtil.get_index_key_for_step(self.file_prefix, step, self.worker)
         self.indexwriter = IndexWriter(index_file_path)
-        if verbose:
-            self._logger = logging.getLogger(__name__)
-            self._logger.setLevel(logging.INFO)
 
     def __del__(self):
         self.close()
@@ -123,7 +120,7 @@ class EventsWriter(object):
             return
         self.tfrecord_writer.flush()
         if self._logger is not None:
-            self._logger.info('wrote %d %s to disk', self._num_outstanding_events,
+            self._logger.debug('wrote %d %s to disk', self._num_outstanding_events,
                               'event' if self._num_outstanding_events == 1 else 'events')
         self._num_outstanding_events = 0
 
