@@ -19,6 +19,11 @@ class TSAccessS3(TSAccessBase):
         self.s3 = boto3.resource('s3')
         self.s3_client = boto3.client('s3')
 
+        # check if the bucket exists
+        buckets = [bucket['Name'] for bucket in self.s3_client.list_buckets()['Buckets']]
+        if self.bucket_name not in buckets:
+            self.s3_client.create_bucket(ACL='private', Bucket=self.bucket_name)
+
     def _init_data(self):
         if self.binary:
             self.data = bytearray()
