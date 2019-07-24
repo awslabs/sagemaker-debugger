@@ -34,7 +34,7 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-    install_requires = ['aioboto3', 'nest_asyncio'],
+    install_requires = ['aioboto3', 'nest_asyncio', 'protobuf>=3.6.0'],
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "tensorflow"],
 )
