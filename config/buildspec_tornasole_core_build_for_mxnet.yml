@@ -1,0 +1,26 @@
+# Build Spec for AWS CodeBuild CI
+
+version: 0.2
+phases:
+  install:
+    commands:
+        -  . config/get-branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
+        - su && apt-get update
+        - apt-get install sudo
+        - sudo apt-get update
+        - sudo apt-get install unzip
+        - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+        - pip install wheel #required
+        - pip install pytest
+  pre_build:
+    commands:
+
+  build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR_tornasole_mxnet  && git checkout $MXNET_BRANCH  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR_tornasole_rules && git checkout $RULES_BRANCH && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR  && python -m pytest tests/  && mkdir -p $CURRENT_COMMIT_PATH && cp ./dist/*.whl $CURRENT_COMMIT_PATH && cd ..
+      - cd $CODEBUILD_SRC_DIR_tornasole_rules && git checkout $RULES_BRANCH && python -m pytest tests/ && mkdir -p $RULES_PATH && cp ./dist/*.whl $RULES_PATH && cd ..
+      - cd $CODEBUILD_SRC_DIR_tornasole_mxnet && git checkout $MXNET_BRANCH && python -m pytest test/ && mkdir -p $MXNET_PATH  && cp ./dist/*.whl $MXNET_PATH    && cd ..
+      - if [ "$CODEBUILD_GIT_BRANCH" = "master" ] && [ "$CODEBUILD_WEBHOOK_EVENT" = "PUSH" ] ; then aws s3 cp $CODEBUILD_SRC_DIR/wheels s3://tornasolecodebuildtest/ --recursive ; fi
