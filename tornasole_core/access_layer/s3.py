@@ -1,4 +1,3 @@
-import boto
 import boto3
 import re
 from tornasole_core.access_layer.base import TSAccessBase
