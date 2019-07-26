@@ -16,10 +16,10 @@ if  [ "$CODEBUILD_WEBHOOK_EVENT" = "PULL_REQUEST_CREATED" ] || [ "$CODEBUILD_WEB
       BRANCH=$SUBSTRING
 
 elif [ "$CODEBUILD_WEBHOOK_EVENT" != "PULL_REQUEST_CREATED" ] && [ "$CODEBUILD_WEBHOOK_EVENT" != "PULL_REQUEST_REOPENED" ] && [ "$CODEBUILD_WEBHOOK_EVENT" != "PULL_REQUEST_UPDATED" ] && [ "$CODEBUILD_GIT_BRANCH" != "alpha" ] && [ "$CODEBUILD_GIT_BRANCH" != "master" ] ; then
-     if [ $(git merge-base --is-ancestor $CODEBUILD_GIT_BRANCH "alpha") -eq 1 ]; then
+     if [ $(git merge-base --is-ancestor $CODEBUILD_GIT_BRANCH  "alpha" ; echo $?) -eq 1 ]; then
           BRANCH='alpha'
 
-     elif [ $(git merge-base --is-ancestor $CODEBUILD_GIT_BRANCH "alpha") -eq 0 ]; then
+     elif [ $(git merge-base --is-ancestor $CODEBUILD_GIT_BRANCH  "alpha" ; echo $?) -eq 0 ]; then
           BRANCH='master'
     
      fi    
