@@ -3,9 +3,17 @@ import asyncio
 from tornasole_core.utils import is_s3, get_logger
 import logging
 import time
-import nest_asyncio
-nest_asyncio.apply()
 
+
+def check_notebook():
+    # try to see if we are in an iPython environment and import nest_asyncio appropriately
+    #
+    try:
+        get_ipython()
+        import nest_asyncio
+        nest_asyncio.apply()
+    except NameError:
+        pass
 
 # Must be created for ANY file read request, whether from S3 or Local
 # If you wish to download entire file, leave length as None and start as 0.
@@ -38,7 +46,10 @@ class S3Handler:
     # For debug flag, first set PYTHONASYNCIODEBUG=1 in terminal.
     # This provides terminal output revealing details about the AsyncIO calls and timings that may be useful.
     # num_retries: the number of times to retry a download or connection before logging an exception.
+
     def __init__(self, num_retries=5, debug=False):
+        # if you are creating an s3handler object in jupyter, ensure the nest_asyncio is applied
+        check_notebook()
         self.loop = asyncio.get_event_loop()
         self.client = aioboto3.client('s3', loop=self.loop)
         self.num_retries = num_retries
