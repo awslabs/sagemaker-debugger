@@ -34,6 +34,8 @@ from .util import make_tensor_proto, EventFileLocation
 from tornasole_core.indexutils import *
 from tornasole_core.tfevent.index_file_writer import IndexWriter, IndexArgs
 from tornasole_core.utils import is_s3, get_logger
+from tornasole_core.modes import ModeKeys, MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
+
 logging.basicConfig()
 
 def size_and_shape(t):
@@ -57,7 +59,8 @@ class EventsWriter(object):
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
-    def __init__(self, logdir, trial, worker, step, part, verbose=False, write_checksum=False):
+    def __init__(self, logdir, trial, worker, step, part,
+                 verbose=False, write_checksum=False):
 
         """
         Events files have a name of the form
@@ -67,6 +70,7 @@ class EventsWriter(object):
         self._file_suffix = ''
         self._filename = None
         self.tfrecord_writer = None
+        self.verbose = verbose
         self._num_outstanding_events = 0
         self._logger = get_logger()
         self.step = step
@@ -91,8 +95,8 @@ class EventsWriter(object):
         self._filename = el.get_location(run_dir=self.file_prefix)
 
         self.tfrecord_writer = RecordWriter(self._filename, self.write_checksum)
-        if self._logger is not None:
-            ('successfully opened events file: %s', self._filename)
+        # if self.verbose and self._logger is not None:
+            # ('successfully opened events file: %s', self._filename)
 
     def init_with_suffix(self, file_suffix):
         """Initializes the events writer with file_suffix"""
@@ -119,7 +123,7 @@ class EventsWriter(object):
         if self._num_outstanding_events == 0 or self.tfrecord_writer is None:
             return
         self.tfrecord_writer.flush()
-        if self._logger is not None:
+        if self.verbose and self._logger is not None:
             self._logger.debug('wrote %d %s to disk', self._num_outstanding_events,
                               'event' if self._num_outstanding_events == 1 else 'events')
         self._num_outstanding_events = 0
@@ -150,7 +154,8 @@ class EventFileWriter():
     """
 
     def __init__(self, logdir, trial, worker, step, part=0, max_queue=10,
-                 flush_secs=120, filename_suffix='', verbose=False, write_checksum=False):
+                 flush_secs=120, filename_suffix='',
+                 verbose=False, write_checksum=False):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
         This event file will contain `Event` protocol buffers, which are written to
@@ -170,6 +175,7 @@ class EventFileWriter():
         # if filename_suffix is not None:
         #     self._ev_writer.init_with_suffix(filename_suffix)        
         self._closed = False
+        self._logger = logging.getLogger(__name__)
         self._worker = _EventLoggerThread(queue=self._event_queue, ev_writer=self._ev_writer,
                                           flush_secs=self._flush_secs, sentinel_event=self._sentinel_event)
         self._worker.start()
@@ -196,13 +202,30 @@ class EventFileWriter():
         event = Event(graph_def=graph.SerializeToString())
         self.write_event(event)
 
-    def write_tensor(self, tdata, tname, write_index=True):
-        plugin_data = [SummaryMetadata.PluginData(plugin_name='tensor')]
+    def write_tensor(self, tdata, tname, write_index,
+                     mode, mode_step):
+        if mode_step is None:
+            mode_step = self.step
+        if mode is None:
+            mode = ModeKeys.GLOBAL
+        if not isinstance(mode, ModeKeys):
+            mode_keys = ["ModeKeys." + x.name for x in ModeKeys]
+            ex_str = "mode can be one of " + ", ".join(mode_keys)
+            raise ValueError(ex_str)
+
+        sm1 = SummaryMetadata.PluginData(plugin_name='tensor')
+        sm2 = SummaryMetadata.PluginData(plugin_name=MODE_STEP_PLUGIN_NAME,
+                                        content=str(mode_step))
+        sm3 = SummaryMetadata.PluginData(plugin_name=MODE_PLUGIN_NAME,
+                                         content=str(mode.value))
+        plugin_data = [sm1, sm2, sm3]
         smd = SummaryMetadata(plugin_data=plugin_data)
+
         value = make_numpy_array(tdata)
         tag = tname
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
-        s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
+        s = Summary(value=[Summary.Value(tag=tag, metadata=smd,
+                                         tensor=tensor_proto)])
         if write_index:
             self.write_summary_with_index(s, self.step, tname)
         else:

@@ -5,6 +5,7 @@ from tornasole_core.tfevent.util import make_tensor_proto
 from tornasole_core.tfevent.summary_pb2 import Summary, SummaryMetadata
 from tornasole_core.tfrecord.record_reader import masked_crc32c, u32
 from tornasole_core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
+from tornasole_core.modes import ModeKeys, MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 
 class TensorReader:
     def __init__(self, data):
@@ -46,7 +47,17 @@ class TensorReader:
                     tensor_data = get_tensor_data(v.tensor)
                 else:
                     tensor_data = None
-                yield (tensor_name, step, tensor_data)
+
+                # default values
+                # todo: validate the logic extensively
+                mode_step = step
+                mode = ModeKeys.GLOBAL
+                for metadata in v.metadata.plugin_data:
+                    if metadata.plugin_name == MODE_STEP_PLUGIN_NAME:
+                        mode_step = int(metadata.content)
+                    if metadata.plugin_name == MODE_PLUGIN_NAME:
+                        mode = ModeKeys(int(metadata.content))
+                yield (tensor_name, step, tensor_data, mode, mode_step)
 
     def read_summaries(self, check=False):
         for ev in self.read_events(check=check):

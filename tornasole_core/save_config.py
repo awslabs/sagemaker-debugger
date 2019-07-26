@@ -1,4 +1,36 @@
 SAVE_CONFIG_VERSION_NUM = 'v0'
+from .modes import ModeKeys as modes
+
+
+class SaveConfigModes:
+  def __init__(self, mode_save_configs=None):
+    if mode_save_configs is None:
+      mode_save_configs = {}
+    self.mode_save_configs = mode_save_configs
+
+  def add_for_all_modes(self, save_config):
+    for mode in modes:
+      self.mode_save_configs[mode] = save_config
+
+  def add(self, mode, save_config):
+    self.mode_save_configs[mode] = save_config
+
+  def should_save_step(self, mode, step_num):
+    return self.mode_save_configs[mode].should_save_step(step_num)
+
+  def add_when_nan_tensor(self, tensor):
+    for mode in modes:
+      self.mode_save_configs[mode].when_nan_tensors.append(tensor)
+
+  def get_save_config(self, mode):
+    return self.mode_save_configs[mode]
+
+  @staticmethod
+  def create_simple_save_mode(save_config):
+    sm = SaveConfigModes()
+    sm.add_for_all_modes(save_config)
+    return sm
+
 
 class SaveConfig:
   """
@@ -30,6 +62,9 @@ class SaveConfig:
     self.save_steps = save_steps if save_steps is not None else []
     self.skip_num_steps = skip_num_steps
     self.when_nan = when_nan if when_nan is not None else []
+
+    # will be populated by hook
+    self.when_nan_tensors = []
 
   def export(self):
     separator = '%'

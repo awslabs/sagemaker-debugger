@@ -8,13 +8,11 @@ class CollectionManager:
   It contains a default collection into which tensors are inserted
   without specifying collection name
   """
-  def __init__(self, create_default=True):
+  def __init__(self):
     self.collections = {}
-    if create_default:
-      self.collections['default'] = self.get_new_collection('default')
 
-  def get_new_collection(self, name):
-    return Collection(name)
+  def create_collection(self, name):
+    self.collections[name] = Collection(name)
 
   def get_collections(self):
     return self.collections
@@ -22,7 +20,7 @@ class CollectionManager:
   def add(self, arg):
     if isinstance(arg, str):
       if arg not in self.collections:
-        self.collections[arg] = self.get_new_collection(arg)
+        self.create_collection(arg)
     elif isinstance(arg, Collection):
       if arg.name not in self.collections:
         self.collections[arg.name] = arg
@@ -43,7 +41,7 @@ class CollectionManager:
 
   @staticmethod
   def load(filename):
-    cm = CollectionManager(create_default=False)
+    cm = CollectionManager()
     with open(filename, 'r') as f:
       line = f.readline()
       while line:
@@ -54,7 +52,7 @@ class CollectionManager:
 
   @staticmethod
   def load_from_string(s):
-    cm = CollectionManager(create_default=False)
+    cm = CollectionManager()
     lines = s.split('\n')
     for line in lines:
       c = Collection.load(line.rstrip())

@@ -82,4 +82,5 @@ class EventFileLocation:
 
     @staticmethod
     def get_step_dir_path(trial_dir, step_num):
-        return os.path.join(trial_dir, 'events', step_num)
+        step_num = int(step_num)
+        return os.path.join(trial_dir, 'events', format(step_num, STEP_NUMBER_FORMATTING_LENGTH))

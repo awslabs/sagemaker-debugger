@@ -15,6 +15,7 @@ def test_load_empty():
 
 def test_manager_export_load():
   cm = CollectionManager()
+  cm.create_collection('default')
   cm.get('default').include('loss')
   cm.add(Collection('trial1'))
   cm.add('trial2')
@@ -25,6 +26,7 @@ def test_manager_export_load():
 
 def test_manager():
   cm = CollectionManager()
+  cm.create_collection('default')
   cm.get('default').include('loss')
   cm.add(Collection('trial1'))
   cm.add('trial2')

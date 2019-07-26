@@ -34,8 +34,8 @@ def test_s3():
     my_session = boto3.session.Session()
     my_region = my_session.region_name
     my_account = boto3.client('sts').get_caller_identity().get('Account')
-    bucket_name = 'sagemaker-{}-{}'.format(my_region,my_account)
-    key_name = 'tornasole/{}'.format(str(uuid.uuid4()))
+    bucket_name = 'tornasole-testing'
+    key_name = 'core-tests/tornasole/{}'.format(str(uuid.uuid4()))
     #sagemaker-us-east-1-722321484884
     location = 's3://{}/{}'.format(bucket_name,key_name)
     print("Saving to Location")

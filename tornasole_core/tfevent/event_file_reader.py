@@ -28,6 +28,8 @@ from .event_pb2 import Event
 from .summary_pb2 import Summary, SummaryMetadata
 
 from tornasole_core.tfrecord.record_reader import RecordReader
+from tornasole_core.modes import ModeKeys, MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
+
 
 #todo: remove this logger perhaps
 logging.basicConfig()
@@ -133,7 +135,7 @@ class EventFileReader():
         self._ev_reader.__exit__(exc_type, exc_value, traceback)
 
     def read_tensors(self, read_data=False, check=False):
-        for (step,summ) in self.read_summaries(check=check):
+        for step, summ in self.read_summaries(check=check):
             for v in summ.value:
                 assert v.WhichOneof('value') == 'tensor'
                 tensor_name = v.tag
@@ -142,7 +144,17 @@ class EventFileReader():
                     tensor_data = get_tensor_data(v.tensor)
                 else:
                     tensor_data = None
-                yield (tensor_name, step, tensor_data)
+
+                # default values
+                # todo: validate the logic extensively
+                mode_step = step
+                mode = ModeKeys.GLOBAL
+                for metadata in v.metadata.plugin_data:
+                    if metadata.plugin_name == MODE_STEP_PLUGIN_NAME:
+                        mode_step = int(metadata.content)
+                    if metadata.plugin_name == MODE_PLUGIN_NAME:
+                        mode = ModeKeys(int(metadata.content))
+                yield (tensor_name, step, tensor_data, mode, mode_step)
 
     def read_summaries(self, check=True):
         for ev in self.read_events(check=check):

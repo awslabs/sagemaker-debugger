@@ -20,6 +20,7 @@
 import time
 from tornasole_core.tfevent.event_file_writer import EventFileWriter
 import socket
+from tornasole_core.modes import ModeKeys
 
 class FileWriter():
     def __init__(self, logdir, trial, step, worker=None, rank=0, part=0,
@@ -66,8 +67,10 @@ class FileWriter():
         """Make usable with "with" statement."""
         self.close()
 
-    def write_tensor(self, tdata, tname, write_index=True):
-        self._writer.write_tensor(tdata, tname, write_index)
+    def write_tensor(self, tdata, tname, write_index=True,
+                     mode=ModeKeys.GLOBAL, mode_step=None):
+        self._writer.write_tensor(tdata, tname, write_index,
+                                  mode, mode_step)
 
     def flush(self):
         """Flushes the event file to disk.

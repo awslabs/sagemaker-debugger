@@ -87,16 +87,10 @@ class Collection:
       self.tensors.append(t)
 
   def remove_tensor(self, t):
-    # have to compare names because tensors can have variables, \
-    # we don't want to end up comparing tensors and variables
     if t.name in self.tensor_names:
-      found_index = None
-      for i, lt in enumerate(self.tensors):
-        if lt.name == t.name:
-          found_index = i
-      assert found_index is not None
-      self.tensors.pop(found_index)
       self.tensor_names.remove(t.name)
+    if t in self.tensors:
+      self.tensors.remove(t)
 
   def add_reduction_tensor(self, s):
     self.reduction_tensor_names.append(s.name)
