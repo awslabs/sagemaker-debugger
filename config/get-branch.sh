@@ -27,10 +27,28 @@ elif [ "$CODEBUILD_WEBHOOK_EVENT" != "PULL_REQUEST_CREATED" ] && [ "$CODEBUILD_W
 else BRANCH=$CODEBUILD_GIT_BRANCH
 fi
 
-export TF_BRANCH=$BRANCH ;
-export CORE_BRANCH=$BRANCH ;
-export RULES_BRANCH=$BRANCH ;
-export MXNET_BRANCH=$BRANCH  ;#for your specific case, you can always change the branch you want to use.
+TF_BRANCH=$BRANCH ;
+CORE_BRANCH=$BRANCH ;
+RULES_BRANCH=$BRANCH ;
+MXNET_BRANCH=$BRANCH  ;
+
+
+if [ "$CODEBUILD_GIT_BRANCH" != "alpha" ] && [ "$CODEBUILD_GIT_BRANCH" != "master" ] ; then
+    file="configure_branch_for_test.txt"
+    while IFS=: read -r repo_name default_or_branchname
+    do
+                if [ "$repo_name" = "$tf_repo" ] && [ "$default_or_branchname" != "default" ]; then
+                        TF_BRANCH=$default_or_branchname
+                elif [ "$repo_name" = "$mxnet_repo" ] && [ "$default_or_branchname" != "default" ] ; then
+                        MXNET_BRANCH=$default_or_branchname
+                elif [ "$repo_name" = "$rules_repo" ] && [ "$default_or_branchname" != "default" ] ; then
+                        RULES_BRANCH=$default_or_branchname
+                elif [ "$repo_name" = "$core_repo" ] && [ "$default_or_branchname" != "default" ] ; then
+                        CORE_BRANCH=$default_or_branchname
+                fi
+
+    done <"$file"
+fi
 
 cd $CODEBUILD_SRC_DIR && git checkout $CODEBUILD_GIT_BRANCH
 export CURRENT_COMMIT_HASH=$(git log -1 --pretty=%h);
@@ -73,5 +91,12 @@ if  [ "$CURRENT_REPO_NAME" != "$tf_repo" ]; then
     export TF_PATH="$CODEBUILD_SRC_DIR/wheels/$TF_COMMIT_DATE/$TF_REPO_NAME/$TF_COMMIT_HASH"
     cd ..
 fi
+
+
+            
+export TF_BRANCH ;
+export CORE_BRANCH ;
+export RULES_BRANCH ;
+export MXNET_BRANCH ;
 
 
