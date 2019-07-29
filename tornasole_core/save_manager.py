@@ -77,6 +77,7 @@ class SaveManager:
         if tensor_name in coll.tensor_names:
           matched_colls.append(coll)
         elif match_inc(tensor_name, coll.get_include_regex()):
+          coll.tensor_names.append(tensor_name)
           matched_colls.append(coll)
       self.tensor_to_collection[tensor_name] = matched_colls
     return self.tensor_to_collection[tensor_name]
