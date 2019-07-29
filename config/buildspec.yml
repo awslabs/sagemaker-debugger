@@ -11,6 +11,7 @@ phases:
         - sudo apt-get install unzip
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install pytest
+        - pip install wheel
         
   pre_build:
     commands:
@@ -18,9 +19,12 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR_tornasole_tf  && git checkout $TF_BRANCH  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - if [ $framework = "tensorflow" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_tf  && git checkout $TF_BRANCH  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd .. ; fi
+      - if [ $framework = "mxnet" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_mxnet  && git checkout $MXNET_BRANCH  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd .. ; fi
       - cd $CODEBUILD_SRC_DIR_tornasole_rules && git checkout $RULES_BRANCH && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR  && python -m pytest tests/  && mkdir -p $CURRENT_COMMIT_PATH && cp ./dist/*.whl $CURRENT_COMMIT_PATH && cd ..
-      - cd $CODEBUILD_SRC_DIR_tornasole_rules && git checkout $RULES_BRANCH && export TORNASOLE_LOG_LEVEL=debug && python -m pytest tests/tornasole_rules  && python -m pytest test_rules.py::test_test_rules --mode tf --path_to_config ./tests/config.yaml && mkdir -p $RULES_PATH && cp ./dist/*.whl $RULES_PATH && cd ..
-      - cd $CODEBUILD_SRC_DIR_tornasole_tf && git checkout $TF_BRANCH && python -m pytest tests/ && mkdir -p $TF_PATH  && cp ./dist/*.whl $TF_PATH    && cd ..
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p $CURRENT_COMMIT_PATH && cp ./dist/*.whl $CURRENT_COMMIT_PATH && cd ..
+      - cd $CODEBUILD_SRC_DIR_tornasole_rules && git checkout $RULES_BRANCH && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p $RULES_PATH && cp ./dist/*.whl $RULES_PATH && cd ..
+      - if [ $framework = "tensorflow" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_tf && git checkout $TF_BRANCH && chmod +x config/tests.sh && ./config/tests.sh && mkdir -p $TF_PATH && cp ./dist/*.whl $TF_PATH && cd .. ; fi
+      - if [ $framework = "mxnet" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_mxnet && git checkout $MXNET_BRANCH && chmod +x config/tests.sh && ./config/tests.sh && mkdir -p $MXNET_PATH && cp ./dist/*.whl $MXNET_PATH && cd .. ; fi
       - if [ "$CODEBUILD_GIT_BRANCH" = "master" ] && [ "$CODEBUILD_WEBHOOK_EVENT" = "PUSH" ] ; then aws s3 cp $CODEBUILD_SRC_DIR/wheels s3://tornasolecodebuildtest/ --recursive ; fi 
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR $CODEBUILD_BUILD_ARN \n ERROR $CODEBUILD_LOG_PATH" ; fi

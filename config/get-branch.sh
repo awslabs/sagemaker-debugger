@@ -5,6 +5,8 @@ rules_repo="tornasole_rules"
 tf_repo="tornasole_tf"
 mxnet_repo="tornasole_mxnet"
 
+if [ -z "${CODEBUILD_BUILD_IMAGE##*tensorflow*}" ] ; then export framework="tensorflow"; else export framework="mxnet" ; fi
+
 export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
 if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
   CODEBUILD_GIT_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }')";
