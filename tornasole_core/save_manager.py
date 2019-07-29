@@ -27,13 +27,6 @@ class SaveManager:
     self.when_nan_tensors = {}
 
   def prepare(self):
-    # below is to control the order
-    # in which these collections appear in save_collections
-    for cname in ['weights', 'gradients', 'bias', 'optimizer_variables']:
-      if self._should_collection_be_saved(cname):
-        self.save_collections.append(self.collection_manager.get(cname))
-
-    # adding other collections to save_collections
     for c_name, c in self.collection_manager.get_collections().items():
       if self._should_collection_be_saved(c_name) \
         and c not in self.save_collections:
