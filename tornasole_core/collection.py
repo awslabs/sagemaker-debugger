@@ -43,11 +43,10 @@ class Collection:
     self.save_config = save_config
 
     self.tensor_names = []
-    # when loaded by passing names, tensors method is unsafe
-    # todo: handle this
-    self.tensors = []
-
     self.reduction_tensor_names = []
+
+    # these two are internal fields only, used by TF
+    self.tensors = []
     self.reduction_tensors = []
 
   def get_include_regex(self):

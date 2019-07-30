@@ -68,6 +68,9 @@ class SaveManager:
   def get_save_config(self, collection, mode):
     return self.configs_for_collections[collection.name].get_save_config(mode)
 
+  def get_reduction_config(self, collection):
+    return collection.get_reduction_config()
+
   def from_collections(self, tensor_name):
     # for tf this will be prepopulated because of prepare_tensors
     if not tensor_name in self.tensor_to_collection:
