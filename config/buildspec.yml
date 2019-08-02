@@ -27,4 +27,8 @@ phases:
       - if [ $framework = "tensorflow" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_tf && git checkout $TF_BRANCH && chmod +x config/tests.sh && ./config/tests.sh && mkdir -p $TF_PATH && cp ./dist/*.whl $TF_PATH && cd .. ; fi
       - if [ $framework = "mxnet" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_mxnet && git checkout $MXNET_BRANCH && chmod +x config/tests.sh && ./config/tests.sh && mkdir -p $MXNET_PATH && cp ./dist/*.whl $MXNET_PATH && cd .. ; fi
       - if [ "$CODEBUILD_GIT_BRANCH" = "master" ] && [ "$CODEBUILD_WEBHOOK_EVENT" = "PUSH" ] ; then aws s3 cp $CODEBUILD_SRC_DIR/wheels s3://tornasolecodebuildtest/ --recursive ; fi 
-      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR $CODEBUILD_BUILD_ARN \n ERROR $CODEBUILD_LOG_PATH" ; fi
+
+  post_build:
+    commands:
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK:$CODEBUILD_BUILD_URL" ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK:$CODEBUILD_BUILD_URL" ; fi

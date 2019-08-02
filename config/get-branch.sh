@@ -5,7 +5,9 @@ rules_repo="tornasole_rules"
 tf_repo="tornasole_tf"
 mxnet_repo="tornasole_mxnet"
 
+
 if [ -z "${CODEBUILD_BUILD_IMAGE##*tensorflow*}" ] ; then export framework="tensorflow"; else export framework="mxnet" ; fi
+
 
 export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
 if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
@@ -102,3 +104,20 @@ export CORE_BRANCH ;
 export RULES_BRANCH ;
 export MXNET_BRANCH ;
 
+
+
+
+export CODEBUILD_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+export CODEBUILD_PROJECT=${CODEBUILD_BUILD_ID%:$CODEBUILD_LOG_PATH}
+
+export CODEBUILD_BUILD_URL=https://$AWS_DEFAULT_REGION.console.aws.amazon.com/codebuild/home?region=$AWS_DEFAULT_REGION#/builds/$CODEBUILD_BUILD_ID/view/new
+
+echo "INFO =============================BUILD STARTED==================================="
+echo "INFO =============================Build details========================== ::"
+echo "INFO CODEBUILD_CURRENT_BUILD_URL = $CODEBUILD_BUILD_URL"
+echo "INFO CURRENT_REPO_NAME = $CURRENT_REPO_NAME"
+echo "INFO CURRENT_COMMIT_DATE = $CURRENT_COMMIT_DATE"
+echo "INFO CODEBUILD_ACCOUNT_ID = $CODEBUILD_ACCOUNT_ID"
+echo "INFO CURRENT_GIT_BRANCH = $CODEBUILD_GIT_BRANCH"
+#echo "INFO CURRENT_GIT_COMMIT = $CODEBUILD_GIT_COMMIT"
+echo "INFO CODEBUILD_PROJECT = $CODEBUILD_PROJECT"
