@@ -34,8 +34,8 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-
-    install_requires = ['aioboto3', 'nest_asyncio', 'protobuf>=3.6.0' ,'boto3'],
+    #pinning aioboto3 version as aiobot3 is pinning versions https://github.com/aio-libs/aiobotocore/issues/718
+    install_requires = ['aioboto3==6.4.1', 'nest_asyncio', 'protobuf>=3.6.0' ,'botocore==1.12.91','boto3==1.9.91'],
 
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "tensorflow"],
