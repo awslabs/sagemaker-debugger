@@ -3,7 +3,9 @@ from .tensor_shape_pb2 import TensorShapeProto
 import numpy as np
 import os, re
 from tornasole_core.utils import get_immediate_subdirectories
-from tornasole_core.utils import logger
+from tornasole_core.utils import get_logger
+
+logger = get_logger()
 
 # hash value of ndarray.dtype is not the same as np.float class
 # so we need to convert the type classes below to np.dtype object

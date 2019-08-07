@@ -14,40 +14,34 @@ def flatten(lis):
           new_lis.append(item)
   return new_lis
 
-logger = None
+_logger_level_set = False
 
-def get_logger(path=os.getcwd()):
-  global logger
-  if logger is None:
-    logger = logging.getLogger("tornasole")
-    fh = logging.FileHandler(os.path.join(path, 'tornasole.log'))
+def get_logger():
+  global _logger_level_set
+  name = 'tornasole'
+  if not _logger_level_set:
     log_level = os.environ.get('TORNASOLE_LOG_LEVEL', default='info')
     log_level = log_level.lower()
-
     if log_level not in ['info', 'debug', 'warning', 'error', 'critical', 'off']:
       print('Invalid log level for TORNASOLE_LOG_LEVEL')
       log_level = 'info'
 
     if log_level == 'off':
-      logger.disabled = True
-    elif log_level == 'critical':
-      logger.setLevel(logging.CRITICAL)
-    elif log_level == 'error':
-      logger.setLevel(logging.ERROR)
-    elif log_level == 'warning':
-      logger.setLevel(logging.WARNING)
-    elif log_level == 'info':
-      logger.setLevel(logging.INFO)
-    elif log_level == 'debug':
-      logger.setLevel(logging.DEBUG)
-
-    fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logger.addHandler(fh)
-  # logger.propagate = False
-    return logger
-  else:
-    return logger
-
+      logging.getLogger(name).disabled = True
+    else:
+      if log_level == 'critical':
+        level = logging.CRITICAL
+      elif log_level == 'error':
+        level = logging.ERROR
+      elif log_level == 'warning':
+        level = logging.WARNING
+      elif log_level == 'info':
+        level = logging.INFO
+      elif log_level == 'debug':
+        level = logging.DEBUG
+      logging.getLogger(name).setLevel(level)
+    _logger_level_set = True
+  return logging.getLogger(name)
 
 def get_immediate_subdirectories(a_dir):
   return [name for name in os.listdir(a_dir)
