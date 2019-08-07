@@ -1,5 +1,5 @@
-tornasole_core:default
-tornasole_tf:default
-tornasole_mxnet:default
-tornasole_rules:default
+tornasole_core:redn_fix
+tornasole_tf:redn_fix
+tornasole_mxnet:redn_fix
+tornasole_rules:fix_mode_available
 tornasole_pytorch:default

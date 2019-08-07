@@ -42,18 +42,17 @@ class Collection:
     self.reduction_config = reduction_config
     self.save_config = save_config
 
-    self.tensor_names = []
-    self.reduction_tensor_names = []
-
-    # these two are internal fields only, used by TF
-    self.tensors = []
-    self.reduction_tensors = []
+    self.tensor_names = set()
+    self.reduction_tensor_names = set()
 
   def get_include_regex(self):
     return self.include_regex
 
   def get_tensor_names(self):
     return self.tensor_names
+
+  def get_reduction_tensor_names(self):
+    return self.reduction_tensor_names
 
   def include(self, t):
     if isinstance(t, list):
@@ -80,20 +79,17 @@ class Collection:
       raise TypeError('Can only take an instance of SaveConfig')
     self.save_config = save_cfg
 
-  def add_tensor(self, t):
-    if t.name not in self.tensor_names:
-      self.tensor_names.append(t.name)
-      self.tensors.append(t)
+  def add_tensor_name(self, tname):
+    if tname not in self.tensor_names:
+      self.tensor_names.add(tname)
 
-  def remove_tensor(self, t):
-    if t.name in self.tensor_names:
-      self.tensor_names.remove(t.name)
-    if t in self.tensors:
-      self.tensors.remove(t)
+  def remove_tensor_name(self, tname):
+    if tname in self.tensor_names:
+      self.tensor_names.remove(tname)
 
-  def add_reduction_tensor(self, s):
-    self.reduction_tensor_names.append(s.name)
-    self.reduction_tensors.append(s)
+  def add_reduction_tensor_name(self, sname):
+    if sname not in self.reduction_tensor_names:
+      self.reduction_tensor_names.add(sname)
 
   def export(self):
     # v0 export
@@ -135,8 +131,8 @@ class Collection:
       list_separator = ','
       name = parts[1]
       include = [x for x in parts[2].split(list_separator) if x]
-      tensor_names = [x for x in parts[3].split(list_separator) if x]
-      reduction_tensor_names = [x for x in parts[4].split(list_separator) if x]
+      tensor_names = set([x for x in parts[3].split(list_separator) if x])
+      reduction_tensor_names = set([x for x in parts[4].split(list_separator) if x])
       reduction_config = ReductionConfig.load(parts[5])
       save_config = SaveConfig.load(parts[6])
       c = Collection(name, include_regex=include,

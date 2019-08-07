@@ -28,10 +28,12 @@ def test_manager():
   cm = CollectionManager()
   cm.create_collection('default')
   cm.get('default').include('loss')
+  cm.get('default').add_tensor_name('assaas')
   cm.add(Collection('trial1'))
   cm.add('trial2')
   cm.get('trial2').include('total_loss')
   assert len(cm.collections) == 3
   assert cm.get('default') == cm.collections['default']
   assert 'loss' in cm.get('default').include_regex
+  assert len(cm.get('default').get_tensor_names()) > 0
   assert 'total_loss' in cm.collections['trial2'].include_regex
