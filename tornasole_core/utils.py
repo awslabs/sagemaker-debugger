@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import uuid
 from botocore.exceptions import ClientError
 
 
@@ -16,6 +17,7 @@ def flatten(lis):
 
 _logger_level_set = False
 
+guid = str(uuid.uuid4())
 def get_logger():
   global _logger_level_set
   name = 'tornasole'
@@ -41,7 +43,15 @@ def get_logger():
         level = logging.DEBUG
       logging.getLogger(name).setLevel(level)
     _logger_level_set = True
-  return logging.getLogger(name)
+  log_formatter = logging.Formatter('%(asctime)s ' + guid + ' %(levelname)s %(filename)s(%(lineno)d) %(message)s')
+  ch  = logging.StreamHandler()
+  fh = logging.FileHandler(name + '.log')
+  ch.setFormatter(log_formatter)
+  fh.setFormatter(log_formatter)
+  logger = logging.getLogger(name)
+  logger.addHandler(ch)
+  logger.addHandler(fh)
+  return logger
 
 def get_immediate_subdirectories(a_dir):
   return [name for name in os.listdir(a_dir)
