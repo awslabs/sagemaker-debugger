@@ -21,13 +21,13 @@ if compile_summary_protobuf() != 0:
 
 setuptools.setup(
     name="tornasole_core",
-    version="0.1",
+    version="0.2",
     author="The Tornasole Team",
     author_email="tornasole@amazon.com",
-    description="Tornasole Numpy",
+    description="Tornasole Core",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/andreaolgiati/tornasole_core",
+    url="https://github.com/awslabs/tornasole_core",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -36,7 +36,6 @@ setuptools.setup(
     ],
     #pinning aioboto3 version as aiobot3 is pinning versions https://github.com/aio-libs/aiobotocore/issues/718
     install_requires = ['aioboto3==6.4.1', 'nest_asyncio', 'protobuf>=3.6.0' ,'botocore==1.12.91','boto3==1.9.91', 'aiobotocore==0.10.2'],
-
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "tensorflow"],
 )
