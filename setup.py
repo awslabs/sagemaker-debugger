@@ -35,7 +35,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     #pinning aioboto3 version as aiobot3 is pinning versions https://github.com/aio-libs/aiobotocore/issues/718
-    install_requires = ['aioboto3==6.4.1', 'nest_asyncio', 'protobuf>=3.6.0' ,'botocore==1.12.91','boto3==1.9.91'],
+    install_requires = ['aioboto3==6.4.1', 'nest_asyncio', 'protobuf>=3.6.0' ,'botocore==1.12.91','boto3==1.9.91', 'aiobotocore==0.10.2'],
 
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "tensorflow"],
