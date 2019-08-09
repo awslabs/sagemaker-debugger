@@ -6,8 +6,11 @@ tf_repo="tornasole_tf"
 mxnet_repo="tornasole_mxnet"
 
 
-if [ -z "${CODEBUILD_BUILD_IMAGE##*tensorflow*}" ] ; then export framework="tensorflow"; else export framework="mxnet" ; fi
 
+if [ -z "${CODEBUILD_BUILD_IMAGE##*tensorflow*}" ] ; then export framework="tensorflow";
+elif [ -z "${CODEBUILD_BUILD_IMAGE##*mxnet*}" ] ; then export framework="mxnet";
+elif [ -z "${CODEBUILD_BUILD_IMAGE##*pytorch*}" ] ; then export framework="pytorch";
+fi
 
 export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
 if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
@@ -39,7 +42,7 @@ RULES_BRANCH=$BRANCH ;
 MXNET_BRANCH=$BRANCH  ;
 
 
-if [ "$CODEBUILD_GIT_BRANCH" != "alpha" ] && [ "$CODEBUILD_GIT_BRANCH" != "master" ] ; then
+if [ "$CODEBUILD_GIT_BRANCH" != "alpha" ] && [ "$CODEBUILD_GIT_BRANCH" != "master" ] && [ "$CODEBUILD_WEBHOOK_EVENT" != "PUSH" ] ; then
     file="config/configure_branch_for_test.txt"
     while IFS=: read -r repo_name default_or_branchname
     do
