@@ -112,7 +112,8 @@ python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
     --tornasole_path ~/ts_outputs/vanishing  
 ``` 
 
-You can monitor the exploding tensors by doing the following
+##### Rule: VanishingGradient
+You can monitor vanishing gradients by doing the following
 ```
 python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing --rule-name VanishingGradient
 ``` 
@@ -141,7 +142,7 @@ python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
     --tornasole_step_interval 1 \
     --tornasole_path ~/ts_outputs/weights
 ```
-
+##### Rule: WeightUpdateRatio 
 You can invoke the rule to 
 monitor the ratio of weights to updates every step. 
 A quick way to invoke the rule is like this: 
@@ -151,6 +152,13 @@ python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-n
 If you want to customize the thresholds, refer to the example in `analysis`:
 [`examples/analysis/scripts/weight_update_ratio.py`](examples/analysis/scripts/weight_update_ratio.py) 
 and the [Rule API](docs/analysis/README.md#rules-api)
+
+##### Rule: UnchangedTensor
+You can also invoke this rule to 
+monitor if tensors are not changing at every step. Here we are passing '.*' as the tensor_regex to monitor all tensors.
+```
+python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name UnchangedTensor --tensor_regex .*
+```
 
 #### Running with tornasole disabled
 ```

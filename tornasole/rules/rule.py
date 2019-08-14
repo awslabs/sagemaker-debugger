@@ -27,12 +27,14 @@ class RequiredTensors:
         for st in steps:
             t.value(st)
 
+    # returns number of arrays fetched for this rule
     def _fetch_tensors(self):
         required_steps = set()
         for steps in self.tensor_names.values():
             required_steps = required_steps.union(set(steps))
         required_steps = sorted(required_steps)
-        self.logger.debug(f"Waiting for required_steps: {required_steps}")
+        if required_steps:
+            self.logger.debug(f"Waiting for required_steps: {required_steps}")
         self.trial.wait_for_steps(required_steps)
         self.trial.get_tensors(self.tensor_names,
                                should_regex_match=self.should_match_regex)
@@ -52,8 +54,7 @@ class RequiredTensors:
 
 # This is Rule interface
 class Rule(ABC):
-    def __init__(self, base_trial, other_trials=None,
-                 config_json_file_path=None):
+    def __init__(self, base_trial, other_trials=None):
         self.base_trial = base_trial
         self.other_trials = other_trials
 
@@ -64,7 +65,6 @@ class Rule(ABC):
         self.actions = None
         self.logger = logger
         pass
-        # TODO parse_json_config_file_path
 
     @abstractmethod
     # returns a list of RequiredTensor objects, one for each trial

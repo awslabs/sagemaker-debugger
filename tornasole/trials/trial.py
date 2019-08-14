@@ -200,11 +200,9 @@ class Trial(ABC):
             regex_list = [regex_list]
         regex_list = flatten(regex_list)
         for tensorname in self._tensors.keys():
-            self.logger.debug(f"TNAME: {tensorname}")
             for regex_pattern in regex_list:
                 if re.match(regex_pattern, tensorname):
                     matched_tensornames.append(tensorname)
-                    self.logger.debug(f"TNAME: {tensorname} matched regex:{regex_pattern}")
                     break
         return matched_tensornames
 

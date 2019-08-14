@@ -285,6 +285,12 @@ class VanishingGradientRule(Rule):
         super().__init__(base_trial, other_trials=None)
         self.threshold = threshold
 ```
+
+Please note that apart from `base_trial` and `other_trials` (if required), we require all 
+arguments of the rule constructor to take a string as value. This means if you want to pass
+a list of strings, you might want to pass them as a comma separated string. This restriction is
+being enforced so as to let you create and invoke rules from json using Sagemaker's APIs.  
+
 ##### RequiredTensors
 
 Next you need to implement a method which lets Tornasole know what tensors you 
@@ -441,6 +447,32 @@ from tornasole.rules.generic import AllZero
 collections = ['weights', 'bias']
 tensor_regex = ['input*']
 allzero = AllZero(base_trial=trial_obj, collection_names=collections, tensor_regex=tensor_regex)
+```
+
+##### UnchangedTensor
+This rule helps to identify whether a tensor is not changing across steps. 
+This rule runs `numpy.allclose` method to check if the tensor is unchanged. 
+It takes following arguments
+
+- `base_trial`: The trial whose execution will invoke the rule. The rule will inspect the tensors gathered during this trial.
+- `collection_names`: The list of collection names. The rule will inspect the tensors that belong to these collections.
+- `tensor_regex`: The list of regex patterns. The rule will inspect the tensors that match the regex patterns specified in this list.
+- `num_steps`: Number of steps across which we check if the tensor has changed. Note that this checks the last num_steps that are available. 
+They need not be consecutive.
+If num_steps is 2, at step `s` it does not necessarily check for s-1 and s. 
+If s-1 is not available, it checks the last available step along with s. 
+In that case it checks the last available step with the current step.
+- `rtol`: The relative tolerance parameter, as a float, to be passed to numpy.allclose. 
+- `atol`: The absolute tolerance parameter, as a float, to be passed to numpy.allclose
+- `equal_nan`: Whether to compare NaN’s as equal. If True, NaN’s in a will be considered 
+equal to NaN’s in b in the output array. This will be passed to numpy.allclose method
+    
+For this rule, users must specify either the `collection_names` or `tensor_regex` parameter. 
+If both the parameters are specified the rule will inspect union on tensors.
+
+```
+from tornasole.rules.generic import UnchangedTensor
+ut = UnchangedTensor(base_trial=trial_obj, tensor_regex=['.*'], num_steps=3)
 ```
 
 ## Examples

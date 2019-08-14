@@ -131,7 +131,7 @@
   - [*mnist_gluon_basic_hook_demo,
      --random_seed True --num_steps 5,
      *invoker,
-     --rule_name allzero --flag False --end_step 3 --collection weights
+     --rule_name allzero --flag False --end_step 3 --collection_names weights
     ]
 - # all_zero/mxnet/true
   - mxnet
@@ -139,7 +139,7 @@
   - [*mnist_gluon_all_zero_demo,
      --random_seed True --num_steps 5,
      *invoker,
-     --rule_name allzero --flag True --end_step 3 --collections weights --collections ReluActivation --collections bias
+     --rule_name allzero --flag True --end_step 3 --collection_names weights,ReluActivation,bias
     ]
 
 # test cases for pytorch

@@ -1,5 +1,6 @@
 from tornasole.core.reductions import get_numpy_reduction
 from tornasole.core.modes import ModeKeys
+import bisect
 from tornasole.exceptions import *
 
 from enum import Enum
@@ -223,3 +224,19 @@ class Tensor:
         self._mode_steps[mode].set_step_reduction_value(mode_step,
                                                         red_name, abs, red_value)
 
+    def prev_steps(self, step, n, mode=ModeKeys.GLOBAL):
+        """
+        returns n prev steps from step representing step number
+        of given mode
+        :param step: int
+        step number
+        :param n: int
+        number of previous steps to return
+        :param mode: value of the enum tornasole.modes
+        modes.GLOBAL, modes.TRAIN, modes.EVAL, modes.PREDICT
+        :return: a list of step numbers
+        """
+        steps = self.steps(mode=mode)
+        i = bisect.bisect_right(steps, step)
+        prev_steps = steps[:i]
+        return prev_steps[-n:]
