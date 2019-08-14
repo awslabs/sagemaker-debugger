@@ -1,4 +1,4 @@
-export VERSION='0.2.1'
+export VERSION='0.3'
 
 for FRAMEWORK in tensorflow mxnet pytorch
 do
