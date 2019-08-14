@@ -2,6 +2,7 @@ import time
 import os
 
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, ListRequest, S3Handler
+from tornasole_core.access_layer.utils import has_training_ended
 from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.tfrecord.tensor_reader import TensorReader
@@ -35,6 +36,9 @@ class S3Trial(Trial):
 
     def _load_tensors(self):
         self._read_all_events_file_from_s3()
+
+    def training_ended(self):
+        return has_training_ended("s3://{}/{}".format(self.bucket_name, self.prefix_name))
 
     def _load_collections(self):
         num_times_before_warning = 10

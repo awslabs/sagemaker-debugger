@@ -163,8 +163,13 @@ class Tensor:
             elif ss == StepState.UNAVAILABLE:
                 raise StepUnavailable(step_num, mode)
             elif ss == StepState.NOT_YET_AVAILABLE:
+                if self.trial.loaded_all_steps == True:
+                    last_step = -1
+                    avail_steps = self.trial.available_steps(mode=mode)
+                    if len(avail_steps) > 0:
+                        last_step = avail_steps[-1]
+                    raise NoMoreData("Looking for step:{} for mode {} and reached end of training. Max step available is {}".format(step_num, mode, last_step))
                 raise StepNotYetAvailable(step_num, mode)
-
         assert False, 'Should not happen'
 
     def value(self, step_num, mode=ModeKeys.GLOBAL):

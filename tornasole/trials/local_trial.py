@@ -3,6 +3,7 @@ from tornasole.core.utils import index
 from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.reader import FileReader
+from tornasole_core.access_layer.utils import has_training_ended
 
 import time
 import os
@@ -64,6 +65,9 @@ class LocalTrial(Trial):
                 else:
                     self.logger.debug('Waiting to read collections')
                 continue
+
+    def training_ended(self):
+        return has_training_ended(self.trial_dir)
 
     def refresh_tensors(self):
         self._load_tensors()

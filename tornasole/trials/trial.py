@@ -47,6 +47,7 @@ class Trial(ABC):
         self.check = check
         self.range_steps = range_steps
         self.collection_manager = None
+        self.loaded_all_steps = False
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
@@ -76,12 +77,31 @@ class Trial(ABC):
     def refresh_tensors(self):
         pass
 
+    @abstractmethod
+    def training_ended(self):
+        pass
+
     def maybe_refresh(self, name=None):
-        if self.dynamic_refresh:
-            if name is None:
-                self.refresh_tensors()
-            else:
-                self.refresh_tensor(name)
+        if self.loaded_all_steps == True:
+            return
+        retry_count = 1
+        training_ended = self.training_ended()
+        if training_ended == True and self.loaded_all_steps == False:
+            retry_count = 2
+        while retry_count > 0:
+            if self.dynamic_refresh:
+                self.logger.debug("refreshing tensors, retries left {}".format(retry_count))
+                if name is None:
+                    self.refresh_tensors()
+                else:
+                    self.refresh_tensor(name)
+            if retry_count > 1:
+                self.logger.info("Training has ended, will try to do a final refresh in 5 sec")
+                time.sleep(5)
+            retry_count -= 1
+        if training_ended == True and self.loaded_all_steps == False:
+            self.loaded_all_steps = True
+            self.logger.info("Marked loaded all steps to True")
 
     def refresh_tensor(self, tname, steps=None):
         # for now we load all tensors at once
@@ -233,10 +253,16 @@ class Trial(ABC):
                         raise StepUnavailable(step, mode)
                     elif s == StepState.AVAILABLE:
                         break
+                    elif self.loaded_all_steps == True:
+                        last_step = -1
+                        avail_steps = self.available_steps(mode=mode)
+                        if len(avail_steps) > 0:
+                            last_step = avail_steps[-1]
+                        raise NoMoreData("Looking for step:{} for mode {} and reached end of training. Max step available for mode is {}".format(step, mode, last_step))
                     time.sleep(5)
 
     def has_passed_step(self, step, mode=ModeKeys.GLOBAL):
-        available_steps = sorted(self.available_steps(mode=mode))
+        available_steps = self.available_steps(mode=mode)
         bisect_idx = bisect_left(available_steps, step)
         if bisect_idx < len(available_steps):
             if available_steps[bisect_idx] > step:
