@@ -1,5 +1,5 @@
 import pytest
-from tornasole_core.reduction_config import ReductionConfig
+from tornasole.core.reduction_config import ReductionConfig
 
 def test_export_load():
   r1 = ReductionConfig(only_shape=True, reductions=['min'], norms=['l2'])

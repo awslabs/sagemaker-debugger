@@ -1,9 +1,9 @@
 import csv
-from tornasole_core.writer import FileWriter
-from tornasole_core.tfevent.event_file_writer import *
-from tornasole_core.reader import FileReader
-from tornasole_core.tfevent.util import EventFileLocation
-from tornasole_core.indexutils import *
+from tornasole.core.writer import FileWriter
+from tornasole.core.tfevent.event_file_writer import *
+from tornasole.core.reader import FileReader
+from tornasole.core.tfevent.util import EventFileLocation
+from tornasole.core.indexutils import *
 import shutil
 import os
 

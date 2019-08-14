@@ -4,14 +4,13 @@ version: 0.2
 phases:
   install:
     commands:
-        -  . config/get-branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
+        -  . config/get-branch.sh #don't need this
         - su && apt-get update
         - apt-get install sudo
         - sudo apt-get update
         - sudo apt-get install unzip
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
-        - pip install pytest
-        - pip install wheel
+        - pip install pytest wheel pyYaml pytest-html tensorflow mxnet torch
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
         
   pre_build:
@@ -20,18 +19,11 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
-      - if [ $framework = "tensorflow" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_tf  && git checkout $TF_BRANCH  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd .. ; fi
-      - if [ $framework = "mxnet" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_mxnet  && git checkout $MXNET_BRANCH  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd .. ; fi
-      - if [ $framework = "pytorch" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_tf  && git checkout $TF_BRANCH  && cd tornasole_pytorch  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd .. ; fi
-      - cd $CODEBUILD_SRC_DIR_tornasole_rules && git checkout $RULES_BRANCH && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p $CURRENT_COMMIT_PATH && cp ./dist/*.whl $CURRENT_COMMIT_PATH && cd ..
-      - cd $CODEBUILD_SRC_DIR_tornasole_rules && git checkout $RULES_BRANCH && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p $RULES_PATH && cp ./dist/*.whl $RULES_PATH && cd ..
-      - if [ $framework = "tensorflow" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_tf && git checkout $TF_BRANCH && chmod +x config/tests.sh && ./config/tests.sh && mkdir -p $TF_PATH && cp ./dist/*.whl $TF_PATH && cd .. ; fi
-      - if [ $framework = "mxnet" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_mxnet && git checkout $MXNET_BRANCH && chmod +x config/tests.sh && ./config/tests.sh && mkdir -p $MXNET_PATH && cp ./dist/*.whl $MXNET_PATH && cd .. ; fi
-      - if [ $framework = "pytorch" ] ; then cd $CODEBUILD_SRC_DIR_tornasole_tf && git checkout $TF_BRANCH && cd tornasole_pytorch && chmod +x config/tests.sh && ./config/tests.sh && mkdir -p $TF_PATH && cp ./dist/*.whl $TF_PATH && cd .. ; fi
-      - if [ "$CODEBUILD_GIT_BRANCH" = "master" ] && [ "$CODEBUILD_WEBHOOK_EVENT" = "PUSH" ] ; then aws s3 cp $CODEBUILD_SRC_DIR/wheels s3://tornasolecodebuildtest/ --recursive ; fi 
-
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - aws s3 cp $CODEBUILD_SRC_DIR/upload s3://tornasolecodebuildtest/ --recursive
+#if [ "$CODEBUILD_GIT_BRANCH" = "master" ] && [ "$CODEBUILD_WEBHOOK_EVENT" = "PUSH" ] ; then
   post_build:
     commands:
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK:$CODEBUILD_BUILD_URL" ; fi
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK:$CODEBUILD_BUILD_URL" ; fi
+

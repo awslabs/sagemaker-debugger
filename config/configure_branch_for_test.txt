@@ -1,5 +1,0 @@
-tornasole_core:default
-tornasole_tf:default
-tornasole_mxnet:default
-tornasole_rules:default
-tornasole_pytorch:default

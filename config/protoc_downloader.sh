@@ -6,4 +6,3 @@ curl -OL https://github.com/google/protobuf/releases/download/v3.7.1/$PROTOC_ZIP
 unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
 unzip -o $PROTOC_ZIP -d /usr/local include/*
 rm -f $PROTOC_ZIP
-

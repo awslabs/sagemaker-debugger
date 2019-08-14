@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from tornasole_core.access_layer.s3handler import *
-from tornasole_core.tfrecord.tensor_reader import *
+from tornasole.core.access_layer.s3handler import *
+from tornasole.core.tfrecord.tensor_reader import *
 ######## HELPER CLASSES AND FUNCTIONS #######
 class TensorLocation:
     def __init__(self, event_file_name, start=0, length=None):
@@ -12,9 +12,9 @@ class TensorLocation:
 class Index():
     def __init__(self):
         self.dummy = dict()
-        self.dummy["s3://ljain-tests/tfevents"] = dict()
+        self.dummy["s3://tornasolecodebuildtest/tfevents"] = dict()
         for i in range(5000):
-            self.dummy["s3://ljain-tests/tfevents"]["demo_" + str(i)] = [(0, TensorLocation("s3://ljain-tests/tfevents/demo_"+str(i)+".out.tfevents"))]
+            self.dummy["s3://tornasolecodebuildtest/tfevents"]["demo_" + str(i)] = [(0, TensorLocation("s3://tornasolecodebuildtest/tfevents/demo_"+str(i)+".out.tfevents"))]
 
     # input to get_index_for_tensors is a dict {path:{tensornames:[step_nums]}}
     # output of that fn is dict {path:{tname:[(step_num, TensorLocation)]}}
@@ -64,7 +64,7 @@ def read_record(data, check=True):
 # If the corresponding tensor is not fetchable, then None is stored for its dictionary entry.
 def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
     object_requests = []
-    bucket = "ljain-tests"
+    bucket = "tornasolecodebuildtest"
     prefix = "tfevents"
     index_dict = dict()
     parent_path = "s3://" + bucket + "/" + prefix
@@ -119,11 +119,11 @@ def test_download_objects(compare_speeds = False):
 def test_list_objects():
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     s3_handler = S3Handler()
-    req1 = ListRequest('ljain-tests', 'tfevents', '', '')
-    req2 = ListRequest('ljain-tests', 'rand_4mb_1000', '', '')
-    req3 = ListRequest('ljain-tests', 'rand_8mb_1000', '', '')
-    req4 = ListRequest('ljain-tests', 'demo_dir_structure/attempts/', '/')
-    req5 = ListRequest('ljain-tests', 'demo_dir_structure/attempts/', '/', 'demo_dir_structure/attempts/help')
+    req1 = ListRequest('tornasolecodebuildtest', 'tfevents', '', '')
+    req2 = ListRequest('tornasolecodebuildtest', 'rand_4mb_1000', '', '')
+    req3 = ListRequest('tornasolecodebuildtest', 'rand_8mb_1000', '', '')
+    req4 = ListRequest('tornasolecodebuildtest', 'demo_dir_structure/attempts/', '/')
+    req5 = ListRequest('tornasolecodebuildtest', 'demo_dir_structure/attempts/', '/', 'demo_dir_structure/attempts/help')
     files = s3_handler.list_prefixes([req1, req2, req3, req4, req5])
     # test StartAfter and delimiters
     assert len(files[3]) == 5 and len(files[4]) == 3

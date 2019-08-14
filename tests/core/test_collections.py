@@ -1,6 +1,6 @@
-from tornasole_core.collection import Collection
-from tornasole_core.collection_manager import CollectionManager
-from tornasole_core.reduction_config import ReductionConfig
+from tornasole.core.collection import Collection
+from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.reduction_config import ReductionConfig
 
 def test_export_load():
   # with none as save config

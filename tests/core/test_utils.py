@@ -1,4 +1,4 @@
-from tornasole_core.utils import is_s3, check_dir_exists
+from tornasole.core.utils import is_s3, check_dir_exists
 
 def test_normal():
   rval = is_s3('a/b/c')

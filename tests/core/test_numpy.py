@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 import uuid
-from tornasole_core.writer import FileWriter
-from tornasole_core.reader import FileReader
+from tornasole.core.writer import FileWriter
+from tornasole.core.reader import FileReader
 
 def rw(path):
     """

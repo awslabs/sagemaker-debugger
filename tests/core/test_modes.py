@@ -1,7 +1,7 @@
-from tornasole_core.writer import FileWriter
-from tornasole_core.reader import FileReader
+from tornasole.core.writer import FileWriter
+from tornasole.core.reader import FileReader
 import numpy as np
-from tornasole_core.modes import ModeKeys
+from tornasole.core.modes import ModeKeys
 from datetime import datetime
 import glob
 import shutil
