@@ -2,7 +2,7 @@ import time
 import os
 
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, ListRequest, S3Handler
-from tornasole_core.access_layer.utils import has_training_ended
+from tornasole.core.access_layer.utils import has_training_ended
 from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.tfrecord.tensor_reader import TensorReader

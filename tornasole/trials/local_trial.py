@@ -3,7 +3,7 @@ from tornasole.core.utils import index
 from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.reader import FileReader
-from tornasole_core.access_layer.utils import has_training_ended
+from tornasole.core.access_layer.utils import has_training_ended
 
 import time
 import os
