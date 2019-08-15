@@ -36,7 +36,7 @@ def make_numpy_array(x):
     elif np.isscalar(x):
         return np.array([x])
     elif isinstance(x, torch.Tensor):
-        return x.data.numpy()
+        return x.to(torch.device("cpu")).data.numpy()
     elif isinstance(x, tuple):
         return np.asarray(x, dtype=x.dtype)
     else:
