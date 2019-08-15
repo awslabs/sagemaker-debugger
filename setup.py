@@ -2,7 +2,7 @@ import os
 import sys
 import setuptools
 
-CURRENT_VERSION = '0.2.1'
+CURRENT_VERSION = '0.3'
 FRAMEWORKS = ['tensorflow', 'pytorch', 'mxnet']
 
 def compile_summary_protobuf():
