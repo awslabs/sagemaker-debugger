@@ -1,6 +1,11 @@
 # Build Spec for AWS CodeBuild CI
 
 version: 0.2
+env:
+  variables:
+    run_pytest_pytorch: "enable"
+    run_pytest_mxnet: "enable"
+    run_pytest_tensorflow: "enable"
 phases:
   install:
     commands:
@@ -12,6 +17,7 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install pytest wheel pyYaml pytest-html tensorflow mxnet torch
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
+
         
   pre_build:
     commands:
