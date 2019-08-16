@@ -51,7 +51,7 @@ def train(model, device, optimizer, num_steps=500, save_steps=[]):
 
 def test_reduce_config():
     reset_collections()
-    global_reduce_config = ReductionConfig(reductions=["max", "mean"])
+    global_reduce_config = ReductionConfig(reductions=["max", "mean", "variance"])
     global_save_config = SaveConfig(save_steps=[0,1,2,3])
 
     ts.get_collection("ReluActivation").include(["relu*"])
@@ -76,12 +76,14 @@ def test_reduce_config():
     tname = tr.tensors_matching_regex('Net_conv[0-9]+.weight')[0]
     print(tr.tensors())
 
-    # Global reduction with max and mean
+    # Global reduction with max and mean and variance
     weight_tensor = tr.tensor(tname)
     max_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name='max')
     assert max_val != None
     mean_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name='mean')
     assert mean_val != None
+    variance_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name='variance')
+    assert variance_val != None
 
     # custom reduction at step 4 with reduction = 'min and abs reduction = 'max'
     tname = tr.tensors_matching_regex('relu0_input_0')[0]
