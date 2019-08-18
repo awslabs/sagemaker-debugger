@@ -1,40 +1,100 @@
-import shutil
 import os
+import sys
+# set environment variable values for tornasole logger
+os.environ['TORNASOLE_LOG_LEVEL'] = 'debug'
+os.environ['TORNASOLE_LOG_FILTER'] = 'error'
+# if true, block stdout prints on console, if false, show stdout prints on console
+stdout = os.environ.get('BLOCK_STDOUT', default='FALSE') == 'TRUE'
+# if true, block stderr prints on console, if false, show stderr prints on console
+stderr = os.environ.get('BLOCK_STDERR', default='FALSE') == 'TRUE'
+# block stdout and stderr on top level scripts, including imported modules
+if stdout:
+    f = open(os.devnull, 'w')
+    sys.stdout = f
+if stderr:
+    f = open(os.devnull, 'w')
+    sys.stderr = f
+
+import shutil
 from multiprocessing import *
 from tornasole.core.utils import get_logger
 import yaml
 import time
 import asyncio
 import aioboto3
-from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler, ListRequest
-import logging.handlers
-import time
+from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
+from subprocess import Popen, PIPE
+from time import sleep
+import re
+import boto3
+import glob
+
+TEST_NAME_INDEX = 0
+FRAMEWORK_INDEX = 1
+SHOULD_RUN_INDEX = 2
+TEST_INFO_INDEX = 3
+
+VALUES_INDEX = 0
+SERIAL_MODE_INDEX = 1
+PARALLEL_MODE_INDEX = 2
+LOCAL_MODE_INDEX = 3
+S3_MODE_INDEX = 4
+
+TRAIN_SCRIPT_INDEX = 0
+TRAIN_SCRIPT_ARGS_INDEX = 1
+TEST_SCRIPT_INDEX = 2
+TEST_SCRIPT_ARGS_INDEX = 3
+BUCKET = 'integrationtestlog' 
+
 
 logger = get_logger()
-
 # store path to config file and test mode for testing rule scrip with training script
 class TestRules():
-    def __init__(self, mode, path_to_config):
+    def __init__(self, framework, path_to_config=None, env_dict={}, test_case_list=[], test_case_regex=None):
         """
         :param mode: mode could be either 'tensorflow' or 'mxnet'
         :param path_to_config: the path of config file which contains path to training and test scripts and corresponding arg strings
         """
-        self.mode = mode
-        self.path_to_config = path_to_config
-
-    # mode is either 'serial' or 'parallel'
-    def configure_log(self, path_train_script, path_test_script, trial_dir, mode):
-        location = 's3' if trial_dir.startswith('s3') else 'local'
-        training_script_name = path_train_script.split('/')[-1].strip('.py')
-        test_script_name = path_test_script.split('/')[-1].strip('.py')
-        # add independent logger for serial job
-        fh = logging.FileHandler(os.path.join(os.getcwd(),
-                                 format(f"{training_script_name}_{test_script_name}_{location}_{mode}")))
-        logger = logging.getLogger('tornasole')
-        logging.basicConfig(level=logging.INFO)
-        fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-        logger.addHandler(fh)  # enable to write log into log file
-        return logger
+        self.framework = framework
+        # if path_to_config is not defined, then use default dir './config 1.yaml'
+        self.path_to_config = path_to_config if path_to_config is not None else './config.yaml'
+        # load config file
+        f = open(self.path_to_config)
+        self.config_file = yaml.load(f)
+        self.serial_and_parallel = {}
+        self.serial_and_parallel['serial_mode'] = self.config_file[VALUES_INDEX][SERIAL_MODE_INDEX]['serial']
+        self.serial_and_parallel['parallel_mode'] = self.config_file[VALUES_INDEX][PARALLEL_MODE_INDEX]['parallel']
+        self.local_and_s3 = {}
+        self.local_and_s3['local_mode'] = self.config_file[VALUES_INDEX][LOCAL_MODE_INDEX]['local']
+        self.local_and_s3['s3_mode'] = self.config_file[VALUES_INDEX][S3_MODE_INDEX]['s3']
+        self.stdout_mode = stdout
+        self.stderr_mode = stderr
+        self.test_cases = test_case_list
+        self.test_case_regex = test_case_regex
+        self.CI_or_local_mode = os.environ.get('CI_OR_LOCAL', default=env_dict['CI_OR_LOCAL']
+            if 'CI_OR_LOCAL' in env_dict and env_dict['CI_OR_LOCAL'] is not None else None)
+        if self.CI_or_local_mode != 'LOCAL' and self.CI_or_local_mode is not None:
+            raise Exception('Wrong test mode!')
+        # if run on local mode, overwrite environment variable values to be local path
+        if self.CI_or_local_mode == 'LOCAL':
+            # if user doesn't specify environment variable value, then use default path prefix '.'
+            os.environ['tf_path'] = env_dict['tf_path'] if 'tf_path' in env_dict and \
+                                                           env_dict['tf_path'] is not None else '.'
+            os.environ['pytorch_path'] = env_dict['pytorch_path'] if 'pytorch_path' in env_dict and \
+                                                                     env_dict['pytorch_path'] is not None else '.'
+            os.environ['mxnet_path'] = env_dict['mxnet_path'] if 'mxnet_path' in env_dict and \
+                                                                 env_dict['mxnet_path'] is not None else '.'
+            os.environ['rules_path'] = env_dict['rules_path'] if 'rules_path' in env_dict and \
+                                                                 env_dict['rules_path'] is not None else '.'
+            os.environ['core_path'] = env_dict['core_path'] if 'core_path' in env_dict and \
+                                                               env_dict['core_path'] is not None else '.'
+            os.environ['CODEBUILD_SRC_DIR'] = env_dict['CODEBUILD_SRC_DIR'] if 'CODEBUILD_SRC_DIR' in env_dict and \
+                                                               env_dict['CODEBUILD_SRC_DIR'] is not None else '.'
+        # create s3 client
+        self.s3 = boto3.resource('s3')
+        # create a local folder to store log files
+        if not os.path.exists('./integration_test_log'):
+            os.mkdir('./integration_test_log/')
 
     # delete the s3 folders using aioboto3
     async def del_folder(self, bucket, keys):
@@ -68,104 +128,197 @@ class TestRules():
         task = loop.create_task(self.del_folder(bucket_name, keys))
         loop.run_until_complete(task)
 
+    def upload_log_to_s3(self, s3_prefix):
+        files_to_upload = []
+        ##  tornasole.log
+        from shutil import copyfile
+
+        copyfile('tornasole.log', 'tornasole-s3.log')
+        files_to_upload.append('tornasole-s3.log')
+        ##  integration_test_log
+        for r, d, f in os.walk('integration_test_log'):
+            for file in f:
+                files_to_upload.append(os.path.join(r, file))
+        ## local_test 
+        for r, d, f in os.walk('local_test'):
+            for file in f:
+                files_to_upload.append(os.path.join(r, file))
+        ## upload 
+        for log_file in files_to_upload:
+            print("Uploading file: {} to s3".format(log_file))
+            self.s3.Object(BUCKET, s3_prefix + "/" + log_file).put(
+                    Body=open(log_file, 'rb'))
+
+    def delete_local_log(self):
+        files = glob.glob('./integration_test_log/*')
+        for f in files:
+            os.remove(f)
+
     # run a 'job' in serial. a 'job' is a training/test scripts combination
-    def run_job_in_serial(self, path_train_script, train_script_args, path_test_script, test_script_args, trial_dir):
-        self.run_train(path_train_script, train_script_args, path_test_script, trial_dir)
-        logger.info(f'Finished Serial training job: {path_train_script}')
-        self.run_test(path_test_script, test_script_args, path_train_script, trial_dir)
-        logger.info(f'Finished Serial testing job: {path_test_script}')
+    def run_job_in_serial(self, path_to_train_script, train_script_args, path_to_test_script,
+                          test_script_args, trial_dir, job_name, mode, time_stamp):
+        self.run_one_script(path_to_train_script, train_script_args, trial_dir, job_name, mode, time_stamp, 'TRAIN')
+        self.run_one_script(path_to_test_script, test_script_args, trial_dir, job_name, mode, time_stamp, 'TEST')
 
-    # run a training script only
-    def run_train(self, path_train_script, train_script_args, path_test_script, trial_dir):
-        logger.info("running training script {}".format(path_train_script))
-        if path_train_script.split('/')[-1] == 'mnist_gluon_vg_demo.py' \
-                or path_train_script.split('/')[-1] == 'mnist_gluon_basic_hook_demo.py':
-            commands = format(f"python {path_train_script} --output-uri {trial_dir} {train_script_args}")
+    # run one script only
+    def run_one_script(self, path_to_script, script_args, trial_dir, job_name, mode, time_stamp, train_test_str=""):
+        # replace $path by environment variable value
+        path_prefix = path_to_script.split('/')[0].strip('$')
+        # get environment variable's value
+        path_prefix = os.environ[path_prefix]
+        path_postfix = path_to_script.split('/')[1:]
+        path_postfix = '/'.join(path_postfix)
+        path_to_script = path_prefix + '/' + path_postfix
+        # check test running either on local or s3
+        local_or_s3 = ''
+        if trial_dir.startswith('s3'):
+            local_or_s3 = 's3_mode'
         else:
-            commands = format(f"TORNASOLE_LOG_LEVEL=info python {path_train_script} --tornasole_path {trial_dir} {train_script_args}")
-        os.system(commands) # os.system(commands) enables the usage of cmd executable prompts
-        logger.info(f'Finished Parallel training job: {path_train_script}')
+            local_or_s3 = 'local_mode'
+        commands = "python {} --tornasole_path {} {}".format(path_to_script, trial_dir, script_args)
+        logger.info("IntegrationTest running command {}".format(commands))
+        # use subprocess to execute cmd line prompt
+        command_list = commands.split(' ')
+        # create a subprocess using Popen
+        p = Popen(command_list, stdout=PIPE if self.stdout_mode else None, stderr=PIPE if self.stderr_mode else None,
+                  env=dict(os.environ,
+                           TORNASOLE_LOG_CONTEXT='{}_{}'.format(path_to_script, trial_dir),
+                           TORNASOLE_LOG_PATH='./integration_test_log/{}_{}_{}_{}_{}.log'.format(
+            job_name.replace('/', '_'), local_or_s3, mode, time_stamp, train_test_str),
+                           TORNASOLE_LOG_LEVEL='debug',
+                           TORNASOLE_LOG_FILTER='error'))
 
-    # run a test script only
-    def run_test(self, path_test_script, test_script_args, path_train_script, trial_dir):
-        logger.info("running test script {}".format(path_test_script))
-        commands = format(f"TORNASOLE_LOG_LEVEL=debug python {path_test_script} --tornasole_path {trial_dir} {test_script_args}")
-        os.system(commands) # os.system(commands) enables the usage of cmd executable prompts
-        logger.info(f'Finished Parallel testing job: {path_test_script}')
-
+        out, error = p.communicate()
+        if p.returncode == 0:
+            logger.info("script {} of job {} in {} in {} ran {} successfully".format(path_to_script, job_name, local_or_s3, mode, train_test_str))
+        
+        else:
+            logger.error("script {} of job {} in {} in {} {} failed with error {} , output is:{}".format(path_to_script, job_name, local_or_s3, mode, train_test_str, error, out))
+            ## returning exit code
+            exit(p.returncode)
     # run 'job's provided by user. a 'job' is a training/test scripts combination
     # mode: testing mode, either 'auto' or 'manual'
     # jobs: a list of lists, the sublist is called a ‘job’
     # each job is run in serial and parallel on both local and s3
     def run_jobs(self):
-        # load config file
-        f = open(self.path_to_config)
-        jobs = yaml.load(f)
         process_list = []
         local_trials = set()
         s3_trials = set()
+        log_files = []
+        trial_dir = ''
+        #print(self.__dict__)
+        print(os.environ)
+        upload_time_str = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+
         # execute all the 'job's
-        for job in jobs:
+        for job in self.config_file:
             # format of a 'job' is:
-            # - tensorflow/mxnet
+            # - test_case_name
+            # - framework_name
             # - *Enable/*Disable
             # - [<path_train_script>,
             #    <train_script_args>,
             #    <path_test_script>,
             #    <test_script_args>
             #   ]
-            if job[0] != 'tensorflow' and job[0] != 'pytorch' and job[0] != 'mxnet' and job[0] != 'values':
-                raise Exception('Wrong test case category', job[0])
-            # only run the tests which mode is what we want
-            if job[0] == self.mode and job[1]:
-                # run 'job' in serial on local and s3
-                for trial_dir in ['./local_test/trial', 's3://tornasolecodebuildtest/trial']:
-                    time_stamp = time.time()
-                    name = 'serial_{}_{}_{}_{}'.format(job[2][0], job[2][2], trial_dir+str(time_stamp), 'serial')
-                    process_list.append(Process(name=name, target=self.run_job_in_serial, args=(job[2][0], job[2][1], job[2][2], job[2][3], trial_dir+str(time_stamp))))
-                    local_trials.add(trial_dir+str(time_stamp)) if trial_dir.startswith('.') else s3_trials.add(trial_dir+str(time_stamp))
-
-                # run 'job' in parallel on local and s3
-                for trial_dir in ['./local_test/trial', 's3://tornasolecodebuildtest/trial']:
-                    time_stamp = time.time()
-                    name = 'train_parallel_{}_{}'.format(job[2][0], trial_dir + str(time_stamp))
-                    process_list.append(Process(name=name,
-                                                target=self.run_train, args=(job[2][0], job[2][1], job[2][2], trial_dir+str(time_stamp))))
-                    name = 'test_parallel_{}_{}'.format(job[2][2], trial_dir + str(time_stamp))
-                    process_list.append(Process(name=name, target=self.run_test, args=(job[2][2], job[2][3], job[2][0], trial_dir+str(time_stamp))))
-                    local_trials.add(trial_dir+str(time_stamp)) if trial_dir.startswith('.') else s3_trials.add(trial_dir+str(time_stamp))
-
+            if job[FRAMEWORK_INDEX] != 'tensorflow' and job[FRAMEWORK_INDEX] != 'pytorch' \
+                    and job[FRAMEWORK_INDEX] != 'mxnet' and job[TEST_NAME_INDEX] != 'values':
+                raise Exception('Wrong test case category', job[TEST_NAME_INDEX])
+            # if user has specified regex search for certain test cases, only of these, which are turned on would run
+            if (self.test_case_regex is not None and re.match(self.test_case_regex, job[TEST_NAME_INDEX]) is not None
+                and job[SHOULD_RUN_INDEX]) or\
+                (self.test_case_regex is None and self.test_cases != [] and job[TEST_NAME_INDEX] in self.test_cases
+                 and job[SHOULD_RUN_INDEX]) or\
+                (self.test_case_regex is None and self.test_cases == []
+                 and (self.framework is None or job[FRAMEWORK_INDEX] == self.framework) and job[SHOULD_RUN_INDEX]):
+                job_info = job[TEST_INFO_INDEX]
+                for mode_1 in self.serial_and_parallel:
+                    if self.serial_and_parallel[mode_1]:
+                        time_stamp = time.time()
+                        for mode_2 in self.local_and_s3:
+                            if self.local_and_s3[mode_2]:
+                                if mode_2 == 'local_mode':
+                                    trial_dir = './local_test/trial_{}_{}_{}'.format(
+                                        job[TEST_NAME_INDEX].replace('/', '_'), mode_1, time_stamp)
+                                    local_trials.add(trial_dir)
+                                else:
+                                    trial_dir = 's3://{}/{}/s3_trials/trial_{}_{}_{}'.format(BUCKET,
+                                        upload_time_str, job[TEST_NAME_INDEX].replace('/', '_'), mode_1, time_stamp)
+                                    s3_trials.add(trial_dir)
+                                if mode_1 == 'serial_mode':
+                                    process_list.append(Process(target=self.run_job_in_serial, args=(
+                                        job_info[TRAIN_SCRIPT_INDEX], job_info[TRAIN_SCRIPT_ARGS_INDEX],
+                                        job_info[TEST_SCRIPT_INDEX], job_info[TEST_SCRIPT_ARGS_INDEX],
+                                        trial_dir, job[TEST_NAME_INDEX], mode_1,
+                                        time_stamp)))
+                                else:
+                                    process_list.append(Process(target=self.run_one_script,
+                                                                args=(job_info[TRAIN_SCRIPT_INDEX],
+                                                                      job_info[TRAIN_SCRIPT_ARGS_INDEX],
+                                                                      trial_dir,
+                                                                      job[TEST_NAME_INDEX], mode_1,
+                                                                      time_stamp, 'TRAIN')))
+                                    process_list.append(Process(target=self.run_one_script,
+                                                                args=(job_info[TEST_SCRIPT_INDEX],
+                                                                      job_info[TEST_SCRIPT_ARGS_INDEX],
+                                                                      trial_dir,
+                                                                      job[TEST_NAME_INDEX], mode_1,
+                                                                      time_stamp, 'TEST')))
+                                log_files.append('{}_{}_{}_{}.log'.format(job[TEST_NAME_INDEX].replace('/', '_'),
+                                                                        mode_2, mode_1, time_stamp))
         # execute all 'job's in parallel
         for process in process_list:
             process.start()
         ended_processes = set()
+        exit_code = 0
         while True:
             if len(ended_processes) == len(process_list):
                 break
             for process in process_list:
                 if process not in ended_processes and not process.is_alive():
                     ended_processes.add(process)
+                    exit_code += process.exitcode
                     logger.info('Process {} ended with exit code {}'.format(process.name, process.exitcode))
                     process.join()
-            time.sleep(2)
+            sleep(2)
+        if exit_code > 0:
+            # upload all the files to s3 
+            self.upload_log_to_s3(upload_time_str) 
 
         # once all jobs are finished, delete the outputs on local and s3
-        self.delete_local_trials(local_trials)
-        self.delete_s3_trials(s3_trials)
+        #self.delete_local_trials(local_trials)
+        #self.delete_s3_trials(s3_trials)
+        # upload log files to s3
+        #self.upload_log_to_s3(log_files)
+        # delete local log files
+        #self.delete_local_log()
 
 # only for codebuilding test
 # enable args string with pytest
 def test_test_rules(request):
     mode = request.config.getoption('mode')
     path_to_config = request.config.getoption('path_to_config')
-    TestRules(mode=mode, path_to_config=path_to_config).run_jobs()
+    # user may specify environment variable value
+    env_dict = {}
+    env_dict['tf_path'] = request.config.getoption('tf_path')
+    env_dict['pytorch_path'] = request.config.getoption('pytorch_path')
+    env_dict['mxnet_path'] = request.config.getoption('mxnet_path')
+    env_dict['rules_path'] = request.config.getoption('rules_path')
+    env_dict['core_path'] = request.config.getoption('core_path')
+    # user may specify ci or local testing mode
+    env_dict['CI_OR_LOCAL'] = request.config.getoption('CI_OR_LOCAL')
+    # $CODEBUILD_SRC_DIR is used for one-for-all testing
+    env_dict['CODEBUILD_SRC_DIR'] = request.config.getoption('CODEBUILD_SRC_DIR')
+    # get the test_case_list if user specifies
+    test_case_list = request.config.getoption('test_case')
+    # get the test_case_regex if user specifies
+    test_case_regex = request.config.getoption('test_case_regex')
+
+    TestRules(framework=mode,
+              path_to_config=path_to_config,
+              env_dict=env_dict,
+              test_case_list=test_case_list,
+              test_case_regex=test_case_regex).run_jobs()
 
 # test on local machine
-# TestRules(mode='tensorflow', path_to_config='./config.yaml').run_jobs()
-#
-
-
-
-
-
-
+# TestRules(framework='pytorch').run_jobs()

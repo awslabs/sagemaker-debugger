@@ -83,7 +83,6 @@ class Collection:
     if save_cfg is None:
       self.save_config = None
       return
-
     if isinstance(save_cfg, dict) and \
          all([isinstance(x, SaveConfig) for x in save_cfg.values()]) and \
          all([isinstance(x, ModeKeys) for x in save_cfg.keys()]):
@@ -189,4 +188,3 @@ class Collection:
            self.reduction_tensor_names == other.reduction_tensor_names and \
            self.reduction_config == other.reduction_config and \
            self.save_config == other.save_config
-

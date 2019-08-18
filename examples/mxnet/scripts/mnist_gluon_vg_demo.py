@@ -11,6 +11,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a mxnet gluon model for FashionMNIST dataset')
     parser.add_argument('--output-uri', type=str, default='s3://tornasole-testing/vg-demo',
                         help='S3 URI of the bucket where tensor data will be stored.')
+    parser.add_argument('--tornasole_path', type=str, default=None,
+                        help='S3 URI of the bucket where tensor data will be stored.')
     parser.add_argument('--random_seed',type=bool, default=False)
     parser.add_argument('--num_steps', type=int,
                         help='Reduce the number of training '
@@ -131,7 +133,7 @@ def main():
 
     # Create a tornasole hook for logging the desired tensors.
     # The output_uri is a the URI where the tensors will be saved. It can be local or s3://bucket/prefix
-    output_uri=opt.output_uri
+    output_uri=opt.tornasole_path if opt.tornasole_path is not None else opt.output_uri
     hook = create_tornasole_hook(output_uri, opt.tornasole_frequency)
 
     # Register the hook to the top block.

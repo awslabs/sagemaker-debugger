@@ -82,18 +82,18 @@ class Trial(ABC):
         pass
 
     def maybe_refresh(self, name=None):
-        if self.loaded_all_steps:
+        
+        if self.loaded_all_steps or not self.dynamic_refresh:
             return
         retry_count = 1
         training_ended = self.training_ended()
         if training_ended and not self.loaded_all_steps:
             retry_count = 2
         while retry_count > 0:
-            if self.dynamic_refresh:
-                if name is None:
-                    self.refresh_tensors()
-                else:
-                    self.refresh_tensor(name)
+            if name is None:
+                self.refresh_tensors()
+            else:
+                self.refresh_tensor(name)
             if retry_count > 1:
                 self.logger.info("Training has ended, will try to do a final refresh in 5 sec")
                 time.sleep(5)

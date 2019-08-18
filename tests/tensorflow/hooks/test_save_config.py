@@ -54,7 +54,6 @@ def test_save_config_modes():
 
   shutil.rmtree(trial_dir)
 
-
 def test_save_config_modes_json():
   out_dir = 'newlogsRunTest1/test_save_config_modes_config_coll'
   shutil.rmtree(out_dir, ignore_errors=True)
@@ -72,4 +71,3 @@ def test_save_config_modes_json():
   #                                           modes.EVAL: SaveConfig(save_interval=5)})
   # hook = TornasoleHook(out_dir=trial_dir)
   # tr = help_test_mnist(trial_dir, hook=hook)
-

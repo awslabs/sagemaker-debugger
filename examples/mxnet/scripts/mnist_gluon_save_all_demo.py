@@ -12,6 +12,8 @@ def parse_args():
                         help='Batch size')
     parser.add_argument('--output-s3-uri', type=str, default='s3://tornasole-testing/saveall-mxnet-hook',
                         help='S3 URI of the bucket where tensor data will be stored.')
+    parser.add_argument('--tornasole_path', type=str, default=None,
+                        help='S3 URI of the bucket where tensor data will be stored.')
     opt = parser.parse_args()
     return opt
 
@@ -107,7 +109,7 @@ def main():
 
     # Create a tornasole hook for logging the desired tensors.
     # The output_s3_uri is a the URI for the s3 bucket where the tensors will be saved.
-    output_s3_uri=opt.output_s3_uri
+    output_s3_uri=opt.tornasole_path if opt.tornasole_path is not None else opt.output_s3_uri
     hook = create_tornasole_hook(output_s3_uri)
 
     # Register the hook to the top block.
