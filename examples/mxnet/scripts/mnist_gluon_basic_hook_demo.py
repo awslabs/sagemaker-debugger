@@ -8,12 +8,13 @@ from tornasole.mxnet import TornasoleHook, SaveConfig, modes
 import random
 import numpy as np
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a mxnet gluon model for FashonMNIST dataset')
     parser.add_argument('--batch-size', type=int, default=256,
                         help='Batch size')
     parser.add_argument('--output-uri', type=str, default='s3://tornasole-testing/basic-mxnet-hook',
+                        help='S3 URI of the bucket where tensor data will be stored.')
+    parser.add_argument('--tornasole_path', type=str, default=None,
                         help='S3 URI of the bucket where tensor data will be stored.')
     parser.add_argument('--learning_rate', type=float, default=0.1)
     parser.add_argument('--random_seed', type=bool, default=False)
@@ -130,7 +131,7 @@ def main():
     # Create a tornasole hook for logging the desired tensors.
     # The output_s3_uri is a the URI for the s3 bucket where the tensors will be saved.
     # The trial_id is used to store the tensors from different trials separately.
-    output_uri=opt.output_uri
+    output_uri=opt.tornasole_path if opt.tornasole_path is not None else opt.output_uri
     hook = create_tornasole_hook(output_uri)
 
     # Register the hook to the top block.

@@ -13,6 +13,8 @@ check_logs() {
 }
 
 export TORNASOLE_LOG_LEVEL=debug
+export BLOCK_STDOUT=TRUE
+export BLOCK_STDERR=FALSE
 python -m pytest --html=upload/$CURRENT_COMMIT_PATH/reports/report_analysis.html --self-contained-html tests/analysis
 python -m pytest --html=upload/$CURRENT_COMMIT_PATH/reports/report_core.html --self-contained-html tests/core
 
