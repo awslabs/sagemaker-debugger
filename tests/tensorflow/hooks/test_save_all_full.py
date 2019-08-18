@@ -1,19 +1,23 @@
 from .utils import *
 from tornasole.tensorflow import reset_collections, get_collections
-import pytest
 import shutil, glob
 from tornasole.core.reader import FileReader
+from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 
-def test_save_all_full():
+
+def test_save_all_full(hook=None, trial_dir=None):
   run_id = 'trial_'+datetime.now().strftime('%Y%m%d-%H%M%S%f')
-  trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-
+  if trial_dir is None:
+    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
   tf.reset_default_graph()
-  reset_collections()
-
-  hook = TornasoleHook(out_dir=trial_dir,
+  hook_created = False
+  if hook is None:
+    reset_collections()
+    hook = TornasoleHook(out_dir=trial_dir,
                        save_all=True,
                        save_config=SaveConfig(save_interval=2))
+    hook_created = True
+
   simple_model(hook)
   _, files = get_dirs_files(trial_dir)
   dirs, _ = get_dirs_files(os.path.join(trial_dir, 'events'))
@@ -54,4 +58,14 @@ def test_save_all_full():
         size += tensor_data.nbytes
     assert i == 85
     assert size == 1470
-  shutil.rmtree(trial_dir)
+  if hook_created:
+    shutil.rmtree(trial_dir)
+
+def test_hook_config_json():
+  out_dir = 'newlogsRunTest1/test_hook_from_json_config'
+  shutil.rmtree(out_dir, ignore_errors=True)
+  os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json'
+  reset_collections()
+  hook = TornasoleHook.hook_from_config()
+  test_save_all_full(hook, out_dir)
+  shutil.rmtree(out_dir, ignore_errors=True)

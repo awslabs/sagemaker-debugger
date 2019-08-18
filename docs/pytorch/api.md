@@ -22,12 +22,16 @@ A class used to represent the hook which gets attached to the
         when dry_run is set to True, behavior is only described in the log file.
         The tensors are not actually saved. 
     
-    save_config: SaveConfig object
+    save_config: SaveConfig object or a dictionary from mode to SaveConfig objects
         SaveConfig allows you to customize when tensors are saved. 
-        Hook Ttkes SaveConfig object which is applied as 
+        Hook takes SaveConfig object which is applied as 
         default for all included tensors.
         A collection can optionally have its own SaveConfig object 
         which overrides this for its tensors.
+        If you pass a dictionary from mode->SaveConfig, then that
+        SaveConfig is applied to tensors included for that mode.
+        example: {modes.TRAIN: SaveConfig(save_interval=10), 
+                  modes.EVAL:SaveConfig(save_interval=1)}
         Refer to documentation for SaveConfig.
         
     include_regex: list of (str or tensor variables)
@@ -93,7 +97,7 @@ The following methods can be called on a collection object.
 | ```coll.add(t)```  | Takes an instance or list or set of tf.Operation/tf.Variable/tf.Tensor to add to the collection  |
 | ```coll.get_include_regex()```  | Returns include_regex for the collection  |
 | ```coll.get_save_config()```  | Returns save config for the collection  |
-| ```coll.set_save_config(s)```  | Sets save config for the collection  |
+| ```coll.set_save_config(s)```  | Sets save config for the collection. You can either pass a SaveConfig instance or a dictionary from mode to SaveConfig |
 | ```coll.get_reduction_config()```  | Returns reduction config for the collection  |
 | ```coll.set_reduction_config()```  | Sets reduction config for the collection  |
 | ```coll.add_module_tensors(module, input=False, output=False)```  | Takes an instance of a module, along with input and output flags. Users can use this Collection to log input/output tensors for a specific module  |

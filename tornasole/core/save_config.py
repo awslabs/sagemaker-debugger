@@ -1,6 +1,12 @@
 SAVE_CONFIG_VERSION_NUM = 'v0'
 from .modes import ModeKeys as modes
+import json
 
+DEFAULT_SAVE_CONFIG_INTERVAL = 100
+DEFAULT_SAVE_CONFIG_SKIP_NUM_STEPS = 0
+DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
+DEFAULT_SAVE_CONFIG_WHEN_NAN = []
+ALLOWED_PARAMS = ["save_interval", "save_steps", "skip_num_steps", "when_nan"]
 
 class SaveConfigModes:
   def __init__(self, mode_save_configs=None):
@@ -57,14 +63,43 @@ class SaveConfig:
     saves whenever any of the tensors in this list become nan.
   """
 
-  def __init__(self, save_interval=100, skip_num_steps=0, save_steps=None, when_nan=None):
+  def __init__(self, save_interval=DEFAULT_SAVE_CONFIG_INTERVAL, skip_num_steps=DEFAULT_SAVE_CONFIG_SKIP_NUM_STEPS, save_steps=DEFAULT_SAVE_CONFIG_SAVE_STEPS, when_nan=DEFAULT_SAVE_CONFIG_WHEN_NAN):
     self.save_interval = int(save_interval)
-    self.save_steps = save_steps if save_steps is not None else []
+    self.save_steps = save_steps
     self.skip_num_steps = skip_num_steps
-    self.when_nan = when_nan if when_nan is not None else []
-
+    self.when_nan = when_nan
+    ## DO NOT RMEOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
+    self._check()
     # will be populated by hook
     self.when_nan_tensors = []
+
+  def _check(self):
+    if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
+      raise ValueError('allowed params for save config can only be one of ' + ','.join(ALLOWED_PARAMS))
+    if not isinstance(self.save_interval, int):
+      raise ValueError('allowed type in save_interval is int')
+    if not isinstance(self.save_steps, list):
+      raise ValueError('allowed type in save_steps is list of int')
+    if not isinstance(self.skip_num_steps, int):
+      raise ValueError('allowed type in skip_num_steps is int')
+    if not isinstance(self.when_nan, list):
+      raise ValueError('allowed type in when_nan is list of str')
+    
+  @classmethod
+  def from_json(cls, j):
+    if isinstance(j, str):
+      params = json.loads(j)  
+    elif isinstance(j, dict):
+      params = j
+    else:
+      raise ValueError("parameter must be either str or dict")
+    if any([x not in ALLOWED_PARAMS for x in params]):
+      raise ValueError('allowed params for save config can only be one of ' + ','.join(ALLOWED_PARAMS))   
+    save_interval = params.get("save_interval", DEFAULT_SAVE_CONFIG_INTERVAL)
+    save_steps = params.get("save_steps", DEFAULT_SAVE_CONFIG_SAVE_STEPS)
+    skip_num_steps = params.get("skip_num_steps", DEFAULT_SAVE_CONFIG_SKIP_NUM_STEPS)
+    when_nan = params.get("when_nan", DEFAULT_SAVE_CONFIG_WHEN_NAN)
+    return cls(save_interval, skip_num_steps, save_steps, when_nan)
 
   def export(self):
     separator = '%'

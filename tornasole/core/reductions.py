@@ -1,5 +1,8 @@
+import re
 import numpy as np
 from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
+
+TORNASOLE_REDUCTIONS_PREFIX = "tornasole/reductions/"
 
 
 def get_numpy_reduction(reduction_name, numpy_data, abs=False):
@@ -30,3 +33,25 @@ def get_basic_numpy_reduction(reduction_name, numpy_data):
             rv = np.linalg.norm(numpy_data, ord=ord)
         return rv
     return None
+
+
+def get_reduction_tensor_name(tensorname, reduction_name, abs):
+    tname = re.sub(r':\d+', '', f'{reduction_name}/{tensorname}')
+    if abs:
+        tname = 'abs_' + tname
+    tname = TORNASOLE_REDUCTIONS_PREFIX + tname
+    return tname
+
+
+def reverse_reduction_tensor_name(reduction_tensor_name):
+    rest = reduction_tensor_name.split(TORNASOLE_REDUCTIONS_PREFIX)[1]
+    parts = rest.split('/', 1)
+    reduction_name = parts[0]
+    if 'abs_' in reduction_name:
+        abs = True
+        reduction_op_name = reduction_name.split('abs_')[1]
+    else:
+        abs = False
+        reduction_op_name = reduction_name
+    tensor_name = parts[1]
+    return tensor_name, reduction_op_name, abs

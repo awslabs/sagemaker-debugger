@@ -8,8 +8,8 @@ from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
 
 from tornasole.core.tfevent.util import EventFileLocation
-from tornasole.core.utils import get_logger, \
-    flatten, reverse_reduction_tensor_name, TORNASOLE_REDUCTIONS_PREFIX
+from tornasole.core.utils import get_logger, flatten
+from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys
 
 
@@ -82,15 +82,14 @@ class Trial(ABC):
         pass
 
     def maybe_refresh(self, name=None):
-        if self.loaded_all_steps == True:
+        if self.loaded_all_steps:
             return
         retry_count = 1
         training_ended = self.training_ended()
-        if training_ended == True and self.loaded_all_steps == False:
+        if training_ended and not self.loaded_all_steps:
             retry_count = 2
         while retry_count > 0:
             if self.dynamic_refresh:
-                self.logger.debug("refreshing tensors, retries left {}".format(retry_count))
                 if name is None:
                     self.refresh_tensors()
                 else:

@@ -4,30 +4,31 @@ import numpy as np
 from tornasole.core.reductions import get_numpy_reduction
 
 
-def get_aggregated_data(aggregation_name, tensor_data, tensor_name, abs=False):
-    reduction_name = aggregation_name
+def get_aggregated_data(reduction_name, tensor_data, tensor_name, abs=False):
     if isinstance(tensor_data, np.ndarray):
         return get_numpy_reduction(reduction_name, tensor_data, abs)
     if abs:
         tensor_data = torch.abs(tensor_data)
 
     if reduction_name in ALLOWED_REDUCTIONS:
-        assert hasattr(torch.Tensor, aggregation_name)
-        f = getattr(torch.Tensor, aggregation_name)
+        if reduction_name == "variance":
+            reduction_name = "var"
+        assert hasattr(torch.Tensor, reduction_name)
+        f = getattr(torch.Tensor, reduction_name)
         op = f(tensor_data)
         return op
     elif reduction_name in ALLOWED_NORMS:
-        if aggregation_name in ['l1', 'l2']:
-            ord = int(aggregation_name[1])
+        if reduction_name in ['l1', 'l2']:
+            ord = int(reduction_name[1])
         else:
             raise RuntimeError("Invalid normalization operation {0} for torch.Tensor".format(reduction_name))
         op = torch.norm(tensor_data, p=ord)
         return op
-    elif hasattr(torch, aggregation_name):
-        f = getattr(torch, aggregation_name)
+    elif hasattr(torch, reduction_name):
+        f = getattr(torch, reduction_name)
         op = f(tensor_data)
         return op
-    raise RuntimeError("Invalid aggregation_name {0}".format(aggregation_name))
+    raise RuntimeError("Invalid reduction_name {0}".format(reduction_name))
 
 
 def make_numpy_array(x):

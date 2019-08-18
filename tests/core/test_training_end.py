@@ -1,32 +1,30 @@
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.core.access_layer.utils import training_has_ended
+from tornasole.core.access_layer.utils import has_training_ended, \
+    training_has_ended, delete_s3_prefixes
 import shutil
-import boto3
 from tornasole.core.utils import is_s3
 from tornasole.core.access_layer.file import ensure_dir
-
-def del_s3(bucket,file_path):
-    s3_client = boto3.client('s3')
-    s3_client.delete_object(Bucket=bucket, Key=file_path)
+from tornasole.core.access_layer.s3 import TSAccessS3
 
 def test_local_training_end():
-    localdir = "./training_end_test_dir"
+    localdir = "/tmp/training_end_test_dir"
+    ensure_dir(localdir, is_file=False)
     training_has_ended(localdir)
     assert has_training_ended(localdir) == True
     shutil.rmtree(localdir)
 
 def test_negative_local_training_end():
-    localdir = "./training_end_test_dir_negative"
+    localdir = "/tmp/training_end_test_dir_negative"
     assert has_training_ended(localdir) == False
 
 def test_s3_training_end():
     s3dir = 's3://tornasolecodebuildtest/training_end_test_dir'
-    bucket = 'tornasolecodebuildtest'
+    _, bucket, key = is_s3(s3dir)
+    f = TSAccessS3(bucket_name=bucket, key_name=key)
+    f.close()
     training_has_ended(s3dir)
     assert has_training_ended(s3dir) == True
-    del_s3(bucket, s3dir)
+    delete_s3_prefixes(bucket, key)
 
 def test_negative_s3_training_end():
-    bucket = 'tornasolecodebuildtest'
     s3dir = 's3://tornasolecodebuildtest/training_end_test_dir_negative'
     assert has_training_ended(s3dir) == False

@@ -16,18 +16,29 @@ def get_framework_packages(f):
     return ['tornasole.' + f + '*', 'tests.' + f + '*']
 
 def get_frameworks_to_build():
+    only_rules = os.environ.get('TORNASOLE_FOR_RULES', False)
+    if only_rules in ['1', 'True', 'true']:
+        only_rules = True
+    else:
+        only_rules = False
+
     with_frameworks = {}
-    for f in FRAMEWORKS:
-        with_frameworks[f] = os.environ.get('TORNASOLE_WITH_' + f.upper(), False)
-        if with_frameworks[f] in ['1', 'True', 'true']:
-            with_frameworks[f] = True
-        else:
-            with_frameworks[f] = False
-    enabled_some_framework = any(with_frameworks.values())
-    if not enabled_some_framework:
-        print('Building for all frameworks in one package')
+    if not only_rules:
         for f in FRAMEWORKS:
-            with_frameworks[f] = True
+            with_frameworks[f] = os.environ.get('TORNASOLE_WITH_' + f.upper(), False)
+            if with_frameworks[f] in ['1', 'True', 'true']:
+                with_frameworks[f] = True
+            else:
+                with_frameworks[f] = False
+        enabled_some_framework = any(with_frameworks.values())
+
+        if not enabled_some_framework:
+            print('Building for all frameworks in one package')
+            for f in FRAMEWORKS:
+                with_frameworks[f] = True
+    else:
+        for f in FRAMEWORKS:
+            with_frameworks[f] = False
     return with_frameworks
 
 def get_packages_to_include(frameworks_to_build):

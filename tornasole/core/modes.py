@@ -9,5 +9,6 @@ class ModeKeys(Enum):
     GLOBAL = 4
 
 ALLOWED_MODES = [ModeKeys.TRAIN, ModeKeys.EVAL, ModeKeys.PREDICT]
+ALLOWED_MODE_NAMES = [x.name for x in ALLOWED_MODES]
 MODE_STEP_PLUGIN_NAME = "mode_step"
 MODE_PLUGIN_NAME = "mode"

@@ -8,6 +8,7 @@ from tornasole.core.reductions import get_numpy_reduction
 def get_aggregated_data(aggregation_name,
                         tensor_data, tensor_name, abs=False):
     reduction_name = aggregation_name
+    # If tensor_data is of np.ndarray type invoke np operators.
     if isinstance(tensor_data, np.ndarray):
         return get_numpy_reduction(reduction_name,
                                tensor_data, abs)
@@ -15,9 +16,13 @@ def get_aggregated_data(aggregation_name,
         tensor_data = mx.ndarray.abs(tensor_data)
 
     if reduction_name in ALLOWED_REDUCTIONS:
-        assert hasattr(mx.ndarray, aggregation_name)
-        f = getattr(mx.ndarray, aggregation_name)
-        op = f(tensor_data, name=tensor_name)
+        if hasattr(mx.ndarray, aggregation_name):
+            f = getattr(mx.ndarray, aggregation_name)
+            op = f(tensor_data, name=tensor_name)
+        else:
+            #If aggregation is not supported by mxnet, we convert data into np.ndarray and invoke numpy operators
+            tensor_data_np = make_numpy_array(tensor_data)
+            op = get_numpy_reduction(aggregation_name, numpy_data=tensor_data_np, abs=abs)
         return op
     elif reduction_name in ALLOWED_NORMS:
         if reduction_name is "l1":
@@ -31,6 +36,10 @@ def get_aggregated_data(aggregation_name,
     elif hasattr(mx, reduction_name):
         f = getattr(mx, reduction_name)
         op = f(tensor_data, name=tensor_name)
+        return op
+    elif hasattr(np, aggregation_name):
+        f = getattr(np, aggregation_name)
+        op = f(tensor_data)
         return op
     raise RuntimeError("Invalid aggregation_name {0} for mx.NDArray".format(aggregation_name))
 

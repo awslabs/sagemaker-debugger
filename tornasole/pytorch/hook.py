@@ -3,7 +3,9 @@ from tornasole.core.writer import FileWriter
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.utils import check_dir_exists, get_logger, flatten, is_s3, get_reduction_tensor_name
+from tornasole.core.utils import get_logger, is_s3
+from tornasole.core.reductions import get_reduction_tensor_name
+from tornasole.core.json_config import create_hook_from_json_config
 from tornasole.pytorch.torch_collection import get_collection_manager, get_collection
 from tornasole.pytorch.util import get_aggregated_data, make_numpy_array
 from tornasole.core.access_layer.utils import training_has_ended
@@ -21,11 +23,7 @@ DEFAULT_WORKER_NAME = 'worker0'
 INPUT_TENSOR_SUFFIX = '_input_'
 OUTPUT_TENSOR_SUFFIX = '_output'
 GRADIENT_PREFIX = 'gradient/'
-
-
-def default_save_config():
-    return SaveConfig()
-
+DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'bias', 'gradients', 'default']
 
 class TornasoleHook:
     def __init__(self,
@@ -33,13 +31,15 @@ class TornasoleHook:
                  dry_run=False,
                  worker=DEFAULT_WORKER_NAME,
                  reduction_config=None,
-                 save_config=default_save_config(),
+                 save_config=None,
                  include_regex=None,
-                 include_collections=['weights', 'bias', 'gradients', 'default'],
+                 include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                  save_all=False):
         if not is_s3(out_dir)[0]:
             out_dir = os.path.expanduser(out_dir)
-        check_dir_exists(out_dir)
+        # this is commented because SM creates dir. 
+        # This was created because we don't want user to overwrite their existing data
+        #check_dir_exists(out_dir)
         self.out_dir = out_dir
         self.out_base_dir = os.path.dirname(out_dir)
         self.run_id = os.path.basename(out_dir)
@@ -50,7 +50,7 @@ class TornasoleHook:
 
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: -1}
-        # self.local_reductions = []
+
         self.reduction_config = reduction_config
         self.step = -1
         self.is_recursive = False
@@ -67,6 +67,8 @@ class TornasoleHook:
 
         atexit.register(self.cleanup)
 
+        if save_config is None:
+            save_config = SaveConfig()
         self.save_manager = SaveManager(collection_manager=get_collection_manager(),
                                         include_collections_names=self.include_collections,
                                         default_save_config=save_config,
@@ -74,6 +76,10 @@ class TornasoleHook:
         self.prepared_save_manager = False
         logger.info('Saving to {}'.format(self.out_dir))
 
+    @classmethod
+    def hook_from_config(cls):
+        return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)
+        
     def _initialize_collectors(self, save_all, include_regex):
         # If user has provided any include_regex, add them to a default collection.
         if include_regex is not None:

@@ -283,6 +283,26 @@ The different modes available are `modes.TRAIN`, `modes.EVAL` and `modes.PREDICT
 
 If the mode was not set, all steps will be available together.
 
+You can choose to have different save configurations (SaveConfigs) 
+for different modes. You can configure this by passing a 
+dictionary from mode to SaveConfig object. 
+The hook's `save_config` parameter accepts such a dictionary, as well as collection's `set_save_config` method.
+```
+from tornasole.tensorflow import TornasoleHook, get_collection, modes, SaveConfig
+scm = {modes.TRAIN: SaveConfig(save_interval=100), 
+        modes.EVAL: SaveConfig(save_interval=10)}
+        
+hook = TornasoleHook(..., 
+                     save_config=scm,
+                     ...)
+```
+
+```
+from tornasole.tensorflow import get_collection, modes, SaveConfig
+get_collection('weights').set_save_config({modes.TRAIN: SaveConfig(save_interval=10), 
+                                           modes.EVAL: SaveConfig(save_interval=1000)}
+```
+
 #### Collection
 Collection object helps group tensors for easier handling of tensors being saved. 
 A collection has its own list of tensors, include/exclude regex patterns, reduction config and save config. 

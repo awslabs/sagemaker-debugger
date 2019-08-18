@@ -1,5 +1,6 @@
 from .reduction_config import  ReductionConfig
 from .save_config import SaveConfig
+from .modes import ModeKeys
 
 COLLECTION_VERSION_NUM='v0'
 
@@ -39,9 +40,8 @@ class Collection:
       include_regex = []
     self.include_regex = include_regex
 
-    self.reduction_config = reduction_config
-    self.save_config = save_config
-
+    self.set_reduction_config(reduction_config)
+    self.set_save_config(save_config)
     self.tensor_names = set()
     self.reduction_tensor_names = set()
 
@@ -70,14 +70,30 @@ class Collection:
     return self.save_config
 
   def set_reduction_config(self, red_cfg):
+    if red_cfg is None:
+      self.reduction_config = None
+      return
+
     if not isinstance(red_cfg, ReductionConfig):
-      raise TypeError('Can only take an instance of ReductionConfig')
+      raise TypeError('Can only take an instance of ReductionConfig, '
+                      'not {}'.format(type(red_cfg)))
     self.reduction_config = red_cfg
 
   def set_save_config(self, save_cfg):
-    if not isinstance(save_cfg, SaveConfig):
-      raise TypeError('Can only take an instance of SaveConfig')
-    self.save_config = save_cfg
+    if save_cfg is None:
+      self.save_config = None
+      return
+
+    if isinstance(save_cfg, dict) and \
+         all([isinstance(x, SaveConfig) for x in save_cfg.values()]) and \
+         all([isinstance(x, ModeKeys) for x in save_cfg.keys()]):
+      self.save_config = save_cfg
+    elif isinstance(save_cfg, SaveConfig):
+      self.save_config = save_cfg
+    else:
+      raise TypeError('save_config can only be a SaveConfig instance, or '
+                      'a dictionary mapping from mode '
+                      'to SaveConfig instance, not {}'.format(type(save_cfg)))
 
   def add_tensor_name(self, tname):
     if tname not in self.tensor_names:
@@ -106,12 +122,26 @@ class Collection:
     # export only saves names not the actual tensor fields (tensors, reduction_tensors)
     separator = '!@'
     list_separator = ','
+    sc_separator = '$'
+    if self.save_config:
+      if isinstance(self.save_config, dict):
+        sc_export_parts = []
+        for k, v in self.save_config.items():
+          sc_export_parts.append(k.name + ':' + v.export())
+        sc_export = sc_separator.join(sc_export_parts)
+      elif isinstance(self.save_config, SaveConfig):
+        sc_export = self.save_config.export()
+      else:
+        raise RuntimeError('save_config can only be a SaveConfig instance '
+                           'or a dict from mode to saveconfig')
+    else:
+      sc_export = str(None)
     parts = [COLLECTION_VERSION_NUM, self.name,
              list_separator.join(self.include_regex),
              list_separator.join(self.tensor_names),
              list_separator.join(self.reduction_tensor_names),
              self.reduction_config.export() if self.reduction_config else str(None),
-             self.save_config.export() if self.save_config else str(None)]
+             sc_export]
     return separator.join(parts)
 
   def __str__(self):
@@ -123,7 +153,7 @@ class Collection:
   def load(s):
     if s is None or s == str(None):
       return None
-
+    sc_separator = '$'
     separator = '!@'
     parts = s.split(separator)
     if parts[0] == 'v0':
@@ -134,9 +164,17 @@ class Collection:
       tensor_names = set([x for x in parts[3].split(list_separator) if x])
       reduction_tensor_names = set([x for x in parts[4].split(list_separator) if x])
       reduction_config = ReductionConfig.load(parts[5])
-      save_config = SaveConfig.load(parts[6])
+      if sc_separator in parts[6]:
+        per_modes = parts[6].split(sc_separator)
+        save_config = {}
+        for per_mode in per_modes:
+          per_mode_parts = per_mode.split(':')
+          save_config[ModeKeys[per_mode_parts[0]]] = SaveConfig.load(per_mode_parts[1])
+      else:
+        save_config = SaveConfig.load(parts[6])
       c = Collection(name, include_regex=include,
-                      reduction_config=reduction_config, save_config=save_config)
+                     reduction_config=reduction_config,
+                     save_config=save_config)
       c.reduction_tensor_names = reduction_tensor_names
       c.tensor_names = tensor_names
       return c
