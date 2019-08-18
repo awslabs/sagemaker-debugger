@@ -1,8 +1,9 @@
 import os
 import sys
 # set environment variable values for tornasole logger
-os.environ['TORNASOLE_LOG_LEVEL'] = 'debug'
-os.environ['TORNASOLE_LOG_FILTER'] = 'error'
+os.environ['TORNASOLE_LOG_LEVEL'] = 'DEBUG'
+os.environ['TORNASOLE_LOG_ALL_TO_STDOUT'] = 'FALSE'
+os.environ['TORNASOLE_LOG_PATH'] = 'tornasole.log'
 # if true, block stdout prints on console, if false, show stdout prints on console
 stdout = os.environ.get('BLOCK_STDOUT', default='FALSE') == 'TRUE'
 # if true, block stderr prints on console, if false, show stderr prints on console
@@ -48,6 +49,7 @@ BUCKET = 'integrationtestlog'
 
 
 logger = get_logger()
+
 # store path to config file and test mode for testing rule scrip with training script
 class TestRules():
     def __init__(self, framework, path_to_config=None, env_dict={}, test_case_list=[], test_case_regex=None):
@@ -180,20 +182,26 @@ class TestRules():
         # use subprocess to execute cmd line prompt
         command_list = commands.split(' ')
         # create a subprocess using Popen
-        p = Popen(command_list, stdout=PIPE if self.stdout_mode else None, stderr=PIPE if self.stderr_mode else None,
+        p = Popen(command_list,
+                  stdout=PIPE if self.stdout_mode else None,
+                  stderr=PIPE if self.stderr_mode else None,
                   env=dict(os.environ,
                            TORNASOLE_LOG_CONTEXT='{}_{}'.format(path_to_script, trial_dir),
-                           TORNASOLE_LOG_PATH='./integration_test_log/{}_{}_{}_{}_{}.log'.format(
-            job_name.replace('/', '_'), local_or_s3, mode, time_stamp, train_test_str),
+                           TORNASOLE_LOG_PATH='./integration_test_log/{}_{}_{}_{}_{}.log'.
+                           format(job_name.replace('/', '_'), local_or_s3, mode,
+                                  time_stamp, train_test_str),
                            TORNASOLE_LOG_LEVEL='debug',
-                           TORNASOLE_LOG_FILTER='error'))
+                           TORNASOLE_LOG_ALL_TO_STDOUT='FALSE'))
 
         out, error = p.communicate()
         if p.returncode == 0:
             logger.info("script {} of job {} in {} in {} ran {} successfully".format(path_to_script, job_name, local_or_s3, mode, train_test_str))
         
         else:
-            logger.error("script {} of job {} in {} in {} {} failed with error {} , output is:{}".format(path_to_script, job_name, local_or_s3, mode, train_test_str, error, out))
+            logger.error("script {} of job {} in {} in {} {} failed with error {} , "
+                         "output is:{}".format(path_to_script, job_name,
+                                               local_or_s3, mode, train_test_str,
+                                               error, out))
             ## returning exit code
             exit(p.returncode)
     # run 'job's provided by user. a 'job' is a training/test scripts combination
