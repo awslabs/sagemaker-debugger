@@ -3,8 +3,12 @@ import os
 import shutil
 
 
-def ensure_dir(file_path):
-    directory = os.path.dirname(file_path)
+def ensure_dir(file_path, is_file=True):
+    if is_file:
+        directory = os.path.dirname(file_path)
+    else:
+        directory = file_path
+
     if directory and not os.path.exists(directory):
         os.makedirs(directory)
 

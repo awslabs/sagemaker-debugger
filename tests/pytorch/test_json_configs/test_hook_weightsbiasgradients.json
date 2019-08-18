@@ -1,0 +1,15 @@
+{
+  "config_name": "Save Weights, Bias, Gradients Test",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "test_output/test_hook_save_weightsbiasgradients/jsonloading",
+  "save_config" : "save_config_save_weightsbiasgradients",
+  "include_collections" :  ["weights", "bias", "gradients", "default"],
+  "save_all" : false,
+  "save_configs" : [
+    {
+      "save_config_save_weightsbiasgradients" : {
+        "save_steps" : [0, 20, 40, 60, 80]
+      }
+    }
+  ]
+}

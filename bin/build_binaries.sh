@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 export VERSION='0.3'
 
 for FRAMEWORK in tensorflow mxnet pytorch
@@ -9,3 +10,10 @@ do
 #    aws s3 cp dist/tornasole-$VERSION-py2.py3-none-any.whl s3://tornasole-binaries-use1/tornasole_$FRAMEWORK/py3/
     rm -rf dist build *.egg-info
 done
+
+
+export TORNASOLE_FOR_RULES=1
+python setup.py bdist_wheel --universal
+unset TORNASOLE_FOR_RULES
+# aws s3 cp dist/tornasole-$VERSION-py2.py3-none-any.whl s3://tornasole-binaries-use1/tornasole_rules/py3/
+rm -rf dist build *.egg-info

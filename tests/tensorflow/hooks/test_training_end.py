@@ -15,6 +15,6 @@ def test_training_job_has_ended():
   subprocess.check_call(
     [sys.executable, "examples/tensorflow/training_scripts/simple/simple.py",
      "--tornasole_path", trial_dir,
-     '--steps', '100', '--tornasole_frequency', '50'])
+     '--steps', '10', '--tornasole_frequency', '5'])
   assert has_training_ended(trial_dir) == True
   shutil.rmtree(trial_dir)

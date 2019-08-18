@@ -4,15 +4,17 @@ import shutil
 import os
 from datetime import datetime
 from .utils import TORNASOLE_TF_HOOK_TESTS_DIR
+from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 
 import tornasole.tensorflow as ts
 from tornasole.tensorflow import reset_collections
 from tornasole.trials import create_trial
 
-def help_test_mnist(path, save_config):
+def help_test_mnist(path, save_config=None, hook=None):
   trial_dir = path
   tf.reset_default_graph()
-  reset_collections()
+  if hook is None:
+    reset_collections()
 
   def cnn_model_fn(features, labels, mode):
     """Model function for CNN."""
@@ -104,9 +106,9 @@ def help_test_mnist(path, save_config):
     y=eval_labels,
     num_epochs=1,
     shuffle=False)
-
-  hook = ts.TornasoleHook(out_dir=trial_dir,
-                          save_config=save_config)
+  if hook is None:
+    hook = ts.TornasoleHook(out_dir=trial_dir,
+                            save_config=save_config)
   hook.set_mode(ts.modes.TRAIN)
   # train one step and display the probabilties
   mnist_classifier.train(
@@ -167,5 +169,14 @@ def test_mnist_s3_multi_save_configs():
   assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
   assert len(tr.tensors()) == 16
 
-
-
+def test_mnist_local_multi_save_configs_json():
+  out_dir = 'newlogsRunTest1/test_save_config_modes_hook_config'
+  shutil.rmtree(out_dir, ignore_errors=True)
+  os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json'
+  hook = ts.TornasoleHook.hook_from_config()
+  tr = help_test_mnist(out_dir, hook=hook)
+  assert len(tr.available_steps()) == 94
+  assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
+  assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
+  assert len(tr.tensors()) == 16
+  shutil.rmtree(out_dir)

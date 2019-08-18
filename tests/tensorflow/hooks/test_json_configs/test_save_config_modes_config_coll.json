@@ -1,0 +1,25 @@
+{
+  "config_name": "test_save_config_modes_config_coll.json",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "newlogsRunTest1/test_save_config_modes_config_coll",
+  "collections": [
+    {
+      "weights": {
+        "save_config": {
+          "TRAIN": "train_cfg1",
+          "EVAL": "eval_cfg2"
+        }
+      }
+    }
+  ],
+  "save_configs" : [
+    {
+      "train_cfg1" : {
+        "save_interval" : 1
+      },
+      "eval_cfg2" : {
+        "save_interval" : 5
+      }
+    }
+  ]
+}

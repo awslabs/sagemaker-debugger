@@ -1,0 +1,19 @@
+{
+  "config_name": "test_hook_from_json_config",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "newlogsRunTest2/test_modes_hookjson",
+  "save_config": {
+    "TRAIN": "train_cfg1",
+    "EVAL": "eval_cfg2"
+  },
+  "save_configs" : [
+    {
+      "train_cfg1" : {
+        "save_interval" : 50
+      },
+      "eval_cfg2" : {
+        "save_interval" : 10
+      }
+    }
+  ]
+}

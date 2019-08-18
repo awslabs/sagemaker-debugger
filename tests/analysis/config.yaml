@@ -104,7 +104,7 @@
   - mxnet
   - *Enable
   - [*mnist_gluon_vg_demo, # this training script will generate 1300 steps
-     --random_seed True  --num_steps 33 --tornasole_frequency 30,
+     --random_seed True --num_steps 33 --tornasole_frequency 30,
      *invoker,
      --rule_name vanishinggradient --flag True --start_step 1 --end_step 31
     ] # notice, step 0 always returns False

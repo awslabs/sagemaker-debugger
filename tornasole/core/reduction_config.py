@@ -1,6 +1,9 @@
+import json
+
 ALLOWED_REDUCTIONS=['min','max','mean','std','variance','sum','prod']
 ALLOWED_NORMS=['l1','l2']
 REDUCTION_CONFIG_VERSION_NUM = 'v0'
+ALLOWED_PARAMS = ["only_shape", "reductions", "abs_reductions", "norms", "abs_norms"]
 
 class ReductionConfig:
   """
@@ -38,27 +41,45 @@ class ReductionConfig:
   """
 
   def __init__(self, only_shape=False,
-               reductions=None, abs_reductions=None,
-               norms=None, abs_norms=None):
-    reductions = reductions if reductions is not None else []
-    abs_reductions = abs_reductions if abs_reductions is not None else []
-    norms = norms if norms is not None else []
-    abs_norms = abs_norms if abs_norms is not None else []
-
-    if any([x not in ALLOWED_REDUCTIONS for x in reductions]):
-      raise ValueError('reductions can only be one of ' + ','.join(ALLOWED_REDUCTIONS))
-    if any([x not in ALLOWED_REDUCTIONS for x in abs_reductions]):
-      raise ValueError('abs_reductions can only be one of ' + ','.join(ALLOWED_REDUCTIONS))
-    if any([x not in ALLOWED_NORMS for x in norms]):
-      raise ValueError('norms can only be one of ' + ','.join(ALLOWED_NORMS))
-    if any([x not in ALLOWED_NORMS for x in abs_norms]):
-      raise ValueError('abs_norms can only be one of ' + ','.join(ALLOWED_NORMS))
-
+               reductions=[], abs_reductions=[],
+               norms=[], abs_norms=[]):
     self.only_shape = only_shape
     self.reductions = reductions
     self.abs_reductions = abs_reductions
     self.norms = norms
     self.abs_norms = abs_norms
+    ## DO NOT RMEOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
+    self._check()
+  
+  def _check(self):
+    if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
+        raise ValueError('allowed params for reduction config can only be one of ' + ','.join(ALLOWED_PARAMS))
+    
+    if any([x not in ALLOWED_REDUCTIONS for x in self.reductions]):
+      raise ValueError('reductions can only be one of ' + ','.join(ALLOWED_REDUCTIONS))
+    if any([x not in ALLOWED_REDUCTIONS for x in self.abs_reductions]):
+      raise ValueError('abs_reductions can only be one of ' + ','.join(ALLOWED_REDUCTIONS))
+    if any([x not in ALLOWED_NORMS for x in self.norms]):
+      raise ValueError('norms can only be one of ' + ','.join(ALLOWED_NORMS))
+    if any([x not in ALLOWED_NORMS for x in self.abs_norms]):
+      raise ValueError('abs_norms can only be one of ' + ','.join(ALLOWED_NORMS))
+  
+  @classmethod
+  def from_json(cls, j):
+    if isinstance(j, str):
+      params = json.loads(j)  
+    elif isinstance(j, dict):
+      params = j
+    else:
+      raise ValueError("parameter must be either str or dict")
+    if any([x not in ALLOWED_PARAMS for x in params]):
+        raise ValueError('allowed params for reduction config can only be one of ' + ','.join(ALLOWED_PARAMS))
+    only_shape = params.get("only_shape" , False)
+    reductions = params.get("reductions", [])
+    abs_reductions = params.get("abs_reductions", [])
+    norms = params.get("norms", [])
+    abs_norms = params.get("abs_norms", [])
+    return cls(only_shape, reductions, abs_reductions, norms, abs_norms)
 
   def export(self):
     separator = '%'

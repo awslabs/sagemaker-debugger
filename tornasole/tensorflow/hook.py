@@ -2,27 +2,28 @@ import os
 import socket
 import atexit
 import numpy as np
-import tensorflow as tf
 from .utils import *
 from .reductions import get_tensorflow_reduction
 from .collection import *
 from tornasole.core.writer import FileWriter
-from tornasole.core.utils import get_logger, flatten, get_reduction_tensor_name, \
-    check_dir_exists, is_s3, match_inc
+from tornasole.core.utils import get_logger, flatten, is_s3, match_inc
+from tornasole.core.reductions import get_reduction_tensor_name
+from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.access_layer.utils import training_has_ended
 from .save_manager import TFSaveManager
 
+DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'gradients', 'default']
 
 class TornasoleHook(tf.train.SessionRunHook):
     def __init__(self, out_dir,
                  dry_run=False,
-                 worker='worker0',
+                 worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config=None,
-                 save_config=SaveConfig(),
+                 save_config=None,
                  include_regex=None,
-                 include_collections=['weights', 'gradients', 'default'],
+                 include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                  save_all=False):
         """
         A class used to represent the hook which gets attached to the
@@ -69,7 +70,9 @@ class TornasoleHook(tf.train.SessionRunHook):
         """
         if not is_s3(out_dir)[0]:
             out_dir = os.path.expanduser(out_dir)
-        check_dir_exists(out_dir)
+        # this is commented because SM creates dir. 
+        # This was created because we don't want user to overwrite their existing data
+        #check_dir_exists(out_dir)
         self.out_dir = out_dir
         self.out_base_dir = os.path.dirname(out_dir)
         self.run_id = os.path.basename(out_dir)
@@ -93,6 +96,8 @@ class TornasoleHook(tf.train.SessionRunHook):
         if 'default' not in self.include_collections and get_collection('default').get_include_regex():
             self.logger.warn('The `default` collection was not passed to include_collections.' \
                              'So it is not being saved')
+        if save_config is None:
+            save_config = SaveConfig()
 
         self.save_manager = TFSaveManager(collection_manager=get_collection_manager(),
                                         include_collections_names=self.include_collections,
@@ -108,6 +113,10 @@ class TornasoleHook(tf.train.SessionRunHook):
         self.subgraph_nodes_cache = {}
         self.logger.info('Saving to {}'.format(self.out_dir))
         atexit.register(self.cleanup)
+    
+    @classmethod
+    def hook_from_config(cls):
+        return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)
 
     def cleanup(self):
         if self.writer is not None:

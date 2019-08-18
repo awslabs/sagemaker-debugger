@@ -48,27 +48,6 @@ def get_immediate_subdirectories(a_dir):
   return [name for name in os.listdir(a_dir)
           if os.path.isdir(os.path.join(a_dir, name))]
 
-TORNASOLE_REDUCTIONS_PREFIX = "tornasole/reductions/"
-
-def get_reduction_tensor_name(tensorname, reduction_name, abs):
-    tname = re.sub(r':\d+', '', f'{reduction_name}/{tensorname}')
-    if abs:
-        tname = 'abs_' + tname
-    tname = TORNASOLE_REDUCTIONS_PREFIX + tname
-    return tname
-
-def reverse_reduction_tensor_name(reduction_tensor_name):
-    rest = reduction_tensor_name.split(TORNASOLE_REDUCTIONS_PREFIX)[1]
-    parts = rest.split('/', 1)
-    reduction_name = parts[0]
-    if 'abs_' in reduction_name:
-        abs = True
-        reduction_op_name = reduction_name.split('abs_')[1]
-    else:
-        abs = False
-        reduction_op_name = reduction_name
-    tensor_name = parts[1]
-    return tensor_name, reduction_op_name, abs
 
 def is_s3(path):
     if path.startswith('s3://'):
@@ -118,3 +97,4 @@ def index(sorted_list, elem):
     if i != len(sorted_list) and sorted_list[i] == elem:
         return i
     raise ValueError
+

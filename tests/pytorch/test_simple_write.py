@@ -1,23 +1,21 @@
 from __future__ import print_function
 import numpy as np
-import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from tornasole.core.writer import FileWriter
 from tornasole.pytorch.hook import *
 from tornasole.pytorch.torch_collection import *
 from tornasole.pytorch import reset_collections
+from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 import uuid
 from tornasole.trials import create_trial
 import shutil
 import os
 
+
 # from tensorflow.python.tools import inspect_checkpoint as chkp
-from tornasole.core.reader import FileReader
-from tornasole.core.tfevent.util import EventFileLocation
 
 
 class Net(nn.Module):
@@ -89,9 +87,12 @@ class Net(nn.Module):
 # Following function shows the default initilization that enables logging of
 # weights, biases and gradients in the model.
 def create_tornasole_hook(output_dir, module=None, hook_type='saveall', save_steps=None):
+    reset_collections()
     # Create a hook that logs weights, biases, gradients and inputs/ouputs of model
     if hook_type == 'saveall':
-        hook = TornasoleHook(out_dir=output_dir, save_config=SaveConfig(save_steps=save_steps), save_all=True)
+        hook = TornasoleHook(out_dir=output_dir,
+                             save_config=SaveConfig(save_steps=save_steps),
+                             save_all=True)
     elif hook_type == 'module-input-output':
         # The names of input and output tensors of a module are in following format
         # Inputs :  <module_name>_input_<input_index>, and
@@ -134,19 +135,25 @@ def delete_local_trials(local_trials):
     for trial in local_trials:
         shutil.rmtree(trial)
 
-def test_weights_bias_gradients():
-    reset_collections()
+def helper_test_weights_bias_gradients(hook=None):
     prefix = str(uuid.uuid4())
     hook_type = 'weights-bias-gradients'
     device = torch.device("cpu")
     save_steps = [i * 20 for i in range(5)]
     model = Net(mode=hook_type, to_save=save_steps).to(device)
-    hook = create_tornasole_hook('./test_output/test_weights_bias_gradients/' + prefix, model, hook_type, save_steps=save_steps)
+    json = hook is not None
+    if not json:
+        hook = create_tornasole_hook('./test_output/test_hook_save_weightsbiasgradients/' \
+                                     + prefix, model, hook_type, save_steps=save_steps)
 
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
-    trial = create_trial(path='./test_output/test_weights_bias_gradients/' + prefix, 
+    if not json:
+        trial = create_trial(path='./test_output/test_hook_save_weightsbiasgradients/' + prefix,
+                        name='test output')
+    else:
+        trial = create_trial(path='./test_output/test_hook_save_weightsbiasgradients/jsonloading',
                         name='test output')
     grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight', 
                 'gradient/Net_fc1.bias', 'gradient/Net_fc2.bias', 'gradient/Net_fc3.bias']
@@ -163,22 +170,31 @@ def test_weights_bias_gradients():
             saved_tensor = trial.tensor(tname).value(step)
             in_memory = model.saved[tname][step]
             assert np.allclose(in_memory, saved_tensor)
-    delete_local_trials(['./test_output/test_weights_bias_gradients/' + prefix])
+    if not json:
+        addendum = prefix
+    else:
+        addendum = 'jsonloading'
+    delete_local_trials(['./test_output/test_hook_save_weightsbiasgradients/' + addendum])
 
 
-def test_saveall():
+def saveall_test_helper(hook=None):
     reset_collections()
     prefix = str(uuid.uuid4())
     hook_type = 'saveall'
     device = torch.device("cpu")
     save_steps = [i * 20 for i in range(5)]
     model = Net(mode=hook_type, to_save=save_steps).to(device)
-    hook = create_tornasole_hook('./test_output/test_saveall/' + prefix, model, hook_type, save_steps=save_steps)
-
+    json = hook is not None
+    if not json:
+        hook = create_tornasole_hook('./test_output/test_hook_saveall/' + prefix, model, hook_type, save_steps=save_steps)
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
-    trial = create_trial(path='./test_output/test_saveall/' + prefix,
+    if not json:
+        trial = create_trial(path='./test_output/test_hook_saveall/' + prefix,
+                         name='test output')
+    else:
+        trial = create_trial(path='./test_output/test_hook_saveall/jsonloading',
                         name='test output')
     grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight', 
                 'gradient/Net_fc1.bias', 'gradient/Net_fc2.bias', 'gradient/Net_fc3.bias']
@@ -197,5 +213,27 @@ def test_saveall():
             saved_tensor = trial.tensor(tname).value(step)
             in_memory = model.saved[tname][step]
             assert np.allclose(in_memory, saved_tensor)
+    if not json:
+        addendum = prefix
+    else:
+        addendum = 'jsonloading'
+    delete_local_trials(['./test_output/test_hook_saveall/' + addendum])
 
-    delete_local_trials(['./test_output/test_saveall/' + prefix])
+
+def test_weightsbiasgradients_json():
+    reset_collections()
+    os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_weightsbiasgradients.json'
+    hook = TornasoleHook.hook_from_config()
+    helper_test_weights_bias_gradients(hook)
+
+def test_weightsbiasgradients_call():
+    helper_test_weights_bias_gradients()
+
+def test_saveall_json():
+    reset_collections()
+    os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_saveall.json'
+    hook = TornasoleHook.hook_from_config()
+    saveall_test_helper(hook)
+
+def test_saveall_params():
+    saveall_test_helper()

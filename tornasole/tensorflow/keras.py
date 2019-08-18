@@ -23,7 +23,9 @@ class TornasoleHook(keras.callbacks.Callback):
                  save_all=False):
         if not is_s3(out_dir)[0]:
             out_dir = os.path.expanduser(out_dir)
-        check_dir_exists(out_dir)
+        # this is commented because SM creates dir. 
+        # This was created because we don't want user to overwrite their existing data
+        #check_dir_exists(out_dir)
         self.out_dir = out_dir
         self.out_base_dir = os.path.dirname(out_dir)
         self.run_id = os.path.basename(out_dir)

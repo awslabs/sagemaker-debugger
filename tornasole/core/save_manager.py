@@ -1,5 +1,6 @@
 from .save_config import SaveConfig, SaveConfigModes
 from .utils import match_inc
+from .modes import ModeKeys
 
 class SaveManager:
   def __init__(self, collection_manager, include_collections_names,
@@ -11,7 +12,9 @@ class SaveManager:
       self.default_save_modes = sm
     elif isinstance(default_save_config, SaveConfigModes):
       self.default_save_modes = default_save_config
-    elif isinstance(default_save_config, dict):
+    elif isinstance(default_save_config, dict) and \
+        all([isinstance(x, SaveConfig) for x in default_save_config.values()]) and \
+        all([isinstance(x, ModeKeys) for x in default_save_config.keys()]):
       self.default_save_modes = SaveConfigModes(default_save_config)
     else:
       raise TypeError('save_config can only be a SaveConfig instance, or '
@@ -35,7 +38,7 @@ class SaveManager:
     for c_name, c in self.collection_manager.get_collections().items():
       if c.save_config is not None:
         if isinstance(c.save_config, dict):
-          self.configs_for_collections[c_name] = c.save_config
+          self.configs_for_collections[c_name] = SaveConfigModes(mode_save_configs=c.save_config)
         elif isinstance(c.save_config, SaveConfig):
           sm = SaveConfigModes.create_simple_save_mode(c.save_config)
           self.configs_for_collections[c_name] = sm
