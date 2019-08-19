@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
 set -ex
-
 check_logs() {
-  if grep "AssertionError" $1;
+  if grep -e "AssertionError" -e "Error" -e "ERROR" $1;
    then
     echo "Integration tests:FAILED."
     exit 1

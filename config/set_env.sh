@@ -31,4 +31,4 @@ echo "INFO CODEBUILD_PROJECT = $CODEBUILD_PROJECT"
 PR_ID=$(echo $CODEBUILD_WEBHOOK_TRIGGER | cut -d ';' -f 2-)
 export GITHUB_PR_URL=https://github.com/awslabs/$CURRENT_REPO_NAME/pull/$PR_ID
 #https://s3.console.aws.amazon.com/s3/object/tornasolecodebuildtest/20190817_215022/c24a121/reports/all_tests.html?region=us-east-1&tab=overview
-export S3_TEST_REPORT_URL=https://s3.console.aws.amazon.com/s3/object/tornasolecodebuildtest/$CURRENT_COMMIT_PATH/reports/all_tests.html?region=us-east-1&tab=overview
+export S3_TEST_REPORT_URL=https://s3.console.aws.amazon.com/s3/object/tornasolecodebuildtest/$CURRENT_COMMIT_PATH/reports/all_tests.html
