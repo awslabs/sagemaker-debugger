@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from datetime import datetime
-
+import os
 
 class Net(nn.Module):
     def __init__(self):
@@ -49,20 +49,24 @@ def train(model, device, optimizer, num_steps=500, save_steps=[]):
         loss.backward()
         optimizer.step()
 
-def test_reduce_config():
-    reset_collections()
-    global_reduce_config = ReductionConfig(reductions=["max", "mean", "variance"])
-    global_save_config = SaveConfig(save_steps=[0,1,2,3])
+def test_reduce_config(hook=None, out_dir=None):
+    hook_created = False
+    if hook is None:
+        reset_collections()
+        global_reduce_config = ReductionConfig(reductions=["max", "mean", "variance"])
+        global_save_config = SaveConfig(save_steps=[0,1,2,3])
 
-    ts.get_collection("ReluActivation").include(["relu*"])
-    ts.get_collection("ReluActivation").set_save_config(SaveConfig(save_steps=[4,5,6]))
-    ts.get_collection("ReluActivation").set_reduction_config(ReductionConfig(reductions=["min"], abs_reductions=["max"]))
+        ts.get_collection("ReluActivation").include(["relu*"])
+        ts.get_collection("ReluActivation").set_save_config(SaveConfig(save_steps=[4,5,6]))
+        ts.get_collection("ReluActivation").set_reduction_config(ReductionConfig(reductions=["min"], abs_reductions=["max"]))
 
-    run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
-    out_dir = './newlogsRunTest/' + run_id
-    hook = t_hook(out_dir=out_dir, save_config=global_save_config, include_collections=['weights', 'bias','gradients',
+        run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
+        out_dir = './newlogsRunTest/' + run_id
+        hook = t_hook(out_dir=out_dir, save_config=global_save_config, include_collections=['weights', 'bias','gradients',
                                                                                'default', 'ReluActivation', 'flatten'],
-                reduction_config=global_reduce_config)
+                    reduction_config=global_reduce_config)
+        hook_created = True
+
     model = Net().to(torch.device("cpu"))
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
@@ -101,6 +105,20 @@ def test_reduce_config():
     # l2_norm = flatten_input.reduction_value(step_num=4, abs=True, reduction_name='l2')
     # assert l2_norm != None
 
-    shutil.rmtree(out_dir)
+    if hook_created:
+        shutil.rmtree(out_dir)
 
 test_reduce_config()
+
+
+# Test creating hook by loading the json file with reduction configs.
+def test_reduce_config_with_json():
+    from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+    reset_collections()
+    out_dir = 'test_output/test_hook_reduction_config/jsonloading'
+    shutil.rmtree(out_dir, True)
+    os.environ[
+        TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_reduction_config.json'
+    hook = t_hook.hook_from_config()
+    test_reduce_config(hook=hook, out_dir=out_dir)
+    shutil.rmtree(out_dir, True)

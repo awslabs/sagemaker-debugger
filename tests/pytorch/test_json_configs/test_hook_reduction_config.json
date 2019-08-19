@@ -1,0 +1,37 @@
+{
+  "config_name": "PyTorch Reduction config Test",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "test_output/test_hook_reduction_config/jsonloading",
+  "save_configs" : [
+    {
+      "global_save_config" : {
+        "save_steps" : [0, 1, 2, 3]
+      },
+      "reduction_save_config" : {
+        "save_steps" : [4, 5, 6]
+      }
+
+    }
+  ],
+    "reduction_configs" : [
+    {
+      "min_max_reduction" :{
+        "reductions" : ["min"],
+        "abs_reductions" : ["max"]
+      }
+    }
+  ],
+  "collections" : [
+    {
+      "ReluActivation" : {
+        "include_regex": ["relu*"],
+        "save_config" : "reduction_save_config",
+        "reduction_config" : "min_max_reduction"
+      }
+
+    }
+  ],
+  "save_config" : "global_save_config",
+  "include_collections" :  ["weights", "bias", "gradients", "default", "ReluActivation"],
+  "save_all" : false
+}

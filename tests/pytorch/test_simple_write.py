@@ -220,6 +220,31 @@ def saveall_test_helper(hook=None):
     delete_local_trials(['./test_output/test_hook_saveall/' + addendum])
 
 
+def helper_test_multi_collections(hook, out_dir):
+    device = torch.device("cpu")
+    hook_type = 'saveall'
+    save_steps = [i for i in range(10)]
+    model = Net(mode=hook_type, to_save=save_steps).to(device)
+    hook.register_hook(model)
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    train(model, device, optimizer, num_steps=101, save_steps=save_steps)
+    trial = create_trial(path=out_dir,
+                         name='test output')
+    grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight',
+                'gradient/Net_fc1.bias', 'gradient/Net_fc2.bias', 'gradient/Net_fc3.bias']
+    weights = ['Net_fc1.weight', 'Net_fc2.weight', 'Net_fc3.weight']
+    bias = ['Net_fc1.bias', 'Net_fc2.bias', 'Net_fc3.bias']
+    inputs = ['fc1_input_0', 'relu1_input_0', 'relu2_input_0']
+    outputs = ['fc1_output0', 'relu1_output0', 'relu2_output0']
+    tensors = grads + bias + weights + inputs + outputs
+
+    assert len(trial.available_steps()) == len(save_steps)
+
+    for tname in tensors:
+        assert tname in trial.tensors()
+
+
+
 def test_weightsbiasgradients_json():
     reset_collections()
     os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_weightsbiasgradients.json'
@@ -237,3 +262,14 @@ def test_saveall_json():
 
 def test_saveall_params():
     saveall_test_helper()
+
+# Test creating hook with multiple collections and save configs.
+def test_multi_collection_json():
+    reset_collections()
+    out_dir = 'test_output/test_hook_multi_collection/jsonloading'
+    shutil.rmtree(out_dir, True)
+    os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_multi_collections.json'
+    hook = TornasoleHook.hook_from_config()
+    helper_test_multi_collections(hook, out_dir)
+    shutil.rmtree(out_dir, True)
+
