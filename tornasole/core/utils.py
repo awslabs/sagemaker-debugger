@@ -18,7 +18,6 @@ def flatten(lis):
           new_lis.append(item)
   return new_lis
 
-
 _logger_initialized = False
 
 

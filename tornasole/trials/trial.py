@@ -87,7 +87,7 @@ class Trial(ABC):
             return
         retry_count = 1
         training_ended = self.training_ended()
-        if training_ended and not self.loaded_all_steps:
+        if training_ended and self.loaded_all_steps== False:
             retry_count = 2
         while retry_count > 0:
             if name is None:

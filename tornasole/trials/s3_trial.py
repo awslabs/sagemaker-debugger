@@ -97,12 +97,15 @@ class S3Trial(Trial):
         objects = self._list_s3_objects(self.bucket_name,
                                         os.path.join(self.prefix_name, 'events'),
                                         start_after_key)
+        self.logger.debug("Got objects:{}".format(objects))
         for objname in objects:
             efl = EventFileLocation.match_regex(objname)
             if efl:
                 if (self.range_steps is not None and self._step_in_range(efl.step_num)) or \
                   self.range_steps is None:
                     self.keys.append(objname)
+                else:
+                    self.logger.debug("Skipping step:{} as it is not in range{} {}".format(efl.step_num, self.range_steps[0], self.range_steps[1]))
             else:
                 self.logger.debug(f'Skipping object {objname}')
         self.logger.debug(f'Loading {len(self.keys)} new steps')

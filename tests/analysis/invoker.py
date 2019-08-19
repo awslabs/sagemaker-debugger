@@ -8,16 +8,10 @@ def invoke_rule(rule_obj, flag, start_step, end_step):
     step = start_step if start_step is not None else 0
     logger.info('Started execution of rule {} at step {}'
                 .format(type(rule_obj).__name__, step))
-    return_false = False
+    exception_thrown = "False"
     while (end_step is None) or (step < end_step): # if end_step is not provided, do infinite checking
         try:
             rule_obj.invoke(step)
-            if flag == 'False':
-                return_false = True
-            elif flag == 'True':
-                # every step should return True in this case,
-                # meaning exception condition should be met
-                assert False
             step += 1
         except StepUnavailable as e:
             logger.info(e)
@@ -28,13 +22,17 @@ def invoke_rule(rule_obj, flag, start_step, end_step):
         except RuleEvaluationConditionMet as e:
             logger.info(e)
             step += 1
+            exception_thrown = "True"
+            break
+        except NoMoreData as e:
+            logger.info(e)
+            break
 
-    # if flag is False, return_false should be True after the loop
-    if flag == 'False':
-        assert return_false
     logger.info('Ending execution of rule {} with step={} '
                 .format(rule_obj.__class__.__name__, step - 1))
-
+    msg = "Flag passed :{} , exception_thrown:{}".format(flag, exception_thrown)
+    if flag != exception_thrown:
+        assert False, msg
 
 if __name__ == '__main__':
   import argparse
