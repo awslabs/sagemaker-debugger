@@ -1,5 +1,5 @@
 def pytest_addoption(parser):
-    parser.addoption('--mode', action='store', dest='mode', default=None)
+    parser.addoption('--mode', dest='mode', default=None)
     parser.addoption('--path_to_config', action='store', dest='path_to_config', default=None)
     parser.addoption('--tf_path', action='store', dest='tf_path', default=None)
     parser.addoption('--pytorch_path', action='store', dest='pytorch_path', default=None)

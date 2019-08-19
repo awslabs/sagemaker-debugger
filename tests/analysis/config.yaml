@@ -160,16 +160,15 @@
      --rule_name allzero --flag True --end_step 3 --collection_names ReluActivation
     ]
 
-
 # test cases for pytorch
 -
   - exploding_tensor/pytorch/false
   - pytorch
   - *Enable
   - [*torch_simple,
-     --lr .01 --momentum 0.8 --tornasole-frequency 8 --steps 20 --hook-type saveall --random-seed True,
+     --lr .01 --momentum 0.8 --tornasole-frequency 15 --steps 46 --hook-type saveall --random-seed True,
      *invoker,
-     --rule_name explodingtensor --end_step 20  --flag False
+     --rule_name explodingtensor --end_step 46  --flag False
     ]
 -
   - exploding_tensor/pytorch/true

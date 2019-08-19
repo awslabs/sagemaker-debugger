@@ -92,8 +92,6 @@ class TestRules():
                                                                env_dict['core_path'] is not None else '.'
             os.environ['CODEBUILD_SRC_DIR'] = env_dict['CODEBUILD_SRC_DIR'] if 'CODEBUILD_SRC_DIR' in env_dict and \
                                                                env_dict['CODEBUILD_SRC_DIR'] is not None else '.'
-        # create s3 client
-        self.s3 = boto3.resource('s3')
         # create a local folder to store log files
         if not os.path.exists('./integration_test_log'):
             os.mkdir('./integration_test_log/')
@@ -134,7 +132,7 @@ class TestRules():
         files_to_upload = []
         ##  tornasole.log
         from shutil import copyfile
-
+        s3 = boto3.client('s3')
         copyfile('tornasole.log', 'tornasole-s3.log')
         files_to_upload.append('tornasole-s3.log')
         ##  integration_test_log
@@ -147,9 +145,10 @@ class TestRules():
                 files_to_upload.append(os.path.join(r, file))
         ## upload 
         for log_file in files_to_upload:
-            print("Uploading file: {} to s3".format(log_file))
-            self.s3.Object(BUCKET, s3_prefix + "/" + log_file).put(
-                    Body=open(log_file, 'rb'))
+            logger.info("Uploading file: {} to s3".format(log_file))
+            with open(log_file) as lf:
+                s3.put_object(Bucket=BUCKET, Key= s3_prefix + "/" + log_file, Body=lf)
+
 
     def delete_local_log(self):
         files = glob.glob('./integration_test_log/*')
@@ -180,7 +179,9 @@ class TestRules():
         commands = "python {} --tornasole_path {} {}".format(path_to_script, trial_dir, script_args)
         logger.info("IntegrationTest running command {}".format(commands))
         # use subprocess to execute cmd line prompt
-        command_list = commands.split(' ')
+        command_list = commands.split()
+        logger.info("command_list : {}".format(command_list))
+
         # create a subprocess using Popen
         p = Popen(command_list,
                   stdout=PIPE if self.stdout_mode else None,
@@ -204,6 +205,27 @@ class TestRules():
                                                error, out))
             ## returning exit code
             exit(p.returncode)
+
+    def _is_test_allowed(self, job):
+        name = job[TEST_NAME_INDEX]
+        in_test_cases = True
+        if len(self.test_cases) > 0:
+            in_test_cases = name in self.test_cases
+            logger.info("Test cases specified, in_test_cases is {} testname:{}".format(in_test_cases, name))
+        mathes_regex = True
+        if self.test_case_regex is not None:
+            if re.match(self.test_case_regex, job[TEST_NAME_INDEX]):
+                mathes_regex = True
+            else:
+                mathes_regex = False
+            logger.info("Test regex specified, mathes_regex is {} testname:{}".format(mathes_regex, name))
+
+        is_enabled = job[SHOULD_RUN_INDEX]
+        logger.info("Test {} is enabled:{}".format(name, is_enabled))
+        is_framework_allowed = (job[FRAMEWORK_INDEX] == self.framework)
+        is_allowed = is_enabled and (in_test_cases or mathes_regex) and is_framework_allowed
+        logger.info("Test {} is allowed:{}".format(name, is_allowed))
+        return is_allowed
     # run 'job's provided by user. a 'job' is a training/test scripts combination
     # mode: testing mode, either 'auto' or 'manual'
     # jobs: a list of lists, the sublist is called a ‘job’
@@ -229,16 +251,17 @@ class TestRules():
             #    <path_test_script>,
             #    <test_script_args>
             #   ]
-            if job[FRAMEWORK_INDEX] != 'tensorflow' and job[FRAMEWORK_INDEX] != 'pytorch' \
-                    and job[FRAMEWORK_INDEX] != 'mxnet' and job[TEST_NAME_INDEX] != 'values':
+            framework = job[FRAMEWORK_INDEX]
+            if job[TEST_NAME_INDEX] == 'values':
+                continue
+            ALLOWED_FRAMEWORK = ['tensorflow', 'pytorch', 'mxnet'] ## Note values is first dict in yaml file. It's a hack
+            if framework not in ALLOWED_FRAMEWORK:
                 raise Exception('Wrong test case category', job[TEST_NAME_INDEX])
+
+            if not self._is_test_allowed(job):
+                continue
             # if user has specified regex search for certain test cases, only of these, which are turned on would run
-            if (self.test_case_regex is not None and re.match(self.test_case_regex, job[TEST_NAME_INDEX]) is not None
-                and job[SHOULD_RUN_INDEX]) or\
-                (self.test_case_regex is None and self.test_cases != [] and job[TEST_NAME_INDEX] in self.test_cases
-                 and job[SHOULD_RUN_INDEX]) or\
-                (self.test_case_regex is None and self.test_cases == []
-                 and (self.framework is None or job[FRAMEWORK_INDEX] == self.framework) and job[SHOULD_RUN_INDEX]):
+            else:
                 job_info = job[TEST_INFO_INDEX]
                 for mode_1 in self.serial_and_parallel:
                     if self.serial_and_parallel[mode_1]:
@@ -292,7 +315,8 @@ class TestRules():
         if exit_code > 0:
             # upload all the files to s3 
             self.upload_log_to_s3(upload_time_str) 
-
+            msg = "exit code of pytest run non zero. Please check logs in s3://{}{}".format(BUCKET, upload_time_str)
+            assert False, msg
         # once all jobs are finished, delete the outputs on local and s3
         #self.delete_local_trials(local_trials)
         #self.delete_s3_trials(s3_trials)
