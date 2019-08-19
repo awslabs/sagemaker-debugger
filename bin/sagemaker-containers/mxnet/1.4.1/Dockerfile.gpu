@@ -69,7 +69,7 @@ RUN pip install --no-cache --upgrade \
 
 COPY $tornasole_installable .
 
-RUN pip install $tornasole_installable
+RUN pip install --force-reinstall $tornasole_installable
 
 # "channels first" is recommended for keras-mxnet
 # https://github.com/awslabs/keras-apache-mxnet/blob/master/docs/mxnet_backend/performance_guide.md#channels-first-image-data-format-for-cnn

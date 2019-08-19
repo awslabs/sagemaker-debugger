@@ -51,7 +51,7 @@ RUN chmod +x /usr/local/bin/start_with_right_hostname.sh
 COPY $tornasole_framework_installable .
 COPY $framework_support_installable .
 
-RUN pip install --no-cache-dir $framework_support_installable $tornasole_framework_installable && \
+RUN pip install --no-cache-dir --force-reinstall $framework_support_installable $tornasole_framework_installable && \
     rm -f $framework_support_installable $tornasole_framework_installable
 
 ENV SAGEMAKER_TRAINING_MODULE sagemaker_pytorch_container.training:main

@@ -84,8 +84,8 @@ RUN pip install --no-cache-dir -U \
     pip install --force-reinstall --no-cache-dir -U \
         tensorflow-1.13.1-py2.py3-none-any.whl \
         horovod && \
-    pip install --no-cache-dir -U $tf_estimator_installable && \
-    pip install --no-cache-dir -U $framework_support_installable && \
+    pip install --no-cache-dir --force-reinstall -U $tf_estimator_installable && \
+    pip install --no-cache-dir --force-reinstall -U $framework_support_installable && \
     rm -f tensorflow-1.13.1-py2.py3-none-any.whl && \
     rm -f $framework_support_installable && \
     rm -f $tf_estimator_installable && \
@@ -95,6 +95,6 @@ RUN pip install --no-cache-dir -U \
 
 ARG tornasole_framework_installable
 COPY $tornasole_framework_installable .
-RUN pip install $tornasole_framework_installable
+RUN pip install --no-cache-dir --force-reinstall -U $tornasole_framework_installable
 
 ENV SAGEMAKER_TRAINING_MODULE sagemaker_tensorflow_container.training:main
