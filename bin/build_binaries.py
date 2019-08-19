@@ -4,7 +4,8 @@ import sys
 import os
 
 parser = argparse.ArgumentParser(description='Build Tornasole binaries')
-parser.add_argument('--upload', type=bool, default=False,
+parser.add_argument('--upload', default=False,
+                    dest='upload', action='store_true',
                     help='Pass --upload if you want to upload the binaries'
                          'built to the s3 location')
 args = parser.parse_args()
