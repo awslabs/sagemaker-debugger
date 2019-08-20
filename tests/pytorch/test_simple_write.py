@@ -243,8 +243,6 @@ def helper_test_multi_collections(hook, out_dir):
     for tname in tensors:
         assert tname in trial.tensors()
 
-
-
 def test_weightsbiasgradients_json():
     reset_collections()
     os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_weightsbiasgradients.json'

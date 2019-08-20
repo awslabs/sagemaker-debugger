@@ -82,19 +82,19 @@ def test_reduce_config(hook=None, out_dir=None):
 
     # Global reduction with max and mean and variance
     weight_tensor = tr.tensor(tname)
-    max_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name='max')
+    max_val = weight_tensor.step(step_num=1).reduction_value(abs=False,red_name='max')
     assert max_val != None
-    mean_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name='mean')
+    mean_val = weight_tensor.step(step_num=1).reduction_value(abs=False, red_name='mean')
     assert mean_val != None
-    variance_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name='variance')
+    variance_val = weight_tensor.step(step_num=1).reduction_value(abs=False, red_name='variance')
     assert variance_val != None
 
     # custom reduction at step 4 with reduction = 'min and abs reduction = 'max'
     tname = tr.tensors_matching_regex('relu0_input_0')[0]
     relu_input = tr.tensor(tname)
-    min_val = relu_input.reduction_value(step_num=4, abs=False, reduction_name='min')
+    min_val = relu_input.step(step_num=4).reduction_value(abs=False, red_name='min')
     assert min_val != None
-    abs_max_val = relu_input.reduction_value(step_num=4, abs=True, reduction_name='max')
+    abs_max_val = relu_input.step(step_num=4).reduction_value(abs=True, red_name='max')
     assert abs_max_val != None
 
     # Custom reduction with normalization
@@ -108,7 +108,6 @@ def test_reduce_config(hook=None, out_dir=None):
     if hook_created:
         shutil.rmtree(out_dir)
 
-test_reduce_config()
 
 
 # Test creating hook by loading the json file with reduction configs.

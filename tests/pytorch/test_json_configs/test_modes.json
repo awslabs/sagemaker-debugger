@@ -1,0 +1,15 @@
+{
+  "config_name": "training modes Test",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "test_output/test_hook_modes/jsonloading",
+  "save_all" : true,
+  "save_config": {
+    "TRAIN": "train_cfg1"
+  },
+  "save_configs" : [
+    {
+      "train_cfg1" : {
+        "save_steps" : [0,1,2,3,4]
+      }
+    }
+  ]}
