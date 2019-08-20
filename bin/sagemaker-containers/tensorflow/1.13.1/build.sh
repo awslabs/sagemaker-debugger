@@ -11,7 +11,6 @@ tag_and_push() {
   done
 }
 
-export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_tensorflow/py3/tornasole-0.3-py2.py3-none-any.whl
 export ECR_TAG_NAME=$1
 
 pushd .
@@ -24,7 +23,11 @@ python setup.py sdist
 popd
 cd bin/sagemaker-containers/tensorflow/1.13.1/
 cp ~/sagemaker-tensorflow-container/dist/sagemaker_tensorflow_container-*.tar.gz .
-aws s3 cp $TORNASOLE_BINARY_PATH .
+
+export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_mxnet/py3/latest
+aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
+cp tornasole-binary/*.whl .
+export TORNASOLE_BINARY=`ls tornasole-*.whl`
 
 export TF_ESTIMATOR_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.13/Ubuntu/estimator/tensorflow_estimator-1.13.0-py2.py3-none-any.whl
 curl -O $TF_ESTIMATOR_BINARY_LOCATION
@@ -42,7 +45,7 @@ curl -O $TF_BINARY_LOCATION
 docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \
     --build-arg framework_installable=`basename $TF_BINARY_LOCATION` \
     --build-arg framework_support_installable=sagemaker_tensorflow_container-*.tar.gz \
-    --build-arg tornasole_framework_installable=`basename $TORNASOLE_BINARY_PATH` \
+    --build-arg tornasole_framework_installable=$TORNASOLE_BINARY \
     --build-arg tf_estimator_installable=`basename $TF_ESTIMATOR_BINARY_LOCATION` \
     -f Dockerfile.gpu .
 tag_and_push
@@ -58,7 +61,7 @@ curl -O $TF_BINARY_LOCATION
 docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \
     --build-arg framework_installable=`basename $TF_BINARY_LOCATION` \
     --build-arg framework_support_installable=sagemaker_tensorflow_container-*.tar.gz \
-    --build-arg tornasole_framework_installable=`basename $TORNASOLE_BINARY_PATH` \
+    --build-arg tornasole_framework_installable=$TORNASOLE_BINARY \
     --build-arg tf_estimator_installable=`basename $TF_ESTIMATOR_BINARY_LOCATION` \
     -f Dockerfile.cpu .
 tag_and_push

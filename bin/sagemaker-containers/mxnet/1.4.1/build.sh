@@ -11,21 +11,23 @@ tag_and_push() {
   done
 }
 
-export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_mxnet/py3/tornasole-0.3-py2.py3-none-any.whl
 export ECR_TAG_NAME=$1
 
 cd bin/sagemaker-containers/mxnet/1.4.1/
-aws s3 cp $TORNASOLE_BINARY_PATH .
+
+export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_mxnet/py3/latest
+aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
+cp tornasole-binary/*.whl .
+export TORNASOLE_BINARY=`ls tornasole-*.whl`
 
 export ECR_REPO_NAME=tornasole-preprod-mxnet-1.4.1-gpu
-
 docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME \
-    --build-arg tornasole_installable=`basename $TORNASOLE_BINARY_PATH` \
+    --build-arg tornasole_installable=$TORNASOLE_BINARY \
     -f Dockerfile.gpu .
 tag_and_push
 
 export ECR_REPO_NAME=tornasole-preprod-mxnet-1.4.1-cpu
 docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME \
-    --build-arg tornasole_installable=`basename $TORNASOLE_BINARY_PATH` \
+    --build-arg tornasole_installable=$TORNASOLE_BINARY \
     -f Dockerfile.cpu .
 tag_and_push

@@ -4,16 +4,21 @@ from multiprocessing import Process
 import os
 
 
+def run_command(command_list, stdout, stderr):
+  subprocess.check_call(command_list, stdout=stdout, stderr=stderr)
+
 # you can clean all caches used by docker with `docker system prune -a`
 def build_container(framework, version, args):
-    with open(os.path.join(args.logs_path, '{}.log'.format(framework)), "w") as logfile:
-        subprocess.check_call(['bash',
-                               'bin/sagemaker-containers/{}/{}/build.sh'.format(framework, version),
-                               args.tag], stdout=logfile, stderr=logfile)
+    command = ['bash', 'bin/sagemaker-containers/{}/{}/build.sh'.format(framework, version), args.tag]
+    if not args.single_process:
+        with open(os.path.join(args.logs_path, '{}.log'.format(framework)), "w") as logfile:
+            run_command(command, stdout=logfile, stderr=logfile)
+    else:
+        run_command(command, None, None)
 
 
 parser = argparse.ArgumentParser(description='Build Tornasole binaries')
-parser.add_argument('--tag', type=str, default='latest',
+parser.add_argument('--tag', type=str, default='temp',
                     help='Pass the tag to upload the image to ECR with. '
                          'You might want to set the tag to latest for '
                          'final images.')

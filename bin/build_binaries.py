@@ -2,12 +2,18 @@ import subprocess
 import argparse
 import sys
 import os
+import boto3
 
 parser = argparse.ArgumentParser(description='Build Tornasole binaries')
 parser.add_argument('--upload', default=False,
                     dest='upload', action='store_true',
                     help='Pass --upload if you want to upload the binaries'
                          'built to the s3 location')
+parser.add_argument('--replace-latest', default=False,
+                    dest='replace_latest', action='store_true',
+                    help='Pass --replace-latest if you want to upload the new binary to '
+                         'replace the latest binary in the S3 location. Note that'
+                         'this also requires you to pass --upload')
 args = parser.parse_args()
 
 VERSION = '0.3'
@@ -25,5 +31,14 @@ for b in BINARIES:
     if args.upload:
         subprocess.check_call(['aws', 's3', 'cp', 'dist/tornasole-{}-py2.py3-none-any.whl'.format(VERSION),
                                's3://tornasole-binaries-use1/tornasole_{}/py3/'.format(b)])
+
+        if args.replace_latest:
+            # upload current version
+            subprocess.check_call(['aws', 's3', 'cp',
+                                   's3://tornasole-binaries-use1/tornasole_{}/py3/tornasole-{}-py2.py3-none-any.whl'.format(b, VERSION),
+                                   's3://tornasole-binaries-use1/tornasole_{}/py3/latest/'.format(b)])
+            # remove other versions
+            subprocess.check_call(['aws', 's3', 'rm', '--recursive', '--exclude', 'tornasole-{}*'.format(VERSION),
+                                   's3://tornasole-binaries-use1/tornasole_{}/py3/latest/'.format(b)])
 
     subprocess.check_call(['rm', '-rf', 'dist', 'build', '*.egg-info'])

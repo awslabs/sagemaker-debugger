@@ -95,6 +95,6 @@ RUN pip install --no-cache-dir -U \
 
 ARG tornasole_framework_installable
 COPY $tornasole_framework_installable .
-RUN pip install --no-cache-dir --force-reinstall -U $tornasole_framework_installable
+RUN pip install --no-cache-dir --force-reinstall $tornasole_framework_installable
 
 ENV SAGEMAKER_TRAINING_MODULE sagemaker_tensorflow_container.training:main

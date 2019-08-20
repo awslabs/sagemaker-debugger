@@ -43,8 +43,8 @@ You can activate this by doing: `source activate pytorch_p36`.
 Once your account is whitelisted, you should be able to install the `tornasole` package built for PyTorch as follows:
 
 ```
-aws s3 cp s3://tornasole-binaries-use1/tornasole_pytorch/py3/tornasole-0.3-py2.py3-none-any.whl .
-pip install tornasole-0.3-py2.py3-none-any.whl
+aws s3 sync s3://tornasole-binaries-use1/tornasole_pytorch/py3/latest/ tornasole_pytorch/
+pip install tornasole_pytorch/*
 ```
 
 **Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3, 

@@ -134,6 +134,6 @@ RUN ldconfig /usr/local/cuda-10.0/targets/x86_64-linux/lib/stubs && \
 
 ARG tornasole_framework_installable
 COPY $tornasole_framework_installable .
-RUN pip install --no-cache-dir --force-reinstall -U $tornasole_framework_installable
+RUN pip install --no-cache-dir --force-reinstall $tornasole_framework_installable
 
 ENV SAGEMAKER_TRAINING_MODULE sagemaker_tensorflow_container.training:main
