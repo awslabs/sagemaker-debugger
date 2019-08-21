@@ -54,7 +54,10 @@ def parse_list_from_str(arg, delimiter=','):
             rval = []
         else:
             rval = arg.split(delimiter)
+    elif isinstance(arg, list):
+        rval = arg
     return rval
+
 
 def parse_bool(arg, default):
     if arg is None:

@@ -229,19 +229,23 @@ class Tensor:
         self._mode_steps[mode].set_step_reduction_value(mode_step,
                                                         red_name, abs, red_value)
 
-    def prev_steps(self, step, n, mode=ModeKeys.GLOBAL):
+    def prev_steps(self, step, n=None, mode=ModeKeys.GLOBAL):
         """
         returns n prev steps from step representing step number
-        of given mode
+        of given mode including step
         :param step: int
-        step number
+            step number
         :param n: int
-        number of previous steps to return
+            number of previous steps to return
+            if None returns all previous steps before step
         :param mode: value of the enum tornasole.modes
-        modes.GLOBAL, modes.TRAIN, modes.EVAL, modes.PREDICT
+            modes.GLOBAL, modes.TRAIN, modes.EVAL, modes.PREDICT
         :return: a list of step numbers
         """
         steps = self.steps(mode=mode)
         i = bisect.bisect_right(steps, step)
         prev_steps = steps[:i]
-        return prev_steps[-n:]
+        if n:
+            return prev_steps[-n:]
+        else:
+            return prev_steps

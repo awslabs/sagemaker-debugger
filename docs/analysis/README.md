@@ -259,8 +259,7 @@ that this tensor will never be seen for any step in Tornasole.
 Tornasole automatically loads new data as and when it becomes available. 
 
 - `NoMoreData` : This will be raised when the training ends. Once you see this, you will know that there will be no more steps
-and no more tensors saved. This is **WIP**. TornasoleRules can not currently do this. 
-For now, we expect you to stop the rule execution after the job is finished yourself.
+and no more tensors saved. 
 
 ### Rules
 Rules are the medium by which Tornasole executes a certain piece of code regularly on different steps of the jobs.
@@ -272,7 +271,6 @@ exception as the data would not yet be available.
  
 #### Writing a rule
 Writing a rule involves implementing the [Rule interface](../../tornasole/rules/rule.py).
-
 
 ##### Constructor
 Creating a rule involves first inheriting from the base Rule class Tornasole provides.
@@ -294,69 +292,103 @@ being enforced so as to let you create and invoke rules from json using Sagemake
 ##### RequiredTensors
 
 Next you need to implement a method which lets Tornasole know what tensors you 
-are interested in for invocation at a given step. This is the `required_tensors` method.
-It should return a list of instances of the class `RequiredTensors`, one for each trial
-that this rule needs tensors from. 
+are interested in for invocation at a given step. 
+This is the `set_required_tensors` method.
 
-As mentioned above, for this rule we need tensors from only one trial.
-Hence we pass a list with one instance of RequiredTensors. 
-Before we look at how to define this method, let us look at the API for RequiredTensors
+Before we look at how to define this method, let us look at the API for `RequiredTensors` class which
+needs to be used by this method
 
-###### API
-[RequiredTensors](../../tornasole/rules/rule.py) is a class which takes one argument to instantiate, namely
-- `trial` : The trial whose tensors we need, to execute the rule.
+**[RequiredTensors](../../tornasole/rules/req_tensors.py) API**
 
+***Adding a required tensor***
+When invoking a rule at a given step, you might require the values of a tensor at certain steps.  
+This method allows you to specify these steps as required for the tensor.
 ```
-req_tensors = RequiredTensors(self.base_trial)
+self.req_tensors.add(name=tname, 
+                     steps=[step_num], 
+                     trial=None, 
+                     should_match_regex=False)
 ```
-To add a given tensor name as required, we do the following:
+
+The arguments are described below:
+
+- `name`: name of the tensor
+- `steps`: list of integers representing global step numbers at which this rule requires the values of this tensor
+- `trial`: the trial whose tensor values are required. If this argument is None, it is assumed to 
+take the value of `self.base_trial` in the rule class. None is the default value for this argument.
+- `should_match_regex`: boolean which when True means that the given name is treated as a regex pattern. 
+In such a case, all tensor names in the trial which match that regex pattern are treated as required 
+for the invocation of the rule at the given step. 
+
+***Querying required tensors***
+
+*Get names of required tensors*
+
+This method returns the names of the required tensors for a given trial.
 ```
-# the steps we need this tensor from to execute the rule at one step, step_num
-steps = [step_num]
+self.req_tensors.get_names(trial=None)
+```
+- `trial`: the trial whose required tensors are being queried. If this argument is None, it is assumed to 
+take the value of `self.base_trial` in the rule class. None is the default value for this argument.
 
-# need_tensor takes the name of the tensor (as string) and a list of steps (each represented by `int` step number)
-req_tensors.need_tensor(tname, steps)
+*Get steps for a given required tensor*
 
-# you can also pass a tensorname regex to need_tensor as follows
-# this will match the regex mentioned as tname and fetch all tensors matching this regex
-# for each step in steps
-req_tensors.need_tensor(tname, steps, should_match_regex=True)
-``` 
+This method returns the steps for which the tensor is required to execute the rule at this step.
+```
+self.req_tensors.get_tensor_steps(name, trial=None)
+```
+- `trial`: the trial whose required tensors are being queried. If this argument is None, it is assumed to 
+take the value of `self.base_trial` in the rule class. None is the default value for this argument.
+
+
+*Get required tensors*
+
+This method returns the list of required tensors for a given trial as `Tensor` objects.
+```
+self.req_tensors.get(trial=None)
+```
+- `trial`: the trial whose required tensors are being queried. If this argument is None, it is assumed to 
+take the value of `self.base_trial` in the rule class. None is the default value for this argument.
+
 
 ###### Declare required tensors
-Now the required tensors method looks as follows if we need all the gradients for this step `step_num`.
+We need to implement the `set_required_tensors` method to declare the required tensors
+to execute the rule at a given `step`. 
+If we require the gradients of the base_trial to execute the rule at a given step, 
+then it would look as follows: 
 ```
-    def required_tensors(self, step_num):
-        req_tensors = RequiredTensors(self.base_trial)
+    def required_tensors(self, step):
         for tname in self.base_trial.tensors_in_collection('gradients'):
-            steps = [step_num]
-            req_tensors.need(tname, steps)
-        return [req_tensors]
+            self.req_tensors.add(tname, steps=[step_num])
 ``` 
 
 This function will be used by the rule execution engine to fetch all the 
 required tensors from local disk or S3 before it executes the rule. 
 If you try to retrieve the value of a tensor which was not mentioned as part of `required_tensors`,
-it might not be fetched from the trial path. 
+it might not be fetched from the trial directory. 
 In such a case you might see one of the exceptions 
-`TensorUnavailableForStep` or `TensorUnavailable` or get the tensor object as None.
-This is because the rule invoker executes the rule with `no_refresh` mode. Refer discussion above on this for more.
+`TensorUnavailableForStep` or `TensorUnavailable`.
+This is because the rule invoker executes the rule with `no_refresh` mode. 
+Refer discussion above for more on this.
  
 ##### Function to invoke at a given step
 In this function you can implement the core logic of what you want to do with these tensors.
+You can access the `required_tensors` from here using the methods to query the required tensors.
+
 It should return a boolean value `True` or `False`. 
 This can be used to define actions that you might want to take based on the output of the rule.
+
 A simplified version of the actual invoke function for `VanishingGradientRule` is below:
 ```
     def invoke_at_step(self, step):
-        for tname in self.base_trial.tensors_in_collection('gradients'):
-            t = self.base_trial.tensor(tname)
-            abs_mean = t.reduction_value(s, 'mean', abs=True)
+        for tensor in self.req_tensors.get():
+            abs_mean = tensor.reduction_value(s, 'mean', abs=True)
             if abs_mean < self.threshold:
                 return True
             else:
                 return False
 ```
+
 #### Executing a rule
 Now that you have written a rule, here's how you can execute it. We provide a function to invoke rules easily. 
 Refer [tornasole/rules/rule_invoker.py](../../tornasole/rules/rule_invoker.py)
@@ -421,13 +453,19 @@ r = SimilarAcrossRuns(base_trial, other_trial, include=None)
 ```
 
 ##### WeightUpdateRatio
-This rule helps you keep track of the ratio of the updates to weights during training. It takes as inputs three arguments.
-First, is the `base_trial` as usual. Second and third are `large_threshold` and `small_threshold`. 
+This rule helps you keep track of the ratio of the updates to weights during training. 
+It takes as inputs three arguments.
+First, is the `base_trial` as usual. 
+Second and third are `large_threshold` and `small_threshold`. 
 This returns True if the ratio of updates to weights is larger than `large_threshold` 
 or when this ratio is smaller than `small_threshold`.  
 
 It is a good sign for training when the updates are in a good scale
-compared to the gradients. Very large updates can push weights away from optima, and very small updates mean slow convergence.
+compared to the gradients. Very large updates can push weights away from optima, 
+and very small updates mean slow convergence.
+
+Note that for this rule to be executed, weights have to be available for two consecutive steps.
+
 ```
 from tornasole.rules.generic import WeightUpdateRatio
 wur = WeightUpdateRatio(base_trial, large_threshold, small_threshold)
@@ -454,10 +492,16 @@ This rule helps to identify whether a tensor is not changing across steps.
 This rule runs `numpy.allclose` method to check if the tensor is unchanged. 
 It takes following arguments
 
-- `base_trial`: The trial whose execution will invoke the rule. The rule will inspect the tensors gathered during this trial.
-- `collection_names`: The list of collection names. The rule will inspect the tensors that belong to these collections.
-- `tensor_regex`: The list of regex patterns. The rule will inspect the tensors that match the regex patterns specified in this list.
-- `num_steps`: Number of steps across which we check if the tensor has changed. Note that this checks the last num_steps that are available. 
+- `base_trial`: The trial whose execution will invoke the rule. 
+The rule will inspect the tensors gathered during this trial.
+- `collection_names`: The list of collection names. 
+The rule will inspect the tensors that belong to these collections.
+If both collection_names and tensor_regex are specified, the rule will check for union of tensors.
+- `tensor_regex`: The list of regex patterns. 
+The rule will inspect the tensors that match the regex patterns specified in this list.
+If both collection_names and tensor_regex are specified, the rule will check for union of tensors.
+- `num_steps`: int (default is 3). Number of steps across which we check if the tensor has changed. 
+Note that this checks the last num_steps that are available. 
 They need not be consecutive.
 If num_steps is 2, at step `s` it does not necessarily check for s-1 and s. 
 If s-1 is not available, it checks the last available step along with s. 
@@ -475,6 +519,38 @@ from tornasole.rules.generic import UnchangedTensor
 ut = UnchangedTensor(base_trial=trial_obj, tensor_regex=['.*'], num_steps=3)
 ```
 
+##### LossNotDecreasing
+This rule helps you identify if you are running into a situation where loss is not going down.
+Note that these losses have to be scalars. It takes the following arguments.
+
+- `base_trial`: The trial whose execution will invoke the rule. 
+The rule will inspect the tensors gathered during this trial.
+- `collection_names`: The list of collection names. 
+The rule will inspect the tensors that belong to these collections. 
+Note that only scalar tensors will be picked.
+- `tensor_regex`: The list of regex patterns. 
+The rule will inspect the tensors that match the regex patterns specified in this list.
+Note that only scalar tensors will be picked.
+- `use_losses_collection`: bool (default is True)
+If this is True, it looks for losses from the collection 'losses' if present.
+- `num_steps`: int (default is 10). The minimum number of steps after which 
+we want which we check if the loss has decreased. The rule evaluation happens every num_steps, and
+the rule checks the loss for this step with the loss at the newest step 
+which is at least num_steps behind the current step.
+For example, if the loss is being saved every 3 steps, but num_steps is 10. At step 21, loss
+for step 21 is compared with the loss for step 9. The next step where loss is checked is at 33, 
+since 10 steps after 21 is 31, and at 31 and 32 loss is not being saved.
+- `min_difference`: float (default is 0.0)  (between 0.0 and 100.0)
+This number represents the minimum relative difference (in percentage) of losses
+that the losses at the two chosen steps should be lower by. 
+By default, the min_difference is 0.0, so the rule just checks if loss is going down.
+If you want to specify a stricter check that loss is going down fast enough, 
+you might want to pass `min_difference`.
+
+```
+from tornasole.rules.generic import LossNotDecreasing
+lnd = LossNotDecreasing(base_trial=trial_obj, tensor_regex=['loss*'], num_steps=20)
+```
 ## Examples
 We have a few example scripts and notebooks to help you get started. Please go to the `examples` folder. 
 

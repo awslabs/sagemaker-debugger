@@ -50,5 +50,10 @@ class NoMoreData(Exception):
 
 
 class RuleEvaluationConditionMet(Exception):
+  def __init__(self, rule_name, step):
+    self.rule_name = rule_name
+    self.step = step
+
   def __str__(self):
-    return 'Rule evaluation resulted in the condition being met'
+    return 'Evaluation of the rule {} at step {} resulted in the condition being met'\
+      .format(self.rule_name, self.step)

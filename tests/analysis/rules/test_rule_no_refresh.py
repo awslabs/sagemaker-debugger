@@ -1,6 +1,6 @@
 from tests.analysis.utils import generate_data
 
-from tornasole.rules import Rule, RequiredTensors
+from tornasole.rules import Rule
 from tornasole.trials import create_trial
 import uuid
 from tornasole.exceptions import StepNotYetAvailable
@@ -12,19 +12,17 @@ def test_no_refresh_invocation():
     def __init__(self, base_trial):
       super().__init__(base_trial=base_trial)
 
-    def required_tensors(self, step):
-      reqt = RequiredTensors(self.base_trial)
+    def set_required_tensors(self, step):
       for t in self.base_trial.tensors():
-        reqt.need_tensor(t, steps=[step])
-      return [reqt]
+        self.req_tensors.add(t, steps=[step])
 
     def invoke_at_step(self, step):
-      for t in self.base_trial.tensors():
+      for t in self.req_tensors.get():
         if step == 0:
-          assert self.base_trial.tensor(t).value(step + 1) is not None
+          assert t.value(step + 1) is not None
         elif step == 1:
           try:
-            self.base_trial.tensor(t).value(step + 1)
+            t.value(step + 1)
             assert False
           except StepNotYetAvailable:
             pass

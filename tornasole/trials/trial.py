@@ -181,17 +181,17 @@ class Trial(ABC):
             self.maybe_refresh()
             return self._global_step_currently(mode, mode_step)
 
-    def _modestep_mode_currently(self, global_step):
+    def _mode_modestep_currently(self, global_step):
         if global_step in self._global_to_mode:
             return self._global_to_mode[global_step]
 
     def mode_modestep(self, global_step):
-        x = self._modestep_mode_currently(global_step)
+        x = self._mode_modestep_currently(global_step)
         if x:
             return x
         else:
             self.maybe_refresh()
-            x = self._modestep_mode_currently(global_step)
+            x = self._mode_modestep_currently(global_step)
             if x:
                 return x
         return None, None

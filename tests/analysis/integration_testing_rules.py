@@ -174,11 +174,11 @@ class TestRules:
                   env=dict(os.environ,
                            TORNASOLE_LOG_CONTEXT='{}_{}'.format(path_to_script, trial_dir),
                            TORNASOLE_LOG_PATH=os.path.join(self.logs_dir,
-                                                           '{}_{}_{}_{}_{}.log'.format(mode.split('_'[0]),
+                                                           '{}_{}_{}_{}_{}.log'.format(mode.split('_')[0],
+                                                                                       local_or_s3.split('_')[0],
                                                                                        job_name.replace('/', '_'),
-                                                                                       local_or_s3.split('_'[0]),
-                                                                                       time_stamp,
-                                                                                       train_test_str)),
+                                                                                       train_test_str,
+                                                                                       time_stamp)),
                            TORNASOLE_LOG_LEVEL='debug',
                            TORNASOLE_LOG_ALL_TO_STDOUT='FALSE'))
 
@@ -264,6 +264,7 @@ class TestRules:
                                                 self.s3_trial_prefix,
                                                 job[TEST_NAME_INDEX].replace('/', '_'),
                                                 mode_1, time_stamp)
+                                print(job_info, job)
                                 if mode_1 == 'serial_mode':
                                     process_list.append(Process(target=self.run_job_in_serial,
                                                                 args=(job_info[TRAIN_SCRIPT_INDEX],

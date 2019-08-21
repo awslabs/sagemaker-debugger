@@ -57,6 +57,8 @@ def get_rule(rule_name):
     return SimilarAcrossRuns
   elif rule_name_lower == 'unchangedtensor':
     return UnchangedTensor
+  elif rule_name_lower == 'lossnotdecreasing':
+    return LossNotDecreasing
   else:
     raise ValueError('rule_invoker does not recognize the rule')
 
@@ -80,6 +82,8 @@ def invoke_rule(rule_obj, start_step=0, end_step=None, raise_eval_cond=False):
     except RuleEvaluationConditionMet as e:
       if raise_eval_cond:
         raise e
+      else:
+        logger.debug(str(e))
     step += 1
   # decrementing because we increment step in the above line
   logger.info('Ended execution of rule {} at end_step {}'
