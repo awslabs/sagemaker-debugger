@@ -15,8 +15,9 @@ parser.add_argument('--replace-latest', default=False,
                          'replace the latest binary in the S3 location. Note that'
                          'this also requires you to pass --upload')
 args = parser.parse_args()
+exec(open("tornasole/_version.py").read())
 
-VERSION = '0.3'
+VERSION = __version__
 BINARIES = ['mxnet', 'tensorflow', 'pytorch', 'rules']
 
 for b in BINARIES:
