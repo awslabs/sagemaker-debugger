@@ -1,5 +1,5 @@
 {
-  "config_name": "test_save_config_modes_config_coll.json",
+  "config_name": "test_save_config.json",
   "s3_path": "s3://kjndjknd_bucket/prefix",
   "local_path" : "newlogsRunTest1/test_save_config_modes_config_coll",
   "collections": [

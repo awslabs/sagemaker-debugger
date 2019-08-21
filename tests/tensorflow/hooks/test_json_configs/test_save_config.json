@@ -1,0 +1,14 @@
+{
+  "config_name": "test_save_config_modes_hook_config",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "newlogsRunTest1/test_save_config_json",
+  "save_config" : "save_cfg1",
+  "save_all" : false,
+  "save_configs" : [
+    {
+      "save_cfg1" : {
+        "save_interval" : 2
+      }
+    }
+  ]
+}

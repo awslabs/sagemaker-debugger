@@ -3,21 +3,9 @@ from tornasole.tensorflow import reset_collections, get_collections
 import shutil
 import glob
 from tornasole.core.reader import FileReader
+from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 
-def test_save_reductions():
-  run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
-  trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-
-  tf.reset_default_graph()
-  reset_collections()
-
-  rdnc = ReductionConfig(reductions=['min', 'max', 'mean', 'prod', 'std', 'sum', 'variance'],
-                         abs_reductions=['min', 'max', 'mean', 'prod', 'std', 'sum', 'variance'],
-                         norms=['l1', 'l2'])
-  hook = TornasoleHook(out_dir=trial_dir,
-                       save_config=SaveConfig(save_interval=1),
-                       reduction_config=rdnc)
-
+def helper_save_reductions(trial_dir, hook):
   simple_model(hook)
   _, files = get_dirs_files(trial_dir)
   coll = get_collections()
@@ -61,3 +49,28 @@ def test_save_reductions():
     assert size == 128
 
   shutil.rmtree(trial_dir)
+
+
+def test_save_reductions():
+  run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
+  trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+  pre_test_clean_up()
+  rdnc = ReductionConfig(reductions=['min', 'max', 'mean', 'prod', 'std', 'sum', 'variance'],
+                         abs_reductions=['min', 'max', 'mean', 'prod', 'std', 'sum', 'variance'],
+                         norms=['l1', 'l2'])
+  hook = TornasoleHook(out_dir=trial_dir,
+                       save_config=SaveConfig(save_interval=1),
+                       reduction_config=rdnc)
+  helper_save_reductions(trial_dir, hook)
+
+
+
+
+def test_save_reductions_json():
+  trial_dir = "newlogsRunTest1/test_save_reductions"
+  shutil.rmtree(trial_dir, ignore_errors=True)
+  pre_test_clean_up()
+  os.environ[
+    TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = "tests/tensorflow/hooks/test_json_configs/test_save_reductions.json"
+  hook = TornasoleHook.hook_from_config()
+  helper_save_reductions(trial_dir, hook)

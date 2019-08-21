@@ -1,0 +1,42 @@
+{
+  "config_name": "test_save_reductions_from_json_config",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "newlogsRunTest1/test_save_reductions",
+  "save_config" : "save_cfg1",
+  "save_configs" : [
+    {
+      "save_cfg1" : {
+        "save_interval" : 1
+      }
+    }
+  ],
+  "reduction_config" : "reduction_config_1",
+  "reduction_configs" : [
+    {
+      "reduction_config_1" : {
+        "reductions": [
+          "min",
+          "max",
+          "mean",
+          "std",
+          "variance",
+          "sum",
+          "prod"
+        ],
+        "abs_reductions" : [
+          "min",
+          "max",
+          "mean",
+          "std",
+          "variance",
+          "sum",
+          "prod"
+        ],
+        "norms" : [
+          "l1",
+          "l2"
+        ]
+      }
+    }
+  ]
+}

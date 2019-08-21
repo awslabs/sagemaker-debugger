@@ -1,0 +1,17 @@
+{
+  "config_name": "test_when_nan",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "newlogsRunTest1/test_when_nan",
+  "save_config" : "save_cfg1",
+  "save_all" : false,
+  "save_configs" : [
+    {
+      "save_cfg1" : {
+        "save_interval" : 10,
+        "when_nan" : [
+          "loss:0"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "config_name": "test_tornasole_hook_write_json",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "newlogsRunTest1/test_tornasole_hook_write_json",
+  "save_config" : "save_cfg1",
+  "save_all" : true,
+  "include_collections": [],
+  "save_configs" : [
+    {
+      "save_cfg1" : {
+        "save_interval" : 999
+      }
+    }
+  ]
+}

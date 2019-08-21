@@ -8,17 +8,13 @@ from tornasole.tensorflow import reset_collections
 from .utils import *
 from tornasole.core.reader import FileReader
 from tornasole.core.tfevent.util import EventFileLocation
+from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+import tornasole.tensorflow as ts
 
-def test_tornasole_hook_write():
-    learning_rate=1e-3
+
+def helper_tornasole_hook_write(data_dir, hook):
+    learning_rate = 1e-3
     batch_size = 5
-    run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
-    data_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-
-    tf.reset_default_graph()
-    tf.set_random_seed(1)
-    np.random.seed(1)
-    reset_collections()
 
     # input
     x = tf.placeholder(tf.float32, [None, 784], name='x')
@@ -38,7 +34,7 @@ def test_tornasole_hook_write():
     # clip values to ensure that cross-entropy loss can be evaluated
     y_clipped = tf.clip_by_value(y_pred, 1e-10, 0.9999999)
     cross_entropy = -tf.reduce_mean(tf.reduce_sum(y * tf.log(y_clipped)
-                             + (1 - y) * tf.log(1 - y_clipped), axis=1), name='loss')
+                                                  + (1 - y) * tf.log(1 - y_clipped), axis=1), name='loss')
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
     init_op = tf.global_variables_initializer()
@@ -46,18 +42,15 @@ def test_tornasole_hook_write():
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_pred, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     loss = 0.0
-    
-    # remove existing directory so that you can rerun and evaluate against a fresh run instead of old weights saved to disk
+
+    # remove existing directory so that you can rerun and evaluate against a fresh run
+    # instead of old weights saved to disk
 
     try:
         shutil.rmtree(data_dir)
-    except:
+    except OSError:
         print("No directory of old data found. Continuing...")
         pass
-
-    # set up tornasole hook
-    hook = TornasoleHook(data_dir, save_all=True, include_collections=None,
-                         save_config=SaveConfig(save_interval=999))
 
     # the variables we want to save
     saving_var_dict = {'w1': W1, 'b1': b1, 'w2': W2, 'b2': b2}
@@ -69,13 +62,13 @@ def test_tornasole_hook_write():
             y_truth = np.random.randint(0, 2, (batch_size, 10))
             feed = {x: x_in, y: y_truth}
             tensor_dict = {'opt': optimizer, 'w1': W1, 'b1': b1, 'w2': W2, 'b2': b2, 'loss': cross_entropy}
-            v = sess.run(tensor_dict, feed_dict = feed)
-            
+            v = sess.run(tensor_dict, feed_dict=feed)
+
             # track, output loss. currently has random initialization, so it's not that useful
 
-            loss += v['loss']/1000
+            loss += v['loss'] / 1000
 
-    # read saved weights from disk using summary iterator, verify if in-memory weights at end of training 
+    # read saved weights from disk using summary iterator, verify if in-memory weights at end of training
     # are identical to the ones we have saved using TornasoleHook
     step_dir = EventFileLocation.get_step_dir_path(data_dir, 999)
     files = os.listdir(step_dir)
@@ -86,3 +79,22 @@ def test_tornasole_hook_write():
             (tensor_name, step, tensor_data, mode, mode_step) = tupv
             if tensor_name in v:
                 assert np.allclose(tensor_data, v[tensor_name])
+
+
+def test_tornasole_hook_write():
+    run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
+    data_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+    pre_test_clean_up()
+    # set up tornasole hook
+    hook = TornasoleHook(data_dir, save_all=True, include_collections=None,
+                         save_config=SaveConfig(save_interval=999))
+    helper_tornasole_hook_write(data_dir, hook)
+
+
+def test_tornasole_hook_write_json():
+    data_dir = "newlogsRunTest1/test_tornasole_hook_write_json"
+    pre_test_clean_up()
+    os.environ[
+        TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = "tests/tensorflow/hooks/test_json_configs/test_write.json"
+    hook = ts.TornasoleHook.hook_from_config()
+    helper_tornasole_hook_write(data_dir, hook)
