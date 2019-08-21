@@ -2,8 +2,10 @@ import os
 import sys
 import setuptools
 
-CURRENT_VERSION = '0.3'
+exec(open("tornasole/_version.py").read())
+CURRENT_VERSION = __version__
 FRAMEWORKS = ['tensorflow', 'pytorch', 'mxnet']
+
 
 def compile_summary_protobuf():
     proto_path = 'tornasole/core/tfevent'
@@ -12,8 +14,10 @@ def compile_summary_protobuf():
     print('compiling protobuf files in {}'.format(proto_path))
     return os.system('set -ex &&' + cmd)
 
+
 def get_framework_packages(f):
     return ['tornasole.' + f + '*', 'tests.' + f + '*']
+
 
 def get_frameworks_to_build():
     only_rules = os.environ.get('TORNASOLE_FOR_RULES', False)
@@ -41,6 +45,7 @@ def get_frameworks_to_build():
             with_frameworks[f] = False
     return with_frameworks
 
+
 def get_packages_to_include(frameworks_to_build):
     exclude_packages = []
     include_framework_packages = []
@@ -55,6 +60,7 @@ def get_packages_to_include(frameworks_to_build):
     print(packages)
     return packages
 
+
 def get_tests_packages(frameworks_to_build):
     tests_packages = ['pytest']
     for f, v in frameworks_to_build.items():
@@ -64,6 +70,7 @@ def get_tests_packages(frameworks_to_build):
             if f == 'pytorch':
                 tests_packages.extend(['torch', 'torchvision'])
     return tests_packages
+
 
 def build_package(version):
     # todo: fix long description
@@ -98,6 +105,7 @@ def build_package(version):
         tests_require=tests_packages,
         python_requires='>=3.6'
     )
+
 
 if compile_summary_protobuf() != 0:
     print('ERROR: Compiling summary protocol buffers failed. You will not be '
