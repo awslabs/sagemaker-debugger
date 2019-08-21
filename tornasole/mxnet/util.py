@@ -25,11 +25,8 @@ def get_aggregated_data(aggregation_name,
             op = get_numpy_reduction(aggregation_name, numpy_data=tensor_data_np, abs=abs)
         return op
     elif reduction_name in ALLOWED_NORMS:
-        if reduction_name is "l1":
-            op = mx.ndarray.norm(data=tensor_data, ord=1)
-            return op
-        elif reduction_name is "l2":
-            op = mx.ndarray.norm(data=tensor_data, ord=2)
+        if reduction_name in ['l1', 'l2']:
+            op = mx.ndarray.norm(data=tensor_data, ord=int(reduction_name[1]))
             return op
         else:
             raise RuntimeError("Invalid normalization operation {0} for mx.NDArray".format(reduction_name))

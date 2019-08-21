@@ -1,0 +1,14 @@
+{
+  "config_name": "my training tornasole config",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path": "newlogsRunTest2/test_hook_save_all_hook_from_json",
+  "save_config": "default_save_config",
+  "save_all": true,
+  "save_configs" : [
+    {
+      "default_save_config" : {
+        "save_steps" : [0,1,2,3]
+      }
+    }
+  ]
+}

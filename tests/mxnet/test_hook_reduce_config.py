@@ -7,28 +7,32 @@ import shutil
 
 from datetime import datetime
 
-def test_save_config():
-    reset_collections()
-    global_reduce_config = ReductionConfig(reductions=["max", "mean"])
-    global_save_config = SaveConfig(save_steps=[0,1,2,3])
+def test_save_config(hook=None, out_dir=None):
+    hook_created = False
+    if hook is None:
+        hook_created = True
+        reset_collections()
+        global_reduce_config = ReductionConfig(reductions=["max", "mean"])
+        global_save_config = SaveConfig(save_steps=[0,1,2,3])
 
-    tm.get_collection("ReluActivation").include(["relu*"])
-    tm.get_collection("ReluActivation").set_save_config(SaveConfig(save_steps=[4,5,6]))
-    tm.get_collection("ReluActivation").set_reduction_config(ReductionConfig(reductions=["min"], abs_reductions=["max"]))
+        tm.get_collection("ReluActivation").include(["relu*"])
+        tm.get_collection("ReluActivation").set_save_config(SaveConfig(save_steps=[4,5,6]))
+        tm.get_collection("ReluActivation").set_reduction_config(ReductionConfig(reductions=["min"], abs_reductions=["max"]))
 
-    tm.get_collection("flatten").include(["flatten*"])
-    tm.get_collection("flatten").set_save_config(SaveConfig(save_steps=[4,5,6]))
-    tm.get_collection("flatten").set_reduction_config(ReductionConfig(norms=["l1"], abs_norms=["l2"]))
+        tm.get_collection("flatten").include(["flatten*"])
+        tm.get_collection("flatten").set_save_config(SaveConfig(save_steps=[4,5,6]))
+        tm.get_collection("flatten").set_reduction_config(ReductionConfig(norms=["l1"], abs_norms=["l2"]))
 
-    run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
-    out_dir = './newlogsRunTest/' + run_id
-    hook = t_hook(out_dir=out_dir, save_config=global_save_config, include_collections=['weights', 'bias','gradients',
-                                                                               'default', 'ReluActivation', 'flatten'],
-                reduction_config=global_reduce_config)
+        run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
+        out_dir = './newlogsRunTest/' + run_id
+        print("Registering the hook with out_dir {0}".format(out_dir))
+        hook = t_hook(out_dir=out_dir, save_config=global_save_config, include_collections=['weights', 'bias','gradients',
+                                                                                   'default', 'ReluActivation', 'flatten'],
+                    reduction_config=global_reduce_config)
     run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10)
 
-
     #Testing
+    print("Created the trial with out_dir {0}".format(out_dir))
     tr = create_trial(out_dir)
     assert tr
     assert len(tr.available_steps())==7
@@ -57,5 +61,16 @@ def test_save_config():
     assert l1_norm != None
     l2_norm = flatten_input.reduction_value(step_num=4, abs=True, reduction_name='l2')
     assert l2_norm != None
+    if hook_created:
+        shutil.rmtree(out_dir)
 
-    shutil.rmtree(out_dir)
+def test_save_config_hook_from_json():
+    from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+    import os
+    out_dir = 'newlogsRunTest2/test_hook_reduce_config_hook_from_json'
+    shutil.rmtree(out_dir, True)
+    os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/mxnet/test_json_configs/test_hook_reduce_config_hook.json'
+    hook = t_hook.hook_from_config()
+    test_save_config(hook, out_dir)
+    # delete output
+    shutil.rmtree(out_dir, True)
