@@ -1,0 +1,33 @@
+{
+  "config_name": "PyTorch multiple custom collections Test",
+  "s3_path": "s3://kjndjknd_bucket/prefix",
+  "local_path" : "test_output/test_hook_multi_collection/jsonloading",
+  "save_configs" : [
+    {
+      "global_save_config" : {
+        "save_steps" : [0, 1, 2, 3]
+      },
+      "col1_save_config" : {
+        "save_steps" : [4, 5, 6]
+      },
+      "col2_save_config" : {
+        "save_steps" : [7, 8, 9]
+      }
+    }
+  ],
+  "collections" : [
+    {
+      "ReluActivation" : {
+        "include_regex": ["relu*"],
+        "save_config" : "col1_save_config"
+      },
+      "fc1" : {
+        "include_regex": ["fc1*"],
+        "save_config" : "col2_save_config"
+      }
+    }
+  ],
+  "save_config" : "global_save_config",
+  "include_collections" :  ["weights", "bias", "gradients", "default", "ReluActivation", "fc1"],
+  "save_all" : false
+}
