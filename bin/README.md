@@ -27,24 +27,37 @@ s3://tornasole-binaries-use1/tornasole_rules/py3/
 ```
 
 ## Containers
+REGION below can be one of 
+```
+us-east-1 
+us-east-2 
+us-west-1 
+us-west-2 
+ap-south-1 
+ap-northeast-2 
+ap-southeast-1 
+ap-southeast-2 
+ap-northeast-1 
+ca-central-1 
+eu-central-1 
+eu-west-1 
+eu-west-2 
+eu-west-3 
+eu-north-1 
+sa-east-1
+```
 #### TensorFlow	
 ```
-cpu	us-west-2	072677473360.dkr.ecr.us-west-2.amazonaws.com/tornasole-preprod-tf-1.13.1-cpu:latest
-cpu	us-east-1	072677473360.dkr.ecr.us-east-1.amazonaws.com/tornasole-preprod-tf-1.13.1-cpu:latest
-gpu	us-west-2	072677473360.dkr.ecr.us-west-2.amazonaws.com/tornasole-preprod-tf-1.13.1-gpu:latest
-gpu	us-east-1	072677473360.dkr.ecr.us-east-1.amazonaws.com/tornasole-preprod-tf-1.13.1-gpu:latest
+cpu	        072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-tf-1.13.1-cpu:latest
+gpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-tf-1.13.1-gpu:latest
 ```
 #### MXNet
 ```
-cpu	us-west-2	072677473360.dkr.ecr.us-west-2.amazonaws.com/tornasole-preprod-mxnet-1.4.1-cpu:latest
-cpu	us-east-1	072677473360.dkr.ecr.us-east-1.amazonaws.com/tornasole-preprod-mxnet-1.4.1-cpu:latest
-gpu	us-west-2	072677473360.dkr.ecr.us-west-2.amazonaws.com/tornasole-preprod-mxnet-1.4.1-gpu:latest
-gpu	us-east-1	072677473360.dkr.ecr.us-east-1.amazonaws.com/tornasole-preprod-mxnet-1.4.1-gpu:latest
+cpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-mxnet-1.4.1-cpu:latest
+gpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-mxnet-1.4.1-gpu:latest
 ```
 #### PyTorch
 ```
-cpu	us-west-2	072677473360.dkr.ecr.us-west-2.amazonaws.com/tornasole-preprod-pytorch-1.1.0-cpu:latest
-cpu	us-east-1	072677473360.dkr.ecr.us-east-1.amazonaws.com/tornasole-preprod-pytorch-1.1.0-cpu:latest
-gpu	us-west-2	072677473360.dkr.ecr.us-west-2.amazonaws.com/tornasole-preprod-pytorch-1.1.0-gpu:latest
-gpu	us-east-1	072677473360.dkr.ecr.us-east-1.amazonaws.com/tornasole-preprod-pytorch-1.1.0-gpu:latest
+cpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-pytorch-1.1.0-cpu:latest
+gpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-pytorch-1.1.0-gpu:latest
 ```
