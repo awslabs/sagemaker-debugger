@@ -1,17 +1,30 @@
 class TensorLocation:
-    def __init__(self, tname, event_file_name, start_idx, length):
+    def __init__(self, tname, mode, mode_step, event_file_name, start_idx, length):
         self.tensorname = tname
+        self.mode = mode
+        self.mode_step = mode_step
         self.event_file_name = event_file_name
         self.start_idx = start_idx
         self.length = length
 
     def serialize(self):
-        return format(f'{self.tensorname}, {self.event_file_name}, {self.start_idx},{self.length}')
+        return format(
+            f'{self.tensorname},'
+            f'{self.mode}, '
+            f'{self.mode_step}, '
+            f'{self.event_file_name}, '
+            f'{self.start_idx}, '
+            f'{self.length}')
 
     @staticmethod
     def deserialize(manifest_line_str, manifest_key_name):
         arr = manifest_line_str.split(",")
-        return TensorLocation(arr[0], arr[1], arr[2], arr[3])
+        return TensorLocation(arr[0],
+                              arr[1],
+                              arr[2],
+                              arr[3],
+                              arr[4],
+                              arr[5])
 
 
 class IndexUtil:

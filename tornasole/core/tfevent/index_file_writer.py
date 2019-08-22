@@ -2,6 +2,7 @@ from tornasole.core.access_layer.file import TSAccessFile
 from tornasole.core.access_layer.s3 import TSAccessS3
 from tornasole.core.utils import is_s3
 
+
 class IndexWriter(object):
     def __init__(self, file_path):
         self.file_path = file_path
@@ -38,13 +39,22 @@ class IndexWriter(object):
             self.writer.close()
             self.writer = None
 
+
 class IndexArgs(object):
-    def __init__(self, event, tensorname):
+    def __init__(self, event, tensorname, mode, mode_step):
         self.event = event
         self.tensorname = tensorname
+        self.mode = mode
+        self.mode_step = mode_step
 
     def get_event(self):
         return self.event
 
     def get_tensorname(self):
         return self.tensorname
+
+    def get_mode(self):
+        return str(self.mode).split('.')[-1]
+
+    def get_mode_step(self):
+        return self.mode_step

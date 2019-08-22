@@ -226,7 +226,7 @@ class EventFileWriter():
         s = Summary(value=[Summary.Value(tag=tag, metadata=smd,
                                          tensor=tensor_proto)])
         if write_index:
-            self.write_summary_with_index(s, self.step, tname)
+            self.write_summary_with_index(s, self.step, tname, mode, mode_step)
         else:
             self.write_summary(s, self.step)
 
@@ -236,11 +236,11 @@ class EventFileWriter():
         event.step = step
         self.write_event(event)
 
-    def write_summary_with_index(self, summary, step, tname):
+    def write_summary_with_index(self, summary, step, tname, mode, mode_step):
         event = Event(summary=summary)
         event.wall_time = time.time()
         event.step = step
-        return self.write_event(IndexArgs(event, tname))
+        return self.write_event(IndexArgs(event, tname, mode, mode_step))
 
     def write_event(self, event):
         """Adds an event to the event file."""
@@ -302,10 +302,12 @@ class _EventLoggerThread(threading.Thread):
                 if isinstance(event_in_queue, IndexArgs):
                     tname = event_in_queue.tensorname
                     eventfile = self._ev_writer.name()
+                    mode = event_in_queue.get_mode()
+                    mode_step = event_in_queue.get_mode_step()
                     s3, _, _ = is_s3(eventfile)
                     if not s3:
                         eventfile = os.path.abspath(self._ev_writer.name())
-                    tensorlocation = TensorLocation(tname, eventfile, positions[0], positions[1])
+                    tensorlocation = TensorLocation(tname, mode, mode_step, eventfile, positions[0], positions[1])
                     self._ev_writer.indexwriter.add_index(tensorlocation)
                 # Flush the event writer every so often.
                 now = time.time()

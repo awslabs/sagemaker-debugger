@@ -32,9 +32,9 @@ def test_index():
         line_count = 0
         i = 0
         for row in csv_reader:
-            count = int(row[2])
+            count = int(row[-2])
             fo.seek(count, 0)
-            end = int(row[3])
+            end = int(row[-1])
             line = fo.read(end)
             zoo = open("test.txt", "wb")
             zoo.write(line)
