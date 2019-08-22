@@ -321,22 +321,41 @@ from tornasole.rules import Rule
 class VanishingGradientRule(Rule):
     def __init__(self, base_trial, threshold=0.0000001):
         super().__init__(base_trial, other_trials=None)
-        self.threshold = threshold
+        self.threshold = float(threshold)
 ```
 
 Please note that apart from `base_trial` and `other_trials` (if required), we require all 
-arguments of the rule constructor to take a string as value. This means if you want to pass
+arguments of the rule constructor to take a string as value. You can parse them to the type
+that you want from the string. This means if you want to pass
 a list of strings, you might want to pass them as a comma separated string. This restriction is
-being enforced so as to let you create and invoke rules from json using Sagemaker's APIs.  
+being enforced so as to let you create and invoke rules from json using Sagemaker's APIs.   
+ 
+##### Function to invoke at a given step
+In this function you can implement the core logic of what you want to do with these tensors.
+You can access the `required_tensors` from here using the methods to query the required tensors.
 
-##### RequiredTensors
+It should return a boolean value `True` or `False`. 
+This can be used to define actions that you might want to take based on the output of the rule.
 
-Next you need to implement a method which lets Tornasole know what tensors you 
-are interested in for invocation at a given step. 
+A simplified version of the actual invoke function for `VanishingGradientRule` is below:
+```
+    def invoke_at_step(self, step):
+        for tensor in self.req_tensors.get():
+            abs_mean = tensor.reduction_value(step, 'mean', abs=True)
+            if abs_mean < self.threshold:
+                return True
+            else:
+                return False
+```
+
+##### Optional: RequiredTensors
+
+This is an optional construct that allows Tornasole to bulk-fetch all tensors that you need to 
+execute the rule. This helps the rule invocation be more performant so it does not fetch tensor values from S3 one by one. To use this construct, you need to implement a method which lets Tornasole know what tensors you are interested in for invocation at a given step. 
 This is the `set_required_tensors` method.
 
 Before we look at how to define this method, let us look at the API for `RequiredTensors` class which
-needs to be used by this method
+needs to be used by this method. An object of this class is provided as a member of the rule class, so you can access it as `self.req_tensors`.
 
 **[RequiredTensors](../../tornasole/rules/req_tensors.py) API**
 
@@ -360,8 +379,19 @@ take the value of `self.base_trial` in the rule class. None is the default value
 In such a case, all tensor names in the trial which match that regex pattern are treated as required 
 for the invocation of the rule at the given step. 
 
+***Fetching required tensors***
+
+If required tensors were added inside `set_required_tensors`, during rule invocation it is
+automatically used to fetch all tensors at once by calling `req_tensors.fetch()`. 
+It can raise the exceptions `TensorUnavailable` and `TensorUnavailableForStep` if the trial does not have that tensor, or if the tensor value is not available for the requested step.  
+
+
+If required tensors were added elsewhere, or later, you can call the `req_tensors.fetch()` method 
+yourself to fetch all tensors at once.  
+
 ***Querying required tensors***
 
+You can then query the required tensors 
 *Get names of required tensors*
 
 This method returns the names of the required tensors for a given trial.
@@ -392,43 +422,21 @@ take the value of `self.base_trial` in the rule class. None is the default value
 
 
 ###### Declare required tensors
-We need to implement the `set_required_tensors` method to declare the required tensors
+Here, let us define the `set_required_tensors` method to declare the required tensors
 to execute the rule at a given `step`. 
 If we require the gradients of the base_trial to execute the rule at a given step, 
 then it would look as follows: 
 ```
-    def required_tensors(self, step):
+    def set_required_tensors(self, step):
         for tname in self.base_trial.tensors_in_collection('gradients'):
             self.req_tensors.add(tname, steps=[step])
 ``` 
 
 This function will be used by the rule execution engine to fetch all the 
-required tensors from local disk or S3 before it executes the rule. 
-If you try to retrieve the value of a tensor which was not mentioned as part of `required_tensors`,
-it might not be fetched from the trial directory. 
-In such a case you might see one of the exceptions 
-`TensorUnavailableForStep` or `TensorUnavailable`.
-This is because the rule invoker executes the rule with `no_refresh` mode. 
-Refer discussion above for more on this.
- 
-##### Function to invoke at a given step
-In this function you can implement the core logic of what you want to do with these tensors.
-You can access the `required_tensors` from here using the methods to query the required tensors.
-
-It should return a boolean value `True` or `False`. 
-This can be used to define actions that you might want to take based on the output of the rule.
-
-A simplified version of the actual invoke function for `VanishingGradientRule` is below:
-
-```
-    def invoke_at_step(self, step):
-        for tensor in self.req_tensors.get():
-            abs_mean = tensor.reduction_value(step, 'mean', abs=True)
-            if abs_mean < self.threshold:
-                return True
-            else:
-                return False
-```
+required tensors before it executes the rule. 
+The rule invoker executes the `set_required_tensors` and `invoke_at_step` 
+methods within a single `no_refresh` block, hence you are guaranteed that the 
+tensor values or steps numbers will stay the same during multiple calls. 
 
 #### Executing a rule
 Now that you have written a rule, here's how you can execute it. We provide a function to invoke rules easily. 
@@ -437,16 +445,22 @@ The invoke function has the following syntax.
 It takes a instance of a Rule and invokes it for a series of steps one after the other.
 
 ```
-invoke(rule_obj, start_step=0, end_step=None)
+from tornasole.rules import invoke_rule
+invoke_rule(rule_obj, start_step=0, end_step=None)
 ```
 
-For first party Rules (see below) that we provide a rule_invoker module that you can use to run them as follows
+You can invoking the VanishingGradientRule is 
+```
+trial_obj = create_trial(trial_dir)
+vr = VanishingGradientRule(base_trial=trial_obj, threshold=0.0000001)
+invoke_rule(vr, start_step=0, end_step=1000)
+```
+
+For first party Rules (see below) that we provide a rule_invoker module that you can use to run them as follows. You can pass any arguments that the rule takes as command line arguments.
 
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing_gradients --rule-name VanishingGradient
+python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing_gradients --rule-name VanishingGradient --threshold 0.0000000001
 ``` 
-
-You can pass any arguments that the rule takes as command line arguments, like below:
 
 ```
 python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-runes/trial0 --rule-name UnchangedTensor --tensor_regex .* --num_steps 10

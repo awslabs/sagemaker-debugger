@@ -22,7 +22,6 @@ class Rule(ABC):
         self.logger = get_logger()
         self.rule_name = self.__class__.__name__
 
-    @abstractmethod
     def set_required_tensors(self, step):
         pass
 
