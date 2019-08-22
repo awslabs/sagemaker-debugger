@@ -42,4 +42,4 @@ for b in BINARIES:
             subprocess.check_call(['aws', 's3', 'rm', '--recursive', '--exclude', 'tornasole-{}*'.format(VERSION),
                                    's3://tornasole-binaries-use1/tornasole_{}/py3/latest/'.format(b)])
 
-    subprocess.check_call(['rm', '-rf', 'dist', 'build', '*.egg-info'])
+    subprocess.check_call(['rm', '-rf', 'dist', 'build', '*.egg-info', '.eggs'])
