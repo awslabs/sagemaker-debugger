@@ -91,7 +91,9 @@ Below, we describe the above functions and others that the Trial API provides.
 
 #### Trial API
 Once you have a trial object you can do the following
+
 **See names of all tensors available**
+
 ```
 trial.tensors()
 ```
@@ -102,74 +104,102 @@ This returns tensors seen for any mode if mode was set during the machine learni
 The returned list is the step number within that mode.
 Each of these mode steps has a global step number associated with it.
 The global step represents the sequence of steps across all modes executed by the job. 
+
 ```
 from tornasole import modes
 trial.available_steps(mode=modes.TRAIN)
 ```
+
 **See all global steps seen by the Trial**
 
 This is the list of steps across all modes. 
+
 ```
 trial.available_steps()
 ```
 
 **Get the mode and step number within mode for a given global step**
+
 You can get the `mode` of `global_step` 100 as follows:
+
 ```
 mode = trial.mode(global_step=100)
 ```
+
 You can get the `mode_step` for `global_step` 100 as follows:
+
 ```
 mode_step = trial.mode_step(global_step=100)
 ```
+
 **Know the global step number for a given mode step**
+
 ```
 from tornasole import modes
 global_step_num = trial.global_step(modes.TRAIN, mode_step=10)
 ```
+
 **See all modes for which the trial has data**
+
 ```
 trial.modes()
 ```
+
 **Access a particular tensor**
+
 A tensor is identified by a string which represents its name.
+
 ```
 trial.tensor('relu_activation:0')
 ```
+
 **See the global steps for which tensor's value was saved** 
+
 ```
 trial.tensor('relu_activation:0').steps()
 ```
 
 **See the steps for a given mode when tensor's value was saved**
+
 This returns the mode steps for those steps when this tensor's value was saved for this mode. 
+
 ```
 from tornasole import modes
 trial.tensor('relu_activation:0').steps(mode=modes.TRAIN)
 ```
 
 **Get the value of the tensor at a global step**
+
 This returns the tensor value as a numpy array for the 10th global step.
+
 ```
 trial.tensor('relu_activation:0').value(10)
 ```
+
 Please note that this can raise exceptions if the step is not available. 
 Please see [this section](#when-a-tensor-is-not-available-during-rule-execution) for more details on the different exceptions that can be raised.
+
 **Get the value of the tensor at a step number for a given mode**
+
 This returns the tensor value as a numpy array for the 10th training step.
+
 ```
 from tornasole import modes
 trial.tensor('relu_activation:0').value(10, mode=modes.TRAIN)
 ```
+
 Please note that this can raise exceptions if the step is not available. 
 Please see [this section](#when-a-tensor-is-not-available-during-rule-execution) for more details on the different exceptions that can be raised.
+
 **Get reduction value of a tensor at a step**
 
 Tornasole provides a few reductions out of the box that you can query with the following API.
 This below returns the mean of the absolute values at step 10.
+
 ```
 trial.tensor('relu:0').reduction_value(10, 'mean', abs=True)
 ```
+
 The different reductions you can query for are the same as what are allowed in [ReductionConfig](https://github.com/awslabs/tornasole_tf/blob/master/docs/api.md) when saving tensors.
 This API thus allows you to access the reduction you might have saved instead of the full tensor.
 If you had saved the full tensor, it will calculate the requested reduction now and cache it.
@@ -197,23 +227,29 @@ Please see [this section](#when-a-tensor-is-not-available-during-rule-execution)
 
 This method takes a regex pattern or a list of regex patterns. 
 Each regex pattern is a python style regex pattern string.
+
 ```
 trail.tensors_matching_regex(['relu_activation*'])
 ```
+
 **List tensors in a collection**
 
 This returns names of all tensors saved in a given collection.  
 `gradients` below is the name of the collection we are interested in.
+
 ```
 trial.tensors_in_collection('gradients')
 ```
+
 **List collections**
 
 Below returns all collections belonging to the trial as a dictionary. 
 This dictionary is indexed by the name of the collection, and the value is the collection object.
+
 ```
 trial.collections()
 ```
+
 **Refresh or do not refresh tensors**
 
 By default Tornasole refreshes tensors each time you try to query the tensor. 
@@ -223,6 +259,7 @@ are not interested in the latest data, you can stop the refreshing of tensors as
 
 `no_refresh` takes a trial or a list of trials, which should not be refreshed.
 Anything executed inside the with `no_refresh` block will not be refreshed.
+
 ```
 from tornasole.analysis.utils import no_refresh
 with no_refresh(trials):
@@ -230,6 +267,7 @@ with no_refresh(trials):
 ``` 
 
 Similarly if you want to refresh tensors only within a block, you can do:
+
 ```
 from tornasole.analysis.utils import refresh
 with refresh(trials):
@@ -240,9 +278,11 @@ with refresh(trials):
 Tornasole is designed to be aware that tensors required to execute a rule may not be available at every step. 
 Hence it raises a few exceptions which allow us to control what happens when a tensor is missing.
 These are available in the `tornasole.exceptions` module. You can import them as follows:
+
 ```
 from tornasole.exceptions import *
 ``` 
+
 Here are the exceptions and their meanings:
 
 - `TensorUnavailableForStep` : This means that the tensor requested is not available for the step. This might mean that 
@@ -258,8 +298,7 @@ that this tensor will never be seen for any step in Tornasole.
 - `StepNotYetAvailable`: This means that the step has not yet been seen by Tornasole. It may be available in the future if the training is still going on. 
 Tornasole automatically loads new data as and when it becomes available. 
 
-- `NoMoreData` : This will be raised when the training ends. Once you see this, you will know that there will be no more steps
-and no more tensors saved. 
+- `NoMoreData` : This will be raised when the training ends. Once you see this, you will know that there will be no more steps and no more tensors saved.
 
 ### Rules
 Rules are the medium by which Tornasole executes a certain piece of code regularly on different steps of the jobs.
@@ -275,6 +314,7 @@ Writing a rule involves implementing the [Rule interface](../../tornasole/rules/
 ##### Constructor
 Creating a rule involves first inheriting from the base Rule class Tornasole provides.
 For this rule here we do not need to look at any other trials, so we set `other_trials` to None.
+
 ```
 from tornasole.rules import Rule
 
@@ -359,7 +399,7 @@ then it would look as follows:
 ```
     def required_tensors(self, step):
         for tname in self.base_trial.tensors_in_collection('gradients'):
-            self.req_tensors.add(tname, steps=[step_num])
+            self.req_tensors.add(tname, steps=[step])
 ``` 
 
 This function will be used by the rule execution engine to fetch all the 
@@ -379,10 +419,11 @@ It should return a boolean value `True` or `False`.
 This can be used to define actions that you might want to take based on the output of the rule.
 
 A simplified version of the actual invoke function for `VanishingGradientRule` is below:
+
 ```
     def invoke_at_step(self, step):
         for tensor in self.req_tensors.get():
-            abs_mean = tensor.reduction_value(s, 'mean', abs=True)
+            abs_mean = tensor.reduction_value(step, 'mean', abs=True)
             if abs_mean < self.threshold:
                 return True
             else:
@@ -394,23 +435,22 @@ Now that you have written a rule, here's how you can execute it. We provide a fu
 Refer [tornasole/rules/rule_invoker.py](../../tornasole/rules/rule_invoker.py)
 The invoke function has the following syntax. 
 It takes a instance of a Rule and invokes it for a series of steps one after the other.
+
 ```
 invoke(rule_obj, start_step=0, end_step=None)
 ```
 
-An example of invoking the VanishingGradientRule we described above is 
-[examples/analysis/scripts/check_grads.py](../../examples/analysis/scripts/check_grads.py).
-```
-trial_obj = create_trial(trial_dir)
-vr = VanishingGradientRule(base_trial=trial_obj, threshold=0.0000001)
-invoke(vr)
-```
+For first party Rules (see below) that we provide a rule_invoker module that you can use to run them as follows
 
-For first party Rules (see below) that we provide, and that you want to run with default arguments, 
-you can run them as follows
 ```
 python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing_gradients --rule-name VanishingGradient
 ``` 
+
+You can pass any arguments that the rule takes as command line arguments, like below:
+
+```
+python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-runes/trial0 --rule-name UnchangedTensor --tensor_regex .* --num_steps 10
+```
 
 #### First party rules
 We provide a few rules which we built. These are supposed to be general purpose rules that you can use easily. 
@@ -424,10 +464,12 @@ Here's how you import and instantiate this rule.
 Note that it takes two parameters, `base_trial` the trial whose execution will invoke the rule, and a `threshold` which is
 used to determine whether the gradient is `vanishing`. Gradients whose mean of absolute values are lower than this threshold
 will return True when we invoke this rule.
+
 ```
 from tornasole.rules.generic import VanishingGradient
 r = VanishingGradient(base_trial, threshold=0.0000001)
 ```
+
 ##### ExplodingTensor
 This rule helps you identify if you are running into a situation where any tensor has non finite values.
 By default this rule treats `nan` and `infinity` as exploding.
@@ -447,6 +489,7 @@ This rule helps you compare tensors across runs. Note that this rule takes two t
 execution will invoke the rule, and the `other_trial` is what is used to compare this trial's tensors with. 
 The third argument is a regex pattern which can be used to restrict this comparision to certain tensros.
 It returns `True` if tensors are different at a given step between the two trials.
+
 ```
 from tornasole.rules.generic import SimilarAcrossRuns
 r = SimilarAcrossRuns(base_trial, other_trial, include=None)
@@ -552,10 +595,8 @@ from tornasole.rules.generic import LossNotDecreasing
 lnd = LossNotDecreasing(base_trial=trial_obj, tensor_regex=['loss*'], num_steps=20)
 ```
 ## Examples
-We have a few example scripts and notebooks to help you get started. Please go to the `examples` folder. 
 
-We also have an end-to-end flow example from saving tensors to plotting using saved tensors for MXNet at 
-`examples/mxnet/notebook/mnist`. 
+We have end-to-end flow example from saving tensors to plotting using saved tensors for [MXNet](../../examples/mxnet/notebooks) and [PyTorch](../../examples/pytorch/notebooks). 
 
 ## ContactUs
 We would like to hear from you. If you have any question or feedback, 

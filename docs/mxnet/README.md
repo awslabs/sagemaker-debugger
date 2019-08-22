@@ -13,10 +13,9 @@ that you want, and save them for analysis.
 Please follow the appropriate Readme page to install the correct version. This page is for using Tornasole with MXNet.
 
 **Analysis**
-Please refer to [this page](../analysis/README.md) for more details about how to analyze. 
-That said, we do provide a few example analysis commands below 
-so as to provide an end to end flow. 
-The analysis of these tensors can be done on a separate machine 
+Please refer to [this page](../rules/README.md) for more details about how to run rules and other analysis
+on tensors collection from the job. That said, we do provide a few example analysis commands below 
+so as to provide an end to end flow. The analysis of these tensors can be done on a separate machine 
 in parallel with the training job. 
 
 ## Installation
@@ -54,7 +53,7 @@ pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.
 ```
 
 ## Quickstart
-If you want to quickly run some examples, you can jump to [examples](#examples) section. You can also see this [mnist notebook example](/examples/mxnet/notebook/mnist/SimpleInteractiveAnalysis.ipynb) to see tornasole working.
+If you want to quickly run some examples, you can jump to [examples](#examples) section. You can also see this [mnist notebook example](../../examples/mxnet/notebooks/mnist/SimpleInteractiveAnalysis.ipynb) to see tornasole working.
 
 Integrating Tornasole into the training job can be accomplished by following steps below.
 
@@ -120,7 +119,7 @@ You can monitor the job for vanishing gradients by doing the following:
 python -m tornasole.rules.rule_invoker --trial-dir ~/tornasole-testing/vg-demo/trial-one --rule-name VanishingGradient
 ``` 
  
-Note: You can also try some further analysis on tensors saved by following [programming model](../analysis/README.md#the-programming-model) section of our analysis README.
+Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
 
 ##### Tornasole S3 mode example
 
@@ -133,7 +132,7 @@ You can monitor the job for vanishing gradients by doing the following:
 ```
 python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/vg-demo/trial-one --rule-name VanishingGradient
 ``` 
-Note: You can also try some further analysis on tensors saved by following [programming model](../analysis/README.md#the-programming-model) section of our analysis README.
+Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
 
 ## API
 Please refer to [this document](api.md) for description of all the functions and parameters that our APIs support
@@ -613,7 +612,7 @@ python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/vg-dem
 ```
 
 For details regarding how to analyze the tensor data, usage of existing rules or writing new rules, 
-please refer to [analysis documentation](../analysis/README.md).
+please refer to [Rules documentation](../rules/README.md).
 
 
 ## FAQ

@@ -5,10 +5,11 @@ import tornasole.tensorflow as ts
 import random
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--model_dir', type=str, help="S3 path for the model")
 parser.add_argument('--lr', type=float, help="Learning Rate", default=0.001 )
 parser.add_argument('--steps', type=int, help="Number of steps to run", default=100 )
 parser.add_argument('--scale', type=float, help="Scaling factor for inputs", default=1.0 )
-parser.add_argument('--tornasole_path', type=str)
+parser.add_argument('--tornasole_path', type=str, default='/opt/ml/output/tensors')
 parser.add_argument('--tornasole_frequency', type=int,
                     help="How often to save TS data", default=10)
 parser.add_argument('--random_seed', type=bool, default=False)
@@ -66,6 +67,6 @@ sess = tf.train.MonitoredSession(hooks=[hook])
 
 # use this session for running the tensorflow model
 for i in range(args.steps):
-  x_ = np.random.random((10, 2)) * args.scale
-  _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
-  print (f'Step={i}, Loss={_loss}')
+    x_ = np.random.random((10, 2)) * args.scale
+    _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
+    print (f'Step={i}, Loss={_loss}')

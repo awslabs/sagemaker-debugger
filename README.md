@@ -21,7 +21,7 @@ Please follow the appropriate Readme page to install the correct version.
 #### [Tornasole PyTorch](docs/pytorch/README.md)
 
 ### Analysis
-Please refer **[this page](docs/analysis/README.md)** for more details about how to analyze. 
+Please refer **[this page](docs/rules/README.md)** for more details about how to analyze. 
 The analysis of these tensors can be done on a separate machine in parallel with the training job. 
 
 ## ContactUs

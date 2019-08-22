@@ -70,8 +70,8 @@ python mnist.py --tornasole_path ~/ts_outputs/mnist
 ```
 
 ### Analysis 
-Refer [this page](docs/analysis/README.md) for more details on analysis.
+Refer [this page](../../rules/README.md) for more details on analysis.
 
 ### More
-Please refer to [Tornasole Tensorflow page](docs/tensorflow/README.md). 
+Please refer to [Tornasole Tensorflow page](../README.md). 
 

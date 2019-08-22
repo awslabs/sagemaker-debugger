@@ -9,51 +9,17 @@ Using Tornasole is a two step process:
 
 **Saving tensors**
 This needs the `tornasole` package built for the appropriate framework. This package lets you collect the tensors you want at the frequency 
-that you want, and save them for analysis. 
-Please follow the appropriate Readme page to install the correct version. This page is for using Tornasole with TensorFlow.
+that you want, and save them for analysis. Sagemaker containers provided to you already have this package installed.
 
 **Analysis**
-Please refer to [this page](../rules/README.md) for more details about how to run rules and other analysis
-on tensors collection from the job. That said, we do provide a few example analysis commands below 
-so as to provide an end to end flow. The analysis of these tensors can be done on a separate machine 
+Please refer to [this page](../../rules/DeveloperGuide_Rules.md) for more details about how to run rules and other analysis
+on tensors collection from the job. The analysis of these tensors can be done on a separate machine 
 in parallel with the training job. 
 
-## Installation
-#### Prerequisites
-- **Python 3.6**
-- Tornasole can work in local mode or remote(s3) mode. You can skip this, if you want to try [local mode example](#tornasole-local-mode-example). 
-This is necessary to setup if you want to try [s3 mode example](#tornasole-s3-mode-example).
-For running in S3 mode, you need to make sure that instance you are using has proper credentials set to have S3 write access.
-Try the below command - 
-```
- aws s3 ls
-```
-If you see errors, then most probably your credentials are not properly set. 
-Please follow [FAQ on S3](#s3access) to make sure that your instance has proper S3 access.
-
-- We recommend using the `tensorflow_p36` conda environment on EC2 machines launched with the AWS Deep Learning AMI. 
-You can activate this by doing: `source activate tensorflow_p36`.
-
-- If you are not using the above environment, please ensure that you have the TensorFlow framework installed.
-
-#### Instructions
-**Make sure that your aws account is whitelisted for Tornasole. [ContactUs](#contactus)**.
-
-Once your account is whitelisted, you should be able to install the `tornasole` package built for TensorFlow as follows:
-
-```
-aws s3 sync s3://tornasole-binaries-use1/tornasole_tensorflow/py3/latest/ tornasole_tensorflow/
-pip install tornasole_tensorflow/*
-```
-
-**Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3, 
-you might need to run the following
-```
-pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1   
-```
 
 ## Quickstart
-If you want to quickly run some examples, you can jump to [examples](#examples) section.
+If you want to quickly run an end to end example in Sagemaker, 
+you can jump to the notebook [examples/notebooks/tensorflow-simple.ipynb](examples/notebooks/tensorflow-simple.ipynb).
 
 Integrating Tornasole into your job is as easy as adding the following lines of code:
 
@@ -65,18 +31,22 @@ import tornasole.tensorflow as ts
 ```
 Then create the TornasoleHook by specifying what you want 
 to save, when you want to save them and 
-where you want to save them.
+where you want to save them. Note that for Sagemaker, 
+you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future,
+we will make this the default in Sagemaker environments. 
 ```
-hook = ts.TornasoleHook(out_dir = 's3://bucket/tornasole_outputs/trial', 
-                        include_collections = ['weights','gradients'],
-                        save_config = ts.SaveConfig(save_interval=2))
+hook = ts.TornasoleHook(out_dir='/opt/ml/output/tensors', 
+                        include_collections=['weights','gradients'],
+                        save_config=ts.SaveConfig(save_interval=2))
 ```
+
 Set the mode you are running the job in. This helps you group steps by mode, 
 for easier analysis. 
 If you do not specify this, it saves steps under a `GLOBAL` mode.
 ```
 hook.set_mode(ts.modes.TRAIN)
 ```
+
 Wrap your optimizer with TornasoleOptimizer so that
 Tornasole can identify your gradients and automatically
 provide these tensors as part of the `gradients` collection.
@@ -84,12 +54,12 @@ Use this new optimizer to minimize the loss.
 ```
 optimizer = ts.TornasoleOptimizer(optimizer)
 ```
+
 Create a monitored session with the above hook, and use this for executing your TensorFlow job.
 ```
 sess = tf.train.MonitoredSession(hooks=[hook])
 ```
-Refer [this page](examples/simple.md) describing an example
- of using Tornasole with a session based training script. 
+
 ### Estimator based training
 We need to create TornasoleHook and provide it to the estimator's train, predict or evaluate methods.
 First, we need to import `tornasole.tensorflow`. 
@@ -98,9 +68,11 @@ import tornasole.tensorflow as ts
 ```
 Then create the TornasoleHook by specifying what you want 
 to save, when you want to save them and 
-where you want to save them.
+where you want to save them. Note that for Sagemaker, 
+you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future,
+we will make this the default in Sagemaker environments. 
 ```
-hook = ts.TornasoleHook(out_dir = 's3://bucket/tornasole_outputs/trial', 
+hook = ts.TornasoleHook(out_dir='/opt/ml/output/tensors', 
                         include_collections = ['weights','gradients'],
                         save_config = ts.SaveConfig(save_interval=2))
 ```
@@ -126,109 +98,10 @@ classifier.predict(input_fn, hooks=[hook])
 classifier.evaluate(input_fn, hooks=[hook])
 ```
 Refer [TF Estimator](https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator) for information on the train, predict, evaluate functions.
-Refer [this page](examples/resnet50.md) describing an example of using Tornasole with the Estimator interface.
 
 #### Note
 **Keras** support is Work in Progress. Please stay tuned! 
 We will also support **Eager** mode in the future. 
-
-## Examples
-
-### Simple CPU training
-`examples/tensorflow/scripts/simple.py`: a simple example that 
-shows Tornasole in a very small example using session based training
-You can run this for 100 steps while saving data locally as follows. 
-This run below produces tensors which have nans in them.
-
-##### Tornasole local mode example 
-```
-python examples/tensorflow/scripts/simple.py --lr 100 \
-    --scale 100000000000 --tornasole_frequency 9 --steps 100 \
-    --tornasole_path ~/ts_outputs/not_good
-```
-
-You can monitor the exploding tensors by doing the following
-```
-python -m tornasole.rules.rule_invoker \
-    --trial-dir ~/ts_outputs/not_good --rule-name ExplodingTensor
-``` 
- 
-Refer [this page](examples/simple.md) for full description on running this example.
-
-You can also try some further analysis on tensors saved by following 
-[programming model](../rules/README.md#the-programming-model) section of Rules README.
-
-##### Tornasole S3 mode example
-```
-python examples/tensorflow/scripts/simple.py --lr 100 \
-    --scale 100000000000 --tornasole_frequency 9 --steps 100 \
-    --tornasole_path s3://my-ts-test/ts_outputs/not_good
-```
-
-You can monitor the exploding tensors by doing the following
-```
-python -m tornasole_rules.rule_invoker \
-    --trial-dir s3://my-ts-test/ts_outputs/not_good --rule-name ExplodingTensor
-``` 
-Refer [this page](examples/simple.md) for full description on running this example.
-
-Note: You can also try some further analysis on tensors saved by following 
-[programming model](../rules/README.md#the-programming-model) section of Rules README.
-
-### ResNet50 GPU training 
-`examples/tensorflow/scripts/train_imagenet_resnet_hvd.py` 
-is a Tornasole-enabled GPU training script for ImageNet. 
-This uses Estimator interface of TensorFlow.
-
-**Recommended EC2 instance to run this example is p3.2xl**. 
-If you are using the DLAMI, activate the tensorflow environment 
-`source activate tensorflow_p36`
-
-##### Tornasole local mode example 
-You can simulate the vanishing gradient scenario when using this script by running the following command.
-```
-python examples/tensorflow/scripts/train_imagenet_resnet_hvd.py --clear_log \
-    --enable_tornasole --tornasole_save_weights --tornasole_save_gradients \
-    --tornasole_step_interval 10 --constant_initializer 0.01 \
-    --tornasole_path ~/ts_outputs/vanishing  
-```
-
-You can monitor the vanishing tensors by doing the following
-```
-python -m tornasole.rules.rule_invoker \
-    --trial-dir ~/ts_outputs/vanishing --rule-name VanishingGradient
-``` 
-
-Note: You can also try some further analysis on tensors saved by following 
-[programming model](../rules/README.md#the-programming-model) section of Rules README.
-
-Refer [this page](examples/resnet50.md) for detailed 
-description of how Tornasole was integrated to save different tensors and instructions on running the examples.
-
-##### Tornasole S3 mode example
-You can simulate the vanishing gradient scenario when using this script by running the following command.
-```
-python examples/tensorflow/scripts/train_imagenet_resnet_hvd.py --clear_log \
-    --enable_tornasole --tornasole_save_weights --tornasole_save_gradients \
-    --tornasole_step_interval 10 --constant_initializer 0.01 \
-    --tornasole_path s3://my-ts-test/ts_outputs/vanishing
-```
-
-You can monitor the vanishing tensors by doing the following
-```
-python -m tornasole.rules.rule_invoker \
-    --trial-dir s3://my-ts-test/ts_outputs/vanishing --rule-name VanishingGradient
-``` 
-**Note: You can run analysis in parallel (potentially on a different machine) when training is going on and 
-analysis will happen in real time as training job produces required data for analysis.** 
-To try this, you should try first invoking VanishingGradient rule above and then start training job. 
-You will notice that as training job will write new steps, VanishingGradient analysis will happen in real time.
-
-Note: You can also try some further analysis on tensors saved by following 
-[programming model](../rules/README.md#the-programming-model) section of Rules README.
-
-Refer [this page](examples/resnet50.md) for detailed 
-description of how Tornasole was integrated to save different tensors and instructions on running the examples.
 
 
 ## Tornasole TensorFlow Concepts
@@ -240,8 +113,7 @@ TornasoleHook is the entry point for Tornasole into your program.
 It's a subclass of `tf.train.SessionRunHook` and can be used where that is suitable, 
 such as MonitoredSession and Estimator's train/predict/evaluate methods.  
 Some key parameters to consider when creating the TornasoleHook are the following:
-- `out_dir`: This represents the path to which the outputs of tornasole will be written to.
-This can be a local path or an S3 prefix of the form `s3://bucket_name/prefix`.
+- `out_dir`: This represents the path to which the outputs of tornasole will be written to. Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future, we will make this the default in Sagemaker environments.  
 - `save_config`: The hook takes a SaveConfig object which controls when tensors are saved. 
 It defaults to a SaveConfig which saves every 100 steps.
 - `include_regex`: This represents the regex patterns of names of tensors to save
@@ -260,7 +132,7 @@ a `default` mode.
 - Save weights and gradients every 100 steps to an S3 location
 ```
 import tornasole.tensorflow as ts
-ts.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir', 
+ts.TornasoleHook(out_dir='/opt/ml/output/tensors', 
                  save_config=ts.SaveConfig(save_interval=100), 
                  include_collections=['weights', 'gradients'])
 ```
@@ -268,7 +140,7 @@ ts.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
 - Save custom tensors by regex pattern to a local path
 ```
 import tornasole.tensorflow as ts
-ts.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
+ts.TornasoleHook(out_dir='/opt/ml/output/tensors',
                  include_regex=['loss*'])
 ```
 Refer [API](api.md) for all parameters available and their detailed descriptions.
@@ -422,8 +294,8 @@ import tornasole.tensorflow as ts
 ...
 opt = ts.TornasoleOptimizer(opt)
 ``` 
-An example for this can be seen in [this script](../../examples/tensorflow/scripts/train_imagenet_resnet_hvd.py#L738)
-Alternatively, you can refer to [customize collections](#customizing-collections) for 
+
+You can refer to [customize collections](#customizing-collections) for 
 information on how you can create the gradients collection manually.
 
 Then, you need to pass `gradients` in the `include_collections` parameter of the hook.
@@ -470,7 +342,7 @@ ts.get_collection('default').include(['foobar/weight*'])
 
 **Quick note about names**: TensorFlow layers or operations take a name parameter which along with the name scope 
 of the layer or variable defines the full name of the operation.
-For example, refer [`examples/tensorflow/scripts/simple.py`](../../examples/tensorflow/scripts/simple.py#L20), 
+For example, refer [`examples/simple/simple.py`](examples/scripts/simple.py#L20), 
 the weight there is named `foobar/weight1:0`. Here `foobar/weight1` refers to the 
 node representing operation in the graph, and the suffix `:0` indicates that this is the 0th output of the node. 
 To make clear the meaning of a given tensor, it helps to organize your code by name scopes and 
@@ -508,8 +380,7 @@ Tornasole makes it easy to save all the tensors in the model. You just need to s
 **Please note that this can severely reduce performance of the job and will generate lot of data** 
 
 ## Analyzing the Results
-For details regarding how to analyze the tensor data, usage of existing rules or writing new rules, 
-please refer to [Rules documentation](../rules/README.md). 
+For full details on how to analyze the tensors saved, go to [DeveloperGuide_Rules](../../rules/DeveloperGuide_Rules.md) 
 
 ## FAQ
 #### Logging
@@ -530,14 +401,6 @@ export TORNASOLE_LOG_LEVEL=INFO
 ```
 Log levels available are 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL', 'OFF'.
 
-#### S3Access
-The instance running tornasole in s3 mode needs to have s3 access. There are different ways to provide an instance to your s3 account. 
-- If you using EC2 instance, you should launch your instance with proper iam role to access s3. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html 
-- If you are using mac or other machine, you can create a IAM user for your account to have s3 access by following this guide (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) and then configure your instance to use your AWS_ACCESS_KEY_ID AND AWS_SECRET_KEY_ID by using doc here https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html 
-- Once you are done configuring, please verify that below is working and buckets returned are from the account and region you want to use. 
-```
-aws s3 ls
-```
 
 ## ContactUs
 We would like to hear from you. If you have any question or feedback, please reach out to us tornasole-users@amazon.com

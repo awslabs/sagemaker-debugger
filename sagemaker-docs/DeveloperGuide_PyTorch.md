@@ -9,54 +9,14 @@ Using Tornasole is a two step process:
 
 **Saving tensors**
 This needs the `tornasole` package built for the appropriate framework. This package lets you collect the tensors you want at the frequency 
-that you want, and save them for analysis. 
-Please follow the appropriate Readme page to install the correct version. This page is for using Tornasole with Pytorch.
+that you want, and save them for analysis. Sagemaker containers provided to you already have this package installed.
 
 **Analysis**
-Please refer to [this page](../rules/README.md) for more details about how to run rules and other analysis
-on tensors collection from the job. That said, we do provide a few example analysis commands below 
-so as to provide an end to end flow. The analysis of these tensors can be done on a separate machine 
+Please refer to [this page](../../rules/DeveloperGuide_Rules.md) for more details about how to run rules and other analysis
+on tensors collection from the job. The analysis of these tensors can be done on a separate machine 
 in parallel with the training job. 
 
-## Installation
-#### Prerequisites
-- **Python 3.6**
-- Tornasole can work in local mode or remote(s3) mode. You can skip this, if you want to try [local mode example](#tornasole-local-mode-example). 
-This is necessary to setup if you want to try [s3 mode example](#tornasole-s3-mode-example).
-For running in S3 mode, you need to make sure that instance you are using has proper credentials set to have S3 write access.
-Try the below command - 
-```
- aws s3 ls
-```
-If you see errors, then most probably your credentials are not properly set. 
-Please follow [FAQ on S3](#s3access) to make sure that your instance has proper S3 access.
-
-- We recommend using the `pytorch_p36` conda environment on EC2 machines launched with the AWS Deep Learning AMI. 
-You can activate this by doing: `source activate pytorch_p36`.
-
-- If you are not using the above environment, please ensure that you have the PyTorch framework installed.
-
-#### Instructions
-**Make sure that your aws account is whitelisted for Tornasole. [ContactUs](#contactus)**.
-
-Once your account is whitelisted, you should be able to install the `tornasole` package built for PyTorch as follows:
-
-```
-aws s3 sync s3://tornasole-binaries-use1/tornasole_pytorch/py3/latest/ tornasole_pytorch/
-pip install tornasole_pytorch/*
-```
-
-**Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3, 
-you might need to run the following
-```
-pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1   
-```
-
 ## Quickstart
-If you want to quickly run some examples, you can jump to [examples](#examples) section. 
-You can also see this [pytorch notebook example](../../examples/pytorch/notebooks/PyTorch-SimpleInteractiveAnalysis.ipynb) 
-to see tornasole working.
-
 Integrating Tornasole into the training job can be accomplished by following steps below.
 
 ### Import the tornasole_hook package
@@ -70,14 +30,15 @@ import tornasole.pytorch as ts
 ```
 
 ### Instantiate and initialize tornasole hook
+Then create the TornasoleHook by specifying what you want 
+to save, when you want to save them and 
+where you want to save them. Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future, we will make this the default in Sagemaker environments.
 
 ```
     # Create SaveConfig that instructs engine to log graph tensors every 10 steps.
     save_config = SaveConfig(save_interval=10)
     # Create a hook that logs tensors of weights, biases and gradients while training the model.
-    output_s3_uri = 's3://my_pytorch_training_debug_bucket'
-    trial_id = '12345678-abcd-1234-abcd-1234567890ab' # ID to easily identify training job (e.g. trial)
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config)
+    hook = TornasoleHook(out_dir='/opt/ml/output/tensors', save_config=save_config)
 ```
 
 For additional details on TornasoleHook, SaveConfig and Collection please refer to the [API documentation](api.md)
@@ -124,55 +85,6 @@ If you do not specify this, it saves steps under a `default` mode.
 hook.set_mode(ts.modes.TRAIN)
 ```
 
-## Examples
-#### Simple CPU training
-
-##### Tornasole local mode example 
-The example [pytorch/demos/pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py) is implemented to show how Tornasole is useful in detecting the vanishing gradient and exploding tensor problem. Using the rule_type flag, our scripts will set the learning_rate and momentum in this example in a such way that the training will encounter the vanishing gradient/exploding tensor issue.
-For Vanishing Gradient, generate data using the following command
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri ./tornasole-testing/demo_vg/ --rule_type vanishing_grad
-```
-
-You can monitor the vanishing gradient by doing the following:
-
-```
-python -m tornasole.rules.rule_invoker --trial-dir ./tornasole-testing/demo_vg/ --rule-name VanishingGradient
-``` 
-
-You can execute a similar command to generate data for the exploding tensor example
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri ./tornasole-testing/demo_eg/ --rule_type exploding_tensor
-```
-
-It can be analyzed through the following command.
-```
-python -m tornasole.rules.rule_invoker --trial-dir ./tornasole-testing/demo_eg/ --rule-name ExplodingTensor
-``` 
- 
-Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
-
-##### Tornasole S3 mode example
-Vanishing Gradient:
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri s3://tornasole-testing/vg-demo --rule_type vanishing_grad
-```
-Exploding Tensor:
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri s3://tornasole-testing/eg-demo --rule_type exploding_tensor
-```
-
-You can monitor the tensors for vanishing gradients by doing the following
-```
-python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/vg-demo --rule-name VanishingGradient
-``` 
-And exploding tensors by doing the following
-```
-python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/eg-demo --rule-name ExplodingTensor
-``` 
-Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
- 
 ## API
 Please refer to [this document](api.md) for description of all the functions and parameters that our APIs support
 
@@ -180,7 +92,7 @@ Please refer to [this document](api.md) for description of all the functions and
 TornasoleHook is the entry point for Tornasole into your program.
 Some key parameters to consider when creating the TornasoleHook are the following:
 
-- `outdir`: This represents the path to which the outputs of tornasole will be written to. This can be a local path or an S3 prefix of the form s3://bucket_name/prefix.
+- `outdir`: This represents the path to which the outputs of tornasole will be written to. Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future, we will make this the default in Sagemaker environments. 
 - `save_config`: This is an object of [SaveConfig](#saveconfig). The SaveConfig allows user to specify when the tensors are to be stored. User can choose to specify the number of steps or the intervals of steps when the tensors will be stored.
 - `include_collections`: This represents the [collections](#collection) to be saved. Each collection can have its own SaveConfig item.
 
@@ -327,18 +239,8 @@ This creates a collection named 'all' and saves all the tensors under that colle
  
 
 ### More Examples
-| Example Type   | Logging Weights and Gradients   | Logging inputs and outputs of the model  | Saving all tensors.   | Vanishing Gradient demo   |
-| --------------- | -----------------------------  | -----------------------------  | -----------------------------  | -----------------------------  |
-| Link to Example   | [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py)   | [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py)   |  [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py)   | [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py)   | 
-
-All script examples are in the pytorch_hook_demos.py file. The appropriate flags to set for each example are described below
-
 
 #### Logging the weights, biases, and gradients of the model
-
-The [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py) shows an end to end 
-example of how to create and register Tornasole hook that can log tensors of model weights and their gradients. 
-Simply pass in the appropriate argument (`--hook-type weights-bias-gradients`) to the script when running it.
 
 Here is how to create a hook for this purpose.
 
@@ -364,20 +266,7 @@ hook = create_tornasole_hook(output_dir)
 hook.register_hook(net)
 ```
 
-The example can be invoked as shown below. You may replace the local URI with an S3 one instead, but you must **ensure that the s3 bucket specified in command line is accessible for read and write operations**
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri ./tornasole-testing/demo/ --hook-type weights-bias-gradients
-```
-
-For detailed command line help run
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --help
-```
-
 #### Logging the inputs and output of a model along with weights and gradients
-The [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py) also shows how to create and register the tornasole hook that can log the inputs and output of the model in addition to weights and gradients tensors.
 In order to achieve this we would need to create a collection as follows
 
 ```
@@ -410,29 +299,12 @@ hook = create_tornasole_hook(output_dir=output_dir, module=net)
 hook.register_hook(net)
 ```
 
-The example can be invoked as shown below. You may replace the local URI with an S3 one instead, 
-but you must **ensure that the s3 bucket specified in command line is accessible for read and write operations**
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri ./tornasole-testing/demo/ --hook-type module-input-output
-```
-
-For detailed command line help run
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --help
-```
-
 #### Logging the inputs and output of a module in the model along with weights and gradients
-The [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py) also shows how to 
-create and register the tornasole hook that can log the inputs and output of a particular module in the 
-model in addition to weights and gradients tensors. Follow the same procedure as above; just pass 
+Follow the same procedure as above; just pass 
 in the appropriate module into `create_tornasole_hook`.
 
-
 #### Saving all tensors in the model
-The [pytorch\_hook\_demos.py](../../examples/pytorch/scripts/pytorch_hook_demos.py) also shows how to store every tensor in the model.
-As mentioned above, for saving all the tensors users not required to create a special collection. 
+For saving all the tensors users not required to create a special collection. 
 Users can set the _save_all_ flag while creating a TornasoleHook object in the manner shown below.
 
 ```
@@ -456,59 +328,15 @@ Here is how to register the hook
 hook = create_tornasole_hook(output_dir)
 hook.register_hook(net)
 ```
-
-The example can be invoked as shown below. You may replace the local URI with an S3 one instead, 
-but you must **ensure that the s3 bucket specified in command line is accessible for read and write operations**
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri ./tornasole-testing/demo/ --hook-type saveall
-```
-
-For detailed command line help run
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --help
-```
-#### Example demonstrating the vanishing gradient
-The example [torch\_vg\_demo](../../examples/pytorch/scripts/pytorch_hook_demos.py) is implemented 
-to show how Tornasole is useful in detecting the vanishing gradient problem. 
-The learning_rate and momentum in this example are set in a such way that the training will 
-encounter the vanishing gradient issue.
-The example can be invoked as follows (the `--rule_type` argument lets our example set the appropriate learning rate and momentum)
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri s3://tornasole-testing/vg-demo --rule_type vanishing_grad
-```
-
-#### Example demonstrating the exploding tensor
-The example [torch\_exploding\_demo](../../examples/pytorch/scripts/pytorch_hook_demos.py) 
-is implemented to show how Tornasole is useful in detecting the exploding tensor problem. 
-The learning_rate and momentum in this example are set in a such way that the training will encounter the exploding tensor issue.
-The example can be invoked as follows (the `--rule_type` argument lets our example set the appropriate learning rate and momentum)
-
-```
-python examples/pytorch/scripts/pytorch_hook_demos.py --output-uri s3://tornasole-testing/eg-demo --rule_type exploding_tensor
-```
+All tensors will be saved as part of a collection named 'all'.
 
 ## Analyzing the Results
 
 This library enables users to collect the desired tensors at desired frequency while the PyTorch job is running. 
 The tensor data generated during this job can be analyzed with various rules 
 that check for vanishing gradients, exploding gradients, etc. 
-For example, the [torch\_vg\_demo](../../examples/pytorch/scripts/pytorch_hook_demos.py) has the vanishing gradient issue. 
-When the tensors generated by the VanishingGradient example are analyzed by 
-'VanishingGradient' rule, it shows in which steps the model encounters the vanishing gradient issue.
-
-```
-python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/vg-demo --rule-name VanishingGradient
-```
-You can execute a similar command to analyze the tensors generated by the ExplodingTensor example
-```
-python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/eg-demo --rule-name ExplodingTensor
-```
-
-For details regarding how to analyze the tensor data, usage of existing rules or writing new rules, 
-please refer to [Rules documentation](../rules/README.md).
+For details regarding how to analyze the tensor data, usage of existing rules or 
+writing new rules, please refer to [Rules documentation](../../rules/DeveloperGuide_Rules.md).
 
 
 ## FAQ
@@ -529,15 +357,6 @@ You can also set the environment variable `TORNASOLE_LOG_LEVEL` as below
 export TORNASOLE_LOG_LEVEL=INFO
 ```
 Log levels available are 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL', 'OFF'.
-
-#### S3Access
-The instance running tornasole in s3 mode needs to have s3 access. There are different ways to provide an instance to your s3 account. 
-- If you using EC2 instance, you should launch your instance with proper iam role to access s3. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html 
-- If you are using mac or other machine, you can create a IAM user for your account to have s3 access by following this guide (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) and then configure your instance to use your AWS_ACCESS_KEY_ID AND AWS_SECRET_KEY_ID by using doc here https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html 
-- Once you are done configuring, please verify that below is working and buckets returned are from the account and region you want to use. 
-```
-aws s3 ls
-```
 
 ## ContactUs
 We would like to hear from you. If you have any question or feedback, please reach out to us tornasole-users@amazon.com

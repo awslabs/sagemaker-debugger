@@ -149,9 +149,7 @@ A quick way to invoke the rule is like this:
 ```
 python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name WeightUpdateRatio
 ```
-If you want to customize the thresholds, refer to the example in `analysis`:
-[`examples/analysis/scripts/weight_update_ratio.py`](examples/analysis/scripts/weight_update_ratio.py) 
-and the [Rule API](docs/analysis/README.md#rules-api)
+If you want to customize the thresholds, you can pass the arguments taken by the rule as command line arguments above. 
 
 ##### Rule: UnchangedTensor
 You can also invoke this rule to 
@@ -165,5 +163,5 @@ python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-n
 python train_imagenet_resnet_hvd.py --clear_log
 ```
 ### More
-Please refer to [Tornasole Tensorflow page](docs/tensorflow/README.md) and the various flags in the script to customize the behavior further.
-Refer [this page](docs/analysis/README.md) for more details on analysis. 
+Please refer to [Tornasole Tensorflow page](../README.md) and the various flags in the script to customize the behavior further.
+Refer [this page](../../rules/README.md) for more details on analysis. 

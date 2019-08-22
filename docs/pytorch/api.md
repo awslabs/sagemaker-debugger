@@ -15,9 +15,11 @@ A class used to represent the hook which gets attached to the
     Attributes
     ----------
     out_dir : str
-        represents a path to which the outputs of tornasole will be written to 
-        under a directory with the name `run_id`. This can be a local path or
-        an S3 prefix of the form s3://bucket_name/prefix
+        represents a path to which the outputs of tornasole will be written to.
+        This can be a local path or an S3 prefix of the form s3://bucket_name/prefix.
+        Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. 
+        In the future, we will make this the default in Sagemaker environments.
+        
     dry_run : bool
         when dry_run is set to True, behavior is only described in the log file.
         The tensors are not actually saved. 

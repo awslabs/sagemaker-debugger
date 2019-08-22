@@ -112,9 +112,9 @@ You can also do the same analysis after the training job has ended.
 ```
 python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/not_good --rule-name ExplodingTensor
 ```
-Refer [this page](docs/analysis/README.md) for more details on analysis.
+Refer [this page](../../rules/README.md) for more details on analysis.
 
 ### More
-Please refer to [Tornasole Tensorflow page](docs/tensorflow/README.md) and the various flags in the script to customize the behavior further.
+Please refer to [Tornasole Tensorflow page](../README.md) and the various flags in the script to customize the behavior further.
  
 

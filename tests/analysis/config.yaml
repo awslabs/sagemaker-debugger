@@ -5,11 +5,11 @@
   - local: True # run test cases in local mode
   - s3: True # run test cases in s3 mode
   - [simple.py: &simple
-      $CODEBUILD_SRC_DIR/examples/tensorflow/training_scripts/simple/simple.py,
+      $CODEBUILD_SRC_DIR/examples/tensorflow/scripts/simple.py,
      torch_simple.py: &torch_simple
       $CODEBUILD_SRC_DIR/examples/pytorch/scripts/simple.py,
      train_imagenet_resnet_hvd.py: &train_imagenet_resnet_hvd
-      $CODEBUILD_SRC_DIR/examples/tensorflow/training_scripts/resnet50/train_imagenet_resnet_hvd.py,
+      $CODEBUILD_SRC_DIR/examples/tensorflow/scripts/train_imagenet_resnet_hvd.py,
      mnist_gluon_basic_hook_demo.py: &mnist_gluon_basic_hook_demo
       $CODEBUILD_SRC_DIR/examples/mxnet/scripts/mnist_gluon_basic_hook_demo.py,
      mnist_gluon_all_zero_demo.py: &mnist_gluon_all_zero_demo
