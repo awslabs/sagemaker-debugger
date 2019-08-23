@@ -75,7 +75,7 @@ class TestRules:
         self.path_to_config = path_to_config if path_to_config is not None else './config.yaml'
         # load config file
         with open(self.path_to_config) as f:
-            self.config_file = yaml.load(f)
+            self.config_file = yaml.load(f, Loader=yaml.FullLoader)
         self.serial_and_parallel = {
             'serial_mode': self.config_file[VALUES_INDEX][SERIAL_MODE_INDEX]['serial'],
             'parallel_mode': self.config_file[VALUES_INDEX][PARALLEL_MODE_INDEX]['parallel']
