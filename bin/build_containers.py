@@ -2,10 +2,19 @@ import subprocess
 import argparse
 from multiprocessing import Process
 import os
+from time import sleep
+
+
+FRAMEWORK_VERSIONS = {
+    'mxnet': '1.4.1',
+    'pytorch': '1.1.0',
+    'tensorflow': '1.13.1',
+    }
 
 
 def run_command(command_list, stdout, stderr):
   subprocess.check_call(command_list, stdout=stdout, stderr=stderr)
+
 
 # you can clean all caches used by docker with `docker system prune -a`
 def build_container(framework, version, args):
@@ -27,14 +36,12 @@ parser.add_argument('--single-process', action='store_true',
 parser.add_argument('--logs-path', type=str, default='bin/sagemaker-containers/logs/')
 args = parser.parse_args()
 
-FRAMEWORK_VERSIONS = {'mxnet': '1.4.1', 'tensorflow': '1.13.1', 'pytorch': '1.1.0'}
-
 if not os.path.exists(args.logs_path):
     os.makedirs(args.logs_path)
 
 processes = []
 for f, v in FRAMEWORK_VERSIONS.items():
-    p = Process(target=build_container, args=(f, v, args))
+    p = Process(name=f, target=build_container, args=(f, v, args))
     p.start()
     print('Started building container for {}. You can find the log at {}.log'
           .format(f, os.path.join(args.logs_path, f)))
@@ -44,6 +51,14 @@ for f, v in FRAMEWORK_VERSIONS.items():
         processes.append(p)
 
 if not args.single_process:
-    for p in processes:
-        p.join()
+    ended_processes = set()
+    while True:
+        if len(processes) == len(ended_processes):
+            break
+        for p in processes:
+            if p not in ended_processes and not p.is_alive():
+                p.join()
+                print(f'Finished process {p.name}')
+                ended_processes.add(p)
+        sleep(3)
 

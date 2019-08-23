@@ -9,8 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-server \
     ca-certificates \
     curl \
+    gcc-4.9-base \
+    g++-4.9 \
     && add-apt-repository ppa:deadsnakes/ppa -y \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Install Open MPI
 RUN mkdir /tmp/openmpi && \
@@ -82,8 +85,8 @@ RUN pip install --no-cache-dir -U \
     # Let's install TensorFlow separately in the end to avoid
     # the library version to be overwritten
     pip install --force-reinstall --no-cache-dir -U \
-        tensorflow-1.13.1-py2.py3-none-any.whl \
-        horovod && \
+        tensorflow-1.13.1-py2.py3-none-any.whl && \
+    HOROVOD_WITH_TENSORFLOW=1 CXX=/usr/bin/g++-4.9 CC=/usr/bin/gcc-4.9 pip install --force-reinstall --no-cache-dir -U horovod && \
     pip install --no-cache-dir --force-reinstall -U $tf_estimator_installable && \
     pip install --no-cache-dir --force-reinstall -U $framework_support_installable && \
     rm -f tensorflow-1.13.1-py2.py3-none-any.whl && \

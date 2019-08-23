@@ -45,3 +45,5 @@ docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \
     --build-arg framework_support_installable=$SM_BINARY \
     -f Dockerfile.cpu .
 tag_and_push
+
+rm -rf tornasole-binary/

@@ -33,3 +33,5 @@ docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME \
     --build-arg tornasole_installable=$TORNASOLE_BINARY \
     -f Dockerfile.cpu .
 tag_and_push
+
+rm -rf tornasole-binary/

@@ -28,6 +28,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends --allow-unauthe
         wget \
         openssh-client \
         openssh-server \
+        g++-4.9 \
+        gcc-4.9-base \
         build-essential && \
     # The 'apt-get install' of nvinfer-runtime-trt-repo-ubuntu1604-4.0.1-ga-cuda9.0
     # adds a new list which contains libnvinfer library, so it needs another
@@ -129,7 +131,7 @@ RUN pip install --no-cache-dir -U \
 
 # Install Horovod, temporarily using CUDA stubs
 RUN ldconfig /usr/local/cuda-10.0/targets/x86_64-linux/lib/stubs && \
-    HOROVOD_GPU_ALLREDUCE=NCCL  HOROVOD_WITH_TENSORFLOW=1 pip install --no-cache-dir horovod && \
+    HOROVOD_GPU_ALLREDUCE=NCCL  HOROVOD_WITH_TENSORFLOW=1 CXX=/usr/bin/g++-4.9 CC=/usr/bin/gcc-4.9 pip install --no-cache-dir horovod && \
     ldconfig
 
 ARG tornasole_framework_installable
