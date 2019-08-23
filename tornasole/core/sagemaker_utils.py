@@ -1,4 +1,21 @@
 import boto3
+import os
+from .json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH
+
+
+def is_sagemaker_job():
+    """
+    If this variable is defined we are assuming that this is
+    a Sagemaker job. This is guaranteed to be defined
+    for all Sagemaker jobs.
+    https://docs.aws.amazon.com/sagemaker/latest/dg/your-algorithms-training-algo-running-container.html#your-algorithms-training-algo-running-container-environment-variables
+    :return: True or False
+    """
+    return 'TRAINING_JOB_NAME' in os.environ
+
+
+def get_sagemaker_out_dir():
+    return DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
 
 class SageMakerUtils:

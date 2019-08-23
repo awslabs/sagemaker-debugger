@@ -26,6 +26,7 @@ def training_has_ended(trial_prefix):
     else:
         writer = TSAccessFile(file_path, 'a+')
     writer.write("end of training job")
+    writer.flush()
     writer.close()
 
 

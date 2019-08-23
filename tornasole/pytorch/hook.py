@@ -3,7 +3,8 @@ from tornasole.core.writer import FileWriter
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.utils import get_logger, is_s3
+from tornasole.core.utils import get_logger
+from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import create_hook_from_json_config
 from tornasole.pytorch.torch_collection import get_collection_manager, get_collection
@@ -27,7 +28,7 @@ DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'bias', 'gradients', 'default']
 
 class TornasoleHook:
     def __init__(self,
-                 out_dir,
+                 out_dir=None,
                  dry_run=False,
                  worker=DEFAULT_WORKER_NAME,
                  reduction_config=None,
@@ -35,12 +36,7 @@ class TornasoleHook:
                  include_regex=None,
                  include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                  save_all=False):
-        if not is_s3(out_dir)[0]:
-            out_dir = os.path.expanduser(out_dir)
-        # this is commented because SM creates dir. 
-        # This was created because we don't want user to overwrite their existing data
-        #check_dir_exists(out_dir)
-        self.out_dir = out_dir
+        self.out_dir = verify_and_get_out_dir(out_dir)
         self.out_base_dir = os.path.dirname(out_dir)
         self.run_id = os.path.basename(out_dir)
         self.include_collections = include_collections

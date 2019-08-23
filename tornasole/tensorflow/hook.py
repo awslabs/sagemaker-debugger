@@ -6,7 +6,8 @@ from .utils import *
 from .reductions import get_tensorflow_reduction
 from .collection import *
 from tornasole.core.writer import FileWriter
-from tornasole.core.utils import get_logger, flatten, is_s3, match_inc
+from tornasole.core.utils import get_logger, flatten, match_inc
+from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
@@ -17,7 +18,7 @@ from .save_manager import TFSaveManager
 DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'gradients', 'default']
 
 class TornasoleHook(tf.train.SessionRunHook):
-    def __init__(self, out_dir,
+    def __init__(self, out_dir=None,
                  dry_run=False,
                  worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config=None,
@@ -68,12 +69,7 @@ class TornasoleHook(tf.train.SessionRunHook):
             a shortcut for saving all tensors in the model.
             they are all saved in the collection `all`
         """
-        if not is_s3(out_dir)[0]:
-            out_dir = os.path.expanduser(out_dir)
-        # this is commented because SM creates dir. 
-        # This was created because we don't want user to overwrite their existing data
-        #check_dir_exists(out_dir)
-        self.out_dir = out_dir
+        self.out_dir = verify_and_get_out_dir(out_dir)
         self.out_base_dir = os.path.dirname(out_dir)
         self.run_id = os.path.basename(out_dir)
 
