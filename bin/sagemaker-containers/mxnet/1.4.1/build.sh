@@ -18,20 +18,23 @@ export ECR_TAG_NAME=$1
 cd bin/sagemaker-containers/mxnet/1.4.1/
 
 export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_mxnet/py3/latest
+rm -rf tornasole-binary/
 aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
 cp tornasole-binary/*.whl .
 export TORNASOLE_BINARY=`ls tornasole-*.whl`
 
-export ECR_REPO_NAME=tornasole-preprod-mxnet-1.4.1-gpu
-docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME \
-    --build-arg tornasole_installable=$TORNASOLE_BINARY \
-    -f Dockerfile.gpu .
-tag_and_push
+build() {
+    if [ -z "$1" ]; then echo "No mode passed" &&  exit 1; fi
+    mode=$1
 
-export ECR_REPO_NAME=tornasole-preprod-mxnet-1.4.1-cpu
-docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME \
-    --build-arg tornasole_installable=$TORNASOLE_BINARY \
-    -f Dockerfile.cpu .
-tag_and_push
+    export ECR_REPO_NAME=tornasole-preprod-mxnet-1.4.1-$mode
+    docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME \
+        --build-arg tornasole_installable=$TORNASOLE_BINARY \
+        -f Dockerfile.$mode .
+    tag_and_push
+}
 
-rm -rf tornasole-binary/
+build cpu &
+build gpu &
+
+wait

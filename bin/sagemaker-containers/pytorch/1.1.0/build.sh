@@ -28,22 +28,22 @@ cp -r ~/sagemaker-pytorch-container/lib .
 export SM_BINARY=`ls sagemaker_pytorch_container-*.whl`
 
 export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_pytorch/py3/latest
+rm -rf tornasole-binary/
 aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
 cp tornasole-binary/*.whl .
 export TORNASOLE_BINARY=`ls tornasole-*.whl`
 
-export ECR_REPO_NAME=tornasole-preprod-pytorch-1.1.0-gpu
-docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \
-    --build-arg tornasole_framework_installable=$TORNASOLE_BINARY \
-    --build-arg framework_support_installable=$SM_BINARY \
-    -f Dockerfile.gpu .
-tag_and_push
+build() {
+    if [ -z "$1" ]; then echo "No mode passed" &&  exit 1; fi
+    mode=$1
+    export ECR_REPO_NAME=tornasole-preprod-pytorch-1.1.0-$mode
+    docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \
+        --build-arg tornasole_framework_installable=$TORNASOLE_BINARY \
+        --build-arg framework_support_installable=$SM_BINARY \
+        -f Dockerfile.$mode .
+    tag_and_push
+}
 
-export ECR_REPO_NAME=tornasole-preprod-pytorch-1.1.0-cpu
-docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \
-    --build-arg tornasole_framework_installable=$TORNASOLE_BINARY \
-    --build-arg framework_support_installable=$SM_BINARY \
-    -f Dockerfile.cpu .
-tag_and_push
-
-rm -rf tornasole-binary/
+build cpu &
+build gpu &
+wait
