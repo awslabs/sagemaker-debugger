@@ -8,8 +8,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
-from tornasole.pytorch.hook import *
-from tornasole.pytorch.torch_collection import *
+from tornasole.pytorch import *
+from tornasole.pytorch import *
 import tornasole.pytorch as ts
 
 

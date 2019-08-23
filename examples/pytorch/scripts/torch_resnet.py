@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
-from tornasole.pytorch.hook import *
+from tornasole.pytorch import *
 import time
 
 model_names = sorted(name for name in models.__dict__
