@@ -17,7 +17,7 @@ aws s3 cp sagemaker-docs/DeveloperGuide_Rules.md s3://tornasole-external-preview
 
 # MXNET EXAMPLES
 aws s3 sync examples/mxnet/sagemaker-notebooks s3://tornasole-external-preview-use1/frameworks/mxnet/examples/notebooks
-aws s3 cp examples/mxnet/scripts/mnist_mxnet.py s3://tornasole-external-preview-use1/frameworks/mxnet/examples/scripts/
+aws s3 sync examples/mxnet/scripts s3://tornasole-external-preview-use1/frameworks/mxnet/examples/scripts
 
 # TF EXAMPLES
 aws s3 sync examples/tensorflow/sagemaker-notebooks s3://tornasole-external-preview-use1/frameworks/tensorflow/examples/notebooks
@@ -25,6 +25,8 @@ aws s3 sync examples/tensorflow/scripts s3://tornasole-external-preview-use1/fra
 
 # PYTORCH EXAMPLES
 #aws s3 sync examples/pytorch s3://tornasole-external-preview-use1/frameworks/pytorch/examples
+aws s3 sync examples/pytorch/sagemaker-notebooks s3://tornasole-external-preview-use1/frameworks/pytorch/examples/notebooks
+aws s3 cp examples/pytorch/scripts/simple.py s3://tornasole-external-preview-use1/frameworks/pytorch/examples/scripts/simple.py
 
 # RULES EXAMPLES
 aws s3 cp "examples/rules/Bring Your Own Rule.ipynb" s3://tornasole-external-preview-use1/rules/
