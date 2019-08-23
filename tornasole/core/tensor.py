@@ -168,7 +168,7 @@ class Tensor:
                     avail_steps = self.trial.available_steps(mode=mode)
                     if len(avail_steps) > 0:
                         last_step = avail_steps[-1]
-                    raise NoMoreData("Looking for step:{} for mode {} and reached end of training. Max step available is {}".format(step_num, mode, last_step))
+                    raise NoMoreData(step_num, mode, last_step)
                 raise StepNotYetAvailable(step_num, mode)
         assert False, 'Should not happen'
 

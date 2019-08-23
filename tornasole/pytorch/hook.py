@@ -37,8 +37,8 @@ class TornasoleHook:
                  include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                  save_all=False):
         self.out_dir = verify_and_get_out_dir(out_dir)
-        self.out_base_dir = os.path.dirname(out_dir)
-        self.run_id = os.path.basename(out_dir)
+        self.out_base_dir = os.path.dirname(self.out_dir)
+        self.run_id = os.path.basename(self.out_dir)
         self.include_collections = include_collections
 
         self.dry_run = dry_run

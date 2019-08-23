@@ -70,8 +70,8 @@ class TornasoleHook(tf.train.SessionRunHook):
             they are all saved in the collection `all`
         """
         self.out_dir = verify_and_get_out_dir(out_dir)
-        self.out_base_dir = os.path.dirname(out_dir)
-        self.run_id = os.path.basename(out_dir)
+        self.out_base_dir = os.path.dirname(self.out_dir)
+        self.run_id = os.path.basename(self.out_dir)
 
         self.dry_run = dry_run
         self.worker = worker if worker is not None else socket.gethostname()

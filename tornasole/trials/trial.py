@@ -257,7 +257,7 @@ class Trial(ABC):
                         avail_steps = self.available_steps(mode=mode)
                         if len(avail_steps) > 0:
                             last_step = avail_steps[-1]
-                        raise NoMoreData("Looking for step:{} for mode {} and reached end of training. Max step available for mode is {}".format(step, mode, last_step))
+                        raise NoMoreData(step, mode, last_step)
                     time.sleep(5)
 
     def has_passed_step(self, step, mode=ModeKeys.GLOBAL):

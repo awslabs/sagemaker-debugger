@@ -7,7 +7,8 @@ class StepNotYetAvailable(Exception):
     self.mode = mode
 
   def __str__(self):
-    return 'Step {} of mode {} not yet available'.format(self.step, self.mode)
+    return 'Step {} of mode {} not yet available'.format(self.step,
+                                                         self.mode.name)
 
 
 class StepUnavailable(Exception):
@@ -17,7 +18,7 @@ class StepUnavailable(Exception):
 
   def __str__(self):
     return 'Step {} of mode {} is not available as it was not saved'\
-      .format(self.step, self.mode)
+      .format(self.step, self.mode.name)
 
 
 class TensorUnavailableForStep(Exception):
@@ -36,6 +37,7 @@ class TensorUnavailableForStep(Exception):
              'You might want to query for the reductions.'
     return msg
 
+
 class TensorUnavailable(Exception):
   def __init__(self, tname):
     self.tname = tname
@@ -46,7 +48,17 @@ class TensorUnavailable(Exception):
 
 
 class NoMoreData(Exception):
-  pass
+  def __init__(self, step, mode, last_step):
+    self.step = step
+    self.mode = mode
+    self.last_step = last_step
+
+    self.msg = "Looking for step {} of mode {} and reached " \
+               "end of training. Max step available is {}"\
+        .format(self.step, self.mode.name, self.last_step)
+
+  def __str__(self):
+    return self.msg
 
 
 class RuleEvaluationConditionMet(Exception):
