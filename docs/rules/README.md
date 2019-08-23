@@ -514,6 +514,7 @@ This rule helps you keep track of the ratio of the updates to weights during tra
 It takes as inputs three arguments.
 First, is the `base_trial` as usual. 
 Second and third are `large_threshold` and `small_threshold`. 
+
 This returns True if the ratio of updates to weights is larger than `large_threshold` 
 or when this ratio is smaller than `small_threshold`.  
 
@@ -611,6 +612,7 @@ lnd = LossNotDecreasing(base_trial=trial_obj, tensor_regex=['loss*'], num_steps=
 ## Examples
 
 We have end-to-end flow example from saving tensors to plotting using saved tensors for [MXNet](../../examples/mxnet/notebooks) and [PyTorch](../../examples/pytorch/notebooks). 
+
 
 ## ContactUs
 We would like to hear from you. If you have any question or feedback, 

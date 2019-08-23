@@ -479,7 +479,6 @@ You can pass any arguments that the rule takes as command line arguments, like b
 python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-runes/trial0 --rule-name UnchangedTensor --tensor_regex .* --num_steps 10
 ```
 
-
 When running a Sagemaker job, Sagemaker will execute the rule for you. Refer Sagemaker notebook example for more on how this is done. 
 
 #### First party rules
