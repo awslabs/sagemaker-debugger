@@ -35,8 +35,6 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.image.python.ops import distort_image_ops
 from tensorflow.python.ops import data_flow_ops
-from tensorflow.contrib.data.python.ops import interleave_ops
-from tensorflow.contrib.data.python.ops import batching
 import horovod.tensorflow as hvd
 import os
 import sys
@@ -60,6 +58,7 @@ def rank0log(logger, *args, **kwargs):
         else:
             print(*args, **kwargs)
 
+
 class LayerBuilder(object):
     def __init__(self, activation=None, data_format='channels_last',
                  training=False, use_batch_norm=False, batch_norm_config=None,
@@ -81,11 +80,11 @@ class LayerBuilder(object):
 
     def _conv2d(self, inputs, activation, *args, **kwargs):
         x = tf.layers.conv2d(
-            inputs, data_format=self.data_format,
-            use_bias=not self.use_batch_norm,
-            kernel_initializer=self.conv_initializer,
-            activation=None if self.use_batch_norm else activation,
-            *args, **kwargs)
+                inputs, data_format=self.data_format,
+                use_bias=not self.use_batch_norm,
+                kernel_initializer=self.conv_initializer,
+                activation=None if self.use_batch_norm else activation,
+                *args, **kwargs)
         if self.use_batch_norm:
             x = self.batch_norm(x)
             x = activation(x) if activation is not None else x
@@ -93,10 +92,10 @@ class LayerBuilder(object):
 
     def conv2d_linear_last_bn(self, inputs, *args, **kwargs):
         x = tf.layers.conv2d(
-            inputs, data_format=self.data_format,
-            use_bias=False,
-            kernel_initializer=self.conv_initializer,
-            activation=None, *args, **kwargs)
+                inputs, data_format=self.data_format,
+                use_bias=False,
+                kernel_initializer=self.conv_initializer,
+                activation=None, *args, **kwargs)
         param_initializers = {
             'moving_mean': tf.zeros_initializer(),
             'moving_variance': tf.ones_initializer(),
@@ -134,11 +133,11 @@ class LayerBuilder(object):
 
     def max_pooling2d(self, inputs, *args, **kwargs):
         return tf.layers.max_pooling2d(
-            inputs, data_format=self.data_format, *args, **kwargs)
+                inputs, data_format=self.data_format, *args, **kwargs)
 
     def average_pooling2d(self, inputs, *args, **kwargs):
         return tf.layers.average_pooling2d(
-            inputs, data_format=self.data_format, *args, **kwargs)
+                inputs, data_format=self.data_format, *args, **kwargs)
 
     def dense_linear(self, inputs, units, **kwargs):
         return tf.layers.dense(inputs, units, activation=None)
@@ -155,8 +154,8 @@ class LayerBuilder(object):
         all_kwargs.update(kwargs)
         data_format = 'NHWC' if self.data_format == 'channels_last' else 'NCHW'
         return tf.contrib.layers.batch_norm(
-            inputs, is_training=self.training, data_format=data_format,
-            fused=True, **all_kwargs)
+                inputs, is_training=self.training, data_format=data_format,
+                fused=True, **all_kwargs)
 
     def spatial_average2d(self, inputs):
         shape = inputs.get_shape().as_list()
@@ -180,7 +179,8 @@ class LayerBuilder(object):
             num_inputs *= dim
         return tf.reshape(x, [-1, num_inputs], name='flatten')
 
-    def residual2d(self, inputs, network, units=None, scale=1.0, activate=False):
+    def residual2d(self, inputs, network, units=None, scale=1.0,
+                   activate=False):
         outputs = network(inputs)
         c_axis = -1 if self.data_format == 'channels_last' else 1
         h_axis = 1 if self.data_format == 'channels_last' else 2
@@ -232,25 +232,33 @@ def inference_resnet_v1_impl(builder, inputs, layer_counts, basic=False):
     for i in range(layer_counts[0]):
         x = resnet_bottleneck_v1(builder, x, 256, 64, 1, basic)
     for i in range(layer_counts[1]):
-        x = resnet_bottleneck_v1(builder, x, 512, 128, 2 if i == 0 else 1, basic)
+        x = resnet_bottleneck_v1(builder, x, 512, 128, 2 if i == 0 else 1,
+                                 basic)
     for i in range(layer_counts[2]):
-        x = resnet_bottleneck_v1(builder, x, 1024, 256, 2 if i == 0 else 1, basic)
+        x = resnet_bottleneck_v1(builder, x, 1024, 256, 2 if i == 0 else 1,
+                                 basic)
     for i in range(layer_counts[3]):
-        x = resnet_bottleneck_v1(builder, x, 2048, 512, 2 if i == 0 else 1, basic)
+        x = resnet_bottleneck_v1(builder, x, 2048, 512, 2 if i == 0 else 1,
+                                 basic)
     return builder.spatial_average2d(x)
 
 
 def inference_resnet_v1(inputs, nlayer, data_format='channels_last',
-                        training=False, conv_initializer=None, adv_bn_init=False):
+                        training=False, conv_initializer=None,
+                        adv_bn_init=False):
     """Deep Residual Networks family of models
     https://arxiv.org/abs/1512.03385
     """
-    builder = LayerBuilder(tf.nn.relu, data_format, training, use_batch_norm=True,
-                           conv_initializer=conv_initializer, adv_bn_init=adv_bn_init)
+    builder = LayerBuilder(tf.nn.relu, data_format, training,
+                           use_batch_norm=True,
+                           conv_initializer=conv_initializer,
+                           adv_bn_init=adv_bn_init)
     if nlayer == 18:
-        return inference_resnet_v1_impl(builder, inputs, [2, 2, 2, 2], basic=True)
+        return inference_resnet_v1_impl(builder, inputs, [2, 2, 2, 2],
+                                        basic=True)
     elif nlayer == 34:
-        return inference_resnet_v1_impl(builder, inputs, [3, 4, 6, 3], basic=True)
+        return inference_resnet_v1_impl(builder, inputs, [3, 4, 6, 3],
+                                        basic=True)
     elif nlayer == 50:
         return inference_resnet_v1_impl(builder, inputs, [3, 4, 6, 3])
     elif nlayer == 101:
@@ -258,8 +266,9 @@ def inference_resnet_v1(inputs, nlayer, data_format='channels_last',
     elif nlayer == 152:
         return inference_resnet_v1_impl(builder, inputs, [3, 8, 36, 3])
     else:
-        raise ValueError("Invalid nlayer (%i); must be one of: 18,34,50,101,152" %
-                         nlayer)
+        raise ValueError(
+            "Invalid nlayer (%i); must be one of: 18,34,50,101,152" %
+            nlayer)
 
 
 def get_model_func(model_name):
@@ -298,7 +307,7 @@ def decode_jpeg(imgdata, channels=3):
                                 dct_method='INTEGER_FAST')
 
 
-def crop_and_resize_image(image, original_bbox, height, width, 
+def crop_and_resize_image(image, original_bbox, height, width,
                           distort=False, nsummary=10):
     with tf.name_scope('crop_and_resize'):
         # Evaluation is done on a center-crop of this ratio
@@ -309,15 +318,17 @@ def crop_and_resize_image(image, original_bbox, height, width,
                              3]
             bbox_begin, bbox_size, bbox = \
                 tf.image.sample_distorted_bounding_box(
-                    initial_shape,
-                    bounding_boxes=tf.constant([0.0, 0.0, 1.0, 1.0], dtype=tf.float32, shape=[1, 1, 4]),
-                    # tf.zeros(shape=[1,0,4]), # No bounding boxes
-                    min_object_covered=0.1,
-                    aspect_ratio_range=[3. / 4., 4. / 3.],
-                    area_range=[0.08, 1.0],
-                    max_attempts=100,
-                    seed=11 * hvd.rank(),  # Need to set for deterministic results
-                    use_image_if_no_bounding_boxes=True)
+                        initial_shape,
+                        bounding_boxes=tf.constant(
+                                [0.0, 0.0, 1.0, 1.0], dtype=tf.float32,
+                                shape=[1, 1, 4]),
+                        min_object_covered=0.1,
+                        aspect_ratio_range=[3. / 4., 4. / 3.],
+                        area_range=[0.08, 1.0],
+                        max_attempts=100,
+                        seed=11 * hvd.rank(),
+                        # Need to set for deterministic results
+                        use_image_if_no_bounding_boxes=True)
             bbox = bbox[0, 0]  # Remove batch, box_idx dims
         else:
             # Central crop
@@ -325,13 +336,14 @@ def crop_and_resize_image(image, original_bbox, height, width,
             bbox = tf.constant([0.5 * (1 - ratio_y), 0.5 * (1 - ratio_x),
                                 0.5 * (1 + ratio_y), 0.5 * (1 + ratio_x)])
         image = tf.image.crop_and_resize(
-            image[None, :, :, :], bbox[None, :], [0], [height, width])[0]
+                image[None, :, :, :], bbox[None, :], [0], [height, width])[0]
         return image
 
 
 def parse_and_preprocess_image_record(record, counter, height, width,
                                       brightness, contrast, saturation, hue,
-                                      distort=False, nsummary=10, increased_aug=False):
+                                      distort=False, nsummary=10,
+                                      increased_aug=False):
     imgdata, label, bbox, text = deserialize_image_record(record)
     label -= 1  # Change to 0-based (don't use background class)
     with tf.name_scope('preprocess_train'):
@@ -344,24 +356,31 @@ def parse_and_preprocess_image_record(record, counter, height, width,
             image = tf.image.random_flip_left_right(image)
             if increased_aug:
                 image = tf.image.random_brightness(image, max_delta=brightness)
-                image = distort_image_ops.random_hsv_in_yiq(image, 
-                                                            lower_saturation=saturation, 
-                                                            upper_saturation=2.0 - saturation, 
+                image = distort_image_ops.random_hsv_in_yiq(image,
+                                                            lower_saturation=saturation,
+                                                            upper_saturation=2.0 - saturation,
                                                             max_delta_hue=hue * math.pi)
-                image = tf.image.random_contrast(image, lower=contrast, upper=2.0 - contrast)
-                tf.summary.image('distorted_color_image', tf.expand_dims(image, 0))
+                image = tf.image.random_contrast(image, lower=contrast,
+                                                 upper=2.0 - contrast)
+                tf.summary.image('distorted_color_image',
+                                 tf.expand_dims(image, 0))
         image = tf.clip_by_value(image, 0., 255.)
         image = tf.cast(image, tf.uint8)
         return image, label
 
+
 def make_dataset(filenames, take_count, batch_size, height, width,
                  brightness, contrast, saturation, hue,
-                 training=False, num_threads=10, nsummary=10, shard=False, synthetic=False,
-                 increased_aug=False):
+                 training=False, num_threads=10, nsummary=10,
+                 shard=False, synthetic=False, increased_aug=False):
     if synthetic and training:
         input_shape = [height, width, 3]
-        input_element = nest.map_structure(lambda s: tf.constant(0.5, tf.float32, s), tf.TensorShape(input_shape))
-        label_element = nest.map_structure(lambda s: tf.constant(1, tf.int32, s), tf.TensorShape([1]))
+        input_element = nest.map_structure(
+                lambda s: tf.constant(0.5, tf.float32, s),
+                tf.TensorShape(input_shape))
+        label_element = nest.map_structure(
+                lambda s: tf.constant(1, tf.int32, s),
+                tf.TensorShape([1]))
         element = (input_element, label_element)
         ds = tf.data.Dataset.from_tensors(element).repeat()
     else:
@@ -377,21 +396,27 @@ def make_dataset(filenames, take_count, batch_size, height, width,
             ds = ds.shard(hvd.size(), hvd.rank())
 
         if not training:
-            ds = ds.take(take_count)  # make sure all ranks have the same amount
+            # make sure all ranks have the same amount
+            ds = ds.take(take_count)
 
         if training:
             ds = ds.shuffle(1000, seed=7 * (1 + hvd.rank()))
 
         ds = ds.interleave(
-            tf.data.TFRecordDataset, cycle_length=num_readers, block_length=1)
+                tf.data.TFRecordDataset, cycle_length=num_readers,
+                block_length=1)
         counter = tf.data.Dataset.range(sys.maxsize)
         ds = tf.data.Dataset.zip((ds, counter))
-        preproc_func = lambda record, counter_: parse_and_preprocess_image_record(
-            record, counter_, height, width, brightness, contrast, saturation, hue,
-            distort=training, nsummary=nsummary if training else 0, increased_aug=increased_aug)
+        preproc_func = lambda record, counter_: \
+            parse_and_preprocess_image_record(
+                    record, counter_, height, width, brightness,
+                    contrast, saturation, hue, distort=training,
+                    nsummary=nsummary if training else 0,
+                    increased_aug=increased_aug)
         ds = ds.map(preproc_func, num_parallel_calls=num_threads)
         if training:
-            ds = ds.apply(tf.data.experimental.shuffle_and_repeat(shuffle_buffer_size, seed=5*(1+hvd.rank())))
+            ds = ds.apply(tf.data.experimental.shuffle_and_repeat(
+                    shuffle_buffer_size, seed=5 * (1 + hvd.rank())))
     ds = ds.batch(batch_size)
     return ds
 
@@ -400,8 +425,8 @@ def stage(tensors):
     """Stages the given tensors in a StagingArea for asynchronous put/get.
     """
     stage_area = data_flow_ops.StagingArea(
-        dtypes=[tensor.dtype for tensor in tensors],
-        shapes=[tensor.get_shape() for tensor in tensors])
+            dtypes=[tensor.dtype for tensor in tensors],
+            shapes=[tensor.get_shape() for tensor in tensors])
     put_op = stage_area.put(tensors)
     get_tensors = stage_area.get()
     tf.add_to_collection('STAGING_AREA_PUTS', put_op)
@@ -416,7 +441,8 @@ class PrefillStagingAreasHook(tf.train.SessionRunHook):
 
 
 class LogSessionRunHook(tf.train.SessionRunHook):
-    def __init__(self, global_batch_size, num_records, display_every=10, logger=None):
+    def __init__(self, global_batch_size, num_records,
+                 display_every=10, logger=None):
         self.global_batch_size = global_batch_size
         self.num_records = num_records
         self.display_every = display_every
@@ -430,8 +456,8 @@ class LogSessionRunHook(tf.train.SessionRunHook):
     def before_run(self, run_context):
         self.t0 = time.time()
         return tf.train.SessionRunArgs(
-            fetches=[tf.train.get_global_step(),
-                     'loss:0', 'total_loss:0', 'learning_rate:0'])
+                fetches=[tf.train.get_global_step(),
+                         'loss:0', 'total_loss:0', 'learning_rate:0'])
 
     def after_run(self, run_context, run_values):
         self.elapsed_secs += time.time() - self.t0
@@ -442,7 +468,9 @@ class LogSessionRunHook(tf.train.SessionRunHook):
             img_per_sec = self.global_batch_size / dt
             epoch = global_step * self.global_batch_size / self.num_records
             self.logger.info('%6i %5.1f %7.1f %6.3f %6.3f %7.5f' %
-                             (global_step, epoch, img_per_sec, loss, total_loss, lr))
+                             (
+                             global_step, epoch, img_per_sec, loss, total_loss,
+                             lr))
             self.elapsed_secs = 0.
             self.count = 0
 
@@ -451,15 +479,26 @@ def _fp32_trainvar_getter(getter, name, shape=None, dtype=None,
                           trainable=True, regularizer=None,
                           *args, **kwargs):
     storage_dtype = tf.float32 if trainable else dtype
+
+    bn_in_name = False
+    for x in ['BatchNorm', 'batchnorm', 'batch_norm', 'Batch_Norm']:
+        if x in name:
+            bn_in_name = True
+
+    if trainable and not bn_in_name:
+        use_regularizer = regularizer
+    else:
+        use_regularizer = None
+
     variable = getter(name, shape, dtype=storage_dtype,
                       trainable=trainable,
-                      regularizer=regularizer if trainable and 'BatchNorm' not in name and 'batchnorm' not in name and 'batch_norm' not in name and 'Batch_Norm' not in name else None,
+                      regularizer=use_regularizer,
                       *args, **kwargs)
     if trainable and dtype != tf.float32:
         cast_name = name + '/fp16_cast'
         try:
             cast_variable = tf.get_default_graph().get_tensor_by_name(
-                cast_name + ':0')
+                    cast_name + ':0')
         except KeyError:
             cast_variable = tf.cast(variable, dtype, name=cast_name)
         cast_variable._ref = variable._ref
@@ -472,7 +511,7 @@ def fp32_trainable_vars(name='fp32_vars', *args, **kwargs):
     variables with fp32 storage followed by fp16 cast.
     """
     return tf.variable_scope(
-        name, custom_getter=_fp32_trainvar_getter, *args, **kwargs)
+            name, custom_getter=_fp32_trainvar_getter, *args, **kwargs)
 
 
 class MixedPrecisionOptimizer(tf.train.Optimizer):
@@ -483,7 +522,7 @@ class MixedPrecisionOptimizer(tf.train.Optimizer):
                  name="MixedPrecisionOptimizer",
                  use_locking=False):
         super(MixedPrecisionOptimizer, self).__init__(
-            name=name, use_locking=use_locking)
+                name=name, use_locking=use_locking)
         self._optimizer = optimizer
         self._scale = float(scale) if scale is not None else 1.0
 
@@ -491,37 +530,28 @@ class MixedPrecisionOptimizer(tf.train.Optimizer):
         if var_list is None:
             var_list = (
                     tf.trainable_variables() +
-                    tf.get_collection(tf.GraphKeys.TRAINABLE_RESOURCE_VARIABLES))
+                    tf.get_collection(
+                        tf.GraphKeys.TRAINABLE_RESOURCE_VARIABLES))
 
         replaced_list = var_list
 
         if self._scale != 1.0:
             loss = tf.scalar_mul(self._scale, loss)
-        gradvar = self._optimizer.compute_gradients(loss, replaced_list, *args, **kwargs)
+        gradvar = self._optimizer.compute_gradients(loss, replaced_list, *args,
+                                                    **kwargs)
 
         final_gradvar = []
-        # with tf.device('/cpu:0'):
-            # tf.summary.merge([tf.summary.histogram("ts/gradient/%s" % g[1].name, g[0]) for g in gradvar])
-            # tf.summary.merge([tf.summary.histogram("ts/weights/%s" % g[1].name, g[1]) for g in gradvar])
-        # with tf.variable_scope("tsgrad") as vs:
-            # pass
-        # grads = []
-
-        for orig_var, (grad, var) in zip(var_list, gradvar):   
+        for orig_var, (grad, var) in zip(var_list, gradvar):
             if var is not orig_var:
                 grad = tf.cast(grad, orig_var.dtype)
-            # with tf.variable_scope(vs, auxiliary_name_scope=False) as vs1:
-                # with tf.name_scope(vs1.original_name_scope):
-                    # grad = tf.identity(grad, name='_'.join(grad.name.split('/'))[:-2])
-            # grads.append(grad)
             if self._scale != 1.0:
                 grad = tf.scalar_mul(1. / self._scale, grad)
             final_gradvar.append((grad, orig_var))
-        # save_tensornames_to_file('grads_wrt_weights.txt', grads)
         return final_gradvar
 
     def apply_gradients(self, *args, **kwargs):
         return self._optimizer.apply_gradients(*args, **kwargs)
+
 
 class LarcOptimizer(tf.train.Optimizer):
     """ LARC implementation
@@ -539,7 +569,7 @@ class LarcOptimizer(tf.train.Optimizer):
     def __init__(self, optimizer, learning_rate, eta, clip=True, epsilon=1.,
                  name="LarcOptimizer", use_locking=False):
         super(LarcOptimizer, self).__init__(
-            name=name, use_locking=use_locking)
+                name=name, use_locking=use_locking)
         self._optimizer = optimizer
         self._learning_rate = learning_rate
         self._eta = float(eta)
@@ -559,10 +589,9 @@ class LarcOptimizer(tf.train.Optimizer):
         # assign epsilon if weights or grads = 0, to avoid division by zero
         # also prevent biases to get stuck at initialization (0.)
         cond = tf.logical_and(
-            tf.not_equal(v_norms, zeds),
-            tf.not_equal(g_norms, zeds))
+                tf.not_equal(v_norms, zeds),
+                tf.not_equal(g_norms, zeds))
         true_vals = tf.scalar_mul(self._eta, tf.div(v_norms, g_norms))
-        # true_vals = tf.scalar_mul(tf.cast(self._eta, tf.float32), tf.div(tf.cast(v_norms, tf.float32), tf.cast(g_norms, tf.float32)))
         false_vals = tf.fill(tf.shape(v_norms), self._epsilon)
         larc_local_lr = tf.where(cond, true_vals, false_vals)
         if self._clip:
@@ -583,8 +612,10 @@ def get_with_default(obj, key, default_value):
     return obj[key] if key in obj and obj[key] is not None else default_value
 
 
-def get_lr(lr, steps, lr_steps, warmup_it, decay_steps, global_step, lr_decay_mode,
-           cdr_first_decay_ratio, cdr_t_mul, cdr_m_mul, cdr_alpha, lc_periods, lc_alpha, lc_beta):
+def get_lr(lr, steps, lr_steps, warmup_it, decay_steps, global_step,
+           lr_decay_mode,
+           cdr_first_decay_ratio, cdr_t_mul, cdr_m_mul, cdr_alpha, lc_periods,
+           lc_alpha, lc_beta):
     if lr_decay_mode == 'steps':
         learning_rate = tf.train.piecewise_constant(global_step,
                                                     steps, lr_steps)
@@ -597,10 +628,11 @@ def get_lr(lr, steps, lr_steps, warmup_it, decay_steps, global_step, lr_decay_mo
                                                   power=2,
                                                   cycle=cycle)
     elif lr_decay_mode == 'cosine_decay_restarts':
-        learning_rate = tf.train.cosine_decay_restarts(lr, 
+        learning_rate = tf.train.cosine_decay_restarts(lr,
                                                        global_step - warmup_it,
-                                                       (decay_steps - warmup_it) * cdr_first_decay_ratio,
-                                                       t_mul=cdr_t_mul, 
+                                                       (
+                                                                   decay_steps - warmup_it) * cdr_first_decay_ratio,
+                                                       t_mul=cdr_t_mul,
                                                        m_mul=cdr_m_mul,
                                                        alpha=cdr_alpha)
     elif lr_decay_mode == 'cosine':
@@ -612,9 +644,10 @@ def get_lr(lr, steps, lr_steps, warmup_it, decay_steps, global_step, lr_decay_mo
         learning_rate = tf.train.linear_cosine_decay(lr,
                                                      global_step - warmup_it,
                                                      decay_steps=decay_steps - warmup_it,
-                                                     num_periods=lc_periods,#0.47,
-                                                     alpha=lc_alpha,#0.0,
-                                                     beta=lc_beta)#0.00001)
+                                                     num_periods=lc_periods,
+                                                     # 0.47,
+                                                     alpha=lc_alpha,  # 0.0,
+                                                     beta=lc_beta)  # 0.00001)
     else:
         raise ValueError('Invalid type of lr_decay_mode')
     return learning_rate
@@ -680,10 +713,12 @@ def cnn_model_function(features, labels, mode, params):
         with fp32_trainable_vars(
                 regularizer=tf.contrib.layers.l2_regularizer(weight_decay)):
             top_layer = model_func(
-                inputs, data_format=model_format, training=is_training,
-                conv_initializer=conv_init, adv_bn_init=adv_bn_init)
-            logits = tf.layers.dense(top_layer, num_classes,
-                                     kernel_initializer=tf.random_normal_initializer(stddev=0.01))
+                    inputs, data_format=model_format, training=is_training,
+                    conv_initializer=conv_init, adv_bn_init=adv_bn_init)
+            logits = tf.layers.dense(
+                    top_layer, num_classes,
+                    kernel_initializer=tf.random_normal_initializer(
+                        stddev=0.01))
         predicted_classes = tf.argmax(logits, axis=1, output_type=tf.int32)
         logits = tf.cast(logits, tf.float32)
         if mode == tf.estimator.ModeKeys.PREDICT:
@@ -695,20 +730,22 @@ def cnn_model_function(features, labels, mode, params):
             }
             return tf.estimator.EstimatorSpec(mode, predictions=predictions)
         loss = tf.losses.sparse_softmax_cross_entropy(
-            logits=logits, labels=labels)
-        loss = tf.identity(loss, name='loss')  # For access by logger (TODO: Better way to access it?)
+                logits=logits, labels=labels)
+        loss = tf.identity(loss, name='loss')  # For access by logger
 
         if mode == tf.estimator.ModeKeys.EVAL:
-            with tf.device(None):  # Allow fallback to CPU if no GPU support for these ops
+            # Allow fallback to CPU if no GPU support for these ops
+            with tf.device(None):
                 accuracy = tf.metrics.accuracy(
-                    labels=labels, predictions=predicted_classes)
+                        labels=labels, predictions=predicted_classes)
                 top5acc = tf.metrics.mean(
-                    tf.cast(tf.nn.in_top_k(logits, labels, 5), tf.float32))
+                        tf.cast(tf.nn.in_top_k(logits, labels, 5), tf.float32))
                 newaccuracy = (hvd.allreduce(accuracy[0]), accuracy[1])
                 newtop5acc = (hvd.allreduce(top5acc[0]), top5acc[1])
-                metrics = {'val-top1acc': newaccuracy, 'val-top5acc': newtop5acc}
+                metrics = {'val-top1acc': newaccuracy,
+                           'val-top5acc': newtop5acc}
             return tf.estimator.EstimatorSpec(
-                mode, loss=loss, eval_metric_ops=metrics)
+                    mode, loss=loss, eval_metric_ops=metrics)
 
         assert (mode == tf.estimator.ModeKeys.TRAIN)
         reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -718,19 +755,28 @@ def cnn_model_function(features, labels, mode, params):
 
         global_step = tf.train.get_global_step()
 
-        with tf.device('/cpu:0'):  # Allow fallback to CPU if no GPU support for these ops
+        # Allow fallback to CPU if no GPU support for these ops
+        with tf.device('/cpu:0'):
             learning_rate = tf.cond(global_step < warmup_it,
-                                    lambda: warmup_decay(warmup_lr, global_step, warmup_it,
+                                    lambda: warmup_decay(warmup_lr,
+                                                         global_step,
+                                                         warmup_it,
                                                          lr),
-                                    lambda: get_lr(lr, steps, lr_steps, warmup_it, decay_steps, global_step,
-                                                   lr_decay_mode, 
-                                                   cdr_first_decay_ratio, cdr_t_mul, cdr_m_mul, cdr_alpha, 
-                                                   lc_periods, lc_alpha, lc_beta))
+                                    lambda: get_lr(lr, steps, lr_steps,
+                                                   warmup_it, decay_steps,
+                                                   global_step, lr_decay_mode,
+                                                   cdr_first_decay_ratio,
+                                                   cdr_t_mul,
+                                                   cdr_m_mul,
+                                                   cdr_alpha,
+                                                   lc_periods,
+                                                   lc_alpha,
+                                                   lc_beta))
             learning_rate = tf.identity(learning_rate, 'learning_rate')
             tf.summary.scalar('learning_rate', learning_rate)
 
         opt = tf.train.MomentumOptimizer(
-            learning_rate, momentum, use_nesterov=True)
+                learning_rate, momentum, use_nesterov=True)
         opt = hvd.DistributedOptimizer(opt)
         if use_larc:
             opt = LarcOptimizer(opt, learning_rate, leta, clip=True)
@@ -742,11 +788,12 @@ def cnn_model_function(features, labels, mode, params):
         with tf.control_dependencies(update_ops):
             gate_gradients = (tf.train.Optimizer.GATE_NONE)
             train_op = opt.minimize(
-                total_loss, global_step=tf.train.get_global_step(),
-                gate_gradients=gate_gradients)
-        train_op = tf.group(preload_op, gpucopy_op, train_op)  # , update_ops)
+                    total_loss, global_step=tf.train.get_global_step(),
+                    gate_gradients=gate_gradients)
+        train_op = tf.group(preload_op, gpucopy_op, train_op)
 
-        return tf.estimator.EstimatorSpec(mode, loss=total_loss, train_op=train_op)
+        return tf.estimator.EstimatorSpec(mode, loss=total_loss,
+                                          train_op=train_op)
 
 
 def get_num_records(filenames):
@@ -761,155 +808,16 @@ def get_num_records(filenames):
             count_records(filenames[-1]))
 
 
-def add_bool_argument(cmdline, shortname, longname=None, default=False, help=None):
-    if longname is None:
-        shortname, longname = None, shortname
-    elif default == True:
-        raise ValueError("""Boolean arguments that are True by default should not have short names.""")
-    name = longname[2:]
-    feature_parser = cmdline.add_mutually_exclusive_group(required=False)
-    if shortname is not None:
-        feature_parser.add_argument(shortname, '--' + name, dest=name, action='store_true', help=help, default=default)
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
     else:
-        feature_parser.add_argument('--' + name, dest=name, action='store_true', help=help, default=default)
-    feature_parser.add_argument('--no' + name, dest=name, action='store_false')
-    return cmdline
-
-
-def add_cli_args():
-    cmdline = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    # Basic options
-    cmdline.add_argument('-m', '--model', default='resnet50',
-                         help="""Name of model to run: resnet[18,34,50,101,152]""")
-    cmdline.add_argument('--data_dir',
-                         help="""Path to dataset in TFRecord format
-                         (aka Example protobufs). Files should be
-                         named 'train-*' and 'validation-*'.""")
-    add_bool_argument(cmdline, '--synthetic', help="""Whether to use synthetic data for training""")
-    cmdline.add_argument('-b', '--batch_size', default=128, type=int,
-                         help="""Size of each minibatch per GPU""")
-    cmdline.add_argument('--num_batches', type=int, default=200,
-                         help="""Number of batches to run.
-                         Ignored during eval or if num epochs given""")
-    cmdline.add_argument('--num_epochs', type=int,
-                         help="""Number of epochs to run.
-                         Overrides --num_batches. Ignored during eval.""")
-    cmdline.add_argument('--log_dir', default='tf_logs',
-                         help="""Directory in which to write training
-                         summaries and checkpoints. If the log directory already 
-                         contains some checkpoints, it tries to resume training
-                         from the last saved checkpoint. Pass --clear_log if you
-                         want to clear all checkpoints and start a fresh run""")
-    cmdline.add_argument('--random_seed', type=bool, default=False)
-    add_bool_argument(cmdline, '--clear_log', default=False,
-                      help="""Clear the log folder passed so a fresh run can be started""")
-    cmdline.add_argument('--log_name', type=str, default='hvd_train.log')
-    add_bool_argument(cmdline, '--local_ckpt',
-                      help="""Performs local checkpoints (i.e. one per node)""")
-    cmdline.add_argument('--display_every', default=20, type=int,
-                         help="""How often (in iterations) to print out
-                         running information.""")
-    add_bool_argument(cmdline, '--eval',
-                      help="""Evaluate the top-1 and top-5 accuracy of
-                      the latest checkpointed model. If you want to evaluate using multiple GPUs ensure that 
-                      all processes have access to all checkpoints. Either if checkpoints 
-                      were saved using --local_ckpt or they were saved to a shared directory which all processes
-                      can access.""")
-    cmdline.add_argument('--eval_interval', type=int,
-                         help="""Evaluate accuracy per eval_interval number of epochs""")
-    add_bool_argument(cmdline, '--fp16', default=True,
-                      help="""Train using float16 (half) precision instead
-                      of float32.""")
-    cmdline.add_argument('--num_gpus', default=1, type=int,
-                         help="""Specify total number of GPUS used to train a checkpointed model during eval.
-                                Used only to calculate epoch number to print during evaluation""")
-
-    cmdline.add_argument('--save_checkpoints_steps', type=int, default=1000)
-    cmdline.add_argument('--save_summary_steps', type=int, default=0)
-    add_bool_argument(cmdline, '--adv_bn_init', default=True,
-                      help="""init gamme of the last BN of each ResMod at 0.""")
-    add_bool_argument(cmdline, '--adv_conv_init', default=True,
-                      help="""init conv with MSRA initializer""")
-
-    cmdline.add_argument('--lr', type=float,
-                         help="""Start learning rate""")
-    cmdline.add_argument('--mom', default=0.90, type=float,
-                         help="""Momentum""")
-    cmdline.add_argument('--wdecay', default=0.0001, type=float,
-                         help="""Weight decay""")
-    cmdline.add_argument('--loss_scale', default=1024., type=float,
-                         help="""loss scale""")
-    cmdline.add_argument('--warmup_lr', default=0.001, type=float,
-                         help="""Warmup starting from this learning rate""")
-    cmdline.add_argument('--warmup_epochs', default=0, type=int,
-                         help="""Number of epochs in which to warmup to given lr""")
-    cmdline.add_argument('--lr_decay_steps', default='30,60,80', type=str,
-                         help="""epoch numbers at which lr is decayed by lr_decay_lrs. 
-                         Used when lr_decay_mode is steps""")
-    cmdline.add_argument('--lr_decay_lrs', default='', type=str,
-                         help="""learning rates at specific epochs""")
-    cmdline.add_argument('--lr_decay_mode', default='poly',
-                         help="""Takes either `steps` (decay by a factor at specified steps) 
-                         or `poly`(polynomial_decay with degree 2)""")
-    
-    add_bool_argument(cmdline, '--use_larc', default=False, 
-                        help="""Use Layer wise Adaptive Rate Control which helps convergence at really large batch sizes""")
-    cmdline.add_argument('--leta', default=0.013, type=float,
-                         help="""The trust coefficient for LARC optimization, LARC Eta""")
-    
-    cmdline.add_argument('--cdr_first_decay_ratio', default=0.33, type=float,
-                         help="""Cosine Decay Restart First Deacy Steps ratio""")
-    cmdline.add_argument('--cdr_t_mul', default=2.0, type=float,
-                         help="""Cosine Decay Restart t_mul""")
-    cmdline.add_argument('--cdr_m_mul', default=0.1, type=float,
-                         help="""Cosine Decay Restart m_mul""")
-    cmdline.add_argument('--cdr_alpha', default=0.0, type=float,
-                         help="""Cosine Decay Restart alpha""")
-    cmdline.add_argument('--lc_periods', default=0.47, type=float,
-                         help="""Linear Cosine num of periods""")
-    cmdline.add_argument('--lc_alpha', default=0.0, type=float,
-                         help="""linear Cosine alpha""")
-    cmdline.add_argument('--lc_beta', default=0.00001, type=float,
-                         help="""Liner Cosine Beta""")
-
-    add_bool_argument(cmdline, '--increased_aug', default=False, 
-                         help="""Increase augmentations helpful when training with large number of GPUs such as 128 or 256""")
-    cmdline.add_argument('--contrast', default=0.6, type=float,
-                         help="""contrast factor""")
-    cmdline.add_argument('--saturation', default=0.6, type=float,
-                         help="""saturation factor""")
-    cmdline.add_argument('--hue', default=0.13, type=float,
-                         help="""hue max delta factor, hue delta = hue * math.pi""")
-    cmdline.add_argument('--brightness', default=0.3, type=float,
-                         help="""Brightness factor""")
-
-    # tornasole arguments
-    add_bool_argument(cmdline, '--enable_tornasole', default=False, help="""enable Tornasole""")
-    cmdline.add_argument('--tornasole_path', default='tornasole_outputs/default_run',
-                         help="""Directory in which to write tornasole data. This can be a local path or 
-                                 S3 path in the form s3://bucket_name/prefix_name""")
-    add_bool_argument(cmdline, '--tornasole_save_all', default=False, help="""save all tensors""")
-    add_bool_argument(cmdline, '--tornasole_dryrun', default=False, help="""If enabled, do not write data to disk""")
-    cmdline.add_argument('--tornasole_exclude', nargs='+', default=[], type=str, action='append',
-                         help="""List of REs for tensors to exclude from Tornasole's default collection""")
-    cmdline.add_argument('--tornasole_include', nargs='+', default=[], type=str, action='append',
-                         help="""List of REs for tensors to include from Tornasole's default collection""")
-    cmdline.add_argument('--tornasole_step_interval', default=10, type=int,
-                         help="""Save tornasole data every N runs""" )
-    add_bool_argument(cmdline, '--tornasole_save_weights', default=False)
-    add_bool_argument(cmdline, '--tornasole_save_gradients', default=False)
-    add_bool_argument(cmdline, '--tornasole_save_inputs', default=False)
-    add_bool_argument(cmdline, '--tornasole_save_relu_activations', default=False)
-    cmdline.add_argument('--tornasole_relu_reductions', nargs='+', type=str, default=[],
-                         help='If passed, saves relu activations in the form of these reductions')
-    cmdline.add_argument('--tornasole_relu_reductions_abs', nargs='+', type=str, default=[],
-                         help='If passed, saves relu activations in the form of these reductions '
-                              'on absolute values of the tensor')
-    cmdline.add_argument('--constant_initializer', type=float,
-                         help="if passed sets that constant as initial weight, "
-                              "if not uses default initialization strategies")
-    return cmdline
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def sort_and_load_ckpts(log_dir):
@@ -926,6 +834,177 @@ def sort_and_load_ckpts(log_dir):
     ckpts.sort(key=itemgetter('step'))
     return ckpts
 
+
+def add_cli_args():
+    cmdline = argparse.ArgumentParser(
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    # Basic options
+    cmdline.add_argument('-m', '--model', default='resnet50',
+                         help="""Name of model to run: 
+                         resnet[18,34,50,101,152]""")
+    cmdline.add_argument('--data_dir',
+                         help="""Path to dataset in TFRecord format
+                         (aka Example protobufs). Files should be
+                         named 'train-*' and 'validation-*'.""")
+    cmdline.add_argument('--synthetic', type=str2bool,
+                         default=False,
+                         help="""Whether to use synthetic data for training. 
+                         If data_dir is not given, uses synthetic data 
+                         by default""")
+    cmdline.add_argument('-b', '--batch_size', default=128, type=int,
+                         help="""Size of each minibatch per GPU""")
+    cmdline.add_argument('--num_batches', type=int, default=200,
+                         help="""Number of batches to run.
+                         Ignored during eval or if num epochs given""")
+    cmdline.add_argument('--num_epochs', type=int,
+                         help="""Number of epochs to run.
+                         Overrides --num_batches. Ignored during eval.""")
+    cmdline.add_argument('--log_dir', default='tf_logs',
+                         help="""Directory in which to write training
+                         summaries and checkpoints. If the log directory 
+                         already contains some checkpoints, it tries 
+                         to resume training from the last saved checkpoint. 
+                         Pass --clear_log if you want to clear all 
+                         checkpoints and start a fresh run""")
+    cmdline.add_argument('--model_dir', default=None, type=str)
+    cmdline.add_argument('--random_seed', type=bool, default=False)
+    cmdline.add_argument('--clear_log', default=False,
+                         help="""Clear the log folder passed 
+                         so a fresh run can be started""")
+    cmdline.add_argument('--log_name', type=str, default='hvd_train.log')
+    cmdline.add_argument('--local_ckpt', type=str2bool, default=False,
+                         help="""Performs local checkpoints 
+                         (i.e. one per node)""")
+    cmdline.add_argument('--display_every', default=20, type=int,
+                         help="""How often (in iterations) to print out
+                         running information.""")
+    cmdline.add_argument('--eval', default=False,
+                         help="""Evaluate the top-1 and top-5 accuracy of
+                         the latest checkpointed model. If you want to 
+                         evaluate using multiple GPUs ensure that all 
+                         processes have access to all checkpoints. 
+                         Either if checkpoints were saved using 
+                         --local_ckpt or they were saved to a 
+                         shared directory which all processes can access.""")
+    cmdline.add_argument('--eval_interval', type=int,
+                         help="""Evaluate accuracy per eval_interval 
+                         number of epochs""")
+    cmdline.add_argument('--fp16', default=True,
+                         help="""Train using float16 (half) precision instead
+                         of float32.""")
+    cmdline.add_argument('--num_gpus', default=1, type=int,
+                         help="""Specify total number of GPUS used to 
+                         train a checkpointed model during eval.
+                         Used only to calculate epoch number to 
+                         print during evaluation""")
+    cmdline.add_argument('--save_checkpoints_steps', type=int, default=1000)
+    cmdline.add_argument('--save_summary_steps', type=int, default=0)
+    cmdline.add_argument('--adv_bn_init', default=True,
+                         help="""init gamme of the last BN of 
+                         each ResMod at 0.""")
+    cmdline.add_argument('--adv_conv_init', default=True,
+                         help="""init conv with MSRA initializer""")
+    cmdline.add_argument('--lr', type=float,
+                         help="""Start learning rate""")
+    cmdline.add_argument('--mom', default=0.90, type=float,
+                         help="""Momentum""")
+    cmdline.add_argument('--wdecay', default=0.0001, type=float,
+                         help="""Weight decay""")
+    cmdline.add_argument('--loss_scale', default=1024., type=float,
+                         help="""loss scale""")
+    cmdline.add_argument('--warmup_lr', default=0.001, type=float,
+                         help="""Warmup starting from this learning rate""")
+    cmdline.add_argument('--warmup_epochs', default=0, type=int,
+                         help="""Number of epochs in which to warmup
+                         to given lr""")
+    cmdline.add_argument('--lr_decay_steps', default='30,60,80', type=str,
+                         help="""epoch numbers at which lr is decayed 
+                         by lr_decay_lrs. Used when lr_decay_mode is steps""")
+    cmdline.add_argument('--lr_decay_lrs', default='', type=str,
+                         help="""learning rates at specific epochs""")
+    cmdline.add_argument('--lr_decay_mode', default='poly',
+                         help="""Takes either `steps` 
+                         (decay by a factor at specified steps) 
+                         or `poly`(polynomial_decay with degree 2)""")
+
+    cmdline.add_argument('--use_larc', default=False,
+                         help="""Use Layer wise Adaptive Rate Control 
+                        which helps convergence at really 
+                        large batch sizes""")
+    cmdline.add_argument('--leta', default=0.013, type=float,
+                         help="""The trust coefficient for LARC optimization, 
+                         LARC Eta""")
+    cmdline.add_argument('--cdr_first_decay_ratio', default=0.33, type=float,
+                         help="""Cosine Decay Restart First 
+                         Decay Steps ratio""")
+    cmdline.add_argument('--cdr_t_mul', default=2.0, type=float,
+                         help="""Cosine Decay Restart t_mul""")
+    cmdline.add_argument('--cdr_m_mul', default=0.1, type=float,
+                         help="""Cosine Decay Restart m_mul""")
+    cmdline.add_argument('--cdr_alpha', default=0.0, type=float,
+                         help="""Cosine Decay Restart alpha""")
+    cmdline.add_argument('--lc_periods', default=0.47, type=float,
+                         help="""Linear Cosine num of periods""")
+    cmdline.add_argument('--lc_alpha', default=0.0, type=float,
+                         help="""linear Cosine alpha""")
+    cmdline.add_argument('--lc_beta', default=0.00001, type=float,
+                         help="""Liner Cosine Beta""")
+
+    cmdline.add_argument('--increased_aug', default=False,
+                         help="""Increase augmentations helpful when training 
+                         with large number of GPUs such as 128 or 256""")
+    cmdline.add_argument('--contrast', default=0.6, type=float,
+                         help="""contrast factor""")
+    cmdline.add_argument('--saturation', default=0.6, type=float,
+                         help="""saturation factor""")
+    cmdline.add_argument('--hue', default=0.13, type=float,
+                         help="""hue max delta factor, 
+                         hue delta = hue * math.pi""")
+    cmdline.add_argument('--brightness', default=0.3, type=float,
+                         help="""Brightness factor""")
+
+    # tornasole arguments
+    cmdline.add_argument('--enable_tornasole', default=False,
+                         help="""enable Tornasole""")
+    cmdline.add_argument('--tornasole_path',
+                         default='tornasole_outputs/default_run',
+                         help="""Directory in which to write tornasole data. 
+                         This can be a local path or 
+                         S3 path in the form s3://bucket_name/prefix_name""")
+    cmdline.add_argument('--tornasole_save_all', default=False,
+                         help="""save all tensors""")
+    cmdline.add_argument('--tornasole_dryrun', default=False,
+                         help="""If enabled, do not write data to disk""")
+    cmdline.add_argument('--tornasole_exclude', nargs='+', default=[],
+                         type=str, action='append',
+                         help="""List of REs for tensors to exclude from 
+                         Tornasole's default collection""")
+    cmdline.add_argument('--tornasole_include', nargs='+', default=[],
+                         type=str, action='append',
+                         help="""List of REs for tensors to include from 
+                         Tornasole's default collection""")
+    cmdline.add_argument('--tornasole_step_interval', default=10, type=int,
+                         help="""Save tornasole data every N runs""")
+    cmdline.add_argument('--tornasole_save_weights', default=False)
+    cmdline.add_argument('--tornasole_save_gradients', default=False)
+    cmdline.add_argument('--tornasole_save_inputs', default=False)
+    cmdline.add_argument('--tornasole_save_relu_activations', default=False)
+    cmdline.add_argument('--tornasole_relu_reductions', type=str,
+                         help="""A comma separated list of reductions can be 
+                         passed. If passed, saves relu activations 
+                         in the form of these reductions.""")
+    cmdline.add_argument('--tornasole_relu_reductions_abs', type=str,
+                         help="""A comma separated list of absolute reductions 
+                         can be passed. If passed, saves relu activations 
+                         in the form of these reductions on absolute values
+                         of the tensor.""")
+    cmdline.add_argument('--constant_initializer', type=float,
+                         help="""if passed sets that constant as initial 
+                         weight, if not uses default initialization 
+                         strategies""")
+    return cmdline
+
+
 def get_tornasole_hook(FLAGS):
     abs_reductions = []
     reductions = []
@@ -936,7 +1015,8 @@ def get_tornasole_hook(FLAGS):
         for r in FLAGS.tornasole_relu_reductions_abs:
             abs_reductions.append(r)
     if reductions or abs_reductions:
-        rnc = ts.ReductionConfig(reductions=reductions, abs_reductions=abs_reductions)
+        rnc = ts.ReductionConfig(reductions=reductions,
+                                 abs_reductions=abs_reductions)
     else:
         rnc = None
 
@@ -955,10 +1035,13 @@ def get_tornasole_hook(FLAGS):
         include_collections.append('default')
 
     return ts.TornasoleHook(out_dir=FLAGS.tornasole_path,
-                            save_config=ts.SaveConfig(save_interval=FLAGS.tornasole_step_interval),
+                            save_config=ts.SaveConfig(
+                                save_interval=FLAGS.tornasole_step_interval),
                             reduction_config=rnc,
                             include_collections=include_collections,
                             save_all=FLAGS.tornasole_save_all)
+
+
 def main():
     gpu_thread_count = 2
     os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
@@ -977,8 +1060,10 @@ def main():
     FLAGS, unknown_args = cmdline.parse_known_args()
 
     # these random seeds are only intended for test purpose.
-    # for now, such seed settings could promise no assert failure when running tornasole_rules test_rules.py with config.yaml
-    # if you wish to change the seed settings, notice that certain steps' tensor value may be capable of variation
+    # for now, such seed settings could promise no assert failure
+    # when running tornasole_rules test_rules.py with config.yaml
+    # if you wish to change the seed settings, notice that certain
+    # steps' tensor value may be capable of variation
     if FLAGS.random_seed:
         random.seed(5 * (1 + hvd.rank()))
         np.random.seed(7 * (1 + hvd.rank()))
@@ -991,6 +1076,7 @@ def main():
 
     FLAGS.data_dir = None if FLAGS.data_dir == "" else FLAGS.data_dir
     FLAGS.log_dir = None if FLAGS.log_dir == "" else FLAGS.log_dir
+    FLAGS.model_dir = None if FLAGS.model_dir == "" else FLAGS.model_dir
 
     if FLAGS.eval:
         FLAGS.log_name = 'eval_' + FLAGS.log_name
@@ -998,7 +1084,8 @@ def main():
         do_checkpoint = hvd.local_rank() == 0
     else:
         do_checkpoint = hvd.rank() == 0
-    if hvd.local_rank() == 0 and FLAGS.clear_log and os.path.isdir(FLAGS.log_dir):
+    if hvd.local_rank() == 0 and FLAGS.clear_log and os.path.isdir(
+            FLAGS.log_dir):
         shutil.rmtree(FLAGS.log_dir)
     barrier = hvd.allreduce(tf.constant(0, dtype=tf.float32))
     tf.Session(config=config).run(barrier)
@@ -1007,7 +1094,7 @@ def main():
         os.makedirs(FLAGS.log_dir)
     barrier = hvd.allreduce(tf.constant(0, dtype=tf.float32))
     tf.Session(config=config).run(barrier)
-    
+
     logger = logging.getLogger(FLAGS.log_name)
     logger.setLevel(logging.INFO)  # INFO, ERROR
     # file handler which logs debug messages
@@ -1025,7 +1112,7 @@ def main():
         fh.setFormatter(formatter)
         # add handlers to logger
         logger.addHandler(fh)
-    
+
     height, width = 224, 224
     global_batch_size = FLAGS.batch_size * hvd.size()
     rank0log(logger, 'PY' + str(sys.version) + 'TF' + str(tf.__version__))
@@ -1038,29 +1125,32 @@ def main():
         num_training_samples = get_num_records(train_filenames)
         rank0log(logger, "Using data from: ", FLAGS.data_dir)
         if not FLAGS.eval:
-            rank0log(logger, 'Found ', num_training_samples, ' training samples')
+            rank0log(logger, 'Found ', num_training_samples,
+                     ' training samples')
     else:
         if not FLAGS.synthetic:
             FLAGS.synthetic = True
             rank0log(logger, 'data_dir missing. Using synthetic data. ' \
-                     'If you want to run on real data' \
-                     'pass --data_dir PATH_TO_DATA')
+                             'If you want to run on real data' \
+                             'pass --data_dir PATH_TO_DATA')
         train_filenames = eval_filenames = []
         num_training_samples = 1281167
     training_samples_per_rank = num_training_samples // hvd.size()
 
-    if FLAGS.num_batches:
-        nstep = FLAGS.num_batches
-        FLAGS.num_epochs = max(nstep * global_batch_size // num_training_samples, 1)
-    elif FLAGS.num_epochs:
+    if FLAGS.num_epochs:
         nstep = num_training_samples * FLAGS.num_epochs // global_batch_size
+    elif FLAGS.num_batches:
+        nstep = FLAGS.num_batches
+        FLAGS.num_epochs = max(
+            nstep * global_batch_size // num_training_samples, 1)
     else:
         raise ValueError("Either num_epochs or num_batches has to be passed")
     nstep_per_epoch = num_training_samples // global_batch_size
     decay_steps = nstep
 
     if FLAGS.lr_decay_mode == 'steps':
-        steps = [int(x) * nstep_per_epoch for x in FLAGS.lr_decay_steps.split(',')]
+        steps = [int(x) * nstep_per_epoch for x in
+                 FLAGS.lr_decay_steps.split(',')]
         lr_steps = [float(x) for x in FLAGS.lr_decay_lrs.split(',')]
     else:
         steps = []
@@ -1077,11 +1167,13 @@ def main():
     if not FLAGS.save_summary_steps:
         # default to save one checkpoint per epoch
         FLAGS.save_summary_steps = nstep_per_epoch
-    
+
     if not FLAGS.eval:
         rank0log(logger, 'Using a learning rate of ', FLAGS.lr)
-        rank0log(logger, 'Checkpointing every ' + str(FLAGS.save_checkpoints_steps) + ' steps')
-        rank0log(logger, 'Saving summary every ' + str(FLAGS.save_summary_steps) + ' steps')
+        rank0log(logger, 'Checkpointing every ' + str(
+            FLAGS.save_checkpoints_steps) + ' steps')
+        rank0log(logger, 'Saving summary every ' + str(
+            FLAGS.save_summary_steps) + ' steps')
 
     warmup_it = nstep_per_epoch * FLAGS.warmup_epochs
     if FLAGS.constant_initializer:
@@ -1091,84 +1183,94 @@ def main():
     else:
         initializer_conv = None
 
+    if FLAGS.model_dir is None:
+        FLAGS.model_dir = FLAGS.log_dir
+
     classifier = tf.estimator.Estimator(
-        model_fn=cnn_model_function,
-        model_dir=FLAGS.log_dir,
-        params={
-            'model': FLAGS.model,
-            'decay_steps': decay_steps,
-            'n_classes': 1000,
-            'dtype': tf.float16 if FLAGS.fp16 else tf.float32,
-            'format': 'channels_first',
-            'device': '/gpu:0',
-            'lr': FLAGS.lr,
-            'mom': FLAGS.mom,
-            'wdecay': FLAGS.wdecay,
-            'use_larc': FLAGS.use_larc,
-            'leta': FLAGS.leta,
-            'steps': steps,
-            'lr_steps': lr_steps,
-            'lr_decay_mode': FLAGS.lr_decay_mode,
-            'warmup_it': warmup_it,
-            'warmup_lr': FLAGS.warmup_lr,
-            'cdr_first_decay_ratio': FLAGS.cdr_first_decay_ratio,
-            'cdr_t_mul': FLAGS.cdr_t_mul,
-            'cdr_m_mul': FLAGS.cdr_m_mul,
-            'cdr_alpha': FLAGS.cdr_alpha,
-            'lc_periods': FLAGS.lc_periods,
-            'lc_alpha': FLAGS.lc_alpha,
-            'lc_beta': FLAGS.lc_beta,
-            'loss_scale': FLAGS.loss_scale,
-            'adv_bn_init': FLAGS.adv_bn_init,
-            'conv_init': initializer_conv
-        },
-        config=tf.estimator.RunConfig(
-            tf_random_seed=31 * (1 + hvd.rank()),
-          session_config=config,
-            save_summary_steps=FLAGS.save_summary_steps if do_checkpoint else None,
-            save_checkpoints_steps=FLAGS.save_checkpoints_steps if do_checkpoint else None,
-            keep_checkpoint_max=None))
+            model_fn=cnn_model_function,
+            model_dir=FLAGS.model_dir,
+            params={
+                'model': FLAGS.model,
+                'decay_steps': decay_steps,
+                'n_classes': 1000,
+                'dtype': tf.float16 if FLAGS.fp16 else tf.float32,
+                'format': 'channels_first',
+                'device': '/gpu:0',
+                'lr': FLAGS.lr,
+                'mom': FLAGS.mom,
+                'wdecay': FLAGS.wdecay,
+                'use_larc': FLAGS.use_larc,
+                'leta': FLAGS.leta,
+                'steps': steps,
+                'lr_steps': lr_steps,
+                'lr_decay_mode': FLAGS.lr_decay_mode,
+                'warmup_it': warmup_it,
+                'warmup_lr': FLAGS.warmup_lr,
+                'cdr_first_decay_ratio': FLAGS.cdr_first_decay_ratio,
+                'cdr_t_mul': FLAGS.cdr_t_mul,
+                'cdr_m_mul': FLAGS.cdr_m_mul,
+                'cdr_alpha': FLAGS.cdr_alpha,
+                'lc_periods': FLAGS.lc_periods,
+                'lc_alpha': FLAGS.lc_alpha,
+                'lc_beta': FLAGS.lc_beta,
+                'loss_scale': FLAGS.loss_scale,
+                'adv_bn_init': FLAGS.adv_bn_init,
+                'conv_init': initializer_conv
+            },
+            config=tf.estimator.RunConfig(
+                    tf_random_seed=31 * (1 + hvd.rank()),
+                    session_config=config,
+                    save_summary_steps=FLAGS.save_summary_steps if do_checkpoint else None,
+                    save_checkpoints_steps=FLAGS.save_checkpoints_steps if do_checkpoint else None,
+                    keep_checkpoint_max=None))
 
     if FLAGS.enable_tornasole and hvd.rank() == 0:
         hook = get_tornasole_hook(FLAGS)
 
     if not FLAGS.eval:
         num_preproc_threads = 5
-        rank0log(logger, "Using preprocessing threads per GPU: ", num_preproc_threads)
+        rank0log(logger, "Using preprocessing threads per GPU: ",
+                 num_preproc_threads)
         training_hooks = [hvd.BroadcastGlobalVariablesHook(0),
                           PrefillStagingAreasHook()]
         if hvd.rank() == 0:
-            training_hooks.append( LogSessionRunHook(global_batch_size,
-                                                     num_training_samples, FLAGS.display_every, logger))
+            training_hooks.append(LogSessionRunHook(global_batch_size,
+                                                    num_training_samples,
+                                                    FLAGS.display_every,
+                                                    logger))
             if FLAGS.enable_tornasole:
                 training_hooks.append(hook)
         try:
             hook.set_mode(ts.modes.TRAIN)
             start_time = time.time()
             classifier.train(
-                input_fn=lambda: make_dataset(
-                    train_filenames,
-                    training_samples_per_rank,
-                    FLAGS.batch_size, height, width, 
-                    FLAGS.brightness, FLAGS.contrast, FLAGS.saturation, FLAGS.hue, 
-                    training=True, num_threads=num_preproc_threads, 
-                    shard=True, synthetic=FLAGS.synthetic,
-                    increased_aug=FLAGS.increased_aug),
-                max_steps=nstep,
-                hooks=training_hooks)
+                    input_fn=lambda: make_dataset(
+                            train_filenames,
+                            training_samples_per_rank,
+                            FLAGS.batch_size, height, width,
+                            FLAGS.brightness, FLAGS.contrast,
+                            FLAGS.saturation, FLAGS.hue,
+                            training=True, num_threads=num_preproc_threads,
+                            shard=True, synthetic=FLAGS.synthetic,
+                            increased_aug=FLAGS.increased_aug),
+                    max_steps=nstep,
+                    hooks=training_hooks)
             rank0log(logger, "Finished in ", time.time() - start_time)
         except KeyboardInterrupt:
             print("Keyboard interrupt")
     elif FLAGS.eval and not FLAGS.synthetic:
         rank0log(logger, "Evaluating")
-        rank0log(logger, "Validation dataset size: {}".format(get_num_records(eval_filenames)))
+        rank0log(logger, "Validation dataset size: {}".
+                 format(get_num_records(eval_filenames)))
         barrier = hvd.allreduce(tf.constant(0, dtype=tf.float32))
         tf.Session(config=config).run(barrier)
         time.sleep(5)  # a little extra margin...
         if FLAGS.num_gpus == 1:
-            rank0log(logger, """If you are evaluating checkpoints of a multi-GPU run on a single GPU,
-             ensure you set --num_gpus to the number of GPUs it was trained on.
-             This will ensure that the epoch number is accurately displayed in the below logs.""")
+            rank0log(logger, """If you are evaluating checkpoints of a 
+            multi-GPU run on a single GPU, ensure you set --num_gpus to 
+            the number of GPUs it was trained on.
+            This will ensure that the epoch number is 
+            accurately displayed in the below logs.""")
         try:
             ckpts = sort_and_load_ckpts(FLAGS.log_dir)
             for i, c in enumerate(ckpts):
@@ -1178,34 +1280,42 @@ def main():
                         continue
                 hook.set_mode(ts.modes.EVAL)
                 eval_result = classifier.evaluate(
-                    input_fn=lambda: make_dataset(
-                        eval_filenames,
-                        get_num_records(eval_filenames), FLAGS.batch_size,
-                        height, width, 
-                        FLAGS.brightness, FLAGS.contrast, FLAGS.saturation, FLAGS.hue,
-                        training=False, shard=True, increased_aug=False),
-                    checkpoint_path=c['path'])
-                c['epoch'] = c['step'] / (num_training_samples // (FLAGS.batch_size * FLAGS.num_gpus))
+                        input_fn=lambda: make_dataset(
+                                eval_filenames,
+                                get_num_records(eval_filenames),
+                                FLAGS.batch_size,
+                                height, width,
+                                FLAGS.brightness, FLAGS.contrast,
+                                FLAGS.saturation, FLAGS.hue,
+                                training=False, shard=True,
+                                increased_aug=False),
+                        checkpoint_path=c['path'])
+                c['epoch'] = c['step'] / (num_training_samples // (
+                            FLAGS.batch_size * FLAGS.num_gpus))
                 c['top1'] = eval_result['val-top1acc']
                 c['top5'] = eval_result['val-top5acc']
                 c['loss'] = eval_result['loss']
-            rank0log(logger, ' step  epoch  top1    top5     loss   checkpoint_time(UTC)')
+            rank0log(logger,
+                     ' step  epoch  top1    top5     loss   checkpoint_time(UTC)')
             barrier = hvd.allreduce(tf.constant(0, dtype=tf.float32))
             for i, c in enumerate(ckpts):
                 tf.Session(config=config).run(barrier)
                 if 'top1' not in c:
                     continue
-                rank0log(logger,'{:5d}  {:5.1f}  {:5.3f}  {:6.2f}  {:6.2f}  {time}'
+                rank0log(logger,
+                         '{:5d}  {:5.1f}  {:5.3f}  {:6.2f}  {:6.2f}  {time}'
                          .format(c['step'],
                                  c['epoch'],
                                  c['top1'] * 100,
                                  c['top5'] * 100,
                                  c['loss'],
-                                 time=time.strftime('%Y-%m-%d %H:%M:%S', 
-                                    time.localtime(c['mtime']))))
+                                 time=time.strftime('%Y-%m-%d %H:%M:%S',
+                                                    time.localtime(
+                                                            c['mtime']))))
             rank0log(logger, "Finished evaluation")
         except KeyboardInterrupt:
             logger.error("Keyboard interrupt")
+
 
 if __name__ == '__main__':
     main()

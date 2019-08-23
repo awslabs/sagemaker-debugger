@@ -9,7 +9,7 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import tornasole_tf as ts
+import tornasole.tensorflow as ts
 ```
 **Saving gradients**
 

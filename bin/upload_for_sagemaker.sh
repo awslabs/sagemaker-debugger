@@ -6,6 +6,7 @@ export AWS_PROFILE=removethissoitdoesntcrash
 # API DOCS
 aws s3 cp docs/mxnet/api.md s3://tornasole-external-preview-use1/frameworks/mxnet/
 aws s3 cp docs/tensorflow/api.md s3://tornasole-external-preview-use1/frameworks/tensorflow/
+aws s3 cp docs/tensorflow/examples/sm_resnet50.md s3://tornasole-external-preview-use1/frameworks/tensorflow/
 aws s3 cp docs/pytorch/api.md s3://tornasole-external-preview-use1/frameworks/pytorch/
 
 # DEV GUIDES
@@ -16,11 +17,11 @@ aws s3 cp sagemaker-docs/DeveloperGuide_Rules.md s3://tornasole-external-preview
 
 # MXNET EXAMPLES
 aws s3 sync examples/mxnet/sagemaker-notebooks s3://tornasole-external-preview-use1/frameworks/mxnet/examples/notebooks
-aws s3 cp examples/mxnet/scripts/mnist_mxnet.py s3://tornasole-external-preview-use1/frameworks/mxnet/examples/scripts
+aws s3 cp examples/mxnet/scripts/mnist_mxnet.py s3://tornasole-external-preview-use1/frameworks/mxnet/examples/scripts/
 
 # TF EXAMPLES
 aws s3 sync examples/tensorflow/sagemaker-notebooks s3://tornasole-external-preview-use1/frameworks/tensorflow/examples/notebooks
-aws s3 cp examples/tensorflow/scripts/simple.py s3://tornasole-external-preview-use1/frameworks/tensorflow/examples/scripts
+aws s3 sync examples/tensorflow/scripts s3://tornasole-external-preview-use1/frameworks/tensorflow/examples/scripts
 
 # PYTORCH EXAMPLES
 #aws s3 sync examples/pytorch s3://tornasole-external-preview-use1/frameworks/pytorch/examples

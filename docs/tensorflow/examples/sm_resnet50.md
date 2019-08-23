@@ -74,94 +74,102 @@ classifier.train(
     max_steps=nstep,
     hooks=training_hooks)
 ```
+
 ## Running the example
-### Environment
-Ensure you are in a python environment which has TensorFlow, TornasoleTF and TornasoleCore installed. If you followed the recommended instructions of using Amazon Deep Learning AMI, then you might want to activate the tensorflow_p36 environment as follows.
-```
-source activate tensorflow_p36
-```
+Here we provide example hyperparameters dictionaries to run this script in different scenarios from within SageMaker. You can replace the resnet_hyperparams dictionary in the notebook we provided to use the following hyperparams dictionaries to run the jobs in these scenarios.
+
 ### Run with synthetic or real data
 By default the following commands run with synthetic data. If you have ImageNet data prepared in tfrecord format, 
- you can pass the path to that with the flag --data_dir, such as the following:
+ you can pass the path to that with the parameter data_dir.
 
-```python train_imagenet_resnet_hvd.py --data_dir ~/data/tf-imagenet/ ...```
-
-This flag can be appended to any of the following commands 
-to make the job use real data.
-### Tornasole Path
-We recommend saving tornasole outputs on S3 by passing 
-the flag `--tornasole_path` in the format `s3://bucket_name/prefix`. 
-The commands below will be shown with local path however 
-so you can run them immediately without having to setup S3 permissions.
-
-### Example commands
-#### Saving weights and gradients with Tornasole
+### Saving weights and gradients with Tornasole
 ```
-python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
-    --tornasole_save_weights --tornasole_save_gradients \ 
-    --tornasole_step_interval 10 \
-    --tornasole_path ~/ts_outputs/default
+hyperparams = {
+    'enable_tornasole': True,
+    'tornasole_save_weights': True,
+    'tornasole_save_gradients': True,
+    'tornasole_step_interval': 100
+}
 ```
-#### Simulating gradients which 'vanish'
+
+### Simulating gradients which 'vanish'
 We simulate the scenario of gradients being really small (vanishing) by initializing weights with a small constant. 
-```
-python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
-    --tornasole_save_weights --tornasole_save_gradients \ 
-    --tornasole_step_interval 10 \
-    --constant_initializer 0.01 \
-    --tornasole_path ~/ts_outputs/vanishing  
-``` 
 
-##### Rule: VanishingGradient
-You can monitor vanishing gradients by doing the following
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing --rule-name VanishingGradient
+hyperparams = {
+    'enable_tornasole': True,
+    'tornasole_save_weights': True,
+    'tornasole_save_gradients': True,
+    'tornasole_step_interval': 100,
+    'constant_initializer': 0.01
+}
 ``` 
+#### Rule: VanishingGradient
+To monitor this condition for the first 10000 training steps, you can setup a Vanishing Gradient rule  as follows:
+
+```
+rule_specifications=[
+    {
+        "RuleName": "VanishingGradient",
+        "InstanceType": "ml.c5.4xlarge",
+        "RuntimeConfigurations": {
+            "end-step": "10000",
+        }
+    }
+]
+
+```
 #### Saving activations of RELU layers in full
 ```
-python train_imagenet_resnet_hvd.py --clear_log  --enable_tornasole \
-    --tornasole_save_relu_activations \
-    --tornasole_step_interval 10 \
-    --tornasole_path ~/ts_outputs/full_relu_activations
+hyperparams = {
+    'enable_tornasole': True,
+    'tornasole_save_relu_activations': True,
+    'tornasole_step_interval': 200,
+}
 ```
 #### Saving activations of RELU layers as reductions
 ```
-python train_imagenet_resnet_hvd.py --clear_log  --enable_tornasole \
-    --tornasole_save_relu_activations \
-    --tornasole_relu_reductions min max mean variance \
-    --tornasole_relu_reductions_abs mean variance \
-    --tornasole_step_interval 10 \
-    --tornasole_path ~/ts_outputs/reductions_relu_activations  
+hyperparams = {
+    'enable_tornasole': True,
+    'tornasole_save_relu_activations': True,
+    'tornasole_step_interval': 200,
+    'tornasole_relu_reductions': 'min,max,mean,variance',
+    'tornasole_relu_reductions_abs': 'mean,variance',
+}
 ```
 #### Saving weights every step
 If you want to compute and track the ratio of weights and updates, 
 you can do that by saving weights every step as follows 
 ```
-python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
-    --tornasole_save_weights \
-    --tornasole_step_interval 1 \
-    --tornasole_path ~/ts_outputs/weights
+hyperparams = {
+    'enable_tornasole': True,
+    'tornasole_save_weights': True,
+    'tornasole_step_interval': 1
+}
 ```
 ##### Rule: WeightUpdateRatio 
-You can invoke the rule to 
-monitor the ratio of weights to updates every step. 
-A quick way to invoke the rule is like this: 
+To monitor the weights and updates during training, you can setup a WeightUpdateRatio rule as follows:
+
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name WeightUpdateRatio
+rule_specifications=[
+    {
+        "RuleName": "WeightUpdateRatio",
+        "InstanceType": "ml.c5.4xlarge",
+    }
+]
 ```
-If you want to customize the thresholds, you can pass the arguments taken by the rule as command line arguments above. 
 
 ##### Rule: UnchangedTensor
 You can also invoke this rule to 
 monitor if tensors are not changing at every step. Here we are passing '.*' as the tensor_regex to monitor all tensors.
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name UnchangedTensor --tensor_regex .*
+rule_specifications=[
+    {
+        "RuleName": "UnchangedTensor",
+        "InstanceType": "ml.c5.4xlarge",
+        "RuntimeConfigurations": {
+            "tensor_regex": ".*"
+        }
+    }
+]
 ```
-
-#### Running with tornasole disabled
-```
-python train_imagenet_resnet_hvd.py --clear_log
-```
-### More
-Please refer to [Tornasole Tensorflow page](../README.md) and the various flags in the script to customize the behavior further.
-Refer [this page](../../rules/README.md) for more details on analysis. 

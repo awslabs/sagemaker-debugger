@@ -70,3 +70,4 @@ for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale
     _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
     print (f'Step={i}, Loss={_loss}')
+

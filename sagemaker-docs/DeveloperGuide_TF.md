@@ -19,7 +19,7 @@ in parallel with the training job.
 
 ## Quickstart
 If you want to quickly run an end to end example in Sagemaker, 
-you can jump to the notebook [examples/notebooks/tensorflow-simple.ipynb](examples/notebooks/tensorflow-simple.ipynb).
+you can jump to the notebook [examples/notebooks/tensorflow.ipynb](examples/notebooks/tensorflow.ipynb).
 
 Integrating Tornasole into your job is as easy as adding the following lines of code:
 

@@ -9,6 +9,12 @@ parser.add_argument('--tornasole_train_frequency', type=int,
                     help="How often to save TS data", default=50)
 parser.add_argument('--tornasole_eval_frequency', type=int,
                     help="How often to save TS data", default=10)
+parser.add_argument('--num_epochs', type=int, default=5,
+                    help="Number of epochs to train for")
+parser.add_argument('--num_steps', type=int,
+                    help="Number of steps to train for. If this" \
+                         "is passed, it overrides num_epochs")
+parser.add_argument('--model_dir', type=str, default='/tmp/mnist_model')
 args = parser.parse_args()
 
 def cnn_model_fn(features, labels, mode):
@@ -87,13 +93,13 @@ eval_data = eval_data / np.float32(255)
 eval_labels = eval_labels.astype(np.int32)  # not required
 
 mnist_classifier = tf.estimator.Estimator(
-  model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
+  model_fn=cnn_model_fn, model_dir=args.model_dir)
 
 train_input_fn = tf.estimator.inputs.numpy_input_fn(
   x={"x": train_data},
   y=train_labels,
-  batch_size=100,
-  num_epochs=None,
+  batch_size=128,
+  num_epochs=args.num_epochs,
   shuffle=True)
 
 eval_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -110,7 +116,7 @@ hook.set_mode(ts.modes.TRAIN)
 # train one step and display the probabilties
 mnist_classifier.train(
   input_fn=train_input_fn,
-  steps=1000,
+  steps=args.num_steps,
   hooks=[hook])
 
 hook.set_mode(ts.modes.EVAL)
