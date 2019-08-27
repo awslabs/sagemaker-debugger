@@ -35,6 +35,4 @@ aws s3 cp examples/rules/scripts/my_custom_rule.py s3://tornasole-external-previ
 # RULES_PACKAGE
 aws s3 sync tornasole/rules s3://tornasole-external-preview-use1/rules/rules_package
 
-# BINARY
-aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_rules/py3/latest s3://tornasole-external-preview-use1/rules/binary
 

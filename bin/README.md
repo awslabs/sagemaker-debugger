@@ -1,4 +1,3 @@
-# Locations
 ## Tornasole binaries
 ### Latest binaries
 ##### MXNet
@@ -26,7 +25,7 @@ s3://tornasole-binaries-use1/tornasole_pytorch/py3/
 s3://tornasole-binaries-use1/tornasole_rules/py3/
 ```
 
-## Containers
+## Framework Containers with Tornasole
 REGION below can be one of 
 ```
 us-east-1 
@@ -60,4 +59,26 @@ gpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-mxnet-1.4.1-gpu
 ```
 cpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-pytorch-1.1.0-cpu:latest
 gpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-pytorch-1.1.0-gpu:latest
+```
+
+
+## Process for new release
+
+- Update version in `tornasole/_version.py`
+- Build new binaries 
+```
+python bin/build_binaries.py --upload --replace-latest
+```
+- Build new containers
+```
+python bin/build_containers.py --tag $VERSION
+```
+- Test the new container
+```
+cd bin/sagemaker-containers/tensorflow
+SM_TESTING_TAG=$VERSION python run_sagemaker.py
+```
+- When you are sure that the containers are good, then retag them as latest
+```
+bash tag_as_latest.sh $VERSION
 ```
