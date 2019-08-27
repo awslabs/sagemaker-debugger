@@ -13,16 +13,15 @@ def test_modes_on_global_data():
 
 def test_mode_data():
   run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
-  path = 'ts_outputs'
+  trial_dir = 'ts_outputs/' + run_id
 
   c = CollectionManager()
   c.add("default")
   c.get("default").tensor_names = ["arr"]
-  c.export(os.path.join(path, run_id, "collections.ts"))
-  tr = create_trial('ts_outputs/' + run_id)
-
+  c.export(os.path.join(trial_dir, "collections.ts"))
+  tr = create_trial(trial_dir)
   for s in range(0, 10):
-    fw = FileWriter(logdir='ts_outputs', trial=run_id, step=s)
+    fw = FileWriter(trial_dir=trial_dir, step=s)
     if s % 2 == 0:
       fw.write_tensor(tdata=np.array([[1.0, 2.0], [3.0, 4.0]],
                                      dtype=np.float32),

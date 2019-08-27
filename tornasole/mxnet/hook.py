@@ -37,8 +37,7 @@ class TornasoleHook:
                  include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                  save_all=False):
         self.out_dir = verify_and_get_out_dir(out_dir)
-        self.out_base_dir = os.path.dirname(self.out_dir)
-        self.run_id = os.path.basename(self.out_dir)
+
         self.include_collections = include_collections
 
         self.dry_run = dry_run
@@ -146,8 +145,7 @@ class TornasoleHook:
         # Reset the collections to be saved in this step to be None.
         self.collections_in_this_step = None
         if self._process_step():
-            self.writer = FileWriter(logdir=self.out_base_dir,
-                                     trial=self.run_id,
+            self.writer = FileWriter(trial_dir=self.out_dir,
                                      step=self.step,
                                      worker=self.worker)
 

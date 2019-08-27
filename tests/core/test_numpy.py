@@ -8,7 +8,7 @@ def rw(path):
     """
     Checks that we can save data and read it back the way it was
     """
-    with FileWriter(logdir=path, trial='my_trial', step=20, worker='algo-1') as fw:
+    with FileWriter(trial_dir=path + '/my_trial', step=20, worker='algo-1') as fw:
         fname = fw.name()
         print( f'Saving data in {fname}')
         for i in range(10):
@@ -43,7 +43,7 @@ def test_s3():
 
 #@pytest.mark.skip(reason="No string support")
 def test_string():
-    with FileWriter(logdir="./ts_output", trial='my_trial', step=20, worker='algo-1') as fw:
+    with FileWriter(trial_dir="./ts_output/my_trial", step=20, worker='algo-1') as fw:
         fname = fw.name()
         print( f'Saving string data in {fname}')
         s_written = np.array(['foo', 'barz'])

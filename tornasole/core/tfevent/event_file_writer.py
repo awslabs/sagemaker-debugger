@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Writes events to disk in a logdir."""
+"""Writes events to disk in a trial dir."""
 
 import logging
 import numpy as np
@@ -53,19 +53,19 @@ def make_numpy_array(x):
         raise TypeError('_make_numpy_array only accepts input types of numpy.ndarray, scalar,'
                         ' while received type {}'.format(str(type(x))))
 
+
 class EventsWriter(object):
     """Writes `Event` protocol buffers to an event file. This class is ported from
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
-    def __init__(self, logdir, trial, worker, step, part,
+    def __init__(self, trial_dir, worker, step,
                  verbose=False, write_checksum=False):
-
         """
         Events files have a name of the form
         '/file/path/events.out.tfevents.[timestamp].[hostname][file_suffix]'
         """
-        self.file_prefix = os.path.join(logdir, trial)
+        self.file_prefix = trial_dir
         self._file_suffix = ''
         self._filename = None
         self.tfrecord_writer = None
@@ -79,7 +79,8 @@ class EventsWriter(object):
         if worker is None:
             self.worker = socket.gethostname()
 
-        index_file_path = IndexUtil.get_index_key_for_step(self.file_prefix, step, self.worker)
+        index_file_path = IndexUtil.get_index_key_for_step(self.file_prefix,
+                                                           step, self.worker)
         self.indexwriter = IndexWriter(index_file_path)
 
     def __del__(self):
@@ -94,8 +95,6 @@ class EventsWriter(object):
         self._filename = el.get_location(run_dir=self.file_prefix)
 
         self.tfrecord_writer = RecordWriter(self._filename, self.write_checksum)
-        # if self.verbose and self._logger is not None:
-            # ('successfully opened events file: %s', self._filename)
 
     def init_with_suffix(self, file_suffix):
         """Initializes the events writer with file_suffix"""
@@ -152,7 +151,7 @@ class EventFileWriter():
     is encoded using the tfrecord format, which is similar to RecordIO.
     """
 
-    def __init__(self, logdir, trial, worker, step, part=0, max_queue=10,
+    def __init__(self, trial_dir, worker, step, max_queue=10,
                  flush_secs=120, filename_suffix='',
                  verbose=False, write_checksum=False):
         """Creates a `EventFileWriter` and an event file to write to.
@@ -163,26 +162,21 @@ class EventFileWriter():
         the event file:
         """
 
-        self._logdir = logdir
+        self._trial_dir = trial_dir
         self._event_queue = six.moves.queue.Queue(max_queue)
-        self._ev_writer = EventsWriter(logdir=self._logdir, trial=trial, worker=worker,
-                                       step=step, part=part, verbose=verbose, write_checksum=write_checksum)
+        self._ev_writer = EventsWriter(trial_dir=self._trial_dir, worker=worker,
+                                       step=step, verbose=verbose, write_checksum=write_checksum)
         self._ev_writer.init_with_suffix(filename_suffix)
         self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()
         self.step = step
-        # if filename_suffix is not None:
-        #     self._ev_writer.init_with_suffix(filename_suffix)        
+
         self._closed = False
         self._logger = logging.getLogger(__name__)
         self._worker = _EventLoggerThread(queue=self._event_queue, ev_writer=self._ev_writer,
                                           flush_secs=self._flush_secs, sentinel_event=self._sentinel_event)
         self._worker.start()
 
-
-    def get_logdir(self):
-        """Returns the directory where event file will be written."""
-        return self._logdir
 
     def reopen(self):
         """Reopens the EventFileWriter.
@@ -191,8 +185,12 @@ class EventFileWriter():
         Does nothing if the `EventFileWriter` was not closed.
         """
         if self._closed:
-            self._worker = _EventLoggerThread(queue=self._event_queue, ev_writer=self._ev_writer,
-                                              flush_secs=self._flush_secs, sentinel_event=self._sentinel_event)
+            self._worker = _EventLoggerThread(
+                    queue=self._event_queue,
+                    ev_writer=self._ev_writer,
+                    flush_secs=self._flush_secs,
+                    sentinel_event=self._sentinel_event
+            )
             self._worker.start()
             self._closed = False
 

@@ -8,7 +8,8 @@ def generate_data(path, trial, step, tname_prefix,
                   num_tensors, worker, shape, dtype=np.float32,
                   rank=None, mode=None, mode_step=None, export_colls=True,
                   data=None):
-    with FileWriter(logdir=path, trial=trial, step=step, worker=worker) as fw:
+    with FileWriter(trial_dir=os.path.join(path, trial),
+                    step=step, worker=worker) as fw:
         for i in range(num_tensors):
             if data is None:
                 data = np.ones(shape=shape, dtype=dtype) * step
