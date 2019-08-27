@@ -29,7 +29,7 @@ aws s3 sync examples/pytorch/sagemaker-notebooks s3://tornasole-external-preview
 aws s3 cp examples/pytorch/scripts/simple.py s3://tornasole-external-preview-use1/frameworks/pytorch/examples/scripts/simple.py
 
 # RULES EXAMPLES
-aws s3 cp examples/rules/sagemaker-notebooks/BringYourOwnRule.ipynb s3://tornasole-external-preview-use1/rules/
+aws s3 cp examples/rules/sagemaker-notebooks/BringYourOwnRule.ipynb s3://tornasole-external-preview-use1/rules/notebooks/
 aws s3 cp examples/rules/scripts/my_custom_rule.py s3://tornasole-external-preview-use1/rules/scripts/my_custom_rule.py
 
 # RULES_PACKAGE
