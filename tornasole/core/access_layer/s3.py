@@ -1,6 +1,7 @@
 import boto3
 import re
 from tornasole.core.access_layer.base import TSAccessBase
+from tornasole.core.utils import get_region
 
 
 class TSAccessS3(TSAccessBase):
@@ -16,8 +17,8 @@ class TSAccessS3(TSAccessBase):
         self.flushed = False
         
         self.current_len=0
-        self.s3 = boto3.resource('s3')
-        self.s3_client = boto3.client('s3')
+        self.s3 = boto3.resource('s3', region_name=get_region())
+        self.s3_client = boto3.client('s3', region_name=get_region())
 
         # check if the bucket exists
         buckets = [bucket['Name'] for bucket in self.s3_client.list_buckets()['Buckets']]

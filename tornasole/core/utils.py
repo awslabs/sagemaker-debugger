@@ -157,3 +157,11 @@ def index(sorted_list, elem):
     if i != len(sorted_list) and sorted_list[i] == elem:
         return i
     raise ValueError
+
+
+def get_region():
+    # returns None if region is not set
+    region_name = os.environ.get('AWS_REGION')
+    if region_name.strip() == '':
+        region_name = None
+    return region_name

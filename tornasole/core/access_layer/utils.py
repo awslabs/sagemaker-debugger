@@ -2,7 +2,7 @@ import os
 from botocore.exceptions import ClientError
 from .file import TSAccessFile
 from .s3 import TSAccessS3
-from tornasole.core.utils import is_s3, get_logger, check_dir_exists
+from tornasole.core.utils import is_s3, get_logger, check_dir_exists, get_region
 from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
 import asyncio
 import aioboto3
@@ -64,7 +64,7 @@ def delete_s3_prefixes(bucket, keys):
 
     async def del_folder(bucket, keys):
         loop = asyncio.get_event_loop()
-        client = aioboto3.client('s3', loop=loop)
+        client = aioboto3.client('s3', loop=loop, region_name=get_region())
         await asyncio.gather(*[client.delete_object(Bucket=bucket, Key=key) for key in keys])
         await client.close()
 
