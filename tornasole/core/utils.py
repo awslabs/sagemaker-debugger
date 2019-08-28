@@ -162,6 +162,6 @@ def index(sorted_list, elem):
 def get_region():
     # returns None if region is not set
     region_name = os.environ.get('AWS_REGION')
-    if region_name.strip() == '':
+    if region_name is not None and region_name.strip() == '':
         region_name = None
     return region_name
