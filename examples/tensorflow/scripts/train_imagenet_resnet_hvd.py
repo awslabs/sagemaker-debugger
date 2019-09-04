@@ -1030,7 +1030,7 @@ def get_tornasole_hook(FLAGS):
         include_collections.append('relu_activations')
     if FLAGS.tornasole_save_inputs is True:
         include_collections.append('inputs')
-    if FLAGS.tornasole_include is True:
+    if FLAGS.tornasole_include:
         ts.get_collection('default').include(FLAGS.tornasole_include)
         include_collections.append('default')
     return ts.TornasoleHook(out_dir=FLAGS.tornasole_path,
