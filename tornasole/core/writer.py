@@ -21,18 +21,25 @@ from tornasole.core.tfevent.event_file_writer import EventFileWriter
 import socket
 from .modes import ModeKeys
 
+
 class FileWriter():
-    def __init__(self, logdir, trial, step, worker=None, rank=0, part=0,
+    def __init__(self, trial_dir, step, worker=None,
                  wtype='tfevent',
                  max_queue=10, flush_secs=120,
                  filename_suffix='', verbose=False, write_checksum=False):
         """Creates a `FileWriter` and an  file.
-        On construction the summary writer creates a new event file in `logdir`.
+        On construction the summary writer creates a new event file in `trial_dir`.
  
         Parameters
         ----------
-            logdir : str
+            trial_dir : str
                 Directory where event file will be written.
+            step: int
+                Global step number
+            worker: str
+                Worker name
+            part: int
+                Unused for now
             max_queue : int
                 Size of the queue for pending events and summaries.
             flush_secs: Number
@@ -42,15 +49,15 @@ class FileWriter():
             verbose : bool
                 Determines whether to print logging messages.
         """
-        self.trial = trial
+        self.trial_dir = trial_dir
         self.step = step
         self.worker = worker
         if worker is None:
             self.worker = socket.gethostname()
 
         if wtype == 'tfevent':
-            self._writer = EventFileWriter(logdir=logdir, trial=self.trial, worker=self.worker,
-                                           step=self.step, part=part,
+            self._writer = EventFileWriter(trial_dir=self.trial_dir, worker=self.worker,
+                                           step=self.step,
                                            max_queue=max_queue, flush_secs=flush_secs,
                                            filename_suffix=filename_suffix,
                                            verbose=verbose, write_checksum=write_checksum)

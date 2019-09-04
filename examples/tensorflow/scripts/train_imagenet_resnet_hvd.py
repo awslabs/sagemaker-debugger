@@ -853,7 +853,7 @@ def add_cli_args():
                          by default""")
     cmdline.add_argument('-b', '--batch_size', default=128, type=int,
                          help="""Size of each minibatch per GPU""")
-    cmdline.add_argument('--num_batches', type=int, default=200,
+    cmdline.add_argument('--num_batches', type=int, default=1000,
                          help="""Number of batches to run.
                          Ignored during eval or if num epochs given""")
     cmdline.add_argument('--num_epochs', type=int,
@@ -867,8 +867,8 @@ def add_cli_args():
                          Pass --clear_log if you want to clear all 
                          checkpoints and start a fresh run""")
     cmdline.add_argument('--model_dir', default=None, type=str)
-    cmdline.add_argument('--random_seed', type=bool, default=False)
-    cmdline.add_argument('--clear_log', default=False,
+    cmdline.add_argument('--random_seed', type=str2bool, default=False)
+    cmdline.add_argument('--clear_log', type=str2bool, default=False,
                          help="""Clear the log folder passed 
                          so a fresh run can be started""")
     cmdline.add_argument('--log_name', type=str, default='hvd_train.log')
@@ -878,7 +878,7 @@ def add_cli_args():
     cmdline.add_argument('--display_every', default=20, type=int,
                          help="""How often (in iterations) to print out
                          running information.""")
-    cmdline.add_argument('--eval', default=False,
+    cmdline.add_argument('--eval', type=str2bool, default=False,
                          help="""Evaluate the top-1 and top-5 accuracy of
                          the latest checkpointed model. If you want to 
                          evaluate using multiple GPUs ensure that all 
@@ -889,7 +889,7 @@ def add_cli_args():
     cmdline.add_argument('--eval_interval', type=int,
                          help="""Evaluate accuracy per eval_interval 
                          number of epochs""")
-    cmdline.add_argument('--fp16', default=True,
+    cmdline.add_argument('--fp16', type=str2bool, default=True,
                          help="""Train using float16 (half) precision instead
                          of float32.""")
     cmdline.add_argument('--num_gpus', default=1, type=int,
@@ -899,10 +899,10 @@ def add_cli_args():
                          print during evaluation""")
     cmdline.add_argument('--save_checkpoints_steps', type=int, default=1000)
     cmdline.add_argument('--save_summary_steps', type=int, default=0)
-    cmdline.add_argument('--adv_bn_init', default=True,
+    cmdline.add_argument('--adv_bn_init', type=str2bool, default=True,
                          help="""init gamme of the last BN of 
                          each ResMod at 0.""")
-    cmdline.add_argument('--adv_conv_init', default=True,
+    cmdline.add_argument('--adv_conv_init', type=str2bool, default=True,
                          help="""init conv with MSRA initializer""")
     cmdline.add_argument('--lr', type=float,
                          help="""Start learning rate""")
@@ -927,7 +927,7 @@ def add_cli_args():
                          (decay by a factor at specified steps) 
                          or `poly`(polynomial_decay with degree 2)""")
 
-    cmdline.add_argument('--use_larc', default=False,
+    cmdline.add_argument('--use_larc', type=str2bool, default=False,
                          help="""Use Layer wise Adaptive Rate Control 
                         which helps convergence at really 
                         large batch sizes""")
@@ -950,7 +950,7 @@ def add_cli_args():
     cmdline.add_argument('--lc_beta', default=0.00001, type=float,
                          help="""Liner Cosine Beta""")
 
-    cmdline.add_argument('--increased_aug', default=False,
+    cmdline.add_argument('--increased_aug', type=str2bool, default=False,
                          help="""Increase augmentations helpful when training 
                          with large number of GPUs such as 128 or 256""")
     cmdline.add_argument('--contrast', default=0.6, type=float,
@@ -964,16 +964,16 @@ def add_cli_args():
                          help="""Brightness factor""")
 
     # tornasole arguments
-    cmdline.add_argument('--enable_tornasole', default=False,
+    cmdline.add_argument('--enable_tornasole', type=str2bool, default=False,
                          help="""enable Tornasole""")
     cmdline.add_argument('--tornasole_path',
                          default='tornasole_outputs/default_run',
                          help="""Directory in which to write tornasole data. 
                          This can be a local path or 
                          S3 path in the form s3://bucket_name/prefix_name""")
-    cmdline.add_argument('--tornasole_save_all', default=False,
+    cmdline.add_argument('--tornasole_save_all', type=str2bool, default=False,
                          help="""save all tensors""")
-    cmdline.add_argument('--tornasole_dryrun', default=False,
+    cmdline.add_argument('--tornasole_dryrun', type=str2bool, default=False,
                          help="""If enabled, do not write data to disk""")
     cmdline.add_argument('--tornasole_exclude', nargs='+', default=[],
                          type=str, action='append',
@@ -985,10 +985,10 @@ def add_cli_args():
                          Tornasole's default collection""")
     cmdline.add_argument('--tornasole_step_interval', default=10, type=int,
                          help="""Save tornasole data every N runs""")
-    cmdline.add_argument('--tornasole_save_weights', default=False)
-    cmdline.add_argument('--tornasole_save_gradients', default=False)
-    cmdline.add_argument('--tornasole_save_inputs', default=False)
-    cmdline.add_argument('--tornasole_save_relu_activations', default=False)
+    cmdline.add_argument('--tornasole_save_weights', type=str2bool, default=False)
+    cmdline.add_argument('--tornasole_save_gradients', type=str2bool, default=False)
+    cmdline.add_argument('--tornasole_save_inputs', type=str2bool, default=False)
+    cmdline.add_argument('--tornasole_save_relu_activations', type=str2bool, default=False)
     cmdline.add_argument('--tornasole_relu_reductions', type=str,
                          help="""A comma separated list of reductions can be 
                          passed. If passed, saves relu activations 
@@ -1022,18 +1022,17 @@ def get_tornasole_hook(FLAGS):
 
     include_collections = []
 
-    if FLAGS.tornasole_save_weights:
+    if FLAGS.tornasole_save_weights is True:
         include_collections.append('weights')
-    if FLAGS.tornasole_save_gradients:
+    if FLAGS.tornasole_save_gradients is True:
         include_collections.append('gradients')
-    if FLAGS.tornasole_save_relu_activations:
+    if FLAGS.tornasole_save_relu_activations is True:
         include_collections.append('relu_activations')
-    if FLAGS.tornasole_save_inputs:
+    if FLAGS.tornasole_save_inputs is True:
         include_collections.append('inputs')
     if FLAGS.tornasole_include:
         ts.get_collection('default').include(FLAGS.tornasole_include)
         include_collections.append('default')
-
     return ts.TornasoleHook(out_dir=FLAGS.tornasole_path,
                             save_config=ts.SaveConfig(
                                 save_interval=FLAGS.tornasole_step_interval),
@@ -1097,18 +1096,10 @@ def main():
 
     logger = logging.getLogger(FLAGS.log_name)
     logger.setLevel(logging.INFO)  # INFO, ERROR
-    # file handler which logs debug messages
-    # console handler
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    # add formatter to the handlers
-    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    formatter = logging.Formatter('%(message)s')
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
     if not hvd.rank():
         fh = logging.FileHandler(os.path.join(FLAGS.log_dir, FLAGS.log_name))
         fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(message)s')
         fh.setFormatter(formatter)
         # add handlers to logger
         logger.addHandler(fh)
@@ -1193,7 +1184,7 @@ def main():
                 'model': FLAGS.model,
                 'decay_steps': decay_steps,
                 'n_classes': 1000,
-                'dtype': tf.float16 if FLAGS.fp16 else tf.float32,
+                'dtype': tf.float16 if FLAGS.fp16 is True else tf.float32,
                 'format': 'channels_first',
                 'device': '/gpu:0',
                 'lr': FLAGS.lr,
@@ -1224,7 +1215,7 @@ def main():
                     save_checkpoints_steps=FLAGS.save_checkpoints_steps if do_checkpoint else None,
                     keep_checkpoint_max=None))
 
-    if FLAGS.enable_tornasole and hvd.rank() == 0:
+    if FLAGS.enable_tornasole is True and hvd.rank() == 0:
         hook = get_tornasole_hook(FLAGS)
 
     if not FLAGS.eval:
@@ -1238,10 +1229,11 @@ def main():
                                                     num_training_samples,
                                                     FLAGS.display_every,
                                                     logger))
-            if FLAGS.enable_tornasole:
+            if FLAGS.enable_tornasole is True:
                 training_hooks.append(hook)
         try:
-            hook.set_mode(ts.modes.TRAIN)
+            if FLAGS.enable_tornasole is True:
+                hook.set_mode(ts.modes.TRAIN)
             start_time = time.time()
             classifier.train(
                     input_fn=lambda: make_dataset(
@@ -1278,7 +1270,6 @@ def main():
                     if (not FLAGS.eval_interval) or \
                             (i % FLAGS.eval_interval != 0):
                         continue
-                hook.set_mode(ts.modes.EVAL)
                 eval_result = classifier.evaluate(
                         input_fn=lambda: make_dataset(
                                 eval_filenames,

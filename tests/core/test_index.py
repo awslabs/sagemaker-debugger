@@ -11,11 +11,12 @@ def test_index():
     numpy_tensor = [np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
                     np.array([[1.0, 2.0, 4.0], [3.0, 4.0, 5.0]], dtype=np.float32)]
     runid = "default"
-    logdir="."
+    logdir = "."
     step = 0
-    worker="worker_0"
-    run_dir=os.path.join(logdir,runid)
-    writer = FileWriter(logdir=logdir, trial=runid, step=step, worker=worker, verbose=True)
+    worker = "worker_0"
+    run_dir = os.path.join(logdir,runid)
+    writer = FileWriter(trial_dir=run_dir,
+                        step=step, worker=worker, verbose=True)
     for i in (0, len(numpy_tensor) - 1):
         n = "tensor" + str(i)
         writer.write_tensor(tdata=numpy_tensor[i], tname=n)
