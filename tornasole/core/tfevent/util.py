@@ -68,9 +68,8 @@ class EventFileLocation:
 
     @staticmethod
     def load_filename(s, print_error=True):
-        last_delimiter_index = s.rfind('/')
-        event_file_name = s[last_delimiter_index+1 : ]
-        m = re.search('(.*)_(.*).tfevents', event_file_name)
+        event_file_name = os.path.basename(s)
+        m = re.search('(.*)_(.*).tfevents$', event_file_name)
         if m:
             step_num = int(m.group(1))
             worker_name = m.group(2)

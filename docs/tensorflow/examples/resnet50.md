@@ -97,16 +97,16 @@ so you can run them immediately without having to setup S3 permissions.
 ### Example commands
 #### Saving weights and gradients with Tornasole
 ```
-python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
-    --tornasole_save_weights --tornasole_save_gradients \ 
+python train_imagenet_resnet_hvd.py --clear_log True --enable_tornasole True \
+    --tornasole_save_weights True --tornasole_save_gradients True \ 
     --tornasole_step_interval 10 \
     --tornasole_path ~/ts_outputs/default
 ```
 #### Simulating gradients which 'vanish'
 We simulate the scenario of gradients being really small (vanishing) by initializing weights with a small constant. 
 ```
-python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
-    --tornasole_save_weights --tornasole_save_gradients \ 
+python train_imagenet_resnet_hvd.py --clear_log True --enable_tornasole True \
+    --tornasole_save_weights True --tornasole_save_gradients True \ 
     --tornasole_step_interval 10 \
     --constant_initializer 0.01 \
     --tornasole_path ~/ts_outputs/vanishing  
@@ -119,15 +119,15 @@ python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing --rule
 ``` 
 #### Saving activations of RELU layers in full
 ```
-python train_imagenet_resnet_hvd.py --clear_log  --enable_tornasole \
-    --tornasole_save_relu_activations \
+python train_imagenet_resnet_hvd.py --clear_log True  --enable_tornasole True \
+    --tornasole_save_relu_activations True \
     --tornasole_step_interval 10 \
     --tornasole_path ~/ts_outputs/full_relu_activations
 ```
 #### Saving activations of RELU layers as reductions
 ```
-python train_imagenet_resnet_hvd.py --clear_log  --enable_tornasole \
-    --tornasole_save_relu_activations \
+python train_imagenet_resnet_hvd.py --clear_log True  --enable_tornasole True \
+    --tornasole_save_relu_activations True \
     --tornasole_relu_reductions min max mean variance \
     --tornasole_relu_reductions_abs mean variance \
     --tornasole_step_interval 10 \
@@ -137,8 +137,8 @@ python train_imagenet_resnet_hvd.py --clear_log  --enable_tornasole \
 If you want to compute and track the ratio of weights and updates, 
 you can do that by saving weights every step as follows 
 ```
-python train_imagenet_resnet_hvd.py --clear_log --enable_tornasole \
-    --tornasole_save_weights \
+python train_imagenet_resnet_hvd.py --clear_log True --enable_tornasole True \
+    --tornasole_save_weights True \
     --tornasole_step_interval 1 \
     --tornasole_path ~/ts_outputs/weights
 ```
@@ -160,7 +160,7 @@ python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-n
 
 #### Running with tornasole disabled
 ```
-python train_imagenet_resnet_hvd.py --clear_log
+python train_imagenet_resnet_hvd.py --clear_log True 
 ```
 ### More
 Please refer to [Tornasole Tensorflow page](../README.md) and the various flags in the script to customize the behavior further.

@@ -9,8 +9,7 @@ import shutil
 def test_mode_writing():
   run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
   for s in range(0, 10):
-
-    fw = FileWriter(logdir='ts_outputs', trial=run_id, step=s)
+    fw = FileWriter(trial_dir='ts_outputs/' + run_id, step=s)
     if s % 2 == 0:
       fw.write_tensor(tdata=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
                       tname='arr', mode=ModeKeys.TRAIN, mode_step=s//2)

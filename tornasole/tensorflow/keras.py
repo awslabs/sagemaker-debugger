@@ -4,8 +4,8 @@ import socket
 
 from .collection import *
 from tornasole.core.writer import FileWriter
-from tornasole.core.utils import get_logger, flatten, \
-    check_dir_exists, is_s3
+from tornasole.core.utils import get_logger, flatten
+from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.modes import ModeKeys
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.save_manager import SaveManager
@@ -21,14 +21,7 @@ class TornasoleHook(keras.callbacks.Callback):
                  # include_regex=None,
                  include_collections=['weights', 'gradients', 'metrics', 'default'],
                  save_all=False):
-        if not is_s3(out_dir)[0]:
-            out_dir = os.path.expanduser(out_dir)
-        # this is commented because SM creates dir. 
-        # This was created because we don't want user to overwrite their existing data
-        #check_dir_exists(out_dir)
-        self.out_dir = out_dir
-        self.out_base_dir = os.path.dirname(out_dir)
-        self.run_id = os.path.basename(out_dir)
+        self.out_dir = verify_and_get_out_dir(out_dir)
 
         self.dry_run = dry_run
         self.worker = worker if worker is not None else socket.gethostname()
@@ -110,8 +103,7 @@ class TornasoleHook(keras.callbacks.Callback):
 
     def _create_writer(self):
         if self.writer is None:
-            self.writer = FileWriter(logdir=self.out_base_dir,
-                                     trial=self.run_id,
+            self.writer = FileWriter(trial_dir=self.out_dir,
                                      step=self.step,
                                      worker=self.worker)
         return self.writer

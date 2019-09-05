@@ -18,7 +18,12 @@ args = parser.parse_args()
 exec(open("tornasole/_version.py").read())
 
 VERSION = __version__
-BINARIES = ['mxnet', 'tensorflow', 'pytorch', 'rules']
+BINARIES = [
+    'mxnet',
+    'tensorflow',
+    'pytorch',
+    'rules'
+]
 
 for b in BINARIES:
     if b == 'rules':
@@ -41,5 +46,9 @@ for b in BINARIES:
             # remove other versions
             subprocess.check_call(['aws', 's3', 'rm', '--recursive', '--exclude', 'tornasole-{}*'.format(VERSION),
                                    's3://tornasole-binaries-use1/tornasole_{}/py3/latest/'.format(b)])
-
     subprocess.check_call(['rm', '-rf', 'dist', 'build', '*.egg-info', '.eggs'])
+
+if args.upload and args.replace_latest:
+    subprocess.check_call(['aws', 's3', 'sync', '--delete',
+                           's3://tornasole-binaries-use1/tornasole_rules/py3/latest',
+                           's3://tornasole-external-preview-use1/rules/binary'])

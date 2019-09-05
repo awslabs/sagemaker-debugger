@@ -70,8 +70,6 @@ class TornasoleHook(tf.train.SessionRunHook):
             they are all saved in the collection `all`
         """
         self.out_dir = verify_and_get_out_dir(out_dir)
-        self.out_base_dir = os.path.dirname(self.out_dir)
-        self.run_id = os.path.basename(self.out_dir)
 
         self.dry_run = dry_run
         self.worker = worker if worker is not None else socket.gethostname()
@@ -353,8 +351,7 @@ class TornasoleHook(tf.train.SessionRunHook):
 
     def after_run(self, run_context, run_values):
         if self.prev_to_be_saved:
-            self.writer = FileWriter(logdir=self.out_base_dir,
-                                     trial=self.run_id,
+            self.writer = FileWriter(trial_dir=self.out_dir,
                                      step=self.step,
                                      worker=self.worker)
             self.logger.info(f'Saving for step {self.step}: {len(self.prev_to_be_saved)} objects')
