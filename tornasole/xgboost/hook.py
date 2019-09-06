@@ -30,7 +30,7 @@ class TornasoleHook:
 
     def __init__(
             self,
-            out_dir: str,
+            out_dir: Optional[str] = None,
             dry_run: bool = False,
             worker: str = TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
             reduction_config=None,

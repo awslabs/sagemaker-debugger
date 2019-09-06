@@ -8,11 +8,13 @@ aws s3 cp docs/mxnet/api.md s3://tornasole-external-preview-use1/frameworks/mxne
 aws s3 cp docs/tensorflow/api.md s3://tornasole-external-preview-use1/frameworks/tensorflow/
 aws s3 cp docs/tensorflow/examples/sm_resnet50.md s3://tornasole-external-preview-use1/frameworks/tensorflow/
 aws s3 cp docs/pytorch/api.md s3://tornasole-external-preview-use1/frameworks/pytorch/
+aws s3 cp docs/xgboost/api.md s3://tornasole-external-preview-use1/frameworks/xgboost/
 
 # DEV GUIDES
 aws s3 cp sagemaker-docs/DeveloperGuide_MXNet.md s3://tornasole-external-preview-use1/frameworks/mxnet/
 aws s3 cp sagemaker-docs/DeveloperGuide_TF.md s3://tornasole-external-preview-use1/frameworks/tensorflow/
 aws s3 cp sagemaker-docs/DeveloperGuide_PyTorch.md s3://tornasole-external-preview-use1/frameworks/pytorch/
+aws s3 cp sagemaker-docs/DeveloperGuide_XGBoost.md s3://tornasole-external-preview-use1/frameworks/xgboost/
 aws s3 cp sagemaker-docs/DeveloperGuide_Rules.md s3://tornasole-external-preview-use1/rules/
 aws s3 cp sagemaker-docs/FirstPartyRules.md s3://tornasole-external-preview-use1/rules/
 
@@ -27,6 +29,10 @@ aws s3 sync examples/tensorflow/scripts s3://tornasole-external-preview-use1/fra
 # PYTORCH EXAMPLES
 aws s3 sync examples/pytorch/sagemaker-notebooks s3://tornasole-external-preview-use1/frameworks/pytorch/examples/notebooks
 aws s3 cp examples/pytorch/scripts/simple.py s3://tornasole-external-preview-use1/frameworks/pytorch/examples/scripts/simple.py
+
+# XGBOOST EXAMPLES
+aws s3 sync examples/xgboost/sagemaker-notebooks s3://tornasole-external-preview-use1/frameworks/xgboost/examples/notebooks
+aws s3 sync examples/xgboost/scripts s3://tornasole-external-preview-use1/frameworks/xgboost/examples/scripts
 
 # RULES EXAMPLES
 aws s3 cp examples/rules/sagemaker-notebooks/BringYourOwnRule.ipynb s3://tornasole-external-preview-use1/rules/notebooks/
