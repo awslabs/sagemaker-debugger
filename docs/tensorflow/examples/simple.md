@@ -24,6 +24,18 @@ optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 
 ts.TornasoleHook(..., include_collections=[..,'gradients'], ...)
 ```
+**Saving losses**
+
+Since we are not using a default loss function from Tensorflow, 
+we need to tell Tornasole to add our loss to the losses collection as follows
+```
+ts.add_to_collection('losses', loss)
+``` 
+In the code, you will see the following line to do so. 
+```
+ts.TornasoleHook(..., include_collections=[...,'losses'], ...)
+```
+
 **Setting save interval**
 ```
 ts.TornasoleHook(...,save_config=ts.SaveConfig(save_interval=args.tornasole_frequency)...)

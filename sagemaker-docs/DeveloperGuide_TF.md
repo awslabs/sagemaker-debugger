@@ -304,6 +304,25 @@ import tornasole.tensorflow as ts
 hook = ts.TornasoleHook(..., include_collections = ['gradients'], ...)
 ```
 
+#### Losses
+If you are using the default loss functions in Tensorflow, Tornasole can automatically pick up these losses from Tensorflow's losses collection.
+In such a case, we only need to specify 'losses' in the `include_collections` argument of the hook.
+If you do not pass this argument to the hook, it will save losses by default.
+If you are using your custom loss function, you can either add this to Tensorflow's losses collection or Tornasole's losses collection as follows:
+```
+import tornasole.tensorflow as ts
+
+# if your loss function is not a default TF loss function, 
+# but is a custom loss function
+# then add to the collection losses
+loss = ...
+ts.add_to_collection('losses', loss)
+
+# specify losses in include_collections 
+# Note that this is included by default
+hook = ts.TornasoleHook(..., include_collections = ['losses'..], ...)
+```
+
 #### Optimizer Variables
 Optimizer variables such as momentum can also be saved easily with the 
 above approach of wrapping your optimizer with `TornasoleOptimizer` 

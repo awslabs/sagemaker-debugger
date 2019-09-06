@@ -18,9 +18,9 @@ def generate_data(path, trial, step, tname_prefix,
     if export_colls:
         c = CollectionManager()
         c.add("default")
-        c.get("default").tensor_names = [ tname_prefix + '_' + str(i) for i in range(num_tensors)]
+        c.get("default").tensor_names = [f'{tname_prefix}_{i}' for i in range(num_tensors)]
         c.add('gradients')
-        c.get("gradients").tensor_names = [ tname_prefix + '_' + str(i) for i in range(num_tensors)]
+        c.get("gradients").tensor_names = [f'{tname_prefix}_{i}' for i in range(num_tensors)]
         c.export(os.path.join(path, trial, "collections.ts"))
 
 

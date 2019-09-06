@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import random
 import tensorflow as tf
 import tornasole.tensorflow as ts
 
@@ -9,6 +10,8 @@ parser.add_argument('--tornasole_train_frequency', type=int,
                     help="How often to save TS data", default=50)
 parser.add_argument('--tornasole_eval_frequency', type=int,
                     help="How often to save TS data", default=10)
+parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--random_seed', type=bool, default=False)
 parser.add_argument('--num_epochs', type=int, default=5,
                     help="Number of epochs to train for")
 parser.add_argument('--num_steps', type=int,
@@ -16,6 +19,14 @@ parser.add_argument('--num_steps', type=int,
                          "is passed, it overrides num_epochs")
 parser.add_argument('--model_dir', type=str, default='/tmp/mnist_model')
 args = parser.parse_args()
+
+# these random seeds are only intended for test purpose.
+# for now, 2,2,12 could promise no assert failure when running tornasole_rules test_rules.py with config.yaml
+# if you wish to change the number, notice that certain steps' tensor value may be capable of variation
+if args.random_seed:
+    tf.set_random_seed(2)
+    np.random.seed(2)
+    random.seed(12)
 
 def cnn_model_fn(features, labels, mode):
   """Model function for CNN."""
@@ -67,7 +78,7 @@ def cnn_model_fn(features, labels, mode):
 
   # Configure the Training Op (for TRAIN mode)
   if mode == tf.estimator.ModeKeys.TRAIN:
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=args.lr)
     optimizer = ts.TornasoleOptimizer(optimizer)
     train_op = optimizer.minimize(
       loss=loss,

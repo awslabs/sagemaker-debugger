@@ -138,9 +138,8 @@ def test_mnist_local():
     assert len(tr.available_steps()) == 55
     assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
     assert len(tr.available_steps(mode=ts.modes.EVAL)) == 40
-    assert len(tr.tensors()) == 16
+    assert len(tr.tensors()) == 17
     shutil.rmtree(trial_dir)
-
 
 def test_mnist_local_json():
     out_dir = 'newlogsRunTest1/test_mnist_local_json_config'
@@ -151,9 +150,8 @@ def test_mnist_local_json():
     assert len(tr.available_steps()) == 55
     assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
     assert len(tr.available_steps(mode=ts.modes.EVAL)) == 40
-    assert len(tr.tensors()) == 16
+    assert len(tr.tensors()) == 17
     shutil.rmtree(out_dir, ignore_errors=True)
-
 
 def test_mnist_s3():
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
@@ -162,41 +160,37 @@ def test_mnist_s3():
     assert len(tr.available_steps()) == 55
     assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
     assert len(tr.available_steps(mode=ts.modes.EVAL)) == 40
-    assert len(tr.tensors()) == 16
-
+    assert len(tr.tensors()) == 17
 
 def test_mnist_local_multi_save_configs():
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     tr = help_test_mnist(trial_dir, {ts.modes.TRAIN: ts.SaveConfig(save_interval=2),
-                                     ts.modes.EVAL: ts.SaveConfig(save_interval=1)})
+                              ts.modes.EVAL: ts.SaveConfig(save_interval=1)})
     assert len(tr.available_steps()) == 94
     assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
     assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
-    assert len(tr.tensors()) == 16
+    assert len(tr.tensors()) == 17
     shutil.rmtree(trial_dir)
-
 
 def test_mnist_s3_multi_save_configs():
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = 's3://tornasole-testing/tornasole_tf/hooks/estimator_modes/' + run_id
     tr = help_test_mnist(trial_dir, {ts.modes.TRAIN: ts.SaveConfig(save_interval=2),
-                                     ts.modes.EVAL: ts.SaveConfig(save_interval=1)})
+                              ts.modes.EVAL: ts.SaveConfig(save_interval=1)})
     assert len(tr.available_steps()) == 94
     assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
     assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
-    assert len(tr.tensors()) == 16
-
+    assert len(tr.tensors()) == 17
 
 def test_mnist_local_multi_save_configs_json():
     out_dir = 'newlogsRunTest1/test_save_config_modes_hook_config'
     shutil.rmtree(out_dir, ignore_errors=True)
-    os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json'
+    os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json'
     hook = ts.TornasoleHook.hook_from_config()
     tr = help_test_mnist(out_dir, hook=hook)
     assert len(tr.available_steps()) == 94
     assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
     assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
-    assert len(tr.tensors()) == 16
+    assert len(tr.tensors()) == 17
     shutil.rmtree(out_dir)

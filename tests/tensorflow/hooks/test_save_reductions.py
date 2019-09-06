@@ -1,5 +1,5 @@
 from .utils import *
-from tornasole.tensorflow import reset_collections, get_collections
+from tornasole.tensorflow import reset_collections, get_collections, CollectionManager
 import shutil
 import glob
 from tornasole.core.reader import FileReader
@@ -10,13 +10,13 @@ def helper_save_reductions(trial_dir, hook):
   _, files = get_dirs_files(trial_dir)
   coll = get_collections()
 
-  assert len(coll) == 4
+  assert len(coll) == 5
   assert len(coll['weights'].reduction_tensor_names) == 1
   assert len(coll['gradients'].reduction_tensor_names) == 1
 
   assert 'collections.ts' in files
   cm = CollectionManager.load(join(trial_dir, 'collections.ts'))
-  assert len(cm.collections) == 4
+  assert len(cm.collections) == 5
   assert len(cm.collections['weights'].tensor_names) == 0
   assert len(cm.collections['weights'].reduction_tensor_names) == 1
   assert len(cm.collections['gradients'].tensor_names) == 0
@@ -45,8 +45,8 @@ def helper_save_reductions(trial_dir, hook):
         tensor_name, step, tensor_data, mode, mode_step = x
         i += 1
         size += tensor_data.nbytes if tensor_data is not None else 0
-    assert i == 32
-    assert size == 128
+    assert i == 48
+    assert size == 192
 
   shutil.rmtree(trial_dir)
 

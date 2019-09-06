@@ -15,7 +15,7 @@ def helper_test_reductions(trial_dir, hook):
     from tornasole.trials import create_trial
 
     tr = create_trial(trial_dir)
-    assert len(tr.tensors()) == 2
+    assert len(tr.tensors()) == 3
     for tname in tr.tensors():
         t = tr.tensor(tname)
         try:

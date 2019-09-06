@@ -18,9 +18,17 @@ This will also enable us to access the gradients during analysis without having 
 ```
 opt = TornasoleOptimizer(opt)
 optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
-
-ts.TornasoleHook(..., include_collections=[..,'gradients'], ...)
 ```
+Note that here since by default Tornasole tries to save weights, gradients and losses 
+we didn't need to specify 'gradients' in the include_collections argument of the hook.
+
+**Saving losses**
+
+Since we use a default loss function from Tensorflow here, 
+we would only need to indicate to the hook that we want to include losses. 
+But since the hook by default saves losses if include_collections argument was not set, 
+we need not do anything.
+
 **Setting save interval**
 
 You can set different save intervals for different modes. 

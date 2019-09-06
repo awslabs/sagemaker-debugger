@@ -6,6 +6,8 @@
   - s3: True # run test cases in s3 mode
   - [simple.py: &simple
       $CODEBUILD_SRC_DIR/examples/tensorflow/scripts/simple.py,
+     tf_mnist.py: &tf_mnist
+      $CODEBUILD_SRC_DIR/examples/tensorflow/scripts/mnist.py,
      torch_simple.py: &torch_simple
       $CODEBUILD_SRC_DIR/examples/pytorch/scripts/simple.py,
      train_imagenet_resnet_hvd.py: &train_imagenet_resnet_hvd
@@ -82,7 +84,24 @@
      *invoker,
      --rule_name weightupdateratio --flag True --end_step 71
     ]
-
+-
+  - loss_not_decreasing/tf/true
+  - tensorflow
+  - *Enable
+  - [*tf_mnist,
+     --lr 0.001 --tornasole_train_frequency 10 --random_seed True,
+     *invoker,
+     --rule_name lossnotdecreasing --flag True --end_step 1000
+    ]
+-
+  - loss_not_decreasing/tf/false
+  - tensorflow
+  - *Enable
+  - [*simple,
+     --lr 0.05 --scale 1 --steps 1009 --tornasole_frequency 13 --random_seed True,
+     *invoker,
+     --rule_name lossnotdecreasing --flag False --num_steps 100 --min_difference 12
+    ]
 
 # test cases for mxnet
 -

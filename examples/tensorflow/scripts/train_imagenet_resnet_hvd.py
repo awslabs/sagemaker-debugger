@@ -1020,7 +1020,7 @@ def get_tornasole_hook(FLAGS):
     else:
         rnc = None
 
-    include_collections = []
+    include_collections = ['losses']
 
     if FLAGS.tornasole_save_weights is True:
         include_collections.append('weights')

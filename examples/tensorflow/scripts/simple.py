@@ -37,6 +37,7 @@ with tf.name_scope('foobaz'):
     w0 = [[1], [1.]]
     y = tf.matmul(x, w0)
 loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
+ts.add_to_collection('losses', loss)
 
 global_step = tf.Variable(17, name="global_step", trainable=False)
 increment_global_step_op = tf.assign(global_step, global_step+1)
@@ -56,7 +57,7 @@ rdnc = ts.ReductionConfig(reductions=['mean'],abs_reductions=['max'], norms=['l1
 # Note that we are saving all tensors here by passing save_all=True
 hook = ts.TornasoleHook(out_dir=args.tornasole_path,
                         save_all=True,
-                        include_collections=['weights', 'gradients'],
+                        include_collections=['weights', 'gradients', 'losses'],
                         save_config=ts.SaveConfig(save_interval=args.tornasole_frequency),
                         reduction_config=rdnc)
 

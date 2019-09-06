@@ -17,7 +17,11 @@ import tornasole.tensorflow as ts
 **Saving weights**
 ```
 include_collections.append('weights')
+ts.TornasoleHook(..., include_collections=include_collections, ...)
 ```
+Note that the above line of include_collections is not required 
+because by default Tornasole tries to save weights, gradients and losses.
+
 **Saving gradients**
 
 We need to wrap our optimizer with TornasoleOptimizer, and use this optimizer to minimize loss. 
@@ -28,6 +32,18 @@ opt = TornasoleOptimizer(opt)
 include_collections.append('gradients')
 ts.TornasoleHook(..., include_collections=include_collections, ...)
 ```
+Note that if include_collections is not passed to the hook, 
+by default Tornasole tries to save weights, gradients and losses.
+
+**Saving losses**
+
+Since we use a default loss function from Tensorflow, we only need to indicate to the hook that we want to include losses.
+In the code, you will see the following line to do so. 
+```
+include_collections=['losses']
+ts.TornasoleHook(..., include_collections=include_collections, ...)
+```
+
 **Saving relu activations by variable**
 ```
 x = tf.nn.relu(x + shortcut)

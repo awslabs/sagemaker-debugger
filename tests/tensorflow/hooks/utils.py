@@ -3,8 +3,8 @@ import numpy as np
 from datetime import datetime
 import os
 from os.path import isfile, join
-from tornasole.tensorflow import TornasoleOptimizer, TornasoleHook, SaveConfig, ReductionConfig, Collection, \
-    CollectionManager, reset_collections
+from tornasole.tensorflow import TornasoleOptimizer, TornasoleHook, SaveConfig, \
+    ReductionConfig, get_collection, CollectionManager, reset_collections
 
 TORNASOLE_TF_HOOK_TESTS_DIR = '/tmp/tornasole_tf/tests/'
 
@@ -18,7 +18,7 @@ def simple_model(hook, steps=10, lr=0.4):
         w0 = [[1], [1.]]
         y = tf.matmul(x, w0)
     loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
-
+    get_collection('losses').add(loss)
     global_step = tf.Variable(17, name="global_step", trainable=False)
     increment_global_step_op = tf.assign(global_step, global_step + 1)
 

@@ -15,7 +15,7 @@ from tornasole.core.save_config import SaveConfig
 from tornasole.core.access_layer.utils import training_has_ended
 from .save_manager import TFSaveManager
 
-DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'gradients', 'default']
+DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'gradients', 'default', 'losses']
 
 class TornasoleHook(tf.train.SessionRunHook):
     def __init__(self, out_dir=None,
@@ -24,7 +24,7 @@ class TornasoleHook(tf.train.SessionRunHook):
                  reduction_config=None,
                  save_config=None,
                  include_regex=None,
-                 include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+                 include_collections=None,
                  save_all=False):
         """
         A class used to represent the hook which gets attached to the
@@ -74,7 +74,7 @@ class TornasoleHook(tf.train.SessionRunHook):
         self.dry_run = dry_run
         self.worker = worker if worker is not None else socket.gethostname()
         if include_collections is None:
-            include_collections = []
+            include_collections = DEFAULT_INCLUDE_COLLECTIONS
         self.include_collections = flatten(include_collections)
         if include_regex is not None:
             get_collection('default').include(include_regex)
@@ -212,6 +212,9 @@ class TornasoleHook(tf.train.SessionRunHook):
 
         wts = tf.trainable_variables()
         add_to_collection('weights', wts)
+
+        losses = tf.losses.get_losses()
+        add_to_collection('losses', losses)
 
         # todo: fix this coll.save_config.when_nan_tensors = []
 
@@ -354,7 +357,6 @@ class TornasoleHook(tf.train.SessionRunHook):
             self.writer = FileWriter(trial_dir=self.out_dir,
                                      step=self.step,
                                      worker=self.worker)
-            self.logger.info(f'Saving for step {self.step}: {len(self.prev_to_be_saved)} objects')
             running_size = 0
             is_nan_for_collections = self._check_when_nan_tensors(run_values.results)
             for (item, value) in self._get_all_tensors_values(run_values.results):
@@ -366,7 +368,7 @@ class TornasoleHook(tf.train.SessionRunHook):
                     running_size = self._save_tensor(item, value, running_size)
                 else:
                     self.logger.debug(f'Not saving {item} as no nan seen')
-            self.logger.info(f'Save complete, saved {running_size} bytes')
+            self.logger.info(f'Saved {running_size} bytes for {len(self.prev_to_be_saved)} objects at step {self.step}')
             self.writer.close()
         self.step += 1
         self.mode_steps[self.mode] += 1
