@@ -4,7 +4,7 @@ import setuptools
 
 exec(open("tornasole/_version.py").read())
 CURRENT_VERSION = __version__
-FRAMEWORKS = ['tensorflow', 'pytorch', 'mxnet']
+FRAMEWORKS = ['tensorflow', 'pytorch', 'mxnet', 'xgboost']
 
 
 def compile_summary_protobuf():
@@ -65,7 +65,7 @@ def get_tests_packages(frameworks_to_build):
     tests_packages = ['pytest']
     for f, v in frameworks_to_build.items():
         if v:
-            if f in ['tensorflow', 'mxnet']:
+            if f in ['tensorflow', 'mxnet', 'xgboost']:
                 tests_packages.append(f)
             if f == 'pytorch':
                 tests_packages.extend(['torch', 'torchvision'])
