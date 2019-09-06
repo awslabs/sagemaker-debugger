@@ -19,6 +19,7 @@ Please follow the appropriate Readme page to install the correct version.
 #### [Tornasole TensorFlow](docs/tensorflow/README.md)
 #### [Tornasole MXNet](docs/mxnet/README.md)
 #### [Tornasole PyTorch](docs/pytorch/README.md)
+#### [Tornasole XGBoost](docs/xgboost/README.md)
 
 ### Analysis
 Please refer **[this page](docs/rules/README.md)** for more details about how to analyze. 
