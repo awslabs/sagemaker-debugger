@@ -9,6 +9,7 @@ FRAMEWORK_VERSIONS = {
     'mxnet': '1.4.1',
     'pytorch': '1.1.0',
     'tensorflow': '1.13.1',
+    'xgboost': '0.90'
     }
 
 
@@ -61,4 +62,3 @@ if not args.single_process:
                 print(f'Finished process {p.name}')
                 ended_processes.add(p)
         sleep(3)
-

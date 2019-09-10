@@ -9,4 +9,6 @@ do
         aws ecr --region $region set-repository-policy --repository-name tornasole-preprod-$framework_version-gpu --policy-text file://bin/sagemaker-containers/permissions.json
         aws ecr --region $region set-repository-policy --repository-name tornasole-preprod-$framework_version-cpu --policy-text file://bin/sagemaker-containers/permissions.json
     done
+    aws ecr --region $region create-repository --repository-name tornasole-preprod-xgboost-0.90-cpu
+    aws ecr --region $region set-repository-policy --repository-name tornasole-preprod-xgboost-0.90-cpu --policy-text file://bin/sagemaker-containers/permissions.json
 done

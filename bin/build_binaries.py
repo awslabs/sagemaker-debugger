@@ -22,6 +22,7 @@ BINARIES = [
     'mxnet',
     'tensorflow',
     'pytorch',
+    'xgboost',
     'rules'
 ]
 

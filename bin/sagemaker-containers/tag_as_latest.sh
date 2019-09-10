@@ -14,4 +14,6 @@ do
             aws ecr --region $region put-image --repository-name tornasole-preprod-$framework_version-$mode --image-tag latest --image-manifest "$MANIFEST"
         done
     done
+    MANIFEST=$(aws ecr --region $region batch-get-image --repository-name tornasole-preprod-xgboost-0.90-cpu --image-ids imageTag=$1 --query 'images[].imageManifest' --output text)
+    aws ecr --region $region put-image --repository-name tornasole-preprod-xgboost-0.90-cpu --image-tag latest --image-manifest "$MANIFEST"
 done
