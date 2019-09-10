@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument("--num_round", type=int, default=50)
     parser.add_argument("--tornasole_path", type=str, default=None)
     parser.add_argument("--tornasole_frequency", type=int, default=1)
-    parser.add_argument("--output_uri", type=str, default="s3://tornasole-testing/basic-xgboos-hook",
+    parser.add_argument("--output_uri", type=str, default="/opt/ml/output/tensors",
                         help="S3 URI of the bucket where tensor data will be stored.")
 
     parser.add_argument('--train', type=str, default=os.environ.get('SM_CHANNEL_TRAIN'))
