@@ -1,5 +1,5 @@
 from .trial import EventFileTensor, Trial
-from tornasole.core.utils import index
+from tornasole.core.utils import index, step_in_range
 from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.reader import FileReader
@@ -15,16 +15,23 @@ from joblib import Parallel, delayed
 class LocalTrial(Trial):
     def __init__(self, name, dirname,
                  range_steps=None, parallel=True,
-                 check=False):
-        super().__init__(name, range_steps=range_steps, parallel=parallel, check=check)
-        dirname = os.path.expanduser(dirname)
-        self.trial_dir = dirname
+                 check=False,
+                 index_mode=True,
+                 cache=False):
+        super().__init__(name, range_steps=range_steps, parallel=parallel,
+                         check=check, index_mode=index_mode, cache=cache)
+        self.path = os.path.expanduser(dirname)
+        self.trial_dir = self.path
         self.logger.info(f'Loading trial {name} at path {self.trial_dir}')
-        self.last_step_loaded = None
         self._load_collections()
-        self._load_tensors()
+        self.load_tensors()
 
-    def _load_tensors(self):
+    def _load_tensors_from_index_tensors(self, index_tensors_dict):
+        for tname in index_tensors_dict:
+            for step, itds in index_tensors_dict[tname].items():
+                self.add_tensor(int(step), itds['tensor_location'])
+
+    def _load_tensors_from_event_files(self):
         try:
             step_dirs = EventFileLocation.get_step_dirs(self.trial_dir)
         except FileNotFoundError:
@@ -32,20 +39,20 @@ class LocalTrial(Trial):
             return
 
         if self.range_steps is not None:
-            step_dirs = [x for x in step_dirs if self._step_in_range(x)]
+            step_dirs = [x for x in step_dirs if step_in_range(self.range_steps, x)]
 
         step_dirs.sort()
 
-        if self.last_step_loaded is not None:
+        if self.last_event_token:
             self.logger.debug("Trying to load events for steps after {}"
-                              .format(int(self.last_step_loaded)))
+                              .format(int(self.last_event_token)))
+            i = index(step_dirs, self.last_event_token)
 
-            i = index(step_dirs, self.last_step_loaded)
             if i == len(step_dirs) - 1:
                 # no new step
                 return
             else:
-                step_dirs = step_dirs[i+1:]
+                step_dirs = step_dirs[i + 1:]
 
         self._read_step_dirs(step_dirs)
 
@@ -69,9 +76,6 @@ class LocalTrial(Trial):
     def training_ended(self):
         return has_training_ended(self.trial_dir)
 
-    def refresh_tensors(self):
-        self._load_tensors()
-
     def __hash__(self):
         return hash((self.name, self.trial_dir))
 
@@ -85,17 +89,18 @@ class LocalTrial(Trial):
     def _read_step_dirs(self, step_dirs):
         if len(step_dirs) == 0:
             return
+
         dirnames_efts = []
         if self.parallel:
             # Ugly hack for https://github.com/awslabs/tornasole_rules/issues/66
             # Temp fix with intentional code duplication
-            # Expected to be fixed with the introduction of indexreader
+            # Expected to be fixed with the introduction of index_reader
             try:
                 dirnames_efts = Parallel(n_jobs=multiprocessing.cpu_count(), verbose=0) \
-                        (delayed(self._read_folder) \
-                            (EventFileLocation.get_step_dir_path(self.trial_dir, step_dir),
-                                read_data=self.read_data, check=self.check) \
-                                    for step_dir in step_dirs)
+                    (delayed(self._read_folder) \
+                         (EventFileLocation.get_step_dir_path(self.trial_dir, step_dir),
+                          read_data=self.read_data, check=self.check) \
+                     for step_dir in step_dirs)
                 # sort them as parallel returns in random order
                 # we want to sort them by dirname
                 dirnames_efts.sort(key=lambda x: int(os.path.basename(x[0])))
@@ -115,9 +120,9 @@ class LocalTrial(Trial):
 
         for dirname, efts in reversed(dirnames_efts):
             if len(efts) > 0:
-                self.last_step_loaded = os.path.basename(dirname)
+                self.last_event_token = os.path.basename(dirname)
                 break
-            # make last_step_loaded equal to the newest dir which
+            # make last_event_token equal to the newest dir which
             # had non zero tensors so that we can
             # look for newer steps with no tensors again.
             # note that if we load a non zero
@@ -138,5 +143,4 @@ class LocalTrial(Trial):
                     eft = EventFileTensor(fname, tensor_name=n, step_num=s, tensor_value=d,
                                           mode=mode, mode_step=mode_step)
                     res.append(eft)
-
         return dirname, res

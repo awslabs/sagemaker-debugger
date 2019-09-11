@@ -3,7 +3,6 @@ from .base import TSAccessBase
 import os
 import shutil
 
-
 NON_SAGEMAKER_TEMP_PATH_PREFIX = '/tmp'
 SAGEMAKER_TEMP_PATH_SUFFIX = '.tmp'
 
@@ -20,7 +19,6 @@ def ensure_dir(file_path, is_file=True):
 
 def get_temp_path(file_path):
     directory = os.path.dirname(file_path)
-    basename = os.path.basename(file_path)
     if directory.startswith(DEFAULT_SAGEMAKER_TORNASOLE_PATH):
         temp_path = file_path + SAGEMAKER_TEMP_PATH_SUFFIX
     else:

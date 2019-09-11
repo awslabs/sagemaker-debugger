@@ -1,11 +1,13 @@
 import time
 import os
 
-from tornasole.core.access_layer.s3handler import ReadObjectRequest, ListRequest, S3Handler
+from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from tornasole.core.access_layer.utils import has_training_ended
+from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.tfrecord.tensor_reader import TensorReader
+from tornasole.core.utils import step_in_range
 
 from .trial import EventFileTensor, Trial
 
@@ -13,7 +15,9 @@ from .trial import EventFileTensor, Trial
 class S3Trial(Trial):
     def __init__(self, name, bucket_name, prefix_name,
                  range_steps=None,
-                 check=False):
+                 check=False,
+                 index_mode=True,
+                 cache=False):
         """
         :param name: for sagemaker job, this should be sagemaker training job name
         :param bucket_name: name of bucket where data is saved
@@ -23,19 +27,20 @@ class S3Trial(Trial):
         :param check: whether to check checksum of data saved
         """
         super().__init__(name, range_steps=range_steps,
-                         parallel=False, check=check)
+                         parallel=False, check=check, index_mode=index_mode, cache=cache)
         self.logger.info(f'Loading trial {name} at path s3://{bucket_name}/{prefix_name}')
         self.bucket_name = bucket_name
         self.prefix_name = prefix_name
-        self.last_event_token = None
-
+        self.path = "s3://"+os.path.join(self.bucket_name, self.prefix_name)
         self.s3_handler = S3Handler()
-
         self._load_collections()
-        self._load_tensors()
+        self.load_tensors()
 
-    def _load_tensors(self):
-        self._read_all_events_file_from_s3()
+    def _load_tensors_from_index_tensors(self, index_tensors_dict):
+        for tname in index_tensors_dict:
+            steps = list(index_tensors_dict[tname].keys())
+            for step in steps:
+                self.add_tensor(step, index_tensors_dict[tname][step]['tensor_location'])
 
     def training_ended(self):
         return has_training_ended("s3://{}/{}".format(self.bucket_name, self.prefix_name))
@@ -73,39 +78,25 @@ class S3Trial(Trial):
         # now we do not need to do anything since we read the full event file from S3
         pass
 
-    def refresh_tensors(self):
-        #TODO if job finished
-        self._read_all_events_file_from_s3(start_after_key=self.last_event_token)
-
-    def _list_s3_objects(self, bucket, prefix, start_after_key=None):
-        if start_after_key is None:
-            start_after_key = prefix
-        self.logger.debug(f'Trying to load events after {start_after_key}')
-        list_params = {'Bucket': bucket,'Prefix': prefix, 'StartAfter': start_after_key}
-        req = ListRequest(**list_params)
-        objects = self._list_prefixes([req])
-        if len(objects) > 0:
-            self.last_event_token = objects[-1]
-        return objects
-
-    def _read_all_events_file_from_s3(self, start_after_key=None):
+    def _load_tensors_from_event_files(self, start_after_key=None):
         # TODO
         # if job ended is saved then there is no more listing required for this bucket prefix
         # if job has ended, save that job ended
         self.keys = []
         # todo get path for events from tornasole.core
-        objects = self._list_s3_objects(self.bucket_name,
-                                        os.path.join(self.prefix_name, 'events'),
-                                        start_after_key)
+        objects, self.last_event_token = list_s3_objects(self.bucket_name,
+                                                         os.path.join(self.prefix_name, 'events'),
+                                                         start_after_key)
         self.logger.debug("Got objects:{}".format(objects))
         for objname in objects:
             efl = EventFileLocation.match_regex(objname)
             if efl:
-                if (self.range_steps is not None and self._step_in_range(efl.step_num)) or \
-                  self.range_steps is None:
+                if (self.range_steps is not None and step_in_range(self.range_steps, efl.step_num)) or \
+                        self.range_steps is None:
                     self.keys.append(objname)
                 else:
-                    self.logger.debug("Skipping step:{} as it is not in range{} {}".format(efl.step_num, self.range_steps[0], self.range_steps[1]))
+                    self.logger.debug("Skipping step:{} as it is not in range{} {}"
+                                      .format(efl.step_num, self.range_steps[0], self.range_steps[1]))
             else:
                 self.logger.debug(f'Skipping object {objname}')
         self.logger.debug(f'Loading {len(self.keys)} new steps')
@@ -144,10 +135,3 @@ class S3Trial(Trial):
         tr = TensorReader(data)
         res = tr.read_tensors(read_data=self.read_data, check=self.check)
         return list(res)
-
-    # list_info will be a list of ListRequest objects. Returns list of lists of files for each request
-    def _list_prefixes(self, list_info):
-        files = self.s3_handler.list_prefixes(list_info)
-        if len(files) == 1:
-            files = files[0]
-        return files

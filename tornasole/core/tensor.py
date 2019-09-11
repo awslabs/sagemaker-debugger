@@ -1,9 +1,11 @@
-from tornasole.core.reductions import get_numpy_reduction
+from .reductions import get_numpy_reduction
 from tornasole.core.modes import ModeKeys
-import bisect
 from tornasole.exceptions import *
 
+from tornasole.core.index_reader import IndexReader
+
 from enum import Enum
+import bisect
 
 
 class StepState(Enum):
@@ -13,8 +15,9 @@ class StepState(Enum):
 
 
 class ModeSteps:
-    def __init__(self, mode):
+    def __init__(self, mode, cache=False):
         self.mode = mode
+        self.cache = cache
         self._steps = {}
 
     def steps(self):
@@ -27,33 +30,58 @@ class ModeSteps:
 
     def set_step_value(self, step_num, value):
         if step_num not in self._steps:
-            self._steps[step_num] = Step(step_num, value)
+            self._steps[step_num] = Step(step_num, value, self.cache)
         else:
             s = self._steps[step_num]
             s.value = value
 
+    def set_step_location(self, step_num, location):
+        if step_num not in self._steps:
+            self._steps[step_num] = Step(step_num, location=location, cache=self.cache)
+        s = self._steps[step_num]
+        s.location = location
+
     def set_step_reduction_value(self, step_num, red_name, abs, red_value):
         if step_num not in self._steps:
-            s = Step(step_num)
+            s = Step(step_num, cache=self.cache)
             self._steps[step_num] = s
         else:
             s = self._steps[step_num]
         s.set_reduction_value(red_name, abs, red_value)
+
+    def set_step_reduction_location(self, step_num, red_name, abs, red_location):
+        if step_num not in self._steps:
+            s = Step(step_num, cache=self.cache)
+            self._steps[step_num] = s
+        else:
+            s = self._steps[step_num]
+        s.set_reduction_location(red_name, abs, red_location)
 
     def step(self, step_num):
         return self._steps[step_num]
 
 
 class Step:
-    def __init__(self, step_num, value=None):
+    def __init__(self, step_num, value=None, location=None, cache=False):
         self.step_num = step_num
         self._value = value
+        self.location = location
+        self.cache = cache
 
         # mapping from (red_name, abs) to value
         self._reduction_values = {}
+        self._reduction_locations = {}
 
     @property
     def value(self):
+        if self._value is None:
+            if self.location is None:
+                return None
+            else:
+                value = IndexReader.fetch_tensor_value(self.location)
+                if self.cache:
+                    self._value = value
+                return value
         return self._value
 
     @value.setter
@@ -65,23 +93,50 @@ class Step:
         del self._value
 
     def reduction_values(self):
+        reduction_values = {}
+        if not self._reduction_values:
+            for reduction in self._reduction_locations:
+                red_name = reduction[0]
+                abs = reduction[1]
+                reduction_value = IndexReader.fetch_tensor_value(self._reduction_locations[(red_name, abs)])
+                if self.cache:
+                    self.set_reduction_value(red_name,
+                                             abs,
+                                             reduction_value
+                                             )
+                reduction_values[(red_name, abs)] = reduction_value
+            return reduction_values
         return self._reduction_values
 
     def reduction_value(self, red_name, abs):
-        if (red_name, abs) in self._reduction_values:
-            return self._reduction_values[(red_name, abs)]
+        reduction_values = self._reduction_values
+        if not reduction_values:
+            reduction_values = self.reduction_values()
+        if (red_name, abs) in reduction_values:
+            return reduction_values[(red_name, abs)]
+
+    def reduction_locations(self):
+        return self._reduction_locations
+
+    def reduction_location(self, red_name, abs):
+        if (red_name, abs) in self._reduction_locations:
+            return self._reduction_locations[(red_name, abs)]
 
     def set_reduction_value(self, red_name, abs, red_value):
         self._reduction_values[(red_name, abs)] = red_value
+
+    def set_reduction_location(self, red_name, abs, red_location):
+        self._reduction_locations[(red_name, abs)] = red_location
 
 
 # refreshing is always responsibility of tensor class at the highest level API function,
 # not ModeSteps/Steps
 class Tensor:
-    def __init__(self, name, trial):
+    def __init__(self, name, trial, cache):
         self._mode_steps = {}
         self.name = name
         self.trial = trial
+        self.cache = cache
 
     def steps(self, mode=ModeKeys.GLOBAL):
         self.trial.maybe_refresh(self.name)
@@ -131,13 +186,13 @@ class Tensor:
             # else convert to mode_step and check
             mode, mode_step_num = self.trial.mode_modestep(step_num)
             if mode in self._mode_steps and \
-              self._mode_steps[mode].has_step(mode_step_num):
+                    self._mode_steps[mode].has_step(mode_step_num):
                 return True
         return False
 
     def _get_step_currently(self, step_num, mode):
         if mode == ModeKeys.GLOBAL and ModeKeys.GLOBAL in self._mode_steps \
-          and self._mode_steps[ModeKeys.GLOBAL].has_step(step_num):
+                and self._mode_steps[ModeKeys.GLOBAL].has_step(step_num):
             # step was saved as GLOBAL step
             return self._mode_steps[mode].step(step_num)
         else:
@@ -163,12 +218,14 @@ class Tensor:
             elif ss == StepState.UNAVAILABLE:
                 raise StepUnavailable(step_num, mode)
             elif ss == StepState.NOT_YET_AVAILABLE:
-                if self.trial.loaded_all_steps == True:
+                if self.trial.loaded_all_steps is True:
                     last_step = -1
                     avail_steps = self.trial.available_steps(mode=mode)
                     if len(avail_steps) > 0:
                         last_step = avail_steps[-1]
-                    raise NoMoreData(step_num, mode, last_step)
+                    raise NoMoreData(
+                        "Looking for step:{} for mode {} and reached end of training. Max step available is {}".format(
+                            step_num, mode, last_step))
                 raise StepNotYetAvailable(step_num, mode)
         assert False, 'Should not happen'
 
@@ -177,6 +234,11 @@ class Tensor:
         s = self.step(step_num=step_num, mode=mode)
         if s.value is not None:
             return s.value
+        elif s.location is not None:
+            value = IndexReader.fetch_tensor_value(s.location)
+            if self.cache:
+                s.value = value
+            return value
         else:
             has_reductions = len(s.reduction_values()) > 0
             raise TensorUnavailableForStep(self.name, step_num, mode, has_reductions)
@@ -205,10 +267,19 @@ class Tensor:
         """
         s = self.step(step_num=step_num, mode=mode)
         rv = s.reduction_value(reduction_name, abs)
+        rl = s.reduction_location(reduction_name, abs)
         if rv is not None:
             return rv
-        elif s.value is not None:
-            return get_numpy_reduction(reduction_name, s.value, abs)
+        elif rl is not None:
+            return IndexReader.fetch_tensor_value(rl)
+        else:
+            if s.value is None:
+                step_value = IndexReader.fetch_tensor_value(s.location)
+                if self.cache:
+                    s.value = step_value  # save value if cache is set to True
+            else:
+                step_value = s.value
+            return get_numpy_reduction(reduction_name, step_value, abs)
 
         assert False, 'Should not happen'
 
@@ -218,7 +289,7 @@ class Tensor:
             raise ValueError('mode step number {} for tensor {} '
                              'can not be less than 0'.format(mode_step, self.name))
         if mode not in self._mode_steps:
-            self._mode_steps[mode] = ModeSteps(mode)
+            self._mode_steps[mode] = ModeSteps(mode, cache=self.cache)
 
     def add_step(self, mode, mode_step, value):
         self._create_mode_step(mode, mode_step)
@@ -228,6 +299,15 @@ class Tensor:
         self._create_mode_step(mode, mode_step)
         self._mode_steps[mode].set_step_reduction_value(mode_step,
                                                         red_name, abs, red_value)
+
+    def add_step_lazy(self, mode, mode_step, location):
+        self._create_mode_step(mode, mode_step)
+        self._mode_steps[mode].set_step_location(mode_step, location)
+
+    def add_reduction_step_lazy(self, mode, mode_step, red_name, abs, red_location):
+        self._create_mode_step(mode, mode_step)
+        self._mode_steps[mode].set_step_reduction_location(mode_step,
+                                                        red_name, abs, red_location)
 
     def prev_steps(self, step, n=None, mode=ModeKeys.GLOBAL):
         """

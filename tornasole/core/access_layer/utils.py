@@ -31,7 +31,7 @@ def training_has_ended(trial_prefix):
 
 
 def has_training_ended(trial_prefix):
-    file_path=os.path.join(trial_prefix, END_OF_JOB_FILENAME)
+    file_path = os.path.join(trial_prefix, END_OF_JOB_FILENAME)
     s3, bucket_name, key_name = is_s3(file_path)
     if s3:
         try:

@@ -1,30 +1,21 @@
+import os
+
+
 class TensorLocation:
     def __init__(self, tname, mode, mode_step, event_file_name, start_idx, length):
         self.tensorname = tname
         self.mode = mode
-        self.mode_step = mode_step
+        self.mode_step = int(mode_step)
         self.event_file_name = event_file_name
         self.start_idx = start_idx
         self.length = length
 
-    def serialize(self):
-        return format(
-            f'{self.tensorname},'
-            f'{self.mode}, '
-            f'{self.mode_step}, '
-            f'{self.event_file_name}, '
-            f'{self.start_idx}, '
-            f'{self.length}')
-
-    @staticmethod
-    def deserialize(manifest_line_str, manifest_key_name):
-        arr = manifest_line_str.split(",")
-        return TensorLocation(arr[0],
-                              arr[1],
-                              arr[2],
-                              arr[3],
-                              arr[4],
-                              arr[5])
+    def to_dict(self):
+        return {
+            "tensorname": self.tensorname,
+            "start_idx": self.start_idx,
+            "length": self.length
+        }
 
 
 class IndexUtil:
@@ -44,7 +35,7 @@ class IndexUtil:
     @staticmethod
     def indexS3Key(trial_prefix, index_prefix_for_step_str, step_num, worker_name):
         step_num_str = format(step_num, '012')
-        index_filename = format(f"{step_num_str}_{worker_name}.csv")
+        index_filename = format(f"{step_num_str}_{worker_name}.json")
         index_key = format(f"{trial_prefix}/index/{index_prefix_for_step_str}/{index_filename}")
         return index_key
 
@@ -64,3 +55,15 @@ class IndexUtil:
         k = index_file_name[i + 1:].find("_")
         step_num_str = index_file_name[i + 1: i + 1 + k]
         return int(step_num_str)
+
+    @staticmethod
+    def parse_step_from_index_file_name(index_file_name):
+        # 10 = prefix/index/000000000/000000000010_worker.json'
+        base_file_name = os.path.basename(index_file_name)
+        step = int(base_file_name.split('_')[0])
+        return step
+
+    @staticmethod
+    def get_index_path(path):
+        return os.path.join(path, 'index')
+

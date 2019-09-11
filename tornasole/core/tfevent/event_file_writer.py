@@ -19,11 +19,9 @@
 
 import logging
 import numpy as np
-import os.path
 import socket
 import threading
 import time
-import os
 import six
 
 from .event_pb2 import Event
@@ -32,7 +30,7 @@ from tornasole.core.tfrecord.record_writer import RecordWriter
 from .util import make_tensor_proto, EventFileLocation
 from tornasole.core.indexutils import *
 from tornasole.core.tfevent.index_file_writer import IndexWriter, IndexArgs
-from tornasole.core.utils import is_s3, get_logger
+from tornasole.core.utils import is_s3, get_logger, get_relative_event_file_path
 from tornasole.core.modes import ModeKeys, MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
 
 logging.basicConfig()
@@ -142,7 +140,7 @@ def _get_sentinel_event():
     return Event()
 
 
-class EventFileWriter():
+class EventFileWriter:
     """This class is adapted from EventFileWriter in Tensorflow:
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py
     Writes `Event` protocol buffers to an event file.
@@ -170,7 +168,6 @@ class EventFileWriter():
         self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()
         self.step = step
-
         self._closed = False
         self._logger = logging.getLogger(__name__)
         self._worker = _EventLoggerThread(queue=self._event_queue, ev_writer=self._ev_writer,
@@ -302,9 +299,7 @@ class _EventLoggerThread(threading.Thread):
                     eventfile = self._ev_writer.name()
                     mode = event_in_queue.get_mode()
                     mode_step = event_in_queue.get_mode_step()
-                    s3, _, _ = is_s3(eventfile)
-                    if not s3:
-                        eventfile = os.path.abspath(self._ev_writer.name())
+                    eventfile = get_relative_event_file_path(eventfile)
                     tensorlocation = TensorLocation(tname, mode, mode_step, eventfile, positions[0], positions[1])
                     self._ev_writer.indexwriter.add_index(tensorlocation)
                 # Flush the event writer every so often.

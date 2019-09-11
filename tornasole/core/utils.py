@@ -3,10 +3,9 @@ import re
 import logging
 import bisect
 from botocore.exceptions import ClientError
-import uuid
 import sys
 import socket
-
+from pathlib import Path
 
 def flatten(lis):
   """Given a list, possibly nested to any level, return it flattened."""
@@ -145,6 +144,14 @@ def check_dir_exists(path):
                            'not already exist'.format(path))
 
 
+def list_files_in_directory(directory):
+    files = []
+    for root, dir_name, filename in os.walk(directory):
+        for f in filename:
+            files.append(os.path.join(root, f))
+    return files
+
+
 def match_inc(tname, include):
     for inc in include:
         if re.search(inc, tname):
@@ -165,3 +172,22 @@ def get_region():
     if region_name is not None and region_name.strip() == '':
         region_name = None
     return region_name
+
+
+def step_in_range(range_steps, step):
+    if range_steps[0] is not None:
+        begin = int(step) >= int(range_steps[0])
+    else:
+        begin = True
+    if range_steps[1] is not None:
+        end = int(step) < int(range_steps[1])
+    else:
+        end = True
+    return begin and end
+
+
+def get_relative_event_file_path(path):
+    p = Path(path)
+    path_parts = p.parts
+    assert path_parts[-3] == "events"
+    return os.path.join(*path_parts[-3:])

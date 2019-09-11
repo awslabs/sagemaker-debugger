@@ -12,12 +12,15 @@ from tornasole.core.utils import get_logger, flatten
 from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys
 
+from tornasole.core.indexutils import TensorLocation
+from tornasole.core import index_reader
+
 
 class EventFileTensor:
     def __init__(self, filename, tensor_name, step_num, tensor_value,
                  mode=None, mode_step=None):
         self.location = EventFileLocation.load_filename(filename)
-        self.tensor_name = tensor_name
+        self.tensorname = tensor_name
         self.tensor_value = tensor_value
         self.step_num = step_num
         if mode is None:
@@ -29,7 +32,8 @@ class EventFileTensor:
 
 
 class Trial(ABC):
-    def __init__(self, name, range_steps=None, parallel=True, read_data=True, check=False):
+    def __init__(self, name, range_steps=None, parallel=True,
+                 read_data=True, check=False, index_mode=True, cache=False):
         self.name = name
         self._tensors = {}
 
@@ -48,6 +52,13 @@ class Trial(ABC):
         self.range_steps = range_steps
         self.collection_manager = None
         self.loaded_all_steps = False
+        self.cache = cache
+        self.path = None
+        self.index_tensors_dict = {}
+        self.index_mode = index_mode
+        self.last_event_token = None
+        self.last_index_token = 0
+        self.index_reader = index_reader.IndexReader
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
@@ -66,23 +77,22 @@ class Trial(ABC):
                              .format(self.name, self.range_steps[0], self.range_steps[1]))
 
     @abstractmethod
-    def _load_tensors(self):
-        pass
-
-    @abstractmethod
     def _load_collections(self):
         pass
 
     @abstractmethod
-    def refresh_tensors(self):
+    def _load_tensors_from_index_tensors(self, index_tensors_dict):
         pass
 
     @abstractmethod
     def training_ended(self):
         pass
 
+    @abstractmethod
+    def _load_tensors_from_event_files(self, start_after_key=None):
+        pass
+
     def maybe_refresh(self, name=None):
-        
         if self.loaded_all_steps or not self.dynamic_refresh:
             return
         retry_count = 1
@@ -98,7 +108,7 @@ class Trial(ABC):
                 self.logger.info("Training has ended, will try to do a final refresh in 5 sec")
                 time.sleep(5)
             retry_count -= 1
-        if training_ended == True and self.loaded_all_steps == False:
+        if training_ended is True and self.loaded_all_steps is False:
             self.loaded_all_steps = True
             self.logger.info("Marked loaded all steps to True")
 
@@ -120,34 +130,39 @@ class Trial(ABC):
             self.maybe_refresh(tname)
         return tname in self._tensors
 
-    def set_tensor_value(self, event_file_tensor):
-        eft = event_file_tensor
+    def _populate_step_dict(self, tensor_object, step_num):
+        if tensor_object.mode != ModeKeys.GLOBAL:
+            if tensor_object.mode not in self._mode_to_global:
+                self._mode_to_global[tensor_object.mode] = {}
+            if tensor_object.mode_step not in self._mode_to_global[tensor_object.mode]:
+                self._mode_to_global[tensor_object.mode][tensor_object.mode_step] = int(step_num)
+        if step_num not in self._global_to_mode:
+            self._global_to_mode[step_num] = (tensor_object.mode, tensor_object.mode_step)
+
+    def add_tensor(self, step_num, tensor_object):
+        to = tensor_object
         # todo, use worker_name here
-
-        if TORNASOLE_REDUCTIONS_PREFIX in eft.tensor_name:
-            tname, red_name, abs = reverse_reduction_tensor_name(eft.tensor_name)
+        if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
+            tname, red_name, abs = reverse_reduction_tensor_name(to.tensorname)
         else:
-            tname = eft.tensor_name
-
+            tname = to.tensorname
         if tname not in self._tensors:
-            t = Tensor(tname, trial=self)
+            t = Tensor(tname, trial=self, cache=self.cache)
             self._tensors[tname] = t
         t = self._tensors[tname]
-
-        if eft.mode != ModeKeys.GLOBAL:
-            if eft.mode not in self._mode_to_global:
-                self._mode_to_global[eft.mode] = {}
-            if eft.mode_step not in self._mode_to_global[eft.mode]:
-                self._mode_to_global[eft.mode][eft.mode_step] = eft.step_num
-
-        if eft.step_num not in self._global_to_mode:
-            self._global_to_mode[eft.step_num] = (eft.mode, eft.mode_step)
-
-        if 'tornasole/reductions/' in eft.tensor_name:
-            t.add_reduction_step(eft.mode, eft.mode_step,
-                                 red_name, abs, eft.tensor_value)
+        self._populate_step_dict(to, step_num)
+        if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
+            if type(to) is TensorLocation:
+                t.add_reduction_step_lazy(to.mode, to.mode_step,
+                                 red_name, abs, to)
+            else:
+                t.add_reduction_step(to.mode, to.mode_step,
+                                     red_name, abs, to.tensor_value)
         else:
-            t.add_step(eft.mode, eft.mode_step, eft.tensor_value)
+            if type(to) is TensorLocation:
+                t.add_step_lazy(to.mode, to.mode_step, to)
+            else:
+                t.add_step(to.mode, to.mode_step, to.tensor_value)
 
     def tensors(self):
         self.maybe_refresh()
@@ -252,7 +267,7 @@ class Trial(ABC):
                         raise StepUnavailable(step, mode)
                     elif s == StepState.AVAILABLE:
                         break
-                    elif self.loaded_all_steps == True:
+                    elif self.loaded_all_steps is True:
                         last_step = -1
                         avail_steps = self.available_steps(mode=mode)
                         if len(avail_steps) > 0:
@@ -272,15 +287,31 @@ class Trial(ABC):
 
     def _add_tensors_at_steps(self, event_file_tensors):
         for eft in event_file_tensors:
-            self.set_tensor_value(eft)
+            self.add_tensor(eft.step_num, tensor_object=eft)
 
-    def _step_in_range(self, x):
-        if self.range_steps[0] is not None:
-            begin = int(x) >= int(self.range_steps[0])
+    def load_tensors(self):
+        if self.index_mode:
+            self._load_tensors_from_index_files()
         else:
-            begin = True
-        if self.range_steps[1] is not None:
-            end = int(x) < int(self.range_steps[1])
+            self._load_tensors_from_event_files()
+
+    def _load_tensors_from_index_files(self):
+        self.index_tensors_dict, self.last_index_token = \
+            self.index_reader.load_tensor_data_from_index_files(
+                self.path,
+                self.last_index_token,
+                range_steps=self.range_steps)
+        self._load_tensors_from_index_tensors(self.index_tensors_dict)
+
+    def refresh_tensors(self):
+        # TODO if job finished
+        if self.index_mode:
+            index_tensors_dict, self.last_index_token = \
+                self.index_reader.load_tensor_data_from_index_files(self.path,
+                                                                    start_after_key=self.last_index_token,
+                                                                    range_steps=self.range_steps)
+            if len(index_tensors_dict):
+                self.index_tensors_dict.update(index_tensors_dict)
+                self._load_tensors_from_index_tensors(index_tensors_dict)
         else:
-            end = True
-        return begin and end
+            self._load_tensors_from_event_files(start_after_key=self.last_event_token)

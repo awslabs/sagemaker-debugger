@@ -1,4 +1,3 @@
-import csv
 from tornasole.core.writer import FileWriter
 from tornasole.core.tfevent.event_file_writer import *
 from tornasole.core.reader import FileReader
@@ -6,6 +5,7 @@ from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.indexutils import *
 import shutil
 import os
+import json
 
 def test_index():
     numpy_tensor = [np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
@@ -28,15 +28,15 @@ def test_index():
 
     fo = open(eventfile, "rb")
 
-    with open(indexfile) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        line_count = 0
+    with open(indexfile) as idx_file:
+        index_data = json.load(idx_file)
+        tensor_payload = index_data['tensor_payload']
         i = 0
-        for row in csv_reader:
-            count = int(row[-2])
-            fo.seek(count, 0)
-            end = int(row[-1])
-            line = fo.read(end)
+        for tensor in tensor_payload:
+            start_idx = int(tensor['start_idx'])
+            fo.seek(start_idx, 0)
+            length = int(tensor['length'])
+            line = fo.read(length)
             zoo = open("test.txt", "wb")
             zoo.write(line)
             zoo.close()
