@@ -1,6 +1,8 @@
 import os
 import json
 import uuid
+import numpy as np
+import xgboost
 
 from .run_xgboost_model import run_xgboost_model
 from .json_config import get_json_config, get_json_config_full
@@ -56,6 +58,7 @@ def test_hook_save_all(tmpdir):
     reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+
     hook = TornasoleHook(
         out_dir=out_dir,
         save_config=save_config,
@@ -90,3 +93,43 @@ def test_hook_save_config_collections(tmpdir):
     fimps = [t for t in trial.tensors() if t.endswith("/feature_importance")]
     fimp_steps = trial.tensor(fimps[0]).steps()
     assert all(step % 3 == 0 for step in fimp_steps[:-1])
+
+
+def test_hook_shap(tmpdir):
+    np.random.seed(42)
+    train_data = np.random.rand(5, 10)
+    train_label = np.random.randint(2, size=5)
+    dtrain = xgboost.DMatrix(train_data, label=train_label)
+
+    reset_collections()
+    out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+    hook = TornasoleHook(out_dir=out_dir, train_data=dtrain)
+    run_xgboost_model(hook=hook)
+
+    trial = create_trial(out_dir)
+    tensors = trial.tensors()
+    assert len(tensors) > 0
+    assert "average_shap" in trial.collections()
+
+
+def test_hook_validation(tmpdir):
+    np.random.seed(42)
+    train_data = np.random.rand(5, 10)
+    train_label = np.random.randint(2, size=5)
+    dtrain = xgboost.DMatrix(train_data, label=train_label)
+    valid_data = np.random.rand(5, 10)
+    valid_label = np.random.randint(2, size=5)
+    dvalid = xgboost.DMatrix(valid_data, label=valid_label)
+
+    reset_collections()
+    out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+    hook = TornasoleHook(out_dir=out_dir, train_data=dtrain, validation_data=dvalid)
+    run_xgboost_model(hook=hook)
+
+    trial = create_trial(out_dir)
+    tensors = trial.tensors()
+    assert len(tensors) > 0
+    assert "validation" in trial.collections()
+    assert "y/validation" in tensors
+    assert "y_hat/validation" in tensors
+    assert any(t.endswith("/validation") for t in tensors)

@@ -15,6 +15,9 @@ class CollectionManager(BaseCollectionManager):
         metric_collection = Collection(
             "metric",
             include_regex=["^[a-zA-z]+-[a-zA-z0-9]+$"])
+        validation_collection = Collection(
+            "validation",
+            include_regex=["^.*/validation$"])
         feat_imp_collection = Collection(
             "feature_importance",
             include_regex=["^.*/feature_importance$"])
@@ -22,6 +25,7 @@ class CollectionManager(BaseCollectionManager):
             "average_shap",
             include_regex=["^((?!bias).)*/average_shap$"])
         self.add(metric_collection)
+        self.add(validation_collection)
         self.add(feat_imp_collection)
         self.add(shap_collection)
 

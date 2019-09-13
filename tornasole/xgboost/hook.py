@@ -21,6 +21,7 @@ from .utils import validate_data_file_path, get_content_type, get_dmatrix
 COLLECTIONS_FILE_NAME = "collections.ts"
 DEFAULT_INCLUDE_COLLECTIONS = [
     "metric",
+    "validation",
     "feature_importance",
     "average_shap"]
 
@@ -38,7 +39,8 @@ class TornasoleHook:
             include_regex: Optional[List[str]] = None,
             include_collections: Optional[List[str]] = None,
             save_all: bool = False,
-            shap_data: Union[None, Tuple[str, str], DMatrix] = None
+            train_data: Union[None, Tuple[str, str], DMatrix] = None,
+            validation_data: Union[None, Tuple[str, str], DMatrix] = None,
             ) -> None:
         """
         This class represents the hook which is meant to be used a callback
@@ -65,18 +67,20 @@ class TornasoleHook:
         include_collections: Tensors that should be saved.
             If not given, all known collections will be saved.
         save_all: If true, all evaluations are saved in the collection 'all'.
-        shap_data: When this parameter is a tuple (file path, content type) or
+        train_data: When this parameter is a tuple (file path, content type) or
             an xboost.DMatrix instance, the average feature contributions
             (SHAP values) will be calcaulted against the provided data set.
             content type can be either 'csv' or 'libsvm', e.g.,
-            shap_data = ('/path/to/train/file', 'csv') or
-            shap_data = ('/path/to/validation/file', 'libsvm') or
-            shap_data = xgboost.DMatrix('train.svm.txt')
+            train_data = ('/path/to/train/file', 'csv') or
+            train_data = ('/path/to/validation/file', 'libsvm') or
+            train_data = xgboost.DMatrix('train.svm.txt')
+        validation_data: Same as train_data, but for validation data.
         """  # noqa: E501
         self.out_dir = verify_and_get_out_dir(out_dir)
         self.dry_run = dry_run
         self.worker = worker
-        self.shap_data = self._validate_shap_data(shap_data)
+        self.train_data = self._validate_data(train_data)
+        self.validation_data = self._validate_data(validation_data)
 
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: -1}
@@ -136,6 +140,9 @@ class TornasoleHook:
         if mode not in self.mode_steps:
             self.mode_steps[mode] = -1
 
+    def _is_last_step(self, env: CallbackEnv) -> bool:
+        return env.iteration + 1 == env.end_iteration
+
     def _callback(self, env: CallbackEnv) -> None:
         # env.rank: rabit rank of the node/process. master node has rank 0.
         # env.iteration: current boosting round.
@@ -149,13 +156,13 @@ class TornasoleHook:
             self.save_manager.prepare()
             self.prepared_save_manager = True
 
-        if not self.exported_collections:
+        if not self.exported_collections or self._is_last_step(env):
             get_collection_manager().export(self.collections_path)
             self.exported_collections = True
 
         self.step = self.mode_steps[self.mode] = env.iteration
 
-        if env.iteration + 1 != env.end_iteration and not self._process_step():
+        if not self._is_last_step(env) and not self._process_step():
             self.logger.debug("Skipping iteration {}".format(self.step))
             return
 
@@ -167,16 +174,19 @@ class TornasoleHook:
         if self.collections_in_this_step.get("metric", False):
             self.write_metrics(env)
 
+        if self.collections_in_this_step.get("validation", False):
+            self.write_validation(env)
+
         if self.collections_in_this_step.get("feature_importance", False):
             self.write_feature_importances(env)
 
         if self.collections_in_this_step.get("average_shap", False):
             self.write_average_shap(env)
 
-        self._flush_and_close_writer()
+        if not self._is_last_step(env):
+            self._flush_and_close_writer()
 
-        if env.iteration + 1 == env.end_iteration:
-            get_collection_manager().export(self.collections_path)
+        if self._is_last_step(env):
             training_has_ended(self.out_dir)
 
         self.logger.info("Saved iteration {}.".format(self.step))
@@ -185,6 +195,15 @@ class TornasoleHook:
         # Get metrics measured at current boosting round
         for metric_name, metric_data in env.evaluation_result_list:
             self._write_tensor(metric_name, metric_data)
+
+    def write_validation(self, env: CallbackEnv):
+        # Write the labels y and y_hat from validation data
+        if not self.validation_data:
+            return
+        self._write_tensor("y/validation", self.validation_data.get_label())
+        self._write_tensor(
+            "y_hat/validation",
+            env.model.predict(self.validation_data))
 
     def write_feature_importances(self, env: CallbackEnv):
         # Get normalized feature importances (fraction of splits made in each
@@ -198,15 +217,15 @@ class TornasoleHook:
                 "{}/feature_importance".format(feature_name), feature_data)
 
     def write_average_shap(self, env: CallbackEnv):
-        if not self.shap_data:
+        if not self.train_data:
             return
         # feature names will be in the format, 'f0', 'f1', 'f2', ..., numbered
         # according to the order of features in the data set.
         feature_names = env.model.feature_names + ["bias"]
 
-        shap_avg = np.mean(
-            env.model.predict(self.shap_data, pred_contribs=True),
-            axis=0)
+        shap_values = env.model.predict(self.train_data, pred_contribs=True)
+        dim = len(shap_values.shape)
+        shap_avg = np.mean(shap_values, axis=tuple(range(dim - 1)))
 
         for feature_id, feature_name in enumerate(feature_names):
             if shap_avg[feature_id] > 0:
@@ -249,24 +268,24 @@ class TornasoleHook:
         return self.collections_in_this_step
 
     @staticmethod
-    def _validate_shap_data(
-            shap_data: Union[None, Tuple[str, str], DMatrix] = None
+    def _validate_data(
+            data: Union[None, Tuple[str, str], DMatrix] = None
             ) -> None:
-        if shap_data is None or isinstance(shap_data, DMatrix):
-            return shap_data
+        if data is None or isinstance(data, DMatrix):
+            return data
         error_msg = (
-            "'shap_data' must be a tuple of strings representing "
+            "'data' must be a tuple of strings representing "
             "(file path, content type) or an xgboost.DMatrix instance.")
-        is_tuple = isinstance(shap_data, tuple)
-        is_first_item_str = isinstance(shap_data[0], str)
+        is_tuple = isinstance(data, tuple)
+        is_first_item_str = isinstance(data[0], str)
         if not (is_tuple and is_first_item_str):
             raise ValueError(error_msg)
-        file_path = os.path.expanduser(shap_data[0])
+        file_path = os.path.expanduser(data[0])
         if not os.path.isfile(file_path):
             raise NotImplementedError(
                 "Only local files are currently supported for SHAP.")
         try:
-            content_type = get_content_type(shap_data[1])
+            content_type = get_content_type(data[1])
             validate_data_file_path(file_path, content_type)
             return get_dmatrix(file_path, content_type)
         except Exception:
