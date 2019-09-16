@@ -1,5 +1,8 @@
 # First Party Rules
 
+XGBoost Note: Not all of the following rules are applicable to XGBoost.
+For XGBoost, you can use one of `SimilarAcrossRuns`, `AllZero`, `UnchangedTensor`, `LossNotDecreasing`, and `Confusion`.
+
 ### VanishingGradient
 This rule helps you identify if you are running into a situation where your gradients vanish, i.e. have a 
 really low or zero magnitude. 
@@ -29,6 +32,8 @@ rules_specification = [
 ]
 ```
 
+This rule is not applicable for using with XGBoost.
+
 ### ExplodingTensor
 This rule helps you identify if you are running into a situation where any tensor has non finite values.
 
@@ -48,6 +53,8 @@ rules_specification = [
 ]
 ```
 
+This rule is not applicable for using with XGBoost.
+
 ### SimilarAcrossRuns
 This rule helps you compare tensors across runs. Note that this rule takes two trials as inputs. First trial is the `base_trial` whose
 execution will invoke the rule, and the `other_trial` is what is used to compare this trial's tensors with. 
@@ -66,6 +73,8 @@ rules_specification = [
     }
 ]
 ```
+
+This rule is applicable for using with XGBoost.
 
 ### WeightUpdateRatio
 This rule helps you keep track of the ratio of the updates to weights during training.  It takes the following arguments:
@@ -94,6 +103,9 @@ rules_specification = [
     }
 ]
 ```
+
+This rule is not applicable for using with XGBoost.
+
 ### AllZero
 This rule helps to identify whether the tensors contain all zeros. It takes following arguments
 
@@ -115,6 +127,8 @@ rules_specification = [
     }
 ]
 ```
+
+This rule is applicable for using with XGBoost. To use this rule with XGBoost, specify either the `collection_names` or `tensor_regex` parameter.
 
 ### UnchangedTensor
 This rule helps to identify whether a tensor is not changing across steps. 
@@ -156,6 +170,8 @@ rules_specification = [
 ]
 ```
 
+This rule is applicable for using with XGBoost. To use this rule with XGBoost, specify either the `collection_names` or `tensor_regex` parameter.
+
 ### LossNotDecreasing
 This rule helps you identify if you are running into a situation where loss is not going down.
 Note that these losses have to be scalars. It takes the following arguments.
@@ -193,3 +209,54 @@ rules_specification = [
     }
 ]
 ```
+
+This rule is applicable for using with XGBoost. To use this rule with XGBoost, set `use_loss_collection` to `False` and specify either the `collection_names` or `tensor_regex` parameter.
+
+### Confusion
+This rule evaluates the goodness of a confusion matrix for a classification problem.
+It creates a matrix of size `category_no` X `category_no` and populates it with data coming
+from (`labels`, `predictions`) pairs. For each (`labels`, `predictions`) pairs the count in
+`confusion[labels][predictions]` is incremented by 1.
+Once the matrix is fully populated, the ratio of data on- and off-diagonal values will be
+evaluated according to:
+
+- For elements on the diagonal: `confusion[i][i]/sum_j(confusion[j][j])>=min_diag`
+- For elements off the diagonal: `confusion[j][i])/sum_j(confusion[j][i])<=max_off_diag`
+
+Note that the rule has only one required parameter: `base_trial` the trial whose execution will invoke the rule.
+It takes the following arguments:
+- `base_trial`: The trial whose execution will invoke the rule
+- `category_no`: (optional) Number of categories.
+If not specified, the rule will take the larger of the number of categories in `labels` and `predictions`.
+- `labels`: (optional, default `"labels"`) The tensor name for 1-d vector of true labels.
+- `predictions`: (optoinal, default `"predictions"`) The tensor name for 1-d vector of estimated labels.
+- `labels_collection`: (optional, default `"labels"`) The rule will inspect the tensors in this collection for `labels`.
+- `predictions_collection`: (optional, default `"predictions"`) The rule will inspect the tensors in this collection for `predictions`.
+- `min_diag`: (optional, default 0.9) Mininum value for the ratio of data on the diagonal.
+- `max_off_diag`: (optional, default 0.1) Maximum value for the raio of data off the diagonal.
+
+Note that this rule will infer the default parameters if configurations are not specified, so you can simply use
+```python
+rules_specification = [
+    {
+        "RuleName": "Confusion",
+        "InstanceType": "ml.c5.4xlarge"
+    }
+]
+```
+If you want to specify the optional parameters, you can do so by using `RuntimeConfigurations`:
+```python
+rules_specification = [
+    {
+        "RuleName": "Confusion",
+        "InstanceType": "ml.c5.4xlarge",
+        "RuntimeConfigurations": {
+            "category_no": "10",
+            "min_diag": "0.8",
+            "max_diag": "0.2"
+        }
+    }
+]
+```
+
+This rule is applicable for using with XGBoost.
