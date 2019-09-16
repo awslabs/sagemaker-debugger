@@ -21,7 +21,8 @@ from .utils import validate_data_file_path, get_content_type, get_dmatrix
 COLLECTIONS_FILE_NAME = "collections.ts"
 DEFAULT_INCLUDE_COLLECTIONS = [
     "metric",
-    "validation",
+    "predictions",
+    "labels",
     "feature_importance",
     "average_shap"]
 
@@ -174,8 +175,11 @@ class TornasoleHook:
         if self.collections_in_this_step.get("metric", False):
             self.write_metrics(env)
 
-        if self.collections_in_this_step.get("validation", False):
-            self.write_validation(env)
+        if self.collections_in_this_step.get("predictions", False):
+            self.write_predictions(env)
+
+        if self.collections_in_this_step.get("labels", False):
+            self.write_labels(env)
 
         if self.collections_in_this_step.get("feature_importance", False):
             self.write_feature_importances(env)
@@ -196,14 +200,19 @@ class TornasoleHook:
         for metric_name, metric_data in env.evaluation_result_list:
             self._write_tensor(metric_name, metric_data)
 
-    def write_validation(self, env: CallbackEnv):
-        # Write the labels y and y_hat from validation data
+    def write_predictions(self, env: CallbackEnv):
+        # Write predictions y_hat from validation data
         if not self.validation_data:
             return
-        self._write_tensor("y/validation", self.validation_data.get_label())
         self._write_tensor(
-            "y_hat/validation",
+            "predictions",
             env.model.predict(self.validation_data))
+
+    def write_labels(self, env: CallbackEnv):
+        # Write labels y from validation data
+        if not self.validation_data:
+            return
+        self._write_tensor("labels", self.validation_data.get_label())
 
     def write_feature_importances(self, env: CallbackEnv):
         # Get normalized feature importances (fraction of splits made in each

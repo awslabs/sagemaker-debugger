@@ -129,7 +129,7 @@ def test_hook_validation(tmpdir):
     trial = create_trial(out_dir)
     tensors = trial.tensors()
     assert len(tensors) > 0
-    assert "validation" in trial.collections()
-    assert "y/validation" in tensors
-    assert "y_hat/validation" in tensors
-    assert any(t.endswith("/validation") for t in tensors)
+    assert "labels" in trial.collections()
+    assert "predictions" in trial.collections()
+    assert "labels" in tensors
+    assert "predictions" in tensors
