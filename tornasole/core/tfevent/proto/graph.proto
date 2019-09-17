@@ -6,8 +6,8 @@ option java_outer_classname = "GraphProtos";
 option java_multiple_files = true;
 option java_package = "org.tensorflow.framework";
 
-import "tornasole/core/tfevent/node_def.proto";
-import "tornasole/core/tfevent/versions.proto";
+import "tornasole/core/tfevent/proto/node_def.proto";
+import "tornasole/core/tfevent/proto/versions.proto";
 
 // Represents the graph of operations
 message GraphDef {

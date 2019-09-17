@@ -16,17 +16,20 @@
 # under the License.
 
 """APIs for logging data in the event file."""
-
+from .locations import EventFileLocation, IndexFileLocationUtils
 from tornasole.core.tfevent.event_file_writer import EventFileWriter
+from tornasole.core.tfevent.index_file_writer import IndexWriter
+
 import socket
+
 from .modes import ModeKeys
 
 
-class FileWriter():
-    def __init__(self, trial_dir, step, worker=None,
-                 wtype='tfevent',
+class FileWriter:
+    def __init__(self, trial_dir, step=0, worker=None,
+                 wtype='tensor',
                  max_queue=10, flush_secs=120,
-                 filename_suffix='', verbose=False, write_checksum=False):
+                 verbose=False, write_checksum=False):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `trial_dir`.
  
@@ -38,14 +41,12 @@ class FileWriter():
                 Global step number
             worker: str
                 Worker name
-            part: int
-                Unused for now
+            wtype: str
+                Used to denote what sort of data we are writing
             max_queue : int
                 Size of the queue for pending events and summaries.
             flush_secs: Number
                 How often, in seconds, to flush the pending events and summaries to disk.
-            filename_suffix : str
-                Every event file's name is suffixed with `filename_suffix` if provided.
             verbose : bool
                 Determines whether to print logging messages.
         """
@@ -55,15 +56,21 @@ class FileWriter():
         if worker is None:
             self.worker = socket.gethostname()
 
-        if wtype == 'tfevent':
-            self._writer = EventFileWriter(trial_dir=self.trial_dir, worker=self.worker,
-                                           step=self.step,
-                                           max_queue=max_queue, flush_secs=flush_secs,
-                                           filename_suffix=filename_suffix,
-                                           verbose=verbose, write_checksum=write_checksum)
+        index_file_path = IndexFileLocationUtils.get_index_key_for_step(
+                self.trial_dir, self.step, self.worker)
+        self.index_writer = IndexWriter(index_file_path)
 
+        if wtype == 'tensor':
+            el = EventFileLocation(step_num=self.step, worker_name=self.worker)
+            event_file_path = el.get_location(trial_dir=self.trial_dir)
         else:
             assert False, 'Writer type not supported: {}'.format(wtype)
+
+        self._writer = EventFileWriter(
+                path=event_file_path, index_writer=self.index_writer,
+                max_queue=max_queue, flush_secs=flush_secs,
+                verbose=verbose, write_checksum=write_checksum
+        )
 
     def __enter__(self):
         """Make usable with "with" statement."""
@@ -75,28 +82,46 @@ class FileWriter():
 
     def write_tensor(self, tdata, tname, write_index=True,
                      mode=ModeKeys.GLOBAL, mode_step=None):
+        mode, mode_step = self._check_mode_step(mode, mode_step, self.step)
         self._writer.write_tensor(tdata, tname, write_index,
-                                  mode, mode_step)
+                                  global_step=self.step,
+                                  mode=mode, mode_step=mode_step)
+
+    def write_summary(self, summ, tname, global_step, write_index=True,
+                      mode=ModeKeys.GLOBAL, mode_step=None):
+        mode, mode_step = self._check_mode_step(mode, mode_step, global_step)
+        if write_index:
+            self._writer.write_summary_with_index(
+                    summ, global_step, tname, mode, mode_step)
+        else:
+            self._writer.write_summary(summ, global_step)
 
     def flush(self):
         """Flushes the event file to disk.
         Call this method to make sure that all pending events have been written to disk.
         """
         self._writer.flush()
+        # don't flush index writer as we only want to flush on close
 
     def close(self):
         """Flushes the event file to disk and close the file.
         Call this method when you do not need the summary writer anymore.
         """
         self._writer.close()
-
-    def reopen(self):
-        """Reopens the EventFileWriter.
-        Can be called after `close()` to add more events in the same directory.
-        The events will go into a new events file. Does nothing if the EventFileWriter
-        was not closed.
-        """
-        self._writer.reopen()
+        self.index_writer.close()
 
     def name(self):
         return self._writer.name()
+
+    @staticmethod
+    def _check_mode_step(mode, mode_step, global_step):
+        if mode_step is None:
+            mode_step = global_step
+        if mode is None:
+            mode = ModeKeys.GLOBAL
+        if not isinstance(mode, ModeKeys):
+            mode_keys = ["ModeKeys." + x.name for x in ModeKeys]
+            ex_str = "mode can be one of " + ", ".join(mode_keys)
+            raise ValueError(ex_str)
+        return mode, mode_step
+

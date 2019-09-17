@@ -8,7 +8,7 @@ FRAMEWORKS = ['tensorflow', 'pytorch', 'mxnet', 'xgboost']
 
 
 def compile_summary_protobuf():
-    proto_path = 'tornasole/core/tfevent'
+    proto_path = 'tornasole/core/tfevent/proto'
     proto_files = os.path.join(proto_path, '*.proto')
     cmd = 'protoc ' + proto_files + ' --python_out=.'
     print('compiling protobuf files in {}'.format(proto_path))

@@ -3,8 +3,8 @@ import os
 
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from tornasole.core.access_layer.utils import has_training_ended
+from tornasole.core.locations import EventFileLocation
 from tornasole.core.s3_utils import list_s3_objects
-from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.utils import step_in_range

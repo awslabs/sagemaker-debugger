@@ -59,8 +59,9 @@ def _get_log_level():
 def get_logger(name='tornasole'):
     global _logger_initialized
     if not _logger_initialized:
-        worker_pid = socket.gethostname() + ':' + str(os.getpid())
-        log_context = os.environ.get('TORNASOLE_LOG_CONTEXT', default=worker_pid)
+        worker_pid = f"{socket.gethostname()}:{os.getpid()}"
+        log_context = os.environ.get('TORNASOLE_LOG_CONTEXT',
+                                     default=worker_pid)
         level = _get_log_level()
         logger = logging.getLogger(name)
 

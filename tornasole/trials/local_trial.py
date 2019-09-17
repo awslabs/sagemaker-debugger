@@ -1,6 +1,6 @@
 from .trial import EventFileTensor, Trial
+from tornasole.core.locations import EventFileLocation
 from tornasole.core.utils import index, step_in_range
-from tornasole.core.tfevent.util import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.reader import FileReader
 from tornasole.core.access_layer.utils import has_training_ended

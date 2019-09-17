@@ -7,7 +7,7 @@ import os, shutil
 from tornasole.tensorflow import reset_collections
 from .utils import *
 from tornasole.core.reader import FileReader
-from tornasole.core.tfevent.util import EventFileLocation
+from tornasole.core.locations import EventFileLocation
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 import tornasole.tensorflow as ts
 

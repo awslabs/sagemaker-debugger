@@ -1,10 +1,9 @@
 from tornasole.core.writer import FileWriter
-from tornasole.core.tfevent.event_file_writer import *
 from tornasole.core.reader import FileReader
-from tornasole.core.tfevent.util import EventFileLocation
-from tornasole.core.indexutils import *
+from tornasole.core.locations import EventFileLocation, IndexFileLocationUtils
 import shutil
 import os
+import numpy as np
 import json
 
 def test_index():
@@ -23,11 +22,10 @@ def test_index():
     writer.flush()
     writer.close()
     efl = EventFileLocation(step_num=step, worker_name=worker)
-    eventfile = efl.get_location(run_dir=run_dir)
-    indexfile = IndexUtil.get_index_key_for_step(run_dir, step,worker)
+    eventfile = efl.get_location(trial_dir=run_dir)
+    indexfile = IndexFileLocationUtils.get_index_key_for_step(run_dir, step, worker)
 
     fo = open(eventfile, "rb")
-
     with open(indexfile) as idx_file:
         index_data = json.load(idx_file)
         tensor_payload = index_data['tensor_payload']

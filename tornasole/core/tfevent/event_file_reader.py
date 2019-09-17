@@ -17,11 +17,11 @@
 
 """Reads events from disk."""
 
-import tornasole.core.tfevent.types_pb2 as types_pb2
+import tornasole.core.tfevent.proto.types_pb2 as types_pb2
 import logging
 import numpy as np
 
-from .event_pb2 import Event
+from .proto.event_pb2 import Event
 
 from tornasole.core.tfrecord.record_reader import RecordReader
 from tornasole.core.modes import ModeKeys, MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME

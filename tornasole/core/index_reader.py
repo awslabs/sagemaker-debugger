@@ -1,6 +1,6 @@
 import os
 import json
-from tornasole.core.indexutils import TensorLocation, IndexUtil
+from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
 from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from tornasole.core.utils import get_logger, is_s3, list_files_in_directory, step_in_range
@@ -34,7 +34,7 @@ class S3IndexReader:
         index_files, last_index_token = S3IndexReader.list_all_index_files_from_s3(bucket_name, prefix_name,
                                                                                   start_after_key)
         for index_file in index_files:
-            step = IndexUtil.parse_step_from_index_file_name(index_file)
+            step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
             if (range_steps is not None and step_in_range(range_steps, step)) or \
                     range_steps is None:
                 steps.append(step)
@@ -46,7 +46,7 @@ class S3IndexReader:
     @staticmethod
     def list_all_index_files_from_s3(bucket_name, prefix_name, start_after_key=None):
         index_files, last_index_token = list_s3_objects(bucket_name,
-                                                        IndexUtil.get_index_path(prefix_name),
+                                                        IndexFileLocationUtils.get_index_path(prefix_name),
                                                         start_after_key)
 
         return index_files, last_index_token
@@ -56,7 +56,7 @@ class LocalIndexReader:
     
     @staticmethod
     def list_index_files_in_dir(dirname):
-        index_dirname = IndexUtil.get_index_path(dirname)
+        index_dirname = IndexFileLocationUtils.get_index_path(dirname)
         index_files = list_files_in_directory(index_dirname)
         return sorted(index_files)
 
@@ -67,10 +67,10 @@ class LocalIndexReader:
         responses = []
         index_files = index_files[start_after_key:]  # ignore files we have already read
         for index_file in index_files:
-            step = IndexUtil.parse_step_from_index_file_name(index_file)
+            step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
             if (range_steps is not None and step_in_range(range_steps, step)) or \
                     range_steps is None:
-                steps.append(IndexUtil.parse_step_from_index_file_name(index_file))
+                steps.append(IndexFileLocationUtils.parse_step_from_index_file_name(index_file))
                 with open(index_file) as f:
                     responses.append(f.read().encode())
         start_after_key += len(index_files)  # Last file that we have read

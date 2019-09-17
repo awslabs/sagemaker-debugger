@@ -57,7 +57,7 @@ class Index:
         return json.dumps(self.__dict__)
 
 
-class IndexArgs(object):
+class EventWithIndex(object):
     def __init__(self, event, tensorname, mode, mode_step):
         self.event = event
         self.tensorname = tensorname

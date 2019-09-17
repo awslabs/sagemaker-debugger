@@ -7,12 +7,13 @@ from tornasole.core.tensor import Tensor, StepState
 from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
 
-from tornasole.core.tfevent.util import EventFileLocation
+from tornasole.core.locations import EventFileLocation
 from tornasole.core.utils import get_logger, flatten
-from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
+from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, \
+    reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys
 
-from tornasole.core.indexutils import TensorLocation
+from tornasole.core.locations import TensorLocation
 from tornasole.core import index_reader
 
 

@@ -370,6 +370,7 @@ class TornasoleHook(tf.train.SessionRunHook):
                     self.logger.debug(f'Not saving {item} as no nan seen')
             self.logger.info(f'Saved {running_size} bytes for {len(self.prev_to_be_saved)} objects at step {self.step}')
             self.writer.close()
+            self.writer = None
         self.step += 1
         self.mode_steps[self.mode] += 1
 

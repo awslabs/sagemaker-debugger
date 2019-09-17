@@ -1,5 +1,5 @@
 import struct
-from tornasole.core.tfevent.event_pb2 import Event
+from tornasole.core.tfevent.proto.event_pb2 import Event
 from tornasole.core.tfevent.event_file_reader import get_tensor_data
 from tornasole.core.tfrecord.record_reader import masked_crc32c
 from tornasole.core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
