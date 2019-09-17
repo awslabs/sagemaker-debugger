@@ -59,6 +59,8 @@ def get_rule(rule_name):
     return UnchangedTensor
   elif rule_name_lower == 'lossnotdecreasing':
     return LossNotDecreasing
+  elif rule_name_lower == 'confusion':
+    return Confusion
   else:
     raise ValueError('rule_invoker does not recognize the rule')
 
@@ -113,4 +115,3 @@ if __name__ == '__main__':
   r = create_rule(args, args_dict)
   invoke_rule(r, start_step=args.start_step, end_step=args.end_step,
               raise_eval_cond=args.raise_rule_eval_cond_exception)
-  
