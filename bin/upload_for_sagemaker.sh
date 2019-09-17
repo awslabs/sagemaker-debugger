@@ -40,3 +40,12 @@ aws s3 cp examples/rules/scripts/my_custom_rule.py s3://tornasole-external-previ
 
 # RULES_PACKAGE
 aws s3 sync tornasole/rules s3://tornasole-external-preview-use1/rules/rules_package
+
+# PUBLIC BUCKET
+aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_rules/py3/latest s3://tornasole-external-preview-use1/sdk/ts-binaries/tornasole_rules/py3/latest
+# this next copy is for backwards compatibility
+aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_rules/py3/latest s3://tornasole-external-preview-use1/rules/binary
+aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_mxnet/py3/latest s3://tornasole-external-preview-use1/sdk/ts-binaries/tornasole_mxnet/py3/latest
+aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_pytorch/py3/latest s3://tornasole-external-preview-use1/sdk/ts-binaries/tornasole_pytorch/py3/latest
+aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_tensorflow/py3/latest s3://tornasole-external-preview-use1/sdk/ts-binaries/tornasole_tensorflow/py3/latest
+aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_xgboost/py3/latest s3://tornasole-external-preview-use1/sdk/ts-binaries/tornasole_xgboost/py3/latest

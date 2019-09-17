@@ -1,37 +1,37 @@
 # Tornasole for MXNet
-Tornasole is an upcoming AWS service designed to be a debugger 
-for machine learning models. It lets you go beyond just looking 
-at scalars like losses and accuracies during training and 
-gives you full visibility into all tensors 'flowing through the graph' 
+Tornasole is an upcoming AWS service designed to be a debugger
+for machine learning models. It lets you go beyond just looking
+at scalars like losses and accuracies during training and
+gives you full visibility into all tensors 'flowing through the graph'
 during training or inference.
 
 Using Tornasole is a two step process:
 
 **Saving tensors**
-This needs the `tornasole` package built for the appropriate framework. This package lets you collect the tensors you want at the frequency 
-that you want, and save them for analysis. 
+This needs the `tornasole` package built for the appropriate framework. This package lets you collect the tensors you want at the frequency
+that you want, and save them for analysis.
 Please follow the appropriate Readme page to install the correct version. This page is for using Tornasole with MXNet.
 
 **Analysis**
 Please refer to [this page](../rules/README.md) for more details about how to run rules and other analysis
-on tensors collection from the job. That said, we do provide a few example analysis commands below 
-so as to provide an end to end flow. The analysis of these tensors can be done on a separate machine 
-in parallel with the training job. 
+on tensors collection from the job. That said, we do provide a few example analysis commands below
+so as to provide an end to end flow. The analysis of these tensors can be done on a separate machine
+in parallel with the training job.
 
 ## Installation
 #### Prerequisites
 - **Python 3.6**
-- Tornasole can work in local mode or remote(s3) mode. You can skip this, if you want to try [local mode example](#tornasole-local-mode-example). 
+- Tornasole can work in local mode or remote(s3) mode. You can skip this, if you want to try [local mode example](#tornasole-local-mode-example).
 This is necessary to setup if you want to try [s3 mode example](#tornasole-s3-mode-example).
 For running in S3 mode, you need to make sure that instance you are using has proper credentials set to have S3 write access.
-Try the below command - 
+Try the below command -
 ```
  aws s3 ls
 ```
-If you see errors, then most probably your credentials are not properly set. 
+If you see errors, then most probably your credentials are not properly set.
 Please follow [FAQ on S3](#s3access) to make sure that your instance has proper S3 access.
 
-- We recommend using the `mxnet_p36` conda environment on EC2 machines launched with the AWS Deep Learning AMI. 
+- We recommend using the `mxnet_p36` conda environment on EC2 machines launched with the AWS Deep Learning AMI.
 You can activate this by doing: `source activate mxnet_p36`.
 
 - If you are not using the above environment, please ensure that you have the MXNet framework installed.
@@ -42,11 +42,11 @@ You can activate this by doing: `source activate mxnet_p36`.
 Once your account is whitelisted, you should be able to install the `tornasole` package built for MXNet as follows:
 
 ```
-aws s3 sync s3://tornasole-binaries-use1/tornasole_mxnet/py3/latest/ tornasole_mxnet/
+aws s3 sync s3://tornasole-external-preview-use1/sdk/ts-binaries/tornasole_mxnet/py3/latest/ tornasole_mxnet/
 pip install tornasole_mxnet/*
 ```
 
-**Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3, 
+**Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3,
 you might need to run the following
 ```
 pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1   
@@ -96,8 +96,8 @@ hook.register_hook(net)
 ```
 
 #### Set the mode
-Set the mode you are running the job in. This helps you group steps by mode, 
-for easier analysis. 
+Set the mode you are running the job in. This helps you group steps by mode,
+for easier analysis.
 If you do not specify this, it saves steps under a `default` mode.
 ```
 hook.set_mode(ts.modes.TRAIN)
@@ -106,7 +106,7 @@ hook.set_mode(ts.modes.TRAIN)
 ## Examples
 #### Simple CPU training
 
-##### Tornasole local mode example 
+##### Tornasole local mode example
 The example [mnist\_gluon\_vg\_demo.py](../../examples/mxnet/scripts/mnist_gluon_vg_demo.py) is implemented to show how Tornasole is useful in detecting the vanishing gradient problem. The learning_rate and momentum in this example are set in a such way that the training will encounter the vanishing gradient issue.
 
 ```
@@ -117,8 +117,8 @@ You can monitor the job for vanishing gradients by doing the following:
 
 ```
 python -m tornasole.rules.rule_invoker --trial-dir ~/tornasole-testing/vg-demo/trial-one --rule-name VanishingGradient
-``` 
- 
+```
+
 Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
 
 ##### Tornasole S3 mode example
@@ -131,7 +131,7 @@ You can monitor the job for vanishing gradients by doing the following:
 
 ```
 python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/vg-demo/trial-one --rule-name VanishingGradient
-``` 
+```
 Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
 
 ## API
@@ -152,8 +152,8 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 
 ```
 import tornasole.mxnet as tm
-tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir', 
-                 save_config=tm.SaveConfig(save_interval=100), 
+tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
+                 save_config=tm.SaveConfig(save_interval=100),
                  include_collections=['weights', 'gradients'])
 ```
 
@@ -168,75 +168,75 @@ tm.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
 Refer [API](api.md) for all parameters available and detailed descriptions.
 
 ### Mode
-A machine learning job can be executing steps in multiple modes, such as training, evaluating, or predicting. 
+A machine learning job can be executing steps in multiple modes, such as training, evaluating, or predicting.
 Tornasole provides you the construct of a `mode` to keep data from these modes separate
-and make it easy for analysis. To leverage this functionality you have to 
+and make it easy for analysis. To leverage this functionality you have to
 call the `set_mode` function of hook such as the following call `hook.set_mode(modes.TRAIN)`.
-The different modes available are `modes.TRAIN`, `modes.EVAL` and `modes.PREDICT`. 
+The different modes available are `modes.TRAIN`, `modes.EVAL` and `modes.PREDICT`.
 
 
 If the mode was not set, all steps will be available together.
 
-You can choose to have different save configurations (SaveConfigs) 
-for different modes. You can configure this by passing a 
-dictionary from mode to SaveConfig object. 
+You can choose to have different save configurations (SaveConfigs)
+for different modes. You can configure this by passing a
+dictionary from mode to SaveConfig object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `set_save_config` method.
 ```
 from tornasole.tensorflow import TornasoleHook, get_collection, modes, SaveConfig
-scm = {modes.TRAIN: SaveConfig(save_interval=100), 
+scm = {modes.TRAIN: SaveConfig(save_interval=100),
         modes.EVAL: SaveConfig(save_interval=10)}
-        
-hook = TornasoleHook(..., 
+
+hook = TornasoleHook(...,
                      save_config=scm,
                      ...)
 ```
 
 ```
 from tornasole.tensorflow import get_collection, modes, SaveConfig
-get_collection('weights').set_save_config({modes.TRAIN: SaveConfig(save_interval=10), 
+get_collection('weights').set_save_config({modes.TRAIN: SaveConfig(save_interval=10),
                                            modes.EVAL: SaveConfig(save_interval=1000)}
 ```
 #### Collection
-Collection object helps group tensors for easier handling of tensors being saved. 
-A collection has its own list of tensors, include regex patterns, [reduction config](#reductionconfig) and [save config](#saveconfig). 
-This allows setting of different save and reduction configs for different tensors. 
+Collection object helps group tensors for easier handling of tensors being saved.
+A collection has its own list of tensors, include regex patterns, [reduction config](#reductionconfig) and [save config](#saveconfig).
+This allows setting of different save and reduction configs for different tensors.
 These collections are then also available during analysis.
 Tornasole will save the value of tensors in collection, if the collection is included in `include_collections` param of the [hook](#hook).
 
-Refer [API](api.md) for all methods available when using collections such 
-as setting SaveConfig, 
+Refer [API](api.md) for all methods available when using collections such
+as setting SaveConfig,
 ReductionConfig for a specific collection, or retrieving all collections.
 
-Please refer to [creating a collection](#creating-a-collection) to get overview of how to 
-create collection and adding tensors to collection. 
+Please refer to [creating a collection](#creating-a-collection) to get overview of how to
+create collection and adding tensors to collection.
 
 #### SaveConfig
-SaveConfig class allows you to customize the frequency of saving tensors. 
-The hook takes a SaveConfig object which is applied as 
-default to all tensors included. 
-A collection can also have its own SaveConfig object which is applied 
+SaveConfig class allows you to customize the frequency of saving tensors.
+The hook takes a SaveConfig object which is applied as
+default to all tensors included.
+A collection can also have its own SaveConfig object which is applied
 to the tensors belonging to that collection.
 
-SaveConfig also allows you to save tensors when certain tensors become nan. 
+SaveConfig also allows you to save tensors when certain tensors become nan.
 This list of tensors to watch for is taken as a list of strings representing names of tensors.
 
 The parameters taken by SaveConfig are:
 
 - `save_interval`: This allows you to save tensors every `n` steps
 - `save_steps`: Allows you to pass a list of step numbers at which tensors should be saved
- 
+
 Refer [API](api.md) for all parameters available and detailed descriptions for them, as well as example SaveConfig objects.
 
 #### ReductionConfig
 ReductionConfig allows the saving of certain reductions of tensors instead
 of saving the full tensor. By reduction here we mean an operation that converts the tensor to a scalar. The motivation here is to reduce the amount of data
-saved, and increase the speed in cases where you don't need the full tensor. 
-The reduction operations which are computed in the training process and then saved. 
-During analysis, these are available as reductions of the original tensor. 
+saved, and increase the speed in cases where you don't need the full tensor.
+The reduction operations which are computed in the training process and then saved.
+During analysis, these are available as reductions of the original tensor.
 **Please note that using reduction config means that you will not have
 the full tensor available during analysis, so this can restrict what you can do with the tensor saved.**
-The hook takes a ReductionConfig object which is applied as default to all tensors included. 
-A collection can also have its own ReductionConfig object which is applied 
+The hook takes a ReductionConfig object which is applied as default to all tensors included.
+A collection can also have its own ReductionConfig object which is applied
 to the tensors belonging to that collection.
 
 **Examples**
@@ -251,7 +251,7 @@ to the tensors belonging to that collection.
 These reduction config instances can be passed to the hook as follows
 
 ```
-	import tornasole.mxnet as tm 
+	import tornasole.mxnet as tm
 	global_reduce_config = tm.ReductionConfig(reductions=["max", "mean"])
 	hook = tm.TornasoleHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
 ```
@@ -276,22 +276,22 @@ Refer [API](api.md) for a list of the reductions available as well as examples.
 
 ### How to save tensors
 
-There are different ways to save tensors when using Tornasole. 
+There are different ways to save tensors when using Tornasole.
 Tornasole provides easy ways to save certain standard tensors by way of default collections (a Collection represents a group of tensors).
 Examples of such collections are 'weights', 'gradients', 'bias' and 'default'.
-Besides the tensors in above default collections, you can save tensors by name or regex patterns on those names. 
+Besides the tensors in above default collections, you can save tensors by name or regex patterns on those names.
 Users can also specify a certain block in the model to save the inputs and outputs of that block.
-This section will take you through these ways in more detail. 
+This section will take you through these ways in more detail.
 
 #### Saving the tensors with _include\_regex_
 The TornasoleHook API supports _include\_regex_ parameter. The users can specify a regex pattern with this pattern. The TornasoleHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
 
 #### Default Collections
-Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'bias' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with TornasoleHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the TornasoleHook initialization. The TornasoleHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect. 
+Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'bias' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with TornasoleHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the TornasoleHook initialization. The TornasoleHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect.
 
 #### Custom Collections
-You can also create any other customized collection yourself. 
-You can create new collections as well as modify existing collections 
+You can also create any other customized collection yourself.
+You can create new collections as well as modify existing collections
 
 ##### Creating a collection
 Each collection should have a unique name (which is a string). You can create collections by invoking helper methods as described in the [API](api.md) documentation
@@ -303,11 +303,11 @@ tm.get_collection('weights').include(['weight'])
 
 ##### Adding tensors
 Tensors can be added to a collection by either passing an include regex parameter to the collection.
-If you don't know the name of the tensors you want to add, you can also add the tensors to the collection 
+If you don't know the name of the tensors you want to add, you can also add the tensors to the collection
 by the variables representing the tensors in code. The following sections describe these two scenarios.
 
 ###### Adding tensors by regex
-If you know the name of the tensors you want to save and can write regex 
+If you know the name of the tensors you want to save and can write regex
 patterns to match those tensornames, you can pass the regex patterns to the collection.
 The tensors which match these patterns are included and added to the collection.
 
@@ -348,7 +348,7 @@ Here is how to create a hook for this purpose.
  # Following function shows the default initialization that enables logging of
  # weights, biases and gradients in the model.
 def create_tornasole_hook(output_s3_uri):
-    # With the following SaveConfig, we will save tensors for steps 1, 2 and 3 
+    # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_steps=[1, 2, 3])
     # Create a hook that logs weights, biases and gradients while training the model.
@@ -462,7 +462,7 @@ python examples/mxnet/scripts/mnist_gluon_model_input_output_demo.py --help
 The [mnist\_gluon\_block\_input\_output\_demo.py](../../examples/mxnet/scripts/mnist_gluon_block_input_output_demo.py) shows how to create and register the tornasole hook that can log the inputs and output of a particular block in the model in addition to weights and gradients tensors.
 
 **NOTE: For this type of logging the Gluon Model should not be hybridized.**
-In order to achieve this we need to have access to the block object whose tensors we want to log. The following code snippet shows how we can cache the block objects while creating a model. Ensure that the model is not hybridized. 
+In order to achieve this we need to have access to the block object whose tensors we want to log. The following code snippet shows how we can cache the block objects while creating a model. Ensure that the model is not hybridized.
 
 ```
  # Create a model using gluon API. The tornasole hook is currently
@@ -505,9 +505,9 @@ def create_tornasole_hook(output_s3_uri, block):
     return hook
 ```
 
-The name of the Collection is kept same as the name of block. 
-We have created it around a block in the model. 
-As a result this collection will contain tensors that were inputs and outputs of 
+The name of the Collection is kept same as the name of block.
+We have created it around a block in the model.
+As a result this collection will contain tensors that were inputs and outputs of
 this block (e.g. Conv2D block) at corresponding training steps.
 
 
@@ -528,7 +528,7 @@ Here is how to register the above hook.
     hook.register_hook(net)
 ```
 
-The example can be invoked as shown below. 
+The example can be invoked as shown below.
 **Ensure that the s3 bucket specified in command line is accessible for read and write operations**
 
 ```
@@ -600,24 +600,24 @@ python examples/mxnet/scripts/mnist_gluon_vg_demo.py --output-uri s3://tornasole
 
 ## Analyzing the Results
 
-This library enables users to collect the desired tensors at desired frequency while MXNet job is running. 
-The tensor data generated during this job can be analyzed with various 
-rules that check for vanishing gradients, exploding gradients, etc. 
-For example, the [mnist\_gluon\_vg\_demo.py](../../examples/mxnet/scripts/mnist_gluon_vg_demo.py) 
-has the vanishing gradient issue. When the tensors generated by this example are 
+This library enables users to collect the desired tensors at desired frequency while MXNet job is running.
+The tensor data generated during this job can be analyzed with various
+rules that check for vanishing gradients, exploding gradients, etc.
+For example, the [mnist\_gluon\_vg\_demo.py](../../examples/mxnet/scripts/mnist_gluon_vg_demo.py)
+has the vanishing gradient issue. When the tensors generated by this example are
 analyzed by 'VanishingGradient' rule, it shows in which steps the model encounters the vanishing gradient issue.
 
 ```
 python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/vg-demo/trial-one --rule-name VanishingGradient
 ```
 
-For details regarding how to analyze the tensor data, usage of existing rules or writing new rules, 
+For details regarding how to analyze the tensor data, usage of existing rules or writing new rules,
 please refer to [Rules documentation](../rules/README.md).
 
 
 ## FAQ
 #### Logging
-You can control the logging from Tornasole by setting the appropriate 
+You can control the logging from Tornasole by setting the appropriate
 level for the python logger `tornasole` using either of the following approaches.
 
 **In Python code**
@@ -635,10 +635,10 @@ export TORNASOLE_LOG_LEVEL=INFO
 Log levels available are 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL', 'OFF'.
 
 #### S3Access
-The instance running tornasole in s3 mode needs to have s3 access. There are different ways to provide an instance to your s3 account. 
-- If you using EC2 instance, you should launch your instance with proper iam role to access s3. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html 
-- If you are using mac or other machine, you can create a IAM user for your account to have s3 access by following this guide (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) and then configure your instance to use your AWS_ACCESS_KEY_ID AND AWS_SECRET_KEY_ID by using doc here https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html 
-- Once you are done configuring, please verify that below is working and buckets returned are from the account and region you want to use. 
+The instance running tornasole in s3 mode needs to have s3 access. There are different ways to provide an instance to your s3 account.
+- If you using EC2 instance, you should launch your instance with proper iam role to access s3. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+- If you are using mac or other machine, you can create a IAM user for your account to have s3 access by following this guide (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) and then configure your instance to use your AWS_ACCESS_KEY_ID AND AWS_SECRET_KEY_ID by using doc here https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
+- Once you are done configuring, please verify that below is working and buckets returned are from the account and region you want to use.
 ```
 aws s3 ls
 ```
