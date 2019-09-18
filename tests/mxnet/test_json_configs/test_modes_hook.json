@@ -2,6 +2,7 @@
   "config_name": "test_hook_from_json_config",
   "s3_path": "s3://kjndjknd_bucket/prefix",
   "local_path" : "newlogsRunTest2/test_modes_hookjson",
+  "include_collections" : ["gradients"],
   "save_config": {
     "TRAIN": "train_cfg1",
     "EVAL": "eval_cfg2"

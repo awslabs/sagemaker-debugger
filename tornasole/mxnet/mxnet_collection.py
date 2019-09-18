@@ -58,9 +58,11 @@ class CollectionManager(BaseCollectionManager):
         weight_collection = Collection('weights', include_regex=['^(?!gradient).*weight'])
         bias_collection = Collection('bias', include_regex=['^(?!gradient).*bias'])
         gradient_collection = Collection('gradients', include_regex=['^gradient'])
+        loss_collection = Collection('loss', include_regex=['.*loss'])
         self.add(gradient_collection)
         self.add(weight_collection)
         self.add(bias_collection)
+        self.add(loss_collection)
 
     @staticmethod
     def load(filename):

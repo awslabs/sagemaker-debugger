@@ -11,7 +11,7 @@ def acc(output, label):
             label.astype('float32')).mean().asscalar()
 
 
-def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False,
+def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False, register_to_loss_block=False,
                           num_steps_train=None, num_steps_eval=None, make_input_zero=False, normalize_mean=0.13,
                           normalize_std=0.31):
     batch_size = 1024
@@ -61,6 +61,8 @@ def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False,
 
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.1})
+    if register_to_loss_block:
+        hook.register_hook(softmax_cross_entropy)
 
     # Start the training.
     for epoch in range(2):
@@ -91,7 +93,9 @@ def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False,
         i = 0
         for data, label in valid_data:
             data = data.as_in_context(mx.cpu(0))
-            valid_acc += acc(net(data), label)
+            val_output = net(data)
+            valid_acc += acc(val_output, label)
+            loss = softmax_cross_entropy(val_output, label)
             i += 1
             if num_steps_eval is not None and i > num_steps_eval:
                 break

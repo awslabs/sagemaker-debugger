@@ -16,7 +16,7 @@ def test_hook():
   out_dir='newlogsRunTest/' + run_id
   hook = t_hook(out_dir=out_dir, save_config=save_config)
   assert (has_training_ended(out_dir) == False)
-  run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10)
+  run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True)
   shutil.rmtree(out_dir)
 
 def test_hook_from_json_config():
@@ -26,7 +26,7 @@ def test_hook_from_json_config():
   os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/mxnet/test_json_configs/test_hook_from_json_config.json'
   hook = t_hook.hook_from_config()
   assert (has_training_ended(out_dir) == False)
-  run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10)
+  run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True)
   shutil.rmtree(out_dir, True)
 
 def test_hook_from_json_config_full():
@@ -36,7 +36,7 @@ def test_hook_from_json_config_full():
   os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/mxnet/test_json_configs/test_hook_from_json_config_full.json'
   hook = t_hook.hook_from_config()
   assert (has_training_ended(out_dir) == False)
-  run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10)
+  run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True)
   shutil.rmtree(out_dir, True)
 
 def test_default_hook():

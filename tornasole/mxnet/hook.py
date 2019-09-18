@@ -23,7 +23,8 @@ COLLECTION_FILE_NAME = 'collections.ts'
 INPUT_TENSOR_SUFFIX = '_input_'
 OUTPUT_TENSOR_SUFFIX = '_output'
 GRADIENT_PREFIX = 'gradient/'
-DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'bias','gradients', 'default']
+DEFAULT_INCLUDE_COLLECTIONS = ['loss']
+COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = ['weights', 'bias','gradients', 'loss']
 
 
 class TornasoleHook:
@@ -34,7 +35,7 @@ class TornasoleHook:
                  reduction_config=None,
                  save_config=None,
                  include_regex=None,
-                 include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+                 include_collections=DEFAULT_INCLUDE_COLLECTIONS.copy(),
                  save_all=False):
         self.out_dir = verify_and_get_out_dir(out_dir)
 
@@ -70,9 +71,13 @@ class TornasoleHook:
 
     @classmethod
     def hook_from_config(cls):
-        return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)
+        return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS.copy())
 
     def _initialize_collectors(self, save_all, include_regex):
+        # We would like to collect loss collection even if user does not specify any collections
+        if 'loss' not in self.include_collections:
+            self.include_collections.append('loss')
+
         # If user has provided any include_regex, add them to a default collection.
         if include_regex is not None:
             get_collection('default').include(include_regex)
@@ -231,18 +236,40 @@ var.__class__.__name__))
     def _recursive_apply(self, block):
         block.register_forward_hook(self.forward_hook)
 
+
+    def _is_recursive_needed(self):
+        collections_to_save = self.include_collections
+
+        #Check if default collection has a regex associated with it. If it does we would need to apply hook recursively.
+        if len(get_collection('default').get_include_regex()) != 0 and 'default' in collections_to_save:
+            return True
+
+        #Get the collections that are to be saved but are not part of default collections
+        #We will need to apply hook recursively to get tensors specified in those collections.
+        extra_coll = [value for value in collections_to_save if value not in COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK]
+
+        #extra_coll contains the collections that are not part of default collections.
+        return len(extra_coll) != 0
+
     # This function registers the forward hook. If user wants to register the hook
     # for every child in the given block, then the function calls "apply" API for
     # registration of the hook.
     # The hook is registered recursively, if user has specified the collections that are more than
     # the default collectors viz. gradients, weight and bias
     def register_hook(self, block):
-        self.is_recursive=True
         if not isinstance(block, mx.gluon.Block):
             logger.error("The given block type {0} is not "
                          "currently supported by Tornasole Hook"
                          .format(block.__class__.__name__))
             return
+
+        # Skip the forward pre hook for the Loss blocks.
+        if isinstance(block, mx.gluon.loss.Loss):
+            logger.info("Registering hook for block {0}".format(block.name))
+            block.register_forward_hook(self.forward_hook)
+            return
+
+        self.is_recursive=self._is_recursive_needed()
         block.register_forward_pre_hook(self.forward_pre_hook)
         if self.is_recursive:
             block.apply(self._recursive_apply)

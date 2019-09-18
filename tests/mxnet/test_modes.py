@@ -11,8 +11,8 @@ def test_modes(hook=None, path=None):
     path = './newlogsRunTest/' + run_id
     hook = t_hook(out_dir=path,
                   save_config={modes.TRAIN: SaveConfig(save_interval=50),
-                              modes.EVAL: SaveConfig(save_interval=10)})
-  run_mnist_gluon_model(hook=hook, set_modes=True)
+                              modes.EVAL: SaveConfig(save_interval=10)}, include_collections=['gradients'])
+  run_mnist_gluon_model(hook=hook, set_modes=True, register_to_loss_block=True)
 
   tr = create_trial(path)
   assert len(tr.modes()) == 2
