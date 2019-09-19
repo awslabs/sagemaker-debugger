@@ -1,6 +1,7 @@
 import aioboto3
 import asyncio
-from tornasole.core.utils import is_s3, get_logger, get_region
+from tornasole.core.utils import is_s3, get_region
+from tornasole.core.logger import get_logger
 import logging
 import time
 

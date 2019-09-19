@@ -4,7 +4,8 @@ import socket
 
 from .collection import *
 from tornasole.core.writer import FileWriter
-from tornasole.core.utils import get_logger, flatten
+from tornasole.core.utils import flatten
+from tornasole.core.logger import get_logger
 from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.modes import ModeKeys
 from tornasole.core.save_config import SaveConfig

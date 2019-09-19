@@ -3,7 +3,7 @@ from tornasole.core.writer import FileWriter
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import create_hook_from_json_config

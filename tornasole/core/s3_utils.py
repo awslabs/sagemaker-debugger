@@ -1,5 +1,5 @@
 from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 
 
 logger = get_logger()

@@ -1,5 +1,5 @@
 from tornasole.exceptions import *
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 from tornasole.rules.rule_invoker import create_rule
 
 logger = get_logger()

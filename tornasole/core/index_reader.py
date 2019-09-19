@@ -3,7 +3,8 @@ import json
 from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
 from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
-from tornasole.core.utils import get_logger, is_s3, list_files_in_directory, step_in_range
+from tornasole.core.utils import is_s3, list_files_in_directory, step_in_range
+from tornasole.core.logger import get_logger
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.modes import ModeKeys
 

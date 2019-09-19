@@ -2,7 +2,8 @@ import os
 from botocore.exceptions import ClientError
 from .file import TSAccessFile
 from .s3 import TSAccessS3
-from tornasole.core.utils import is_s3, get_logger, check_dir_exists, get_region
+from tornasole.core.utils import is_s3, check_dir_exists, get_region
+from tornasole.core.logger import get_logger
 from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
 import asyncio
 import aioboto3

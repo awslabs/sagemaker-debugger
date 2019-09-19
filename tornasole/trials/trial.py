@@ -8,7 +8,8 @@ from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
 
 from tornasole.core.locations import EventFileLocation
-from tornasole.core.utils import get_logger, flatten
+from tornasole.core.utils import flatten
+from tornasole.core.logger import get_logger
 from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, \
     reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys

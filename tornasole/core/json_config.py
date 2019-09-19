@@ -2,7 +2,7 @@ import json
 import os
 
 from tornasole.core.modes import ModeKeys, ALLOWED_MODE_NAMES
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 from tornasole import ReductionConfig, SaveConfig
 
 TORNASOLE_CONFIG_DEFAULT_WORKER_NAME = 'worker0'
