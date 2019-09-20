@@ -1,6 +1,6 @@
 from tornasole.core.tfevent.proto.event_pb2 import Event
 from tornasole.core.tfrecord.record_writer import RecordWriter
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 
 
 class EventsWriter:

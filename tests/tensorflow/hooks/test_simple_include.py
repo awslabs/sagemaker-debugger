@@ -42,7 +42,7 @@ def test_simple_include():
 
 
 def test_simple_include_json():
-    trial_dir = "newlogsRunTest1/test_save_include_json"
+    trial_dir = "newlogsRunTest1/test_simple_include_json"
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[
@@ -89,7 +89,7 @@ def test_simple_include_regex():
 
 
 def test_simple_include_regex_json():
-    trial_dir = "newlogsRunTest1/test_save_include_regex_json"
+    trial_dir = "newlogsRunTest1/test_simple_include_regex_json"
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[

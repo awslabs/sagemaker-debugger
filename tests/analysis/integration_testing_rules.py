@@ -26,7 +26,7 @@ import time
 import asyncio
 import aioboto3
 from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 from subprocess import Popen, PIPE
 from time import sleep
 import re

@@ -1,5 +1,7 @@
 import json
 
+from tornasole.core.utils import split
+
 ALLOWED_REDUCTIONS=['min','max','mean','std','variance','sum','prod']
 ALLOWED_NORMS=['l1','l2']
 REDUCTION_CONFIG_VERSION_NUM = 'v0'
@@ -36,8 +38,8 @@ class ReductionConfig:
       should be one of 'l1', 'l2'
 
   abs_norms: list of str
-        takes names of norms to be computed of the tensor after taking absolute value
-        should be one of 'l1', 'l2'
+    takes names of norms to be computed of the tensor after taking absolute value
+    should be one of 'l1', 'l2'
   """
 
   def __init__(self, only_shape=False,
@@ -48,13 +50,15 @@ class ReductionConfig:
     self.abs_reductions = abs_reductions
     self.norms = norms
     self.abs_norms = abs_norms
-    ## DO NOT RMEOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
+    ## DO NOT REMOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
     self._check()
-  
+
   def _check(self):
+    """Ensure that only valid params are passed in; raises ValueError if not."""
     if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
-        raise ValueError('allowed params for reduction config can only be one of ' + ','.join(ALLOWED_PARAMS))
-    
+        raise ValueError('allowed params for reduction config can only be one of ' + ','.join(ALLOWED_PARAMS)
+        )
+
     if any([x not in ALLOWED_REDUCTIONS for x in self.reductions]):
       raise ValueError('reductions can only be one of ' + ','.join(ALLOWED_REDUCTIONS))
     if any([x not in ALLOWED_REDUCTIONS for x in self.abs_reductions]):
@@ -63,32 +67,44 @@ class ReductionConfig:
       raise ValueError('norms can only be one of ' + ','.join(ALLOWED_NORMS))
     if any([x not in ALLOWED_NORMS for x in self.abs_norms]):
       raise ValueError('abs_norms can only be one of ' + ','.join(ALLOWED_NORMS))
-  
+
   @classmethod
   def from_json(cls, j):
     if isinstance(j, str):
-      params = json.loads(j)  
+      params = json.loads(j)
     elif isinstance(j, dict):
       params = j
     else:
       raise ValueError("parameter must be either str or dict")
-    if any([x not in ALLOWED_PARAMS for x in params]):
-        raise ValueError('allowed params for reduction config can only be one of ' + ','.join(ALLOWED_PARAMS))
-    only_shape = params.get("only_shape" , False)
-    reductions = params.get("reductions", [])
-    abs_reductions = params.get("abs_reductions", [])
-    norms = params.get("norms", [])
-    abs_norms = params.get("abs_norms", [])
+
+    only_shape = params.get("only_shape", False)
+    # Parse comma-separated string into array
+    all_reductions = split(params.get("reductions", ""))
+    # Parse list of reductions into various types, e.g. convert "abs_l1_norm" into "l1"
+    reductions, norms, abs_reductions, abs_norms = [], [], [], []
+    for red in all_reductions:
+      if red != "": # possible artifact of using split()
+        if red.startswith("abs_"):
+          if red.endswith("_norm"):
+            abs_norms.append(red.split("_")[1]) # abs_l1_norm -> l1
+          else:
+            abs_reductions.append(red.split("_")[1]) # abs_mean -> mean
+        else:
+          if red.endswith("_norm"):
+            norms.append(red.split("_")[0]) # l1_norm -> l1
+          else:
+            reductions.append(red) # mean -> mean
+
     return cls(only_shape, reductions, abs_reductions, norms, abs_norms)
 
   def export(self):
     separator = '%'
     list_separator = ','
     return separator.join([REDUCTION_CONFIG_VERSION_NUM, str(self.only_shape),
-                           list_separator.join(self.reductions),
-                           list_separator.join(self.abs_reductions),
-                           list_separator.join(self.norms),
-                           list_separator.join(self.abs_norms)])
+                            list_separator.join(self.reductions),
+                            list_separator.join(self.abs_reductions),
+                            list_separator.join(self.norms),
+                            list_separator.join(self.abs_norms)])
 
   @staticmethod
   def load(s):
@@ -112,7 +128,7 @@ class ReductionConfig:
 
       return ReductionConfig(only_shape=only_shape, reductions=reductions,
                              abs_reductions=abs_reductions, norms=norms, abs_norms=abs_norms)
-    raise RuntimeError('Unable to load ReductionConfig from %s' % s)
+    raise RuntimeError("Unable to load ReductionConfig from %s" % s)
 
   def __eq__(self, other):
     if not isinstance(other, ReductionConfig):
@@ -123,3 +139,9 @@ class ReductionConfig:
            self.abs_reductions == other.abs_reductions and \
            self.norms == other.norms and \
            self.abs_norms == other.abs_norms
+
+  def __repr__(self):
+      return (
+          f"<class ReductionConfig: only_shape={self.only_shape}, reductions={self.reductions}, "
+          f"abs_reductions={self.abs_reductions}, norms={self.norms}, abs_norms={self.abs_norms}>"
+      )

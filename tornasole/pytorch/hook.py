@@ -3,7 +3,7 @@ from tornasole.core.writer import FileWriter
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import create_hook_from_json_config
@@ -74,7 +74,7 @@ class TornasoleHook:
     @classmethod
     def hook_from_config(cls):
         return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)
-        
+
     def _initialize_collectors(self, save_all, include_regex):
         # If user has provided any include_regex, add them to a default collection.
         if include_regex is not None:

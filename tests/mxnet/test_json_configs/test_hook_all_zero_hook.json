@@ -1,27 +1,18 @@
 {
-  "config_name": "my training tornasole config",
-  "s3_path": "s3://kjndjknd_bucket/prefix",
-  "local_path" : "newlogsRunTest2/test_hook_all_zero_hook_from_json",
-  "save_config" : "default_save_config",
-  "include_collections" :  ["ReluActivation", "weights", "bias","gradients"],
-  "save_all" : false,
-  "collections" : [
+  "S3Path": "s3://kjndjknd_bucket/prefix",
+  "LocalPath": "newlogsRunTest2/test_hook_all_zero_hook_from_json",
+  "HookParameters": {
+    "save_all": false,
+    "save_steps": "0,1,2,3"
+  },
+  "CollectionConfiguration": [
+    { "CollectionName": "weights" },
+    { "CollectionName": "bias" },
+    { "CollectionName": "gradients" },
     {
-      "ReluActivation" : {
-        "include_regex": ["relu*", "input_*"]
-      }
-      
-    }
-  ],
-  "save_configs" : [
-    {
-      "save_config_collection" : {
-        "save_steps" : [4,5,6]
-      }
-    },
-    {
-      "default_save_config" : {
-        "save_steps" : [0,1,2,3]
+      "CollectionName": "ReluActivation",
+      "CollectionParameters": {
+        "include_regex": "relu*,input_*"
       }
     }
   ]

@@ -1,7 +1,8 @@
 import os
 import re
 
-from .utils import get_immediate_subdirectories, get_logger
+from .utils import get_immediate_subdirectories
+from .logger import get_logger
 
 logger = get_logger()
 

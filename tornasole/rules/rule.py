@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from .req_tensors import RequiredTensors
 from tornasole.analysis.utils import no_refresh
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 from tornasole.exceptions import RuleEvaluationConditionMet
 
 

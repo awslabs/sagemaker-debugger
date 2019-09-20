@@ -2,7 +2,8 @@ import os
 
 from .json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH
 from .sagemaker_utils import is_sagemaker_job, get_sagemaker_out_dir
-from .utils import is_s3, check_dir_exists, get_logger
+from .utils import is_s3, check_dir_exists
+from .logger import get_logger
 
 logger = get_logger()
 

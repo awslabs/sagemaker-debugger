@@ -1,41 +1,23 @@
 {
-  "config_name": "PyTorch Reduction config Test",
-  "s3_path": "s3://kjndjknd_bucket/prefix",
-  "local_path" : "test_output/test_hook_reduction_config/jsonloading",
-  "save_configs" : [
+  "S3Path": "s3://kjndjknd_bucket/prefix",
+  "LocalPath": "test_output/test_hook_reduction_config/jsonloading",
+  "HookParameters": {
+    "save_all": false,
+    "reductions": "max, mean, variance",
+    "save_steps": "0,1,2,3"
+  },
+  "CollectionConfiguration": [
+    { "CollectionName": "weights" },
+    { "CollectionName": "bias" },
+    { "CollectionName": "gradients" },
+    { "CollectionName": "default" },
     {
-      "global_save_config" : {
-        "save_steps" : [0, 1, 2, 3]
-      },
-      "reduction_save_config" : {
-        "save_steps" : [4, 5, 6]
+      "CollectionName": "ReluActivation",
+      "CollectionParameters": {
+        "include_regex": "relu*",
+        "save_steps": "4,5,6",
+        "reductions": "min,abs_max"
       }
     }
-  ],
-    "reduction_configs" : [
-    {
-      "min_max_reduction" :{
-        "reductions" : ["min"],
-        "abs_reductions" : ["max"]
-      }
-    },
-    {
-      "global_reduction_config" :{
-        "reductions" : ["max", "mean", "variance"]
-      }
-    }
-  ],
-  "collections" : [
-    {
-      "ReluActivation" : {
-        "include_regex": ["relu*"],
-        "save_config" : "reduction_save_config",
-        "reduction_config" : "min_max_reduction"
-      }
-    }
-  ],
-  "reduction_config" : "global_reduction_config",
-  "save_config" : "global_save_config",
-  "include_collections" :  ["weights", "bias", "gradients", "default", "ReluActivation"],
-  "save_all" : false
+  ]
 }

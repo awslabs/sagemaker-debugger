@@ -1,4 +1,4 @@
-from tornasole.core.utils import get_logger
+from tornasole.core.logger import get_logger
 
 
 class TSAccessBase:
