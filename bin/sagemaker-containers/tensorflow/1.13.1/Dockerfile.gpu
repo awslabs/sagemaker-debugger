@@ -116,13 +116,11 @@ COPY $tf_estimator_installable .
 RUN pip install --no-cache-dir -U \
     keras==2.2.4 \
     mpi4py==3.0.1 \
-    $framework_support_installable \
-    "sagemaker-tensorflow>=1.13,<1.14" \
     # Let's install TensorFlow separately in the end to avoid
     # the library version to be overwritten
     && pip install --force-reinstall --no-cache-dir -U tensorflow-1.13.1-py2.py3-none-any.whl \
-    \
-    && pip install --no-cache-dir --force-reinstall -U $tf_estimator_installable \
+    && pip install --no-cache-dir -U $tf_estimator_installable \
+    && pip install --no-cache-dir --force-reinstall $framework_support_installable "sagemaker-tensorflow>=1.13,<1.14" \
     && rm -f tensorflow-1.13.1-py2.py3-none-any.whl  \
     && rm -f $framework_support_installable $tf_estimator_installable \
     && pip uninstall -y --no-cache-dir \

@@ -42,9 +42,9 @@ for i in range(args.steps):
 
 
 
-from tornasole.trials import create_trial
-tr = create_trial('s3://tornasolecodebuildtest/container_testing/ts_outputs/tf'+t)
-from tornasole.rules.generic import VanishingGradient
-r = VanishingGradient(tr)
-from tornasole.rules.rule_invoker import invoke_rule
-invoke_rule(r, start_step=0, end_step=80)
+#from tornasole.trials import create_trial
+#tr = create_trial('s3://tornasolecodebuildtest/container_testing/ts_outputs/tf'+t)
+#from tornasole.rules.generic import VanishingGradient
+#r = VanishingGradient(tr)
+#from tornasole.rules.rule_invoker import invoke_rule
+#invoke_rule(r, start_step=0, end_step=80)
