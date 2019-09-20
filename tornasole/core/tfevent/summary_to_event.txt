@@ -6,7 +6,7 @@ class SummaryToEventTransformer(object):
     This class abstractly implements the SummaryWriter API: add_summary.
     The endpoint generates an event protobuf from the Summary object, and passes
     the event protobuf to _event_writer, which is of type EventFileWriter, for logging.
-    
+
     def __init__(self, event_writer):
         """Initializes the _event_writer with the passed-in value.
 

@@ -15,7 +15,7 @@ class TSAccessS3(TSAccessBase):
         self.binary = binary
         self._init_data()
         self.flushed = False
-        
+
         self.current_len=0
         self.s3 = boto3.resource('s3', region_name=get_region())
         self.s3_client = boto3.client('s3', region_name=get_region())
@@ -40,7 +40,7 @@ class TSAccessS3(TSAccessBase):
     def open(self,bucket_name,mode):
         raise NotImplementedError
 
-    
+
     def write(self, _data):
         start = len(self.data)
         self.data += _data
@@ -57,14 +57,14 @@ class TSAccessS3(TSAccessBase):
 
 
     def flush(self):
-        pass 
+        pass
 
     def ingest_all(self):
         s3_response_object = self.s3_client.get_object(Bucket=self.bucket_name, Key=self.key_name)
         self._data = s3_response_object['Body'].read()
         self._datalen = len(self._data)
         self._position = 0
-    
+
     def read(self,n):
         assert self._position+n <= self._datalen
         res = self._data[self._position:self._position+n]
@@ -79,4 +79,3 @@ class TSAccessS3(TSAccessBase):
 
     def __exit(self, exc_type, exc_value, traceback):
         self.close()
-

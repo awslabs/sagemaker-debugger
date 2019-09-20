@@ -30,7 +30,7 @@ def parse_args():
 
     parser.add_argument('--train', type=str, default=os.environ.get('SM_CHANNEL_TRAIN'))
     parser.add_argument('--validation', type=str, default=os.environ.get('SM_CHANNEL_VALIDATION'))
-    
+
     args = parser.parse_args()
 
     return args
@@ -76,7 +76,7 @@ def create_tornasole_hook(out_dir, train_data=None, validation_data=None, freque
 
 
 def main():
-    
+
     args = parse_args()
 
     if args.train and args.validation:

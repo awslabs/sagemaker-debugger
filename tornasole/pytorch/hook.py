@@ -270,4 +270,3 @@ class TornasoleHook:
                 logging.warning('Summary name %s is illegal; using %s instead.', name, new_name)
                 name = new_name
         return name
-

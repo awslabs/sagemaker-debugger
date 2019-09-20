@@ -103,5 +103,5 @@ if __name__ == "__main__":
               validation_data=(x_test, y_test),
               callbacks=[hook]
               )
-    
+
     model.save(os.path.join(args.model_dir,'sentiment_keras.h5'))

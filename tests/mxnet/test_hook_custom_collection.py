@@ -14,4 +14,3 @@ def test_hook_custom_collection():
   hook = t_hook(out_dir=out_dir, save_config=save_config, include_collections=['ReluActivation'])
   run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10)
   shutil.rmtree(out_dir)
-

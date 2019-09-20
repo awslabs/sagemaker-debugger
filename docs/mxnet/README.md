@@ -49,7 +49,7 @@ pip install tornasole_mxnet/*
 **Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3,
 you might need to run the following
 ```
-pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1   
+pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1
 ```
 
 ## Quickstart
@@ -271,7 +271,7 @@ hook = TornasoleHook(out_dir=out_dir, include_collections=['weights', 'bias','gr
                                                     'default', 'ReluActivation', 'flatten'])
 ```
 
-Refer [API](api.md) for a list of the reductions available as well as examples.  
+Refer [API](api.md) for a list of the reductions available as well as examples.
 
 
 ### How to save tensors

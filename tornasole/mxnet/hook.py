@@ -94,7 +94,7 @@ class TornasoleHook:
         else:
             raise ValueError('Invalid mode {}. Valid modes are {}.'
                              .format(mode, ','.join(ALLOWED_MODES)))
-        
+
         if mode not in self.mode_steps:
             self.mode_steps[mode] = -1
 
@@ -174,7 +174,7 @@ class TornasoleHook:
         # Output output tensors
         self.log_outputs_of_block(block_name, output)
         self.last_saved_step = self.step
- 
+
     def _log_ndarray_from_col(self, block_name, var, tensor_suffix, idx):
        if var.__class__.__name__ is "NDArray":
            self.log_tensor(tensor_name=block_name + tensor_suffix + str(idx), tensor_value=var)
@@ -190,7 +190,7 @@ var.__class__.__name__))
     def log_inputs_to_block(self, block_name, input):
         idx = 0
         self._log_ndarray_from_col(block_name, input, INPUT_TENSOR_SUFFIX, idx)
- 
+
     def log_outputs_of_block(self, block_name, output):
         idx = 0
         self._log_ndarray_from_col(block_name, output, OUTPUT_TENSOR_SUFFIX, idx)
@@ -285,4 +285,3 @@ var.__class__.__name__))
                 logging.warning('Summary name %s is illegal; using %s instead.', name, new_name)
                 name = new_name
         return name
-      

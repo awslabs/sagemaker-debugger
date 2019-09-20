@@ -12,7 +12,7 @@ parser.add_argument('--scale', type=float, help="Scaling factor for inputs", def
 parser.add_argument('--tornasole_frequency', type=float, help="How often to save TS data", default=10 )
 parser.add_argument('--run_name', type=str, help="Run Name", default=str(uuid.uuid4()) )
 parser.add_argument('--local_reductions', nargs='+', type=str, default=[] )
-# running in Tf estimator mode, script need to accept --model_dir parameter 
+# running in Tf estimator mode, script need to accept --model_dir parameter
 parser.add_argument('--model_dir', type=str, help="model dir", default=str(uuid.uuid4()) )
 args = parser.parse_args()
 # Network definition
@@ -31,7 +31,7 @@ optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 graph = tf.get_default_graph()
 list_of_tuples = [op.outputs for op in graph.get_operations()]
 t = str(time.time())
-hook = TornasoleHook("s3://tornasolecodebuildtest/container_testing/ts_outputs/tf"+t, 
+hook = TornasoleHook("s3://tornasolecodebuildtest/container_testing/ts_outputs/tf"+t,
 		     save_config=SaveConfig(save_interval=10))
 sess = tf.train.MonitoredSession(hooks=[hook])
 for i in range(args.steps):

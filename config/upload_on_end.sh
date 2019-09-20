@@ -28,4 +28,3 @@ else
     upload_dirs integration_tests_logs pytest_reports wheels
     echo "INFO BUILD SUCCEEDED !!! , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK PR:$GITHUB_PR_URL . CODEBUILD:$CODEBUILD_BUILD_URL. Test logs are on S3 here:$S3_TEST_REPORT_URL"
 fi
-

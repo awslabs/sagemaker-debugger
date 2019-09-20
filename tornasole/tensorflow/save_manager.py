@@ -42,4 +42,3 @@ class TFSaveManager(SaveManager):
 
   def when_nan_collections(self, tensor_name):
     return self.when_nan_tensors[tensor_name]
-

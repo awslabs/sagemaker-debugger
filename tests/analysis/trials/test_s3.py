@@ -72,4 +72,3 @@ def test_multiple_s3_trials(num_trials = 4, num_steps = 5, num_tensors = 5):
         loop = asyncio.get_event_loop()
         task = loop.create_task(del_folder('tornasole-testing', keys))
         loop.run_until_complete(task)
-

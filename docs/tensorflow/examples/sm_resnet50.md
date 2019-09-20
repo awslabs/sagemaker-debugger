@@ -1,10 +1,10 @@
 # ResNet50 Imagenet Example
-We provide an example script `train_imagenet_resnet_hvd.py` which is a Tornasole-enabled TensorFlow training script for ResNet50/ImageNet. 
-**Please note that this script needs a GPU**. 
-It uses the Estimator interface of TensorFlow. 
-Here we show different scenarios of how to use Tornasole to 
-save different tensors during training for analysis. 
-Below are listed the changes we made to integrate these different 
+We provide an example script `train_imagenet_resnet_hvd.py` which is a Tornasole-enabled TensorFlow training script for ResNet50/ImageNet.
+**Please note that this script needs a GPU**.
+It uses the Estimator interface of TensorFlow.
+Here we show different scenarios of how to use Tornasole to
+save different tensors during training for analysis.
+Below are listed the changes we made to integrate these different
 behaviors of Tornasole as well as example commands for you to try.
 
 ## Integrating Tornasole
@@ -20,7 +20,7 @@ include_collections.append('weights')
 ```
 **Saving gradients**
 
-We need to wrap our optimizer with TornasoleOptimizer, and use this optimizer to minimize loss. 
+We need to wrap our optimizer with TornasoleOptimizer, and use this optimizer to minimize loss.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
 opt = TornasoleOptimizer(opt)
@@ -79,7 +79,7 @@ classifier.train(
 Here we provide example hyperparameters dictionaries to run this script in different scenarios from within SageMaker. You can replace the resnet_hyperparams dictionary in the notebook we provided to use the following hyperparams dictionaries to run the jobs in these scenarios.
 
 ### Run with synthetic or real data
-By default the following commands run with synthetic data. If you have ImageNet data prepared in tfrecord format, 
+By default the following commands run with synthetic data. If you have ImageNet data prepared in tfrecord format,
  you can pass the path to that with the parameter data_dir.
 
 ### Saving weights and gradients with Tornasole
@@ -93,7 +93,7 @@ hyperparams = {
 ```
 
 ### Simulating gradients which 'vanish'
-We simulate the scenario of gradients being really small (vanishing) by initializing weights with a small constant. 
+We simulate the scenario of gradients being really small (vanishing) by initializing weights with a small constant.
 
 ```
 hyperparams = {
@@ -103,7 +103,7 @@ hyperparams = {
     'tornasole_step_interval': 100,
     'constant_initializer': 0.01
 }
-``` 
+```
 #### Rule: VanishingGradient
 To monitor this condition for the first 10000 training steps, you can setup a Vanishing Gradient rule  as follows:
 
@@ -138,8 +138,8 @@ hyperparams = {
 }
 ```
 #### Saving weights every step
-If you want to compute and track the ratio of weights and updates, 
-you can do that by saving weights every step as follows 
+If you want to compute and track the ratio of weights and updates,
+you can do that by saving weights every step as follows
 ```
 hyperparams = {
     'enable_tornasole': True,
@@ -147,7 +147,7 @@ hyperparams = {
     'tornasole_step_interval': 1
 }
 ```
-##### Rule: WeightUpdateRatio 
+##### Rule: WeightUpdateRatio
 To monitor the weights and updates during training, you can setup a WeightUpdateRatio rule as follows:
 
 ```
@@ -160,7 +160,7 @@ rule_specifications=[
 ```
 
 ##### Rule: UnchangedTensor
-You can also invoke this rule to 
+You can also invoke this rule to
 monitor if tensors are not changing at every step. Here we are passing '.*' as the tensor_regex to monitor all tensors.
 ```
 rule_specifications=[

@@ -43,7 +43,7 @@ pip install tornasole_xgboost/tornasole-*
 **Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3,
 you might need to run the following
 ```
-pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1   
+pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1
 ```
 
 ## Quickstart

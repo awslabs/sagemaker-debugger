@@ -3,7 +3,7 @@ from tornasole.core.collection_manager import CollectionManager
 
 from tornasole.rules.generic import Confusion
 from tornasole.trials import create_trial
-import os 
+import os
 
 import uuid
 import numpy as np
@@ -37,7 +37,7 @@ def test_confusion():
     r = Confusion(tr, labels_collection='labels', predictions_collection='preds' )
     invoke_rule(r, start_step=0, end_step=1, raise_eval_cond=True)
 
-    # Test 2: should fail on row 4 because the 
+    # Test 2: should fail on row 4 because the
     run_id = str(uuid.uuid4())
     y = np.arange(cat_no)
     y_hat = np.copy(y)

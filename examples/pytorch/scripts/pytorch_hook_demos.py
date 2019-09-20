@@ -91,7 +91,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type='saveall'):
         get_collection('l_mod').add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model every 5 steps from steps 0-100 while training.
-        hook = TornasoleHook(out_dir=output_dir, save_config=SaveConfig(save_steps=[i * 5 for i in range(20)]), 
+        hook = TornasoleHook(out_dir=output_dir, save_config=SaveConfig(save_steps=[i * 5 for i in range(20)]),
                                 include_collections=['weights', 'gradients', 'bias','l_mod'])
     elif hook_type == 'weights-bias-gradients':
         save_config = SaveConfig(save_steps=[i * 5 for i in range(20)])

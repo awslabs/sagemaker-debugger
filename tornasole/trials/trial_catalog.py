@@ -8,10 +8,10 @@ class TrialCatalog(object):
 
     def add_trial(self, trial_name, trial_object):
         self.trials[trial_name] = trial_object
-    
+
     def get_trial(self, trial_name):
         return self.trials[trial_name]
-    
+
     def get_trials(self):
         return self.trials.keys()
 

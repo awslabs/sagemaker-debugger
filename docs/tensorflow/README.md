@@ -49,7 +49,7 @@ pip install tornasole_tensorflow/*
 **Please note** : If, while installing tornasole, you get a version conflict issue between botocore and boto3,
 you might need to run the following
 ```
-pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1   
+pip uninstall -y botocore boto3 aioboto3 aiobotocore && pip install botocore==1.12.91 boto3==1.9.91 aiobotocore==0.10.2 aioboto3==6.4.1
 ```
 
 ## Quickstart
@@ -190,7 +190,7 @@ You can simulate the vanishing gradient scenario when using this script by runni
 python examples/tensorflow/scripts/train_imagenet_resnet_hvd.py --clear_log \
     --enable_tornasole --tornasole_save_weights --tornasole_save_gradients \
     --tornasole_step_interval 10 --constant_initializer 0.01 \
-    --tornasole_path ~/ts_outputs/vanishing  
+    --tornasole_path ~/ts_outputs/vanishing
 ```
 
 You can monitor the vanishing tensors by doing the following
@@ -238,7 +238,7 @@ Please refer to [this document](api.md) for description of all the functions and
 ####  Hook
 TornasoleHook is the entry point for Tornasole into your program.
 It's a subclass of `tf.train.SessionRunHook` and can be used where that is suitable,
-such as MonitoredSession and Estimator's train/predict/evaluate methods.  
+such as MonitoredSession and Estimator's train/predict/evaluate methods.
 Some key parameters to consider when creating the TornasoleHook are the following:
 - `out_dir`: This represents the path to which the outputs of tornasole will be written to.
 This can be a local path or an S3 prefix of the form `s3://bucket_name/prefix`.
@@ -387,7 +387,7 @@ These reduction config instances can be passed to the hook as follows
 import tornasole.tensorflow as ts
 hook = ts.TornasoleHook(..., reduction_config=ts.ReductionConfig(norms=['l1']), ...)
 ```
-Refer [API](api.md) for a full list of the reductions available.  
+Refer [API](api.md) for a full list of the reductions available.
 
 ## How to save tensors
 There are different ways to save tensors when using Tornasole.
@@ -406,7 +406,7 @@ them with the relevant tensors.
 
 #### Weights
 Weights is a default collection managed by Tornasole.
-Saving weights is as easy as passing `weights` in the `include_collections` parameter of the hook.  
+Saving weights is as easy as passing `weights` in the `include_collections` parameter of the hook.
 ```
 import tornasole.tensorflow as ts
 hook = ts.TornasoleHook(..., include_collections = ['weights'], ...)

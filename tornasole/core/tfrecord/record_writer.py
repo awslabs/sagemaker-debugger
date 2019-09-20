@@ -63,7 +63,7 @@ class RecordWriter:
             footer = struct.pack('I', masked_crc32c(CHECKSUM_MAGIC_BYTES))
         position_and_length_of_record = self._writer.write(header + event_str + footer)
         return position_and_length_of_record
-      
+
     def flush(self):
         """Flushes the event string to file."""
         assert self._writer is not None

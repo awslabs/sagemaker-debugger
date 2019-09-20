@@ -186,7 +186,7 @@ class TestRules:
         if p.returncode == 0:
             logger.info("script {} of job {} in {} in {} ran {} successfully".
                              format(path_to_script, job_name, local_or_s3, mode, train_test_str))
-        
+
         else:
             logger.error("script {} of job {} in {} in {} {} failed with error {} , "
                               "output is:{}".format(path_to_script, job_name,

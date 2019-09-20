@@ -41,5 +41,3 @@ def test_temp_paths():
         tp = get_temp_path(path)
         assert not SAGEMAKER_TEMP_PATH_SUFFIX in tp
         assert tp.startswith(NON_SAGEMAKER_TEMP_PATH_PREFIX)
-
-

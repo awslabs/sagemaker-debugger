@@ -41,4 +41,3 @@ def test_save_all_hook_from_json():
   test_save_all(hook, out_dir)
   # delete output
   shutil.rmtree(out_dir, True)
-

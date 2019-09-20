@@ -2,16 +2,16 @@
 
 Tornasole TF provides the following constructs:
 ### Hook
-TornasoleHook is the entry point for Tornasole into your program. 
-It's a subclass of `tf.train.SessionRunHook` and can be used where that is suitable, 
-such as MonitoredSession and Estimator's train/predict/evaluate methods. 
+TornasoleHook is the entry point for Tornasole into your program.
+It's a subclass of `tf.train.SessionRunHook` and can be used where that is suitable,
+such as MonitoredSession and Estimator's train/predict/evaluate methods.
 
 ```
 class TornasoleHook:
     """
-    A class used to represent the hook which gets attached to the 
-    training process. 
-    
+    A class used to represent the hook which gets attached to the
+    training process.
+
     ...
 
     Attributes
@@ -19,46 +19,46 @@ class TornasoleHook:
     out_dir : str
         represents a path to which the outputs of tornasole will be written to.
         This can be a local path or an S3 prefix of the form s3://bucket_name/prefix.
-        Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. 
+        Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`.
         In the future, we will make this the default in Sagemaker environments.
-        
+
     dry_run : bool
         when dry_run is set to True, behavior is only described in the log file.
-        The tensors are not actually saved. 
-        
+        The tensors are not actually saved.
+
     worker: str
         name of worker in a multi process training job
         outputs and tensors are organized by this name during retrieval.
-        
+
     save_config: SaveConfig object or a dictionary from mode to SaveConfig objects
-        SaveConfig allows you to customize when tensors are saved. 
-        Hook takes SaveConfig object which is applied as 
+        SaveConfig allows you to customize when tensors are saved.
+        Hook takes SaveConfig object which is applied as
         default for all included tensors.
-        A collection can optionally have its own SaveConfig object 
+        A collection can optionally have its own SaveConfig object
         which overrides this for its tensors.
         If you pass a dictionary from mode->SaveConfig, then that
         SaveConfig is applied to tensors included for that mode.
-        example: {modes.TRAIN: SaveConfig(save_interval=10), 
+        example: {modes.TRAIN: SaveConfig(save_interval=10),
                   modes.EVAL:SaveConfig(save_interval=1)}
         Refer to documentation for SaveConfig.
-    
+
     reduction_config: ReductionConfig object
-        ReductionConfig allows you to save tensors as their reductions 
-        instead of saving full tensors. 
+        ReductionConfig allows you to save tensors as their reductions
+        instead of saving full tensors.
         If ReductionConfig is passed then the chosen reductions are applied
         as default for all tensors included.
         A collection can optionally have its own ReductionConfig object
-        which overrides this for its tensors. 
-       
+        which overrides this for its tensors.
+
     include_regex: list of str
         takes as input the list of string representing regular expressions. Tensors whose names match
         these regular expressions will be saved. These tensors will be available as part of the `default`
         collection.
-            
+
     include_collections: list of str
         takes as input the names of collections which should be saved.
         by default, ['weights','gradients'] are passed to include_collections.
-    
+
     save_all: bool
         a shortcut for saving all tensors in the model.
         tensors are all grouped into the `default` collection
@@ -70,7 +70,7 @@ class TornasoleHook:
         reduction_config=None,
         save_config=SaveConfig(save_interval=100),
         include_regex=None,
-        include_collections=['weights', 'gradients'], 
+        include_collections=['weights', 'gradients'],
         save_all=False,
         ):
 ```
@@ -87,10 +87,10 @@ a `default` mode.
 
 ### Collection
 
-Collection object helps group tensors for easier handling of tensors being saved. 
-A collection has its own list of tensors, include/exclude regex patterns, reduction config and save config. 
-This allows setting of different save and reduction configs for different tensors. 
-These collections are then also available during analysis with `tornasole_rules`. 
+Collection object helps group tensors for easier handling of tensors being saved.
+A collection has its own list of tensors, include/exclude regex patterns, reduction config and save config.
+This allows setting of different save and reduction configs for different tensors.
+These collections are then also available during analysis with `tornasole_rules`.
 
 #### Creating or accessing a collection
 ```
@@ -119,23 +119,23 @@ The following methods can be called on a collection object.
 | ```coll.set_reduction_config()```  | Sets reduction config for the collection  |
 
 ### SaveConfig
-SaveConfig class allows you to customize the frequency of saving tensors. 
-The hook takes a SaveConfig object which is applied as 
-default to all tensors included. 
-A collection can also have its own SaveConfig object which is applied 
+SaveConfig class allows you to customize the frequency of saving tensors.
+The hook takes a SaveConfig object which is applied as
+default to all tensors included.
+A collection can also have its own SaveConfig object which is applied
 to the tensors belonging to that collection.
 
-SaveConfig also allows you to save tensors when certain tensors become nan. 
+SaveConfig also allows you to save tensors when certain tensors become nan.
 This list of tensors to watch for is taken as a list of strings representing names of tensors.
 ```
 class SaveConfig:
   """
-  
+
   Attributes
   ----------
 
   save_interval: int
-    allows you to save every n steps by passing n to save_interval  
+    allows you to save every n steps by passing n to save_interval
 
   skip_num_steps: int
     allows you to avoid saving for the first n steps of the job.
@@ -152,19 +152,19 @@ class SaveConfig:
     your tensors will be saved whenever save_interval is multiple of 10 as well as
     whenever loss becomes nan or infinite.
   """
-```  
+```
 
-### ReductionConfig 
+### ReductionConfig
 ReductionConfig allows the saving of certain reductions of tensors instead
 of saving the full tensor. The motivation here is to reduce the amount of data
 saved, and increase the speed in cases where you don't need the full
 tensor.  The reduction operations which are computed in the training process
-and then saved. 
-During analysis, these are available as reductions of the original tensor. 
+and then saved.
+During analysis, these are available as reductions of the original tensor.
 Please note that using reduction config means that you will not have
 the full tensor available during analysis, so this can restrict what you can do with the tensor saved.
-The hook takes a ReductionConfig object which is applied as default to all tensors included. 
-A collection can also have its own ReductionConfig object which is applied 
+The hook takes a ReductionConfig object which is applied as default to all tensors included.
+A collection can also have its own ReductionConfig object which is applied
 to the tensors belonging to that collection.
 
 ```

@@ -108,7 +108,7 @@ class TornasoleHook(tf.train.SessionRunHook):
         self.subgraph_nodes_cache = {}
         self.logger.info('Saving to {}'.format(self.out_dir))
         atexit.register(self.cleanup)
-    
+
     @classmethod
     def hook_from_config(cls):
         return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)

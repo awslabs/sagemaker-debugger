@@ -45,6 +45,3 @@ def test_default_hook():
     del os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR]
   hook = t_hook.hook_from_config()
   assert(hook.out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH)
-
-
-

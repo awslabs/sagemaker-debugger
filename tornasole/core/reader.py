@@ -24,7 +24,7 @@ class FileReader():
     def __init__(self, fname, wtype='tfevent', verbose=True):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
- 
+
         Parameters
         ----------
             logdir : str
@@ -42,7 +42,7 @@ class FileReader():
             self._reader = EventFileReader(fname=fname, verbose=verbose)
         else:
             assert False
-        
+
     def __enter__(self):
         """Make usable with "with" statement."""
         return self

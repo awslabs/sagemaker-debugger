@@ -32,7 +32,7 @@ class FileWriter:
                  verbose=False, write_checksum=False):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `trial_dir`.
- 
+
         Parameters
         ----------
             trial_dir : str
@@ -124,4 +124,3 @@ class FileWriter:
             ex_str = "mode can be one of " + ", ".join(mode_keys)
             raise ValueError(ex_str)
         return mode, mode_step
-

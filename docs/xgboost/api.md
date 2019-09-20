@@ -62,10 +62,10 @@ will be ignored.
 
 ### Collection
 
-Collection object helps group tensors for easier handling of tensors being saved. 
-A collection has its own list of tensors, include/exclude regex patterns, and save config. 
-This allows setting of different save configs for different tensors. 
-These collections are then also available during analysis with `tornasole_rules`. 
+Collection object helps group tensors for easier handling of tensors being saved.
+A collection has its own list of tensors, include/exclude regex patterns, and save config.
+This allows setting of different save configs for different tensors.
+These collections are then also available during analysis with `tornasole_rules`.
 
 #### Default Collections
 Currently, the XGBoost TornasoleHook creates Collection objects for
@@ -102,9 +102,9 @@ evaluation metrics, feature importances, and SHAP values. The regex pattern for
 the 'default' collection is set when user specifies *include\_regex* with
 TornasoleHook or sets the *save_all=True*.  These collections use the SaveConfig
 parameter provided with the TornasoleHook initialization. The TornasoleHook
-will store the related tensors, if user does not specify any special collection 
-with *include\_collections* parameter. If user specifies a collection with 
-*include\_collections* the above default collections will not be in effect. 
+will store the related tensors, if user does not specify any special collection
+with *include\_collections* parameter. If user specifies a collection with
+*include\_collections* the above default collections will not be in effect.
 
 #### Creating or accessing a collection
 
@@ -134,43 +134,43 @@ The following methods can be called on a collection object.
 
 ### SaveConfig
 
-SaveConfig class allows you to customize the frequency of saving tensors. 
-The hook takes a SaveConfig object which is applied as 
-default to all tensors included. 
-A collection can also have its own SaveConfig object which is applied 
+SaveConfig class allows you to customize the frequency of saving tensors.
+The hook takes a SaveConfig object which is applied as
+default to all tensors included.
+A collection can also have its own SaveConfig object which is applied
 to the tensors belonging to that collection.
 
-SaveConfig also allows you to save tensors when certain tensors become nan. 
+SaveConfig also allows you to save tensors when certain tensors become nan.
 This list of tensors to watch for is taken as a list of strings representing names of tensors.
 
 ```
     class SaveConfig:
-    
+
     Attributes
     ----------
-    
+
     save_interval: int
-    allows you to save every n steps by passing n to save_interval  
-    
+    allows you to save every n steps by passing n to save_interval
+
     skip_num_steps: int
     allows you to avoid saving for the first n steps of the job.
     it defaults to 0, i.e. don't skip any steps in the beginning.
-    
+
     save_steps: list of int
     save at all the steps given in this list.
     if this is given, it ignores the save_interval.
-    
+
     when_nan: list of str representing name of tensor
     saves the tensors to which this saveConfig is attached
     whenever any of the tensors in this list become nan or infinite.
     This means that if your save_interval is set to 10, and 'loss' is in when_nan
     your tensors will be saved whenever save_interval is multiple of 10 as well as
     whenever loss becomes nan or infinite.
-```  
+```
 
 The default value of _save\_interval_ is 100. The TornasoleHook that uses a default SaveConfig object will store the tensors every 100th step.
 
-### ReductionConfig 
+### ReductionConfig
 
 ReductionConfig is not currently used in XGBoost Tornasole.
 When Tornasole is used with deep learning frameworks, such as MXNet,

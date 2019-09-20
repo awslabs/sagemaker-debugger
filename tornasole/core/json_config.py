@@ -227,4 +227,3 @@ def parse_save_config_dict(params, mode=None) -> Dict:
         ret["when_nan"] = split(params["when_nan"])
 
     return ret
-

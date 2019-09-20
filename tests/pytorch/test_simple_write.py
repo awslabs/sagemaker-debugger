@@ -34,7 +34,7 @@ class Net(nn.Module):
 
         for name, param in self.named_parameters():
             pname = 'Net_' + name
-            self.saved[pname] = dict() 
+            self.saved[pname] = dict()
             self.saved['gradient/' + pname] = dict()
 
         if self.mode == 'saveall':
@@ -102,7 +102,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type='saveall', save_ste
         get_collection('l_mod').add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model
-        hook = TornasoleHook(out_dir=output_dir, save_config=SaveConfig(save_steps=save_steps), 
+        hook = TornasoleHook(out_dir=output_dir, save_config=SaveConfig(save_steps=save_steps),
                                 include_collections=['weights', 'gradients', 'bias','l_mod'])
     elif hook_type == 'weights-bias-gradients':
         save_config = SaveConfig(save_steps=save_steps)
@@ -155,7 +155,7 @@ def helper_test_weights_bias_gradients(hook=None):
     else:
         trial = create_trial(path='./test_output/test_hook_save_weightsbiasgradients/jsonloading',
                         name='test output')
-    grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight', 
+    grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight',
                 'gradient/Net_fc1.bias', 'gradient/Net_fc2.bias', 'gradient/Net_fc3.bias']
     weights = ['Net_fc1.weight', 'Net_fc2.weight', 'Net_fc3.weight']
     bias = ['Net_fc1.bias', 'Net_fc2.bias', 'Net_fc3.bias']
@@ -196,7 +196,7 @@ def saveall_test_helper(hook=None):
     else:
         trial = create_trial(path='./test_output/test_hook_saveall/jsonloading',
                         name='test output')
-    grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight', 
+    grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight',
                 'gradient/Net_fc1.bias', 'gradient/Net_fc2.bias', 'gradient/Net_fc3.bias']
     weights = ['Net_fc1.weight', 'Net_fc2.weight', 'Net_fc3.weight']
     bias = ['Net_fc1.bias', 'Net_fc2.bias', 'Net_fc3.bias']
@@ -270,4 +270,3 @@ def test_multi_collection_json():
     hook = TornasoleHook.hook_from_config()
     helper_test_multi_collections(hook, out_dir)
     shutil.rmtree(out_dir, True)
-

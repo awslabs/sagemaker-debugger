@@ -152,4 +152,3 @@ class SaveConfig:
       f"<class SaveConfig: save_interval={self.save_interval}, save_steps={self.save_steps}, "
       f"skip_num_steps={self.skip_num_steps}, when_nan={self.when_nan}>"
     )
-

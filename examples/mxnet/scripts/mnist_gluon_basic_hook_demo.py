@@ -105,7 +105,7 @@ def create_gluon_model():
 # Following function shows the default initialization that enables logging of
 # weights, biases and gradients in the model.
 def create_tornasole_hook(output_s3_uri):
-    # With the following SaveConfig, we will save tensors for steps 1, 2 and 3 
+    # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_steps=[1, 2, 3])
 

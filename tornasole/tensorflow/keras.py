@@ -1,6 +1,6 @@
 import keras
 import os
-import socket 
+import socket
 
 from .collection import *
 from tornasole.core.writer import FileWriter
@@ -66,7 +66,7 @@ class TornasoleHook(keras.callbacks.Callback):
 
         for k in logs:
             get_collection("metrics").add_tensor_name(k)
-        
+
         for layer in self.model.layers:
             ws = layer.get_weights()
             if len(ws) == 0:
@@ -75,7 +75,7 @@ class TornasoleHook(keras.callbacks.Callback):
             multi = len(ws) > 1
             for i in range(len(ws)):
                 tensor_name = cfg['name']
-                if multi: 
+                if multi:
                     tensor_name += "_" + str(i)
                 get_collection("weights").add_tensor_name(tensor_name)
 
@@ -125,23 +125,22 @@ class TornasoleHook(keras.callbacks.Callback):
 
     def save_layer_data(self):
 
-        assert len(self.model.layers) > 0 
+        assert len(self.model.layers) > 0
 
         for layer in self.model.layers:
             ws = layer.get_weights()
             if len(ws) == 0:
                 continue
             cfg = layer.get_config()
- 
+
 
             multi = len(ws) > 1
             for i, tensor_value in enumerate(ws):
                 tensor_name = cfg['name']
-                if multi: 
+                if multi:
                     tensor_name += "_" + str(i)
                 save_state = self.save_manager.should_save_tensor(tensor_name, self.mode,
                                                         self.mode_steps[self.mode])
                 if save_state['step']:
                     self._create_writer()
                     self.writer.write_tensor(tdata=tensor_value, tname=tensor_name)
-        

@@ -74,7 +74,7 @@ def get_tensor_data(tensor):
         else:
             return None
     elif dtype == np.float32:
-        assert len(tensor.float_val) > 0, tensor    
+        assert len(tensor.float_val) > 0, tensor
         return np.float32(tensor.float_val)
     elif dtype == np.bool:
         assert len(tensor.bool_val) > 0
@@ -104,7 +104,7 @@ class EventsReader(object):
             event = Event()
             event.ParseFromString(rec)
             yield event
-        
+
 
 
 class EventFileReader():
@@ -162,4 +162,3 @@ class EventFileReader():
 
     def read_events(self,check=True):
         return self._ev_reader.read_events(check=check)
-

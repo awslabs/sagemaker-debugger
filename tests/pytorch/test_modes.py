@@ -34,7 +34,7 @@ class Net(nn.Module):
 
         for name, param in self.named_parameters():
             pname = 'Net_' + name
-            self.saved[pname] = dict() 
+            self.saved[pname] = dict()
             self.saved['gradient/' + pname] = dict()
 
     def forward(self, x_in):
@@ -116,4 +116,3 @@ def test_training_mode_json():
     hook = TornasoleHook.hook_from_config()
     helper_test_modes(hook, out_dir)
     shutil.rmtree(out_dir, True)
-

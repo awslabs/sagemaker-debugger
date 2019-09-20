@@ -20,7 +20,7 @@ phases:
 
   pre_build:
     commands:
-    
+
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..

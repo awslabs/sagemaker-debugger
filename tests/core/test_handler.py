@@ -59,7 +59,7 @@ def read_record(data, check=True):
 
 ##########################################
 
-# tlist should be a list of [(tname, [steps])]. This method will return a 
+# tlist should be a list of [(tname, [steps])]. This method will return a
 # dictionary with key = (tname, step) and value being the corresponding tensor.
 # If the corresponding tensor is not fetchable, then None is stored for its dictionary entry.
 def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
@@ -103,7 +103,7 @@ def test_download_objects(compare_speeds = False):
     print("Async...")
     tensors = get_tensors(index, s3_handler, tlist, timer=True)
     assert len(tensors.keys()) == 100
-    for tup in tensors.keys(): 
+    for tup in tensors.keys():
         tensor = tensors[tup]
         assert tensor.shape == (300, 300, 2)
         assert not np.any(np.ones((300,300,2)) - tensor)
@@ -128,6 +128,6 @@ def test_list_objects():
     # test StartAfter and delimiters
     assert len(files[3]) == 5 and len(files[4]) == 3
     assert len(files[0]) == 5000
-    assert len(files[1]) == 1001 
+    assert len(files[1]) == 1001
     assert len(files[2]) == 1001
     s3_handler.close_client()

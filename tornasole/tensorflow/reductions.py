@@ -34,4 +34,3 @@ def get_tensorflow_reduction(reduction_name,
     if temp_tensor_name != tensor_name:
         op = tf.identity(op, name=tensor_name)
     return op
-

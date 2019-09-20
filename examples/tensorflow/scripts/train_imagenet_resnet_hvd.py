@@ -840,7 +840,7 @@ def add_cli_args():
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Basic options
     cmdline.add_argument('-m', '--model', default='resnet50',
-                         help="""Name of model to run: 
+                         help="""Name of model to run:
                          resnet[18,34,50,101,152]""")
     cmdline.add_argument('--data_dir',
                          help="""Path to dataset in TFRecord format
@@ -848,8 +848,8 @@ def add_cli_args():
                          named 'train-*' and 'validation-*'.""")
     cmdline.add_argument('--synthetic', type=str2bool,
                          default=False,
-                         help="""Whether to use synthetic data for training. 
-                         If data_dir is not given, uses synthetic data 
+                         help="""Whether to use synthetic data for training.
+                         If data_dir is not given, uses synthetic data
                          by default""")
     cmdline.add_argument('-b', '--batch_size', default=128, type=int,
                          help="""Size of each minibatch per GPU""")
@@ -861,46 +861,46 @@ def add_cli_args():
                          Overrides --num_batches. Ignored during eval.""")
     cmdline.add_argument('--log_dir', default='tf_logs',
                          help="""Directory in which to write training
-                         summaries and checkpoints. If the log directory 
-                         already contains some checkpoints, it tries 
-                         to resume training from the last saved checkpoint. 
-                         Pass --clear_log if you want to clear all 
+                         summaries and checkpoints. If the log directory
+                         already contains some checkpoints, it tries
+                         to resume training from the last saved checkpoint.
+                         Pass --clear_log if you want to clear all
                          checkpoints and start a fresh run""")
     cmdline.add_argument('--model_dir', default=None, type=str)
     cmdline.add_argument('--random_seed', type=str2bool, default=False)
     cmdline.add_argument('--clear_log', type=str2bool, default=False,
-                         help="""Clear the log folder passed 
+                         help="""Clear the log folder passed
                          so a fresh run can be started""")
     cmdline.add_argument('--log_name', type=str, default='hvd_train.log')
     cmdline.add_argument('--local_ckpt', type=str2bool, default=False,
-                         help="""Performs local checkpoints 
+                         help="""Performs local checkpoints
                          (i.e. one per node)""")
     cmdline.add_argument('--display_every', default=20, type=int,
                          help="""How often (in iterations) to print out
                          running information.""")
     cmdline.add_argument('--eval', type=str2bool, default=False,
                          help="""Evaluate the top-1 and top-5 accuracy of
-                         the latest checkpointed model. If you want to 
-                         evaluate using multiple GPUs ensure that all 
-                         processes have access to all checkpoints. 
-                         Either if checkpoints were saved using 
-                         --local_ckpt or they were saved to a 
+                         the latest checkpointed model. If you want to
+                         evaluate using multiple GPUs ensure that all
+                         processes have access to all checkpoints.
+                         Either if checkpoints were saved using
+                         --local_ckpt or they were saved to a
                          shared directory which all processes can access.""")
     cmdline.add_argument('--eval_interval', type=int,
-                         help="""Evaluate accuracy per eval_interval 
+                         help="""Evaluate accuracy per eval_interval
                          number of epochs""")
     cmdline.add_argument('--fp16', type=str2bool, default=True,
                          help="""Train using float16 (half) precision instead
                          of float32.""")
     cmdline.add_argument('--num_gpus', default=1, type=int,
-                         help="""Specify total number of GPUS used to 
+                         help="""Specify total number of GPUS used to
                          train a checkpointed model during eval.
-                         Used only to calculate epoch number to 
+                         Used only to calculate epoch number to
                          print during evaluation""")
     cmdline.add_argument('--save_checkpoints_steps', type=int, default=1000)
     cmdline.add_argument('--save_summary_steps', type=int, default=0)
     cmdline.add_argument('--adv_bn_init', type=str2bool, default=True,
-                         help="""init gamme of the last BN of 
+                         help="""init gamme of the last BN of
                          each ResMod at 0.""")
     cmdline.add_argument('--adv_conv_init', type=str2bool, default=True,
                          help="""init conv with MSRA initializer""")
@@ -918,24 +918,24 @@ def add_cli_args():
                          help="""Number of epochs in which to warmup
                          to given lr""")
     cmdline.add_argument('--lr_decay_steps', default='30,60,80', type=str,
-                         help="""epoch numbers at which lr is decayed 
+                         help="""epoch numbers at which lr is decayed
                          by lr_decay_lrs. Used when lr_decay_mode is steps""")
     cmdline.add_argument('--lr_decay_lrs', default='', type=str,
                          help="""learning rates at specific epochs""")
     cmdline.add_argument('--lr_decay_mode', default='poly',
-                         help="""Takes either `steps` 
-                         (decay by a factor at specified steps) 
+                         help="""Takes either `steps`
+                         (decay by a factor at specified steps)
                          or `poly`(polynomial_decay with degree 2)""")
 
     cmdline.add_argument('--use_larc', type=str2bool, default=False,
-                         help="""Use Layer wise Adaptive Rate Control 
-                        which helps convergence at really 
+                         help="""Use Layer wise Adaptive Rate Control
+                        which helps convergence at really
                         large batch sizes""")
     cmdline.add_argument('--leta', default=0.013, type=float,
-                         help="""The trust coefficient for LARC optimization, 
+                         help="""The trust coefficient for LARC optimization,
                          LARC Eta""")
     cmdline.add_argument('--cdr_first_decay_ratio', default=0.33, type=float,
-                         help="""Cosine Decay Restart First 
+                         help="""Cosine Decay Restart First
                          Decay Steps ratio""")
     cmdline.add_argument('--cdr_t_mul', default=2.0, type=float,
                          help="""Cosine Decay Restart t_mul""")
@@ -951,14 +951,14 @@ def add_cli_args():
                          help="""Liner Cosine Beta""")
 
     cmdline.add_argument('--increased_aug', type=str2bool, default=False,
-                         help="""Increase augmentations helpful when training 
+                         help="""Increase augmentations helpful when training
                          with large number of GPUs such as 128 or 256""")
     cmdline.add_argument('--contrast', default=0.6, type=float,
                          help="""contrast factor""")
     cmdline.add_argument('--saturation', default=0.6, type=float,
                          help="""saturation factor""")
     cmdline.add_argument('--hue', default=0.13, type=float,
-                         help="""hue max delta factor, 
+                         help="""hue max delta factor,
                          hue delta = hue * math.pi""")
     cmdline.add_argument('--brightness', default=0.3, type=float,
                          help="""Brightness factor""")
@@ -968,8 +968,8 @@ def add_cli_args():
                          help="""enable Tornasole""")
     cmdline.add_argument('--tornasole_path',
                          default='tornasole_outputs/default_run',
-                         help="""Directory in which to write tornasole data. 
-                         This can be a local path or 
+                         help="""Directory in which to write tornasole data.
+                         This can be a local path or
                          S3 path in the form s3://bucket_name/prefix_name""")
     cmdline.add_argument('--tornasole_save_all', type=str2bool, default=False,
                          help="""save all tensors""")
@@ -977,11 +977,11 @@ def add_cli_args():
                          help="""If enabled, do not write data to disk""")
     cmdline.add_argument('--tornasole_exclude', nargs='+', default=[],
                          type=str, action='append',
-                         help="""List of REs for tensors to exclude from 
+                         help="""List of REs for tensors to exclude from
                          Tornasole's default collection""")
     cmdline.add_argument('--tornasole_include', nargs='+', default=[],
                          type=str, action='append',
-                         help="""List of REs for tensors to include from 
+                         help="""List of REs for tensors to include from
                          Tornasole's default collection""")
     cmdline.add_argument('--tornasole_step_interval', default=10, type=int,
                          help="""Save tornasole data every N runs""")
@@ -990,17 +990,17 @@ def add_cli_args():
     cmdline.add_argument('--tornasole_save_inputs', type=str2bool, default=False)
     cmdline.add_argument('--tornasole_save_relu_activations', type=str2bool, default=False)
     cmdline.add_argument('--tornasole_relu_reductions', type=str,
-                         help="""A comma separated list of reductions can be 
-                         passed. If passed, saves relu activations 
+                         help="""A comma separated list of reductions can be
+                         passed. If passed, saves relu activations
                          in the form of these reductions.""")
     cmdline.add_argument('--tornasole_relu_reductions_abs', type=str,
-                         help="""A comma separated list of absolute reductions 
-                         can be passed. If passed, saves relu activations 
+                         help="""A comma separated list of absolute reductions
+                         can be passed. If passed, saves relu activations
                          in the form of these reductions on absolute values
                          of the tensor.""")
     cmdline.add_argument('--constant_initializer', type=float,
-                         help="""if passed sets that constant as initial 
-                         weight, if not uses default initialization 
+                         help="""if passed sets that constant as initial
+                         weight, if not uses default initialization
                          strategies""")
     return cmdline
 
@@ -1258,10 +1258,10 @@ def main():
         tf.Session(config=config).run(barrier)
         time.sleep(5)  # a little extra margin...
         if FLAGS.num_gpus == 1:
-            rank0log(logger, """If you are evaluating checkpoints of a 
-            multi-GPU run on a single GPU, ensure you set --num_gpus to 
+            rank0log(logger, """If you are evaluating checkpoints of a
+            multi-GPU run on a single GPU, ensure you set --num_gpus to
             the number of GPUs it was trained on.
-            This will ensure that the epoch number is 
+            This will ensure that the epoch number is
             accurately displayed in the below logs.""")
         try:
             ckpts = sort_and_load_ckpts(FLAGS.log_dir)

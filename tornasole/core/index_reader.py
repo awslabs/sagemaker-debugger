@@ -12,7 +12,7 @@ from tornasole.core.modes import ModeKeys
 """
 
 The IndexReader class is responsible for reading index data
-from both S3 and Local sources. 
+from both S3 and Local sources.
 
 It currently exposes two functions:
 
@@ -27,7 +27,7 @@ logger = get_logger()
 
 
 class S3IndexReader:
-     
+
     @staticmethod
     def get_s3_responses(bucket_name, prefix_name, start_after_key, range_steps=None):
         object_requests = []
@@ -51,10 +51,10 @@ class S3IndexReader:
                                                         start_after_key)
 
         return index_files, last_index_token
-    
+
 
 class LocalIndexReader:
-    
+
     @staticmethod
     def list_index_files_in_dir(dirname):
         index_dirname = IndexFileLocationUtils.get_index_path(dirname)
@@ -141,4 +141,3 @@ class IndexReader:
                 }}
 
         return index_tensors_dict
-

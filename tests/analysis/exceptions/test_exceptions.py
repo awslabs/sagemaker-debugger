@@ -61,5 +61,3 @@ def test_refresh_tensors():
       assert False
     except StepNotYetAvailable:
       pass
-
-

@@ -15,4 +15,3 @@ def test_manager_export_load():
   cm.export('cm.ts')
   cm2 = CollectionManager.load('cm.ts')
   assert cm == cm2
-
