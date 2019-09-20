@@ -108,11 +108,12 @@ venv.bak/
 *~
 ts_output/
 log
+*.code-workspace
 
 .DS_Store
 .idea/
 cm.ts
 default/
-newlogsRunTest/
+newlogsRunTest*/
 ts_outputs/
-newlogsRunTest1/
+test_output/

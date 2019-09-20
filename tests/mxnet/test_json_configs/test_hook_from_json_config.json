@@ -1,13 +1,7 @@
 {
-  "config_name": "test_hook_from_json_config",
-  "s3_path": "s3://kjndjknd_bucket/prefix",
-  "local_path" : "newlogsRunTest1/test_hook_from_json_config",
-  "save_config" : "save_cfg1",
-  "save_configs" : [
-    {
-      "save_cfg1" : {
-        "save_steps" : [0,1,2,3]
-      }
-    }
-  ]
+  "S3Path": "s3://kjndjknd_bucket/prefix",
+  "LocalPath": "newlogsRunTest1/test_hook_from_json_config",
+  "HookParameters": {
+    "save_steps": "0,1,2,3"
+  }
 }

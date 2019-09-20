@@ -80,6 +80,7 @@ class Collection:
     self.reduction_config = red_cfg
 
   def set_save_config(self, save_cfg):
+    """Takes in either a SaveConfig instance or a dictionary mapping ModeKey->SaveConfig."""
     if save_cfg is None:
       self.save_config = None
       return

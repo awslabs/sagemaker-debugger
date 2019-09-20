@@ -3,23 +3,31 @@ from .utils import match_inc
 from .modes import ModeKeys
 
 class SaveManager:
+  """Main container for all configuration."""
+
   def __init__(self, collection_manager, include_collections_names,
                default_reduction_config,
                default_save_config):
     self.configs_for_collections = {}
+    # Convert default_save_config into a SaveConfigModes object
     if isinstance(default_save_config, SaveConfig):
-      sm = SaveConfigModes.create_simple_save_mode(default_save_config)
-      self.default_save_modes = sm
+      self.default_save_modes = SaveConfigModes.create_simple_save_mode(default_save_config)
     elif isinstance(default_save_config, SaveConfigModes):
       self.default_save_modes = default_save_config
-    elif isinstance(default_save_config, dict) and \
-        all([isinstance(x, SaveConfig) for x in default_save_config.values()]) and \
-        all([isinstance(x, ModeKeys) for x in default_save_config.keys()]):
-      self.default_save_modes = SaveConfigModes(default_save_config)
+    elif (isinstance(default_save_config, dict)
+      and all([isinstance(x, ModeKeys) for x in default_save_config.keys()])):
+      if all([isinstance(x, SaveConfig) for x in default_save_config.values()]):
+        self.default_save_modes = SaveConfigModes(default_save_config)
+      else:
+        self.default_save_modes = SaveConfigModes(mode_save_configs={
+          mode: SaveConfig.from_dict(params)
+          for mode, params in default_save_config.items()
+        })
     else:
       raise TypeError('save_config can only be a SaveConfig instance, or '
                       'a dictionary mapping from mode '
                       'to SaveConfig instance.')
+    # Instantiate defaults
     self.default_reduction_config = default_reduction_config
     self.collection_manager = collection_manager
     self.include_collections_names = include_collections_names
@@ -30,11 +38,13 @@ class SaveManager:
     self.prepared = False
 
   def prepare(self):
+    """Ensure every collection has a save_config and reduction_config."""
+    # Populate save_collections
     for c_name, c in self.collection_manager.get_collections().items():
-      if self._should_collection_be_saved(c_name) \
-        and c not in self.save_collections:
+      if self._should_collection_be_saved(c_name) and c not in self.save_collections:
         self.save_collections.append(c)
 
+    # Populate configs_for_collections and reduction_config
     for c_name, c in self.collection_manager.get_collections().items():
       if c.save_config is not None:
         if isinstance(c.save_config, dict):
@@ -57,8 +67,8 @@ class SaveManager:
 
   def _raise_error(self):
     raise ValueError('Save Manager is not ready. '
-                     'Please call prepare() method '
-                     'before calling this method.')
+                      'Please call prepare() method '
+                      'before calling this method.')
 
   def get_all_collections_to_save(self):
     if not self.prepared:
@@ -66,6 +76,7 @@ class SaveManager:
     return self.save_collections
 
   def collections_to_save(self, mode, step):
+    """Mark the proper collections to be saved, return a dictionary of those."""
     if not self.prepared:
       self._raise_error()
     if (mode, step) not in self.save_states_cache:
@@ -94,8 +105,7 @@ class SaveManager:
       # for mxnet it is computed and then cached
       matched_colls = []
       for coll in self.get_all_collections_to_save():
-        if tensor_name in coll.tensor_names or \
-         tensor_name in coll.reduction_tensor_names:
+        if tensor_name in coll.tensor_names or tensor_name in coll.reduction_tensor_names:
           # if being matched as reduction,
           # it must be in reduction_tensor_name, not with regex
           matched_colls.append(coll)
@@ -109,11 +119,13 @@ class SaveManager:
     return self.tensor_to_collection[tensor_name]
 
   def should_save_tensor(self, tensorname, mode, step):
-    # returns dictionary with two keys:
-    # if value for step is true in the dict, then we are saving this tensor
-    # because we have hit the step to save this
-    # if value for when_nan is true, we are considering saving this tensor
-    # because this tensor might be saved if some other tensor is nan
+    """Return dictionary with two keys: ('step', 'when_nan') mapping to booleans.
+
+    If step is true in the dict, then we are saving this tensor
+    because we have hit the step to save this.
+    If when_nan is true, we are considering saving this tensor
+    because this tensor might be saved if some other tensor is nan.
+    """
     colls = self.from_collections(tensorname)
     final_ss = {'step': False, 'when_nan': False}
     ss_colls = self.collections_to_save(mode, step)

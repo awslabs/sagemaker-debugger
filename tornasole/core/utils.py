@@ -3,6 +3,7 @@ import re
 import bisect
 from botocore.exceptions import ClientError
 from pathlib import Path
+from typing import Dict, List
 
 def flatten(lis):
   """Given a list, possibly nested to any level, return it flattened."""
@@ -14,6 +15,20 @@ def flatten(lis):
           new_lis.append(item)
   return new_lis
 
+def split(comma_separated_string: str) -> List[str]:
+    """Split "foo, bar,b az" into ["foo","bar","b az".]"""
+    return [x.strip() for x in comma_separated_string.split(",")]
+
+def merge_two_dicts(x, y) -> Dict:
+    """If x and y have the same key, then y's value takes precedence.
+
+    For example, merging
+        x = {'a': 1, 'b': 2},
+        y = {'b': 3, 'c': 4}
+        yields
+        z = {'a': 1, 'b': 3, 'c': 4}.
+    """
+    return {**x, **y}
 
 def get_immediate_subdirectories(a_dir):
   return [name for name in os.listdir(a_dir)

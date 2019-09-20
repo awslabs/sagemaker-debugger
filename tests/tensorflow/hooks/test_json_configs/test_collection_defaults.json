@@ -1,0 +1,19 @@
+{
+  "S3OutputPath": "s3://bucket/prefix",
+  "LocalPath": "newlogsRunTest/test_collection_defaults_json",
+  "HookParameters": {
+    "save_interval": 1,
+    "train.save_interval": 2,
+    "eval.save_interval": 3
+  },
+  "CollectionConfiguration": [
+    { "CollectionName": "weights" },
+    {
+      "CollectionName": "losses",
+      "CollectionParameters": {
+        "eval.save_interval": 4,
+        "global.save_interval": 5
+      }
+    }
+  ]
+}

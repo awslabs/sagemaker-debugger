@@ -1,14 +1,8 @@
 {
-  "config_name": "test_only_weights_and_gradients",
-  "s3_path": "s3://kjndjknd_bucket/prefix",
-  "local_path" : "newlogsRunTest1/test_only_weights_and_gradients",
-  "save_config" : "save_cfg1",
-  "save_all" : false,
-  "save_configs" : [
-    {
-      "save_cfg1" : {
-        "save_interval" : 2
-      }
-    }
-  ]
+  "S3OutputPath": "s3://kjndjknd_bucket/prefix",
+  "LocalPath": "newlogsRunTest1/test_only_weights_and_gradients",
+  "HookParameters": {
+    "save_all": false,
+    "save_interval": 2
+  }
 }

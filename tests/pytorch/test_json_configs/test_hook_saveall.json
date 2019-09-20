@@ -1,14 +1,8 @@
 {
-  "config_name": "Save All Test",
-  "s3_path": "s3://kjndjknd_bucket/prefix",
-  "local_path" : "test_output/test_hook_saveall/jsonloading",
-  "save_config" : "save_config_saveall",
-  "save_all" : true,
-  "save_configs" : [
-    {
-      "save_config_saveall" : {
-        "save_steps" : [0, 20, 40, 60, 80]
-      }
-    }
-  ]
+  "S3Path": "s3://kjndjknd_bucket/prefix",
+  "LocalPath": "test_output/test_hook_saveall/jsonloading",
+  "HookParameters": {
+    "save_all": true,
+    "save_steps": "0,20,40,60,80"
+  }
 }

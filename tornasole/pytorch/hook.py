@@ -74,7 +74,7 @@ class TornasoleHook:
     @classmethod
     def hook_from_config(cls):
         return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)
-        
+
     def _initialize_collectors(self, save_all, include_regex):
         # If user has provided any include_regex, add them to a default collection.
         if include_regex is not None:
