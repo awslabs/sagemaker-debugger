@@ -13,12 +13,12 @@ from tornasole.core.json_config import (
     create_hook_from_json_config)
 from tornasole.core.writer import FileWriter
 from tornasole.core.logger import get_logger
+from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 from tornasole.core.hook_utils import verify_and_get_out_dir
 from .collection import get_collection, get_collection_manager
 from .utils import validate_data_file_path, get_content_type, get_dmatrix
 
 
-COLLECTIONS_FILE_NAME = "collections.ts"
 DEFAULT_INCLUDE_COLLECTIONS = [
     "metric",
     "predictions",

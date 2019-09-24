@@ -1,6 +1,7 @@
 from tornasole.core.writer import FileWriter
 import numpy as np
-from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.collection_manager import CollectionManager, \
+    COLLECTIONS_FILE_NAME
 import os
 
 
@@ -21,7 +22,7 @@ def generate_data(path, trial, step, tname_prefix,
         c.get("default").tensor_names = [f'{tname_prefix}_{i}' for i in range(num_tensors)]
         c.add('gradients')
         c.get("gradients").tensor_names = [f'{tname_prefix}_{i}' for i in range(num_tensors)]
-        c.export(os.path.join(path, trial, "collections.ts"))
+        c.export(os.path.join(path, trial, COLLECTIONS_FILE_NAME))
 
 
 def check_trial(trial_obj, num_steps, num_tensors):

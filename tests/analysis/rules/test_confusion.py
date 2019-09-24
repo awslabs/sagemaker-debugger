@@ -1,5 +1,5 @@
 from tornasole.core.writer import FileWriter
-from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.collection_manager import CollectionManager, COLLECTIONS_FILE_NAME
 
 from tornasole.rules.generic import Confusion
 from tornasole.trials import create_trial
@@ -20,7 +20,7 @@ def gen_y_and_y_hat( path, trial, step, y, y_name, y_hat, y_hat_name, colls = {}
     for coll in colls:
         c.add(coll)
         c.get(coll).tensor_names = colls[coll]
-    c.export(os.path.join(trial_dir, "collections.ts"))
+    c.export(os.path.join(trial_dir, COLLECTIONS_FILE_NAME))
 
 
 def test_confusion():

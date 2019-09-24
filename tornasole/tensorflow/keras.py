@@ -10,6 +10,7 @@ from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.modes import ModeKeys
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.save_manager import SaveManager
+from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 
 
 class TornasoleHook(keras.callbacks.Callback):
@@ -81,7 +82,7 @@ class TornasoleHook(keras.callbacks.Callback):
 
         add_to_collection("gradients", [])
 
-        export_collections(os.path.join(self.out_dir, 'collections.ts'))
+        export_collections(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
         # at this point we need all collections to be ready
         # this may not be the case at creation of hook
         # as user's code after hook might add collections

@@ -1,5 +1,6 @@
 from tornasole.core.collection import Collection
-from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.collection_manager import CollectionManager, \
+  COLLECTIONS_FILE_NAME
 from tornasole.core.reduction_config import ReductionConfig
 
 def test_export_load():
@@ -20,8 +21,8 @@ def test_manager_export_load():
   cm.add(Collection('trial1'))
   cm.add('trial2')
   cm.get('trial2').include('total_loss')
-  cm.export('cm.ts')
-  cm2 = CollectionManager.load('cm.ts')
+  cm.export(COLLECTIONS_FILE_NAME)
+  cm2 = CollectionManager.load(COLLECTIONS_FILE_NAME)
   assert cm == cm2
 
 def test_manager():

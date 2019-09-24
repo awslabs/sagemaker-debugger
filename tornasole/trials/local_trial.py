@@ -1,7 +1,9 @@
 from .trial import EventFileTensor, Trial
-from tornasole.core.locations import EventFileLocation
+
 from tornasole.core.utils import index, step_in_range
-from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.locations import EventFileLocation
+from tornasole.core.collection_manager import CollectionManager, \
+    COLLECTIONS_FILE_NAME
 from tornasole.core.reader import FileReader
 from tornasole.core.access_layer.utils import has_training_ended
 
@@ -57,7 +59,7 @@ class LocalTrial(Trial):
         self._read_step_dirs(step_dirs)
 
     def _load_collections(self):
-        collections_file_path = os.path.join(self.trial_dir, 'collections.ts')
+        collections_file_path = os.path.join(self.trial_dir, COLLECTIONS_FILE_NAME)
         num_times_before_warning = 10
         while True:
             if os.path.exists(collections_file_path):

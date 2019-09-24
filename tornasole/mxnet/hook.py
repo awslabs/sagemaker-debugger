@@ -8,6 +8,7 @@ from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
 from tornasole.core.access_layer.utils import training_has_ended
 from tornasole.core.hook_utils import verify_and_get_out_dir
+from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 from .mxnet_collection import get_collection_manager, get_collection
 from .util import get_aggregated_data, make_numpy_array
 import re as _re
@@ -19,7 +20,6 @@ logger = get_logger()
 import atexit
 
 INVALID_TAG_CHARACTERS = _re.compile(r'[^-/\w\.]')
-COLLECTION_FILE_NAME = 'collections.ts'
 INPUT_TENSOR_SUFFIX = '_input_'
 OUTPUT_TENSOR_SUFFIX = '_output'
 GRADIENT_PREFIX = 'gradient/'
@@ -100,7 +100,7 @@ class TornasoleHook:
 
     def cleanup(self):
         if self.last_saved_step != -1:
-            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTION_FILE_NAME))
+            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
             self.export_only_once = False
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
@@ -155,7 +155,7 @@ class TornasoleHook:
                                      worker=self.worker)
 
         if self.last_saved_step != -1 and self.export_only_once:
-            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTION_FILE_NAME))
+            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
             self.export_only_once = False
         self.last_block = block
 
@@ -222,7 +222,7 @@ var.__class__.__name__))
                         tensor_value_np = make_numpy_array(tensor_data)
                         self.writer.write_tensor(tdata=tensor_value_np, tname=reduction_tensor_name,
                                              mode=self.mode, mode_step=self.mode_steps[self.mode])
-                        s_col.add_reduction_tensor_name(tensor_name)
+                        s_col.add_tensor_name(tensor_name)
                     return
                 else:
                     tensor_value = make_numpy_array(tensor_value)

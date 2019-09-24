@@ -14,6 +14,7 @@ from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, cre
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.access_layer.utils import training_has_ended
+from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 from .save_manager import TFSaveManager
 
 DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'gradients', 'default', 'losses']
@@ -234,7 +235,7 @@ class TornasoleHook(tf.train.SessionRunHook):
             self.logger.debug(f'  Collection {coll.name} has tensors: {coll.tensors}')
             self.logger.debug(f'  Collection {coll.name} has reductions: {coll.reduction_tensors_added}')
 
-        export_collections(os.path.join(self.out_dir, 'collections.ts'))
+        export_collections(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
         self._export_model()
 
     def _export_model(self):

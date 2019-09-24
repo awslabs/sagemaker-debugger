@@ -2,6 +2,8 @@ from .collection import Collection
 from .access_layer import TSAccessFile, TSAccessS3
 from .utils import is_s3
 
+COLLECTIONS_FILE_NAME = 'collections.json'
+
 class CollectionManager:
   """
   CollectionManager lets you manage group of collections.

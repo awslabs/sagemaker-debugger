@@ -10,6 +10,7 @@ from tornasole.core.json_config import create_hook_from_json_config
 from tornasole.pytorch.torch_collection import get_collection_manager, get_collection
 from tornasole.pytorch.util import get_aggregated_data, make_numpy_array
 from tornasole.core.access_layer.utils import training_has_ended
+from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 
 import re as _re
 import logging
@@ -19,7 +20,6 @@ logger = get_logger()
 import atexit
 
 INVALID_TAG_CHARACTERS = _re.compile(r'[^-/\w\.]')
-COLLECTION_FILE_NAME = 'collections.ts'
 DEFAULT_WORKER_NAME = 'worker0'
 INPUT_TENSOR_SUFFIX = '_input_'
 OUTPUT_TENSOR_SUFFIX = '_output'
@@ -98,7 +98,7 @@ class TornasoleHook:
 
     def cleanup(self):
         if not self.exported_collection:
-            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTION_FILE_NAME))
+            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
             self.writer.flush()
@@ -150,7 +150,7 @@ class TornasoleHook:
                 self.log_tensor(tensor_name=pname, tensor_value=param.data)
 
         if self.last_saved_step != -1 and not self.exported_collection:
-            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTION_FILE_NAME))
+            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
             self.exported_collection = True
         # self.last_block = block
 

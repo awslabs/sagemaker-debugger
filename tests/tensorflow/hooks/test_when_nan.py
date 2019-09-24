@@ -1,3 +1,4 @@
+from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 from .utils import *
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 
@@ -10,8 +11,8 @@ def helper_test_when_nan(trial_dir, hook):
     steps, _ = get_dirs_files(os.path.join(trial_dir, 'events'))
     _, files = get_dirs_files(trial_dir)
 
-    assert 'collections.ts' in files
-    cm = CollectionManager.load(join(trial_dir, 'collections.ts'))
+    assert COLLECTIONS_FILE_NAME in files
+    cm = CollectionManager.load(join(trial_dir, COLLECTIONS_FILE_NAME))
     num_tensors_loaded_collection = len(cm.collections['weights'].tensor_names) + \
                                     len(cm.collections['gradients'].tensor_names) + \
                                     len(cm.collections['when_nan'].tensor_names) + \
