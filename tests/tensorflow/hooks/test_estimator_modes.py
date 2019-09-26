@@ -1,3 +1,15 @@
+"""
+WARNING: This test file used to take 25 minutes.
+I've made some changes to speed it up now (~3 minutes),
+but choose fast defaults moving forward so CI runs quickly.
+
+All other TF tests combined run in <30 seconds, so would be
+nice if we could speed up the S3 integration testing.
+
+Integration tests with S3 take 95% of the time.
+"""
+
+
 import tensorflow as tf
 import numpy as np
 import shutil
@@ -99,33 +111,36 @@ def help_test_mnist(path, save_config=None, hook=None):
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": train_data},
         y=train_labels,
-        batch_size=100,
+        batch_size=2,
         num_epochs=None,
         shuffle=True)
 
+    # Eval will take 3 steps
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": eval_data},
-        y=eval_labels,
+        x={"x": eval_data[:3]},
+        y=eval_labels[:3],
         num_epochs=1,
+        batch_size=1,
         shuffle=False)
     if hook is None:
         hook = ts.TornasoleHook(out_dir=trial_dir,
                                 save_config=save_config)
     hook.set_mode(ts.modes.TRAIN)
-    # train one step and display the probabilties
+    # Train will take 2 steps here
     mnist_classifier.train(
         input_fn=train_input_fn,
-        steps=10,
+        steps=2,
         hooks=[hook])
-
+    # Eval takes 3 steps here
     hook.set_mode(ts.modes.EVAL)
     mnist_classifier.evaluate(input_fn=eval_input_fn, hooks=[hook])
-
+    # Train takes 2 more steps here
     hook.set_mode(ts.modes.TRAIN)
     mnist_classifier.train(
         input_fn=train_input_fn,
-        steps=20,
+        steps=2,
         hooks=[hook])
+    # For a total of 4 train steps and 3 eval steps
 
     tr = create_trial(trial_dir)
     return tr
@@ -135,9 +150,9 @@ def test_mnist_local():
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     tr = help_test_mnist(trial_dir, ts.SaveConfig(save_interval=2))
-    assert len(tr.available_steps()) == 55
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 40
+    assert len(tr.available_steps()) == 4
+    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 2
+    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 2
     assert len(tr.tensors()) == 17
     shutil.rmtree(trial_dir)
 
@@ -147,40 +162,48 @@ def test_mnist_local_json():
     os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/tensorflow/hooks/test_json_configs/test_mnist_local.json'
     hook = TornasoleHook.hook_from_config()
     tr = help_test_mnist(path=out_dir, hook=hook)
-    assert len(tr.available_steps()) == 55
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 40
+    assert len(tr.available_steps()) == 4
+    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 2
+    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 2
     assert len(tr.tensors()) == 17
     shutil.rmtree(out_dir, ignore_errors=True)
 
 def test_mnist_s3():
+    # Takes 1:04 to run, compared to 4 seconds above.
+    # Speed improvements, or should we migrate integration tests to their own folder?
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = 's3://tornasole-testing/tornasole_tf/hooks/estimator_modes/' + run_id
     tr = help_test_mnist(trial_dir, ts.SaveConfig(save_interval=2))
-    assert len(tr.available_steps()) == 55
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 40
+    assert len(tr.available_steps()) == 4
+    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 2
+    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 2
     assert len(tr.tensors()) == 17
 
 def test_mnist_local_multi_save_configs():
+    # Runs in 0:04
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-    tr = help_test_mnist(trial_dir, {ts.modes.TRAIN: ts.SaveConfig(save_interval=2),
-                              ts.modes.EVAL: ts.SaveConfig(save_interval=1)})
-    assert len(tr.available_steps()) == 94
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
+    tr = help_test_mnist(trial_dir, ts.SaveConfig({
+        ts.modes.TRAIN: ts.SaveConfigMode(save_interval=2),
+        ts.modes.EVAL: ts.SaveConfigMode(save_interval=3)
+    }))
+    assert len(tr.available_steps()) == 3
+    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 2
+    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 1
     assert len(tr.tensors()) == 17
     shutil.rmtree(trial_dir)
 
 def test_mnist_s3_multi_save_configs():
+    # Takes 0:52 to run, compared to 4 seconds above. Speed improvements?
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = 's3://tornasole-testing/tornasole_tf/hooks/estimator_modes/' + run_id
-    tr = help_test_mnist(trial_dir, {ts.modes.TRAIN: ts.SaveConfig(save_interval=2),
-                              ts.modes.EVAL: ts.SaveConfig(save_interval=1)})
-    assert len(tr.available_steps()) == 94
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
+    tr = help_test_mnist(trial_dir, ts.SaveConfig({
+        ts.modes.TRAIN: ts.SaveConfigMode(save_interval=2),
+        ts.modes.EVAL: ts.SaveConfigMode(save_interval=3)
+    }))
+    assert len(tr.available_steps()) == 3
+    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 2
+    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 1
     assert len(tr.tensors()) == 17
 
 def test_mnist_local_multi_save_configs_json():
@@ -189,8 +212,8 @@ def test_mnist_local_multi_save_configs_json():
     os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json'
     hook = ts.TornasoleHook.hook_from_config()
     tr = help_test_mnist(out_dir, hook=hook)
-    assert len(tr.available_steps()) == 94
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 15
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 79
+    assert len(tr.available_steps()) == 3
+    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 2
+    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 1
     assert len(tr.tensors()) == 17
     shutil.rmtree(out_dir)

@@ -24,7 +24,7 @@ A class used to represent the hook which gets attached to the
         when dry_run is set to True, behavior is only described in the log file.
         The tensors are not actually saved.
 
-    save_config: SaveConfig object or a dictionary from mode to SaveConfig objects
+    save_config: SaveConfig object or a dictionary from mode to SaveConfigMode objects
         SaveConfig allows you to customize when tensors are saved.
         Hook takes SaveConfig object which is applied as
         default for all included tensors.
@@ -32,8 +32,8 @@ A class used to represent the hook which gets attached to the
         which overrides this for its tensors.
         If you pass a dictionary from mode->SaveConfig, then that
         SaveConfig is applied to tensors included for that mode.
-        example: {modes.TRAIN: SaveConfig(save_interval=10),
-                  modes.EVAL:SaveConfig(save_interval=1)}
+        example: {modes.TRAIN: SaveConfigMode(save_interval=10),
+                  modes.EVAL:SaveConfigMode(save_interval=1)}
         Refer to documentation for SaveConfig.
 
     include_regex: list of (str or tensor variables)
@@ -53,10 +53,16 @@ A class used to represent the hook which gets attached to the
         as default for all tensors included.
         A collection can optionally have its own ReductionConfig object
         which overrides this for its tensors.
-    include_regex:
+
+    include_regex: list of str
+        takes as input the list of string representing regular expressions. Tensors whose names match
+        these regular expressions will be saved. These tensors will be available as part of the `default`
+        collection.
+
     include_collections: list of str
         takes as input the names of collections which should be saved.
         by default, collections for weights and gradients are created by the hook.
+
     save_all: bool
         a shortcut for saving all tensors in the model
 
@@ -127,8 +133,12 @@ class SaveConfig:
   save_interval: int
     save every n steps
 
-  skip_num_steps: int
-    start saving after n steps
+  start_step: int
+          Allows you to start saving from a given step, defaults to 0
+
+  end_step: int
+      allows you to save till a given step. Excludes this end_step
+      defaults to None, i.e. till end of job
 
   save_steps: list of int
     save at all the steps given in this list.
@@ -139,7 +149,7 @@ class SaveConfig:
 #### Examples
 - ```SaveConfig(save_interval=10)``` Saving every 10 steps
 
-- ```SaveConfig(skip_num_steps=1000, save_interval=10)``` Save every 10 steps after skipping the first 1000 steps
+- ```SaveConfig(start_step=1000, save_interval=10)``` Save every 10 steps from the 1000th step
 
 - ```SaveConfig(save_steps=[10, 500, 10000, 20000])``` Saves only at the supplied steps
 

@@ -1,32 +1,21 @@
-from .save_config import SaveConfig, SaveConfigModes
+import copy
+from typing import Any, Dict, List
+
+from .save_config import SaveConfigMode, SaveConfig
 from .utils import match_inc
 from .modes import ModeKeys
 
 class SaveManager:
-  """Main container for all configuration."""
+  """Main container for all configuration.
+
+  TODO(rahul003): Refactor this into a BaseHook class.
+  """
 
   def __init__(self, collection_manager, include_collections_names,
                default_reduction_config,
                default_save_config):
     self.configs_for_collections = {}
-    # Convert default_save_config into a SaveConfigModes object
-    if isinstance(default_save_config, SaveConfig):
-      self.default_save_modes = SaveConfigModes.create_simple_save_mode(default_save_config)
-    elif isinstance(default_save_config, SaveConfigModes):
-      self.default_save_modes = default_save_config
-    elif (isinstance(default_save_config, dict)
-      and all([isinstance(x, ModeKeys) for x in default_save_config.keys()])):
-      if all([isinstance(x, SaveConfig) for x in default_save_config.values()]):
-        self.default_save_modes = SaveConfigModes(default_save_config)
-      else:
-        self.default_save_modes = SaveConfigModes(mode_save_configs={
-          mode: SaveConfig.from_dict(params)
-          for mode, params in default_save_config.items()
-        })
-    else:
-      raise TypeError('save_config can only be a SaveConfig instance, or '
-                      'a dictionary mapping from mode '
-                      'to SaveConfig instance.')
+    self.default_save_modes = SaveConfig.parse(default_save_config)
     # Instantiate defaults
     self.default_reduction_config = default_reduction_config
     self.collection_manager = collection_manager
@@ -46,17 +35,25 @@ class SaveManager:
 
     # Populate configs_for_collections and reduction_config
     for c_name, c in self.collection_manager.get_collections().items():
-      if c.save_config is not None:
-        if isinstance(c.save_config, dict):
-          self.configs_for_collections[c_name] = SaveConfigModes(mode_save_configs=c.save_config)
-        elif isinstance(c.save_config, SaveConfig):
-          sm = SaveConfigModes.create_simple_save_mode(c.save_config)
-          self.configs_for_collections[c_name] = sm
-        else:
-          raise TypeError('collection {} has save config of wrong type {}'
-                          .format(c_name, type(c.save_config)))
-      else:
+      # Set to the default if None
+      if c.save_config is None:
         self.configs_for_collections[c_name] = self.default_save_modes
+      # Otherwise, set missing modes to the defaults
+      elif isinstance(c.save_config, SaveConfig):
+        # Populate missing modes
+        for mode in ModeKeys:
+          if c.save_config.mode_save_configs[mode] is None:
+            if self.default_save_modes.mode_save_configs[mode] is not None:
+              c.save_config.set_save_config(
+                mode=mode,
+                save_config_mode=copy.deepcopy(self.default_save_modes.get_save_config(mode))
+              )
+            else:
+              c.save_config.set_save_config(mode=mode, save_config_mode=SaveConfigMode())
+        # Set the save config
+        self.configs_for_collections[c_name] = c.save_config
+      else:
+        raise ValueError(f"save_config={c.save_config} must be None or SaveConfig")
 
       if c.reduction_config is None and self.default_reduction_config is not None:
         c.reduction_config = self.default_reduction_config
@@ -66,9 +63,7 @@ class SaveManager:
     return coll_name in self.include_collections_names
 
   def _raise_error(self):
-    raise ValueError('Save Manager is not ready. '
-                      'Please call prepare() method '
-                      'before calling this method.')
+    raise ValueError('SaveManager is not ready, call prepare() first.')
 
   def get_all_collections_to_save(self):
     if not self.prepared:
@@ -99,26 +94,23 @@ class SaveManager:
       self._raise_error()
     return collection.get_reduction_config()
 
-  def from_collections(self, tensor_name):
+  def from_collections(self, tensor_name) -> List['Collection']:
     # for tf this will be prepopulated because of prepare_tensors
     if not tensor_name in self.tensor_to_collection:
       # for mxnet it is computed and then cached
       matched_colls = []
       for coll in self.get_all_collections_to_save():
-        if tensor_name in coll.tensor_names or tensor_name in coll.reduction_tensor_names:
+        if tensor_name in coll.tensor_names:
           # if being matched as reduction,
           # it must be in reduction_tensor_name, not with regex
           matched_colls.append(coll)
         elif match_inc(tensor_name, coll.get_include_regex()):
-          if self.get_reduction_config(coll):
-            coll.add_reduction_tensor_name(tensor_name)
-          else:
-            coll.add_tensor_name(tensor_name)
+          coll.add_tensor_name(tensor_name)
           matched_colls.append(coll)
       self.tensor_to_collection[tensor_name] = matched_colls
     return self.tensor_to_collection[tensor_name]
 
-  def should_save_tensor(self, tensorname, mode, step):
+  def should_save_tensor(self, tensorname, mode, step) -> Dict[str, bool]:
     """Return dictionary with two keys: ('step', 'when_nan') mapping to booleans.
 
     If step is true in the dict, then we are saving this tensor

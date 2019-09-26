@@ -10,5 +10,5 @@ def test_mnist_local():
   tr = help_test_mnist(trial_dir, ts.SaveConfig(save_interval=2))
   assert len(tr.collection('losses').get_tensor_names()) == 1
   for t in tr.collection('losses').get_tensor_names():
-    assert len(tr.tensor(t).steps()) == 55
+    assert len(tr.tensor(t).steps()) == 4
   shutil.rmtree(trial_dir)

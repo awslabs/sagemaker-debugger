@@ -2,8 +2,21 @@ import os
 import re
 import bisect
 from botocore.exceptions import ClientError
+import json
 from pathlib import Path
 from typing import Dict, List
+
+
+def load_json_as_dict(s):
+    if s is None or s == str(None):
+        return None
+    elif isinstance(s, str):
+        return json.loads(s)
+    elif isinstance(s, dict):
+        return s
+    else:
+        raise ValueError("parameter must be either str or dict")
+
 
 def flatten(lis):
   """Given a list, possibly nested to any level, return it flattened."""

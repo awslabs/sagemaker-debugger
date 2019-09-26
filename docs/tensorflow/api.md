@@ -30,17 +30,17 @@ class TornasoleHook:
         name of worker in a multi process training job
         outputs and tensors are organized by this name during retrieval.
 
-    save_config: SaveConfig object or a dictionary from mode to SaveConfig objects
+    save_config: SaveConfig object or a dictionary from mode to SaveConfigMode objects
         SaveConfig allows you to customize when tensors are saved.
         Hook takes SaveConfig object which is applied as
         default for all included tensors.
         A collection can optionally have its own SaveConfig object
         which overrides this for its tensors.
-        If you pass a dictionary from mode->SaveConfig, then that
-        SaveConfig is applied to tensors included for that mode.
-        example: {modes.TRAIN: SaveConfig(save_interval=10),
-                  modes.EVAL:SaveConfig(save_interval=1)}
-        Refer to documentation for SaveConfig.
+        If you pass a dictionary from mode->SaveConfigMode, then that
+        SaveConfigMode is applied to tensors included for that mode.
+        example: {modes.TRAIN: SaveConfigMode(save_interval=10),
+                  modes.EVAL:SaveConfigMode(save_interval=1)}
+        Refer to documentation for SaveConfigMode.
 
     reduction_config: ReductionConfig object
         ReductionConfig allows you to save tensors as their reductions
@@ -137,9 +137,12 @@ class SaveConfig:
   save_interval: int
     allows you to save every n steps by passing n to save_interval
 
-  skip_num_steps: int
-    allows you to avoid saving for the first n steps of the job.
-    it defaults to 0, i.e. don't skip any steps in the beginning.
+  start_step: int
+          Allows you to start saving from a given step, defaults to 0
+
+  end_step: int
+      allows you to save till a given step. Excludes this end_step
+      defaults to None, i.e. till end of job
 
   save_steps: list of int
     save at all the steps given in this list.

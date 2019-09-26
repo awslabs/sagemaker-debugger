@@ -18,12 +18,14 @@ class TornasoleHook(keras.callbacks.Callback):
                  dry_run=False,
                  worker='worker0',
                  reduction_config=None,
-                 save_config=SaveConfig(),
+                 save_config=None,
                  # TODO: support include_regex
                  # include_regex=None,
                  include_collections=['weights', 'gradients', 'metrics', 'default'],
                  save_all=False):
         self.out_dir = verify_and_get_out_dir(out_dir)
+        if save_config is None:
+            save_config = SaveConfig()
 
         self.dry_run = dry_run
         self.worker = worker if worker is not None else socket.gethostname()

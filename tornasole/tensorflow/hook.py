@@ -2,6 +2,7 @@ import os
 import socket
 import atexit
 import numpy as np
+
 from .utils import *
 from .reductions import get_tensorflow_reduction
 from .collection import *
@@ -12,12 +13,13 @@ from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.save_config import SaveConfig
+from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.access_layer.utils import training_has_ended
 from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 from .save_manager import TFSaveManager
 
 DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'gradients', 'default', 'losses']
+
 
 class TornasoleHook(tf.train.SessionRunHook):
     def __init__(self, out_dir=None,
@@ -94,7 +96,8 @@ class TornasoleHook(tf.train.SessionRunHook):
                              'So it is not being saved')
         if save_config is None:
             save_config = SaveConfig()
-
+        elif not isinstance(save_config, SaveConfig):
+            raise ValueError(f"save_config={save_config} must be type SaveConfig")
         self.save_manager = TFSaveManager(collection_manager=get_collection_manager(),
                                         include_collections_names=self.include_collections,
                                         default_save_config=save_config,
@@ -142,13 +145,18 @@ class TornasoleHook(tf.train.SessionRunHook):
                 self._add_reduction(tensor, reduction, collection, False)
             for reduction in reduction_config.abs_reductions + reduction_config.abs_norms:
                 self._add_reduction(tensor, reduction, collection, True)
-            # here if reduction config was set, but tensors were added to collection,
+
+            # here if reduction config was set,
+            # but tensors were added to collection,
             # they will be removed and added to reduction_tensors
             try:
                 collection.remove_tensor(tensor)
             except IndexError:
                 # was not in the list
                 pass
+            # so this is available in this collection for reader
+            # hook will read from tensors and reduction_tensors_added lists
+            collection.add_tensor_name(tensor.name)
         else:
             collection.add(tensor)
 
@@ -163,7 +171,6 @@ class TornasoleHook(tf.train.SessionRunHook):
         for coll in self.save_manager.get_all_collections_to_save():
             if match_inc(t.name, coll.get_include_regex()) \
                     or t.name in coll.tensor_names:
-                    # or t.name in coll.reduction_tensor_names:
                 self._process_matched_tensor(t, coll)
                 # only matches with one collection
                 added = True
@@ -174,7 +181,6 @@ class TornasoleHook(tf.train.SessionRunHook):
                 # self._process_matched_tensor(t, coll)
                 self.save_manager.add_when_nan_tensor(coll, t)
                 added = True
-
         return added
 
     def _add_reduction(self, tensor, reduction_name, collection, abs=False):
@@ -194,9 +200,10 @@ class TornasoleHook(tf.train.SessionRunHook):
             for tensor in op.outputs:
                 self._check_and_add_tensor(tensor)
                 total_tensor_count += 1
-        for variable in tf.global_variables():
-            self._check_and_add_tensor(variable)
-            total_tensor_count += 1
+        # all variables we are interested in are part of the graph tensors
+        # for variable in tf.global_variables():
+        #     self._check_and_add_tensor(variable)
+        #     total_tensor_count += 1
         return total_tensor_count
 
     def begin(self):
@@ -231,7 +238,7 @@ class TornasoleHook(tf.train.SessionRunHook):
 
         for coll in self.save_manager.get_all_collections_to_save():
             self.logger.info(f'Saving the collection {coll.name} with {len(coll.tensor_names)} tensors ' \
-                                 f'and {len(coll.reduction_tensors_added)} reductions for {len(coll.reduction_tensor_names)} tensors.')
+                             f'and {len(coll.reduction_tensors_added)} reductions')
             self.logger.debug(f'  Collection {coll.name} has tensors: {coll.tensors}')
             self.logger.debug(f'  Collection {coll.name} has reductions: {coll.reduction_tensors_added}')
 

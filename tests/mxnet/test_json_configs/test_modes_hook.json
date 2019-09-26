@@ -2,8 +2,8 @@
   "S3Path": "s3://kjndjknd_bucket/prefix",
   "LocalPath": "newlogsRunTest2/test_modes_hookjson",
   "HookParameters": {
-    "train.save_interval": 50,
-    "eval.save_interval": 10
+    "train.save_interval": 2,
+    "eval.save_interval": 3
   },
   "CollectionConfiguration": [
     { "CollectionName": "gradients" }

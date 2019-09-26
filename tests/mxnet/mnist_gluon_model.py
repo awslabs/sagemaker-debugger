@@ -1,3 +1,5 @@
+# Using batch size 4 instead of 1024 decreases runtime from 35 secs to 4 secs.
+
 from mxnet import gluon, init, autograd
 from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
@@ -14,7 +16,7 @@ def acc(output, label):
 def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False, register_to_loss_block=False,
                           num_steps_train=None, num_steps_eval=None, make_input_zero=False, normalize_mean=0.13,
                           normalize_std=0.31):
-    batch_size = 1024
+    batch_size = 4
     if make_input_zero:
         mnist_train = datasets.FashionMNIST(train=True,
                                             transform=lambda data, label: (data.astype(np.float32) * 0, label))
@@ -65,7 +67,7 @@ def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False, register_
         hook.register_hook(softmax_cross_entropy)
 
     # Start the training.
-    for epoch in range(2):
+    for epoch in range(1):
         train_loss, train_acc, valid_acc = 0., 0., 0.
         tic = time.time()
         if set_modes:

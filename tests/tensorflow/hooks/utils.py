@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime
 import os
 from os.path import isfile, join
-from tornasole.tensorflow import TornasoleOptimizer, TornasoleHook, SaveConfig, \
+from tornasole.tensorflow import TornasoleOptimizer, TornasoleHook, SaveConfig, SaveConfigMode, \
     ReductionConfig, get_collection, CollectionManager, reset_collections
 
 TORNASOLE_TF_HOOK_TESTS_DIR = '/tmp/tornasole_tf/tests/'

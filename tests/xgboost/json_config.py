@@ -25,7 +25,7 @@ def get_json_config_full(local_path):
             "save_all": False,
             "save_interval": 100,
             "save_steps": "1,2,3,4",
-            "skip_num_steps": 1,
+            "start_step": 1,
             "when_nan": "tensor1*,tensor2*"
         },
         "CollectionConfiguration": [
@@ -35,7 +35,7 @@ def get_json_config_full(local_path):
                     "include_regex": "regexe5*",
                     "save_interval": 100,
                     "save_steps": "1,2,3",
-                    "skip_num_steps": 1,
+                    "start_step": 1,
                     "when_nan": "tensor3*,tensor4*",
                     "reductions": "min,abs_max,l1_norm,abs_l2_norm"
                 }
@@ -46,7 +46,7 @@ def get_json_config_full(local_path):
                     "include_regex": "regexe6*",
                     "save_interval": 100,
                     "save_steps": "1,2,3",
-                    "skip_num_steps": 1,
+                    "start_step": 1,
                     "when_nan": "tensor3*,tensor4*",
                     "reductions": "min,abs_max,l1_norm,abs_l2_norm"
                 }

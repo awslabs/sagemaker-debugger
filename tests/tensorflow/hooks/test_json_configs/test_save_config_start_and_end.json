@@ -1,0 +1,10 @@
+{
+  "S3Path": "s3://kjndjknd_bucket/prefix",
+  "LocalPath": "newlogsRunTest1/test_save_config_start_and_end_json",
+  "HookParameters" : {
+    "save_all": false,
+    "save_interval": 2,
+    "start_step": 8,
+    "end_step": 14
+  }
+}

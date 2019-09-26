@@ -9,7 +9,6 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from tornasole.pytorch import *
-from tornasole.pytorch import *
 import tornasole.pytorch as ts
 
 

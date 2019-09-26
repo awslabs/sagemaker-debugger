@@ -120,8 +120,10 @@ eval_input_fn = tf.estimator.inputs.numpy_input_fn(
   shuffle=False)
 
 hook = ts.TornasoleHook(out_dir=args.tornasole_path,
-        save_config={ts.modes.TRAIN: ts.SaveConfig(args.tornasole_train_frequency),
-                     ts.modes.EVAL: ts.SaveConfig(args.tornasole_eval_frequency)})
+        save_config=ts.SaveConfig({
+          ts.modes.TRAIN: ts.SaveConfigMode(args.tornasole_train_frequency),
+          ts.modes.EVAL: ts.SaveConfigMode(args.tornasole_eval_frequency)
+        }))
 
 hook.set_mode(ts.modes.TRAIN)
 # train one step and display the probabilties

@@ -1,11 +1,14 @@
 import json
+from typing import Any, Dict, List
 
-from tornasole.core.utils import split
+from tornasole.core.utils import split, load_json_as_dict
 
 ALLOWED_REDUCTIONS=['min','max','mean','std','variance','sum','prod']
 ALLOWED_NORMS=['l1','l2']
 REDUCTION_CONFIG_VERSION_NUM = 'v0'
-ALLOWED_PARAMS = ["only_shape", "reductions", "abs_reductions", "norms", "abs_norms"]
+ALLOWED_PARAMS = ["only_shape", "reductions", "abs_reductions", "norms",
+                  "abs_norms", "save_raw_tensor"]
+
 
 class ReductionConfig:
   """
@@ -44,20 +47,20 @@ class ReductionConfig:
 
   def __init__(self, only_shape=False,
                reductions=[], abs_reductions=[],
-               norms=[], abs_norms=[]):
+               norms=[], abs_norms=[], save_raw_tensor=False):
     self.only_shape = only_shape
     self.reductions = reductions
     self.abs_reductions = abs_reductions
     self.norms = norms
     self.abs_norms = abs_norms
+    self.save_raw_tensor = save_raw_tensor
     ## DO NOT REMOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
     self._check()
 
   def _check(self):
     """Ensure that only valid params are passed in; raises ValueError if not."""
     if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
-        raise ValueError('allowed params for reduction config can only be one of ' + ','.join(ALLOWED_PARAMS)
-        )
+        raise ValueError('allowed params for reduction config can only be one of ' + ','.join(ALLOWED_PARAMS))
 
     if any([x not in ALLOWED_REDUCTIONS for x in self.reductions]):
       raise ValueError('reductions can only be one of ' + ','.join(ALLOWED_REDUCTIONS))
@@ -67,17 +70,19 @@ class ReductionConfig:
       raise ValueError('norms can only be one of ' + ','.join(ALLOWED_NORMS))
     if any([x not in ALLOWED_NORMS for x in self.abs_norms]):
       raise ValueError('abs_norms can only be one of ' + ','.join(ALLOWED_NORMS))
+    if not isinstance(self.save_raw_tensor, bool):
+      raise ValueError(f'save_raw_tensor={self.save_raw_tensor} must be a boolean')
 
   @classmethod
-  def from_json(cls, j):
-    if isinstance(j, str):
-      params = json.loads(j)
-    elif isinstance(j, dict):
-      params = j
-    else:
-      raise ValueError("parameter must be either str or dict")
+  def from_dict(cls, params: Dict[str, Any]) -> 'ReductionConfig':
+    """Parses a flattened dict with two keys: `only_shape` and `reductions`."""
+    if params is None:
+      return None
+    if not isinstance(params, dict):
+      raise ValueError(f"params={params} must be dict")
 
     only_shape = params.get("only_shape", False)
+    save_raw_tensor = params.get("save_raw_tensor", False)
     # Parse comma-separated string into array
     all_reductions = split(params.get("reductions", ""))
     # Parse list of reductions into various types, e.g. convert "abs_l1_norm" into "l1"
@@ -95,40 +100,43 @@ class ReductionConfig:
           else:
             reductions.append(red) # mean -> mean
 
-    return cls(only_shape, reductions, abs_reductions, norms, abs_norms)
+    return cls(
+      only_shape=only_shape,
+      reductions=reductions,
+      abs_reductions=abs_reductions,
+      norms=norms,
+      abs_norms=abs_norms,
+      save_raw_tensor=save_raw_tensor
+    )
 
-  def export(self):
-    separator = '%'
-    list_separator = ','
-    return separator.join([REDUCTION_CONFIG_VERSION_NUM, str(self.only_shape),
-                            list_separator.join(self.reductions),
-                            list_separator.join(self.abs_reductions),
-                            list_separator.join(self.norms),
-                            list_separator.join(self.abs_norms)])
+  @classmethod
+  def from_json(cls, json_str: str) -> 'ReductionConfig':
+    d = json.loads(json_str)
+    return cls.from_dict(d)
 
-  @staticmethod
-  def load(s):
-    if s is None or s == str(None):
-      return None
+  def to_json_dict(self) -> Dict[str, Any]:
+    only_shape = self.only_shape
+    save_raw_tensor = self.save_raw_tensor
+    # Convert reductions from various arrays into single comma-separated string
+    all_reductions = []
+    for red in self.reductions:
+      all_reductions.append(red)
+    for red in self.norms:
+      all_reductions.append(f"{red}_norm")
+    for red in self.abs_reductions:
+      all_reductions.append(f"abs_{red}")
+    for red in self.abs_norms:
+      all_reductions.append(f"abs_{red}_norm")
+    all_reductions_str = ",".join(all_reductions)
+    # Return the dict
+    return {
+      "only_shape": only_shape,
+      "save_raw_tensor": save_raw_tensor,
+      "reductions": all_reductions_str
+    }
 
-    separator = '%'
-    parts = s.split(separator)
-    s_version = parts[0]
-    if s_version == 'v0':
-      assert len(parts) == 6
-      list_separator = ','
-
-      assert parts[1] in ['False', 'True']
-      only_shape = False if parts[1] == 'False' else True
-
-      reductions = [x for x in parts[2].split(list_separator) if x]
-      abs_reductions = [x for x in parts[3].split(list_separator) if x]
-      norms = [x for x in parts[4].split(list_separator) if x]
-      abs_norms = [x for x in parts[5].split(list_separator) if x]
-
-      return ReductionConfig(only_shape=only_shape, reductions=reductions,
-                             abs_reductions=abs_reductions, norms=norms, abs_norms=abs_norms)
-    raise RuntimeError("Unable to load ReductionConfig from %s" % s)
+  def to_json(self) -> str:
+    return json.dumps(self.to_json_dict())
 
   def __eq__(self, other):
     if not isinstance(other, ReductionConfig):
@@ -138,7 +146,8 @@ class ReductionConfig:
            self.reductions == other.reductions and \
            self.abs_reductions == other.abs_reductions and \
            self.norms == other.norms and \
-           self.abs_norms == other.abs_norms
+           self.abs_norms == other.abs_norms and \
+           self.save_raw_tensor == other.save_raw_tensor
 
   def __repr__(self):
       return (

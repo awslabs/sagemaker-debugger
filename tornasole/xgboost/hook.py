@@ -101,7 +101,10 @@ class TornasoleHook:
 
         self._initialize_collectors(include_regex, save_all)
 
-        save_config = SaveConfig() if save_config is None else save_config
+        if save_config is None:
+            save_config = SaveConfig()
+        if not isinstance(save_config, SaveConfig):
+            raise ValueError(f"save_config={save_config} must be type SaveConfig")
         self.save_manager = SaveManager(
             collection_manager=get_collection_manager(),
             include_collections_names=self.include_collections,

@@ -4,6 +4,6 @@
   "HookParameters": {
     "save_all": false,
     "save_interval": 2,
-    "skip_num_steps": 8
+    "start_step": 8
   }
 }

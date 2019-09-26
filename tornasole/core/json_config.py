@@ -9,7 +9,7 @@ Example JSON config:
     "include_regex": "regexe1,regex2",
     "save_interval": 100,
     "save_steps": "1,2,3,4",
-    "skip_num_steps": 1,
+    "start_step": 1,
     "when_nan": "tensor1*,tensor2*",
     "reductions": "min,max,mean,std,abs_variance,abs_sum,abs_l2_norm"
   },
@@ -20,7 +20,7 @@ Example JSON config:
         "include_regex": "regexe5*",
         "save_interval": 100,
         "save_steps": "1,2,3",
-        "skip_num_steps": 1,
+        "start_step": 1,
         "when_nan": "tensor3*,tensor4*",
         "reductions": "min,abs_max,l1_norm,abs_l2_norm",
       }
@@ -32,7 +32,7 @@ Example JSON config:
         "train.save_interval": 100,
         "eval.save_interval": 1,
         "save_steps": "1,2,3",
-        "skip_num_steps": 1,
+        "start_step": 1,
         "when_nan": "tensor3*,tensor4*",
         "reductions": "min,abs_max,l1_norm,abs_l2_norm"
       }
@@ -48,7 +48,7 @@ from typing import Dict
 from tornasole.core.modes import ModeKeys, ALLOWED_MODE_NAMES
 from tornasole.core.logger import get_logger
 from tornasole.core.utils import merge_two_dicts, split
-from tornasole import ReductionConfig, SaveConfig, SaveConfigModes
+from tornasole import ReductionConfig, SaveConfig, SaveConfigMode
 
 TORNASOLE_CONFIG_DEFAULT_WORKER_NAME = "worker0"
 TORNASOLE_CONFIG_FILE_PATH_ENV_STR = "TORNASOLE_CONFIG_FILE_PATH"
@@ -83,7 +83,7 @@ def create_hook_from_json_config(hook_cls, collection_manager, default_include_c
     dry_run = tornasole_params.get("dry_run", False)
     worker = tornasole_params.get("worker", TORNASOLE_CONFIG_DEFAULT_WORKER_NAME)
     reduction_config = tornasole_params.get(TORNASOLE_CONFIG_RDN_CFG_KEY)
-    save_config = tornasole_params.get("save_config_modes")
+    save_config = SaveConfig.from_dict(tornasole_params.get("save_config_modes"))
     include_regex = tornasole_params.get(TORNASOLE_CONFIG_INCLUDE_REGEX_KEY)
     save_all = tornasole_params.get(TORNASOLE_CONFIG_SAVE_ALL_KEY, False)
     return hook_cls(
@@ -136,7 +136,7 @@ def collect_tornasole_config_params(collection_manager) -> Dict:
 
     # If we pass reduction=None, then the full tensor is saved by default
     if "reductions" in hook_params:
-        tornasole_params_dict[TORNASOLE_CONFIG_RDN_CFG_KEY] = ReductionConfig.from_json(hook_params)
+        tornasole_params_dict[TORNASOLE_CONFIG_RDN_CFG_KEY] = ReductionConfig.from_dict(hook_params)
     if "save_all" in hook_params:
         tornasole_params_dict[TORNASOLE_CONFIG_SAVE_ALL_KEY] = hook_params["save_all"]
     if "include_regex" in hook_params:
@@ -161,12 +161,12 @@ def collect_tornasole_config_params(collection_manager) -> Dict:
                 params=coll_params, base_config_modes=base_config_modes
             )
             mode_save_configs = {
-                mode: SaveConfig.from_dict(val)
+                mode: SaveConfigMode.from_dict(val)
                 for mode, val in coll_config_modes.items()
             }
             coll.set_save_config(mode_save_configs)
             if "reductions" in coll_params:
-                coll.set_reduction_config(ReductionConfig.from_json(coll_params))
+                coll.set_reduction_config(ReductionConfig.from_dict(coll_params))
             if "include_regex" in coll_params:
                 coll.include(split(coll_params["include_regex"]))
             tornasole_params_dict["collections"][name] = coll
@@ -219,10 +219,12 @@ def parse_save_config_dict(params, mode=None) -> Dict:
     ret = {}
     if "save_interval" in params:
         ret["save_interval"] = params["save_interval"]
-    if "skip_num_steps" in params:
-        ret["skip_num_steps"] = params["skip_num_steps"]
     if "save_steps" in params:
         ret["save_steps"] = [int(x) for x in split(params["save_steps"])]
+    if "start_step" in params:
+        ret["start_step"] = params["start_step"]
+    if "end_step" in params:
+        ret["end_step"] = params["end_step"]
     if "when_nan" in params:
         ret["when_nan"] = split(params["when_nan"])
 

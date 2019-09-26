@@ -62,6 +62,8 @@ class TornasoleHook:
 
         if save_config is None:
             save_config = SaveConfig()
+        if not isinstance(save_config, SaveConfig):
+            raise ValueError(f"save_config={save_config} must be type SaveConfig")
         self.save_manager = SaveManager(collection_manager=get_collection_manager(),
                                         include_collections_names=self.include_collections,
                                         default_save_config=save_config,
@@ -203,6 +205,11 @@ var.__class__.__name__))
                             tensor_value=param.grad(param.list_ctx()[0]))
 
     def log_tensor(self, tensor_name, tensor_value):
+        """
+
+        TODO(nieljare): What if a tensor matches multiple collections?
+        This short-circuits after a single match.
+        """
         if self.dry_run or not self._check_tensor_to_be_logged(tensor_name):
             return
 

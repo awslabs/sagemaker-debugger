@@ -11,20 +11,16 @@ def helper_save_reductions(trial_dir, hook):
   _, files = get_dirs_files(trial_dir)
   coll = get_collections()
   assert len(coll) == 5
-  assert len(coll['weights'].reduction_tensor_names) == 1
-  assert len(coll['gradients'].reduction_tensor_names) == 1
+  assert len(coll['weights'].tensor_names) == 1
+  assert len(coll['gradients'].tensor_names) == 1
 
   assert COLLECTIONS_FILE_NAME in files
   cm = CollectionManager.load(join(trial_dir, COLLECTIONS_FILE_NAME))
   assert len(cm.collections) == 5
-  assert len(cm.collections['weights'].tensor_names) == 0
-  assert len(cm.collections['weights'].reduction_tensor_names) == 1
-  assert len(cm.collections['gradients'].tensor_names) == 0
-  assert len(cm.collections['gradients'].reduction_tensor_names) == 1
+  assert len(cm.collections['weights'].tensor_names) == 1
+  assert len(cm.collections['gradients'].tensor_names) == 1
   # as we hadn't asked to be saved
   assert len(cm.collections['optimizer_variables'].tensor_names) == 0
-  assert len(cm.collections['optimizer_variables'].reduction_tensor_names) == 0
-  assert len(cm.collections['default'].reduction_tensor_names) == 0
   assert len(cm.collections['default'].tensor_names) == 0
   num_tensors_loaded_collection = len(cm.collections['weights'].tensor_names) + \
                                   len(cm.collections['gradients'].tensor_names) + \

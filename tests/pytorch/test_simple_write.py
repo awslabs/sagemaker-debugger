@@ -143,17 +143,17 @@ def helper_test_weights_bias_gradients(hook=None):
     model = Net(mode=hook_type, to_save=save_steps).to(device)
     json = hook is not None
     if not json:
-        hook = create_tornasole_hook('./test_output/test_hook_save_weightsbiasgradients/' \
+        hook = create_tornasole_hook('test_output/test_hook_save_weightsbiasgradients/' \
                                      + prefix, model, hook_type, save_steps=save_steps)
 
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
     if not json:
-        trial = create_trial(path='./test_output/test_hook_save_weightsbiasgradients/' + prefix,
+        trial = create_trial(path='test_output/test_hook_save_weightsbiasgradients/' + prefix,
                         name='test output')
     else:
-        trial = create_trial(path='./test_output/test_hook_save_weightsbiasgradients/jsonloading',
+        trial = create_trial(path='test_output/test_hook_save_weightsbiasgradients/jsonloading',
                         name='test output')
     grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight',
                 'gradient/Net_fc1.bias', 'gradient/Net_fc2.bias', 'gradient/Net_fc3.bias']
@@ -174,7 +174,8 @@ def helper_test_weights_bias_gradients(hook=None):
         addendum = prefix
     else:
         addendum = 'jsonloading'
-    delete_local_trials(['./test_output/test_hook_save_weightsbiasgradients/' + addendum])
+    hook.cleanup()
+    delete_local_trials(['test_output/test_hook_save_weightsbiasgradients/' + addendum])
 
 
 def saveall_test_helper(hook=None):
@@ -186,15 +187,15 @@ def saveall_test_helper(hook=None):
     model = Net(mode=hook_type, to_save=save_steps).to(device)
     json = hook is not None
     if not json:
-        hook = create_tornasole_hook('./test_output/test_hook_saveall/' + prefix, model, hook_type, save_steps=save_steps)
+        hook = create_tornasole_hook('test_output/test_hook_saveall/' + prefix, model, hook_type, save_steps=save_steps)
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
     if not json:
-        trial = create_trial(path='./test_output/test_hook_saveall/' + prefix,
+        trial = create_trial(path='test_output/test_hook_saveall/' + prefix,
                          name='test output')
     else:
-        trial = create_trial(path='./test_output/test_hook_saveall/jsonloading',
+        trial = create_trial(path='test_output/test_hook_saveall/jsonloading',
                         name='test output')
     grads = ['gradient/Net_fc1.weight', 'gradient/Net_fc2.weight', 'gradient/Net_fc3.weight',
                 'gradient/Net_fc1.bias', 'gradient/Net_fc2.bias', 'gradient/Net_fc3.bias']
@@ -217,7 +218,8 @@ def saveall_test_helper(hook=None):
         addendum = prefix
     else:
         addendum = 'jsonloading'
-    delete_local_trials(['./test_output/test_hook_saveall/' + addendum])
+    hook.cleanup()
+    delete_local_trials(['test_output/test_hook_saveall/' + addendum])
 
 
 def helper_test_multi_collections(hook, out_dir):
@@ -245,6 +247,8 @@ def helper_test_multi_collections(hook, out_dir):
 
 def test_weightsbiasgradients_json():
     reset_collections()
+    out_dir = 'test_output/test_hook_save_weightsbiasgradients/jsonloading'
+    shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_weightsbiasgradients.json'
     hook = TornasoleHook.hook_from_config()
     helper_test_weights_bias_gradients(hook)
@@ -254,6 +258,8 @@ def test_weightsbiasgradients_call():
 
 def test_saveall_json():
     reset_collections()
+    out_dir = 'test_output/test_hook_saveall/jsonloading'
+    shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_saveall.json'
     hook = TornasoleHook.hook_from_config()
     saveall_test_helper(hook)
@@ -269,4 +275,3 @@ def test_multi_collection_json():
     os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = 'tests/pytorch/test_json_configs/test_hook_multi_collections.json'
     hook = TornasoleHook.hook_from_config()
     helper_test_multi_collections(hook, out_dir)
-    shutil.rmtree(out_dir, True)

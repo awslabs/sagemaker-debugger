@@ -4,7 +4,7 @@ from tornasole.core.collection_manager import CollectionManager as BaseCollectio
 
 class CollectionManager(BaseCollectionManager):
     def __init__(self, create_default=True):
-        super().__init__()
+        super().__init__(create_default=create_default)
         if create_default:
             self._register_default_collections()
 
@@ -32,6 +32,14 @@ class CollectionManager(BaseCollectionManager):
         self.add(labels_collection)
         self.add(feat_imp_collection)
         self.add(shap_collection)
+
+    @classmethod
+    def load(cls, filename):
+        return super().load(cls, filename, Collection)
+
+    @classmethod
+    def load_from_string(cls, s):
+        return super().load(cls, s, Collection)
 
 
 _collection_manager = CollectionManager()

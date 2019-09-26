@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from tornasole import modes
+from tornasole import modes, SaveConfig, SaveConfigMode
 from tornasole.pytorch.hook import *
 from tornasole.pytorch.torch_collection import *
 from tornasole.pytorch import reset_collections
@@ -86,7 +86,7 @@ def helper_test_modes(hook=None, out_dir='./test_output/test_hook_modes/'):
     json = hook is not None
     if hook is None:
         out_dir = out_dir + "/" + prefix
-        hook = TornasoleHook(out_dir=out_dir, save_config={modes.TRAIN: SaveConfig(save_steps=save_steps)})
+        hook = TornasoleHook(out_dir=out_dir, save_config=SaveConfig({modes.TRAIN: SaveConfigMode(save_steps=save_steps)}))
 
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)

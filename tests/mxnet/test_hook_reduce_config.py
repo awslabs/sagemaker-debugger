@@ -46,7 +46,7 @@ def test_save_config(hook=None, out_dir=None):
     mean_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name='mean')
     assert mean_val != None
 
-    # custom reduction at step 4 with reduction = 'min and abs reduction = 'max'
+    # custom reduction at step 4 with reduction = 'min' and abs reduction = 'max'
     tname = tr.tensors_matching_regex('conv\d+_relu_input_0')[0]
     relu_input = tr.tensor(tname)
     min_val = relu_input.reduction_value(step_num=4, abs=False, reduction_name='min')

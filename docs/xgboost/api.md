@@ -150,22 +150,25 @@ This list of tensors to watch for is taken as a list of strings representing nam
     ----------
 
     save_interval: int
-    allows you to save every n steps by passing n to save_interval
+        allows you to save every n steps by passing n to save_interval
 
-    skip_num_steps: int
-    allows you to avoid saving for the first n steps of the job.
-    it defaults to 0, i.e. don't skip any steps in the beginning.
+    start_step: int
+        Allows you to start saving from a given step, defaults to 0
+
+    end_step: int
+        allows you to save till a given step. Excludes this end_step
+        defaults to None, i.e. till end of job
 
     save_steps: list of int
-    save at all the steps given in this list.
-    if this is given, it ignores the save_interval.
+        save at all the steps given in this list.
+        if this is given, it ignores the save_interval.
 
     when_nan: list of str representing name of tensor
-    saves the tensors to which this saveConfig is attached
-    whenever any of the tensors in this list become nan or infinite.
-    This means that if your save_interval is set to 10, and 'loss' is in when_nan
-    your tensors will be saved whenever save_interval is multiple of 10 as well as
-    whenever loss becomes nan or infinite.
+        saves the tensors to which this saveConfig is attached
+        whenever any of the tensors in this list become nan or infinite.
+        This means that if your save_interval is set to 10, and 'loss' is in when_nan
+        your tensors will be saved whenever save_interval is multiple of 10 as well as
+        whenever loss becomes nan or infinite.
 ```
 
 The default value of _save\_interval_ is 100. The TornasoleHook that uses a default SaveConfig object will store the tensors every 100th step.

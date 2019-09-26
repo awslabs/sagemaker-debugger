@@ -58,6 +58,7 @@ class TSAccessFile(TSAccessBase):
         self._accessor.flush()
 
     def close(self):
+        """Close the file and move it from /tmp to a permanent directory."""
         self._accessor.close()
         if self.mode in WRITE_MODES:
             shutil.move(self.temp_path, self.path)

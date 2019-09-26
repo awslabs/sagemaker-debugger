@@ -1,8 +1,6 @@
 from tornasole.core.collection import Collection as BaseCollection
 from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager
-from tornasole.core.reduction_config import ReductionConfig
-from tornasole.core.save_config import SaveConfig
-from tornasole.core.modes import ModeKeys
+
 
 class Collection(BaseCollection):
     def add_module_tensors(self, module, inputs=False, outputs=False):
@@ -13,39 +11,10 @@ class Collection(BaseCollection):
             output_tensor_regex = module._get_name() + "_output"
             self.include(output_tensor_regex)
 
-    @staticmethod
-    def load(s):
-        if s is None or s == str(None):
-            return None
-        sc_separator = '$'
-        separator = '!@'
-        parts = s.split(separator)
-        if parts[0] == 'v0':
-            assert len(parts) == 7
-            list_separator = ','
-            name = parts[1]
-            include = [x for x in parts[2].split(list_separator) if x]
-            tensor_names = set([x for x in parts[3].split(list_separator) if x])
-            reduction_tensor_names = set([x for x in parts[4].split(list_separator) if x])
-            reduction_config = ReductionConfig.load(parts[5])
-            if sc_separator in parts[6]:
-                per_modes = parts[6].split(sc_separator)
-                save_config = {}
-                for per_mode in per_modes:
-                    per_mode_parts = per_mode.split(':')
-                    save_config[ModeKeys[per_mode_parts[0]]] = SaveConfig.load(per_mode_parts[1])
-            else:
-                save_config = SaveConfig.load(parts[6])
-            c = Collection(name, include_regex=include,
-                           reduction_config=reduction_config,
-                           save_config=save_config)
-            c.reduction_tensor_names = reduction_tensor_names
-            c.tensor_names = tensor_names
-            return c
 
 class CollectionManager(BaseCollectionManager):
     def __init__(self, create_default=True):
-        super().__init__()
+        super().__init__(create_default=create_default)
         # self.export_only_once = True
         if create_default:
             self._register_default_collections()
@@ -61,25 +30,13 @@ class CollectionManager(BaseCollectionManager):
         self.add(weight_collection)
         self.add(bias_collection)
 
-    @staticmethod
-    def load(filename):
-        cm = CollectionManager(create_default=False)
-        with open(filename, 'r') as f:
-            line = f.readline()
-            while line:
-                c = Collection.load(line.rstrip())
-                cm.add(c)
-                line = f.readline()
-        return cm
+    @classmethod
+    def load(cls, filename):
+        return super().load(cls, filename, Collection)
 
-    @staticmethod
-    def load_from_string(s):
-        cm = CollectionManager(create_default=False)
-        lines = s.split('\n')
-        for line in lines:
-            c = Collection.load(line.rstrip())
-            cm.add(c)
-        return cm
+    @classmethod
+    def load_from_string(cls, s):
+        return super().load(cls, s, Collection)
 
     def export_manager(self, path):
         self.export(path)

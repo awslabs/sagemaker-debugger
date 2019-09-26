@@ -1,6 +1,6 @@
 from .mnist_gluon_model import run_mnist_gluon_model
 from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.mxnet import SaveConfig, modes, reset_collections
+from tornasole.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
 from datetime import datetime
 from tornasole.trials import create_trial
 
@@ -10,9 +10,11 @@ def test_modes(hook=None, path=None):
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     path = './newlogsRunTest/' + run_id
     hook = t_hook(out_dir=path,
-                  save_config={modes.TRAIN: SaveConfig(save_interval=50),
-                              modes.EVAL: SaveConfig(save_interval=10)}, include_collections=['gradients'])
-  run_mnist_gluon_model(hook=hook, set_modes=True, register_to_loss_block=True)
+                  save_config=SaveConfig({
+                    modes.TRAIN: SaveConfigMode(save_interval=2),
+                    modes.EVAL: SaveConfigMode(save_interval=3)
+                  }), include_collections=['gradients'])
+  run_mnist_gluon_model(hook=hook, set_modes=True, register_to_loss_block=True, num_steps_train=5, num_steps_eval=5)
 
   tr = create_trial(path)
   assert len(tr.modes()) == 2

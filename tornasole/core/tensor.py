@@ -1,11 +1,12 @@
 from .reductions import get_numpy_reduction
 from tornasole.core.modes import ModeKeys
 from tornasole.exceptions import *
-
 from tornasole.core.index_reader import IndexReader
 
 from enum import Enum
 import bisect
+import numpy as np
+from typing import Any, Dict, List, Tuple
 
 
 class StepState(Enum):
@@ -15,6 +16,7 @@ class StepState(Enum):
 
 
 class ModeSteps:
+    """Contains a ModeKey and a dictionary mapping step numbers to Steps."""
     def __init__(self, mode, cache=False):
         self.mode = mode
         self.cache = cache
@@ -62,6 +64,7 @@ class ModeSteps:
 
 
 class Step:
+    """Contains the step number, value, location, possible caching, and reduction values/locations."""
     def __init__(self, step_num, value=None, location=None, cache=False):
         self.step_num = step_num
         self._value = value
@@ -92,7 +95,8 @@ class Step:
     def value(self):
         del self._value
 
-    def reduction_values(self):
+    def reduction_values(self) -> Dict[Tuple[str, bool], np.ndarray]:
+        """Return a dictionary mapping reduction tuples to floats."""
         reduction_values = {}
         if not self._reduction_values:
             for reduction in self._reduction_locations:
@@ -108,24 +112,24 @@ class Step:
             return reduction_values
         return self._reduction_values
 
-    def reduction_value(self, red_name, abs):
+    def reduction_value(self, red_name: str, abs: bool) -> np.ndarray:
+        """Return the value for a single reduction as a NumPy array."""
         reduction_values = self._reduction_values
         if not reduction_values:
             reduction_values = self.reduction_values()
-        if (red_name, abs) in reduction_values:
-            return reduction_values[(red_name, abs)]
+        return reduction_values.get((red_name, abs))
 
-    def reduction_locations(self):
+    def reduction_locations(self) -> Dict[Tuple[str, bool], 'TensorLocation']:
         return self._reduction_locations
 
-    def reduction_location(self, red_name, abs):
+    def reduction_location(self, red_name: str, abs: bool) -> 'TensorLocation':
         if (red_name, abs) in self._reduction_locations:
             return self._reduction_locations[(red_name, abs)]
 
-    def set_reduction_value(self, red_name, abs, red_value):
+    def set_reduction_value(self, red_name: str, abs: bool, red_value: np.ndarray):
         self._reduction_values[(red_name, abs)] = red_value
 
-    def set_reduction_location(self, red_name, abs, red_location):
+    def set_reduction_location(self, red_name: str, abs: bool, red_location: 'TensorLocation'):
         self._reduction_locations[(red_name, abs)] = red_location
 
 
@@ -279,9 +283,11 @@ class Tensor:
                     s.value = step_value  # save value if cache is set to True
             else:
                 step_value = s.value
-            return get_numpy_reduction(reduction_name, step_value, abs)
 
-        assert False, 'Should not happen'
+            if step_value is not None:
+                return get_numpy_reduction(reduction_name, step_value, abs)
+            else:
+                return None
 
     def _create_mode_step(self, mode, mode_step):
         mode_step = int(mode_step)

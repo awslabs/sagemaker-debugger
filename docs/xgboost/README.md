@@ -181,7 +181,10 @@ This list of tensors to watch for is taken as a list of strings representing nam
 The parameters taken by SaveConfig are:
 
 - `save_interval`: This allows you to save tensors every `n` steps
-- `save_steps`: Allows you to pass a list of step numbers at which tensors should be saved
+- `save_steps`: Allows you to pass a list of step numbers at which tensors should be saved; overrides `start_step` and `end_step`
+- `start_step`: The step at which to start saving
+- `end_step`: The step at which to stop saving
+- `when_nan`: A list of tensor regexes to save if they become NaN
 
 Refer to [API](api.md) for all parameters available and detailed descriptions for them, as well as example SaveConfig objects.
 

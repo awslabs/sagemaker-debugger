@@ -22,7 +22,7 @@ The parameters you have to provide are:
 - `name`: name can be any string. It is to help you manage different trials.
 Make sure to give it a unique name to prevent confusion.
 - `path`: path can be a local path or an S3  path of the form `s3://bucket/prefix`. This path should be where Tornasole hooks (TF or MXNet) save data to.
-You should see the directory `events` and the file `collections.ts` in this path.
+You should see the directory `events` and the file `collections.json` in this path.
 
 ##### Creating local trial
 ```

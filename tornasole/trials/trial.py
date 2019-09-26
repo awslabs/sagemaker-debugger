@@ -34,6 +34,17 @@ class EventFileTensor:
 
 
 class Trial(ABC):
+    """
+    Attributes:
+        _tensors
+        _index_tensors_dict
+
+    ['name', '_tensors', '_mode_to_global', '_global_to_mode', 'logger', 'parallel',
+    'read_data', 'check', 'range_steps', 'collection_manager', 'loaded_all_steps', 'cache', 'path',
+    'index_tensors_dict', 'index_mode', 'last_event_token', 'last_index_token', 'index_reader',
+    'dynamic_refresh', 'trial_dir']
+    """
+
     def __init__(self, name, range_steps=None, parallel=True,
                  read_data=True, check=False, index_mode=True, cache=False):
         self.name = name
@@ -251,8 +262,6 @@ class Trial(ABC):
     def tensors_in_collection(self, coll_name):
         rval = set()
         for x in self.collection(coll_name).get_tensor_names():
-            rval.add(x)
-        for x in self.collection(coll_name).get_reduction_tensor_names():
             rval.add(x)
         regex = self.collection(coll_name).get_include_regex()
         if regex:

@@ -22,12 +22,12 @@ def test_collection_defaults_json():
     assert len(hook.include_collections) == 2
     # Check collection configurations for losses
     assert hook.save_manager.configs_for_collections == {} #TODO(nieljare): Is this used?
-    assert hook.save_manager.collection_manager.collections['losses'].save_config[ModeKeys.TRAIN].save_interval == 2
-    assert hook.save_manager.collection_manager.collections['losses'].save_config[ModeKeys.EVAL].save_interval == 4
-    assert hook.save_manager.collection_manager.collections['losses'].save_config[ModeKeys.PREDICT].save_interval == 1
-    assert hook.save_manager.collection_manager.collections['losses'].save_config[ModeKeys.GLOBAL].save_interval == 5
+    assert hook.save_manager.collection_manager.collections['losses'].save_config.get_save_config(ModeKeys.TRAIN).save_interval == 2
+    assert hook.save_manager.collection_manager.collections['losses'].save_config.get_save_config(ModeKeys.EVAL).save_interval == 4
+    assert hook.save_manager.collection_manager.collections['losses'].save_config.get_save_config(ModeKeys.PREDICT).save_interval == 1
+    assert hook.save_manager.collection_manager.collections['losses'].save_config.get_save_config(ModeKeys.GLOBAL).save_interval == 5
     # Check collection configuration for weights
-    assert hook.save_manager.collection_manager.collections['weights'].save_config[ModeKeys.TRAIN].save_interval == 2
-    assert hook.save_manager.collection_manager.collections['weights'].save_config[ModeKeys.EVAL].save_interval == 3
-    assert hook.save_manager.collection_manager.collections['weights'].save_config[ModeKeys.PREDICT].save_interval == 1
-    assert hook.save_manager.collection_manager.collections['weights'].save_config[ModeKeys.GLOBAL].save_interval == 1
+    assert hook.save_manager.collection_manager.collections['weights'].save_config.get_save_config(ModeKeys.TRAIN).save_interval == 2
+    assert hook.save_manager.collection_manager.collections['weights'].save_config.get_save_config(ModeKeys.EVAL).save_interval == 3
+    assert hook.save_manager.collection_manager.collections['weights'].save_config.get_save_config(ModeKeys.PREDICT).save_interval == 1
+    assert hook.save_manager.collection_manager.collections['weights'].save_config.get_save_config(ModeKeys.GLOBAL).save_interval == 1

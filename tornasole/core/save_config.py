@@ -1,147 +1,243 @@
-SAVE_CONFIG_VERSION_NUM = 'v0'
-from tornasole.core.utils import merge_two_dicts, split
+from tornasole.core.utils import step_in_range, load_json_as_dict, merge_two_dicts, split
 from tornasole.core.modes import ModeKeys
 import json
-from typing import Dict
+from typing import Any, Dict, List
 
 DEFAULT_SAVE_CONFIG_INTERVAL = 100
-DEFAULT_SAVE_CONFIG_SKIP_NUM_STEPS = 0
+DEFAULT_SAVE_CONFIG_START_STEP = 0
+DEFAULT_SAVE_CONFIG_END_STEP = None
 DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 DEFAULT_SAVE_CONFIG_WHEN_NAN = []
-ALLOWED_PARAMS = ["save_interval", "save_steps", "skip_num_steps", "when_nan"]
+ALLOWED_PARAMS = ["save_interval", "save_steps", "start_step", "end_step", "when_nan"]
 
-class SaveConfigModes:
-  """Maps modes to SaveConfigs."""
 
-  def __init__(self, mode_save_configs: Dict):
+class SaveConfig:
+  """Maps modes to SaveConfigMode.
+
+  This is the object to serialize, unserialize, and pass.
+  SaveConfigMode should be used when instantiating this class,
+  but use SaveConfig as the main unit.
+  """
+
+  def __init__(
+    self,
+    mode_save_configs: Dict[ModeKeys, 'SaveConfigMode']=None,
+    save_interval: int=None,
+    start_step: List[int]=None,
+    end_step: int=None,
+    save_steps: List[int]=None,
+    when_nan: List[str]=None,
+  ):
     """Pass in a dictionary mapping modes to SaveConfigs. No parsing here.
+
+    If `mode_save_configs` is missing keys, these will be set as `None` and instantiated
+    by the SaveManager.
 
     Parameters:
       mode_save_configs (dict, e.g. {
-        ModeKeys.TRAIN: SaveConfig,
-        ModeKeys.EVAL: SaveConfig,
-        ModeKeys.PREDICT: SaveConfig,
-        ModeKeys.GLOBAL: SaveConfig
+        ModeKeys.TRAIN: SaveConfigMode,
+        ModeKeys.EVAL: SaveConfigMode,
+        ModeKeys.PREDICT: SaveConfigMode,
+        ModeKeys.GLOBAL: SaveConfigMode
       }).
     """
-    if not all([isinstance(mode, ModeKeys) and isinstance(val, SaveConfig) for mode, val in mode_save_configs.items()]):
-      raise ValueError(f"Each key,value in mode_save_configs={mode_save_configs} must be of type ModeKey,SaveConfig")
-    for mode in ModeKeys:
-      if mode not in mode_save_configs:
-        mode_save_configs[mode] = SaveConfig()
-    self.mode_save_configs = mode_save_configs
+    # Simple mode, pass in mode-less parameters directly
+    if mode_save_configs is None:
+      self.mode_save_configs = {
+        mode: SaveConfigMode(
+          save_interval=save_interval,
+          start_step=start_step,
+          end_step=end_step,
+          save_steps=save_steps,
+          when_nan=when_nan
+        )
+        for mode in ModeKeys
+      }
+    # Advanced mode, specify each mode
+    else:
+      if not all([
+        isinstance(mode, ModeKeys) and
+        (value is None or isinstance(value, SaveConfigMode))
+        for mode, value in mode_save_configs.items()
+      ]):
+        raise ValueError(f"Each key,value in mode_save_configs={mode_save_configs} must be of type ModeKey,SaveConfigMode")
+      # Populate default SaveConfigMode for each missing ModeKey
+      for mode in ModeKeys:
+        if mode not in mode_save_configs:
+            mode_save_configs[mode] = None
+      # Save the object
+      self.mode_save_configs = mode_save_configs
 
-  def get_save_config(self, mode):
+  def get_save_config(self, mode) -> 'SaveConfigMode':
+    if self.mode_save_configs[mode] is None:
+      raise ValueError(f"SaveConfig={self} is not ready. Call SaveManager.prepare() first.")
     return self.mode_save_configs[mode]
 
-  def add(self, mode, save_config):
-    self.mode_save_configs[mode] = save_config
+  def set_save_config(self, mode: ModeKeys, save_config_mode: 'SaveConfigMode') -> None:
+    if not isinstance(save_config_mode, SaveConfigMode):
+      raise ValueError(f"save_config_mode={save_config_mode} must be type SaveConfigMode")
+    self.mode_save_configs[mode] = save_config_mode
 
-  def should_save_step(self, mode, step_num):
+  def should_save_step(self, mode, step_num) -> bool:
     return self.get_save_config(mode).should_save_step(step_num)
 
   def add_when_nan_tensor(self, tensor):
     for mode in ModeKeys:
       self.get_save_config(mode).when_nan_tensors.append(tensor)
 
-  @staticmethod
-  def create_simple_save_mode(save_config):
-    return SaveConfigModes(mode_save_configs={
-      mode: save_config
+  def to_json_dict(self) -> Dict:
+    # Convert enums to str
+    return {
+      mode_key.name: save_config_mode.to_json_dict() if save_config_mode else None
+      for mode_key, save_config_mode in self.mode_save_configs.items()
+    }
+
+  def to_json(self) -> str:
+    return json.dumps(self.to_json_dict())
+
+  @classmethod
+  def from_dict(cls, params: Dict[ModeKeys, Any]) -> 'SaveConfig':
+    """Parses a dict into a SaveConfig object.
+
+    Appropriate formats:
+      Dict[str, SaveConfigMode]
+      Dict[str, Dict[str, Any]]
+      Dict[ModeKeys, SaveConfigMode]
+      Dict[ModeKeys, Dict[str, Any]]
+    """
+    if params is None:
+      return None
+    # Maybe convert strings to enums
+    if all([isinstance(key, str) for key, value in params.items()]):
+      params = { ModeKeys[key]: value for key, value in params.items() }
+    # Maybe convert dicts to SaveConfigMode
+    if all([value is None or isinstance(value, dict) for key, value in params.items()]):
+      params = { key: SaveConfigMode.from_dict(value) for key, value in params.items() }
+    return cls(mode_save_configs=params)
+
+  @classmethod
+  def from_json(cls, json_str: str) -> 'SaveConfig':
+    return cls.from_dict(json.loads(json_str))
+
+  @classmethod
+  def from_save_config_mode(cls, save_config_mode) -> 'SaveConfig':
+    """Create a class where all modes correspond to `save_config_mode`."""
+    return cls(mode_save_configs={
+      mode: save_config_mode
       for mode in ModeKeys
     })
 
+  @classmethod
+  def parse(cls, obj) -> 'SaveConfig':
+    """Does typechecking and creates a SaveConfig object.
+
+    Appropriate formats:
+      None
+      SaveConfig
+      SaveConfigMode
+      Dict[ModeKeys, SaveConfigMode]
+      Dict[ModeKeys, Dict[str, Any]]
+    """
+    if obj is None:
+      return cls()
+    elif isinstance(obj, SaveConfig):
+      return obj
+    elif isinstance(obj, SaveConfigMode):
+      return cls.from_save_config_mode(obj)
+    elif isinstance(obj, dict):
+      return cls.from_dict(obj)
+    else:
+      raise TypeError(f"obj={obj} cannot be parsed into a SaveConfig object")
+
+  def __eq__(self, other):
+    if not isinstance(other, SaveConfig):
+      return NotImplemented
+    return all([self.mode_save_configs[mode] == other.mode_save_configs[mode] for mode in ModeKeys])
+
   def __repr__(self):
-    return f"<class SaveConfigModes: {self.mode_save_configs}>"
+    return f"<class SaveConfig: {self.mode_save_configs}>"
 
 
-class SaveConfig:
+class SaveConfigMode:
   """
   Wrapping all the save configuration parameters into this object.
   This would make it easier to set different save configuration for
   different collections and for the base tensors saved.
 
+  This class should not be serialized by itself, only inside of SaveConfig.
+
   Parameters:
     save_interval (int): Save every n steps.
-    skip_num_steps (int): Start saving after n steps.
     save_steps (list of int): Save at all the steps given in this list. Overrides save_interval.
+    start_step (int): Save after n steps.
+    end_step (int): Stop saving after n steps.
     when_nan (list of str): Saves whenever any of the tensors in this list become nan.
   """
-  def __init__(self, save_interval=None, skip_num_steps=None, save_steps=None, when_nan=None):
+  def __init__(self, save_interval: int=None, start_step: List[int]=None, end_step: int=None, save_steps: List[int]=None, when_nan: List[str]=None):
     self.save_interval = save_interval or DEFAULT_SAVE_CONFIG_INTERVAL
     self.save_steps = save_steps or DEFAULT_SAVE_CONFIG_SAVE_STEPS
-    self.skip_num_steps = skip_num_steps or DEFAULT_SAVE_CONFIG_SKIP_NUM_STEPS
+    self.start_step = start_step or DEFAULT_SAVE_CONFIG_START_STEP
+    self.end_step = end_step or DEFAULT_SAVE_CONFIG_END_STEP
     self.when_nan = when_nan or DEFAULT_SAVE_CONFIG_WHEN_NAN
-    ## DO NOT REMOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
+    ## DO NOT REMOVE; please make sure that _check & from_json is updated accordingly.
     self._check()
-    # will be populated by hook
+    # `when_nan_tensors` will be populated by hook.
     self.when_nan_tensors = []
 
   def _check(self):
     if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
-      raise ValueError('allowed params for save config can only be one of ' + ','.join(ALLOWED_PARAMS))
+      raise ValueError(f"Params {self.__dict__.keys()} must be in {ALLOWED_PARAMS}")
     if not isinstance(self.save_interval, int):
-      raise ValueError('allowed type in save_interval is int')
+      raise ValueError(f"save_interval={self.save_interval} must be type(int)")
     if not (isinstance(self.save_steps, list) and all([isinstance(x, int) for x in self.save_steps])):
-      raise ValueError('allowed type in save_steps is list of int')
-    if not isinstance(self.skip_num_steps, int):
-      raise ValueError('allowed type in skip_num_steps is int')
+      raise ValueError(f"save_steps={self.save_steps} must be type(list(int))")
+    if not isinstance(self.start_step, int):
+      raise ValueError(f"start_step={self.start_step} must be type(int)")
+    if not (self.end_step is None or isinstance(self.end_step, int)):
+      raise ValueError(f"end_step={self.end_step} must be None or type(int)")
     if not (isinstance(self.when_nan, list) and all([isinstance(x, str) for x in self.when_nan])):
-      raise ValueError('allowed type in when_nan is list of str')
+      raise ValueError(f"when_nan={self.when_nan} must be type(list(str))")
+
+  def to_json_dict(self):
+    """Be explicit about what keys we return."""
+    return {
+      "save_interval": self.save_interval,
+      "save_steps": self.save_steps,
+      "start_step": self.start_step,
+      "end_step": self.end_step,
+      "when_nan": self.when_nan
+    }
 
   @classmethod
-  def from_dict(cls, params):
-    if not isinstance(params, dict):
-      raise ValueError(f"params={params} is not a dict.")
+  def from_dict(cls, params: Dict[str, Any]):
+    if params is None:
+      return None
+    elif not isinstance(params, dict):
+      raise TypeError(f"params={params} is not a dict.")
     return cls(
             save_interval=params.get("save_interval"),
-            skip_num_steps=params.get("skip_num_steps"),
+            start_step=params.get("start_step"),
+            end_step=params.get("end_step"),
             save_steps=params.get("save_steps"),
             when_nan=params.get("when_nan")
           )
 
-  def export(self):
-    separator = '%'
-    list_separator = ','
-
-    return separator.join([SAVE_CONFIG_VERSION_NUM, str(self.save_interval),
-                           str(self.skip_num_steps),
-                           list_separator.join([str(x) for x in self.save_steps]),
-                           list_separator.join(self.when_nan)])
-
-  @staticmethod
-  def load(s):
-    if s is None or s == str(None):
-      return None
-
-    separator = '%'
-    parts = s.split(separator)
-    s_version = parts[0]
-    if s_version == 'v0':
-      assert len(parts) == 5
-      list_separator = ','
-      save_interval = int(parts[1])
-      skip_num_steps = int(parts[2])
-      save_steps = [int(x) for x in parts[3].split(list_separator) if x]
-      when_nan = [x for x in parts[4].split(list_separator) if x]
-      return SaveConfig(save_interval=save_interval, skip_num_steps=skip_num_steps,
-                        save_steps=save_steps, when_nan=when_nan)
-    raise RuntimeError('Unable to load SaveConfig from %s' % s)
-
   def __eq__(self, other):
-    if not isinstance(other, SaveConfig):
+    if not isinstance(other, SaveConfigMode):
       return NotImplemented
-    return self.save_interval == other.save_interval and \
-           self.save_steps == other.save_steps and \
-           self.skip_num_steps == other.skip_num_steps and \
-           self.when_nan == other.when_nan
+    return (
+      self.save_interval == other.save_interval and
+      self.save_steps == other.save_steps and
+      self.start_step == other.start_step and
+      self.end_step == other.end_step and
+      self.when_nan == other.when_nan
+    )
 
-  def should_save_step(self, step_num):
+  def should_save_step(self, step_num: int):
     rval = {'step': False, 'when_nan': False}
-    if self.save_steps:
-      if step_num in self.save_steps:
-        rval['step'] = True
-    elif step_num >= self.skip_num_steps and step_num % self.save_interval == 0:
+    if self.save_steps and step_num in self.save_steps:
+      rval['step'] = True
+    elif step_in_range((self.start_step, self.end_step), step_num) and step_num % self.save_interval == 0:
       rval['step'] = True
     elif self.when_nan:
       rval['when_nan'] = True
@@ -150,5 +246,5 @@ class SaveConfig:
   def __repr__(self):
     return (
       f"<class SaveConfig: save_interval={self.save_interval}, save_steps={self.save_steps}, "
-      f"skip_num_steps={self.skip_num_steps}, when_nan={self.when_nan}>"
+      f"start_step={self.start_step}, end_step={self.end_step}, when_nan={self.when_nan}>"
     )

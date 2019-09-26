@@ -1,6 +1,6 @@
 import torch
 from tornasole.core.writer import FileWriter
-from tornasole.core.save_config import SaveConfig
+from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
 from tornasole.core.logger import get_logger
@@ -60,16 +60,19 @@ class TornasoleHook:
         self.module_maps = dict()
         self.exported_collection = False
 
-        atexit.register(self.cleanup)
-
         if save_config is None:
             save_config = SaveConfig()
+        if not isinstance(save_config, SaveConfig):
+            raise ValueError(f"save_config={save_config} must be type SaveConfig")
         self.save_manager = SaveManager(collection_manager=get_collection_manager(),
                                         include_collections_names=self.include_collections,
                                         default_save_config=save_config,
                                         default_reduction_config=reduction_config)
         self.prepared_save_manager = False
         logger.info('Saving to {}'.format(self.out_dir))
+
+        atexit.register(self.cleanup)
+
 
     @classmethod
     def hook_from_config(cls):
@@ -103,6 +106,7 @@ class TornasoleHook:
         if self.writer is not None:
             self.writer.flush()
             self.writer.close()
+            self.writer = None
         training_has_ended(self.out_dir)
 
     # Check whether we should log this tensor
@@ -217,7 +221,7 @@ class TornasoleHook:
                         tensor_value_np = make_numpy_array(tensor_data)
                         self.writer.write_tensor(tdata=tensor_value_np, tname=reduction_tensor_name,
                                              mode=self.mode, mode_step=self.mode_steps[self.mode])
-                        s_col.reduction_tensor_names.add(reduction_tensor_name)
+                        s_col.tensor_names.add(tensor_name)
                     return
                 else:
                     tensor_value = make_numpy_array(tensor_value)
