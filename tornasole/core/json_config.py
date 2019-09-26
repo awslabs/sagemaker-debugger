@@ -45,22 +45,15 @@ import json
 import os
 from typing import Dict
 
-from tornasole.core.modes import ModeKeys, ALLOWED_MODE_NAMES
+from tornasole.core.modes import ModeKeys
 from tornasole.core.logger import get_logger
 from tornasole.core.utils import merge_two_dicts, split
 from tornasole import ReductionConfig, SaveConfig, SaveConfigMode
 
-TORNASOLE_CONFIG_DEFAULT_WORKER_NAME = "worker0"
-TORNASOLE_CONFIG_FILE_PATH_ENV_STR = "TORNASOLE_CONFIG_FILE_PATH"
-DEFAULT_CONFIG_FILE_PATH = "/opt/ml/input/data/tornasole-config/tornasole-hook-config.json"
-TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY = "reduction_configs"
-TORNASOLE_CONFIG_SAVE_CONFIGS_KEY = "save_configs"
-TORNASOLE_CONFIG_OUTDIR_KEY = "LocalPath"
-TORNASOLE_CONFIG_DRYRUN_KEY = "dry_run"
-TORNASOLE_CONFIG_RDN_CFG_KEY = "reduction_config"
-TORNASOLE_CONFIG_INCLUDE_REGEX_KEY = "include_regex"
-TORNASOLE_CONFIG_SAVE_ALL_KEY = "save_all"
-DEFAULT_SAGEMAKER_TORNASOLE_PATH = "/opt/ml/output/tensors"
+from tornasole.core.config_constants import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, TORNASOLE_CONFIG_FILE_PATH_ENV_STR, \
+    DEFAULT_CONFIG_FILE_PATH, TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY, TORNASOLE_CONFIG_SAVE_CONFIGS_KEY, \
+    TORNASOLE_CONFIG_OUTDIR_KEY, TORNASOLE_CONFIG_RDN_CFG_KEY, TORNASOLE_CONFIG_INCLUDE_REGEX_KEY, \
+    TORNASOLE_CONFIG_SAVE_ALL_KEY, DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
 
 def create_hook_from_json_config(hook_cls, collection_manager, default_include_collections):
