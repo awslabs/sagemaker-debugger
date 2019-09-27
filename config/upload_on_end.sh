@@ -4,14 +4,14 @@ cat $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH/pytest_reports/*.html >> $COD
 upload_dirs() {
 for var in "$@"
 do
-    aws s3 sync $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH/$var s3://tornasolecodebuildtest/$CURRENT_COMMIT_PATH/$var
+    aws s3 sync --quiet $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH/$var s3://tornasolecodebuildtest/$CURRENT_COMMIT_PATH/$var
 done
 }
 
 del_dirs() {
 for var in "$@"
 do
-    aws s3 rm --recursive s3://tornasolecodebuildtest/$CURRENT_COMMIT_PATH/$var
+    aws s3 rm --recursive --quiet s3://tornasolecodebuildtest/$CURRENT_COMMIT_PATH/$var
 done
 }
 

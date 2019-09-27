@@ -87,7 +87,7 @@
 -
   - loss_not_decreasing/tf/true
   - tensorflow
-  - *Enable
+  - *Disable
   - [*tf_mnist,
      --lr 0.001 --tornasole_train_frequency 10 --random_seed True,
      *invoker,
@@ -96,7 +96,7 @@
 -
   - loss_not_decreasing/tf/false
   - tensorflow
-  - *Enable
+  - *Disable
   - [*simple,
      --lr 0.05 --scale 1 --steps 1009 --tornasole_frequency 13 --random_seed True,
      *invoker,

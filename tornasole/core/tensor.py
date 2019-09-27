@@ -2,6 +2,7 @@ from .reductions import get_numpy_reduction
 from tornasole.core.modes import ModeKeys
 from tornasole.exceptions import *
 from tornasole.core.index_reader import IndexReader
+from tornasole.core.locations import TensorLocation
 
 from enum import Enum
 import bisect
@@ -17,9 +18,8 @@ class StepState(Enum):
 
 class ModeSteps:
     """Contains a ModeKey and a dictionary mapping step numbers to Steps."""
-    def __init__(self, mode, cache=False):
+    def __init__(self, mode):
         self.mode = mode
-        self.cache = cache
         self._steps = {}
 
     def steps(self):
@@ -32,20 +32,20 @@ class ModeSteps:
 
     def set_step_value(self, step_num, value):
         if step_num not in self._steps:
-            self._steps[step_num] = Step(step_num, value, self.cache)
+            self._steps[step_num] = Step(step_num, value)
         else:
             s = self._steps[step_num]
             s.value = value
 
     def set_step_location(self, step_num, location):
         if step_num not in self._steps:
-            self._steps[step_num] = Step(step_num, location=location, cache=self.cache)
+            self._steps[step_num] = Step(step_num, location=location)
         s = self._steps[step_num]
         s.location = location
 
     def set_step_reduction_value(self, step_num, red_name, abs, red_value):
         if step_num not in self._steps:
-            s = Step(step_num, cache=self.cache)
+            s = Step(step_num)
             self._steps[step_num] = s
         else:
             s = self._steps[step_num]
@@ -53,7 +53,7 @@ class ModeSteps:
 
     def set_step_reduction_location(self, step_num, red_name, abs, red_location):
         if step_num not in self._steps:
-            s = Step(step_num, cache=self.cache)
+            s = Step(step_num)
             self._steps[step_num] = s
         else:
             s = self._steps[step_num]
@@ -64,72 +64,36 @@ class ModeSteps:
 
 
 class Step:
-    """Contains the step number, value, location, possible caching, and reduction values/locations."""
-    def __init__(self, step_num, value=None, location=None, cache=False):
+    """Contains the step number, value, location, and reduction values/locations."""
+    def __init__(self, step_num, value=None, location=None):
         self.step_num = step_num
-        self._value = value
+        self.value = value
         self.location = location
-        self.cache = cache
 
         # mapping from (red_name, abs) to value
         self._reduction_values = {}
         self._reduction_locations = {}
 
-    @property
-    def value(self):
-        if self._value is None:
-            if self.location is None:
-                return None
-            else:
-                value = IndexReader.fetch_tensor_value(self.location)
-                if self.cache:
-                    self._value = value
-                return value
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        self._value = value
-
-    @value.deleter
-    def value(self):
-        del self._value
-
     def reduction_values(self) -> Dict[Tuple[str, bool], np.ndarray]:
         """Return a dictionary mapping reduction tuples to floats."""
-        reduction_values = {}
-        if not self._reduction_values:
-            for reduction in self._reduction_locations:
-                red_name = reduction[0]
-                abs = reduction[1]
-                reduction_value = IndexReader.fetch_tensor_value(self._reduction_locations[(red_name, abs)])
-                if self.cache:
-                    self.set_reduction_value(red_name,
-                                             abs,
-                                             reduction_value
-                                             )
-                reduction_values[(red_name, abs)] = reduction_value
-            return reduction_values
         return self._reduction_values
 
     def reduction_value(self, red_name: str, abs: bool) -> np.ndarray:
         """Return the value for a single reduction as a NumPy array."""
-        reduction_values = self._reduction_values
-        if not reduction_values:
-            reduction_values = self.reduction_values()
-        return reduction_values.get((red_name, abs))
+        if (red_name, abs) in self._reduction_values:
+            return self._reduction_values[(red_name, abs)]
 
-    def reduction_locations(self) -> Dict[Tuple[str, bool], 'TensorLocation']:
+    def reduction_locations(self) -> Dict[Tuple[str, bool], TensorLocation]:
         return self._reduction_locations
 
-    def reduction_location(self, red_name: str, abs: bool) -> 'TensorLocation':
+    def reduction_location(self, red_name: str, abs: bool) -> TensorLocation:
         if (red_name, abs) in self._reduction_locations:
             return self._reduction_locations[(red_name, abs)]
 
     def set_reduction_value(self, red_name: str, abs: bool, red_value: np.ndarray):
         self._reduction_values[(red_name, abs)] = red_value
 
-    def set_reduction_location(self, red_name: str, abs: bool, red_location: 'TensorLocation'):
+    def set_reduction_location(self, red_name: str, abs: bool, red_location: TensorLocation):
         self._reduction_locations[(red_name, abs)] = red_location
 
 
@@ -208,6 +172,12 @@ class Tensor:
         return None
 
     def step(self, step_num, mode=ModeKeys.GLOBAL):
+        raise NotImplementedError(
+            'step method has been removed. Please use tensor.value '
+            'or tensor.reduction_value methods'
+        )
+
+    def _step(self, step_num, mode=ModeKeys.GLOBAL):
         s = self._get_step_currently(step_num, mode)
         if s is not None:
             return s
@@ -235,7 +205,7 @@ class Tensor:
 
     def value(self, step_num, mode=ModeKeys.GLOBAL):
         # step refreshes
-        s = self.step(step_num=step_num, mode=mode)
+        s = self._step(step_num=step_num, mode=mode)
         if s.value is not None:
             return s.value
         elif s.location is not None:
@@ -244,13 +214,23 @@ class Tensor:
                 s.value = value
             return value
         else:
-            has_reductions = len(s.reduction_values()) > 0
+            has_reduction_values = len(s.reduction_values()) > 0
+            has_reduction_locations = len(s.reduction_locations()) > 0
+            has_reductions = has_reduction_locations or has_reduction_values
             raise TensorUnavailableForStep(self.name, step_num, mode, has_reductions)
 
     def reduction_values(self, step_num, mode=ModeKeys.GLOBAL):
-        s = self.step(step_num=step_num, mode=mode)
+        s = self._step(step_num=step_num, mode=mode)
         if s is not None:
-            return s.reduction_values()
+            rvs = {}
+            if self.trial.index_mode:
+                red_types = s.reduction_locations().keys()
+            else:
+                red_types = s.reduction_values().keys()
+            for red_name, abs_val in red_types:
+                rvs[(red_name, abs_val)] = self.reduction_value(
+                        step_num, red_name, mode, abs_val)
+            return rvs
         else:
             assert False, 'Should not happen'
 
@@ -260,7 +240,7 @@ class Tensor:
         If the tensor was saved as a reduction, then just fetches that.
         Else, tries to compute the reduction and returns. If the tensor value is not
         available, returns None as reduction
-
+        Reductions are not cached. #TODO do we want to?
         :param step_num: step number
         :param mode: mode of job (train, eval, predict, etc).
                             If this is None, assumes step number is global
@@ -269,7 +249,7 @@ class Tensor:
                     be applied on absolute value of the tensor or not
         :return: reduction value requested as a float
         """
-        s = self.step(step_num=step_num, mode=mode)
+        s = self._step(step_num=step_num, mode=mode)
         rv = s.reduction_value(reduction_name, abs)
         rl = s.reduction_location(reduction_name, abs)
         if rv is not None:
@@ -295,7 +275,7 @@ class Tensor:
             raise ValueError('mode step number {} for tensor {} '
                              'can not be less than 0'.format(mode_step, self.name))
         if mode not in self._mode_steps:
-            self._mode_steps[mode] = ModeSteps(mode, cache=self.cache)
+            self._mode_steps[mode] = ModeSteps(mode)
 
     def add_step(self, mode, mode_step, value):
         self._create_mode_step(mode, mode_step)
