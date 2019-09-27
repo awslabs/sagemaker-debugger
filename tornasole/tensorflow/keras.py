@@ -119,8 +119,8 @@ class TornasoleHook(keras.callbacks.Callback):
 
     def save_metrics(self, logs, force):
         for k in logs:
-            save_state = self.save_manager.should_save_tensor(k, self.mode,
-                                                              self.mode_steps[self.mode])
+            save_state = self.save_manager.should_save_tensor(
+                    k, self.mode, self.mode_steps[self.mode])
             if save_state['step'] or force:
                 val = logs[k]
                 self._create_writer()
@@ -142,8 +142,8 @@ class TornasoleHook(keras.callbacks.Callback):
                 tensor_name = cfg['name']
                 if multi:
                     tensor_name += "_" + str(i)
-                save_state = self.save_manager.should_save_tensor(tensor_name, self.mode,
-                                                        self.mode_steps[self.mode])
+                save_state = self.save_manager.should_save_tensor(
+                        tensor_name, self.mode, self.mode_steps[self.mode])
                 if save_state['step']:
                     self._create_writer()
                     self.writer.write_tensor(tdata=tensor_value, tname=tensor_name)

@@ -1,5 +1,6 @@
 import tensorflow as tf
-from tornasole.core.collection import Collection as BaseCollection
+from tornasole.core.collection import Collection as BaseCollection, \
+    CollectionKeys
 from tornasole.core.collection_manager import \
     CollectionManager as BaseCollectionManager
 
@@ -7,8 +8,8 @@ from tornasole.core.collection_manager import \
 class Collection(BaseCollection):
     def __init__(self, name, include_regex=None, tensor_names=None,
                  reduction_config=None, save_config=None):
-        super().__init__(name, include_regex, tensor_names, reduction_config,
-                         save_config)
+        super().__init__(name, include_regex, tensor_names,
+                         reduction_config, save_config)
         self.tensors = []
         # has the new tensors added to graph
         # reduction_tensor_names has the names of original tensors
@@ -70,9 +71,10 @@ class CollectionManager(BaseCollectionManager):
     def __init__(self, collections=None, create_default=True):
         super().__init__(collections=collections)
         if create_default:
-            self.create_collection('default')
-            self.create_collection('weights')
-            self.create_collection('gradients')
+            for n in [CollectionKeys.DEFAULT, CollectionKeys.WEIGHTS,
+                      CollectionKeys.GRADIENTS,
+                      CollectionKeys.LOSSES]:
+                self.create_collection(n)
 
     def create_collection(self, name):
         self.collections[name] = Collection(name)

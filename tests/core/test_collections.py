@@ -6,8 +6,6 @@ from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys
 
-import json
-import os
 
 def test_export_load():
   # with none as save config
@@ -69,8 +67,6 @@ def test_collection_defaults_to_hook_config():
   and ModeKeys.EVAL: save_interval=20 in a collection, we would like the collection to
   be finalized as {ModeKeys.TRAIN: save_interval=10, ModeKeys.EVAL: save_interval=20}.
   """
-  SaveManager
-
   cm = CollectionManager()
   cm.create_collection('foo')
   cm.get('foo').set_save_config({ModeKeys.EVAL: SaveConfigMode(save_interval=20)})

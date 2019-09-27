@@ -1,10 +1,9 @@
 import json
 from typing import Any, Dict, List
+from tornasole.core.utils import split
 
-from tornasole.core.utils import split, load_json_as_dict
-
-ALLOWED_REDUCTIONS=['min','max','mean','std','variance','sum','prod']
-ALLOWED_NORMS=['l1','l2']
+ALLOWED_REDUCTIONS = ['min', 'max', 'mean', 'std', 'variance', 'sum', 'prod']
+ALLOWED_NORMS = ['l1', 'l2']
 REDUCTION_CONFIG_VERSION_NUM = 'v0'
 ALLOWED_PARAMS = ["only_shape", "reductions", "abs_reductions", "norms",
                   "abs_norms", "save_raw_tensor"]
@@ -46,13 +45,13 @@ class ReductionConfig:
   """
 
   def __init__(self, only_shape=False,
-               reductions=[], abs_reductions=[],
-               norms=[], abs_norms=[], save_raw_tensor=False):
+               reductions=None, abs_reductions=None,
+               norms=None, abs_norms=None, save_raw_tensor=False):
     self.only_shape = only_shape
-    self.reductions = reductions
-    self.abs_reductions = abs_reductions
-    self.norms = norms
-    self.abs_norms = abs_norms
+    self.reductions = reductions if reductions is not None else []
+    self.abs_reductions = abs_reductions if abs_reductions is not None else []
+    self.norms = norms if norms is not None else []
+    self.abs_norms = abs_norms if abs_norms is not None else []
     self.save_raw_tensor = save_raw_tensor
     ## DO NOT REMOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
     self._check()

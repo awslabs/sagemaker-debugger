@@ -7,7 +7,6 @@ import mxnet as mx
 from tornasole import SaveConfig, modes
 import random
 import numpy as np
-from datetime import datetime
 
 from tornasole.mxnet import TornasoleHook
 
@@ -96,14 +95,15 @@ def create_gluon_model():
 # are logged while training is in progress.
 # Following function shows the default initialization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_s3_uri):
+def create_tornasole_hook(output_uri):
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_interval=1)
 
     # Create a hook that logs weights, biases and gradients while training the model.
-    hook = TornasoleHook(out_dir='/opt/ml/output/tensors', save_config=save_config, include_collections=['weights', 'gradients',
-                                                                                              'bias'])
+    hook = TornasoleHook(out_dir=output_uri,
+                         save_config=save_config,
+                         include_collections=['weights', 'gradients', 'bias'])
     return hook
 
 
@@ -124,7 +124,7 @@ def main():
     # Create a tornasole hook for logging the desired tensors.
     # The output_s3_uri is a the URI for the s3 bucket where the tensors will be saved.
     # The trial_id is used to store the tensors from different trials separately.
-    output_uri=opt.output_uri
+    output_uri = opt.output_uri
     hook = create_tornasole_hook(output_uri)
 
     # Register the hook to the top block.

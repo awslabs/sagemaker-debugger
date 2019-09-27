@@ -135,6 +135,8 @@ def main():
     output_uri=opt.tornasole_path if opt.tornasole_path is not None else opt.output_uri
     hook = create_tornasole_hook(output_uri)
 
+    net.hybridize()
+
     # Register the hook to the top block.
     hook.register_hook(net)
 

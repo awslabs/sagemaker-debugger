@@ -16,9 +16,6 @@ import shutil
 import os
 
 
-# from tensorflow.python.tools import inspect_checkpoint as chkp
-
-
 class Net(nn.Module):
     def __init__(self, to_save=[]):
         super(Net, self).__init__()
@@ -106,6 +103,7 @@ def helper_test_modes(hook=None, out_dir='./test_output/test_hook_modes/'):
 def test_training_mode():
     reset_collections()
     helper_test_modes()
+
 
 # Test creating hook with multiple collections and save configs.
 def test_training_mode_json():

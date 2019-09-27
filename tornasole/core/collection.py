@@ -6,7 +6,19 @@ from .utils import load_json_as_dict
 import json
 from typing import Any, Dict, List, Optional, Union
 
-ALLOWED_PARAMS = ['name', 'include_regex', 'reduction_config', 'save_config', 'tensor_names']
+ALLOWED_PARAMS = ['name', 'include_regex', 'reduction_config', 'save_config',
+                  'tensor_names']
+
+class CollectionKeys:
+  DEFAULT = 'default'
+  WEIGHTS = 'weights'
+  GRADIENTS = 'gradients'
+  LOSSES = 'losses'
+  BIASES = 'bias'
+  TENSORFLOW_SUMMARIES = 'tensorflow_summaries'
+  SCALAR_SUMMARIES = 'scalar_summaries'
+  HISTOGRAMS = 'histograms'
+  SCALARS = 'scalars'
 
 
 class Collection:
@@ -144,3 +156,4 @@ class Collection:
            self.tensor_names == other.tensor_names and \
            self.reduction_config == other.reduction_config and \
            self.save_config == other.save_config
+

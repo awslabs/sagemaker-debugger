@@ -66,6 +66,15 @@ def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False, register_
     if register_to_loss_block:
         hook.register_hook(softmax_cross_entropy)
 
+    if set_modes:
+        train_loss_name = eval_loss_name = 'loss_scalar'
+        train_acc_name = eval_acc_name = 'acc'
+    else:
+        train_loss_name = 'train_loss_scalar'
+        eval_loss_name = 'eval_loss_scalar'
+        train_acc_name = 'train_acc'
+        eval_acc_name = 'loss_acc'
+
     # Start the training.
     for epoch in range(1):
         train_loss, train_acc, valid_acc = 0., 0., 0.
@@ -76,18 +85,20 @@ def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False, register_
         i = 0
         for data, label in train_data:
             data = data.as_in_context(mx.cpu(0))
-        # forward + backward
+            # forward + backward
             with autograd.record():
                 output = net(data)
                 loss = softmax_cross_entropy(output, label)
             loss.backward()
-        # update parameters
+            # update parameters
             trainer.step(batch_size)
-        # calculate training metrics
+            # calculate training metrics
             train_loss += loss.mean().asscalar()
             train_acc += acc(output, label)
+            # hook.save_scalar(train_loss_name, train_loss)
+            # hook.save_scalar(train_acc_name, train_acc)
             i += 1
-            if num_steps_train is not None and i > num_steps_train:
+            if num_steps_train is not None and i >= num_steps_train:
                 break
         # calculate validation accuracy
         if set_modes:
@@ -98,9 +109,15 @@ def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False, register_
             val_output = net(data)
             valid_acc += acc(val_output, label)
             loss = softmax_cross_entropy(val_output, label)
+            # hook.save_tensor('eval_labels', label)
+            # hook.save_scalar(eval_acc_name, valid_acc)
+            # hook.save_scalar(eval_loss_name, loss)
             i += 1
-            if num_steps_eval is not None and i > num_steps_eval:
+            if num_steps_eval is not None and i >= num_steps_eval:
                 break
         print("Epoch %d: loss %.3f, train acc %.3f, test acc %.3f, in %.1f sec" % (
                 epoch, train_loss/len(train_data), train_acc/len(train_data),
                 valid_acc/len(valid_data), time.time()-tic))
+
+    # for tests we have to call cleanup ourselves as destructor won't be called now
+    # hook.cleanup()

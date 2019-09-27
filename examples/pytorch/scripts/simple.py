@@ -66,7 +66,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type='saveall',
     return hook
 
 
-def train(model, device, optimizer, num_steps=500, save_steps=[]):
+def train(model, device, optimizer, hook, num_steps=500, save_steps=[]):
     model.train()
     count = 0
     # for batch_idx, (data, target) in enumerate(train_loader):
@@ -74,6 +74,7 @@ def train(model, device, optimizer, num_steps=500, save_steps=[]):
         batch_size = 32
         data, target = torch.rand(batch_size, 1, 28, 28), torch.rand(
             batch_size).long()
+        # hook.save_tensor('target', target)
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(Variable(data, requires_grad=True))
@@ -120,7 +121,7 @@ def main():
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=args.lr,
                           momentum=args.momentum)
-    train(model, device, optimizer, num_steps=args.steps,
+    train(model, device, optimizer, hook, num_steps=args.steps,
           save_steps=save_steps)
 
 

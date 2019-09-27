@@ -4,11 +4,23 @@ import tensorflow as tf
 import tornasole.tensorflow as ts
 import random
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', type=str, help="S3 path for the model")
 parser.add_argument('--lr', type=float, help="Learning Rate", default=0.001 )
 parser.add_argument('--steps', type=int, help="Number of steps to run", default=100 )
 parser.add_argument('--scale', type=float, help="Scaling factor for inputs", default=1.0 )
+parser.add_argument('--save_all', type=str2bool, default=True)
 parser.add_argument('--tornasole_path', type=str, default='/opt/ml/output/tensors')
 parser.add_argument('--tornasole_frequency', type=int,
                     help="How often to save TS data", default=10)
@@ -33,14 +45,18 @@ if args.random_seed:
 with tf.name_scope('foobar'):
     x = tf.placeholder(shape=(None, 2), dtype=tf.float32)
     w = tf.Variable(initial_value=[[10.], [10.]], name='weight1')
+    tf.summary.histogram('weight1_summ', w)
 with tf.name_scope('foobaz'):
     w0 = [[1], [1.]]
     y = tf.matmul(x, w0)
 loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
 ts.add_to_collection('losses', loss)
+tf.summary.scalar('loss_summ', loss)
 
 global_step = tf.Variable(17, name="global_step", trainable=False)
 increment_global_step_op = tf.assign(global_step, global_step+1)
+
+summ = tf.summary.merge_all()
 
 optimizer = tf.train.AdamOptimizer(args.lr)
 
@@ -56,7 +72,7 @@ rdnc = ts.ReductionConfig(reductions=['mean'],abs_reductions=['max'], norms=['l1
 # create the hook
 # Note that we are saving all tensors here by passing save_all=True
 hook = ts.TornasoleHook(out_dir=args.tornasole_path,
-                        save_all=True,
+                        save_all=args.save_all,
                         include_collections=['weights', 'gradients', 'losses'],
                         save_config=ts.SaveConfig(save_interval=args.tornasole_frequency),
                         reduction_config=rdnc)
@@ -71,3 +87,8 @@ for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale
     _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
     print (f'Step={i}, Loss={_loss}')
+
+hook.set_mode(ts.modes.EVAL)
+for i in range(args.steps):
+    x_ = np.random.random((10, 2)) * args.scale
+    sess.run([loss, increment_global_step_op], {x: x_})

@@ -3,7 +3,7 @@ import sys
 import uuid
 # set environment variable values for tornasole
 os.environ['TORNASOLE_LOG_LEVEL'] = 'DEBUG'
-os.environ['TORNASOLE_LOG_ALL_TO_STDOUT'] = 'FALSE'
+os.environ['TORNASOLE_LOG_ALL_TO_STDOUT'] = 'TRUE'
 LOG_PATH = str(uuid.uuid4())
 os.environ['TORNASOLE_LOG_PATH'] = LOG_PATH
 

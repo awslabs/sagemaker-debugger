@@ -75,6 +75,7 @@ def cnn_model_fn(features, labels, mode):
 
   # Calculate Loss (for both TRAIN and EVAL modes)
   loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+  tf.summary.scalar('loss', loss)
 
   # Configure the Training Op (for TRAIN mode)
   if mode == tf.estimator.ModeKeys.TRAIN:
@@ -104,7 +105,7 @@ eval_data = eval_data / np.float32(255)
 eval_labels = eval_labels.astype(np.int32)  # not required
 
 mnist_classifier = tf.estimator.Estimator(
-  model_fn=cnn_model_fn, model_dir=args.model_dir)
+        model_fn=cnn_model_fn, model_dir=args.model_dir)
 
 train_input_fn = tf.estimator.inputs.numpy_input_fn(
   x={"x": train_data},
@@ -134,9 +135,3 @@ mnist_classifier.train(
 
 hook.set_mode(ts.modes.EVAL)
 mnist_classifier.evaluate(input_fn=eval_input_fn, hooks=[hook])
-
-hook.set_mode(ts.modes.TRAIN)
-mnist_classifier.train(
-  input_fn=train_input_fn,
-  steps=1000,
-  hooks=[hook])

@@ -1,9 +1,9 @@
 import copy
 from typing import Any, Dict, List
-
 from .save_config import SaveConfigMode, SaveConfig
 from .utils import match_inc
 from .modes import ModeKeys
+
 
 class SaveManager:
   """Main container for all configuration.
@@ -121,6 +121,8 @@ class SaveManager:
     colls = self.from_collections(tensorname)
     final_ss = {'step': False, 'when_nan': False}
     ss_colls = self.collections_to_save(mode, step)
+    # or the step and when_nan booleans across all
+    # collections this tensor belongs to
     for c in colls:
       if c.name in ss_colls:
         ss = ss_colls[c.name]

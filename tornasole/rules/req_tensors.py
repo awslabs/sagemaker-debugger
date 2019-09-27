@@ -88,6 +88,7 @@ class RequiredTensorsForTrial:
             self.logger.debug(f"Waiting for required_steps: {required_steps}")
         self.trial.wait_for_steps(required_steps)
 
+        # fetch in bulk
         # self.trial.get_tensors(self._tensor_steps)
 
         for name, steps in self._tensor_steps.items():

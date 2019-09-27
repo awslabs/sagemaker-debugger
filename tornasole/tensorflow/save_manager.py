@@ -2,9 +2,8 @@ from tornasole.core.save_manager import SaveManager
 
 
 class TFSaveManager(SaveManager):
-  def __init__(self, collection_manager, include_collections_names,
-                 default_reduction_config,
-                 default_save_config):
+  def __init__(self, collection_manager, default_reduction_config, include_collections_names,
+               default_save_config):
     super().__init__(collection_manager=collection_manager,
                      include_collections_names=include_collections_names,
                      default_reduction_config=default_reduction_config,

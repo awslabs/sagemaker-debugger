@@ -1,25 +1,15 @@
-import aioboto3
-import asyncio
-
-from tornasole.core.access_layer.s3handler import *
 from tornasole.trials import S3Trial
 from tornasole.core.collection_manager import CollectionManager, \
     COLLECTIONS_FILE_NAME
 import uuid
 import os
 from tornasole.core.utils import is_s3
-from tests.analysis.utils import generate_data, check_trial
+from tests.analysis.utils import generate_data, check_trial, delete_s3_prefix
 
 def check_s3_trial(path, num_steps=20, num_tensors=10):
     _, bucket, prefix = is_s3(path)
     trial_obj = S3Trial(name=prefix, bucket_name=bucket, prefix_name=prefix)
     check_trial(trial_obj, num_steps=num_steps, num_tensors=num_tensors)
-
-async def del_folder(bucket, keys):
-    loop = asyncio.get_event_loop()
-    client = aioboto3.client('s3', loop=loop)
-    await asyncio.gather(*[client.delete_object(Bucket=bucket, Key=key) for key in keys])
-    await client.close()
 
 def test_s3():
     trial_name = str(uuid.uuid4())
@@ -31,15 +21,7 @@ def test_s3():
         generate_data(path=path, trial=trial_name, num_tensors=10,
                       step=i, tname_prefix='foo', worker='algo-1', shape=(3, 3, 3), rank=0)
     check_s3_trial(os.path.join(path, trial_name), num_steps=num_steps, num_tensors=num_tensors)
-
-    # delete the bucket after the test
-    s3_handler = S3Handler()
-    list_req = [ListRequest(Bucket='tornasole-testing', Prefix="tornasole_outputs/" + trial_name)]
-    keys = s3_handler.list_prefixes(list_req)[0]
-
-    loop = asyncio.get_event_loop()
-    task = loop.create_task(del_folder('tornasole-testing', keys))
-    loop.run_until_complete(task)
+    delete_s3_prefix('tornasole-testing', "tornasole_outputs/" + trial_name)
 
 def help_test_multiple_trials(num_steps = 20, num_tensors = 10):
     trial_name = str(uuid.uuid4())
@@ -66,10 +48,4 @@ def test_multiple_s3_trials(num_trials = 4, num_steps = 5, num_tensors = 5):
 
     # delete the folders after the test
     for name in names:
-        s3_handler = S3Handler()
-        list_req = [ListRequest(Bucket='tornasole-testing', Prefix="tornasole_outputs/" + name)]
-        keys = s3_handler.list_prefixes(list_req)[0]
-
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(del_folder('tornasole-testing', keys))
-        loop.run_until_complete(task)
+        delete_s3_prefix('tornasole-testing', "tornasole_outputs/" + name)

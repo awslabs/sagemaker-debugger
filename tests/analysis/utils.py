@@ -3,7 +3,9 @@ import numpy as np
 from tornasole.core.collection_manager import CollectionManager, \
     COLLECTIONS_FILE_NAME
 import os
-
+import aioboto3
+import asyncio
+from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
 
 def generate_data(path, trial, step, tname_prefix,
                   num_tensors, worker, shape, dtype=np.float32,
@@ -32,3 +34,19 @@ def check_trial(trial_obj, num_steps, num_tensors):
         for s in trial_obj.tensor(t).steps():
             v = trial_obj.tensor(t).value(s)
             assert v is not None
+
+async def del_prefix_helper(bucket, keys):
+    loop = asyncio.get_event_loop()
+    client = aioboto3.client('s3', loop=loop)
+    await asyncio.gather(*[client.delete_object(Bucket=bucket, Key=key) for key in keys])
+    await client.close()
+
+
+def delete_s3_prefix(bucket, prefix):
+   s3_handler = S3Handler()
+   list_req = [ListRequest(Bucket=bucket, Prefix=prefix)]
+   keys = s3_handler.list_prefixes(list_req)[0]
+
+   loop = asyncio.get_event_loop()
+   task = loop.create_task(del_prefix_helper(bucket, keys))
+   loop.run_until_complete(task)

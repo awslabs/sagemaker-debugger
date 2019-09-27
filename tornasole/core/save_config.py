@@ -23,7 +23,7 @@ class SaveConfig:
     self,
     mode_save_configs: Dict[ModeKeys, 'SaveConfigMode']=None,
     save_interval: int=None,
-    start_step: List[int]=None,
+    start_step: int=None,
     end_step: int=None,
     save_steps: List[int]=None,
     when_nan: List[str]=None,
@@ -78,7 +78,7 @@ class SaveConfig:
       raise ValueError(f"save_config_mode={save_config_mode} must be type SaveConfigMode")
     self.mode_save_configs[mode] = save_config_mode
 
-  def should_save_step(self, mode, step_num) -> bool:
+  def should_save_step(self, mode, step_num) -> Dict[str, bool]:
     return self.get_save_config(mode).should_save_step(step_num)
 
   def add_when_nan_tensor(self, tensor):
@@ -173,7 +173,7 @@ class SaveConfigMode:
     end_step (int): Stop saving after n steps.
     when_nan (list of str): Saves whenever any of the tensors in this list become nan.
   """
-  def __init__(self, save_interval: int=None, start_step: List[int]=None, end_step: int=None, save_steps: List[int]=None, when_nan: List[str]=None):
+  def __init__(self, save_interval: int=None, start_step: int=None, end_step: int=None, save_steps: List[int]=None, when_nan: List[str]=None):
     self.save_interval = save_interval or DEFAULT_SAVE_CONFIG_INTERVAL
     self.save_steps = save_steps or DEFAULT_SAVE_CONFIG_SAVE_STEPS
     self.start_step = start_step or DEFAULT_SAVE_CONFIG_START_STEP

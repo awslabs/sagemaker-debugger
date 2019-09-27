@@ -1,3 +1,4 @@
+from tornasole.trials import create_trial
 from tornasole import SaveConfig
 from .utils import *
 from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
@@ -89,7 +90,8 @@ def test_save_config_start_and_end_json():
 
 
 def helper_save_config_modes(trial_dir, hook):
-    tr = help_test_mnist(trial_dir, hook=hook)
+    help_test_mnist(trial_dir, hook=hook)
+    tr = create_trial(trial_dir)
     for tname in tr.tensors_in_collection('weights'):
         t = tr.tensor(tname)
         assert len(t.steps(mode=modes.TRAIN)) == 2
