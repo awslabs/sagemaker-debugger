@@ -24,10 +24,10 @@ class CollectionKeys:
   HISTOGRAMS = 'histograms'
 
   #XGBOOST
-  METRIC = "metric",
-  PREDICTIONS = "predictions",
-  LABELS = "labels",
-  FEATURE_IMPORTANCE = "feature_importance",
+  METRIC = "metric"
+  PREDICTIONS = "predictions"
+  LABELS = "labels"
+  FEATURE_IMPORTANCE = "feature_importance"
   AVERAGE_SHAP = "average_shap"
 
 

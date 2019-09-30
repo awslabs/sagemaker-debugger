@@ -6,6 +6,7 @@ env:
     run_pytest_pytorch: "enable"
     run_pytest_mxnet: "enable"
     run_pytest_tensorflow: "enable"
+    run_pytest_xgboost: "enable"
 phases:
   install:
     commands:
@@ -15,7 +16,7 @@ phases:
         - sudo apt-get update
         - sudo apt-get install unzip
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
-        - pip install pytest wheel pyYaml pytest-html tensorflow mxnet torch
+        - pip install pytest wheel pyYaml pytest-html tensorflow mxnet torch xgboost
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
 
   pre_build:
