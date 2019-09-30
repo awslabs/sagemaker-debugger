@@ -1,9 +1,0 @@
-{
-  "S3OutputPath": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest1/test_when_nan",
-  "HookParameters": {
-    "save_all": false,
-    "save_interval": 10,
-    "when_nan": "loss:0"
-  }
-}

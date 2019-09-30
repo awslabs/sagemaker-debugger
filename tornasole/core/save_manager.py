@@ -1,5 +1,5 @@
 import copy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 from .save_config import SaveConfigMode, SaveConfig
 from .utils import match_inc
 from .modes import ModeKeys
@@ -70,18 +70,17 @@ class SaveManager:
       self._raise_error()
     return self.save_collections
 
-  def collections_to_save(self, mode, step):
-    """Mark the proper collections to be saved, return a dictionary of those."""
+  def get_collections_to_save_for_step(self, mode, step) -> Set['Collection']:
+    """Mark the proper collections to be saved, return a set of those."""
     if not self.prepared:
       self._raise_error()
     if (mode, step) not in self.save_states_cache:
-      collection_save_state = {}
+      coll_to_save_for_step = set()
       for coll in self.save_collections:
         sm = self.configs_for_collections[coll.name]
-        rv = sm.should_save_step(mode, step)
-        if any(rv.values()):
-          collection_save_state[coll.name] = rv
-      self.save_states_cache[(mode, step)] = collection_save_state
+        if sm.should_save_step(mode, step) is True:
+          coll_to_save_for_step.add(coll)
+      self.save_states_cache[(mode, step)] = coll_to_save_for_step
     return self.save_states_cache[(mode, step)]
 
   def get_save_config(self, collection, mode):
@@ -94,38 +93,28 @@ class SaveManager:
       self._raise_error()
     return collection.get_reduction_config()
 
-  def from_collections(self, tensor_name) -> List['Collection']:
+  def get_collections_with_tensor(self, tensor_name) -> Set['Collection']:
     # for tf this will be prepopulated because of prepare_tensors
     if not tensor_name in self.tensor_to_collection:
       # for mxnet it is computed and then cached
-      matched_colls = []
+      matched_colls = set()
       for coll in self.get_all_collections_to_save():
         if tensor_name in coll.tensor_names:
           # if being matched as reduction,
           # it must be in reduction_tensor_name, not with regex
-          matched_colls.append(coll)
+          matched_colls.add(coll)
         elif match_inc(tensor_name, coll.get_include_regex()):
           coll.add_tensor_name(tensor_name)
-          matched_colls.append(coll)
+          matched_colls.add(coll)
       self.tensor_to_collection[tensor_name] = matched_colls
     return self.tensor_to_collection[tensor_name]
 
-  def should_save_tensor(self, tensorname, mode, step) -> Dict[str, bool]:
-    """Return dictionary with two keys: ('step', 'when_nan') mapping to booleans.
-
-    If step is true in the dict, then we are saving this tensor
-    because we have hit the step to save this.
-    If when_nan is true, we are considering saving this tensor
-    because this tensor might be saved if some other tensor is nan.
+  def should_save_tensor_for_step(self, tensorname, mode, step) -> bool:
+    """Returns whether tensorname should be saved for this mode, mode_step
+    as a bool
     """
-    colls = self.from_collections(tensorname)
-    final_ss = {'step': False, 'when_nan': False}
-    ss_colls = self.collections_to_save(mode, step)
-    # or the step and when_nan booleans across all
-    # collections this tensor belongs to
-    for c in colls:
-      if c.name in ss_colls:
-        ss = ss_colls[c.name]
-        final_ss['step'] = final_ss['step'] or ss['step']
-        final_ss['when_nan'] = final_ss['when_nan'] or ss['when_nan']
-    return final_ss
+    colls_to_save = self.get_collections_to_save_for_step(mode, step)
+    for coll in self.get_collections_with_tensor(tensorname):
+      if coll in colls_to_save:
+        return True
+    return False

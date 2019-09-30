@@ -3,7 +3,7 @@ from typing import Optional, List, Union, Tuple, Dict
 import numpy as np
 from xgboost import DMatrix
 from xgboost.core import CallbackEnv
-from tornasole.core.collection import Collection
+from tornasole.core.collection import Collection, CollectionKeys
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
@@ -17,14 +17,15 @@ from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 from tornasole.core.hook_utils import verify_and_get_out_dir
 from .collection import get_collection, get_collection_manager
 from .utils import validate_data_file_path, get_content_type, get_dmatrix
-
+from typing import Set
 
 DEFAULT_INCLUDE_COLLECTIONS = [
-    "metric",
-    "predictions",
-    "labels",
-    "feature_importance",
-    "average_shap"]
+    CollectionKeys.METRIC,
+    CollectionKeys.PREDICTIONS,
+    CollectionKeys.LABELS,
+    CollectionKeys.FEATURE_IMPORTANCE,
+    CollectionKeys.AVERAGE_SHAP
+]
 
 
 class TornasoleHook:
@@ -126,14 +127,14 @@ class TornasoleHook:
 
     def _initialize_collectors(self, include_regex, save_all) -> None:
         if include_regex is not None:
-            get_collection("default").include(include_regex)
-            if "default" not in self.include_collections:
-                self.include_collections.append('default')
+            get_collection(CollectionKeys.DEFAULT).include(include_regex)
+            if CollectionKeys.DEFAULT not in self.include_collections:
+                self.include_collections.append(CollectionKeys.DEFAULT)
 
         if save_all:
-            get_collection("all").include(r".*")
-            if "all" not in self.include_collections:
-                self.include_collections.append("all")
+            get_collection(CollectionKeys.ALL).include(r".*")
+            if CollectionKeys.ALL not in self.include_collections:
+                self.include_collections.append(CollectionKeys.ALL)
 
     def set_mode(self, mode):
         if mode in ALLOWED_MODES:
@@ -146,6 +147,9 @@ class TornasoleHook:
 
     def _is_last_step(self, env: CallbackEnv) -> bool:
         return env.iteration + 1 == env.end_iteration
+
+    def _is_collection_being_saved_for_step(self, name):
+        return get_collection(name) in self.collections_in_this_step
 
     def _callback(self, env: CallbackEnv) -> None:
         # env.rank: rabit rank of the node/process. master node has rank 0.
@@ -175,19 +179,21 @@ class TornasoleHook:
 
         self._initialize_writer()
 
-        if self.collections_in_this_step.get("metric", False):
+        if self._is_collection_being_saved_for_step(CollectionKeys.METRIC):
             self.write_metrics(env)
 
-        if self.collections_in_this_step.get("predictions", False):
+        if self._is_collection_being_saved_for_step(CollectionKeys.PREDICTIONS):
             self.write_predictions(env)
 
-        if self.collections_in_this_step.get("labels", False):
+        if self._is_collection_being_saved_for_step(CollectionKeys.LABELS):
             self.write_labels(env)
 
-        if self.collections_in_this_step.get("feature_importance", False):
+        if self._is_collection_being_saved_for_step(
+                CollectionKeys.FEATURE_IMPORTANCE):
             self.write_feature_importances(env)
 
-        if self.collections_in_this_step.get("average_shap", False):
+        if self._is_collection_being_saved_for_step(
+                CollectionKeys.AVERAGE_SHAP):
             self.write_average_shap(env)
 
         if not self._is_last_step(env):
@@ -261,21 +267,17 @@ class TornasoleHook:
         if self.dry_run:
             return
 
-        save_collections = self.save_manager.from_collections(name)
+        save_collections = self.save_manager.get_collections_with_tensor(name)
         for save_collection in save_collections:
-            if save_collection.name in self.collections_in_this_step.keys():
+            if save_collection in self.collections_in_this_step:
                 self._writer.write_tensor(
                     tdata=data, tname=name,
                     mode=self.mode, mode_step=self.mode_steps[self.mode])
                 return
 
-    def _process_step(self) -> Dict[str, bool]:
-        # returns dictionary of dictionaries: coll_name -> {step: True/False,
-        # when_nan: True/False} there will be no entry in dictionary for
-        # collections where both step and when_nan are False. This dictionary
-        # is stored in self.collections_in_this_step so that we do not need to
-        # call this # function in every callback invocation for a given step.
-        self.collections_in_this_step = self.save_manager.collections_to_save(
+    def _process_step(self) -> Set['Collection']:
+        # returns set of collections which need to be saved for step
+        self.collections_in_this_step = self.save_manager.get_collections_to_save_for_step(
             self.mode, self.mode_steps[self.mode])
         return self.collections_in_this_step
 

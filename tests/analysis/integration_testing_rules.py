@@ -237,7 +237,7 @@ class TestRules:
             framework = job[FRAMEWORK_INDEX]
             if job[TEST_NAME_INDEX] == 'values':
                 continue
-            ALLOWED_FRAMEWORK = ['tensorflow', 'pytorch', 'mxnet']
+            ALLOWED_FRAMEWORK = ['tensorflow', 'pytorch', 'mxnet', 'xgboost']
             # Note values is first dict in yaml file. It's a hack
             if framework not in ALLOWED_FRAMEWORK:
                 raise Exception('Wrong test case category', job[TEST_NAME_INDEX])

@@ -138,8 +138,6 @@ class TornasoleHook(tf.train.SessionRunHook):
 
     def _process_matched_tensor(self, tensor, collection):
         reduction_config = self.save_manager.get_reduction_config(collection)
-        # if reduction config and saveconfig.when_nan are set, the when_nan tensors will be reduced
-        # todo think about this
         if reduction_config:
             for reduction in reduction_config.reductions + reduction_config.norms:
                 self._add_reduction(tensor, reduction, collection, False)
@@ -173,13 +171,6 @@ class TornasoleHook(tf.train.SessionRunHook):
                     or t.name in coll.tensor_names:
                 self._process_matched_tensor(t, coll)
                 # only matches with one collection
-                added = True
-            sc = self.save_manager.get_save_config(coll, self.mode)
-            if sc and match_inc(t.name, sc.when_nan):
-                # add when_nan tensors to watched, so they are returned
-                # matches for all collections
-                # self._process_matched_tensor(t, coll)
-                self.save_manager.add_when_nan_tensor(coll, t)
                 added = True
         return added
 
@@ -225,8 +216,6 @@ class TornasoleHook(tf.train.SessionRunHook):
         losses = tf.losses.get_losses()
         add_to_collection('losses', losses)
 
-        # todo: fix this coll.save_config.when_nan_tensors = []
-
         # at this point we need all collections to be ready
         # this may not be the case at creation of hook
         # as user's code after hook might add collections
@@ -249,17 +238,13 @@ class TornasoleHook(tf.train.SessionRunHook):
         # todo save model
         pass
 
-    def _save_this_step(self):
-        coll_save_state = self.save_manager.collections_to_save(self.mode, self.mode_steps[self.mode])
+    def _get_tensors_to_save_this_step(self):
+        colls_to_save = self.save_manager.get_collections_to_save_for_step(
+                self.mode, self.mode_steps[self.mode])
         tensors_to_save = {'watched': [], 'added': []}
-        for coll_name, save_state in coll_save_state.items():
-            coll = get_collection(coll_name)
-            if save_state['step'] or save_state['when_nan']:
-                tensors_to_save['watched'].extend(coll.tensors)
-                tensors_to_save['added'].extend(coll.reduction_tensors_added)
-            if save_state['when_nan']:
-                tensors_to_save['watched'].extend(
-                    self.save_manager.get_save_config(coll, self.mode).when_nan_tensors)
+        for coll in colls_to_save:
+            tensors_to_save['watched'].extend(coll.tensors)
+            tensors_to_save['added'].extend(coll.reduction_tensors_added)
         # dedup watched and added
         tensors_to_save['watched'] = list(set(tensors_to_save['watched']))
         tensors_to_save['added'] = list(set(tensors_to_save['added']))
@@ -303,53 +288,37 @@ class TornasoleHook(tf.train.SessionRunHook):
         return filtered
 
     def before_run(self, run_context):
-        tensors_to_save = self._save_this_step()
-        if len(tensors_to_save['watched'] + tensors_to_save['added']):
+        tensors_to_save = self._get_tensors_to_save_this_step()
+        if len(tensors_to_save['watched']) + len(tensors_to_save['added']) > 0:
             if run_context:
-                list_to_save = self._filter_to_be_saved(tensors_to_save,
-                                                        run_context.original_args.fetches)
+                list_to_save = self._filter_to_be_saved(
+                        tensors_to_save, run_context.original_args.fetches)
             else:
-                list_to_save = tensors_to_save['watched'] + tensors_to_save['added']
+                list_to_save = tensors_to_save['watched'] + \
+                               tensors_to_save['added']
         else:
             list_to_save = []
-            # self.logger.info('Skipping step %s' % str(self.step))
-
         self.prev_to_be_saved = list_to_save
         return tf.train.SessionRunArgs(list_to_save) if list_to_save else None
 
-    def _save_tensor(self, tensor, value, running_size):
-        running_size += value.nbytes
+    def _save_tensor(self, tensor, value):
         if tensor.dtype == np.float16:
+            # todo: save as fp16 itself.
+            #  measure perf as proto doesn't handle that well
             value = np.float32(value)
-            running_size += value.nbytes
+        size_saved = value.nbytes
         this_size, this_shape = size_and_shape(value)
         if this_size > 0:
             self.logger.debug(f'    Saving {tensor.name}, type={tensor.dtype}, shape={this_shape},' +
-                            f'size={this_size}, running_size={running_size}')
+                            f'size={this_size}')
             if not self.dry_run:
                 self.writer.write_tensor(tdata=value, tname=tensor.name,
                                          mode=self.mode,
                                          mode_step=self.mode_steps[self.mode])
         else:
             self.logger.debug(f'    Not saving {tensor.name}, type={tensor.dtype}, shape={this_shape},' +
-                              f'size={this_size}, running_size={running_size}')
-        return running_size
-
-    def _check_when_nan_tensors(self, values):
-        tensors = self.prev_to_be_saved
-        is_nan_for_colls = set()
-        assert len(tensors) == len(values)
-        for i in range(len(tensors)):
-            tensor = tensors[i]
-            value = values[i]
-            if self.save_manager.is_when_nan_tensor(tensor.name):
-                is_nan = np.isnan(np.sum(value)) or np.isinf(np.sum(value))
-                if is_nan:
-                    is_nan_for_colls.update([x.name for x in self.save_manager.when_nan_collections(tensor.name)])
-                if len(is_nan_for_colls) == len(self.save_manager.get_all_collections_to_save()):
-                    # all collections are nan already, don't check other tensors
-                    break
-        return is_nan_for_colls
+                              f'size={this_size}')
+        return size_saved
 
     def _get_all_tensors_values(self, results):
         for (item, value) in zip(self.prev_to_be_saved, results):
@@ -367,17 +336,11 @@ class TornasoleHook(tf.train.SessionRunHook):
                                      step=self.step,
                                      worker=self.worker)
             running_size = 0
-            is_nan_for_collections = self._check_when_nan_tensors(run_values.results)
             for (item, value) in self._get_all_tensors_values(run_values.results):
-                save_state = self.save_manager.should_save_tensor(item.name, self.mode,
-                                                                  self.mode_steps[self.mode])
-                from_colls = set([x.name for x in self.save_manager.from_collections(item.name)])
-                if save_state['step'] or \
-                    (save_state['when_nan'] and from_colls.intersection(is_nan_for_collections)):
-                    running_size = self._save_tensor(item, value, running_size)
-                else:
-                    self.logger.debug(f'Not saving {item} as no nan seen')
-            self.logger.info(f'Saved {running_size} bytes for {len(self.prev_to_be_saved)} objects at step {self.step}')
+                running_size += self._save_tensor(item, value)
+            self.logger.info(f'Saved {running_size} bytes for '
+                             f'{len(self.prev_to_be_saved)} objects '
+                             f'at step {self.step}')
             self.writer.close()
             self.writer = None
         self.step += 1
@@ -385,4 +348,3 @@ class TornasoleHook(tf.train.SessionRunHook):
 
     def end(self, sess):
         pass
-        # self.logger.info('End of run')

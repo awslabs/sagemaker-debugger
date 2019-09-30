@@ -160,13 +160,6 @@ This list of tensors to watch for is taken as a list of strings representing nam
     save_steps: list of int
         save at all the steps given in this list.
         if this is given, it ignores the save_interval.
-
-    when_nan: list of str representing name of tensor
-        saves the tensors to which this saveConfig is attached
-        whenever any of the tensors in this list become nan or infinite.
-        This means that if your save_interval is set to 10, and 'loss' is in when_nan
-        your tensors will be saved whenever save_interval is multiple of 10 as well as
-        whenever loss becomes nan or infinite.
 ```
 
 The default value of _save\_interval_ is 100. The TornasoleHook that uses a default SaveConfig object will store the tensors every 100th step.

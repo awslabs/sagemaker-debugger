@@ -10,7 +10,6 @@ Example JSON config:
     "save_interval": 100,
     "save_steps": "1,2,3,4",
     "start_step": 1,
-    "when_nan": "tensor1*,tensor2*",
     "reductions": "min,max,mean,std,abs_variance,abs_sum,abs_l2_norm"
   },
   "CollectionConfiguration": [
@@ -21,7 +20,6 @@ Example JSON config:
         "save_interval": 100,
         "save_steps": "1,2,3",
         "start_step": 1,
-        "when_nan": "tensor3*,tensor4*",
         "reductions": "min,abs_max,l1_norm,abs_l2_norm",
       }
     },
@@ -33,7 +31,6 @@ Example JSON config:
         "eval.save_interval": 1,
         "save_steps": "1,2,3",
         "start_step": 1,
-        "when_nan": "tensor3*,tensor4*",
         "reductions": "min,abs_max,l1_norm,abs_l2_norm"
       }
     }
@@ -218,7 +215,4 @@ def parse_save_config_dict(params, mode=None) -> Dict:
         ret["start_step"] = params["start_step"]
     if "end_step" in params:
         ret["end_step"] = params["end_step"]
-    if "when_nan" in params:
-        ret["when_nan"] = split(params["when_nan"])
-
     return ret

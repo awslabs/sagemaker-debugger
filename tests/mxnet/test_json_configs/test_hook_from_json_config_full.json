@@ -7,7 +7,6 @@
     "save_interval": 100,
     "save_steps": "1,2,3,4",
     "start_step": 1,
-    "when_nan": "tensor1*,tensor2*",
     "reductions": "min,max,mean,     std,abs_variance,abs_sum,abs_l2_norm"
   },
   "CollectionConfiguration": [
@@ -18,7 +17,6 @@
         "save_interval": 100,
         "save_steps": "1,2,3",
         "start_step": 1,
-        "when_nan": "tensor3*,tensor4*",
         "reductions": "min,    abs_max,l1_norm,abs_l2_norm"
       }
     },
@@ -29,7 +27,6 @@
         "save_interval": 100,
         "save_steps": "1,2,3",
         "start_step": 1,
-        "when_nan": "tensor3*,tensor4*",
         "reductions": "min,abs_max,   l1_norm,abs_l2_norm"
       }
     }

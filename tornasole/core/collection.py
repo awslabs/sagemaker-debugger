@@ -11,14 +11,24 @@ ALLOWED_PARAMS = ['name', 'include_regex', 'reduction_config', 'save_config',
 
 class CollectionKeys:
   DEFAULT = 'default'
+  ALL = 'all'
+
   WEIGHTS = 'weights'
   GRADIENTS = 'gradients'
   LOSSES = 'losses'
   BIASES = 'bias'
+  SCALARS = 'scalars'
+
   TENSORFLOW_SUMMARIES = 'tensorflow_summaries'
   SCALAR_SUMMARIES = 'scalar_summaries'
   HISTOGRAMS = 'histograms'
-  SCALARS = 'scalars'
+
+  #XGBOOST
+  METRIC = "metric",
+  PREDICTIONS = "predictions",
+  LABELS = "labels",
+  FEATURE_IMPORTANCE = "feature_importance",
+  AVERAGE_SHAP = "average_shap"
 
 
 class Collection:
@@ -146,6 +156,9 @@ class Collection:
 
   def __str__(self):
     return str(self.to_json_dict())
+
+  def __hash__(self):
+    return hash(self.name)
 
   def __eq__(self, other):
     if not isinstance(other, Collection):

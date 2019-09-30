@@ -1,4 +1,4 @@
-from tornasole.core.utils import step_in_range, load_json_as_dict, merge_two_dicts, split
+from tornasole.core.utils import step_in_range
 from tornasole.core.modes import ModeKeys
 import json
 from typing import Any, Dict, List
@@ -7,8 +7,7 @@ DEFAULT_SAVE_CONFIG_INTERVAL = 100
 DEFAULT_SAVE_CONFIG_START_STEP = 0
 DEFAULT_SAVE_CONFIG_END_STEP = None
 DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
-DEFAULT_SAVE_CONFIG_WHEN_NAN = []
-ALLOWED_PARAMS = ["save_interval", "save_steps", "start_step", "end_step", "when_nan"]
+ALLOWED_PARAMS = ["save_interval", "save_steps", "start_step", "end_step"]
 
 
 class SaveConfig:
@@ -25,8 +24,7 @@ class SaveConfig:
     save_interval: int=None,
     start_step: int=None,
     end_step: int=None,
-    save_steps: List[int]=None,
-    when_nan: List[str]=None,
+    save_steps: List[int]=None
   ):
     """Pass in a dictionary mapping modes to SaveConfigs. No parsing here.
 
@@ -48,8 +46,7 @@ class SaveConfig:
           save_interval=save_interval,
           start_step=start_step,
           end_step=end_step,
-          save_steps=save_steps,
-          when_nan=when_nan
+          save_steps=save_steps
         )
         for mode in ModeKeys
       }
@@ -78,12 +75,8 @@ class SaveConfig:
       raise ValueError(f"save_config_mode={save_config_mode} must be type SaveConfigMode")
     self.mode_save_configs[mode] = save_config_mode
 
-  def should_save_step(self, mode, step_num) -> Dict[str, bool]:
+  def should_save_step(self, mode, step_num) -> bool:
     return self.get_save_config(mode).should_save_step(step_num)
-
-  def add_when_nan_tensor(self, tensor):
-    for mode in ModeKeys:
-      self.get_save_config(mode).when_nan_tensors.append(tensor)
 
   def to_json_dict(self) -> Dict:
     # Convert enums to str
@@ -171,18 +164,14 @@ class SaveConfigMode:
     save_steps (list of int): Save at all the steps given in this list. Overrides save_interval.
     start_step (int): Save after n steps.
     end_step (int): Stop saving after n steps.
-    when_nan (list of str): Saves whenever any of the tensors in this list become nan.
   """
-  def __init__(self, save_interval: int=None, start_step: int=None, end_step: int=None, save_steps: List[int]=None, when_nan: List[str]=None):
+  def __init__(self, save_interval: int=None, start_step: int=None, end_step: int=None, save_steps: List[int]=None):
     self.save_interval = save_interval or DEFAULT_SAVE_CONFIG_INTERVAL
     self.save_steps = save_steps or DEFAULT_SAVE_CONFIG_SAVE_STEPS
     self.start_step = start_step or DEFAULT_SAVE_CONFIG_START_STEP
     self.end_step = end_step or DEFAULT_SAVE_CONFIG_END_STEP
-    self.when_nan = when_nan or DEFAULT_SAVE_CONFIG_WHEN_NAN
     ## DO NOT REMOVE; please make sure that _check & from_json is updated accordingly.
     self._check()
-    # `when_nan_tensors` will be populated by hook.
-    self.when_nan_tensors = []
 
   def _check(self):
     if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
@@ -195,8 +184,6 @@ class SaveConfigMode:
       raise ValueError(f"start_step={self.start_step} must be type(int)")
     if not (self.end_step is None or isinstance(self.end_step, int)):
       raise ValueError(f"end_step={self.end_step} must be None or type(int)")
-    if not (isinstance(self.when_nan, list) and all([isinstance(x, str) for x in self.when_nan])):
-      raise ValueError(f"when_nan={self.when_nan} must be type(list(str))")
 
   def to_json_dict(self):
     """Be explicit about what keys we return."""
@@ -204,8 +191,7 @@ class SaveConfigMode:
       "save_interval": self.save_interval,
       "save_steps": self.save_steps,
       "start_step": self.start_step,
-      "end_step": self.end_step,
-      "when_nan": self.when_nan
+      "end_step": self.end_step
     }
 
   @classmethod
@@ -218,8 +204,7 @@ class SaveConfigMode:
             save_interval=params.get("save_interval"),
             start_step=params.get("start_step"),
             end_step=params.get("end_step"),
-            save_steps=params.get("save_steps"),
-            when_nan=params.get("when_nan")
+            save_steps=params.get("save_steps")
           )
 
   def __eq__(self, other):
@@ -229,22 +214,19 @@ class SaveConfigMode:
       self.save_interval == other.save_interval and
       self.save_steps == other.save_steps and
       self.start_step == other.start_step and
-      self.end_step == other.end_step and
-      self.when_nan == other.when_nan
+      self.end_step == other.end_step
     )
 
   def should_save_step(self, step_num: int):
-    rval = {'step': False, 'when_nan': False}
+    rval = False
     if self.save_steps and step_num in self.save_steps:
-      rval['step'] = True
+      rval = True
     elif step_in_range((self.start_step, self.end_step), step_num) and step_num % self.save_interval == 0:
-      rval['step'] = True
-    elif self.when_nan:
-      rval['when_nan'] = True
+      rval = True
     return rval
 
   def __repr__(self):
     return (
       f"<class SaveConfig: save_interval={self.save_interval}, save_steps={self.save_steps}, "
-      f"start_step={self.start_step}, end_step={self.end_step}, when_nan={self.when_nan}>"
+      f"start_step={self.start_step}, end_step={self.end_step}>"
     )

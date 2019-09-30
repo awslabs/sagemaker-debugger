@@ -184,7 +184,6 @@ The parameters taken by SaveConfig are:
 - `save_steps`: Allows you to pass a list of step numbers at which tensors should be saved; overrides `start_step` and `end_step`
 - `start_step`: The step at which to start saving
 - `end_step`: The step at which to stop saving
-- `when_nan`: A list of tensor regexes to save if they become NaN
 
 Refer to [API](api.md) for all parameters available and detailed descriptions for them, as well as example SaveConfig objects.
 

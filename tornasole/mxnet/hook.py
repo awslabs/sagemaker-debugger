@@ -14,7 +14,7 @@ from .util import get_aggregated_data, make_numpy_array
 import re as _re
 import logging
 import os
-
+from typing import Set
 
 logger = get_logger()
 import atexit
@@ -114,18 +114,10 @@ class TornasoleHook:
             self.writer.close()
         training_has_ended(self.out_dir)
 
-    # Check whether we should log this tensor
-    def _check_tensor_to_be_logged(self, name):
-        ss = self.save_manager.should_save_tensor(tensorname=name, mode=self.mode,
-                                                  step=self.mode_steps[self.mode])
-        return ss['step']
-
-    def _process_step(self):
-        # returns dictionary of dictionaries: coll_name -> {step: True/False, when_nan: True/False}
-        # there will be no entry in dictionary for collections where both step and when_nan are False
-        # This dictionary is stored in self.collections_in_this_step so that we do not need to call this
-        # function in every forward_hook (recursive) invocation for a given step.
-        self.collections_in_this_step = self.save_manager.collections_to_save(self.mode, self.mode_steps[self.mode])
+    def _process_step(self) -> Set['Collection']:
+        # returns set of collections which need to be saved for step
+        self.collections_in_this_step = self.save_manager.get_collections_to_save_for_step(
+                self.mode, self.mode_steps[self.mode])
         return self.collections_in_this_step
 
     # This hook is invoked by trainer prior to running the forward pass.
@@ -210,13 +202,16 @@ var.__class__.__name__))
         TODO(nieljare): What if a tensor matches multiple collections?
         This short-circuits after a single match.
         """
-        if self.dry_run or not self._check_tensor_to_be_logged(tensor_name):
+        if self.dry_run or \
+                self.save_manager.should_save_tensor_for_step(
+                        tensorname=tensor_name, mode=self.mode,
+                        step=self.mode_steps[self.mode]) is False:
             return
 
         # Get the collection to which this tensor belongs
-        save_colls = self.save_manager.from_collections(tensor_name)
+        save_colls = self.save_manager.get_collections_with_tensor(tensor_name)
         for s_col in save_colls:
-            if s_col.name in self.collections_in_this_step.keys():
+            if s_col in self.collections_in_this_step:
                 reduce_config = s_col.get_reduction_config()
                 if reduce_config:
                     abs = False

@@ -343,9 +343,6 @@ The parameters taken by SaveConfig are:
 - `start_step`: Allows you to start saving from a given step, defaults to 0
 - `end_step`: Allows you to save till a given step, defaults to None, i.e. till end of job. Excludes this end_step.
 - `save_steps`: Allows you to pass a list of step numbers at which tensors should be saved. If this is passed, then `save_interval` is ignored.
-- `when_nan`: Allows you to save tensors whenever any of the list of tensors passed here is not finite (i.e. becomes nan or infinite).
-If this is passed along with either `save_steps` or `save_interval`, then tensors will be saved whenever this list of tensors is not finite
-as well as when a particular step should be saved based on the above two parameters.
 
 **Examples**
 - ```SaveConfig(save_interval=10)``` Saving every 10 steps
@@ -353,8 +350,6 @@ as well as when a particular step should be saved based on the above two paramet
 - ```SaveConfig(start_step=1000, save_interval=10)``` Save every 10 steps from the 1000th step
 
 - ```SaveConfig(save_steps=[10, 500, 10000, 20000])``` Saves only at the supplied steps
-
-- ```SaveConfig(when_nan=['loss:0'], save_interval=100)``` Saves every 100 steps and also saves whenever the tensor matching 'loss:0' is nan.
 
 These save config instances can be passed to the hook as follows
 ```
