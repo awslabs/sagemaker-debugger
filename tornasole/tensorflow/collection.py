@@ -77,7 +77,7 @@ class CollectionManager(BaseCollectionManager):
                 self.create_collection(n)
 
     def create_collection(self, name):
-        self.collections[name] = Collection(name)
+        super().create_collection(name, cls=Collection)
 
     @classmethod
     def load(cls, filename, coll_class=Collection):
@@ -102,18 +102,12 @@ def add_to_collection(collection_name, args):
 
 
 def add_to_default_collection(args):
-    add_to_collection('default', args)
+    add_to_collection(CollectionKeys.DEFAULT, args)
 
 
 def get_collection(collection_name):
-    try:
-        c = _collection_manager.get(collection_name)
-    except KeyError:
-        _collection_manager.add(collection_name)
-        c = _collection_manager.get(collection_name)
-    return c
-
-
+    return _collection_manager.get(collection_name, create=True)
+  
 def get_collections():
     return _collection_manager.collections
 

@@ -88,6 +88,23 @@ class SaveConfig:
   def to_json(self) -> str:
     return json.dumps(self.to_json_dict())
 
+  def merge_default_save_config(self, default_save_config):
+    """
+    Merges save_config with default_save_config.
+    Config for any mode not in save_config will be populated
+    by copying the one from default_save_config
+    """
+    for mode in ModeKeys:
+      if self.mode_save_configs[mode] is None:
+        if default_save_config.mode_save_configs[mode] is not None:
+          self.set_save_config(
+                  mode=mode,
+                  save_config_mode=default_save_config.get_save_config(mode))
+        else:
+          self.set_save_config(
+                  mode=mode,
+                  save_config_mode=SaveConfigMode())
+
   @classmethod
   def from_dict(cls, params: Dict[ModeKeys, Any]) -> 'SaveConfig':
     """Parses a dict into a SaveConfig object.

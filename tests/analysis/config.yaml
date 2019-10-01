@@ -89,9 +89,9 @@
   - tensorflow
   - *Disable
   - [*tf_mnist,
-     --lr 0.001 --tornasole_train_frequency 10 --random_seed True,
+     --lr 0.001 --tornasole_train_frequency 10 --random_seed True --num_steps 100,
      *invoker,
-     --rule_name lossnotdecreasing --flag True --end_step 1000
+     --rule_name lossnotdecreasing --flag True --end_step 100
     ]
 -
   - loss_not_decreasing/tf/false
@@ -100,7 +100,7 @@
   - [*simple,
      --lr 0.05 --scale 1 --steps 1009 --tornasole_frequency 13 --random_seed True,
      *invoker,
-     --rule_name lossnotdecreasing --flag False --num_steps 100 --min_difference 12
+     --rule_name lossnotdecreasing --flag False --end_step 50 --diff_percent 50
     ]
 
 # test cases for mxnet

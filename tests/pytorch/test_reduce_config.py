@@ -23,7 +23,7 @@ def test_reduce_config(hook=None, out_dir=None):
 
         run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
         out_dir = './newlogsRunTest/' + run_id
-        hook = t_hook(out_dir=out_dir, save_config=global_save_config, include_collections=['weights', 'bias','gradients',
+        hook = t_hook(out_dir=out_dir, save_config=global_save_config, include_collections=['weights', 'biases','gradients',
                                                                                'default', 'ReluActivation', 'flatten'],
                     reduction_config=global_reduce_config)
         hook_created = True

@@ -17,8 +17,9 @@ class CollectionManager:
       collections = {}
     self.collections = collections
 
-  def create_collection(self, name):
-    self.collections[name] = Collection(name)
+  def create_collection(self, name, cls=Collection):
+    if name not in self.collections:
+      self.collections[name] = cls(name)
 
   def get_collections(self):
     return self.collections
@@ -31,7 +32,12 @@ class CollectionManager:
       if arg.name not in self.collections:
         self.collections[arg.name] = arg
 
-  def get(self, name):
+  def get(self, name, create=True):
+    if name not in self.collections:
+      if create:
+        self.create_collection(name)
+      else:
+        raise KeyError(f'Collection {name} has not been created')
     return self.collections[name]
 
   def to_json_dict(self):
@@ -83,4 +89,5 @@ class CollectionManager:
     return self.collections == other.collections
 
   def __repr__(self):
-    return f"<class CollectionManager: collection_names={list(self.collections.keys())}"
+    return f"<class CollectionManager: " \
+      f"collection_names={list(self.collections.keys())}>"

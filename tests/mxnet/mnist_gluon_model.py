@@ -120,4 +120,4 @@ def run_mnist_gluon_model(hook=None, hybridize=False, set_modes=False, register_
                 valid_acc/len(valid_data), time.time()-tic))
 
     # for tests we have to call cleanup ourselves as destructor won't be called now
-    # hook.cleanup()
+     # hook._cleanup()

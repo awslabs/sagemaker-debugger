@@ -7,7 +7,7 @@
   },
   "CollectionConfiguration": [
     { "CollectionName": "weights" },
-    { "CollectionName": "bias" },
+    { "CollectionName": "biases" },
     { "CollectionName": "gradients" },
     { "CollectionName": "default" },
     {

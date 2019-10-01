@@ -106,7 +106,7 @@ def create_tornasole_hook(output_s3_uri, block):
     tm.get_collection('TopBlock').add_block_tensors(block, inputs=True, outputs=True)
 
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, include_collections=['weights', 'gradients', 'bias','TopBlock'])
+    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, include_collections=['weights', 'gradients', 'biases','TopBlock'])
     return hook
 
 

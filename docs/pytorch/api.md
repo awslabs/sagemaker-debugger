@@ -73,7 +73,7 @@ A class used to represent the hook which gets attached to the
                  reduction_config=None,
                  save_config=default_save_config(),
                  include_regex=None,
-                 include_collections=['weights', 'bias', 'gradients', 'default'],
+                 include_collections=['weights', 'biases', 'gradients', 'default'],
                  save_all=False):
 ```
 ### Collection

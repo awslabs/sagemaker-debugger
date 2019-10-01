@@ -53,7 +53,7 @@ from tornasole.core.config_constants import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
     TORNASOLE_CONFIG_SAVE_ALL_KEY, DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
 
-def create_hook_from_json_config(hook_cls, collection_manager, default_include_collections):
+def create_hook_from_json_config(hook_cls, collection_manager):
     """Returns a TornasoleHook object corresponding to either TF, PT, or MXNet.
 
     Here we compare HookParameters with CollectionConfiguration and set all the defaults.
@@ -65,9 +65,7 @@ def create_hook_from_json_config(hook_cls, collection_manager, default_include_c
             include_collections.append(obj.name)
             collection_manager.add(obj)
     else:
-        include_collections = default_include_collections
-        for name in include_collections:
-            pass #TODO(nieljare): should we do something here, or are default collections already handled?
+        include_collections = None
 
     out_dir = tornasole_params.get("out_dir", DEFAULT_SAGEMAKER_TORNASOLE_PATH)
     dry_run = tornasole_params.get("dry_run", False)

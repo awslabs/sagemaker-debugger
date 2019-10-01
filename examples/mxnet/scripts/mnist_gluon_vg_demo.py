@@ -114,7 +114,7 @@ def create_tornasole_hook(output_uri, tornasole_frequency):
 
     # Create a hook that logs weights, biases and gradients while training the model.
     hook = TornasoleHook(out_dir=output_uri, save_config=save_config, include_collections=['weights', 'gradients',
-                                                                                              'bias'])
+                                                                                            'biases'])
     return hook
 
 

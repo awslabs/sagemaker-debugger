@@ -56,7 +56,7 @@ TornasoleHook is the entry point for Tornasole into your program.
 
     include_collections: list of str
         takes as input the names of collections which should be saved.
-        by default, ['weights','gradients', 'bias', 'default'] are passed to include_collections.
+        by default, ['weights','gradients', 'biases', 'default'] are passed to include_collections.
 
     save_all: bool
         a shortcut for saving all tensors in the model.
@@ -69,7 +69,7 @@ TornasoleHook is the entry point for Tornasole into your program.
         reduction_config=None,
         save_config=SaveConfig(save_interval=100),
         include_regex=None,
-        include_collections=['weights', 'gradients', 'bias', 'default'],
+        include_collections=['weights', 'gradients', 'biases', 'default'],
         save_all=False,
         ):
 ```

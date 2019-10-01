@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+
+from tornasole import SaveConfig
 from tornasole.pytorch.hook import *
 from tornasole.pytorch.torch_collection import *
 from tornasole.pytorch import reset_collections
@@ -13,9 +15,6 @@ import uuid
 from tornasole.trials import create_trial
 import shutil
 import os
-
-
-# from tensorflow.python.tools import inspect_checkpoint as chkp
 
 
 class Net(nn.Module):
@@ -103,7 +102,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type='saveall', save_ste
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model
         hook = TornasoleHook(out_dir=output_dir, save_config=SaveConfig(save_steps=save_steps),
-                                include_collections=['weights', 'gradients', 'bias','l_mod'])
+                                include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.GRADIENTS, CollectionKeys.BIASES, 'l_mod'])
     elif hook_type == 'weights-bias-gradients':
         save_config = SaveConfig(save_steps=save_steps)
         # Create a hook that logs ONLY weights, biases, and gradients
@@ -174,7 +173,7 @@ def helper_test_weights_bias_gradients(hook=None):
         addendum = prefix
     else:
         addendum = 'jsonloading'
-    hook.cleanup()
+    hook._cleanup()
     delete_local_trials(['test_output/test_hook_save_weightsbiasgradients/' + addendum])
 
 
@@ -218,7 +217,7 @@ def saveall_test_helper(hook=None):
         addendum = prefix
     else:
         addendum = 'jsonloading'
-    hook.cleanup()
+    hook._cleanup()
     delete_local_trials(['test_output/test_hook_saveall/' + addendum])
 
 

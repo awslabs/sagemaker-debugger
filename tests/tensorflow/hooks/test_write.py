@@ -46,11 +46,7 @@ def helper_tornasole_hook_write(data_dir, hook):
     # remove existing directory so that you can rerun and evaluate against a fresh run
     # instead of old weights saved to disk
 
-    try:
-        shutil.rmtree(data_dir)
-    except OSError:
-        print("No directory of old data found. Continuing...")
-        pass
+    shutil.rmtree(data_dir, ignore_errors=True)
 
     # the variables we want to save
     saving_var_dict = {'w1': W1, 'b1': b1, 'w2': W2, 'b2': b2}
@@ -97,5 +93,7 @@ def test_tornasole_hook_write_json():
     pre_test_clean_up()
     os.environ[
         TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = "tests/tensorflow/hooks/test_json_configs/test_write.json"
+
+    shutil.rmtree(data_dir, ignore_errors=True)
     hook = ts.TornasoleHook.hook_from_config()
     helper_tornasole_hook_write(data_dir, hook)

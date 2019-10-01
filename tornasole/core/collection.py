@@ -1,7 +1,6 @@
 from .reduction_config import  ReductionConfig
 from .save_config import SaveConfig, SaveConfigMode
-from .modes import ModeKeys, ALLOWED_MODE_NAMES
-from .utils import load_json_as_dict
+from .modes import ModeKeys
 
 import json
 from typing import Any, Dict, List, Optional, Union
@@ -16,7 +15,7 @@ class CollectionKeys:
   WEIGHTS = 'weights'
   GRADIENTS = 'gradients'
   LOSSES = 'losses'
-  BIASES = 'bias'
+  BIASES = 'biases'
   SCALARS = 'scalars'
 
   TENSORFLOW_SUMMARIES = 'tensorflow_summaries'

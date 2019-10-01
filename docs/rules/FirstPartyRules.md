@@ -73,7 +73,7 @@ For this rule, users must specify either the `collection_names` or `tensor_regex
 
 ```
 from tornasole.rules.generic import AllZero
-collections = ['weights', 'bias']
+collections = ['weights', 'biases']
 tensor_regex = ['input*']
 allzero = AllZero(base_trial=trial_obj, collection_names=collections, tensor_regex=tensor_regex)
 ```
@@ -133,6 +133,10 @@ for step 21 is compared with the loss for step 9. The next step where loss is ch
 since 10 steps after 21 is 31, and at 31 and 32 loss is not being saved.
 - `diff_percent`: float (default is 0.0)  (between 0.0 and 100.0)
 The minimum difference in percentage that loss should be lower by. By default, the rule just checks if loss is going down. If you want to specify a stricter check that loss is going down fast enough, you might want to pass diff_percent.
+- `mode`: string
+The name of tornasole mode to query tensor values for rule checking. 
+If this is not passed, the rule checks for eval mode, then training mode and then global mode in this order.
+        
 
 ```
 from tornasole.rules.generic import LossNotDecreasing

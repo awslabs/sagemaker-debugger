@@ -8,7 +8,7 @@
   "CollectionConfiguration": [
     { "CollectionName": "ReluActivation" },
     { "CollectionName": "weights" },
-    { "CollectionName": "bias" },
+    { "CollectionName": "biases" },
     { "CollectionName": "gradients" },
     { "CollectionName": "default" },
     {

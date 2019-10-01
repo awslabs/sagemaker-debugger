@@ -1,4 +1,4 @@
-from tornasole.core.collection import Collection
+from tornasole.core.collection import CollectionKeys
 from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager  # noqa: E501
 
 
@@ -8,38 +8,12 @@ class CollectionManager(BaseCollectionManager):
         if create_default:
             self._register_default_collections()
 
-    def create_collection(self, name):
-        self.collections[name] = Collection(name)
-
     def _register_default_collections(self):
-        metric_collection = Collection(
-            "metric",
-            include_regex=["^[a-zA-z]+-[a-zA-z0-9]+$"])
-        predictions_collection = Collection(
-            "predictions",
-            include_regex=["^predictions$"])
-        labels_collection = Collection(
-            "labels",
-            include_regex=["^labels$"])
-        feat_imp_collection = Collection(
-            "feature_importance",
-            include_regex=["^.*/feature_importance$"])
-        shap_collection = Collection(
-            "average_shap",
-            include_regex=["^((?!bias).)*/average_shap$"])
-        self.add(metric_collection)
-        self.add(predictions_collection)
-        self.add(labels_collection)
-        self.add(feat_imp_collection)
-        self.add(shap_collection)
-
-    @classmethod
-    def load(cls, filename):
-        return super().load(cls, filename, Collection)
-
-    @classmethod
-    def load_from_string(cls, s):
-        return super().load(cls, s, Collection)
+        self.get(CollectionKeys.METRIC).include("^[a-zA-z]+-[a-zA-z0-9]+$")
+        self.get(CollectionKeys.PREDICTIONS).include("^predictions$")
+        self.get(CollectionKeys.LABELS).include("^labels$")
+        self.get(CollectionKeys.FEATURE_IMPORTANCE).include("^.*/feature_importance$")
+        self.get(CollectionKeys.AVERAGE_SHAP).include("^((?!bias).)*/average_shap$")
 
 
 _collection_manager = CollectionManager()
@@ -75,12 +49,7 @@ def add_to_default_collection(args):
 
 def get_collection(collection_name):
 
-    try:
-        c = _collection_manager.get(collection_name)
-    except KeyError:
-        _collection_manager.create_collection(collection_name)
-        c = _collection_manager.get(collection_name)
-    return c
+    return _collection_manager.get(collection_name, create=True)
 
 
 def get_collections():

@@ -1,33 +1,25 @@
-import mxnet as mx
-from tornasole.core.writer import FileWriter
-from tornasole.core.save_config import SaveConfig
-from tornasole.core.save_manager import SaveManager
-from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.logger import get_logger
-from tornasole.core.reductions import get_reduction_tensor_name
-from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
-from tornasole.core.access_layer.utils import training_has_ended
-from tornasole.core.hook_utils import verify_and_get_out_dir
-from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
-from .mxnet_collection import get_collection_manager, get_collection
-from .util import get_aggregated_data, make_numpy_array
-import re as _re
 import logging
-import os
-from typing import Set
+import mxnet as mx
+from tornasole.core.hook import CallbackHook
+from tornasole.core.logger import get_logger
+from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
+from tornasole.core.collection import CollectionKeys
+from tornasole.mxnet.mxnet_collection import get_collection_manager
+from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
 
 logger = get_logger()
-import atexit
 
-INVALID_TAG_CHARACTERS = _re.compile(r'[^-/\w\.]')
-INPUT_TENSOR_SUFFIX = '_input_'
-OUTPUT_TENSOR_SUFFIX = '_output'
-GRADIENT_PREFIX = 'gradient/'
-DEFAULT_INCLUDE_COLLECTIONS = ['loss']
-COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = ['weights', 'bias','gradients', 'loss']
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
+
+COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = [
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.BIASES,
+    CollectionKeys.GRADIENTS,
+    CollectionKeys.LOSSES
+]
 
 
-class TornasoleHook:
+class TornasoleHook(CallbackHook):
     def __init__(self,
                  out_dir=None,
                  dry_run=False,
@@ -35,127 +27,76 @@ class TornasoleHook:
                  reduction_config=None,
                  save_config=None,
                  include_regex=None,
-                 include_collections=DEFAULT_INCLUDE_COLLECTIONS.copy(),
+                 include_collections=None,
                  save_all=False):
-        self.out_dir = verify_and_get_out_dir(out_dir)
-
-        self.include_collections = include_collections
-
-        self.dry_run = dry_run
-        self.worker = worker
-
-        self.mode = ModeKeys.GLOBAL
-        self.mode_steps = {ModeKeys.GLOBAL: -1}
-        self.local_reductions = []
-        self.step = -1
-        self.is_recursive = False
-        self.export_only_once = True
-        self.last_saved_step = -1
-        self.writer = None
-        self.export_collections = True
-        self._initialize_collectors(save_all, include_regex)
-
-        atexit.register(self.cleanup)
+        super().__init__(
+                collection_manager=get_collection_manager(),
+                default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+                data_type_name=mx.ndarray.NDArray.__name__,
+                out_dir=out_dir,
+                dry_run=dry_run,
+                worker=worker,
+                reduction_config=reduction_config,
+                save_config=save_config,
+                include_regex=include_regex,
+                include_collections=include_collections,
+                save_all=save_all)
+        # We would like to collect loss collection
+        # even if user does not specify any collections
+        if CollectionKeys.LOSSES not in self.include_collections:
+            self.include_collections.append(CollectionKeys.LOSSES)
         self.last_block = None
-        # dictionary of collections that need to be saved in a particular step.
-        self.collections_in_this_step = None
-
-        if save_config is None:
-            save_config = SaveConfig()
-        if not isinstance(save_config, SaveConfig):
-            raise ValueError(f"save_config={save_config} must be type SaveConfig")
-        self.save_manager = SaveManager(collection_manager=get_collection_manager(),
-                                        include_collections_names=self.include_collections,
-                                        default_save_config=save_config,
-                                        default_reduction_config=reduction_config)
-        self.prepared_save_manager = False
-        logger.info('Saving to {}'.format(self.out_dir))
 
     @classmethod
     def hook_from_config(cls):
-        return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS.copy())
+        return create_hook_from_json_config(cls, get_collection_manager())
 
-    def _initialize_collectors(self, save_all, include_regex):
-        # We would like to collect loss collection even if user does not specify any collections
-        if 'loss' not in self.include_collections:
-            self.include_collections.append('loss')
-
-        # If user has provided any include_regex, add them to a default collection.
-        if include_regex is not None:
-            get_collection('default').include(include_regex)
-            if 'default' not in self.include_collections:
-                self.include_collections.append('default')
-        # If save all is set, create a collector that can save all the tensors
-        if save_all :
-            get_collection('all').include([".*"])
-            self.include_collections.append('all')
-
-    def set_mode(self, mode):
-        if mode in ALLOWED_MODES:
-            self.mode = mode
-        else:
-            raise ValueError('Invalid mode {}. Valid modes are {}.'
-                             .format(mode, ','.join(ALLOWED_MODES)))
-
-        if mode not in self.mode_steps:
-            self.mode_steps[mode] = -1
-
-    def cleanup(self):
-        if self.last_saved_step != -1:
-            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
-            self.export_only_once = False
+    def _cleanup(self):
         # Write the gradients of the past step if the writer is still available.
-        if self.writer is not None:
-            if self.last_block is not None:
-                params = self.last_block.collect_params().values()
-                for param in params:
-                    self.log_param(param)
-            self.writer.flush()
-            self.writer.close()
-        training_has_ended(self.out_dir)
+        if self.writer is not None and self.last_block is not None:
+            self.log_params(self.last_block)
+        super()._cleanup()
 
-    def _process_step(self) -> Set['Collection']:
-        # returns set of collections which need to be saved for step
-        self.collections_in_this_step = self.save_manager.get_collections_to_save_for_step(
-                self.mode, self.mode_steps[self.mode])
-        return self.collections_in_this_step
+    def log_params(self, block):
+        params = block.collect_params().values()
+        for param in params:
+            self.log_param(param)
+
+    def log_param(self, param):
+        self._write_tensor(tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0]))
+        # If Gradient for this param is available
+        if param.grad_req != 'null':
+            self._write_tensor(tensor_name=self.GRADIENT_PREFIX + param.name,
+                               tensor_value=param.grad(param.list_ctx()[0]))
 
     # This hook is invoked by trainer prior to running the forward pass.
-    def forward_pre_hook(self, block, input):
-        # Write the gradients of the past step if the writer is still available.
+    def forward_pre_hook(self, block, inputs):
         if self.writer is not None:
-            params = block.collect_params().values()
-            for param in params:
-                self.log_param(param)
-            self.writer.flush()
-            self.writer.close()
-            self.writer = None
-        if not self.prepared_save_manager:
+            # Write the params and gradients of the
+            # past step if the writer is still available.
+            self.log_params(block)
+            self._flush_and_close_writer()
+
+        if not self.prepared_collections:
             # at this point we need all collections to be ready
             # this may not be the case at creation of hook
             # as user's code after hook might add collections
-            self.save_manager.prepare()
-            self.prepared_save_manager = True
+            self._prepare_collections()
+            self.prepared_collections = True
 
-        self.mode_steps[self.mode] += 1
-        self.step += 1
-        logger.debug("Setting the global step to be {0}".format(self.step))
+        self._increment_step()
 
-        # Reset the collections to be saved in this step to be None.
-        self.collections_in_this_step = None
         if self._process_step():
-            self.writer = FileWriter(trial_dir=self.out_dir,
-                                     step=self.step,
-                                     worker=self.worker)
+            self._initialize_writer()
 
-        if self.last_saved_step != -1 and self.export_only_once:
-            get_collection_manager().export_manager(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
-            self.export_only_once = False
+        if self.last_saved_step is not None and not self.exported_collections:
+            self.export_collections()
+            self.exported_collections = True
         self.last_block = block
 
     # This hook is invoked by trainer after running the forward pass.
-    def forward_hook(self, block, input, output):
-        if not self.collections_in_this_step:
+    def forward_hook(self, block, inputs, outputs):
+        if self.collections_in_this_step is None:
             logging.debug("Skipping the global step {0}".format(self.step))
             return
 
@@ -163,102 +104,44 @@ class TornasoleHook:
         logger.debug("Processing the global step {0} for block {1}".format(self.step, block_name))
 
         # Output input tensor
-        self.log_inputs_to_block(block_name, input)
+        self._write_inputs(block_name, inputs)
 
         # Output output tensors
-        self.log_outputs_of_block(block_name, output)
+        self._write_outputs(block_name, outputs)
         self.last_saved_step = self.step
 
-    def _log_ndarray_from_col(self, block_name, var, tensor_suffix, idx):
-       if var.__class__.__name__ is "NDArray":
-           self.log_tensor(tensor_name=block_name + tensor_suffix + str(idx), tensor_value=var)
-           return idx+1
-       elif isinstance(var, tuple) or isinstance(var, list):
-           for val in var:
-               idx = self._log_ndarray_from_col(block_name, val, tensor_suffix, idx)
-       else:
-           logger.warning("output is not ndarray or list of ndarrays, bname:{} output_class:{}".format(block_name,
-var.__class__.__name__))
-       return idx
-
-    def log_inputs_to_block(self, block_name, input):
-        idx = 0
-        self._log_ndarray_from_col(block_name, input, INPUT_TENSOR_SUFFIX, idx)
-
-    def log_outputs_of_block(self, block_name, output):
-        idx = 0
-        self._log_ndarray_from_col(block_name, output, OUTPUT_TENSOR_SUFFIX, idx)
-
-    def log_param(self, param):
-        self.log_tensor(tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0]))
-        # If Gradient for this param is available
-        if param.grad_req != 'null':
-            self.log_tensor(tensor_name=GRADIENT_PREFIX + param.name,
-                            tensor_value=param.grad(param.list_ctx()[0]))
-
-    def log_tensor(self, tensor_name, tensor_value):
-        """
-
-        TODO(nieljare): What if a tensor matches multiple collections?
-        This short-circuits after a single match.
-        """
-        if self.dry_run or \
-                self.save_manager.should_save_tensor_for_step(
-                        tensorname=tensor_name, mode=self.mode,
-                        step=self.mode_steps[self.mode]) is False:
-            return
-
-        # Get the collection to which this tensor belongs
-        save_colls = self.save_manager.get_collections_with_tensor(tensor_name)
-        for s_col in save_colls:
-            if s_col in self.collections_in_this_step:
-                reduce_config = s_col.get_reduction_config()
-                if reduce_config:
-                    abs = False
-                    for reduction in reduce_config.reductions + reduce_config.abs_reductions + reduce_config.norms + \
-                                     reduce_config.abs_norms:
-                        if reduction in reduce_config.abs_reductions or reduction in reduce_config.abs_norms:
-                            abs = True
-                        reduction_tensor_name = get_reduction_tensor_name(tensor_name, reduction, abs)
-                        tensor_data = get_aggregated_data(reduction, tensor_value, tensor_name, abs)
-                        tensor_value_np = make_numpy_array(tensor_data)
-                        self.writer.write_tensor(tdata=tensor_value_np, tname=reduction_tensor_name,
-                                             mode=self.mode, mode_step=self.mode_steps[self.mode])
-                        s_col.add_tensor_name(tensor_name)
-                    return
-                else:
-                    tensor_value = make_numpy_array(tensor_value)
-                    self.writer.write_tensor(tdata=tensor_value, tname=tensor_name,
-                                             mode=self.mode, mode_step=self.mode_steps[self.mode])
-                    return
-
-    # This function is "applied" to every child in the block. This function in turn
-    # registers the forward hook to each block. It helps logging the input output tensors
-    # of that block.
     def _recursive_apply(self, block):
+        """
+        This function is "applied" to every child in the block. This function in turn
+        registers the forward hook to each module. It helps logging the input output tensors
+        of that module.
+        """
         block.register_forward_hook(self.forward_hook)
-
 
     def _is_recursive_needed(self):
         collections_to_save = self.include_collections
 
-        #Check if default collection has a regex associated with it. If it does we would need to apply hook recursively.
-        if len(get_collection('default').get_include_regex()) != 0 and 'default' in collections_to_save:
+        # Check if default collection has a regex associated with it.
+        # If it does we would need to apply hook recursively.
+        if len(self.collection_manager.get(CollectionKeys.DEFAULT).get_include_regex()) != 0 \
+                and CollectionKeys.DEFAULT in collections_to_save:
             return True
 
-        #Get the collections that are to be saved but are not part of default collections
-        #We will need to apply hook recursively to get tensors specified in those collections.
+        # Get the collections that are to be saved but are not part of default collections
+        # We will need to apply hook recursively to get tensors specified in those collections.
         extra_coll = [value for value in collections_to_save if value not in COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK]
 
-        #extra_coll contains the collections that are not part of default collections.
+        # extra_coll contains the collections that are not part of default collections.
         return len(extra_coll) != 0
 
-    # This function registers the forward hook. If user wants to register the hook
-    # for every child in the given block, then the function calls "apply" API for
-    # registration of the hook.
-    # The hook is registered recursively, if user has specified the collections that are more than
-    # the default collectors viz. gradients, weight and bias
     def register_hook(self, block):
+        """
+        This function registers the forward hook. If user wants to register the hook
+        for every child in the given block, then the function calls "apply" API for
+        registration of the hook.
+        The hook is registered recursively, if user has specified the collections that are more than
+        the default collectors viz. gradients, weight and bias
+        """
         if not isinstance(block, mx.gluon.Block):
             logger.error("The given block type {0} is not "
                          "currently supported by Tornasole Hook"
@@ -271,19 +154,17 @@ var.__class__.__name__))
             block.register_forward_hook(self.forward_hook)
             return
 
-        self.is_recursive=self._is_recursive_needed()
+        is_recursive = self._is_recursive_needed()
         block.register_forward_pre_hook(self.forward_pre_hook)
-        if self.is_recursive:
+        if is_recursive is True:
             block.apply(self._recursive_apply)
         else:
             block.register_forward_hook(self.forward_hook)
 
     @staticmethod
-    def clean_tag(name):
-        if name is not None:
-            new_name = INVALID_TAG_CHARACTERS.sub('_', name)
-            new_name = new_name.lstrip('/')  # Remove leading slashes
-            if new_name != name:
-                logging.warning('Summary name %s is illegal; using %s instead.', name, new_name)
-                name = new_name
-        return name
+    def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        return get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs)
+
+    @staticmethod
+    def _make_numpy_array(tensor_value):
+        return make_numpy_array(tensor_value)

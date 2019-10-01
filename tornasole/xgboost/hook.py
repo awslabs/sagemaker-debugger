@@ -1,3 +1,4 @@
+import atexit
 import os
 from typing import Optional, List, Union, Tuple, Dict
 import numpy as np
@@ -5,19 +6,14 @@ from xgboost import DMatrix
 from xgboost.core import CallbackEnv
 from tornasole.core.collection import Collection, CollectionKeys
 from tornasole.core.save_config import SaveConfig
-from tornasole.core.save_manager import SaveManager
-from tornasole.core.modes import ModeKeys, ALLOWED_MODES
+from tornasole.core.hook import CallbackHook
 from tornasole.core.access_layer.utils import training_has_ended
 from tornasole.core.json_config import (
     TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
     create_hook_from_json_config)
-from tornasole.core.writer import FileWriter
-from tornasole.core.logger import get_logger
-from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
-from tornasole.core.hook_utils import verify_and_get_out_dir
-from .collection import get_collection, get_collection_manager
+from .collection import get_collection_manager
 from .utils import validate_data_file_path, get_content_type, get_dmatrix
-from typing import Set
+
 
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRIC,
@@ -28,7 +24,7 @@ DEFAULT_INCLUDE_COLLECTIONS = [
 ]
 
 
-class TornasoleHook:
+class TornasoleHook(CallbackHook):
     """Tornasole hook that represents a callback function in XGBoost."""
 
     def __init__(
@@ -78,78 +74,43 @@ class TornasoleHook:
             train_data = xgboost.DMatrix('train.svm.txt')
         validation_data: Same as train_data, but for validation data.
         """  # noqa: E501
-        self.out_dir = verify_and_get_out_dir(out_dir)
-        self.dry_run = dry_run
-        self.worker = worker
-        self.train_data = self._validate_data(train_data)
-        self.validation_data = self._validate_data(validation_data)
-
-        self.mode = ModeKeys.GLOBAL
-        self.mode_steps = {ModeKeys.GLOBAL: -1}
-        self.exported_collections = False
-
-        self.logger = get_logger()
-        self.logger.info('Saving to {}'.format(self.out_dir))
-
+        super().__init__(collection_manager=get_collection_manager(),
+                         default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+                         data_type_name=None,
+                         out_dir=out_dir,
+                         dry_run=dry_run,
+                         worker=worker,
+                         reduction_config=None,
+                         save_config=save_config,
+                         include_regex=include_regex,
+                         include_collections=include_collections,
+                         save_all=save_all)
         if reduction_config is not None:
             msg = "'reduction_config' is not supported and will be ignored."
             self.logger.warning(msg)
+        self.train_data = self._validate_data(train_data)
+        self.validation_data = self._validate_data(validation_data)
 
-        if include_collections is None:
-            self.include_collections = DEFAULT_INCLUDE_COLLECTIONS
-        else:
-            self.include_collections = include_collections
-
-        self._initialize_collectors(include_regex, save_all)
-
-        if save_config is None:
-            save_config = SaveConfig()
-        if not isinstance(save_config, SaveConfig):
-            raise ValueError(f"save_config={save_config} must be type SaveConfig")
-        self.save_manager = SaveManager(
-            collection_manager=get_collection_manager(),
-            include_collections_names=self.include_collections,
-            default_reduction_config=None,  # currently not supported in xgb
-            default_save_config=save_config)
-        self.prepared_save_manager = False
+        # as we do cleanup ourselves at end of job
+        atexit.unregister(self._cleanup)
 
     def __call__(self, env: CallbackEnv) -> None:
         self._callback(env)
 
-    @property
-    def collections_path(self) -> str:
-        return os.path.join(self.out_dir, COLLECTIONS_FILE_NAME)
-
     @classmethod
     def hook_from_config(cls):
-        return create_hook_from_json_config(
-            cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)
+        return create_hook_from_json_config(cls, get_collection_manager())
 
-    def _initialize_collectors(self, include_regex, save_all) -> None:
-        if include_regex is not None:
-            get_collection(CollectionKeys.DEFAULT).include(include_regex)
-            if CollectionKeys.DEFAULT not in self.include_collections:
-                self.include_collections.append(CollectionKeys.DEFAULT)
-
-        if save_all:
-            get_collection(CollectionKeys.ALL).include(r".*")
-            if CollectionKeys.ALL not in self.include_collections:
-                self.include_collections.append(CollectionKeys.ALL)
-
-    def set_mode(self, mode):
-        if mode in ALLOWED_MODES:
-            self.mode = mode
-        else:
-            raise ValueError("Invalid mode {}. Valid modes are {}."
-                             .format(mode, ','.join(ALLOWED_MODES)))
-        if mode not in self.mode_steps:
-            self.mode_steps[mode] = -1
+    def _cleanup(self):
+        # todo: this second export should go
+        self.export_collections()
+        training_has_ended(self.out_dir)
 
     def _is_last_step(self, env: CallbackEnv) -> bool:
         return env.iteration + 1 == env.end_iteration
 
     def _is_collection_being_saved_for_step(self, name):
-        return get_collection(name) in self.collections_in_this_step
+        return self.collection_manager.get(name) in self.collections_in_this_step
 
     def _callback(self, env: CallbackEnv) -> None:
         # env.rank: rabit rank of the node/process. master node has rank 0.
@@ -157,15 +118,15 @@ class TornasoleHook:
         # env.begin_iteration: round # when training started. this is always 0.
         # env.end_iteration: round # when training will end. this is always num_round + 1.  # noqa: E501
         # env.model: model object.
-        if not self.prepared_save_manager:
+        if not self.prepared_collections:
             # at this point we need all collections to be ready
             # this may not be the case at creation of hook
             # as user's code after hook might add collections
-            self.save_manager.prepare()
-            self.prepared_save_manager = True
+            self._prepare_collections()
+            self.prepared_collections = True
 
-        if not self.exported_collections or self._is_last_step(env):
-            get_collection_manager().export(self.collections_path)
+        if not self.exported_collections:
+            self.export_collections()
             self.exported_collections = True
 
         self.step = self.mode_steps[self.mode] = env.iteration
@@ -200,7 +161,7 @@ class TornasoleHook:
             self._flush_and_close_writer()
 
         if self._is_last_step(env):
-            training_has_ended(self.out_dir)
+            self._cleanup()
 
         self.logger.info("Saved iteration {}.".format(self.step))
 
@@ -251,35 +212,17 @@ class TornasoleHook:
                     "{}/average_shap".format(feature_name),
                     shap_avg[feature_id])
 
-    def _initialize_writer(self) -> None:
-        if self.dry_run:
-            return
-        self._writer = FileWriter(
-            trial_dir=self.out_dir, step=self.step, worker=self.worker)
+    def _write_reductions(self, tensor_name, tensor_value, reduction_config):
+        # not writing reductions for xgboost
+        return
 
-    def _flush_and_close_writer(self) -> None:
-        if self.dry_run:
-            return
-        self._writer.flush()
-        self._writer.close()
+    @staticmethod
+    def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        raise NotImplementedError('Reductions are not support by XGBoost hook')
 
-    def _write_tensor(self, name, data) -> None:
-        if self.dry_run:
-            return
-
-        save_collections = self.save_manager.get_collections_with_tensor(name)
-        for save_collection in save_collections:
-            if save_collection in self.collections_in_this_step:
-                self._writer.write_tensor(
-                    tdata=data, tname=name,
-                    mode=self.mode, mode_step=self.mode_steps[self.mode])
-                return
-
-    def _process_step(self) -> Set['Collection']:
-        # returns set of collections which need to be saved for step
-        self.collections_in_this_step = self.save_manager.get_collections_to_save_for_step(
-            self.mode, self.mode_steps[self.mode])
-        return self.collections_in_this_step
+    @staticmethod
+    def _make_numpy_array(tensor_value):
+        return tensor_value
 
     @staticmethod
     def _validate_data(

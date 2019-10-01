@@ -1,74 +1,47 @@
 import keras
-import os
-import socket
-
 from .collection import *
-from tornasole.core.writer import FileWriter
-from tornasole.core.utils import flatten
-from tornasole.core.logger import get_logger
-from tornasole.core.hook_utils import verify_and_get_out_dir
-from tornasole.core.modes import ModeKeys
+from tornasole.core.hook import BaseHook
 from tornasole.core.save_config import SaveConfig
-from tornasole.core.save_manager import SaveManager
-from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
+from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
 
-class TornasoleHook(keras.callbacks.Callback):
+DEFAULT_INCLUDE_COLLECTIONS=['weights', 'gradients', 'metrics']
+
+
+class TornasoleHook(keras.callbacks.Callback, BaseHook):
     def __init__(self, out_dir,
                  dry_run=False,
-                 worker='worker0',
+                 worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config=None,
-                 save_config=None,
-                 # TODO: support include_regex
-                 # include_regex=None,
-                 include_collections=['weights', 'gradients', 'metrics', 'default'],
+                 save_config=SaveConfig(),
+                 include_regex=None,
+                 include_collections=None,
                  save_all=False):
-        self.out_dir = verify_and_get_out_dir(out_dir)
-        if save_config is None:
-            save_config = SaveConfig()
+        if include_regex is not None:
+            msg = "'include_regex' is not yet supported and will be ignored."
+            self.logger.warning(msg)
+        if save_all is not None:
+            msg = "'include_regex' is not yet supported and will be ignored."
+            self.logger.warning(msg)
 
-        self.dry_run = dry_run
-        self.worker = worker if worker is not None else socket.gethostname()
-        if include_collections is None:
-            include_collections = []
-        self.include_collections = flatten(include_collections)
-        # TODO: support include_regex
-        # if include_regex is not None:
-        #    get_collection('default').include(include_regex)
-        #    if 'default' not in self.include_collections:
-        #        self.include_collections.append('default')
-
-        self.save_all = save_all
-        if self.save_all:
-            get_collection('all').include('.*')
-            if 'all' not in self.include_collections:
-                self.include_collections.append('all')
-
-        self.logger = get_logger()
-        if 'default' not in self.include_collections and get_collection('default').get_include_regex():
-            self.logger.warn('The `default` collection was not passed to include_collections.' \
-                             'So it is not being saved')
-
-        self.save_manager = SaveManager(collection_manager=get_collection_manager(),
-                                        include_collections_names=self.include_collections,
-                                        default_save_config=save_config,
-                                        default_reduction_config=reduction_config)
-
-        self.step = 0
-        self.mode = ModeKeys.GLOBAL
-        self.mode_steps = {ModeKeys.GLOBAL: 0}
-        self.writer = None
-        self.logger.info('Saving to {}'.format(self.out_dir))
-        self._collection_created = False
-
-        super().__init__()
+        super().__init__(collection_manager=get_collection_manager(),
+                         default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+                         out_dir=out_dir,
+                         dry_run=dry_run,
+                         worker=worker,
+                         reduction_config=reduction_config,
+                         save_config=save_config,
+                         include_regex=None,
+                         include_collections=include_collections,
+                         save_all=False)
+        self.exported_collections = False
 
     def _export_collections( self, logs):
-        if self._collection_created:
+        if self.exported_collections :
             return
 
         for k in logs:
-            get_collection("metrics").add_tensor_name(k)
+            self.collection_manager.get("metrics").add_tensor_name(k)
 
         for layer in self.model.layers:
             ws = layer.get_weights()
@@ -80,68 +53,61 @@ class TornasoleHook(keras.callbacks.Callback):
                 tensor_name = cfg['name']
                 if multi:
                     tensor_name += "_" + str(i)
-                get_collection("weights").add_tensor_name(tensor_name)
+                self.collection_manager.get("weights").add_tensor_name(tensor_name)
 
-        add_to_collection("gradients", [])
+        self.collection_manager.get('gradients').add([])
 
-        export_collections(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
         # at this point we need all collections to be ready
         # this may not be the case at creation of hook
         # as user's code after hook might add collections
-        self.save_manager.prepare()
-        self._collection_created = True
+        self._prepare_collections()
 
-    def on_epoch_end(self, epoch, logs={}):
+        self.export_collections()
+        self.exported_collections = True
+
+    def on_epoch_end(self, epoch, logs=None):
+        if logs is None:
+            logs = {}
         self.save_metrics(logs=logs, force=True)
-        self._delete_writer()
+        self._flush_and_close_writer()
 
-    def on_batch_end(self, batch, logs={}):
+    def on_batch_end(self, batch, logs=None):
+        if logs is None:
+            logs = {}
         self._export_collections(logs)
         self.save_metrics(logs=logs, force=False)
         self.save_layer_data()
-        self._delete_writer()
-        self.step += 1
-        self.mode_steps[self.mode] += 1
-        #print( "Writer=", self.writer)
-
-
-    def _create_writer(self):
-        if self.writer is None:
-            self.writer = FileWriter(trial_dir=self.out_dir,
-                                     step=self.step,
-                                     worker=self.worker)
-        return self.writer
-
-    def _delete_writer(self):
-        if self.writer:
-            self.writer.close()
-            self.writer = None
+        self._flush_and_close_writer()
+        self._increment_step()
 
     def save_metrics(self, logs, force):
         for k in logs:
-            if self.save_manager.should_save_tensor_for_step(
+            if self._should_save_tensor_for_step(
                     k, self.mode, self.mode_steps[self.mode]) or force:
                 val = logs[k]
-                self._create_writer()
-                self.writer.write_tensor(tname=k, tdata=val)
+                self._initialize_writer()
+                self.writer.write_tensor(tname=k, tdata=val,
+                                         mode=self.mode,
+                                         mode_step=self.mode_steps[self.mode])
 
     def save_layer_data(self):
-
         assert len(self.model.layers) > 0
-
         for layer in self.model.layers:
             ws = layer.get_weights()
             if len(ws) == 0:
                 continue
             cfg = layer.get_config()
 
-
             multi = len(ws) > 1
             for i, tensor_value in enumerate(ws):
                 tensor_name = cfg['name']
                 if multi:
                     tensor_name += "_" + str(i)
-                if self.save_manager.should_save_tensor_for_step(
+                if self._should_save_tensor_for_step(
                         tensor_name, self.mode, self.mode_steps[self.mode]):
-                    self._create_writer()
-                    self.writer.write_tensor(tdata=tensor_value, tname=tensor_name)
+                    self._initialize_writer()
+                    self.writer.write_tensor(
+                            tdata=tensor_value,
+                            tname=tensor_name,
+                            mode=self.mode,
+                            mode_step=self.mode_steps[self.mode])

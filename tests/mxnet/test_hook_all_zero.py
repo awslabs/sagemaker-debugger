@@ -18,7 +18,7 @@ def test_hook_all_zero(hook=None, out_dir=None):
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     out_dir = './newlogsRunTest/' + run_id
     print("Registering the hook with out_dir {0}".format(out_dir))
-    hook = t_hook(out_dir=out_dir, save_config=save_config, include_collections=['ReluActivation','weights', 'bias','gradients'])
+    hook = t_hook(out_dir=out_dir, save_config=save_config, include_collections=['ReluActivation','weights', 'biases','gradients'])
   run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10, make_input_zero=True)
 
 

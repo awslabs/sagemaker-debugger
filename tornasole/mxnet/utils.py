@@ -5,8 +5,8 @@ from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
 from tornasole.core.reductions import get_numpy_reduction
 
 
-def get_aggregated_data(aggregation_name,
-                        tensor_data, tensor_name, abs=False):
+def get_reduction_of_data(aggregation_name,
+                          tensor_data, tensor_name, abs=False):
     reduction_name = aggregation_name
     # If tensor_data is of np.ndarray type invoke np operators.
     if isinstance(tensor_data, np.ndarray):

@@ -269,7 +269,7 @@ tm.get_collection("ReluActivation").set_reduction_config(ReductionConfig(reducti
 tm.get_collection("flatten").include(["flatten*"])
 tm.get_collection("flatten").set_save_config(SaveConfig(save_steps=[4,5,6]))
 tm.get_collection("flatten").set_reduction_config(ReductionConfig(norms=["l1"], abs_norms=["l2"]))
-hook = TornasoleHook(out_dir=out_dir, include_collections=['weights', 'bias','gradients',
+hook = TornasoleHook(out_dir=out_dir, include_collections=['weights', 'biases','gradients',
                                                     'default', 'ReluActivation', 'flatten'])
 ```
 
@@ -280,7 +280,7 @@ Refer [API](api.md) for a list of the reductions available as well as examples.
 
 There are different ways to save tensors when using Tornasole.
 Tornasole provides easy ways to save certain standard tensors by way of default collections (a Collection represents a group of tensors).
-Examples of such collections are 'weights', 'gradients', 'bias' and 'default'.
+Examples of such collections are 'weights', 'gradients', 'biases' and 'default'.
 Besides the tensors in above default collections, you can save tensors by name or regex patterns on those names.
 Users can also specify a certain block in the model to save the inputs and outputs of that block.
 This section will take you through these ways in more detail.
@@ -289,7 +289,7 @@ This section will take you through these ways in more detail.
 The TornasoleHook API supports _include\_regex_ parameter. The users can specify a regex pattern with this pattern. The TornasoleHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
 
 #### Default Collections
-Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'bias' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with TornasoleHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the TornasoleHook initialization. The TornasoleHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect.
+Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'biases' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with TornasoleHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the TornasoleHook initialization. The TornasoleHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect.
 
 #### Custom Collections
 You can also create any other customized collection yourself.
@@ -424,7 +424,7 @@ def create_tornasole_hook(output_s3_uri, block):
     # In order to log the inputs and output of a model, we will create a collection as follows:
     tm.get_collection('TopBlock').add_block_tensors(block, inputs=True, outputs=True)
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, include_collections=['weights', 'gradients', 'bias','TopBlock'])
+    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, include_collections=['weights', 'gradients', 'biases','TopBlock'])
     return hook
 ```
 
@@ -503,7 +503,7 @@ def create_tornasole_hook(output_s3_uri, block):
     tm.get_collection(block.name).add_block_tensors(block, inputs=True, outputs=True)
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
     hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, include_collections=[
-        'weights', 'gradients', 'bias', block.name])
+        'weights', 'gradients', 'biases', block.name])
     return hook
 ```
 

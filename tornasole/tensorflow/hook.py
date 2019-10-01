@@ -1,27 +1,22 @@
-import os
-import socket
-import atexit
 import numpy as np
 
 from .utils import *
 from .reductions import get_tensorflow_reduction
 from .collection import *
-from tornasole.core.writer import FileWriter
-from tornasole.core.utils import flatten, match_inc
-from tornasole.core.logger import get_logger
-from tornasole.core.hook_utils import verify_and_get_out_dir
+from tornasole.core.hook import BaseHook
+from tornasole.core.utils import match_inc
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
-from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.save_config import SaveConfig, SaveConfigMode
-from tornasole.core.access_layer.utils import training_has_ended
-from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
-from .save_manager import TFSaveManager
 
-DEFAULT_INCLUDE_COLLECTIONS = ['weights', 'gradients', 'default', 'losses']
+DEFAULT_INCLUDE_COLLECTIONS = [
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.GRADIENTS,
+    CollectionKeys.DEFAULT,
+    CollectionKeys.LOSSES
+]
 
 
-class TornasoleHook(tf.train.SessionRunHook):
+class TornasoleHook(tf.train.SessionRunHook, BaseHook):
     def __init__(self, out_dir=None,
                  dry_run=False,
                  worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
@@ -73,71 +68,38 @@ class TornasoleHook(tf.train.SessionRunHook):
             a shortcut for saving all tensors in the model.
             they are all saved in the collection `all`
         """
-        self.out_dir = verify_and_get_out_dir(out_dir)
-
-        self.dry_run = dry_run
-        self.worker = worker if worker is not None else socket.gethostname()
-        if include_collections is None:
-            include_collections = DEFAULT_INCLUDE_COLLECTIONS
-        self.include_collections = flatten(include_collections)
-        if include_regex is not None:
-            get_collection('default').include(include_regex)
-            if 'default' not in self.include_collections:
-                self.include_collections.append('default')
-
-        self.save_all = save_all
-        if self.save_all:
-            get_collection('all').include('.*')
-            if 'all' not in self.include_collections:
-                self.include_collections.append('all')
-
-        if 'default' not in self.include_collections and get_collection('default').get_include_regex():
-            self.logger.warn('The `default` collection was not passed to include_collections.' \
-                             'So it is not being saved')
-        if save_config is None:
-            save_config = SaveConfig()
-        elif not isinstance(save_config, SaveConfig):
-            raise ValueError(f"save_config={save_config} must be type SaveConfig")
-        self.save_manager = TFSaveManager(collection_manager=get_collection_manager(),
-                                        include_collections_names=self.include_collections,
-                                        default_save_config=save_config,
-                                        default_reduction_config=reduction_config)
-
-        self.step = 0
-        self.mode = ModeKeys.GLOBAL
-        self.mode_steps = {ModeKeys.GLOBAL: 0}
-        self.logger = get_logger()
-        self.writer = None
+        super().__init__(collection_manager=get_collection_manager(),
+                         default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+                         out_dir=out_dir,
+                         dry_run=dry_run,
+                         worker=worker,
+                         reduction_config=reduction_config,
+                         save_config=save_config,
+                         include_regex=include_regex,
+                         include_collections=include_collections,
+                         save_all=save_all)
         self.reduction_original_tensors = {}
         self.subgraph_nodes_cache = {}
-        self.logger.info('Saving to {}'.format(self.out_dir))
-        atexit.register(self.cleanup)
 
     @classmethod
     def hook_from_config(cls):
-        return create_hook_from_json_config(cls, get_collection_manager(), DEFAULT_INCLUDE_COLLECTIONS)
+        return create_hook_from_json_config(cls, get_collection_manager())
 
-    def cleanup(self):
-        if self.writer is not None:
-            self.writer.flush()
-            self.writer.close()
-        #creates file  "trial_prefix/END_OF_JOB.ts" at the end of training job.
-        # Trial prefix can be s3/local.
-        training_has_ended(self.out_dir)
-
-    def set_mode(self, mode):
-        # train
-        if mode in ALLOWED_MODES:
-            self.mode = mode
-        else:
-            raise ValueError('Invalid mode {}. Valid modes are {}.'
-                             .format(mode, ','.join(ALLOWED_MODES)))
-
-        if mode not in self.mode_steps:
-            self.mode_steps[mode] = 0
+    def _prepare_tensors(self):
+        """
+        If collections have already been populated with tensors,
+        then we can add them to the tensor_to_collections map
+        """
+        for c in self._get_all_collections_to_save():
+            for t_list in (c.tensors, c.reduction_tensors_added):
+                for t in t_list:
+                    if t.name not in self.tensor_to_collections:
+                        self.tensor_to_collections[t.name] = {c}
+                    else:
+                        self.tensor_to_collections[t.name].add(c)
 
     def _process_matched_tensor(self, tensor, collection):
-        reduction_config = self.save_manager.get_reduction_config(collection)
+        reduction_config = collection.get_reduction_config()
         if reduction_config:
             for reduction in reduction_config.reductions + reduction_config.norms:
                 self._add_reduction(tensor, reduction, collection, False)
@@ -166,7 +128,7 @@ class TornasoleHook(tf.train.SessionRunHook):
             return False
 
         added = False
-        for coll in self.save_manager.get_all_collections_to_save():
+        for coll in self._get_all_collections_to_save():
             if match_inc(t.name, coll.get_include_regex()) \
                     or t.name in coll.tensor_names:
                 self._process_matched_tensor(t, coll)
@@ -201,7 +163,7 @@ class TornasoleHook(tf.train.SessionRunHook):
         # todo: handle multiple graphs in the model
         self.graph = tf.get_default_graph()
 
-        for coll_name, coll in get_collections().items():
+        for coll_name, coll in self.collection_manager.get_collections().items():
             # hack to make multiple graphs work with the same tensor names
             # this can happen when we use same hook for training and evaluation
             # what is going on here is that we clear the tensors and reduction tensors
@@ -211,27 +173,27 @@ class TornasoleHook(tf.train.SessionRunHook):
             coll.reduction_tensors = []
 
         wts = tf.trainable_variables()
-        add_to_collection('weights', wts)
+        self.collection_manager.get(CollectionKeys.WEIGHTS).add(wts)
 
         losses = tf.losses.get_losses()
-        add_to_collection('losses', losses)
+        self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
 
         # at this point we need all collections to be ready
         # this may not be the case at creation of hook
         # as user's code after hook might add collections
-        self.save_manager.prepare()
+        self._prepare_collections()
 
         # adds all tensors in graph based on regexes in collections default and other custom ones
         self._add_tensors()
-        self.save_manager.prepare_tensors()
+        self._prepare_tensors()
 
-        for coll in self.save_manager.get_all_collections_to_save():
+        for coll in self._get_all_collections_to_save():
             self.logger.info(f'Saving the collection {coll.name} with {len(coll.tensor_names)} tensors ' \
                              f'and {len(coll.reduction_tensors_added)} reductions')
             self.logger.debug(f'  Collection {coll.name} has tensors: {coll.tensors}')
             self.logger.debug(f'  Collection {coll.name} has reductions: {coll.reduction_tensors_added}')
 
-        export_collections(os.path.join(self.out_dir, COLLECTIONS_FILE_NAME))
+        self.export_collections()
         self._export_model()
 
     def _export_model(self):
@@ -239,7 +201,7 @@ class TornasoleHook(tf.train.SessionRunHook):
         pass
 
     def _get_tensors_to_save_this_step(self):
-        colls_to_save = self.save_manager.get_collections_to_save_for_step(
+        colls_to_save = self._get_collections_to_save_for_step(
                 self.mode, self.mode_steps[self.mode])
         tensors_to_save = {'watched': [], 'added': []}
         for coll in colls_to_save:
@@ -332,19 +294,15 @@ class TornasoleHook(tf.train.SessionRunHook):
 
     def after_run(self, run_context, run_values):
         if self.prev_to_be_saved:
-            self.writer = FileWriter(trial_dir=self.out_dir,
-                                     step=self.step,
-                                     worker=self.worker)
+            self._initialize_writer()
             running_size = 0
             for (item, value) in self._get_all_tensors_values(run_values.results):
                 running_size += self._save_tensor(item, value)
             self.logger.info(f'Saved {running_size} bytes for '
                              f'{len(self.prev_to_be_saved)} objects '
                              f'at step {self.step}')
-            self.writer.close()
-            self.writer = None
-        self.step += 1
-        self.mode_steps[self.mode] += 1
+            self._flush_and_close_writer()
+        self._increment_step()
 
     def end(self, sess):
         pass

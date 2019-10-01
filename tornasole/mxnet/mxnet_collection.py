@@ -1,4 +1,5 @@
 from tornasole.core.collection import Collection as BaseCollection
+from tornasole.core.collection import CollectionKeys
 from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager
 
 
@@ -18,18 +19,14 @@ class CollectionManager(BaseCollectionManager):
         if create_default:
             self._register_default_collections()
 
-    def create_collection(self, name):
-        self.collections[name] = Collection(name)
-
     def _register_default_collections(self):
-        weight_collection = Collection('weights', include_regex=['^(?!gradient).*weight'])
-        bias_collection = Collection('bias', include_regex=['^(?!gradient).*bias'])
-        gradient_collection = Collection('gradients', include_regex=['^gradient'])
-        loss_collection = Collection('loss', include_regex=['.*loss'])
-        self.add(gradient_collection)
-        self.add(weight_collection)
-        self.add(bias_collection)
-        self.add(loss_collection)
+        self.get(CollectionKeys.WEIGHTS).include('^(?!gradient).*weight')
+        self.get(CollectionKeys.BIASES).include('^(?!gradient).*bias')
+        self.get(CollectionKeys.GRADIENTS).include('^gradient')
+        self.get(CollectionKeys.LOSSES).include('.*loss')
+
+    def create_collection(self, name):
+        super().create_collection(name, cls=Collection)
 
     @classmethod
     def load(cls, filename):
@@ -38,9 +35,6 @@ class CollectionManager(BaseCollectionManager):
     @classmethod
     def load_from_string(cls, s):
         return super().load(cls, s, Collection)
-
-    def export_manager(self, path):
-        self.export(path)
 
 
 _collection_manager = CollectionManager()
@@ -64,10 +58,7 @@ def add_to_default_collection(args):
     add_to_collection('default', args)
 
 def get_collection(collection_name):
-    """Get the collection, creating a new one if it doesn't exist."""
-    if collection_name not in _collection_manager.collections:
-        _collection_manager.create_collection(collection_name)
-    return _collection_manager.get(collection_name)
+    return _collection_manager.get(collection_name, create=True)
 
 def get_collections():
     return _collection_manager.collections

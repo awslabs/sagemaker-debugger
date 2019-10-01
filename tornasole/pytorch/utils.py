@@ -4,7 +4,7 @@ import numpy as np
 from tornasole.core.reductions import get_numpy_reduction
 
 
-def get_aggregated_data(reduction_name, tensor_data, tensor_name, abs=False):
+def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
     if isinstance(tensor_data, np.ndarray):
         return get_numpy_reduction(reduction_name, tensor_data, abs)
     if abs:

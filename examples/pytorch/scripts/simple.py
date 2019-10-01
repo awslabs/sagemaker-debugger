@@ -58,7 +58,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type='saveall',
         hook = TornasoleHook(out_dir=output_dir,
                              save_config=SaveConfig(save_steps=save_steps),
                              include_collections=['weights', 'gradients',
-                                                  'bias', 'l_mod'])
+                                                  'biases', 'l_mod'])
     elif hook_type == 'weights-bias-gradients':
         save_config = SaveConfig(save_steps=save_steps)
         # Create a hook that logs ONLY weights, biases, and gradients

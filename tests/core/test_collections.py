@@ -3,9 +3,9 @@ from tornasole.core.collection_manager import CollectionManager, \
   COLLECTIONS_FILE_NAME
 from tornasole.core.reduction_config import ReductionConfig
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
-from tornasole.core.save_manager import SaveManager
 from tornasole.core.modes import ModeKeys
-
+from tornasole.pytorch.hook import TornasoleHook
+import datetime
 
 def test_export_load():
   # with none as save config
@@ -71,12 +71,15 @@ def test_collection_defaults_to_hook_config():
   cm.create_collection('foo')
   cm.get('foo').set_save_config({ModeKeys.EVAL: SaveConfigMode(save_interval=20)})
 
-  sm = SaveManager(
-    collection_manager=cm,
-    include_collections_names=['foo'],
-    default_reduction_config=ReductionConfig(),
-    default_save_config={ModeKeys.TRAIN: SaveConfigMode(save_interval=10)},
-  )
+
+  hook = TornasoleHook(
+          out_dir='/tmp/test_collections/' + str(datetime.datetime.now()),
+          save_config={ModeKeys.TRAIN: SaveConfigMode(save_interval=10)},
+          include_collections=['foo'],
+          reduction_config=ReductionConfig(save_raw_tensor=True))
+  hook.collection_manager = cm
   assert cm.get('foo').save_config.mode_save_configs[ModeKeys.TRAIN] is None
-  sm.prepare()
+  assert cm.get('foo').reduction_config is None
+  hook._prepare_collections()
   assert cm.get('foo').save_config.mode_save_configs[ModeKeys.TRAIN].save_interval == 10
+  assert cm.get('foo').reduction_config.save_raw_tensor is True

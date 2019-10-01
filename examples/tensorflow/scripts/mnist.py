@@ -17,6 +17,9 @@ parser.add_argument('--num_epochs', type=int, default=5,
 parser.add_argument('--num_steps', type=int,
                     help="Number of steps to train for. If this" \
                          "is passed, it overrides num_epochs")
+parser.add_argument('--num_eval_steps', type=int,
+                    help="Number of steps to evaluate for. If this" \
+                         "is passed, it doesnt evaluate over the full eval set")
 parser.add_argument('--model_dir', type=str, default='/tmp/mnist_model')
 args = parser.parse_args()
 
@@ -134,4 +137,6 @@ mnist_classifier.train(
   hooks=[hook])
 
 hook.set_mode(ts.modes.EVAL)
-mnist_classifier.evaluate(input_fn=eval_input_fn, hooks=[hook])
+mnist_classifier.evaluate(input_fn=eval_input_fn,
+                          steps=args.num_eval_steps,
+                          hooks=[hook])
