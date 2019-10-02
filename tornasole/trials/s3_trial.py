@@ -32,7 +32,7 @@ class S3Trial(Trial):
                          parallel=False, check=check, index_mode=index_mode, cache=cache)
         self.logger.info(f'Loading trial {name} at path s3://{bucket_name}/{prefix_name}')
         self.bucket_name = bucket_name
-        self.prefix_name = prefix_name
+        self.prefix_name = os.path.join(prefix_name, '')
         self.path = "s3://"+os.path.join(self.bucket_name, self.prefix_name)
         self.s3_handler = S3Handler()
         self._load_collections()

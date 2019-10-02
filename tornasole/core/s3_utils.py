@@ -13,13 +13,15 @@ def _list_s3_prefixes(list_info):
     return files
 
 
-def list_s3_objects(bucket, prefix, start_after_key=None):
+def list_s3_objects(bucket, prefix, start_after_key=None, delimiter=""):
     last_token = None
     if start_after_key is None:
         start_after_key = prefix
     logger.debug(f'Trying to load index files after {start_after_key}')
-    list_params = {'Bucket': bucket, 'Prefix': prefix, 'StartAfter': start_after_key}
-    req = ListRequest(**list_params)
+    req = ListRequest(Bucket=bucket,
+                      Prefix=prefix,
+                      StartAfter=start_after_key,
+                      Delimiter=delimiter)
     objects = _list_s3_prefixes([req])
     if len(objects) > 0:
         last_token = objects[-1]
