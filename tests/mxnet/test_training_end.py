@@ -4,8 +4,10 @@ import subprocess
 import uuid
 from tests.analysis.utils import delete_s3_prefix
 import sys
+import pytest
 
 
+@pytest.mark.slow # 0:03 to run
 def test_end_local_training():
   run_id = str(uuid.uuid4())
   out_dir='./newlogsRunTest/' + run_id
@@ -16,6 +18,7 @@ def test_end_local_training():
   shutil.rmtree(out_dir)
 
 
+@pytest.mark.slow # 0:04 to run
 def test_end_s3_training():
   run_id = str(uuid.uuid4())
   bucket = 'tornasolecodebuildtest'

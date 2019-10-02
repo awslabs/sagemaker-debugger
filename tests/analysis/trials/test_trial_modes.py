@@ -1,3 +1,4 @@
+import pytest
 import uuid
 import os
 from tests.analysis.utils import generate_data
@@ -31,6 +32,7 @@ def test_local_event_mode():
     assert bool(trial_obj.index_tensors_dict) is False
 
 
+@pytest.mark.slow # 0:12 to run
 def test_s3_index_mode():
     trial_name = str(uuid.uuid4())
     for i in range(NUM_STEPS):
@@ -42,6 +44,7 @@ def test_s3_index_mode():
     assert bool(trial_obj.index_tensors_dict) is True
 
 
+@pytest.mark.slow # 0:12 to run
 def test_s3_event_mode():
     trial_name = str(uuid.uuid4())
     for i in range(NUM_STEPS):

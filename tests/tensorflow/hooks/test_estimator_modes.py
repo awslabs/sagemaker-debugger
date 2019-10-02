@@ -10,6 +10,7 @@ Integration tests with S3 take 95% of the time.
 """
 
 
+import pytest
 import tensorflow as tf
 import numpy as np
 import shutil
@@ -148,6 +149,7 @@ def help_test_mnist(path, save_config=None, hook=None, set_modes=True):
 
     return train
 
+@pytest.mark.slow # 0:02 to run
 def test_mnist_local():
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -159,6 +161,7 @@ def test_mnist_local():
     assert len(tr.tensors()) == 17
     shutil.rmtree(trial_dir)
 
+@pytest.mark.slow # 0:02 to run
 def test_mnist_local_json():
     out_dir = 'newlogsRunTest1/test_mnist_local_json_config'
     shutil.rmtree(out_dir, ignore_errors=True)
@@ -172,9 +175,8 @@ def test_mnist_local_json():
     assert len(tr.tensors()) == 17
     shutil.rmtree(out_dir, ignore_errors=True)
 
+@pytest.mark.slow # 1:04 to run
 def test_mnist_s3():
-    # Takes 1:04 to run, compared to 4 seconds above.
-    # Speed improvements, or should we migrate integration tests to their own folder?
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     bucket = 'tornasole-testing'
     prefix = 'tornasole_tf/hooks/estimator_modes/' + run_id
@@ -187,8 +189,8 @@ def test_mnist_s3():
     assert len(tr.tensors()) == 17
     delete_s3_prefix(bucket, prefix)
 
+@pytest.mark.slow # 0:04 to run
 def test_mnist_local_multi_save_configs():
-    # Runs in 0:04
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     help_test_mnist(trial_dir, ts.SaveConfig({
@@ -202,8 +204,8 @@ def test_mnist_local_multi_save_configs():
     assert len(tr.tensors()) == 17
     shutil.rmtree(trial_dir)
 
+@pytest.mark.slow # 0:52 to run
 def test_mnist_s3_multi_save_configs():
-    # Takes 0:52 to run, compared to 4 seconds above. Speed improvements?
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     bucket = 'tornasole-testing'
     prefix = 'tornasole_tf/hooks/estimator_modes/' + run_id
@@ -219,6 +221,7 @@ def test_mnist_s3_multi_save_configs():
     assert len(tr.tensors()) == 17
     delete_s3_prefix(bucket, prefix)
 
+@pytest.mark.slow # 0:02 to run
 def test_mnist_local_multi_save_configs_json():
     out_dir = 'newlogsRunTest1/test_save_config_modes_hook_config'
     shutil.rmtree(out_dir, ignore_errors=True)

@@ -5,6 +5,7 @@ from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
 from tornasole.tensorflow import reset_collections, get_collection, TornasoleHook, modes
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 import shutil
+import pytest
 
 
 def helper_test_save_config(trial_dir, hook):
@@ -99,6 +100,7 @@ def helper_save_config_modes(trial_dir, hook):
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow # 0:03 to run
 def test_save_config_modes():
     run_id = 'trial_' + datetime.now().strftime('%Y%m%d-%H%M%S%f')
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -109,6 +111,7 @@ def test_save_config_modes():
     helper_save_config_modes(trial_dir, hook)
 
 
+@pytest.mark.slow # 0:03 to run
 def test_save_config_modes_json():
     trial_dir = 'newlogsRunTest1/test_save_config_modes_config_coll'
     shutil.rmtree(trial_dir, ignore_errors=True)

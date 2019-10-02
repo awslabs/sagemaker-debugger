@@ -3,6 +3,7 @@ from tornasole.core.collection_manager import CollectionManager, \
     COLLECTIONS_FILE_NAME
 import uuid
 import os
+import pytest
 from tornasole.core.utils import is_s3
 from tests.analysis.utils import generate_data, check_trial, delete_s3_prefix
 
@@ -11,6 +12,7 @@ def check_s3_trial(path, num_steps=20, num_tensors=10):
     trial_obj = S3Trial(name=prefix, bucket_name=bucket, prefix_name=prefix)
     check_trial(trial_obj, num_steps=num_steps, num_tensors=num_tensors)
 
+@pytest.mark.slow
 def test_s3():
     trial_name = str(uuid.uuid4())
     bucket = 'tornasole-testing'
@@ -40,6 +42,7 @@ def help_test_multiple_trials(num_steps = 20, num_tensors = 10):
     trial_obj = S3Trial(name=prefix, bucket_name=bucket, prefix_name=prefix)
     return trial_obj, trial_name
 
+@pytest.mark.slow
 def test_multiple_s3_trials(num_trials = 4, num_steps = 5, num_tensors = 5):
     data = [help_test_multiple_trials(num_steps, num_tensors) for i in range(num_trials)]
     trials = [d[0] for d in data]

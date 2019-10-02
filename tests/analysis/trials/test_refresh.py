@@ -1,3 +1,4 @@
+import pytest
 import uuid
 from tests.analysis.utils import generate_data
 from tornasole.trials import create_trial
@@ -82,17 +83,20 @@ def help_test_no_refresh(path):
 def test_no_refresh_local():
   help_test_no_refresh('ts_output/train/')
 
+@pytest.mark.slow # 0:37 to run
 def test_no_refresh_s3():
   help_test_no_refresh('s3://tornasole-testing/rules/ts_output/train/')
 
 def test_refresh_with_range_local():
   help_test_refresh_with_range('ts_output/train/')
 
+@pytest.mark.slow # 0:36 to run
 def test_refresh_with_range_s3():
   help_test_refresh_with_range('s3://tornasole-testing/rules/ts_output/train/')
 
 def test_refresh_local():
   help_test_refresh('ts_output/train/')
 
+@pytest.mark.slow # 0:47 to run
 def test_refresh_s3():
   help_test_refresh('s3://tornasole-testing/rules/ts_output/train/')

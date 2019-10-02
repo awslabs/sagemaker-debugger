@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import numpy as np
+import pytest
 import xgboost
 
 from .run_xgboost_model import run_xgboost_model
@@ -54,6 +55,7 @@ def test_default_hook(monkeypatch):
     assert hook.out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
 
+@pytest.mark.slow # 0:05 to run
 def test_hook_save_all(tmpdir):
     reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
@@ -75,6 +77,7 @@ def test_hook_save_all(tmpdir):
     assert any(t.endswith("/feature_importance") for t in tensors)
 
 
+@pytest.mark.slow # 0:05 to run
 def test_hook_save_config_collections(tmpdir):
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
@@ -95,6 +98,7 @@ def test_hook_save_config_collections(tmpdir):
     assert all(step % 3 == 0 for step in fimp_steps[:-1])
 
 
+@pytest.mark.slow # 0:05 to run
 def test_hook_shap(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(5, 10)
@@ -112,6 +116,7 @@ def test_hook_shap(tmpdir):
     assert "average_shap" in trial.collections()
 
 
+@pytest.mark.slow # 0:05 to run
 def test_hook_validation(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(5, 10)

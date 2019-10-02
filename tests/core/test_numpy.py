@@ -29,6 +29,7 @@ def test_local():
     rw('./ts_output/')
 
 #@pytest.mark.skip(reason="No S3 client")
+@pytest.mark.slow
 def test_s3():
     import boto3
     my_session = boto3.session.Session()

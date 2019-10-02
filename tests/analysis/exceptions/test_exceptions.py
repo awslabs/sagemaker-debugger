@@ -1,3 +1,4 @@
+import pytest
 import uuid
 from tests.analysis.utils import generate_data
 from tornasole.trials import create_trial
@@ -8,6 +9,7 @@ def del_s3(bucket, file_path):
   s3_client = boto3.client('s3')
   s3_client.delete_object(Bucket=bucket, Key=file_path)
 
+@pytest.mark.slow # 0:40 to run
 def test_refresh_tensors():
     trial_name = str(uuid.uuid4())
     path = 's3://tornasolecodebuildtest/rules/tensors/ts_output/train/'

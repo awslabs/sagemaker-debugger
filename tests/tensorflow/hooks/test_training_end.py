@@ -6,8 +6,9 @@ import shutil
 import os
 import sys
 import subprocess
+import pytest
 
-
+@pytest.mark.slow # 0:03 to run
 def test_training_job_has_ended():
   tf.reset_default_graph()
   reset_collections()
