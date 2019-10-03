@@ -23,7 +23,7 @@ cd sagemaker-tensorflow-container
 git checkout v2.0.7
 python setup.py sdist
 popd
-cd bin/sagemaker-containers/tensorflow/1.13.1/
+cd bin/sagemaker-containers/tensorflow/1.14.0/
 cp ~/sagemaker-tensorflow-container/dist/sagemaker_tensorflow_container-*.tar.gz .
 
 rm -rf tornasole-binary/
@@ -32,7 +32,7 @@ aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
 cp tornasole-binary/*.whl .
 export TORNASOLE_BINARY=`ls tornasole-*.whl`
 
-export TF_ESTIMATOR_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.13/Ubuntu/estimator/tensorflow_estimator-1.13.1-py2.py3-none-any.whl
+export TF_ESTIMATOR_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.14/Ubuntu/estimator/tensorflow_estimator-1.14.0-py2.py3-none-any.whl
 curl -O $TF_ESTIMATOR_BINARY_LOCATION
 
 build() {
@@ -40,9 +40,9 @@ build() {
 
     mode=$1
 
-    export ECR_REPO_NAME=tornasole-preprod-tf-1.13.1-$mode
+    export ECR_REPO_NAME=tornasole-preprod-tf-1.14.0-$mode
     # this is aws tf
-    export TF_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.13/AmazonLinux/$mode/latest-patch-latest-patch/tensorflow-1.13.1-cp36-cp36m-linux_x86_64.whl
+    export TF_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.14/AmazonLinux/$mode/latest-patch-latest-patch/tensorflow-1.14.0-cp36-cp36m-linux_x86_64.whl
     rm -rf tf-$mode.whl
     curl -o tf-$mode.whl $TF_BINARY_LOCATION
     docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \

@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tornasole.tensorflow as ts
 import random
 

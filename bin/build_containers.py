@@ -8,7 +8,7 @@ from time import sleep
 FRAMEWORK_VERSIONS = {
     'mxnet': '1.4.1',
     'pytorch': '1.1.0',
-    'tensorflow': '1.13.1',
+    'tensorflow': '1.14.0',
     'xgboost': '0.90'
     }
 

@@ -1,6 +1,6 @@
 from .utils import *
 from tornasole.tensorflow import reset_collections
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tornasole.core.access_layer.utils import has_training_ended
 import shutil
 import os

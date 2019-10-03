@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 import sys
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import time
 import uuid
 from tornasole.tensorflow import TornasoleHook, TornasoleOptimizer, SaveConfig

@@ -1,7 +1,6 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import numpy as np
 from tornasole.tensorflow.hook import TornasoleHook
-import tensorflow.train as train
 from tensorflow.python.tools import inspect_checkpoint as chkp
 import os, shutil
 from tornasole.tensorflow import reset_collections

@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 import random
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tornasole.tensorflow as ts
 
 parser = argparse.ArgumentParser()

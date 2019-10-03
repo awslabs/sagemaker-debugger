@@ -222,7 +222,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         else:
             original_fetch_ops = get_original_fetch_ops(fetches)
             dest_names = [n.name for n in original_fetch_ops]
-            subgraph = tf.compat.v1.graph_util.extract_sub_graph(
+            subgraph = tf.graph_util.extract_sub_graph(
                 tf.get_default_graph().as_graph_def(), dest_names)
             _, subgraph_nodes, _ = extract_graph_summary(subgraph)
             self.subgraph_nodes_cache[fetches_tuple] = subgraph_nodes

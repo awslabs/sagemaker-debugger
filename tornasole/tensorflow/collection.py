@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tornasole.core.collection import Collection as BaseCollection, \
     CollectionKeys
 from tornasole.core.collection_manager import \
@@ -107,7 +107,7 @@ def add_to_default_collection(args):
 
 def get_collection(collection_name):
     return _collection_manager.get(collection_name, create=True)
-  
+
 def get_collections():
     return _collection_manager.collections
 
