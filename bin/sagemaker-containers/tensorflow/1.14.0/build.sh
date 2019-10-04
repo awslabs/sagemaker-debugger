@@ -42,7 +42,7 @@ build() {
 
     export ECR_REPO_NAME=tornasole-preprod-tf-1.14.0-$mode
     # this is aws tf
-    export TF_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.14/AmazonLinux/$mode/latest-patch-latest-patch/tensorflow-1.14.0-cp36-cp36m-linux_x86_64.whl
+    export TF_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.14/AmazonLinux/$mode/final/tensorflow-1.14.0-cp36-cp36m-linux_x86_64.whl
     rm -rf tf-$mode.whl
     curl -o tf-$mode.whl $TF_BINARY_LOCATION
     docker build -t $ECR_REPO_NAME:$ECR_TAG_NAME --build-arg py_version=3 \

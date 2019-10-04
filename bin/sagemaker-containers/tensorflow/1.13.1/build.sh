@@ -32,7 +32,7 @@ aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
 cp tornasole-binary/*.whl .
 export TORNASOLE_BINARY=`ls tornasole-*.whl`
 
-export TF_ESTIMATOR_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.13/Ubuntu/estimator/tensorflow_estimator-1.13.1-py2.py3-none-any.whl
+export TF_ESTIMATOR_BINARY_LOCATION=https://tensorflow-aws.s3-us-west-2.amazonaws.com/1.13/Ubuntu/estimator/tensorflow_estimator-1.13.0-py2.py3-none-any.whl
 curl -O $TF_ESTIMATOR_BINARY_LOCATION
 
 build() {
