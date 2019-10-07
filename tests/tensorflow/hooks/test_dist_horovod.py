@@ -1,6 +1,7 @@
 from tornasole.trials import create_trial
+import pytest
 
-
+@pytest.mark.slow # 0:11 to run
 def test_s3_read():
     path = "s3://tornasole-testing/dist-logs-10/"
     trial = create_trial(path)

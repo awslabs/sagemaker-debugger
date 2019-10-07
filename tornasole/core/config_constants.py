@@ -9,4 +9,4 @@ TORNASOLE_CONFIG_RDN_CFG_KEY = "reduction_config"
 TORNASOLE_CONFIG_INCLUDE_REGEX_KEY = "include_regex"
 TORNASOLE_CONFIG_SAVE_ALL_KEY = "save_all"
 DEFAULT_SAGEMAKER_TORNASOLE_PATH = "/opt/ml/output/tensors"
-TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME = 'worker_0_collections.json'
+TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME = 'worker_0_collections.json'

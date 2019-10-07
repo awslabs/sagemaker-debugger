@@ -22,6 +22,7 @@ def test_local_index_mode():
     assert bool(trial_obj.index_tensors_dict) is True
 
 
+@pytest.mark.slow # 0:03 to run
 def test_local_event_mode():
     trial_name = str(uuid.uuid4())
     path = 'ts_output/train/'

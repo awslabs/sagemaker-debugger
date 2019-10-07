@@ -2,6 +2,7 @@ import os
 import uuid
 import numpy as np
 import pytest
+import shutil
 import xgboost
 
 from .run_xgboost_model import run_xgboost_model
@@ -49,6 +50,7 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
 
 def test_default_hook(monkeypatch):
     reset_collections()
+    shutil.rmtree('/opt/ml/output/tensors', ignore_errors=True)
     monkeypatch.delenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, raising=False)
     hook = TornasoleHook.hook_from_config()
     assert hook.out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH

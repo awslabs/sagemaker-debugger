@@ -112,7 +112,7 @@ class Trial(ABC):
             else:
                 collection_files = list_collection_files_in_directory(self.trial_dir)
 
-            time.sleep(2)
+            # time.sleep(2)
             num_times_before_warning -= 1
             if num_times_before_warning < 0:
                 self.logger.warning('Waiting to read collections')

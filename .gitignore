@@ -115,6 +115,7 @@ log
 cm.json
 cm.ts
 collections.json
+worker*.json
 
 # Wheel and tar files from running `python bin/build_containers.py`
 *.whl

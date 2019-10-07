@@ -6,7 +6,7 @@ from tornasole.core.tensor import StepState
 from datetime import datetime
 from tornasole.core.writer import FileWriter
 from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
 
 
 def test_modes_on_global_data():
@@ -20,7 +20,7 @@ def test_mode_data():
   c = CollectionManager()
   c.add("default")
   c.get("default").tensor_names = ["arr"]
-  c.export(os.path.join(trial_dir, TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
+  c.export(os.path.join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
   tr = create_trial(trial_dir)
   for s in range(0, 10):
     fw = FileWriter(trial_dir=trial_dir, step=s)

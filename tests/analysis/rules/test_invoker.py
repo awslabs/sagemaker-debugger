@@ -4,6 +4,7 @@ from tornasole.rules.generic import ExplodingTensor
 from tornasole.trials import create_trial
 import uuid
 import numpy as np
+import pytest
 from tornasole.exceptions import *
 from tornasole.rules.rule_invoker import invoke_rule
 
@@ -62,6 +63,7 @@ def test_invoker_rule_pass_kwargs():
   assert rcode == 0
   shutil.rmtree(path)
 
+@pytest.mark.slow # 0:04 to run
 def test_invoker_rule_pass_other_trials():
   path1 = dump_data()
   path2 = dump_data()

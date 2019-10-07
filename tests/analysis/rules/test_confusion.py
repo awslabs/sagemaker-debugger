@@ -1,9 +1,10 @@
 from tornasole.core.writer import FileWriter
 from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
 
 from tornasole.rules.generic import Confusion
 from tornasole.trials import create_trial
+import pytest
 import os
 
 import uuid
@@ -22,9 +23,10 @@ def gen_y_and_y_hat( path, trial, step, y, y_name, y_hat, y_hat_name, colls={}):
     for coll in colls:
         c.add(coll)
         c.get(coll).tensor_names = colls[coll]
-    c.export(os.path.join(trial_dir, TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
+    c.export(os.path.join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
 
 
+@pytest.mark.slow # 0:06 to run
 def test_confusion():
     base_path = 'ts_output1/rule_invoker/'
     path = base_path
