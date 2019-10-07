@@ -33,6 +33,7 @@ from .util import make_tensor_proto
 from tornasole.core.tfevent.index_file_writer import EventWithIndex
 from tornasole.core.utils import get_relative_event_file_path
 from tornasole.core.modes import MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
+from tornasole.core.utils import parse_worker_name_from_file
 
 
 def size_and_shape(t):
@@ -193,7 +194,8 @@ class _EventLoggerThread(threading.Thread):
                     eventfile = get_relative_event_file_path(eventfile)
                     tensorlocation = TensorLocation(
                             tname, mode, mode_step, eventfile,
-                            positions[0], positions[1])
+                            positions[0], positions[1], parse_worker_name_from_file(eventfile)
+                    )
                     self._ev_writer.index_writer.add_index(tensorlocation)
                 # Flush the event writer every so often.
                 now = time.time()

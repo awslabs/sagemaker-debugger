@@ -11,6 +11,7 @@ from tornasole.core.access_layer.utils import training_has_ended
 from tornasole.core.json_config import (
     TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
     create_hook_from_json_config)
+
 from .collection import get_collection_manager
 from .utils import validate_data_file_path, get_content_type, get_dmatrix
 
@@ -31,7 +32,6 @@ class TornasoleHook(CallbackHook):
             self,
             out_dir: Optional[str] = None,
             dry_run: bool = False,
-            worker: str = TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
             reduction_config=None,
             save_config: Optional[SaveConfig] = None,
             include_regex: Optional[List[str]] = None,
@@ -79,7 +79,6 @@ class TornasoleHook(CallbackHook):
                          data_type_name=None,
                          out_dir=out_dir,
                          dry_run=dry_run,
-                         worker=worker,
                          reduction_config=None,
                          save_config=save_config,
                          include_regex=include_regex,
@@ -90,12 +89,19 @@ class TornasoleHook(CallbackHook):
             self.logger.warning(msg)
         self.train_data = self._validate_data(train_data)
         self.validation_data = self._validate_data(validation_data)
-
         # as we do cleanup ourselves at end of job
         atexit.unregister(self._cleanup)
 
     def __call__(self, env: CallbackEnv) -> None:
         self._callback(env)
+
+    def get_num_workers(self):
+        # TODO :
+        return 1
+
+    def get_worker_name(self):
+        # TODO :
+        pass
 
     @classmethod
     def hook_from_config(cls):
@@ -136,7 +142,7 @@ class TornasoleHook(CallbackHook):
             return
 
         if env.rank > 0:
-            self.worker = "worker{}".format(env.rank)
+            self.worker = "worker_{}".format(env.rank)
 
         self._initialize_writer()
 

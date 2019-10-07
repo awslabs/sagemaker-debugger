@@ -3,6 +3,8 @@ import mxnet as mx
 from tornasole.core.hook import CallbackHook
 from tornasole.core.logger import get_logger
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
+
+import logging
 from tornasole.core.collection import CollectionKeys
 from tornasole.mxnet.mxnet_collection import get_collection_manager
 from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
@@ -23,7 +25,6 @@ class TornasoleHook(CallbackHook):
     def __init__(self,
                  out_dir=None,
                  dry_run=False,
-                 worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config=None,
                  save_config=None,
                  include_regex=None,
@@ -35,7 +36,6 @@ class TornasoleHook(CallbackHook):
                 data_type_name=mx.ndarray.NDArray.__name__,
                 out_dir=out_dir,
                 dry_run=dry_run,
-                worker=worker,
                 reduction_config=reduction_config,
                 save_config=save_config,
                 include_regex=include_regex,
@@ -46,6 +46,12 @@ class TornasoleHook(CallbackHook):
         if CollectionKeys.LOSSES not in self.include_collections:
             self.include_collections.append(CollectionKeys.LOSSES)
         self.last_block = None
+
+    def get_worker_name(self):
+        return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+
+    def get_num_workers(self):
+        return 1
 
     @classmethod
     def hook_from_config(cls):

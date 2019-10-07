@@ -1,10 +1,10 @@
 from .trial import EventFileTensor, Trial
 
-from tornasole.core.utils import index, step_in_range
 from tornasole.core.locations import EventFileLocation
-from tornasole.core.collection_manager import CollectionManager, \
-    COLLECTIONS_FILE_NAME
+from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.reader import FileReader
+from tornasole.core.utils import index, step_in_range, list_collection_files_in_directory, \
+    get_worker_name_from_collection_file, parse_worker_name_from_file
 
 import time
 import os
@@ -30,7 +30,8 @@ class LocalTrial(Trial):
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
         for tname in index_tensors_dict:
             for step, itds in index_tensors_dict[tname].items():
-                self.add_tensor(int(step), itds['tensor_location'])
+                for worker in itds:
+                    self.add_tensor(int(step), worker, itds[worker]['tensor_location'])
 
     def _load_tensors_from_event_files(self):
         try:
@@ -57,22 +58,11 @@ class LocalTrial(Trial):
 
         self._read_step_dirs(step_dirs)
 
-    def _load_collections(self):
-        collections_file_path = os.path.join(self.trial_dir, COLLECTIONS_FILE_NAME)
-        num_times_before_warning = 10
-        while True:
-            if os.path.exists(collections_file_path):
-                self.collection_manager = CollectionManager.load(collections_file_path)
-                self.logger.info(f'Loaded {len(self.collection_manager.collections)} collections')
-                break
-            else:
-                time.sleep(2)
-                num_times_before_warning -= 1
-                if num_times_before_warning < 0:
-                    self.logger.warning('Waiting to read collections')
-                else:
-                    self.logger.debug('Waiting to read collections')
-                continue
+    def read_collections(self, collection_files):
+        first_collection_file = collection_files[0]  # First Collection File
+        collections_file_path = os.path.join(self.trial_dir, first_collection_file)
+        self.collection_manager = CollectionManager.load(collections_file_path)
+        self.num_workers = self.collection_manager.get_num_workers()
 
     def get_tensors(self, tname_steps_dict, should_regex_match=False):
         # now we do not need to do anything since we read the full event file
@@ -128,10 +118,11 @@ class LocalTrial(Trial):
             if fname.endswith(".tfevents"):
                 full_fname = os.path.join(dirname, fname)
                 fr = FileReader(fname=full_fname)
+                worker = parse_worker_name_from_file(full_fname)
                 summary_values = fr.read_tensors(check=check)
                 for sv in summary_values:
                     n, s, d, mode, mode_step = sv
                     eft = EventFileTensor(fname, tensor_name=n, step_num=s, tensor_value=d,
-                                          mode=mode, mode_step=mode_step)
+                                          mode=mode, mode_step=mode_step, worker=worker)
                     res.append(eft)
         return dirname, res

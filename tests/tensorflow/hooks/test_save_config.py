@@ -1,5 +1,4 @@
 from tornasole.trials import create_trial
-from tornasole import SaveConfig
 from .utils import *
 from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
 from tornasole.tensorflow import reset_collections, get_collection, TornasoleHook, modes

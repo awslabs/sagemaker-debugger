@@ -1,7 +1,7 @@
 from .utils import *
 from tornasole.tensorflow import reset_collections
 import tensorflow.compat.v1 as tf
-from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
+from tornasole.core.config_constants import TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 import tornasole.tensorflow as ts
 import shutil
@@ -12,8 +12,8 @@ def helper_test_only_w_g(trial_dir, hook):
     steps, _ = get_dirs_files(os.path.join(trial_dir, 'events'))
     _, files = get_dirs_files(trial_dir)
 
-    assert COLLECTIONS_FILE_NAME in files
-    cm = CollectionManager.load(join(trial_dir, COLLECTIONS_FILE_NAME))
+    assert TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
+    cm = CollectionManager.load(join(trial_dir, TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
     num_tensors_loaded_collection = len(cm.collections['weights'].tensor_names) + \
                                     len(cm.collections['gradients'].tensor_names) + \
                                     len(cm.collections['default'].tensor_names)

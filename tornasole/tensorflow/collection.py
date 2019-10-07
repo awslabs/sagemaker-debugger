@@ -1,3 +1,4 @@
+from tensorflow.python.distribute import values
 import tensorflow.compat.v1 as tf
 from tornasole.core.collection import Collection as BaseCollection, \
     CollectionKeys
@@ -25,6 +26,9 @@ class Collection(BaseCollection):
                 self.add_tensor(t)
         elif isinstance(arg, tf.Variable) or isinstance(arg, tf.Tensor):
             self.add_tensor(arg)
+        elif isinstance(arg, values.MirroredVariable):
+            for value in arg._values:
+                self.add_tensor(value)
         else:
             raise TypeError('Unknown type of argument %s.'
                             'Add can only take tf.Operation, tf.Variable, tf.Tensor'

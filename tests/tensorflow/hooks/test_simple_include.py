@@ -1,10 +1,11 @@
 from .utils import *
-from tornasole.tensorflow import reset_collections, get_collection
+from tornasole.tensorflow import get_collection
 import tornasole.tensorflow as ts
 import glob, shutil
 from tornasole.core.reader import FileReader
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
+from tornasole.core.config_constants import TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+
 
 
 def helper_test_simple_include(trial_dir, hook):
@@ -13,7 +14,7 @@ def helper_test_simple_include(trial_dir, hook):
     _, files = get_dirs_files(trial_dir)
     steps, _ = get_dirs_files(os.path.join(trial_dir, 'events'))
 
-    cm = CollectionManager.load(join(trial_dir, COLLECTIONS_FILE_NAME))
+    cm = CollectionManager.load(join(trial_dir, TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
     assert len(cm.collections['default'].tensor_names) == 1
     assert len(steps) == 5
     for step in steps:
@@ -57,7 +58,7 @@ def helper_test_simple_include_regex(trial_dir, hook):
     _, files = get_dirs_files(trial_dir)
     steps, _ = get_dirs_files(os.path.join(trial_dir, 'events'))
 
-    cm = CollectionManager.load(join(trial_dir, COLLECTIONS_FILE_NAME))
+    cm = CollectionManager.load(join(trial_dir, TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
     assert len(cm.collections['default'].tensor_names) == 1
     assert len(steps) == 5
 
@@ -104,7 +105,7 @@ def helper_test_multi_collection_match(trial_dir, hook):
     _, files = get_dirs_files(trial_dir)
     steps, _ = get_dirs_files(os.path.join(trial_dir, 'events'))
 
-    cm = CollectionManager.load(join(trial_dir, COLLECTIONS_FILE_NAME))
+    cm = CollectionManager.load(join(trial_dir, TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
     assert len(cm.collections['default'].tensor_names) == 1
     assert len(cm.collections['trial'].tensor_names) == 1
     assert len(steps) == 5

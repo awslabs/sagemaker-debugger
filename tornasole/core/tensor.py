@@ -17,7 +17,7 @@ class StepState(Enum):
 
 
 class ModeSteps:
-    """Contains a ModeKey and a dictionary mapping step numbers to Steps."""
+    """Contains a ModeKey and a dictionary mapping step numbers to a dictionary of workers to steps."""
     def __init__(self, mode):
         self.mode = mode
         self._steps = {}
@@ -30,33 +30,43 @@ class ModeSteps:
     def has_step(self, step_num):
         return step_num in self._steps
 
-    def set_step_value(self, step_num, value):
+    def set_step_value(self, step_num, worker, value):
+        step = Step(step_num, value=value)
         if step_num not in self._steps:
-            self._steps[step_num] = Step(step_num, value)
-        else:
-            s = self._steps[step_num]
-            s.value = value
+            self._steps[step_num] = {worker: step}
+        elif worker not in self._steps[step_num]:
+            self._steps[step_num].update({worker: step})
 
-    def set_step_location(self, step_num, location):
+        s = self._steps[step_num][worker]
+        s.value = value
+
+    def set_step_location(self, step_num, worker, location):
+        step = Step(step_num, location=location)
         if step_num not in self._steps:
-            self._steps[step_num] = Step(step_num, location=location)
-        s = self._steps[step_num]
+            self._steps[step_num] = {worker: step}
+        elif worker not in self._steps[step_num]:
+            self._steps[step_num].update({worker: step})
+
+        s = self._steps[step_num][worker]
         s.location = location
 
-    def set_step_reduction_value(self, step_num, red_name, abs, red_value):
+    def set_step_reduction_value(self, step_num, worker, red_name, abs, red_value):
         if step_num not in self._steps:
             s = Step(step_num)
-            self._steps[step_num] = s
-        else:
-            s = self._steps[step_num]
+            self._steps[step_num] = {worker: s}
+        elif worker not in self._steps[step_num]:
+            s = Step(step_num)
+            self._steps[step_num].update({worker: s})
+        s = self._steps[step_num][worker]
         s.set_reduction_value(red_name, abs, red_value)
 
-    def set_step_reduction_location(self, step_num, red_name, abs, red_location):
+    def set_step_reduction_location(self, step_num, worker, red_name, abs, red_location):
         if step_num not in self._steps:
+            self._steps[step_num] = {worker: Step(step_num)}
+        elif worker not in self._steps[step_num]:
             s = Step(step_num)
-            self._steps[step_num] = s
-        else:
-            s = self._steps[step_num]
+            self._steps[step_num].update({worker: s})
+        s = self._steps[step_num][worker]
         s.set_reduction_location(red_name, abs, red_location)
 
     def step(self, step_num):
@@ -158,7 +168,7 @@ class Tensor:
                 return True
         return False
 
-    def _get_step_currently(self, step_num, mode):
+    def _get_step_dict(self, step_num, mode):
         if mode == ModeKeys.GLOBAL and ModeKeys.GLOBAL in self._mode_steps \
                 and self._mode_steps[ModeKeys.GLOBAL].has_step(step_num):
             # step was saved as GLOBAL step
@@ -171,21 +181,33 @@ class Tensor:
                 return self._mode_steps[mode].step(step_num)
         return None
 
-    def step(self, step_num, mode=ModeKeys.GLOBAL):
+    def _get_step_currently(self, step_num, mode, worker=None) -> Step:
+        step_dict = self._get_step_dict(step_num, mode)
+        if step_dict is not None:
+            if worker and worker not in step_dict:
+                raise InvalidWorker(worker)
+            if worker is None:
+                workers = sorted(step_dict.keys())
+                assert len(workers) > 0
+                worker = workers[0]
+            return step_dict[worker]
+        return None
+
+    def step(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
         raise NotImplementedError(
             'step method has been removed. Please use tensor.value '
             'or tensor.reduction_value methods'
         )
 
-    def _step(self, step_num, mode=ModeKeys.GLOBAL):
-        s = self._get_step_currently(step_num, mode)
+    def _step(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
+        s = self._get_step_currently(step_num, mode, worker=worker)
         if s is not None:
             return s
         else:
             self.trial.maybe_refresh(self.name)
             ss = self.trial.has_passed_step(step_num, mode)
             if ss == StepState.AVAILABLE:
-                s = self._get_step_currently(step_num, mode)
+                s = self._get_step_currently(step_num, mode, worker=worker)
                 if s is not None:
                     return s
                 raise TensorUnavailableForStep(self.name, step_num, mode)
@@ -203,9 +225,9 @@ class Tensor:
                 raise StepNotYetAvailable(step_num, mode)
         assert False, 'Should not happen'
 
-    def value(self, step_num, mode=ModeKeys.GLOBAL):
+    def value(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
         # step refreshes
-        s = self._step(step_num=step_num, mode=mode)
+        s = self._step(step_num=step_num, mode=mode, worker=worker)
         if s.value is not None:
             return s.value
         elif s.location is not None:
@@ -219,8 +241,8 @@ class Tensor:
             has_reductions = has_reduction_locations or has_reduction_values
             raise TensorUnavailableForStep(self.name, step_num, mode, has_reductions)
 
-    def reduction_values(self, step_num, mode=ModeKeys.GLOBAL):
-        s = self._step(step_num=step_num, mode=mode)
+    def reduction_values(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
+        s = self._step(step_num=step_num, mode=mode, worker=worker)
         if s is not None:
             rvs = {}
             if self.trial.index_mode:
@@ -229,12 +251,18 @@ class Tensor:
                 red_types = s.reduction_values().keys()
             for red_name, abs_val in red_types:
                 rvs[(red_name, abs_val)] = self.reduction_value(
-                        step_num, red_name, mode, abs_val)
+                        step_num, red_name, mode, worker, abs_val)
             return rvs
         else:
             assert False, 'Should not happen'
 
-    def reduction_value(self, step_num, reduction_name, mode=ModeKeys.GLOBAL, abs=False):
+    def workers_for_step(self, step_num, mode=ModeKeys.GLOBAL):
+        step = self._get_step_dict(step_num, mode)
+        if step is None:
+            raise ValueError('invalid step')
+        return list(step.keys())
+
+    def reduction_value(self, step_num, reduction_name, mode=ModeKeys.GLOBAL, worker=None, abs=False):
         """
         Returns the value of the reduction requested.
         If the tensor was saved as a reduction, then just fetches that.
@@ -245,11 +273,13 @@ class Tensor:
         :param mode: mode of job (train, eval, predict, etc).
                             If this is None, assumes step number is global
         :param reduction_name: name of reduction
+        :param worker: name of worker
         :param abs: boolean which represents whether reduction should
                     be applied on absolute value of the tensor or not
         :return: reduction value requested as a float
         """
-        s = self._step(step_num=step_num, mode=mode)
+
+        s = self._step(step_num=step_num, mode=mode, worker=worker)
         rv = s.reduction_value(reduction_name, abs)
         rl = s.reduction_location(reduction_name, abs)
         if rv is not None:
@@ -277,22 +307,22 @@ class Tensor:
         if mode not in self._mode_steps:
             self._mode_steps[mode] = ModeSteps(mode)
 
-    def add_step(self, mode, mode_step, value):
+    def add_step(self, mode, mode_step, worker, value):
         self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_value(mode_step, value)
+        self._mode_steps[mode].set_step_value(mode_step, worker, value)
 
-    def add_reduction_step(self, mode, mode_step, red_name, abs, red_value):
+    def add_reduction_step(self, mode, mode_step, worker, red_name, abs, red_value):
         self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_reduction_value(mode_step,
+        self._mode_steps[mode].set_step_reduction_value(mode_step, worker,
                                                         red_name, abs, red_value)
 
-    def add_step_lazy(self, mode, mode_step, location):
+    def add_step_lazy(self, mode, mode_step, worker, location):
         self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_location(mode_step, location)
+        self._mode_steps[mode].set_step_location(mode_step, worker, location)
 
-    def add_reduction_step_lazy(self, mode, mode_step, red_name, abs, red_location):
+    def add_reduction_step_lazy(self, mode, mode_step, worker, red_name, abs, red_location):
         self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_reduction_location(mode_step,
+        self._mode_steps[mode].set_step_reduction_location(mode_step, worker,
                                                         red_name, abs, red_location)
 
     def prev_steps(self, step, n=None, mode=ModeKeys.GLOBAL):

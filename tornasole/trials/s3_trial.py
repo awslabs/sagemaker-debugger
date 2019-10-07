@@ -1,11 +1,9 @@
-import time
 import os
 
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.locations import EventFileLocation
-from tornasole.core.collection_manager import CollectionManager, \
-    COLLECTIONS_FILE_NAME
+from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.utils import step_in_range
 
@@ -38,29 +36,18 @@ class S3Trial(Trial):
 
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
         for tname in index_tensors_dict:
-            steps = list(index_tensors_dict[tname].keys())
-            for step in steps:
-                self.add_tensor(step, index_tensors_dict[tname][step]['tensor_location'])
+            for step, itds in index_tensors_dict[tname].items():
+                for worker in itds:
+                    self.add_tensor(int(step), worker, itds[worker]['tensor_location'])
 
-    def _load_collections(self):
-        num_times_before_warning = 10
-        while True:
-            key = os.path.join(self.prefix_name, COLLECTIONS_FILE_NAME)
-            collections_req = ReadObjectRequest(self._get_s3_location(key))
-            obj_data = self.s3_handler.get_objects([collections_req])[0]
-            if obj_data is None:
-                num_times_before_warning -= 1
-                if num_times_before_warning < 0:
-                    self.logger.warning('Waiting to read collections')
-                else:
-                    self.logger.debug('Waiting to read collections')
-                time.sleep(2)
-                continue
-
-            obj_data = obj_data.decode('utf-8')
-            self.collection_manager = CollectionManager.load_from_string(obj_data)
-            self.logger.debug('Loaded collections for trial {}'.format(self.name))
-            return
+    def read_collections(self, collection_files):
+        first_collection_file = collection_files[0]  # First Collection File
+        key = os.path.join(self.prefix_name, first_collection_file)
+        collections_req = ReadObjectRequest(self._get_s3_location(key))
+        obj_data = self.s3_handler.get_objects([collections_req])[0]
+        obj_data = obj_data.decode('utf-8')
+        self.collection_manager = CollectionManager.load_from_string(obj_data)
+        self.num_workers = self.collection_manager.get_num_workers()
 
     def get_tensors(self, tname_steps_dict, should_regex_match=False):
         # to be used when getting selective tensors from S3

@@ -4,6 +4,7 @@ import bisect
 from botocore.exceptions import ClientError
 import json
 from pathlib import Path
+
 from typing import Dict, List
 
 
@@ -28,9 +29,11 @@ def flatten(lis):
           new_lis.append(item)
   return new_lis
 
+
 def split(comma_separated_string: str) -> List[str]:
     """Split "foo, bar,b az" into ["foo","bar","b az".]"""
     return [x.strip() for x in comma_separated_string.split(",")]
+
 
 def merge_two_dicts(x, y) -> Dict:
     """If x and y have the same key, then y's value takes precedence.
@@ -42,6 +45,7 @@ def merge_two_dicts(x, y) -> Dict:
         z = {'a': 1, 'b': 3, 'c': 4}.
     """
     return {**x, **y}
+
 
 def get_immediate_subdirectories(a_dir):
   return [name for name in os.listdir(a_dir)
@@ -92,6 +96,17 @@ def list_files_in_directory(directory):
     return files
 
 
+def list_collection_files_in_directory(directory):
+    import re
+    collections_file_regex = re.compile(".*_?collections.json")
+    files = [f for f in os.listdir(directory) if re.match(collections_file_regex, f)]
+    return files
+
+
+def get_worker_name_from_collection_file(filename):
+    worker_name_regex = re.compile("(.+)_collections.(json|ts)")
+    return re.match(worker_name_regex, filename).group(1)
+
 def match_inc(tname, include):
     for inc in include:
         if re.search(inc, tname):
@@ -131,3 +146,9 @@ def get_relative_event_file_path(path):
     path_parts = p.parts
     assert path_parts[-3] == "events"
     return os.path.join(*path_parts[-3:])
+
+
+def parse_worker_name_from_file(filename):
+    # worker_2 = /tmp/ts-logs/index/000000001/000000001230_worker_2.json
+    worker_name_regex = re.compile('.+\/\d+_(.+)\.(json|csv|tfevents)$')
+    return re.match(worker_name_regex, filename).group(1)

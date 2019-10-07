@@ -1,6 +1,6 @@
 from tornasole.trials import S3Trial
-from tornasole.core.collection_manager import CollectionManager, \
-    COLLECTIONS_FILE_NAME
+from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.config_constants import TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME
 import uuid
 import os
 import pytest
@@ -33,8 +33,8 @@ def help_test_multiple_trials(num_steps = 20, num_tensors = 10):
     c = CollectionManager()
     c.add("default")
     c.get("default").tensor_names = ["foo_" + str(i) for i in range(num_tensors)]
-    c.export(path + trial_name + "/" + COLLECTIONS_FILE_NAME)
-    c.export(path + trial_name + "/" + COLLECTIONS_FILE_NAME)
+    c.export(path + trial_name + "/" + TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+    c.export(path + trial_name + "/" + TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
     for i in range(num_steps):
         generate_data(path=path, trial=trial_name, num_tensors=num_tensors,
                       step=i, tname_prefix='foo', worker='algo-1', shape=(3, 3, 3), rank=0)

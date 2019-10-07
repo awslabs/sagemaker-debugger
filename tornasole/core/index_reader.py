@@ -3,7 +3,7 @@ import json
 from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
 from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
-from tornasole.core.utils import is_s3, list_files_in_directory, step_in_range
+from tornasole.core.utils import is_s3, list_files_in_directory, step_in_range, parse_worker_name_from_file
 from tornasole.core.logger import get_logger
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.modes import ModeKeys
@@ -32,6 +32,7 @@ class S3IndexReader:
     def get_s3_responses(bucket_name, prefix_name, start_after_key, range_steps=None):
         object_requests = []
         steps = []
+        workers = []
         index_files, last_index_token = S3IndexReader.list_all_index_files_from_s3(bucket_name, prefix_name,
                                                                                   start_after_key)
         for index_file in index_files:
@@ -39,10 +40,11 @@ class S3IndexReader:
             if (range_steps is not None and step_in_range(range_steps, step)) or \
                     range_steps is None:
                 steps.append(step)
+                workers.append(parse_worker_name_from_file(index_file))
                 object_requests.append(ReadObjectRequest(format(f"s3://{bucket_name}/") + index_file))
 
         responses = S3Handler().get_objects(object_requests)
-        return responses, steps, last_index_token
+        return responses, steps, last_index_token, workers
 
     @staticmethod
     def list_all_index_files_from_s3(bucket_name, prefix_name, start_after_key=None):
@@ -65,17 +67,19 @@ class LocalIndexReader:
     def get_disk_responses(path, start_after_key=0, range_steps=None):
         index_files = LocalIndexReader.list_index_files_in_dir(path)
         steps = []
+        workers = []
         responses = []
         index_files = index_files[start_after_key:]  # ignore files we have already read
         for index_file in index_files:
             step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
             if (range_steps is not None and step_in_range(range_steps, step)) or \
                     range_steps is None:
-                steps.append(IndexFileLocationUtils.parse_step_from_index_file_name(index_file))
+                steps.append(step)
+                workers.append(parse_worker_name_from_file(index_file))
                 with open(index_file) as f:
                     responses.append(f.read().encode())
         start_after_key += len(index_files)  # Last file that we have read
-        return responses, steps, start_after_key
+        return responses, steps, start_after_key, workers
 
 
 class IndexReader:
@@ -107,17 +111,18 @@ class IndexReader:
         if s3:
             if start_after_key == 0:
                 start_after_key = None
-            responses, steps, last_index_token = \
+            responses, steps, last_index_token, workers = \
                 S3IndexReader.get_s3_responses(bucket_name, prefix_name, start_after_key, range_steps)
         else:
-            responses, steps, last_index_token = LocalIndexReader.get_disk_responses(path, start_after_key, range_steps)
+            responses, steps, last_index_token, workers = \
+                LocalIndexReader.get_disk_responses(path, start_after_key, range_steps)
         tensor_data = {}
-        for step, response in zip(steps, responses):
-            tensor_data = IndexReader._update_tensors_from_json(tensor_data, step, response, path)
+        for step, response, worker in zip(steps, responses, workers):
+            tensor_data = IndexReader._update_tensors_from_json(tensor_data, step, response, path, worker)
         return tensor_data, last_index_token
 
     @staticmethod
-    def _update_tensors_from_json(index_tensors_dict, step, response, path):
+    def _update_tensors_from_json(index_tensors_dict, step, response, path, worker):
         index_dict = json.loads(response)
         index_meta = index_dict['meta']
         mode = index_meta['mode']
@@ -129,15 +134,26 @@ class IndexReader:
             tensor_name = tensor['tensorname']
             start_idx = tensor['start_idx']
             length = tensor['length']
-            tensor_location = TensorLocation(tensor_name, mode, mode_step, event_file_name, start_idx, length)
+            tensor_location = TensorLocation(tensor_name, mode, mode_step, event_file_name, start_idx, length, worker)
             if tensor_name in index_tensors_dict:
-                index_tensors_dict[tensor_name].update({
-                    step: {
-                        "tensor_location": tensor_location
-                    }})
+                if step in index_tensors_dict[tensor_name]:
+                    index_tensors_dict[tensor_name][step].update({
+                            worker: {
+                                "tensor_location": tensor_location
+                            }
+                        })
+                else:
+                    index_tensors_dict[tensor_name].update({
+                        step: {
+                            worker: {
+                                "tensor_location": tensor_location
+                            }
+                        }}
+                    )
             else:
                 index_tensors_dict[tensor_name] = {step: {
-                    "tensor_location": tensor_location
+                    worker: {
+                        "tensor_location": tensor_location
+                    }
                 }}
-
         return index_tensors_dict

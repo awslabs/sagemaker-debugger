@@ -2,9 +2,9 @@ from .utils import *
 from tornasole.tensorflow import reset_collections, get_collections, CollectionManager
 import shutil
 import glob
-from tornasole.core.collection_manager import COLLECTIONS_FILE_NAME
 from tornasole.core.reader import FileReader
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.config_constants import TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME
 
 def helper_save_reductions(trial_dir, hook):
   simple_model(hook)
@@ -14,8 +14,8 @@ def helper_save_reductions(trial_dir, hook):
   assert len(coll['weights'].tensor_names) == 1
   assert len(coll['gradients'].tensor_names) == 1
 
-  assert COLLECTIONS_FILE_NAME in files
-  cm = CollectionManager.load(join(trial_dir, COLLECTIONS_FILE_NAME))
+  assert TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
+  cm = CollectionManager.load(join(trial_dir, TORASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
   assert len(cm.collections) == 5
   assert len(cm.collections['weights'].tensor_names) == 1
   assert len(cm.collections['gradients'].tensor_names) == 1

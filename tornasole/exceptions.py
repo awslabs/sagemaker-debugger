@@ -47,6 +47,15 @@ class TensorUnavailable(Exception):
            'not know about this tensor.'.format(self.tname)
 
 
+class InvalidWorker(Exception):
+  def __init__(self, worker):
+    self.worker = worker
+
+  def __str__(self):
+    return 'Invalid Worker: {}'.format(self.worker)
+
+
+
 class NoMoreData(Exception):
   def __init__(self, step, mode, last_step):
     self.step = step

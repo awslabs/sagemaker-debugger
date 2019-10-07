@@ -178,7 +178,8 @@ def helper_test_weights_bias_gradients(hook=None):
 
 
 def saveall_test_helper(hook=None):
-    reset_collections()
+    if hook is None:
+        reset_collections()
     prefix = str(uuid.uuid4())
     hook_type = 'saveall'
     device = torch.device("cpu")

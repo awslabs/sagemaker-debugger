@@ -9,7 +9,8 @@ from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
 
 from tornasole.core.locations import EventFileLocation
-from tornasole.core.utils import flatten
+from tornasole.core.utils import flatten, is_s3, list_collection_files_in_directory, get_worker_name_from_collection_file
+from tornasole.core.s3_utils import list_s3_objects, parse_collection_files_from_s3_objects
 from tornasole.core.logger import get_logger
 from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, \
     reverse_reduction_tensor_name
@@ -21,7 +22,7 @@ from tornasole.core import index_reader
 
 class EventFileTensor:
     def __init__(self, filename, tensor_name, step_num, tensor_value,
-                 mode=None, mode_step=None):
+                 mode=None, mode_step=None, worker=None):
         self.location = EventFileLocation.load_filename(filename)
         self.tensorname = tensor_name
         self.tensor_value = tensor_value
@@ -32,6 +33,7 @@ class EventFileTensor:
             mode_step = step_num
         self.mode = mode
         self.mode_step = mode_step
+        self.worker = worker
 
 
 class Trial(ABC):
@@ -72,6 +74,8 @@ class Trial(ABC):
         self.last_event_token = None
         self.last_index_token = 0
         self.index_reader = index_reader.IndexReader
+        self.worker_set = set()
+        self.num_workers = 0
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
@@ -90,8 +94,44 @@ class Trial(ABC):
                              .format(self.name, self.range_steps[0], self.range_steps[1]))
 
     @abstractmethod
-    def _load_collections(self):
+    def read_collections(self, collection_files):
         pass
+
+    def _load_collections(self):
+        num_times_before_warning = 10
+        collection_files = []
+
+        def _wait():
+            nonlocal collection_files
+            nonlocal num_times_before_warning
+            s3, bucket_name, key_name = is_s3(self.path)
+            if s3:
+                s3_objects, _ = \
+                    list_s3_objects(self.bucket_name, self.prefix_name, start_after_key=None, delimiter='')
+                collection_files = parse_collection_files_from_s3_objects(s3_objects)
+            else:
+                collection_files = list_collection_files_in_directory(self.trial_dir)
+
+            time.sleep(2)
+            num_times_before_warning -= 1
+            if num_times_before_warning < 0:
+                self.logger.warning('Waiting to read collections')
+            else:
+                self.logger.debug('Waiting to read collections')
+
+        def _wait_for_first_collection_file():
+            while len(collection_files) == 0:
+                _wait()
+
+        def _wait_for_all_collection_files():
+            while len(collection_files) < self.num_workers:
+                _wait()
+            for collection_file in collection_files:
+                self.worker_set.add(get_worker_name_from_collection_file(collection_file))
+
+        _wait_for_first_collection_file()
+        self.read_collections(collection_files)
+        _wait_for_all_collection_files()
 
     @abstractmethod
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
@@ -154,7 +194,7 @@ class Trial(ABC):
         if step_num not in self._global_to_mode:
             self._global_to_mode[step_num] = (tensor_object.mode, tensor_object.mode_step)
 
-    def add_tensor(self, step_num, tensor_object):
+    def add_tensor(self, step_num, worker, tensor_object):
         to = tensor_object
         # todo, use worker_name here
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
@@ -169,20 +209,24 @@ class Trial(ABC):
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
             if type(to) is TensorLocation:
                 t.add_reduction_step_lazy(to.mode, to.mode_step,
-                                 red_name, abs, to)
+                                          worker, red_name, abs, to)
             else:
                 t.add_reduction_step(to.mode, to.mode_step,
-                                     red_name, abs, to.tensor_value)
+                                     worker, red_name, abs, to.tensor_value)
         else:
             if type(to) is TensorLocation:
-                t.add_step_lazy(to.mode, to.mode_step, to)
+                t.add_step_lazy(to.mode, to.mode_step, worker, to)
             else:
-                t.add_step(to.mode, to.mode_step, to.tensor_value)
+                t.add_step(to.mode, to.mode_step, worker, to.tensor_value)
 
     def tensors(self):
         self.maybe_refresh()
         ts = list(self._tensors.keys())
         return ts
+
+    def workers(self):
+        self.maybe_refresh()
+        return sorted(list(self.worker_set))
 
     def steps(self, mode=ModeKeys.GLOBAL):
         return self.available_steps(mode)
@@ -300,7 +344,7 @@ class Trial(ABC):
 
     def _add_tensors_at_steps(self, event_file_tensors):
         for eft in event_file_tensors:
-            self.add_tensor(eft.step_num, tensor_object=eft)
+            self.add_tensor(eft.step_num, worker=eft.worker, tensor_object=eft)
 
     def load_tensors(self):
         if self.index_mode:

@@ -16,7 +16,7 @@ def test_mode_writing():
     else:
       fw.write_tensor(tdata=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
                       tname='arr', mode=ModeKeys.EVAL, mode_step=s // 2)
-  fw.close()
+    fw.close()
   files = glob.glob('ts_outputs/' + run_id + '/**/*.tfevents',
                     recursive=True)
   for f in files:

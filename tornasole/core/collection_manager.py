@@ -3,8 +3,8 @@ from .access_layer import TSAccessFile, TSAccessS3
 from .utils import is_s3, load_json_as_dict
 import json
 
-ALLOWED_PARAMS = ['collections']
-COLLECTIONS_FILE_NAME = 'collections.json'
+ALLOWED_PARAMS = ['collections', '_meta']
+
 
 class CollectionManager:
   """
@@ -16,6 +16,8 @@ class CollectionManager:
     if collections is None:
       collections = {}
     self.collections = collections
+    self._meta = {}
+    self._meta['num_workers'] = 1
 
   def create_collection(self, name, cls=Collection):
     if name not in self.collections:
@@ -39,6 +41,18 @@ class CollectionManager:
       else:
         raise KeyError(f'Collection {name} has not been created')
     return self.collections[name]
+
+  def update_meta(self, meta):
+    assert isinstance(meta, dict)
+    self._meta.update(meta)
+
+
+  def get_num_workers(self):
+    return int(self._meta['num_workers'])
+
+
+  def set_num_workers(self, num_workers):
+    self._meta['num_workers'] = int(num_workers)
 
   def to_json_dict(self):
     d = dict()
@@ -81,6 +95,7 @@ class CollectionManager:
       for c_name, c_dict in params['collections'].items():
         coll = collection_class.from_dict(c_dict)
         cm.add(coll)
+      cm.update_meta(params['_meta'])
       return cm
 
   def __eq__(self, other):

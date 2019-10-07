@@ -3,6 +3,7 @@ import numpy as np
 from .utils import *
 from .reductions import get_tensorflow_reduction
 from .collection import *
+
 from tornasole.core.hook import BaseHook
 from tornasole.core.utils import match_inc
 from tornasole.core.reductions import get_reduction_tensor_name
@@ -19,7 +20,6 @@ DEFAULT_INCLUDE_COLLECTIONS = [
 class TornasoleHook(tf.train.SessionRunHook, BaseHook):
     def __init__(self, out_dir=None,
                  dry_run=False,
-                 worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config=None,
                  save_config=None,
                  include_regex=None,
@@ -72,7 +72,6 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                          default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                          out_dir=out_dir,
                          dry_run=dry_run,
-                         worker=worker,
                          reduction_config=reduction_config,
                          save_config=save_config,
                          include_regex=include_regex,
@@ -81,9 +80,26 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         self.reduction_original_tensors = {}
         self.subgraph_nodes_cache = {}
 
+    def get_worker_name(self):
+        try:
+            import horovod.tensorflow as hvd
+            if hvd.size():
+                return f'worker_{hvd.rank()}'
+        except (ModuleNotFoundError, ValueError, ImportError):
+            return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+
+    def get_num_workers(self):
+        try:
+            import horovod.tensorflow as hvd
+            if hvd.size():
+                return hvd.size()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            return 1
+
     @classmethod
     def hook_from_config(cls):
         return create_hook_from_json_config(cls, get_collection_manager())
+
 
     def _prepare_tensors(self):
         """

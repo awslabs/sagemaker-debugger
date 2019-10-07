@@ -26,7 +26,7 @@ def helper_test_reductions(trial_dir, hook):
         assert len(t.reduction_values(0)) == 18
         for r in ALLOWED_REDUCTIONS + ALLOWED_NORMS:
             for b in [False, True]:
-                assert t.reduction_value(0, reduction_name=r, abs=b) is not None
+                assert t.reduction_value(0, reduction_name=r, abs=b, worker=None) is not None
 
 
 def test_reductions():

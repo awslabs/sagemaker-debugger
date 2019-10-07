@@ -1,5 +1,4 @@
 import atexit
-import socket
 from abc import ABCMeta, abstractmethod
 import re as _re
 import os
@@ -7,7 +6,7 @@ from typing import Optional, List, Union, Tuple, Dict, Set
 
 from tornasole.core.utils import match_inc
 from tornasole.core.reduction_config import ReductionConfig
-from tornasole.core.collection_manager import CollectionManager, COLLECTIONS_FILE_NAME
+from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.collection import CollectionKeys
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.access_layer import training_has_ended
@@ -15,7 +14,6 @@ from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
 from tornasole.core.utils import flatten
 from tornasole.core.logger import get_logger
-from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.writer import FileWriter
 
@@ -31,7 +29,6 @@ class BaseHook:
                  init_step: int = 0,
                  out_dir: Optional[str] = None,
                  dry_run: bool = False,
-                 worker: str = TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config: Optional[ReductionConfig] = None,
                  save_config: Optional[Union[SaveConfig, Dict[ModeKeys, SaveConfigMode]]] = None,
                  include_regex: Optional[List[str]] = None,
@@ -51,10 +48,6 @@ class BaseHook:
         dry_run : bool
             when dry run is set, behavior is only described in the log file.
             tensors are not actually saved.
-        worker: string
-            name of worker in a multi process training job
-            outputs and tensors are organized by this name during retrieval.
-
         save_config: SaveConfig object
             Takes save config object which is applied as default for all included tensors.
             A collection can optionally have its own saveconfig object
@@ -83,7 +76,7 @@ class BaseHook:
         self.out_dir = verify_and_get_out_dir(out_dir)
 
         self.dry_run = dry_run
-        self.worker = worker if worker is not None else socket.gethostname()
+        self.worker = self.get_worker_name()
         if include_collections is None:
             include_collections = default_include_collections
         self.default_include_collections = default_include_collections
@@ -94,6 +87,7 @@ class BaseHook:
         self.reduction_config = reduction_config
         self.include_regex = include_regex
         self.collection_manager = collection_manager
+        self.collection_manager.set_num_workers(self.get_num_workers())
         self.init_step = init_step
 
         self.logger = logger
@@ -125,6 +119,14 @@ class BaseHook:
         self.writer = None
         self.logger.info('Saving to {}'.format(self.out_dir))
         atexit.register(self._cleanup)
+
+    @abstractmethod
+    def get_worker_name(self):
+        pass
+
+    @abstractmethod
+    def get_num_workers(self):
+        pass
 
     #### Save Manager methods ####
 
@@ -237,9 +239,9 @@ class BaseHook:
             self.mode_steps[mode] = self.init_step
 
     def export_collections(self):
+        collection_file_name = f'{self.worker}_collections.json'
         self.collection_manager.export(os.path.join(
-                self.out_dir, COLLECTIONS_FILE_NAME))
-
+                self.out_dir, collection_file_name))
 
 
 class CallbackHook(BaseHook):
@@ -255,7 +257,6 @@ class CallbackHook(BaseHook):
                  data_type_name: Optional[str] = None,
                  out_dir: Optional[str] = None,
                  dry_run: bool = False,
-                 worker: str = TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config: Optional[ReductionConfig] = None,
                  save_config: Optional[SaveConfig] = None,
                  include_regex: Optional[List[str]] = None,
@@ -266,7 +267,6 @@ class CallbackHook(BaseHook):
                          init_step=-1,
                          out_dir=out_dir,
                          dry_run=dry_run,
-                         worker=worker,
                          reduction_config=reduction_config,
                          save_config=save_config,
                          include_regex=include_regex,

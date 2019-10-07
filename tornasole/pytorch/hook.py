@@ -22,19 +22,18 @@ class TornasoleHook(CallbackHook):
     def __init__(self,
                  out_dir=None,
                  dry_run=False,
-                 worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config=None,
                  save_config=None,
                  include_regex=None,
                  include_collections=None,
                  save_all=False):
+
         super().__init__(
                 collection_manager=get_collection_manager(),
                 default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                 data_type_name=torch.Tensor.__name__,
                 out_dir=out_dir,
                 dry_run=dry_run,
-                worker=worker,
                 reduction_config=reduction_config,
                 save_config=save_config,
                 include_regex=include_regex,
@@ -43,6 +42,22 @@ class TornasoleHook(CallbackHook):
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()
+
+    def get_num_workers(self):
+        try:
+            import horovod.torch as hvd
+            if hvd.size():
+                return hvd.size()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            return 1
+
+    def get_worker_name(self):
+        try:
+            import horovod.torch as hvd
+            if hvd.size():
+                return f'worker_{hvd.rank()}'
+        except (ModuleNotFoundError, ValueError, ImportError):
+            return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
     @classmethod
     def hook_from_config(cls):

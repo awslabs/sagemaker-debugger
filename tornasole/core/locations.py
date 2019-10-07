@@ -8,13 +8,14 @@ logger = get_logger()
 
 
 class TensorLocation:
-    def __init__(self, tname, mode, mode_step, event_file_name, start_idx, length):
+    def __init__(self, tname, mode, mode_step, event_file_name, start_idx, length, worker):
         self.tensorname = tname
         self.mode = mode
         self.mode_step = int(mode_step)
         self.event_file_name = event_file_name
         self.start_idx = start_idx
         self.length = length
+        self.worker = worker
 
     def to_dict(self):
         return {
@@ -119,3 +120,4 @@ class IndexFileLocationUtils:
     @staticmethod
     def get_index_path(path):
         return os.path.join(path, 'index')
+

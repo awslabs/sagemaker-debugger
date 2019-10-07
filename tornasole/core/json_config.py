@@ -69,7 +69,6 @@ def create_hook_from_json_config(hook_cls, collection_manager):
 
     out_dir = tornasole_params.get("out_dir", DEFAULT_SAGEMAKER_TORNASOLE_PATH)
     dry_run = tornasole_params.get("dry_run", False)
-    worker = tornasole_params.get("worker", TORNASOLE_CONFIG_DEFAULT_WORKER_NAME)
     reduction_config = tornasole_params.get(TORNASOLE_CONFIG_RDN_CFG_KEY)
     save_config = SaveConfig.from_dict(tornasole_params.get("save_config_modes"))
     include_regex = tornasole_params.get(TORNASOLE_CONFIG_INCLUDE_REGEX_KEY)
@@ -77,7 +76,6 @@ def create_hook_from_json_config(hook_cls, collection_manager):
     return hook_cls(
         out_dir,
         dry_run,
-        worker,
         reduction_config,
         save_config,
         include_regex,
