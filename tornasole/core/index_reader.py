@@ -7,6 +7,7 @@ from tornasole.core.utils import is_s3, list_files_in_directory, step_in_range, 
 from tornasole.core.logger import get_logger
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.modes import ModeKeys
+from tornasole.exceptions import IndexReaderException
 
 
 """
@@ -122,8 +123,16 @@ class IndexReader:
         return tensor_data, last_index_token
 
     @staticmethod
+    def _validate(index_dict):
+        if 'meta' not in index_dict or len(index_dict['meta']) == 0:
+            raise IndexReaderException('meta section is not present')
+        if 'tensor_payload' not in index_dict:
+            raise IndexReaderException('tensor_payload section is not present')
+
+    @staticmethod
     def _update_tensors_from_json(index_tensors_dict, step, response, path, worker):
         index_dict = json.loads(response)
+        IndexReader._validate(index_dict)
         index_meta = index_dict['meta']
         mode = index_meta['mode']
         mode = ModeKeys[mode.strip()]

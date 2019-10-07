@@ -11,6 +11,14 @@ class StepNotYetAvailable(Exception):
                                                          self.mode.name)
 
 
+class IndexReaderException(Exception):
+  def __init__(self, message):
+    self.message = message
+
+  def __str__(self):
+    return self.message
+
+
 class StepUnavailable(Exception):
   def __init__(self, step, mode):
     self.step = step
