@@ -2,7 +2,6 @@ import keras
 from .collection import *
 from tornasole.core.hook import BaseHook
 from tornasole.core.save_config import SaveConfig
-from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
 
 DEFAULT_INCLUDE_COLLECTIONS=['weights', 'gradients', 'metrics']
@@ -11,7 +10,6 @@ DEFAULT_INCLUDE_COLLECTIONS=['weights', 'gradients', 'metrics']
 class TornasoleHook(keras.callbacks.Callback, BaseHook):
     def __init__(self, out_dir,
                  dry_run=False,
-                 worker=TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
                  reduction_config=None,
                  save_config=SaveConfig(),
                  include_regex=None,
@@ -28,7 +26,6 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
                          default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                          out_dir=out_dir,
                          dry_run=dry_run,
-                         worker=worker,
                          reduction_config=reduction_config,
                          save_config=save_config,
                          include_regex=None,

@@ -8,9 +8,7 @@ from tornasole.core.collection import Collection, CollectionKeys
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.hook import CallbackHook
 from tornasole.core.access_layer.utils import training_has_ended
-from tornasole.core.json_config import (
-    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
-    create_hook_from_json_config)
+from tornasole.core.json_config import create_hook_from_json_config
 
 from .collection import get_collection_manager
 from .utils import validate_data_file_path, get_content_type, get_dmatrix
