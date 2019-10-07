@@ -2,8 +2,6 @@ import time
 import os
 
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.core.locations import EventFileLocation
 from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.locations import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager, \
@@ -33,7 +31,7 @@ class S3Trial(Trial):
         self.logger.info(f'Loading trial {name} at path s3://{bucket_name}/{prefix_name}')
         self.bucket_name = bucket_name
         self.prefix_name = os.path.join(prefix_name, '')
-        self.path = "s3://"+os.path.join(self.bucket_name, self.prefix_name)
+        self.path = "s3://" + os.path.join(self.bucket_name, self.prefix_name)
         self.s3_handler = S3Handler()
         self._load_collections()
         self.load_tensors()
@@ -43,9 +41,6 @@ class S3Trial(Trial):
             steps = list(index_tensors_dict[tname].keys())
             for step in steps:
                 self.add_tensor(step, index_tensors_dict[tname][step]['tensor_location'])
-
-    def training_ended(self):
-        return has_training_ended("s3://{}/{}".format(self.bucket_name, self.prefix_name))
 
     def _load_collections(self):
         num_times_before_warning = 10
@@ -66,13 +61,6 @@ class S3Trial(Trial):
             self.collection_manager = CollectionManager.load_from_string(obj_data)
             self.logger.debug('Loaded collections for trial {}'.format(self.name))
             return
-
-    def __hash__(self):
-        return hash((self.name, self.bucket_name, self.prefix_name))
-
-    def __eq__(self, other):
-        return (self.name, self.bucket_name, self.prefix_name) \
-               == (other.name, other.bucket_name, other.prefix_name)
 
     def get_tensors(self, tname_steps_dict, should_regex_match=False):
         # to be used when getting selective tensors from S3
@@ -134,5 +122,5 @@ class S3Trial(Trial):
 
     def _read_tensors_from_data(self, data):
         tr = TensorReader(data)
-        res = tr.read_tensors(read_data=self.read_data, check=self.check)
+        res = tr.read_tensors(check=self.check)
         return list(res)

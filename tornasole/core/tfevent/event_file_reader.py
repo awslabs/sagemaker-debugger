@@ -87,7 +87,7 @@ class EventsReader(object):
     """Writes `Event` protocol buffers to an event file. This class is ported from
     EventsReader defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
-    def __init__(self, filename, verbose=True):
+    def __init__(self, filename):
         """
         Events files have a name of the form
         '/file/path/events.out.tfevents.[timestamp].[hostname][file_suffix]'
@@ -116,7 +116,7 @@ class EventFileReader():
     is encoded using the tfrecord format, which is similar to RecordIO.
     """
 
-    def __init__(self, fname, verbose=True):
+    def __init__(self, fname):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
         This event file will contain `Event` protocol buffers, which are written to
@@ -125,21 +125,18 @@ class EventFileReader():
         the event file:
         """
         self._filename = fname
-        self._ev_reader = EventsReader(self._filename, verbose=verbose)
+        self._ev_reader = EventsReader(self._filename)
 
     def __exit__(self,exc_type, exc_value, traceback):
         self._ev_reader.__exit__(exc_type, exc_value, traceback)
 
-    def read_tensors(self, read_data=False, check=False):
+    def read_tensors(self, check=False):
         for step, summ in self.read_summaries(check=check):
             for v in summ.value:
                 assert v.WhichOneof('value') == 'tensor'
                 tensor_name = v.tag
                 # We have found the right tensor at the right step
-                if read_data:
-                    tensor_data = get_tensor_data(v.tensor)
-                else:
-                    tensor_data = None
+                tensor_data = get_tensor_data(v.tensor)
 
                 # default values
                 # todo: validate the logic extensively

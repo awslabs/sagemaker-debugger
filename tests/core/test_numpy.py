@@ -16,7 +16,7 @@ def rw(path):
             fw.write_tensor(tdata=data, tname=f'foo_{i}')
 
     fr = FileReader(fname=fname)
-    for i,ts in enumerate(fr.read_tensors(read_data=True)):
+    for i,ts in enumerate(fr.read_tensors()):
         """
         read_data returns name, step and data (if read_data==True)
         """
@@ -51,7 +51,7 @@ def test_string():
         fw.write_tensor(tdata=s_written, tname=f'foo_string')
 
     fr = FileReader(fname=fname)
-    read = list(fr.read_tensors(read_data=True))
+    read = list(fr.read_tensors())
     assert len(read)==1
     s_read = np.array(read[0][2])
     assert np.all(s_written == s_read)

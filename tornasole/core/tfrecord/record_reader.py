@@ -62,7 +62,7 @@ class RecordReader:
         if check:
             computed_len_crc = masked_crc32c(strlen_bytes)
             assert saved_len_crc == computed_len_crc
-        #print( f'Payload_Len={strlen} LENCRC={saved_len_crc},{computed_len_crc}')
+
         payload = self._reader.read(strlen)
         saved_payload_crc = struct.unpack('I', self._reader.read(4))[0]
         if check:
@@ -72,7 +72,6 @@ class RecordReader:
             computed_payload_crc = masked_crc32c(CHECKSUM_MAGIC_BYTES)
             assert saved_payload_crc == computed_payload_crc
 
-        #print( f'Payload_CRC={saved_payload_crc},{computed_payload_crc}')
         return payload
 
     def flush(self):
@@ -81,7 +80,6 @@ class RecordReader:
 
     def close(self):
         """Closes the record reader."""
-        print( "Closing READER", self)
         if self._reader is not None:
             self._reader.close()
             self._reader = None

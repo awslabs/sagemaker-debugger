@@ -97,7 +97,7 @@ class IndexReader:
             res = [tensor_object]
 
         tr = TensorReader(res[0])  # Access the only element in res
-        tensor_tuple = list(tr.read_tensors(read_data=True))[0]  # Access the only element in the list
+        tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
         return tensor_data
 

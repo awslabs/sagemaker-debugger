@@ -35,16 +35,13 @@ class TensorReader:
             assert saved_payload_crc == computed_payload_crc
         return payload
 
-    def read_tensors(self, read_data=False, check=False):
+    def read_tensors(self, check=False):
         for (step,summ) in self.read_summaries(check=check):
             for v in summ.value:
                 assert v.WhichOneof('value') == 'tensor'
                 tensor_name = v.tag
                 # We have found the right tensor at the right step
-                if read_data:
-                    tensor_data = get_tensor_data(v.tensor)
-                else:
-                    tensor_data = None
+                tensor_data = get_tensor_data(v.tensor)
 
                 # default values
                 # todo: validate the logic extensively

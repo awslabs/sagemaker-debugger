@@ -173,7 +173,7 @@ class _EventLoggerThread(threading.Thread):
             if isinstance(event_in_queue, EventWithIndex):
                 # checking whether there is an object of IndexArgs,
                 # which is written by write_summary_with_index
-                event = event_in_queue.get_event()
+                event = event_in_queue.event
             else:
                 event = event_in_queue
 
@@ -189,7 +189,7 @@ class _EventLoggerThread(threading.Thread):
                     eventfile = self._ev_writer.name()
                     tname = event_in_queue.tensorname
                     mode = event_in_queue.get_mode()
-                    mode_step = event_in_queue.get_mode_step()
+                    mode_step = event_in_queue.mode_step
                     eventfile = get_relative_event_file_path(eventfile)
                     tensorlocation = TensorLocation(
                             tname, mode, mode_step, eventfile,

@@ -55,7 +55,7 @@ def get_collection_manager():
     return _collection_manager
 
 def add_to_default_collection(args):
-    add_to_collection('default', args)
+    add_to_collection(CollectionKeys.DEFAULT, args)
 
 def get_collection(collection_name):
     return _collection_manager.get(collection_name, create=True)

@@ -3,6 +3,7 @@ import time
 from bisect import bisect_left
 from abc import ABC, abstractmethod
 
+from tornasole.core.access_layer.utils import has_training_ended
 from tornasole.core.tensor import Tensor, StepState
 from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
@@ -40,13 +41,13 @@ class Trial(ABC):
         _index_tensors_dict
 
     ['name', '_tensors', '_mode_to_global', '_global_to_mode', 'logger', 'parallel',
-    'read_data', 'check', 'range_steps', 'collection_manager', 'loaded_all_steps', 'cache', 'path',
+    'check', 'range_steps', 'collection_manager', 'loaded_all_steps', 'cache', 'path',
     'index_tensors_dict', 'index_mode', 'last_event_token', 'last_index_token', 'index_reader',
     'dynamic_refresh', 'trial_dir']
     """
 
     def __init__(self, name, range_steps=None, parallel=True,
-                 read_data=True, check=False, index_mode=True, cache=False):
+                 check=False, index_mode=True, cache=False):
         self.name = name
         self._tensors = {}
 
@@ -60,7 +61,6 @@ class Trial(ABC):
 
         self.logger = get_logger()
         self.parallel = parallel
-        self.read_data = read_data
         self.check = check
         self.range_steps = range_steps
         self.collection_manager = None
@@ -98,18 +98,20 @@ class Trial(ABC):
         pass
 
     @abstractmethod
-    def training_ended(self):
-        pass
-
-    @abstractmethod
     def _load_tensors_from_event_files(self, start_after_key=None):
         pass
+
+    def __hash__(self):
+        return hash((self.name, self.path))
+
+    def __eq__(self, other):
+        return (self.name, self.path) == (other.name, other.path)
 
     def maybe_refresh(self, name=None):
         if self.loaded_all_steps or not self.dynamic_refresh:
             return
         retry_count = 1
-        training_ended = self.training_ended()
+        training_ended = has_training_ended(self.path)
         if training_ended and self.loaded_all_steps== False:
             retry_count = 2
         while retry_count > 0:

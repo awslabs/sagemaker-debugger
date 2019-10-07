@@ -5,7 +5,6 @@ from tornasole.core.locations import EventFileLocation
 from tornasole.core.collection_manager import CollectionManager, \
     COLLECTIONS_FILE_NAME
 from tornasole.core.reader import FileReader
-from tornasole.core.access_layer.utils import has_training_ended
 
 import time
 import os
@@ -75,15 +74,6 @@ class LocalTrial(Trial):
                     self.logger.debug('Waiting to read collections')
                 continue
 
-    def training_ended(self):
-        return has_training_ended(self.trial_dir)
-
-    def __hash__(self):
-        return hash((self.name, self.trial_dir))
-
-    def __eq__(self, other):
-        return (self.name, self.trial_dir) == (other.name, other.trial_dir)
-
     def get_tensors(self, tname_steps_dict, should_regex_match=False):
         # now we do not need to do anything since we read the full event file
         pass
@@ -101,7 +91,7 @@ class LocalTrial(Trial):
                 dirnames_efts = Parallel(n_jobs=multiprocessing.cpu_count(), verbose=0) \
                     (delayed(self._read_folder) \
                          (EventFileLocation.get_step_dir_path(self.trial_dir, step_dir),
-                          read_data=self.read_data, check=self.check) \
+                          check=self.check) \
                      for step_dir in step_dirs)
                 # sort them as parallel returns in random order
                 # we want to sort them by dirname
@@ -114,7 +104,6 @@ class LocalTrial(Trial):
             for step_dir in step_dirs:
                 step_dir_path = EventFileLocation.get_step_dir_path(self.trial_dir, step_dir)
                 dirnames_efts.extend(self._read_folder(step_dir_path,
-                                                       read_data=self.read_data,
                                                        check=self.check))
 
         for dirname, dir_efts in dirnames_efts:
@@ -133,13 +122,13 @@ class LocalTrial(Trial):
             # temp file for writing event files and do atomic move
 
     @staticmethod
-    def _read_folder(dirname, read_data=True, check=True):
+    def _read_folder(dirname, check=True):
         res = []
         for fname in os.listdir(dirname):
             if fname.endswith(".tfevents"):
                 full_fname = os.path.join(dirname, fname)
                 fr = FileReader(fname=full_fname)
-                summary_values = fr.read_tensors(read_data=read_data, check=check)
+                summary_values = fr.read_tensors(check=check)
                 for sv in summary_values:
                     n, s, d, mode, mode_step = sv
                     eft = EventFileTensor(fname, tensor_name=n, step_num=s, tensor_value=d,

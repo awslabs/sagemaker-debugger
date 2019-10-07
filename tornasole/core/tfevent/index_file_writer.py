@@ -64,14 +64,5 @@ class EventWithIndex(object):
         self.mode = mode
         self.mode_step = mode_step
 
-    def get_event(self):
-        return self.event
-
-    def get_tensorname(self):
-        return self.tensorname
-
     def get_mode(self):
         return str(self.mode).split('.')[-1]
-
-    def get_mode_step(self):
-        return self.mode_step

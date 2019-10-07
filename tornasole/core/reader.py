@@ -21,7 +21,7 @@ from tornasole.core.tfevent.event_file_reader import EventFileReader
 
 
 class FileReader():
-    def __init__(self, fname, wtype='tfevent', verbose=True):
+    def __init__(self, fname, wtype='tfevent'):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
 
@@ -35,11 +35,9 @@ class FileReader():
                 How often, in seconds, to flush the pending events and summaries to disk.
             filename_suffix : str
                 Every event file's name is suffixed with `filename_suffix` if provided.
-            verbose : bool
-                Determines whether to print logging messages.
         """
         if wtype == 'tfevent':
-            self._reader = EventFileReader(fname=fname, verbose=verbose)
+            self._reader = EventFileReader(fname=fname)
         else:
             assert False
 
@@ -51,8 +49,8 @@ class FileReader():
         """Make usable with "with" statement."""
         self._reader.__exit__(exc_type, exc_value, traceback)
 
-    def read_tensors(self, read_data=True, check=False):
-        return self._reader.read_tensors(read_data=read_data, check=check)
+    def read_tensors(self, check=False):
+        return self._reader.read_tensors(check=check)
 
     #def __del__(self):
     #    self._reader.__del__()
