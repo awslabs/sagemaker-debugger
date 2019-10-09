@@ -1,10 +1,12 @@
+import importlib
 import torch
+import torch.distributed as dist
 import logging
 from tornasole.core.hook import CallbackHook
 from tornasole.core.collection import CollectionKeys
 from tornasole.core.logger import get_logger
 from tornasole.core.json_config import create_hook_from_json_config
-from tornasole.pytorch.torch_collection import get_collection_manager
+from tornasole.pytorch.collection import get_collection_manager
 from tornasole.pytorch.utils import get_reduction_of_data, make_numpy_array
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
@@ -45,20 +47,38 @@ class TornasoleHook(CallbackHook):
         self.module_maps = dict()
 
     def get_num_workers(self):
-        try:
-            import horovod.torch as hvd
-            if hvd.size():
-                return hvd.size()
-        except (ModuleNotFoundError, ValueError, ImportError):
-            return 1
+        """Check horovod and torch.distributed."""
+        # Try torch.distributed
+        # torch.distributed is empty on Mac on Torch <= 1.2
+        if hasattr(dist, 'is_initialized') and dist.is_initialized():
+            return torch.distributed.get_world_size()
+        # Try horovod
+        else:
+            try:
+                import horovod.torch as hvd
+                if hvd.size():
+                    return hvd.size()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
+        # Return default
+        return 1
 
     def get_worker_name(self):
-        try:
-            import horovod.torch as hvd
-            if hvd.size():
-                return f'worker_{hvd.rank()}'
-        except (ModuleNotFoundError, ValueError, ImportError):
-            return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+        """Check horovod and torch.distributed."""
+        # Try torch.distributed
+        # torch.distributed is empty on Mac on Torch <= 1.2
+        if hasattr(dist, 'is_initialized') and dist.is_initialized():
+            return f"worker_{dist.get_rank()}"
+        # Try horovod
+        else:
+            try:
+                import horovod.torch as hvd
+                if hvd.size():
+                    return f"worker_{hvd.rank()}"
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
+        # Return default
+        return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
     @classmethod
     def hook_from_config(cls):

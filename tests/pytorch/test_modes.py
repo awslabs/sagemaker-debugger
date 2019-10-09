@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from tornasole import modes, SaveConfig, SaveConfigMode
 from tornasole.pytorch.hook import *
-from tornasole.pytorch.torch_collection import *
+from tornasole.pytorch.collection import *
 from tornasole.pytorch import reset_collections
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 import uuid

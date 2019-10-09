@@ -30,6 +30,7 @@ class Net(nn.Module):
 
 def test_register_loss():
     """Test that the loss is saved as a tensor."""
+    ts.reset_collections()
     out_dir = '/tmp/pytorch_test_loss'
     shutil.rmtree(out_dir, ignore_errors=True)
 
@@ -63,7 +64,7 @@ def test_register_loss():
     # (like we do here). Then it'll crash, likewise in a Jupyter notebook.
     hook._cleanup()
 
-    trial = create_trial(path=out_dir, name='run')
+    trial = create_trial(path=out_dir)
     loss_coll = hook.collection_manager.get('losses')
     assert len(loss_coll.get_tensor_names()) == 3
 

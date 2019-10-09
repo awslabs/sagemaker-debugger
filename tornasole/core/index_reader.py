@@ -1,5 +1,7 @@
+import numpy as np
 import os
 import json
+from typing import Any, Dict, List, Tuple
 from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
 from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
@@ -65,7 +67,14 @@ class LocalIndexReader:
         return sorted(index_files)
 
     @staticmethod
-    def get_disk_responses(path, start_after_key=0, range_steps=None):
+    def get_disk_responses(path, start_after_key=0, range_steps=None) -> Tuple[List[bytes], List[int], int]:
+        """Read files like `trial_{datetime}/index/000/{step}_{worker}.json.
+
+        Returns:
+            responses: List of the contents of each file, encoded as bytes.
+            steps: List of steps read.
+            start_after_key: An int referring where to start reading next time.
+        """
         index_files = LocalIndexReader.list_index_files_in_dir(path)
         steps = []
         workers = []
@@ -86,7 +95,7 @@ class LocalIndexReader:
 class IndexReader:
 
     @staticmethod
-    def fetch_tensor_value(tensor_location):
+    def fetch_tensor_value(tensor_location: TensorLocation) -> np.ndarray:
         event_file_name = tensor_location.event_file_name
         start = tensor_location.start_idx
         length = tensor_location.length
@@ -107,7 +116,8 @@ class IndexReader:
         return tensor_data
 
     @staticmethod
-    def load_tensor_data_from_index_files(path, start_after_key=None, range_steps=None):
+    def load_tensor_data_from_index_files(path, start_after_key=None, range_steps=None) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], int]:
+        """Return a triply nested dict referring to tensor data."""
         s3, bucket_name, prefix_name = is_s3(path)
         if s3:
             if start_after_key == 0:
@@ -130,7 +140,22 @@ class IndexReader:
             raise IndexReaderException('tensor_payload section is not present')
 
     @staticmethod
-    def _update_tensors_from_json(index_tensors_dict, step, response, path, worker):
+    def _update_tensors_from_json(index_tensors_dict, step, response: bytes, path, worker) -> Dict[str, Dict[int, Dict[str, TensorLocation]]]:
+        """Return a triply nested dict referring to tensor data.
+
+        Example:
+        {
+            'dense/bias:0': {
+                0: {
+                    'tensor_location': <TensorLocation object>
+                },
+                2: { ... },
+                ...
+            },
+            'conv2d/kernel:0': { ... },
+            ...
+        }
+        """
         index_dict = json.loads(response)
         IndexReader._validate(index_dict)
         index_meta = index_dict['meta']
