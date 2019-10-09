@@ -101,7 +101,7 @@ class Trial(ABC):
         num_times_before_warning = 10
         collection_files = []
 
-        def _wait():
+        def _fetch():
             nonlocal collection_files
             nonlocal num_times_before_warning
             s3, bucket_name, key_name = is_s3(self.path)
@@ -112,7 +112,6 @@ class Trial(ABC):
             else:
                 collection_files = list_collection_files_in_directory(self.trial_dir)
 
-            # time.sleep(2)
             num_times_before_warning -= 1
             if num_times_before_warning < 0:
                 self.logger.warning('Waiting to read collections')
@@ -121,14 +120,17 @@ class Trial(ABC):
 
         def _wait_for_first_collection_file():
             while len(collection_files) == 0:
-                _wait()
+                time.sleep(2)
+                _fetch()
 
         def _wait_for_all_collection_files():
             while len(collection_files) < self.num_workers:
-                _wait()
+                time.sleep(2)
+                _fetch()
             for collection_file in collection_files:
                 self.worker_set.add(get_worker_name_from_collection_file(collection_file))
 
+        _fetch()
         _wait_for_first_collection_file()
         self.read_collections(collection_files)
         _wait_for_all_collection_files()
