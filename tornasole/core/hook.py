@@ -248,7 +248,7 @@ class CallbackHook(BaseHook):
     __metaclass__ = ABCMeta
     INVALID_TAG_CHARACTERS = _re.compile(r'[^-/\w\.]')
     INPUT_TENSOR_SUFFIX = '_input_'
-    OUTPUT_TENSOR_SUFFIX = '_output'
+    OUTPUT_TENSOR_SUFFIX = '_output_'
     GRADIENT_PREFIX = 'gradient/'
 
     def __init__(self,

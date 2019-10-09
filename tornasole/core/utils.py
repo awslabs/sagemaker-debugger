@@ -108,6 +108,7 @@ def get_worker_name_from_collection_file(filename):
     return re.match(worker_name_regex, filename).group(1)
 
 def match_inc(tname, include):
+    """Matches anywhere in the string, doesn't require full match."""
     for inc in include:
         if re.search(inc, tname):
             return True

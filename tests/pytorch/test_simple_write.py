@@ -43,12 +43,12 @@ class Net(nn.Module):
             self.saved['relu2_input_0'] = dict()
             self.saved['fc3_input_0'] = dict()
             self.saved['Net_input_0'] = dict()
-            self.saved['fc1_output0'] = dict()
-            self.saved['relu1_output0'] = dict()
-            self.saved['fc2_output0'] = dict()
-            self.saved['relu2_output0'] = dict()
-            self.saved['fc3_output0'] = dict()
-            self.saved['Net_output0'] = dict()
+            self.saved['fc1_output_0'] = dict()
+            self.saved['relu1_output_0'] = dict()
+            self.saved['fc2_output_0'] = dict()
+            self.saved['relu2_output_0'] = dict()
+            self.saved['fc3_output_0'] = dict()
+            self.saved['Net_output_0'] = dict()
 
 
     def forward(self, x_in):
@@ -73,12 +73,12 @@ class Net(nn.Module):
             self.saved['fc3_input_0'][self.step] = relu2_out.data.numpy().copy()
             self.saved['Net_input_0'][self.step] = fc3_out.data.numpy().copy()
 
-            self.saved['fc1_output0'][self.step] = fc1_out.data.numpy().copy()
-            self.saved['relu1_output0'][self.step] = relu1_out.data.numpy().copy()
-            self.saved['fc2_output0'][self.step] = fc2_out.data.numpy().copy()
-            self.saved['relu2_output0'][self.step] = relu2_out.data.numpy().copy()
-            self.saved['fc3_output0'][self.step] = fc3_out.data.numpy().copy()
-            self.saved['Net_output0'][self.step] = out.data.numpy().copy()
+            self.saved['fc1_output_0'][self.step] = fc1_out.data.numpy().copy()
+            self.saved['relu1_output_0'][self.step] = relu1_out.data.numpy().copy()
+            self.saved['fc2_output_0'][self.step] = fc2_out.data.numpy().copy()
+            self.saved['relu2_output_0'][self.step] = relu2_out.data.numpy().copy()
+            self.saved['fc3_output_0'][self.step] = fc3_out.data.numpy().copy()
+            self.saved['Net_output_0'][self.step] = out.data.numpy().copy()
         return out
 
 # Create a tornasole hook. The initilization of hook determines which tensors
@@ -202,7 +202,7 @@ def saveall_test_helper(hook=None):
     weights = ['Net_fc1.weight', 'Net_fc2.weight', 'Net_fc3.weight']
     bias = ['Net_fc1.bias', 'Net_fc2.bias', 'Net_fc3.bias']
     inputs = ['fc1_input_0', 'relu1_input_0', 'fc2_input_0', 'relu2_input_0', 'fc3_input_0']
-    outputs = ['fc1_output0', 'relu1_output0', 'fc2_output0', 'relu2_output0', 'fc3_output0']
+    outputs = ['fc1_output_0', 'relu1_output_0', 'fc2_output_0', 'relu2_output_0', 'fc3_output_0']
     tensors = grads + bias + weights + inputs + outputs
 
     assert len(trial.available_steps()) == len(save_steps)
@@ -237,7 +237,7 @@ def helper_test_multi_collections(hook, out_dir):
     weights = ['Net_fc1.weight', 'Net_fc2.weight', 'Net_fc3.weight']
     bias = ['Net_fc1.bias', 'Net_fc2.bias', 'Net_fc3.bias']
     inputs = ['fc1_input_0', 'relu1_input_0', 'relu2_input_0']
-    outputs = ['fc1_output0', 'relu1_output0', 'relu2_output0']
+    outputs = ['fc1_output_0', 'relu1_output_0', 'relu2_output_0']
     tensors = grads + bias + weights + inputs + outputs
 
     assert len(trial.available_steps()) == len(save_steps)

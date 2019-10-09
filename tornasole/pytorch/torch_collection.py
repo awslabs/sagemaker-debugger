@@ -24,7 +24,7 @@ class CollectionManager(BaseCollectionManager):
         self.get(CollectionKeys.WEIGHTS).include('^(?!gradient).*weight')
         self.get(CollectionKeys.BIASES).include('^(?!gradient).*bias')
         self.get(CollectionKeys.GRADIENTS).include('^gradient')
-        self.get(CollectionKeys.LOSSES).include('.*loss')
+        self.get(CollectionKeys.LOSSES).include('Loss')
 
     def create_collection(self, name):
         super().create_collection(name, cls=Collection)

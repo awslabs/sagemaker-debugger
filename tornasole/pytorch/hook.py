@@ -14,7 +14,8 @@ DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.WEIGHTS,
     CollectionKeys.BIASES,
     CollectionKeys.GRADIENTS,
-    CollectionKeys.DEFAULT
+    CollectionKeys.DEFAULT,
+    CollectionKeys.LOSSES,
 ]
 
 
@@ -68,9 +69,9 @@ class TornasoleHook(CallbackHook):
         params = module.named_parameters()
         for name, param in params:
             pname = module_name + '_' + name
-            self.logger.debug(
-                "Processing the global step {0} for parameter {1}".format(
-                    self.step, pname))
+            # This overwhelms the logs; turn back on if you really need it
+            # self.logger.debug(
+                # "Processing the global step {0} for parameter {1}".format(self.step, pname))
             self._write_tensor(tensor_name=pname, tensor_value=param.data)
 
     # This hook is invoked by trainer prior to running the forward pass.
@@ -93,7 +94,7 @@ class TornasoleHook(CallbackHook):
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
             self.exported_collections = True
-            
+
     # This hook is invoked by trainer after running the forward pass.
     def forward_hook(self, module, inputs, outputs):
         if self.collections_in_this_step is None:
@@ -101,7 +102,8 @@ class TornasoleHook(CallbackHook):
             return
 
         module_name = self.module_maps[module]
-        logger.debug("Processing the global step {0} for module {1}".format(self.step, module_name))
+        # This overwhelms the logs; turn back on if you really need it
+        # logger.debug("Processing the global step {0} for module {1}".format(self.step, module_name))
 
         # Output input tensor
         self._write_inputs(module_name, inputs)
@@ -119,38 +121,60 @@ class TornasoleHook(CallbackHook):
                     self._write_tensor(tensor_name=self.GRADIENT_PREFIX + tname, tensor_value=grad)
         return back
 
-    def _recursive_apply(self, module):
-        """
-        This function is "applied" to every child in the block. This function in turn
-        registers the forward hook to each module. It helps logging the input output tensors
-        of that module.
-        """
-        module.register_forward_hook(self.forward_hook)
-
     def _backward_apply(self, module):
+        """Apply the function `self.backward_hook` as a callback to each parameter in `module.
+
+        This will capture the gradients.
+        """
         params = module.named_parameters()
         for name, param in params:
             pname = module._get_name() + '_' + name
             param.register_hook(self.backward_hook(pname))
+
+    def closure_for_registering_forward_hook(self, module):
+        """Lambda functions don't work here."""
+        module.register_forward_hook(self.forward_hook)
 
     def register_hook(self, module):
         """
         This function registers the forward hook. If user wants to register the hook
         for every child in the given block, then the function calls "apply" API for
         registration of the hook.
-        The hook is registered recursively for all blocks
+        The hook is registered recursively for all blocks.
         """
+        # Typechecking
         if not isinstance(module, torch.nn.Module):
-            logger.error("The given module type {0} is not currently supported by Tornasole Hook".format(
-                module.__class__.__name__))
-            return
+            raise ValueError(f"Module type {module.__class__.__name__} must be type torch.nn.Module")
+
+        # Create a mapping from modules to their names
+        for name, submodule in module.named_modules():
+            assert submodule not in self.module_maps, f"Don't register module={module} twice"
+            self.module_maps[submodule] = name
+        self.module_maps[module] = module._get_name()
+
+        # Use `forward_pre_hook` for the entire net
         module.register_forward_pre_hook(self.forward_pre_hook)
 
-        for layer in list(module.named_modules()):
-            self.module_maps[layer[1]] = layer[0]
-        self.module_maps[module] = module._get_name()
-        module.apply(self._recursive_apply)
+        # Set `self.forward_hook` as a callback for each submodule/layer.
+        # `module.apply(fn)` calls fn for each submodule in module.children()
+        module.apply(self.closure_for_registering_forward_hook)
+
+        # Capture the gradient for each parameter in the net
         self._backward_apply(module)
+
+    def register_loss(self, loss_module):
+        """Register something like `criterion = nn.CrossEntropyLoss()`."""
+        # Typechecking
+        assert isinstance(loss_module, torch.nn.modules.loss._Loss), (
+            f"loss_module={loss_module} must be subclass of `torch.nn.modules.loss._Loss`, "
+            f"but has class hierarchy {type.mro(type(loss_module))}"
+        )
+        # Register the module in self.module_maps
+        name = loss_module._get_name()
+        self.module_maps[loss_module] = name
+        # Add a callback to the forward pass
+        loss_module.register_forward_hook(self.forward_hook)
+
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):

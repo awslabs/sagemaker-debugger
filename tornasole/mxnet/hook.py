@@ -107,7 +107,8 @@ class TornasoleHook(CallbackHook):
             return
 
         block_name = block.name
-        logger.debug("Processing the global step {0} for block {1}".format(self.step, block_name))
+        # This overwhelms the logs; turn back on if you really need it
+        # logger.debug("Processing the global step {0} for block {1}".format(self.step, block_name))
 
         # Output input tensor
         self._write_inputs(block_name, inputs)
