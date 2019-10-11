@@ -1,9 +1,11 @@
+import shutil
 import pytest
 import uuid
 from tests.analysis.utils import generate_data
 from tornasole.trials import create_trial
 from tornasole.exceptions import *
 import boto3 as boto3
+import os
 
 def del_s3(bucket, file_path):
   s3_client = boto3.client('s3')
@@ -12,8 +14,7 @@ def del_s3(bucket, file_path):
 @pytest.mark.slow # 0:40 to run
 def test_refresh_tensors():
     trial_name = str(uuid.uuid4())
-    path = 's3://tornasolecodebuildtest/rules/tensors/ts_output/train/'
-    bucket = 'tornasolecodebuildtest'
+    path = '/tmp/tornasole_analysis_tests/test_refresh_tensors/'
     num_steps = 8
     num_tensors = 10
     for i in range(num_steps):
@@ -29,7 +30,6 @@ def test_refresh_tensors():
       assert False
     except TensorUnavailable:
       pass
-    del_s3(bucket, file_path=path)
 
     assert tr.tensor('foo_1') is not None
     assert tr.tensor('foo_1').value(num_steps - 1) is not None
@@ -63,3 +63,5 @@ def test_refresh_tensors():
       assert False
     except StepNotYetAvailable:
       pass
+
+    shutil.rmtree(os.path.join(path, trial_name))

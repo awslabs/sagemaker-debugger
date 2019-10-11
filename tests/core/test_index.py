@@ -1,6 +1,6 @@
 from tornasole.core.writer import FileWriter
 from tornasole.core.reader import FileReader
-from tornasole.core.locations import EventFileLocation, IndexFileLocationUtils
+from tornasole.core.locations import TensorFileLocation, IndexFileLocationUtils
 import shutil
 import os
 import numpy as np
@@ -21,8 +21,8 @@ def test_index():
         writer.write_tensor(tdata=numpy_tensor[i], tname=n)
     writer.flush()
     writer.close()
-    efl = EventFileLocation(step_num=step, worker_name=worker)
-    eventfile = efl.get_location(trial_dir=run_dir)
+    efl = TensorFileLocation(step_num=step, worker_name=worker)
+    eventfile = efl.get_file_location(trial_dir=run_dir)
     indexfile = IndexFileLocationUtils.get_index_key_for_step(run_dir, step, worker)
 
     fo = open(eventfile, "rb")

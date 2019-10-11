@@ -17,7 +17,6 @@ def list_s3_objects(bucket, prefix, start_after_key=None, delimiter=""):
     last_token = None
     if start_after_key is None:
         start_after_key = prefix
-    logger.debug(f'Trying to load index files after {start_after_key}')
     req = ListRequest(Bucket=bucket,
                       Prefix=prefix,
                       StartAfter=start_after_key,

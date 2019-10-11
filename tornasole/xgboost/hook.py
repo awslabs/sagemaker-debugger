@@ -7,6 +7,7 @@ from xgboost.core import CallbackEnv
 from tornasole.core.collection import Collection, CollectionKeys
 from tornasole.core.save_config import SaveConfig
 from tornasole.core.hook import CallbackHook
+from tornasole.core.tfevent.util import make_numpy_array
 from tornasole.core.access_layer.utils import training_has_ended
 from tornasole.core.json_config import create_hook_from_json_config
 
@@ -114,7 +115,11 @@ class TornasoleHook(CallbackHook):
         return env.iteration + 1 == env.end_iteration
 
     def _is_collection_being_saved_for_step(self, name):
-        return self.collection_manager.get(name) in self.collections_in_this_step
+        return self.collection_manager.get(name) in self._get_collections_to_save_for_step()
+
+    def _increment_step(self, iteration):
+        self.step = self.mode_steps[self.mode] = iteration
+        self._collections_to_save_for_step = None
 
     def _callback(self, env: CallbackEnv) -> None:
         # env.rank: rabit rank of the node/process. master node has rank 0.
@@ -133,9 +138,9 @@ class TornasoleHook(CallbackHook):
             self.export_collections()
             self.exported_collections = True
 
-        self.step = self.mode_steps[self.mode] = env.iteration
+        self._increment_step(env.iteration)
 
-        if not self._is_last_step(env) and not self._process_step():
+        if not self._is_last_step(env) and not self._get_collections_to_save_for_step():
             self.logger.debug("Skipping iteration {}".format(self.step))
             return
 
@@ -162,7 +167,7 @@ class TornasoleHook(CallbackHook):
             self.write_average_shap(env)
 
         if not self._is_last_step(env):
-            self._flush_and_close_writer()
+            self._close_writer()
 
         if self._is_last_step(env):
             self._cleanup()
@@ -172,13 +177,13 @@ class TornasoleHook(CallbackHook):
     def write_metrics(self, env: CallbackEnv):
         # Get metrics measured at current boosting round
         for metric_name, metric_data in env.evaluation_result_list:
-            self._write_tensor(metric_name, metric_data)
+            self._save_for_tensor(metric_name, metric_data)
 
     def write_predictions(self, env: CallbackEnv):
         # Write predictions y_hat from validation data
         if not self.validation_data:
             return
-        self._write_tensor(
+        self._save_for_tensor(
             "predictions",
             env.model.predict(self.validation_data))
 
@@ -186,7 +191,7 @@ class TornasoleHook(CallbackHook):
         # Write labels y from validation data
         if not self.validation_data:
             return
-        self._write_tensor("labels", self.validation_data.get_label())
+        self._save_for_tensor("labels", self.validation_data.get_label())
 
     def write_feature_importances(self, env: CallbackEnv):
         # Get normalized feature importances (fraction of splits made in each
@@ -196,7 +201,7 @@ class TornasoleHook(CallbackHook):
 
         for feature_name in feature_importances:
             feature_data = feature_importances[feature_name] / total
-            self._write_tensor(
+            self._save_for_tensor(
                 "{}/feature_importance".format(feature_name), feature_data)
 
     def write_average_shap(self, env: CallbackEnv):
@@ -212,13 +217,12 @@ class TornasoleHook(CallbackHook):
 
         for feature_id, feature_name in enumerate(feature_names):
             if shap_avg[feature_id] > 0:
-                self._write_tensor(
+                self._save_for_tensor(
                     "{}/average_shap".format(feature_name),
                     shap_avg[feature_id])
 
-    def _write_reductions(self, tensor_name, tensor_value, reduction_config):
-        # not writing reductions for xgboost
-        return
+    def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
+        self._write_raw_tensor(tensor_name, tensor_value, save_collections)
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
@@ -226,7 +230,7 @@ class TornasoleHook(CallbackHook):
 
     @staticmethod
     def _make_numpy_array(tensor_value):
-        return tensor_value
+        return make_numpy_array(tensor_value)
 
     @staticmethod
     def _validate_data(

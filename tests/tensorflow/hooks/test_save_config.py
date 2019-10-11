@@ -90,7 +90,7 @@ def test_save_config_start_and_end_json():
 
 
 def helper_save_config_modes(trial_dir, hook):
-    help_test_mnist(trial_dir, hook=hook)
+    help_test_mnist(trial_dir, hook=hook, num_train_steps=4, num_eval_steps=3)
     tr = create_trial(trial_dir)
     for tname in tr.tensors_in_collection('weights'):
         t = tr.tensor(tname)

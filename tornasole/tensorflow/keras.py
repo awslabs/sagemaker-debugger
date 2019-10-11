@@ -1,10 +1,14 @@
 import keras
-from .collection import *
+from .collection import get_collection_manager, CollectionKeys
 from tornasole.core.hook import BaseHook
 from tornasole.core.save_config import SaveConfig
 
 
-DEFAULT_INCLUDE_COLLECTIONS=['weights', 'gradients', 'metrics']
+DEFAULT_INCLUDE_COLLECTIONS=[
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.GRADIENTS,
+    'metrics'
+]
 
 
 class TornasoleHook(keras.callbacks.Callback, BaseHook):
@@ -21,7 +25,6 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
         if save_all is not None:
             msg = "'include_regex' is not yet supported and will be ignored."
             self.logger.warning(msg)
-
         super().__init__(collection_manager=get_collection_manager(),
                          default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
                          out_dir=out_dir,
@@ -50,9 +53,9 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
                 tensor_name = cfg['name']
                 if multi:
                     tensor_name += "_" + str(i)
-                self.collection_manager.get("weights").add_tensor_name(tensor_name)
+                self.collection_manager.get(CollectionKeys.WEIGHTS).add_tensor_name(tensor_name)
 
-        self.collection_manager.get('gradients').add([])
+        self.collection_manager.get(CollectionKeys.GRADIENTS).add([])
 
         # at this point we need all collections to be ready
         # this may not be the case at creation of hook
@@ -66,7 +69,7 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
         if logs is None:
             logs = {}
         self.save_metrics(logs=logs, force=True)
-        self._flush_and_close_writer()
+        self._close_writer()
 
     def on_batch_end(self, batch, logs=None):
         if logs is None:
@@ -74,13 +77,12 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
         self._export_collections(logs)
         self.save_metrics(logs=logs, force=False)
         self.save_layer_data()
-        self._flush_and_close_writer()
+        self._close_writer()
         self._increment_step()
 
     def save_metrics(self, logs, force):
         for k in logs:
-            if self._should_save_tensor_for_step(
-                    k, self.mode, self.mode_steps[self.mode]) or force:
+            if self._should_save_tensor_for_step(k) or force:
                 val = logs[k]
                 self._initialize_writer()
                 self.writer.write_tensor(tname=k, tdata=val,
@@ -100,8 +102,7 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
                 tensor_name = cfg['name']
                 if multi:
                     tensor_name += "_" + str(i)
-                if self._should_save_tensor_for_step(
-                        tensor_name, self.mode, self.mode_steps[self.mode]):
+                if self._should_save_tensor_for_step(tensor_name):
                     self._initialize_writer()
                     self.writer.write_tensor(
                             tdata=tensor_value,

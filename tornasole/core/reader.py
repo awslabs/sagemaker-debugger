@@ -20,7 +20,7 @@
 from tornasole.core.tfevent.event_file_reader import EventFileReader
 
 
-class FileReader():
+class FileReader:
     def __init__(self, fname, wtype='tfevent'):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `logdir`.
@@ -49,8 +49,8 @@ class FileReader():
         """Make usable with "with" statement."""
         self._reader.__exit__(exc_type, exc_value, traceback)
 
-    def read_tensors(self, check=False):
+    def read_tensors(self, check='minimal'):
+        if check is True:
+            check = 'minimal'
         return self._reader.read_tensors(check=check)
 
-    #def __del__(self):
-    #    self._reader.__del__()

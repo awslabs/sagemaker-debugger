@@ -24,7 +24,7 @@ def test_save_all_full(hook=None, trial_dir=None):
     dirs, _ = get_dirs_files(os.path.join(trial_dir, 'events'))
 
     coll = get_collections()
-    assert len(coll) == 6
+    assert all([x in coll.keys() for x in ['all','weights','gradients','losses','optimizer_variables']])
     assert len(coll['weights'].tensor_names) == 1
     assert len(coll['gradients'].tensor_names) == 1
     assert len(coll['losses'].tensor_names) == 1
@@ -32,7 +32,7 @@ def test_save_all_full(hook=None, trial_dir=None):
     assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
     cm = CollectionManager.load(join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
 
-    assert len(cm.collections) == 6
+    assert len(cm.collections) == len(coll), (coll, cm.collections)
     assert len(cm.collections['weights'].tensor_names) == 1
     assert len(cm.collections['losses'].tensor_names) == 1
     assert len(cm.collections['gradients'].tensor_names) == 1
@@ -43,7 +43,6 @@ def test_save_all_full(hook=None, trial_dir=None):
                                     len(cm.collections['gradients'].tensor_names)
     num_tensors_collection = len(coll['weights'].tensor_names) + \
                              len(coll['gradients'].tensor_names)
-
     assert num_tensors_collection == num_tensors_loaded_collection
     assert len(dirs) == 5
     for step in dirs:
@@ -55,9 +54,10 @@ def test_save_all_full(hook=None, trial_dir=None):
             for x in fr.read_tensors():
                 tensor_name, step, tensor_data, mode, mode_step = x
                 i += 1
+                print(tensor_name)
                 size += tensor_data.nbytes
-        assert i == 85
-        assert size == 1470
+        assert i == 84
+        assert size == 1462
     if hook_created:
         shutil.rmtree(trial_dir)
 

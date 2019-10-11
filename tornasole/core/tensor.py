@@ -1,13 +1,14 @@
-from .reductions import get_numpy_reduction
-from tornasole.core.modes import ModeKeys
-from tornasole.exceptions import *
-from tornasole.core.index_reader import IndexReader
-from tornasole.core.locations import TensorLocation
-
-from enum import Enum
 import bisect
+from enum import Enum
+from typing import Dict, Tuple
+
 import numpy as np
-from typing import Any, Dict, List, Tuple
+
+from tornasole.exceptions import *
+from .locations import TensorLocation
+from .index_reader import IndexReader
+from .modes import ModeKeys
+from .reductions import get_numpy_reduction
 
 
 class StepState(Enum):

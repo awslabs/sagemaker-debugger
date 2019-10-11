@@ -1,16 +1,14 @@
-import importlib
+from copy import deepcopy
 import torch
 import torch.distributed as dist
-import logging
+from tornasole.core.json_config import create_hook_from_json_config, \
+    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+from tornasole.core.logger import get_logger
 from tornasole.core.hook import CallbackHook
 from tornasole.core.collection import CollectionKeys
-from tornasole.core.logger import get_logger
-from tornasole.core.json_config import create_hook_from_json_config
 from tornasole.pytorch.collection import get_collection_manager
 from tornasole.pytorch.utils import get_reduction_of_data, make_numpy_array
-from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
-
-logger = get_logger()
+# from tornasole.pytorch._pytorch_graph import graph as create_graph
 
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.WEIGHTS,
@@ -45,6 +43,8 @@ class TornasoleHook(CallbackHook):
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()
+        self.model = None
+        self.exported_model = False
 
     def get_num_workers(self):
         """Check horovod and torch.distributed."""
@@ -91,12 +91,27 @@ class TornasoleHook(CallbackHook):
             pname = module_name + '_' + name
             # This overwhelms the logs; turn back on if you really need it
             # self.logger.debug(
-                # "Processing the global step {0} for parameter {1}".format(self.step, pname))
-            self._write_tensor(tensor_name=pname, tensor_value=param.data)
+            # "Processing the global step {0} for parameter {1}".format(self.step, pname))
+            self._save_for_tensor(tensor_name=pname, tensor_value=param.data)
+
+    def _export_model(self, inputs):
+        pass
+        # todo: export model when only run for 1 step in cleanup
+        # coming in separate PR
+        # if self.model is not None:
+        #     try:
+        #         self._get_tb_writer().write_pytorch_graph(
+        #             create_graph(self.model, inputs))
+        #     except ValueError as e:
+        #         self.logger.warning(
+        #                 f'Could not export model graph for tensorboard '
+        #                 f'due to the pytorch exception: {e}')
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
-        self._flush_and_close_writer()
+        # Write the gradients of the past step if the writer is still available.
+        self._close_writer()
+        self._close_tb_writer()
 
         if not self.prepared_collections:
             # at this point we need all collections to be ready
@@ -107,9 +122,13 @@ class TornasoleHook(CallbackHook):
 
         self._increment_step()
 
-        if self._process_step():
+        if self._get_collections_to_save_for_step():
             self._initialize_writer()
             self.log_params(module)
+
+        if self.exported_model is False:
+            self._export_model(inputs)
+            self.exported_model = True
 
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
@@ -117,8 +136,7 @@ class TornasoleHook(CallbackHook):
 
     # This hook is invoked by trainer after running the forward pass.
     def forward_hook(self, module, inputs, outputs):
-        if self.collections_in_this_step is None:
-            logging.debug("Skipping the global step {0}".format(self.step))
+        if not self._get_collections_to_save_for_step():
             return
 
         module_name = self.module_maps[module]
@@ -133,12 +151,14 @@ class TornasoleHook(CallbackHook):
         self.last_saved_step = self.step
 
     def backward_hook(self, tname):
-        # Helper function that has access to the parameter name via the scope in which it's defined.
+        # Helper function that has access to the parameter name via
+        # the scope in which it's defined.
         def back(grad):
-            if self._process_step():
+            if self._get_collections_to_save_for_step():
                 if grad is not None:
-                    logger.debug("Processing the backward step {0} for {1}".format(self.step, tname))
-                    self._write_tensor(tensor_name=self.GRADIENT_PREFIX + tname, tensor_value=grad)
+                    self.logger.debug(f"Processing the backward step "
+                                      f"{self.step} for {tname}")
+                    self._save_for_tensor(self.GRADIENT_PREFIX + tname, grad)
         return back
 
     def _backward_apply(self, module):
@@ -165,6 +185,9 @@ class TornasoleHook(CallbackHook):
         # Typechecking
         if not isinstance(module, torch.nn.Module):
             raise ValueError(f"Module type {module.__class__.__name__} must be type torch.nn.Module")
+
+        # deepcopy the model because models with hooks can't be exported
+        self.model = deepcopy(module)
 
         # Create a mapping from modules to their names
         for name, submodule in module.named_modules():

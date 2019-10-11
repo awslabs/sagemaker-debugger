@@ -44,3 +44,16 @@ def make_tensor_proto(nparray_data, tag):
             sb = bytes(s,encoding='utf-8')
             tensor_proto.string_val.append(sb)
     return tensor_proto
+
+
+def make_numpy_array(x):
+    if isinstance(x, np.ndarray):
+        return x
+    elif np.isscalar(x):
+        return np.array([x])
+    elif isinstance(x, tuple):
+        return np.asarray(x, dtype=x.dtype)
+    else:
+        raise TypeError('_make_numpy_array only accepts input types of numpy.ndarray, scalar,'
+                        ' while received type {}'.format(str(type(x))))
+

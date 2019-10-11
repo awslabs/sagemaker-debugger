@@ -38,6 +38,7 @@ class S3IndexReader:
         workers = []
         index_files, last_index_token = S3IndexReader.list_all_index_files_from_s3(bucket_name, prefix_name,
                                                                                   start_after_key)
+        logger.debug(','.join(index_files))
         for index_file in index_files:
             step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
             if (range_steps is not None and step_in_range(range_steps, step)) or \
@@ -51,9 +52,9 @@ class S3IndexReader:
 
     @staticmethod
     def list_all_index_files_from_s3(bucket_name, prefix_name, start_after_key=None):
-        index_files, last_index_token = list_s3_objects(bucket_name,
-                                                        IndexFileLocationUtils.get_index_path(prefix_name),
-                                                        start_after_key)
+        index_files, last_index_token = list_s3_objects(
+                bucket_name, IndexFileLocationUtils.get_index_path(prefix_name),
+                start_after_key)
 
         return index_files, last_index_token
 

@@ -1,12 +1,10 @@
 from .trial import EventFileTensor, Trial
 
-from tornasole.core.locations import EventFileLocation
+from tornasole.core.locations import TensorFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.reader import FileReader
-from tornasole.core.utils import index, step_in_range, list_collection_files_in_directory, \
-    get_worker_name_from_collection_file, parse_worker_name_from_file
+from tornasole.core.utils import index, step_in_range, parse_worker_name_from_file
 
-import time
 import os
 import multiprocessing
 import struct
@@ -35,7 +33,7 @@ class LocalTrial(Trial):
 
     def _load_tensors_from_event_files(self):
         try:
-            step_dirs = EventFileLocation.get_step_dirs(self.trial_dir)
+            step_dirs = TensorFileLocation.get_step_dirs(self.trial_dir)
         except FileNotFoundError:
             self.logger.debug('Waiting to see data for steps')
             return
@@ -80,7 +78,7 @@ class LocalTrial(Trial):
             try:
                 dirnames_efts = Parallel(n_jobs=multiprocessing.cpu_count(), verbose=0) \
                     (delayed(self._read_folder) \
-                         (EventFileLocation.get_step_dir_path(self.trial_dir, step_dir),
+                         (TensorFileLocation.get_step_dir_path(self.trial_dir, step_dir),
                           check=self.check) \
                      for step_dir in step_dirs)
                 # sort them as parallel returns in random order
@@ -92,7 +90,7 @@ class LocalTrial(Trial):
                 self._read_step_dirs(step_dirs)
         else:
             for step_dir in step_dirs:
-                step_dir_path = EventFileLocation.get_step_dir_path(self.trial_dir, step_dir)
+                step_dir_path = TensorFileLocation.get_step_dir_path(self.trial_dir, step_dir)
                 dirnames_efts.extend(self._read_folder(step_dir_path,
                                                        check=self.check))
 

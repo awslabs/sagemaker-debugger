@@ -2,7 +2,7 @@ import os
 
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from tornasole.core.s3_utils import list_s3_objects
-from tornasole.core.locations import EventFileLocation
+from tornasole.core.locations import TensorFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.utils import step_in_range
@@ -65,7 +65,7 @@ class S3Trial(Trial):
                                                          start_after_key)
         self.logger.debug("Got objects:{}".format(objects))
         for objname in objects:
-            efl = EventFileLocation.match_regex(objname)
+            efl = TensorFileLocation.match_regex(objname)
             if efl:
                 if (self.range_steps is not None and step_in_range(self.range_steps, efl.step_num)) or \
                         self.range_steps is None:

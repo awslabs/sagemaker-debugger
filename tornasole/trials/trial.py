@@ -7,15 +7,15 @@ from tornasole.core.access_layer.utils import has_training_ended
 from tornasole.core.tensor import Tensor, StepState
 from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
-
-from tornasole.core.locations import EventFileLocation
-from tornasole.core.utils import flatten, is_s3, list_collection_files_in_directory, get_worker_name_from_collection_file
-from tornasole.core.s3_utils import list_s3_objects, parse_collection_files_from_s3_objects
+from tornasole.core.locations import TensorFileLocation
+from tornasole.core.utils import flatten, is_s3, \
+    list_collection_files_in_directory, get_worker_name_from_collection_file
+from tornasole.core.s3_utils import list_s3_objects, \
+    parse_collection_files_from_s3_objects
 from tornasole.core.logger import get_logger
 from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, \
     reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys
-
 from tornasole.core.locations import TensorLocation
 from tornasole.core import index_reader
 
@@ -23,7 +23,7 @@ from tornasole.core import index_reader
 class EventFileTensor:
     def __init__(self, filename, tensor_name, step_num, tensor_value,
                  mode=None, mode_step=None, worker=None):
-        self.location = EventFileLocation.load_filename(filename)
+        self.location = TensorFileLocation.load_filename(filename)
         self.tensorname = tensor_name
         self.tensor_value = tensor_value
         self.step_num = step_num

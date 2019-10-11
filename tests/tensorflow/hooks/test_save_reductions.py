@@ -10,13 +10,12 @@ def helper_save_reductions(trial_dir, hook):
   simple_model(hook)
   _, files = get_dirs_files(trial_dir)
   coll = get_collections()
-  assert len(coll) == 5
   assert len(coll['weights'].tensor_names) == 1
   assert len(coll['gradients'].tensor_names) == 1
 
   assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
   cm = CollectionManager.load(join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
-  assert len(cm.collections) == 5
+  assert len(cm.collections) == len(coll)
   assert len(cm.collections['weights'].tensor_names) == 1
   assert len(cm.collections['gradients'].tensor_names) == 1
   # as we hadn't asked to be saved
@@ -58,8 +57,6 @@ def test_save_reductions():
                        save_config=SaveConfig(save_interval=1),
                        reduction_config=rdnc)
   helper_save_reductions(trial_dir, hook)
-
-
 
 
 def test_save_reductions_json():

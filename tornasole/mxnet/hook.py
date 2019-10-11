@@ -1,15 +1,11 @@
-import logging
 import mxnet as mx
-from tornasole.core.hook import CallbackHook
-from tornasole.core.logger import get_logger
-from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
-
-import logging
 from tornasole.core.collection import CollectionKeys
+from tornasole.core.hook import CallbackHook
+from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, \
+    create_hook_from_json_config
 from tornasole.mxnet.mxnet_collection import get_collection_manager
 from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
-
-logger = get_logger()
+# from tornasole.mxnet.graph import _net2pb
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
@@ -46,6 +42,8 @@ class TornasoleHook(CallbackHook):
         if CollectionKeys.LOSSES not in self.include_collections:
             self.include_collections.append(CollectionKeys.LOSSES)
         self.last_block = None
+        self.model = None
+        self.exported_model = False
 
     def get_worker_name(self):
         return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
@@ -61,6 +59,8 @@ class TornasoleHook(CallbackHook):
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None and self.last_block is not None:
             self.log_params(self.last_block)
+        if self.exported_model is False:
+            self._export_model()
         super()._cleanup()
 
     def log_params(self, block):
@@ -69,11 +69,23 @@ class TornasoleHook(CallbackHook):
             self.log_param(param)
 
     def log_param(self, param):
-        self._write_tensor(tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0]))
+        self._save_for_tensor(tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0]))
         # If Gradient for this param is available
         if param.grad_req != 'null':
-            self._write_tensor(tensor_name=self.GRADIENT_PREFIX + param.name,
-                               tensor_value=param.grad(param.list_ctx()[0]))
+            self._save_for_tensor(tensor_name=self.GRADIENT_PREFIX + param.name,
+                                  tensor_value=param.grad(param.list_ctx()[0]))
+
+    def _export_model(self):
+        pass
+        # if self.model is not None:
+        #     try:
+        #         self._get_tb_writer().write_graph(_net2pb(self.model))
+        #     except (RuntimeError, TypeError) as e:
+        #         self.logger.warning(
+        #                 f'Could not export model graph for tensorboard '
+        #                 f'due to the mxnet exception: {e}')
+        # else:
+        #     self.logger.warning('Tornasole does not know the model')
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, block, inputs):
@@ -81,7 +93,8 @@ class TornasoleHook(CallbackHook):
             # Write the params and gradients of the
             # past step if the writer is still available.
             self.log_params(block)
-            self._flush_and_close_writer()
+            self._close_writer()
+        self._close_tb_writer()
 
         if not self.prepared_collections:
             # at this point we need all collections to be ready
@@ -92,18 +105,23 @@ class TornasoleHook(CallbackHook):
 
         self._increment_step()
 
-        if self._process_step():
+        if self._get_collections_to_save_for_step():
             self._initialize_writer()
+
+        if self.exported_model is False:
+            self._export_model()
+            self.exported_model = True
 
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
+            self._export_model()
             self.exported_collections = True
+
         self.last_block = block
 
     # This hook is invoked by trainer after running the forward pass.
     def forward_hook(self, block, inputs, outputs):
-        if self.collections_in_this_step is None:
-            logging.debug("Skipping the global step {0}".format(self.step))
+        if not self._get_collections_to_save_for_step():
             return
 
         block_name = block.name
@@ -150,16 +168,18 @@ class TornasoleHook(CallbackHook):
         the default collectors viz. gradients, weight and bias
         """
         if not isinstance(block, mx.gluon.Block):
-            logger.error("The given block type {0} is not "
-                         "currently supported by Tornasole Hook"
-                         .format(block.__class__.__name__))
+            self.logger.error(
+                    f"The given block type {block.__class__.__name__} is not "
+                    f"currently supported by Tornasole Hook")
             return
 
         # Skip the forward pre hook for the Loss blocks.
         if isinstance(block, mx.gluon.loss.Loss):
-            logger.info("Registering hook for block {0}".format(block.name))
+            self.logger.info(f"Registering hook for block {block.name}")
             block.register_forward_hook(self.forward_hook)
             return
+        else:
+            self.model = block
 
         is_recursive = self._is_recursive_needed()
         block.register_forward_pre_hook(self.forward_pre_hook)

@@ -6,7 +6,7 @@ import json
 from typing import Any, Dict, List, Optional, Union
 
 ALLOWED_PARAMS = ['name', 'include_regex', 'reduction_config', 'save_config',
-                  'tensor_names']
+                  'tensor_names', 'save_histogram']
 
 class CollectionKeys:
   DEFAULT = 'default'
@@ -19,8 +19,6 @@ class CollectionKeys:
   SCALARS = 'scalars'
 
   TENSORFLOW_SUMMARIES = 'tensorflow_summaries'
-  SCALAR_SUMMARIES = 'scalar_summaries'
-  HISTOGRAMS = 'histograms'
 
   #XGBOOST
   METRIC = "metric"
@@ -28,6 +26,18 @@ class CollectionKeys:
   LABELS = "labels"
   FEATURE_IMPORTANCE = "feature_importance"
   AVERAGE_SHAP = "average_shap"
+
+# Collection with summary objects instead of tensors
+# so we don't create summaries or reductions of these
+SUMMARIES_COLLECTIONS = {
+  CollectionKeys.TENSORFLOW_SUMMARIES
+}
+
+
+NON_HISTOGRAM_COLLECTIONS = {
+  CollectionKeys.LOSSES, CollectionKeys.SCALARS,
+  CollectionKeys.TENSORFLOW_SUMMARIES
+}
 
 
 class Collection:
@@ -56,11 +66,12 @@ class Collection:
   if this is not passed, uses the default save_config
   """
   def __init__(self, name, include_regex=None, tensor_names=None,
-               reduction_config=None, save_config=None):
+               reduction_config=None, save_config=None, save_histogram=True):
     self.name = name
     self.include_regex = include_regex if include_regex is not None else []
     self.set_reduction_config(reduction_config)
     self.set_save_config(save_config)
+    self.save_histogram = save_histogram
 
     # todo: below comment is broken now that we have set. do we need it back?
     # we want to maintain order here so that different collections can be analyzed together
@@ -129,7 +140,8 @@ class Collection:
       "include_regex": self.include_regex,
       "tensor_names": sorted(list(self.tensor_names)) if self.tensor_names else [], # Sort for determinism
       "reduction_config": self.reduction_config.to_json_dict() if self.reduction_config else None,
-      "save_config": self.save_config.to_json_dict() if self.save_config else None
+      "save_config": self.save_config.to_json_dict() if self.save_config else None,
+      "save_histogram": self.save_histogram
     }
 
   def to_json(self) -> str:
@@ -145,7 +157,8 @@ class Collection:
       "include_regex": params.get("include_regex", False),
       "tensor_names": set(params.get("tensor_names", [])),
       "reduction_config": ReductionConfig.from_dict(params["reduction_config"]) if "reduction_config" in params else None,
-      "save_config": SaveConfig.from_dict(params["save_config"]) if "save_config" in params else None
+      "save_config": SaveConfig.from_dict(params["save_config"]) if "save_config" in params else None,
+      "save_histogram": params.get("save_histogram", True)
     }
     return cls(**res)
 
@@ -159,6 +172,11 @@ class Collection:
   def __hash__(self):
     return hash(self.name)
 
+  def __repr__(self):
+    return (
+        f"<class Collection: name={self.name}>"
+    )
+
   def __eq__(self, other):
     if not isinstance(other, Collection):
       return NotImplemented
@@ -167,5 +185,5 @@ class Collection:
            self.include_regex == other.include_regex and \
            self.tensor_names == other.tensor_names and \
            self.reduction_config == other.reduction_config and \
-           self.save_config == other.save_config
-
+           self.save_config == other.save_config and \
+           self.save_histogram == other.save_histogram

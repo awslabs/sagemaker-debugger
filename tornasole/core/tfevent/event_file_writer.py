@@ -17,22 +17,14 @@
 
 """Writes events to disk in a trial dir."""
 
-import numpy as np
-import os.path
-import socket
 import threading
 import time
 import six
-
 from tornasole.core.locations import TensorLocation
-from .events_writer import EventsWriter
-from .proto.event_pb2 import Event
-from .proto.summary_pb2 import Summary, SummaryMetadata
-from .util import make_tensor_proto
-
+from tornasole.core.tfevent.events_writer import EventsWriter
+from tornasole.core.tfevent.proto.event_pb2 import Event
 from tornasole.core.tfevent.index_file_writer import EventWithIndex
 from tornasole.core.utils import get_relative_event_file_path
-from tornasole.core.modes import MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
 from tornasole.core.utils import parse_worker_name_from_file
 
 
@@ -40,18 +32,6 @@ def size_and_shape(t):
     if type(t) == bytes or type(t) == str:
         return (len(t), [len(t)])
     return (t.nbytes, t.shape)
-
-
-def make_numpy_array(x):
-    if isinstance(x, np.ndarray):
-        return x
-    elif np.isscalar(x):
-        return np.array([x])
-    elif isinstance(x, tuple):
-        return np.asarray(x, dtype=x.dtype)
-    else:
-        raise TypeError('_make_numpy_array only accepts input types of numpy.ndarray, scalar,'
-                        ' while received type {}'.format(str(type(x))))
 
 
 def _get_sentinel_event():
@@ -95,26 +75,10 @@ class EventFileWriter:
         )
         self._worker.start()
 
-    def write_tensor(self, tdata, tname, write_index,
-                     global_step, mode, mode_step):
-        sm1 = SummaryMetadata.PluginData(plugin_name='tensor')
-        sm2 = SummaryMetadata.PluginData(plugin_name=MODE_STEP_PLUGIN_NAME,
-                                        content=str(mode_step))
-        sm3 = SummaryMetadata.PluginData(plugin_name=MODE_PLUGIN_NAME,
-                                         content=str(mode.value))
-        plugin_data = [sm1, sm2, sm3]
-        smd = SummaryMetadata(plugin_data=plugin_data)
-
-        value = make_numpy_array(tdata)
-        tag = tname
-        tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
-        s = Summary(value=[Summary.Value(tag=tag, metadata=smd,
-                                         tensor=tensor_proto)])
-        if write_index:
-            self.write_summary_with_index(
-                    s, global_step, tname, mode, mode_step)
-        else:
-            self.write_summary(s, global_step)
+    def write_graph(self, graph):
+        """Adds a `Graph` protocol buffer to the event file."""
+        event = Event(graph_def=graph.SerializeToString())
+        self.write_event(event)
 
     def write_summary(self, summary, step):
         event = Event(summary=summary)
@@ -172,7 +136,7 @@ class _EventLoggerThread(threading.Thread):
             event_in_queue = self._queue.get()
 
             if isinstance(event_in_queue, EventWithIndex):
-                # checking whether there is an object of IndexArgs,
+                # checking whether there is an object of EventWithIndex,
                 # which is written by write_summary_with_index
                 event = event_in_queue.event
             else:
@@ -188,14 +152,15 @@ class _EventLoggerThread(threading.Thread):
                 # write index
                 if isinstance(event_in_queue, EventWithIndex):
                     eventfile = self._ev_writer.name()
-                    tname = event_in_queue.tensorname
-                    mode = event_in_queue.get_mode()
-                    mode_step = event_in_queue.mode_step
                     eventfile = get_relative_event_file_path(eventfile)
                     tensorlocation = TensorLocation(
-                            tname, mode, mode_step, eventfile,
-                            positions[0], positions[1], parse_worker_name_from_file(eventfile)
-                    )
+                            tname=event_in_queue.tensorname,
+                            mode=event_in_queue.get_mode(),
+                            mode_step=event_in_queue.mode_step,
+                            event_file_name=eventfile,
+                            start_idx=positions[0],
+                            length=positions[1],
+                            worker=parse_worker_name_from_file(eventfile))
                     self._ev_writer.index_writer.add_index(tensorlocation)
                 # Flush the event writer every so often.
                 now = time.time()

@@ -6,7 +6,7 @@ import os, shutil
 from tornasole.tensorflow import reset_collections
 from .utils import *
 from tornasole.core.reader import FileReader
-from tornasole.core.locations import EventFileLocation
+from tornasole.core.locations import TensorFileLocation
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 import tornasole.tensorflow as ts
 
@@ -65,7 +65,7 @@ def helper_tornasole_hook_write(data_dir, hook):
 
     # read saved weights from disk using summary iterator, verify if in-memory weights at end of training
     # are identical to the ones we have saved using TornasoleHook
-    step_dir = EventFileLocation.get_step_dir_path(data_dir, 999)
+    step_dir = TensorFileLocation.get_step_dir_path(data_dir, 999)
     files = os.listdir(step_dir)
     print(v.keys())
     for f in files:

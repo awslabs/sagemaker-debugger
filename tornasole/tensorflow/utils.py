@@ -45,7 +45,3 @@ def get_original_fetch_ops(fetches):
         raise RuntimeError('Invalid fetches')
 
 
-def size_and_shape(t):
-    if type(t) == bytes or type(t) == str:
-        return (len(t), [len(t)])
-    return (t.nbytes, t.shape)

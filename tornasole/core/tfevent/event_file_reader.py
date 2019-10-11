@@ -18,7 +18,6 @@
 """Reads events from disk."""
 
 import tornasole.core.tfevent.proto.types_pb2 as types_pb2
-import logging
 import numpy as np
 
 from .proto.event_pb2 import Event
@@ -26,9 +25,6 @@ from .proto.event_pb2 import Event
 from tornasole.core.tfrecord.record_reader import RecordReader
 from tornasole.core.modes import ModeKeys, MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
 
-
-#todo: remove this logger perhaps
-logging.basicConfig()
 
 def as_dtype(t):
     _INTERN_TABLE = {
@@ -43,7 +39,6 @@ def as_dtype(t):
     return _INTERN_TABLE[t]
 
 
-
 def get_tensor_data(tensor):
     shape = [d.size for d in tensor.tensor_shape.dim]
     # num_elements = np.prod(shape, dtype=np.int64)
@@ -54,7 +49,7 @@ def get_tensor_data(tensor):
             r = tensor.string_val[i]
             r = r.decode('utf-8')
             res.append(r)
-        return res
+        return np.array(res)
 
     dtype = as_dtype(tensor.dtype)
     #dtype = tensor_dtype.as_numpy_dtype
@@ -88,17 +83,13 @@ class EventsReader(object):
     EventsReader defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
     def __init__(self, filename):
-        """
-        Events files have a name of the form
-        '/file/path/events.out.tfevents.[timestamp].[hostname][file_suffix]'
-        """
         self._filename = filename
         self._tfrecord_reader = RecordReader(self._filename)
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._tfrecord_reader.__exit__(exc_type, exc_value, traceback)
 
-    def read_events(self, check=True):
+    def read_events(self, check='minimal'):
         while self._tfrecord_reader.has_data():
             rec = self._tfrecord_reader.read_record(check=check)
             event = Event()
@@ -130,32 +121,33 @@ class EventFileReader():
     def __exit__(self,exc_type, exc_value, traceback):
         self._ev_reader.__exit__(exc_type, exc_value, traceback)
 
-    def read_tensors(self, check=False):
+    def _get_mode_modestep(self, step, plugin_data):
+        mode_step = step
+        mode = ModeKeys.GLOBAL
+        for metadata in plugin_data:
+            if metadata.plugin_name == MODE_STEP_PLUGIN_NAME:
+                mode_step = int(metadata.content)
+            if metadata.plugin_name == MODE_PLUGIN_NAME:
+                mode = ModeKeys(int(metadata.content))
+        return mode, mode_step
+
+    def read_tensors(self, check='minimal'):
         for step, summ in self.read_summaries(check=check):
             for v in summ.value:
-                assert v.WhichOneof('value') == 'tensor'
+                val = v.WhichOneof('value')
+                assert val == 'tensor'
                 tensor_name = v.tag
                 # We have found the right tensor at the right step
                 tensor_data = get_tensor_data(v.tensor)
-
-                # default values
-                # todo: validate the logic extensively
-                mode_step = step
-                mode = ModeKeys.GLOBAL
-                for metadata in v.metadata.plugin_data:
-                    if metadata.plugin_name == MODE_STEP_PLUGIN_NAME:
-                        mode_step = int(metadata.content)
-                    if metadata.plugin_name == MODE_PLUGIN_NAME:
-                        mode = ModeKeys(int(metadata.content))
+                mode, mode_step = self._get_mode_modestep(
+                        step, v.metadata.plugin_data)
                 yield (tensor_name, step, tensor_data, mode, mode_step)
 
-    def read_summaries(self, check=True):
+    def read_summaries(self, check='minimal'):
         for ev in self.read_events(check=check):
-            #assert ev.HasField('step')
-            if not ev.HasField('summary'):
-                continue
-            assert ev.HasField('summary')
-            yield (ev.step, ev.summary)
+            # graph gets bypassed here
+            if ev.HasField('summary'):
+                yield (ev.step, ev.summary)
 
-    def read_events(self,check=True):
+    def read_events(self, check='minimal'):
         return self._ev_reader.read_events(check=check)

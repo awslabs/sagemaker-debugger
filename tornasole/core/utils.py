@@ -145,8 +145,14 @@ def step_in_range(range_steps, step):
 def get_relative_event_file_path(path):
     p = Path(path)
     path_parts = p.parts
-    assert path_parts[-3] == "events"
+    assert path_parts[-3] in ["events", "tensorboard"], print(path)
     return os.path.join(*path_parts[-3:])
+
+
+def size_and_shape(t):
+    if type(t) == bytes or type(t) == str:
+        return (len(t), [len(t)])
+    return (t.nbytes, t.shape)
 
 
 def parse_worker_name_from_file(filename):

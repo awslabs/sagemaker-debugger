@@ -18,6 +18,6 @@ def test_training_job_has_ended():
           [sys.executable, "examples/tensorflow/scripts/simple.py",
            "--tornasole_path", trial_dir,
            '--steps', '10', '--tornasole_frequency', '5'],
-          env={'CUDA_VISIBLE_DEVICES':'-1'})
+          env={'CUDA_VISIBLE_DEVICES':'-1', 'TORNASOLE_LOG_LEVEL': 'debug'})
   assert has_training_ended(trial_dir) == True
   shutil.rmtree(trial_dir)

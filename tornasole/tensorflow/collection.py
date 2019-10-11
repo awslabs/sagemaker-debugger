@@ -8,9 +8,9 @@ from tornasole.core.collection_manager import \
 
 class Collection(BaseCollection):
     def __init__(self, name, include_regex=None, tensor_names=None,
-                 reduction_config=None, save_config=None):
+                 reduction_config=None, save_config=None, save_histogram=True):
         super().__init__(name, include_regex, tensor_names,
-                         reduction_config, save_config)
+                         reduction_config, save_config, save_histogram)
         self.tensors = []
         # has the new tensors added to graph
         # reduction_tensor_names has the names of original tensors
@@ -75,9 +75,11 @@ class CollectionManager(BaseCollectionManager):
     def __init__(self, collections=None, create_default=True):
         super().__init__(collections=collections)
         if create_default:
-            for n in [CollectionKeys.DEFAULT, CollectionKeys.WEIGHTS,
+            for n in [CollectionKeys.DEFAULT,
+                      CollectionKeys.WEIGHTS,
                       CollectionKeys.GRADIENTS,
-                      CollectionKeys.LOSSES]:
+                      CollectionKeys.LOSSES,
+                      CollectionKeys.SCALARS]:
                 self.create_collection(n)
 
     def create_collection(self, name):

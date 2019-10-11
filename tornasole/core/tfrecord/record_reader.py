@@ -55,23 +55,26 @@ class RecordReader:
         #print("HASDATA=", has)
         return has
 
-    def read_record(self, check=True):
+    def read_record(self, check='minimal'):
         strlen_bytes = self._reader.read(8)
         strlen = struct.unpack('Q', strlen_bytes)[0]
         saved_len_crc = struct.unpack('I', self._reader.read(4))[0]
-        if check:
+
+        if check in ['minimal', 'full']:
             computed_len_crc = masked_crc32c(strlen_bytes)
             assert saved_len_crc == computed_len_crc
 
         payload = self._reader.read(strlen)
         saved_payload_crc = struct.unpack('I', self._reader.read(4))[0]
-        if check:
+        if check == 'full':
             computed_payload_crc = masked_crc32c(payload)
             assert saved_payload_crc == computed_payload_crc
-        else:
+        elif check == 'minimal':
             computed_payload_crc = masked_crc32c(CHECKSUM_MAGIC_BYTES)
             assert saved_payload_crc == computed_payload_crc
-
+        else:
+            # no check
+            pass
         return payload
 
     def flush(self):

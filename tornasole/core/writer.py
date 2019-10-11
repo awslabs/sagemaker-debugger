@@ -16,18 +16,27 @@
 # under the License.
 
 """APIs for logging data in the event file."""
-from .locations import EventFileLocation, IndexFileLocationUtils
+from tornasole.core.tfevent.util import make_tensor_proto
 from tornasole.core.tfevent.event_file_writer import EventFileWriter
+from tornasole.core.tfevent.summary import make_numpy_array, histogram_summary, \
+    _get_default_bins, scalar_summary
 from tornasole.core.tfevent.index_file_writer import IndexWriter
+from tornasole.core.tfevent.proto.event_pb2 import Event, TaggedRunMetadata
+from tornasole.core.tfevent.proto.summary_pb2 import Summary, SummaryMetadata
+from tornasole.core.modes import MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
+from .logger import get_logger
+from .locations import TensorFileLocation, IndexFileLocationUtils, TensorboardFileLocation
+from .modes import ModeKeys
 
 import socket
 
-from .modes import ModeKeys
+
+logger = get_logger()
 
 
 class FileWriter:
     def __init__(self, trial_dir, step=0, worker=None,
-                 wtype='tensor',
+                 wtype='events', mode=ModeKeys.GLOBAL,
                  max_queue=10, flush_secs=120,
                  verbose=False, write_checksum=False):
         """Creates a `FileWriter` and an  file.
@@ -56,13 +65,19 @@ class FileWriter:
         if worker is None:
             self.worker = socket.gethostname()
 
-        index_file_path = IndexFileLocationUtils.get_index_key_for_step(
-                self.trial_dir, self.step, self.worker)
-        self.index_writer = IndexWriter(index_file_path)
-
-        if wtype == 'tensor':
-            el = EventFileLocation(step_num=self.step, worker_name=self.worker)
-            event_file_path = el.get_location(trial_dir=self.trial_dir)
+        self.mode = mode
+        if wtype == 'events':
+            el = TensorFileLocation(step_num=self.step, worker_name=self.worker)
+            event_file_path = el.get_file_location(trial_dir=self.trial_dir)
+            index_file_path = IndexFileLocationUtils.get_index_key_for_step(
+                    self.trial_dir, self.step, self.worker)
+            self.index_writer = IndexWriter(index_file_path)
+        elif wtype == 'tensorboard':
+            el = TensorboardFileLocation(step_num=self.step,
+                                         worker_name=self.worker,
+                                         mode=self.mode)
+            event_file_path = el.get_file_location(trial_dir=self.trial_dir)
+            self.index_writer = None
         else:
             assert False, 'Writer type not supported: {}'.format(wtype)
 
@@ -71,6 +86,7 @@ class FileWriter:
                 max_queue=max_queue, flush_secs=flush_secs,
                 verbose=verbose, write_checksum=write_checksum
         )
+        self._default_bins = _get_default_bins()
 
     def __enter__(self):
         """Make usable with "with" statement."""
@@ -80,21 +96,85 @@ class FileWriter:
         """Make usable with "with" statement."""
         self.close()
 
+    @staticmethod
+    def _get_metadata(mode, mode_step):
+        sm2 = SummaryMetadata.PluginData(plugin_name=MODE_STEP_PLUGIN_NAME,
+                                         content=str(mode_step))
+        sm3 = SummaryMetadata.PluginData(plugin_name=MODE_PLUGIN_NAME,
+                                         content=str(mode.value))
+        plugin_data = [
+            sm2,
+            sm3]
+        smd = SummaryMetadata(plugin_data=plugin_data)
+        return smd
+
     def write_tensor(self, tdata, tname, write_index=True,
                      mode=ModeKeys.GLOBAL, mode_step=None):
         mode, mode_step = self._check_mode_step(mode, mode_step, self.step)
-        self._writer.write_tensor(tdata, tname, write_index,
-                                  global_step=self.step,
-                                  mode=mode, mode_step=mode_step)
-
-    def write_summary(self, summ, tname, global_step, write_index=True,
-                      mode=ModeKeys.GLOBAL, mode_step=None):
-        mode, mode_step = self._check_mode_step(mode, mode_step, global_step)
+        smd = self._get_metadata(mode, mode_step)
+        value = make_numpy_array(tdata)
+        tag = tname
+        tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
+        s = Summary(value=[Summary.Value(tag=tag, metadata=smd,
+                                         tensor=tensor_proto)])
         if write_index:
             self._writer.write_summary_with_index(
-                    summ, global_step, tname, mode, mode_step)
+                    s, self.step, tname, mode, mode_step)
         else:
-            self._writer.write_summary(summ, global_step)
+            self._writer.write_summary(s, self.step)
+
+    def write_graph(self, graph):
+        self._writer.write_graph(graph)
+
+    def write_pytorch_graph(self, graph_profile):
+        # https://github.com/pytorch/pytorch/blob/c749be9e9f8dd3db8b3582e93f917bd47e8e9e20/torch/utils/tensorboard/writer.py # L99
+        # graph_profile = pytorch_graph.graph(self.model)
+        graph = graph_profile[0]
+        stepstats = graph_profile[1]
+        event = Event(graph_def=graph.SerializeToString())
+        self._writer.write_event(event)
+        trm = TaggedRunMetadata(
+                tag='step1', run_metadata=stepstats.SerializeToString())
+        event = Event(tagged_run_metadata=trm)
+        self._writer.write_event(event)
+
+    def write_summary(self, summ, global_step):
+        self._writer.write_summary(summ, global_step)
+
+    def write_histogram_summary(self, tdata, tname, global_step, bins='default'):
+        """Add histogram data to the event file.
+        Parameters
+        ----------
+        tname : str
+            Name for the `values`.
+        tdata: `numpy.ndarray`
+            Values for building histogram.
+        global_step : int
+            Global step value to record.
+        bins : int or sequence of scalars or str
+            If `bins` is an int, it defines the number equal-width bins in the range
+            `(values.min(), values.max())`.
+            If `bins` is a sequence, it defines the bin edges, including the rightmost edge,
+            allowing for non-uniform bin width.
+            If `bins` is a str equal to 'default', it will use the bin distribution
+            defined in TensorFlow for building histogram.
+            Ref: https://www.tensorflow.org/programmers_guide/tensorboard_histograms
+            The rest of supported strings for `bins` are 'auto', 'fd', 'doane', 'scott',
+            'rice', 'sturges', and 'sqrt'. etc. See the documentation of `numpy.histogram`
+            for detailed definitions of those strings.
+            https://docs.scipy.org/doc/numpy/reference/generated/numpy.histogram.html
+        """
+        if bins == 'default':
+            bins = self._default_bins
+        try:
+            s = histogram_summary(tname, tdata, bins)
+            self._writer.write_summary(s, global_step)
+        except ValueError as e:
+            logger.error(f'Unable to write histogram {tname} at {global_step}')
+
+    def write_scalar_summary(self, name, value, global_step):
+        s = scalar_summary(name, value)
+        self._writer.write_summary(s, global_step)
 
     def flush(self):
         """Flushes the event file to disk.
@@ -108,7 +188,8 @@ class FileWriter:
         Call this method when you do not need the summary writer anymore.
         """
         self._writer.close()
-        self.index_writer.close()
+        if self.index_writer is not None:
+            self.index_writer.close()
 
     def name(self):
         return self._writer.name()
