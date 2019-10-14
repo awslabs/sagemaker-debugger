@@ -8,11 +8,14 @@ FRAMEWORKS = ['tensorflow', 'pytorch', 'mxnet', 'xgboost']
 
 
 def compile_summary_protobuf():
-    proto_path = 'tornasole/core/tfevent/proto'
-    proto_files = os.path.join(proto_path, '*.proto')
-    cmd = 'protoc ' + proto_files + ' --python_out=.'
-    print('compiling protobuf files in {}'.format(proto_path))
-    return os.system('set -ex &&' + cmd)
+    proto_paths = ['tornasole/core/tfevent/proto', 'tornasole/pytorch/proto']
+    cmd = 'set -ex && protoc '
+    for proto_path in proto_paths:
+        proto_files = os.path.join(proto_path, '*.proto')
+        cmd += proto_files + ' '
+        print('compiling protobuf files in {}'.format(proto_path))
+    cmd += ' --python_out=.'
+    return os.system(cmd)
 
 
 def get_framework_packages(f):

@@ -9,7 +9,7 @@ from tornasole.core.collection import CollectionKeys
 from tornasole.pytorch.collection import get_collection_manager
 from tornasole.pytorch.singleton_utils import set_hook
 from tornasole.pytorch.utils import get_reduction_of_data, make_numpy_array
-# from tornasole.pytorch._pytorch_graph import graph as create_graph
+from tornasole.pytorch._pytorch_graph import graph as create_graph
 
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.WEIGHTS,
@@ -114,17 +114,15 @@ class TornasoleHook(CallbackHook):
             self._save_for_tensor(tensor_name=pname, tensor_value=param.data)
 
     def _export_model(self, inputs):
-        pass
         # todo: export model when only run for 1 step in cleanup
-        # coming in separate PR
-        # if self.model is not None:
-        #     try:
-        #         self._get_tb_writer().write_pytorch_graph(
-        #             create_graph(self.model, inputs))
-        #     except ValueError as e:
-        #         self.logger.warning(
-        #                 f'Could not export model graph for tensorboard '
-        #                 f'due to the pytorch exception: {e}')
+        if self.model is not None:
+            try:
+                self._get_tb_writer().write_pytorch_graph(
+                    create_graph(self.model, inputs))
+            except ValueError as e:
+                self.logger.warning(
+                        f'Could not export model graph for tensorboard '
+                        f'due to the pytorch exception: {e}')
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
@@ -207,7 +205,7 @@ class TornasoleHook(CallbackHook):
 
         # deepcopy the model because models with hooks can't be exported
         self.model = deepcopy(module)
-
+        
         # Create a mapping from modules to their names
         for name, submodule in module.named_modules():
             assert submodule not in self.module_maps, f"Don't register module={module} twice"

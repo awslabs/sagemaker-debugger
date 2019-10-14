@@ -6,7 +6,7 @@ from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, \
 from tornasole.mxnet.mxnet_collection import get_collection_manager
 from tornasole.mxnet.singleton_utils import set_hook
 from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
-# from tornasole.mxnet.graph import _net2pb
+from tornasole.mxnet.graph import _net2pb
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
@@ -81,16 +81,15 @@ class TornasoleHook(CallbackHook):
                                   tensor_value=param.grad(param.list_ctx()[0]))
 
     def _export_model(self):
-        pass
-        # if self.model is not None:
-        #     try:
-        #         self._get_tb_writer().write_graph(_net2pb(self.model))
-        #     except (RuntimeError, TypeError) as e:
-        #         self.logger.warning(
-        #                 f'Could not export model graph for tensorboard '
-        #                 f'due to the mxnet exception: {e}')
-        # else:
-        #     self.logger.warning('Tornasole does not know the model')
+        if self.model is not None:
+            try:
+                self._get_tb_writer().write_graph(_net2pb(self.model))
+            except (RuntimeError, TypeError) as e:
+                self.logger.warning(
+                        f'Could not export model graph for tensorboard '
+                        f'due to the mxnet exception: {e}')
+        else:
+            self.logger.warning('Tornasole does not know the model')
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, block, inputs):
@@ -119,7 +118,6 @@ class TornasoleHook(CallbackHook):
 
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
-            self._export_model()
             self.exported_collections = True
 
         self.last_block = block
