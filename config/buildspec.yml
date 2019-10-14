@@ -16,11 +16,12 @@ phases:
         - sudo apt-get update
         - sudo apt-get install unzip
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
-        - pip install pytest wheel pyYaml pytest-html tensorflow==1.14.0 mxnet torch xgboost
+        - pip install pytest wheel pyYaml pytest-html tensorflow==1.14.0 mxnet torch xgboost pre-commit
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
 
   pre_build:
     commands:
+      - cd $CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
 
   build:
     commands:
