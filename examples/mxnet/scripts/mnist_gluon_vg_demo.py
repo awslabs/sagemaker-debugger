@@ -8,18 +8,31 @@ import numpy as np
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train a mxnet gluon model for FashionMNIST dataset')
-    parser.add_argument('--output-uri', type=str, default='s3://tornasole-testing/vg-demo',
-                        help='S3 URI of the bucket where tensor data will be stored.')
-    parser.add_argument('--tornasole_path', type=str, default=None,
-                        help='S3 URI of the bucket where tensor data will be stored.')
-    parser.add_argument('--random_seed',type=bool, default=False)
-    parser.add_argument('--num_steps', type=int,
-                        help='Reduce the number of training '
-                             'and evaluation steps to the give number if desired.'
-                             'If this is not passed, trains for one epoch '
-                             'of training and validation data')
-    parser.add_argument('--tornasole_frequency', type=int, default=100)
+    parser = argparse.ArgumentParser(
+        description="Train a mxnet gluon model for FashionMNIST dataset"
+    )
+    parser.add_argument(
+        "--output-uri",
+        type=str,
+        default="s3://tornasole-testing/vg-demo",
+        help="S3 URI of the bucket where tensor data will be stored.",
+    )
+    parser.add_argument(
+        "--tornasole_path",
+        type=str,
+        default=None,
+        help="S3 URI of the bucket where tensor data will be stored.",
+    )
+    parser.add_argument("--random_seed", type=bool, default=False)
+    parser.add_argument(
+        "--num_steps",
+        type=int,
+        help="Reduce the number of training "
+        "and evaluation steps to the give number if desired."
+        "If this is not passed, trains for one epoch "
+        "of training and validation data",
+    )
+    parser.add_argument("--tornasole_frequency", type=int, default=100)
     opt = parser.parse_args()
     return opt
 
@@ -37,13 +50,15 @@ def test(ctx, net, val_data, num_steps=None):
     return metric.get()
 
 
-def train_model(net, epochs, ctx, learning_rate, momentum,
-                train_data, val_data, hook, num_steps=None):
+def train_model(
+    net, epochs, ctx, learning_rate, momentum, train_data, val_data, hook, num_steps=None
+):
     # Collect all parameters from net and its children, then initialize them.
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     # Trainer is for updating parameters with gradient.
-    trainer = gluon.Trainer(net.collect_params(), 'sgd',
-                            {'learning_rate': learning_rate, 'momentum': momentum})
+    trainer = gluon.Trainer(
+        net.collect_params(), "sgd", {"learning_rate": learning_rate, "momentum": momentum}
+    )
     metric = mx.metric.Accuracy()
     loss = gluon.loss.SoftmaxCrossEntropyLoss()
 
@@ -70,39 +85,47 @@ def train_model(net, epochs, ctx, learning_rate, momentum,
 
             if i % 100 == 0 and i > 0:
                 name, acc = metric.get()
-                print('[Epoch %d Batch %d] Training: %s=%f' % (epoch, i, name, acc))
+                print("[Epoch %d Batch %d] Training: %s=%f" % (epoch, i, name, acc))
 
         name, acc = metric.get()
-        print('[Epoch %d] Training: %s=%f' % (epoch, name, acc))
+        print("[Epoch %d] Training: %s=%f" % (epoch, name, acc))
 
         hook.set_mode(modes.EVAL)
         name, val_acc = test(ctx, net, val_data, num_steps=num_steps)
-        print('[Epoch %d] Validation: %s=%f' % (epoch, name, val_acc))
+        print("[Epoch %d] Validation: %s=%f" % (epoch, name, val_acc))
+
 
 def transformer(data, label):
-    data = data.reshape((-1,)).astype(np.float32)/255
+    data = data.reshape((-1,)).astype(np.float32) / 255
     return data, label
 
 
 def prepare_data():
     train_data = gluon.data.DataLoader(
-        gluon.data.vision.MNIST('./data', train=True, transform=transformer),
-        batch_size=100, shuffle=True, last_batch='discard')
+        gluon.data.vision.MNIST("./data", train=True, transform=transformer),
+        batch_size=100,
+        shuffle=True,
+        last_batch="discard",
+    )
 
     val_data = gluon.data.DataLoader(
-        gluon.data.vision.MNIST('./data', train=False, transform=transformer),
-        batch_size=100, shuffle=False)
+        gluon.data.vision.MNIST("./data", train=False, transform=transformer),
+        batch_size=100,
+        shuffle=False,
+    )
     return train_data, val_data
+
 
 # Create a model using gluon API. The tornasole hook is currently
 # supports MXNet gluon models only.
 def create_gluon_model():
     net = nn.Sequential()
     with net.name_scope():
-        net.add(nn.Dense(128, activation='relu'))
-        net.add(nn.Dense(64, activation='relu'))
+        net.add(nn.Dense(128, activation="relu"))
+        net.add(nn.Dense(64, activation="relu"))
         net.add(nn.Dense(10))
     return net
+
 
 # Create a tornasole hook. The initialization of hook determines which tensors
 # are logged while training is in progress.
@@ -113,8 +136,11 @@ def create_tornasole_hook(output_uri, tornasole_frequency):
     save_config = SaveConfig(save_interval=tornasole_frequency)
 
     # Create a hook that logs weights, biases and gradients while training the model.
-    hook = TornasoleHook(out_dir=output_uri, save_config=save_config, include_collections=['weights', 'gradients',
-                                                                                            'biases'])
+    hook = TornasoleHook(
+        out_dir=output_uri,
+        save_config=save_config,
+        include_collections=["weights", "gradients", "biases"],
+    )
     return hook
 
 
@@ -134,7 +160,7 @@ def main():
 
     # Create a tornasole hook for logging the desired tensors.
     # The output_uri is a the URI where the tensors will be saved. It can be local or s3://bucket/prefix
-    output_uri=opt.tornasole_path if opt.tornasole_path is not None else opt.output_uri
+    output_uri = opt.tornasole_path if opt.tornasole_path is not None else opt.output_uri
     hook = create_tornasole_hook(output_uri, opt.tornasole_frequency)
 
     # Register the hook to the top block.
@@ -143,9 +169,18 @@ def main():
     # Start the training.
     train_data, val_data = prepare_data()
 
-    train_model(net=net, epochs=2, ctx=mx.cpu(), learning_rate=1, momentum=0.9,
-                train_data=train_data, val_data=val_data,
-                hook=hook, num_steps=opt.num_steps)
+    train_model(
+        net=net,
+        epochs=2,
+        ctx=mx.cpu(),
+        learning_rate=1,
+        momentum=0.9,
+        train_data=train_data,
+        val_data=val_data,
+        hook=hook,
+        num_steps=opt.num_steps,
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

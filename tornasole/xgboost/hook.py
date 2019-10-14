@@ -22,7 +22,7 @@ DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.PREDICTIONS,
     CollectionKeys.LABELS,
     CollectionKeys.FEATURE_IMPORTANCE,
-    CollectionKeys.AVERAGE_SHAP
+    CollectionKeys.AVERAGE_SHAP,
 ]
 
 
@@ -30,17 +30,17 @@ class TornasoleHook(CallbackHook):
     """Tornasole hook that represents a callback function in XGBoost."""
 
     def __init__(
-            self,
-            out_dir: Optional[str] = None,
-            dry_run: bool = False,
-            reduction_config=None,
-            save_config: Optional[SaveConfig] = None,
-            include_regex: Optional[List[str]] = None,
-            include_collections: Optional[List[str]] = None,
-            save_all: bool = False,
-            train_data: Union[None, Tuple[str, str], DMatrix] = None,
-            validation_data: Union[None, Tuple[str, str], DMatrix] = None,
-            ) -> None:
+        self,
+        out_dir: Optional[str] = None,
+        dry_run: bool = False,
+        reduction_config=None,
+        save_config: Optional[SaveConfig] = None,
+        include_regex: Optional[List[str]] = None,
+        include_collections: Optional[List[str]] = None,
+        save_all: bool = False,
+        train_data: Union[None, Tuple[str, str], DMatrix] = None,
+        validation_data: Union[None, Tuple[str, str], DMatrix] = None,
+    ) -> None:
         """
         This class represents the hook which is meant to be used a callback
         function in XGBoost.
@@ -75,16 +75,18 @@ class TornasoleHook(CallbackHook):
             train_data = xgboost.DMatrix('train.svm.txt')
         validation_data: Same as train_data, but for validation data.
         """  # noqa: E501
-        super().__init__(collection_manager=get_collection_manager(),
-                         default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-                         data_type_name=None,
-                         out_dir=out_dir,
-                         dry_run=dry_run,
-                         reduction_config=None,
-                         save_config=save_config,
-                         include_regex=include_regex,
-                         include_collections=include_collections,
-                         save_all=save_all)
+        super().__init__(
+            collection_manager=get_collection_manager(),
+            default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            data_type_name=None,
+            out_dir=out_dir,
+            dry_run=dry_run,
+            reduction_config=None,
+            save_config=save_config,
+            include_regex=include_regex,
+            include_collections=include_collections,
+            save_all=save_all,
+        )
         if reduction_config is not None:
             msg = "'reduction_config' is not supported and will be ignored."
             self.logger.warning(msg)
@@ -107,7 +109,9 @@ class TornasoleHook(CallbackHook):
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):
-        return create_hook_from_json_config(cls, get_collection_manager(), json_config_path=json_config_path)
+        return create_hook_from_json_config(
+            cls, get_collection_manager(), json_config_path=json_config_path
+        )
 
     def _cleanup(self):
         # todo: this second export should go
@@ -161,12 +165,10 @@ class TornasoleHook(CallbackHook):
         if self._is_collection_being_saved_for_step(CollectionKeys.LABELS):
             self.write_labels(env)
 
-        if self._is_collection_being_saved_for_step(
-                CollectionKeys.FEATURE_IMPORTANCE):
+        if self._is_collection_being_saved_for_step(CollectionKeys.FEATURE_IMPORTANCE):
             self.write_feature_importances(env)
 
-        if self._is_collection_being_saved_for_step(
-                CollectionKeys.AVERAGE_SHAP):
+        if self._is_collection_being_saved_for_step(CollectionKeys.AVERAGE_SHAP):
             self.write_average_shap(env)
 
         if not self._is_last_step(env):
@@ -186,9 +188,7 @@ class TornasoleHook(CallbackHook):
         # Write predictions y_hat from validation data
         if not self.validation_data:
             return
-        self._save_for_tensor(
-            "predictions",
-            env.model.predict(self.validation_data))
+        self._save_for_tensor("predictions", env.model.predict(self.validation_data))
 
     def write_labels(self, env: CallbackEnv):
         # Write labels y from validation data
@@ -204,8 +204,7 @@ class TornasoleHook(CallbackHook):
 
         for feature_name in feature_importances:
             feature_data = feature_importances[feature_name] / total
-            self._save_for_tensor(
-                "{}/feature_importance".format(feature_name), feature_data)
+            self._save_for_tensor("{}/feature_importance".format(feature_name), feature_data)
 
     def write_average_shap(self, env: CallbackEnv):
         if not self.train_data:
@@ -220,38 +219,34 @@ class TornasoleHook(CallbackHook):
 
         for feature_id, feature_name in enumerate(feature_names):
             if shap_avg[feature_id] > 0:
-                self._save_for_tensor(
-                    "{}/average_shap".format(feature_name),
-                    shap_avg[feature_id])
+                self._save_for_tensor("{}/average_shap".format(feature_name), shap_avg[feature_id])
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
         self._write_raw_tensor(tensor_name, tensor_value, save_collections)
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
-        raise NotImplementedError('Reductions are not support by XGBoost hook')
+        raise NotImplementedError("Reductions are not support by XGBoost hook")
 
     @staticmethod
     def _make_numpy_array(tensor_value):
         return make_numpy_array(tensor_value)
 
     @staticmethod
-    def _validate_data(
-            data: Union[None, Tuple[str, str], DMatrix] = None
-            ) -> None:
+    def _validate_data(data: Union[None, Tuple[str, str], DMatrix] = None) -> None:
         if data is None or isinstance(data, DMatrix):
             return data
         error_msg = (
             "'data' must be a tuple of strings representing "
-            "(file path, content type) or an xgboost.DMatrix instance.")
+            "(file path, content type) or an xgboost.DMatrix instance."
+        )
         is_tuple = isinstance(data, tuple)
         is_first_item_str = isinstance(data[0], str)
         if not (is_tuple and is_first_item_str):
             raise ValueError(error_msg)
         file_path = os.path.expanduser(data[0])
         if not os.path.isfile(file_path):
-            raise NotImplementedError(
-                "Only local files are currently supported for SHAP.")
+            raise NotImplementedError("Only local files are currently supported for SHAP.")
         try:
             content_type = get_content_type(data[1])
             validate_data_file_path(file_path, content_type)

@@ -47,10 +47,19 @@ from tornasole.core.logger import get_logger
 from tornasole.core.utils import merge_two_dicts, split
 from tornasole import ReductionConfig, SaveConfig, SaveConfigMode
 
-from tornasole.core.config_constants import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, TORNASOLE_CONFIG_FILE_PATH_ENV_STR, \
-    DEFAULT_CONFIG_FILE_PATH, TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY, TORNASOLE_CONFIG_SAVE_CONFIGS_KEY, \
-    TORNASOLE_CONFIG_OUTDIR_KEY, TORNASOLE_CONFIG_RDN_CFG_KEY, TORNASOLE_CONFIG_INCLUDE_REGEX_KEY, \
-    TORNASOLE_CONFIG_SAVE_ALL_KEY, DEFAULT_SAGEMAKER_TORNASOLE_PATH
+from tornasole.core.config_constants import (
+    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
+    TORNASOLE_CONFIG_FILE_PATH_ENV_STR,
+    DEFAULT_CONFIG_FILE_PATH,
+    TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY,
+    TORNASOLE_CONFIG_SAVE_CONFIGS_KEY,
+    TORNASOLE_CONFIG_OUTDIR_KEY,
+    TORNASOLE_CONFIG_RDN_CFG_KEY,
+    TORNASOLE_CONFIG_INCLUDE_REGEX_KEY,
+    TORNASOLE_CONFIG_SAVE_ALL_KEY,
+    DEFAULT_SAGEMAKER_TORNASOLE_PATH,
+)
+
 
 def get_json_config_as_dict(json_config_path) -> Dict:
     """Checks json_config_path, then environment variables, then attempts to load.
@@ -66,13 +75,16 @@ def get_json_config_as_dict(json_config_path) -> Dict:
         params_dict = json.load(json_config_file)
     return params_dict
 
+
 def create_hook_from_json_config(hook_cls, collection_manager, json_config_path):
     """Returns a TornasoleHook object corresponding to either TF, PT, or MXNet.
 
     If json_config_path is None, an environment variable must be set.
     Here we compare HookParameters with CollectionConfiguration and set all the defaults.
     """
-    tornasole_params = collect_tornasole_config_params(collection_manager, json_config_path=json_config_path)
+    tornasole_params = collect_tornasole_config_params(
+        collection_manager, json_config_path=json_config_path
+    )
     if "collections" in tornasole_params:
         include_collections = []
         for obj in tornasole_params["collections"].values():
@@ -153,8 +165,7 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
                 params=coll_params, base_config_modes=base_config_modes
             )
             mode_save_configs = {
-                mode: SaveConfigMode.from_dict(val)
-                for mode, val in coll_config_modes.items()
+                mode: SaveConfigMode.from_dict(val) for mode, val in coll_config_modes.items()
             }
             coll.set_save_config(mode_save_configs)
             if "reductions" in coll_params:

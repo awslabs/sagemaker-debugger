@@ -19,14 +19,10 @@ class TensorLocation:
         self.worker = worker
 
     def to_dict(self):
-        return {
-            "tensorname": self.tensorname,
-            "start_idx": self.start_idx,
-            "length": self.length
-        }
+        return {"tensorname": self.tensorname, "start_idx": self.start_idx, "length": self.length}
 
 
-STEP_NUMBER_FORMATTING_LENGTH = '012'
+STEP_NUMBER_FORMATTING_LENGTH = "012"
 
 
 class EventFileLocation(ABC):
@@ -50,14 +46,14 @@ class EventFileLocation(ABC):
     @classmethod
     def load_filename(cls, s, print_error=True):
         event_file_name = os.path.basename(s)
-        m = re.search('(.*)_(.*).tfevents$', event_file_name)
+        m = re.search("(.*)_(.*).tfevents$", event_file_name)
         if m:
             step_num = int(m.group(1))
             worker_name = m.group(2)
             return cls(step_num=step_num, worker_name=worker_name)
         else:
             if print_error:
-                logger.error('Failed to load efl: ', s)
+                logger.error("Failed to load efl: ", s)
             return None
 
     @staticmethod
@@ -69,19 +65,18 @@ class EventFileLocation(ABC):
 class TensorFileLocation(EventFileLocation):
     def __init__(self, step_num, worker_name):
         super().__init__(step_num, worker_name)
-        self.type = 'events'
+        self.type = "events"
 
     @staticmethod
     def get_dir(trial_dir):
-        return os.path.join(trial_dir, 'events')
+        return os.path.join(trial_dir, "events")
 
-    def get_file_location(self, trial_dir=''):
+    def get_file_location(self, trial_dir=""):
         if trial_dir:
             event_key_prefix = self.get_dir(trial_dir)
         else:
             event_key_prefix = self.type
-        return os.path.join(
-                event_key_prefix, self.get_step_num_str(), self.get_filename())
+        return os.path.join(event_key_prefix, self.get_step_num_str(), self.get_filename())
 
     @classmethod
     def get_step_dirs(cls, trial_dir):
@@ -90,21 +85,20 @@ class TensorFileLocation(EventFileLocation):
     @classmethod
     def get_step_dir_path(cls, trial_dir, step_num):
         step_num = int(step_num)
-        return os.path.join(cls.get_dir(trial_dir),
-                            format(step_num, STEP_NUMBER_FORMATTING_LENGTH))
+        return os.path.join(cls.get_dir(trial_dir), format(step_num, STEP_NUMBER_FORMATTING_LENGTH))
 
 
 class TensorboardFileLocation(EventFileLocation):
     def __init__(self, step_num, worker_name, mode=None):
         super().__init__(step_num, worker_name)
         self.mode = mode
-        self.type = 'tensorboard'
+        self.type = "tensorboard"
 
     @staticmethod
     def get_dir(trial_dir):
-        return os.path.join(trial_dir, 'tensorboard')
+        return os.path.join(trial_dir, "tensorboard")
 
-    def get_file_location(self, trial_dir=''):
+    def get_file_location(self, trial_dir=""):
         if trial_dir:
             event_key_prefix = os.path.join(self.get_dir(trial_dir), self.mode.name)
         else:
@@ -119,22 +113,24 @@ class IndexFileLocationUtils:
 
     @staticmethod
     def get_index_prefix_for_step(step_num):
-        index_prefix_for_step = step_num // IndexFileLocationUtils.MAX_INDEX_FILE_NUM_IN_INDEX_PREFIX
-        return format(index_prefix_for_step, '09')
+        index_prefix_for_step = (
+            step_num // IndexFileLocationUtils.MAX_INDEX_FILE_NUM_IN_INDEX_PREFIX
+        )
+        return format(index_prefix_for_step, "09")
 
     @staticmethod
     def next_index_prefix_for_step(step_num):
-        index_prefix_for_step = step_num // IndexFileLocationUtils.MAX_INDEX_FILE_NUM_IN_INDEX_PREFIX
-        return format(index_prefix_for_step + 1, '09')
+        index_prefix_for_step = (
+            step_num // IndexFileLocationUtils.MAX_INDEX_FILE_NUM_IN_INDEX_PREFIX
+        )
+        return format(index_prefix_for_step + 1, "09")
 
     @staticmethod
     def _get_index_key(trial_prefix, step_num, worker_name):
-        index_prefix_for_step_str = IndexFileLocationUtils.\
-            get_index_prefix_for_step(step_num)
-        step_num_str = format(step_num, '012')
+        index_prefix_for_step_str = IndexFileLocationUtils.get_index_prefix_for_step(step_num)
+        step_num_str = format(step_num, "012")
         index_filename = format(f"{step_num_str}_{worker_name}.json")
-        index_key = format(
-            f"{trial_prefix}/index/{index_prefix_for_step_str}/{index_filename}")
+        index_key = format(f"{trial_prefix}/index/{index_prefix_for_step_str}/{index_filename}")
         return index_key
 
     # for a step_num index files lies
@@ -146,8 +142,8 @@ class IndexFileLocationUtils:
     @staticmethod
     def get_step_from_idx_filename(index_file_name):
         i = index_file_name.find("_")
-        k = index_file_name[i + 1:].find("_")
-        step_num_str = index_file_name[i + 1: i + 1 + k]
+        k = index_file_name[i + 1 :].find("_")
+        step_num_str = index_file_name[i + 1 : i + 1 + k]
         return int(step_num_str)
 
     @staticmethod
@@ -155,9 +151,9 @@ class IndexFileLocationUtils:
         # 10 = prefix/index/000000000/000000000010_worker.json'
         # 10 = prefix/index/000000000/000000000010_worker_EVAL.json'
         base_file_name = os.path.basename(index_file_name)
-        step = int(base_file_name.split('_')[0])
+        step = int(base_file_name.split("_")[0])
         return step
 
     @staticmethod
     def get_index_path(path):
-        return os.path.join(path, 'index')
+        return os.path.join(path, "index")

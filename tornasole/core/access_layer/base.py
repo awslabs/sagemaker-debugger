@@ -9,7 +9,7 @@ class TSAccessBase:
     def open(self):
         raise NotImplementedError
 
-    def write(self,_bytes):
+    def write(self, _bytes):
         raise NotImplementedError
 
     def flush(self):

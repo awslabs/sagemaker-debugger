@@ -15,5 +15,7 @@ class TerminateSagemakerJob(Action):
             #         {'Key':'TerminationTime', 'Value': str(time.time())} ]
             # SageMakerUtils.add_tags(self.job_name, tags)
         except Exception as e:
-            self.logger.warning("Caught exception when running TerminateSagemakerJob "
-                                "action for smjob:{} Exception:{}".format(self.sm_job_name, e))
+            self.logger.warning(
+                "Caught exception when running TerminateSagemakerJob "
+                "action for smjob:{} Exception:{}".format(self.sm_job_name, e)
+            )

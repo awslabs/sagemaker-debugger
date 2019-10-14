@@ -10,21 +10,22 @@ from tornasole.core.tfevent.proto.attr_value_pb2 import AttrValue
 
 
 def _scoped_name(scope_name, node_name):
-    return '/'.join([scope_name, node_name])
+    return "/".join([scope_name, node_name])
 
 
 def _get_nodes_from_symbol(sym):
     """Given a symbol and shapes, return a list of `NodeDef`s for visualizing the
     the graph in TensorBoard."""
     if not isinstance(sym, Symbol):
-        raise TypeError('sym must be an `mxnet.symbol.Symbol`,'
-                        ' received type {}'.format(str(type(sym))))
+        raise TypeError(
+            "sym must be an `mxnet.symbol.Symbol`," " received type {}".format(str(type(sym)))
+        )
     conf = json.loads(sym.tojson())
-    nodes = conf['nodes']
+    nodes = conf["nodes"]
     data2op = {}  # key: data id, value: list of ops to whom data is an input
     for i, node in enumerate(nodes):
-        if node['op'] != 'null':  # node is an operator
-            input_list = node['inputs']
+        if node["op"] != "null":  # node is an operator
+            input_list = node["inputs"]
             for idx in input_list:
                 if idx[0] == 0:  # do not include 'data' node in the op scope
                     continue
@@ -44,34 +45,34 @@ def _get_nodes_from_symbol(sym):
     # The parameters are named 'conv/conv_weight' and 'conv/conv_bias'.
     node_defs = []
     for i, node in enumerate(nodes):
-        node_name = node['name']
-        op_name = node['op']
-        kwargs = {'op': op_name, 'name': node_name}
-        if op_name != 'null':  # node is an operator
+        node_name = node["name"]
+        op_name = node["op"]
+        kwargs = {"op": op_name, "name": node_name}
+        if op_name != "null":  # node is an operator
             inputs = []
-            input_list = node['inputs']
+            input_list = node["inputs"]
             for idx in input_list:
                 input_node = nodes[idx[0]]
-                input_node_name = input_node['name']
-                if input_node['op'] != 'null':
+                input_node_name = input_node["name"]
+                if input_node["op"] != "null":
                     inputs.append(_scoped_name(input_node_name, input_node_name))
                 elif idx[0] in data2op and len(data2op[idx[0]]) == 1 and data2op[idx[0]][0] == i:
                     # the data is only as an input to nodes[i], no else
                     inputs.append(_scoped_name(node_name, input_node_name))
                 else:  # the data node has no scope name, e.g. 'data' as the input node
                     inputs.append(input_node_name)
-            kwargs['input'] = inputs
-            kwargs['name'] = _scoped_name(node_name, node_name)
+            kwargs["input"] = inputs
+            kwargs["name"] = _scoped_name(node_name, node_name)
         elif i in data2op and len(data2op[i]) == 1:
             # node is a data node belonging to one op, find out which operator this node belongs to
-            op_node_name = nodes[data2op[i][0]]['name']
-            kwargs['name'] = _scoped_name(op_node_name, node_name)
+            op_node_name = nodes[data2op[i][0]]["name"]
+            kwargs["name"] = _scoped_name(op_node_name, node_name)
 
-        if 'attrs' in node:
+        if "attrs" in node:
             # TensorBoard would escape quotation marks, replace it with space
-            attr = json.dumps(node['attrs'], sort_keys=True).replace("\"", ' ')
-            attr = {'param': AttrValue(s=attr.encode(encoding='utf-8'))}
-            kwargs['attr'] = attr
+            attr = json.dumps(node["attrs"], sort_keys=True).replace('"', " ")
+            attr = {"param": AttrValue(s=attr.encode(encoding="utf-8"))}
+            kwargs["attr"] = attr
         node_def = NodeDef(**kwargs)
         node_defs.append(node_def)
     return node_defs
@@ -88,9 +89,12 @@ def _net2pb(net):
         if not net._cached_graph:
             raise RuntimeError(
                 "Please first call net.hybridize() and then run forward with "
-                "this net at least once before calling add_graph().")
+                "this net at least once before calling add_graph()."
+            )
         net = net._cached_graph[1]
     elif not isinstance(net, Symbol):
-        raise TypeError('only accepts mxnet.gluon.HybridBlock and mxnet.symbol.Symbol '
-                        'as input network, received type {}'.format(str(type(net))))
+        raise TypeError(
+            "only accepts mxnet.gluon.HybridBlock and mxnet.symbol.Symbol "
+            "as input network, received type {}".format(str(type(net)))
+        )
     return _sym2pb(net)

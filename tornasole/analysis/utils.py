@@ -39,7 +39,7 @@ def refresh(trials):
         trial.dynamic_refresh = False
 
 
-def parse_list_from_str(arg, delimiter=','):
+def parse_list_from_str(arg, delimiter=","):
     """
     :param arg: string or list of strings
     if it is string it is treated as character delimited string
@@ -64,10 +64,9 @@ def parse_bool(arg, default):
         return default
     elif arg in [False, True]:
         return arg
-    elif arg == 'False':
+    elif arg == "False":
         return False
-    elif arg == 'True':
+    elif arg == "True":
         return True
     else:
-        raise ValueError('boolean argument expected, '
-                         'but found {}'.format(arg))
+        raise ValueError("boolean argument expected, " "but found {}".format(arg))

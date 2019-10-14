@@ -8,21 +8,24 @@ from tornasole.core.tensor import Tensor, StepState
 from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
 from tornasole.core.locations import TensorFileLocation
-from tornasole.core.utils import flatten, is_s3, \
-    list_collection_files_in_directory, get_worker_name_from_collection_file
-from tornasole.core.s3_utils import list_s3_objects, \
-    parse_collection_files_from_s3_objects
+from tornasole.core.utils import (
+    flatten,
+    is_s3,
+    list_collection_files_in_directory,
+    get_worker_name_from_collection_file,
+)
+from tornasole.core.s3_utils import list_s3_objects, parse_collection_files_from_s3_objects
 from tornasole.core.logger import get_logger
-from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, \
-    reverse_reduction_tensor_name
+from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys
 from tornasole.core.locations import TensorLocation
 from tornasole.core import index_reader
 
 
 class EventFileTensor:
-    def __init__(self, filename, tensor_name, step_num, tensor_value,
-                 mode=None, mode_step=None, worker=None):
+    def __init__(
+        self, filename, tensor_name, step_num, tensor_value, mode=None, mode_step=None, worker=None
+    ):
         self.location = TensorFileLocation.load_filename(filename)
         self.tensorname = tensor_name
         self.tensor_value = tensor_value
@@ -48,8 +51,9 @@ class Trial(ABC):
     'dynamic_refresh', 'trial_dir']
     """
 
-    def __init__(self, name, range_steps=None, parallel=True,
-                 check=False, index_mode=True, cache=False):
+    def __init__(
+        self, name, range_steps=None, parallel=True, check=False, index_mode=True, cache=False
+    ):
         self.name = name
         self._tensors = {}
 
@@ -82,16 +86,22 @@ class Trial(ABC):
         self.dynamic_refresh = True
 
         if self.range_steps is not None:
-            assert self.range_steps[0] is None or \
-                   (isinstance(self.range_steps[0], int) and self.range_steps[0] >= 0)
-            assert self.range_steps[1] is None or \
-                   (isinstance(self.range_steps[1], int) and self.range_steps[1] >= 0)
+            assert self.range_steps[0] is None or (
+                isinstance(self.range_steps[0], int) and self.range_steps[0] >= 0
+            )
+            assert self.range_steps[1] is None or (
+                isinstance(self.range_steps[1], int) and self.range_steps[1] >= 0
+            )
             if self.range_steps[1] is not None and self.range_steps[0] is not None:
-                assert int(self.range_steps[1]) > int(self.range_steps[0]), "range_steps should be of the form " \
-                    "(begin, end) where begin is less than end"
+                assert int(self.range_steps[1]) > int(self.range_steps[0]), (
+                    "range_steps should be of the form " "(begin, end) where begin is less than end"
+                )
             if self.range_steps[0] is not None and self.range_steps[1] is not None:
-                self.logger.info('Trial {} will look for steps between {} and {}'
-                             .format(self.name, self.range_steps[0], self.range_steps[1]))
+                self.logger.info(
+                    "Trial {} will look for steps between {} and {}".format(
+                        self.name, self.range_steps[0], self.range_steps[1]
+                    )
+                )
 
     @abstractmethod
     def read_collections(self, collection_files):
@@ -106,17 +116,18 @@ class Trial(ABC):
             nonlocal num_times_before_warning
             s3, bucket_name, key_name = is_s3(self.path)
             if s3:
-                s3_objects, _ = \
-                    list_s3_objects(self.bucket_name, self.prefix_name, start_after_key=None, delimiter='')
+                s3_objects, _ = list_s3_objects(
+                    self.bucket_name, self.prefix_name, start_after_key=None, delimiter=""
+                )
                 collection_files = parse_collection_files_from_s3_objects(s3_objects)
             else:
                 collection_files = list_collection_files_in_directory(self.trial_dir)
 
             num_times_before_warning -= 1
             if num_times_before_warning < 0:
-                self.logger.warning('Waiting to read collections')
+                self.logger.warning("Waiting to read collections")
             else:
-                self.logger.debug('Waiting to read collections')
+                self.logger.debug("Waiting to read collections")
 
         def _wait_for_first_collection_file():
             while len(collection_files) == 0:
@@ -154,7 +165,7 @@ class Trial(ABC):
             return
         retry_count = 1
         training_ended = has_training_ended(self.path)
-        if training_ended and self.loaded_all_steps== False:
+        if training_ended and self.loaded_all_steps == False:
             retry_count = 2
         while retry_count > 0:
             if name is None:
@@ -210,11 +221,9 @@ class Trial(ABC):
         self._populate_step_dict(to, step_num)
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
             if type(to) is TensorLocation:
-                t.add_reduction_step_lazy(to.mode, to.mode_step,
-                                          worker, red_name, abs, to)
+                t.add_reduction_step_lazy(to.mode, to.mode_step, worker, red_name, abs, to)
             else:
-                t.add_reduction_step(to.mode, to.mode_step,
-                                     worker, red_name, abs, to.tensor_value)
+                t.add_reduction_step(to.mode, to.mode_step, worker, red_name, abs, to.tensor_value)
         else:
             if type(to) is TensorLocation:
                 t.add_step_lazy(to.mode, to.mode_step, worker, to)
@@ -245,8 +254,7 @@ class Trial(ABC):
     def _global_step_currently(self, mode, mode_step):
         if mode == ModeKeys.GLOBAL:
             return mode_step
-        elif mode in self._mode_to_global and \
-          mode_step in self._mode_to_global[mode]:
+        elif mode in self._mode_to_global and mode_step in self._mode_to_global[mode]:
             return self._mode_to_global[mode][mode_step]
 
     def global_step(self, mode, mode_step):
@@ -355,20 +363,17 @@ class Trial(ABC):
             self._load_tensors_from_event_files()
 
     def _load_tensors_from_index_files(self):
-        self.index_tensors_dict, self.last_index_token = \
-            self.index_reader.load_tensor_data_from_index_files(
-                self.path,
-                self.last_index_token,
-                range_steps=self.range_steps)
+        self.index_tensors_dict, self.last_index_token = self.index_reader.load_tensor_data_from_index_files(
+            self.path, self.last_index_token, range_steps=self.range_steps
+        )
         self._load_tensors_from_index_tensors(self.index_tensors_dict)
 
     def refresh_tensors(self):
         # TODO if job finished
         if self.index_mode:
-            index_tensors_dict, self.last_index_token = \
-                self.index_reader.load_tensor_data_from_index_files(self.path,
-                                                                    start_after_key=self.last_index_token,
-                                                                    range_steps=self.range_steps)
+            index_tensors_dict, self.last_index_token = self.index_reader.load_tensor_data_from_index_files(
+                self.path, start_after_key=self.last_index_token, range_steps=self.range_steps
+            )
             if len(index_tensors_dict):
                 self.index_tensors_dict.update(index_tensors_dict)
                 self._load_tensors_from_index_tensors(index_tensors_dict)

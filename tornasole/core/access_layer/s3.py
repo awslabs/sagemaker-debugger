@@ -5,41 +5,40 @@ from tornasole.core.utils import get_region
 
 
 class TSAccessS3(TSAccessBase):
-    def __init__(self, bucket_name, key_name,
-                 aws_access_key_id=None, aws_secret_access_key=None,
-                 binary=True):
+    def __init__(
+        self, bucket_name, key_name, aws_access_key_id=None, aws_secret_access_key=None, binary=True
+    ):
         super().__init__()
         self.bucket_name = bucket_name
         # S3 is not like a Unix file system where multiple slashes are normalized to one
-        self.key_name = re.sub('/+', '/', key_name )
+        self.key_name = re.sub("/+", "/", key_name)
         self.binary = binary
         self._init_data()
         self.flushed = False
 
-        self.current_len=0
-        self.s3 = boto3.resource('s3', region_name=get_region())
-        self.s3_client = boto3.client('s3', region_name=get_region())
+        self.current_len = 0
+        self.s3 = boto3.resource("s3", region_name=get_region())
+        self.s3_client = boto3.client("s3", region_name=get_region())
 
         # check if the bucket exists
-        buckets = [bucket['Name'] for bucket in self.s3_client.list_buckets()['Buckets']]
+        buckets = [bucket["Name"] for bucket in self.s3_client.list_buckets()["Buckets"]]
         if self.bucket_name not in buckets:
-            self.s3_client.create_bucket(ACL='private', Bucket=self.bucket_name)
+            self.s3_client.create_bucket(ACL="private", Bucket=self.bucket_name)
 
     def _init_data(self):
         if self.binary:
             self.data = bytearray()
         else:
-            self.data = ''
+            self.data = ""
 
     def _init_data(self):
         if self.binary:
             self.data = bytearray()
         else:
-            self.data = ''
+            self.data = ""
 
-    def open(self,bucket_name,mode):
+    def open(self, bucket_name, mode):
         raise NotImplementedError
-
 
     def write(self, _data):
         start = len(self.data)
@@ -55,19 +54,18 @@ class TSAccessS3(TSAccessBase):
         self._init_data()
         self.flushed = True
 
-
     def flush(self):
         pass
 
     def ingest_all(self):
         s3_response_object = self.s3_client.get_object(Bucket=self.bucket_name, Key=self.key_name)
-        self._data = s3_response_object['Body'].read()
+        self._data = s3_response_object["Body"].read()
         self._datalen = len(self._data)
         self._position = 0
 
-    def read(self,n):
-        assert self._position+n <= self._datalen
-        res = self._data[self._position:self._position+n]
+    def read(self, n):
+        assert self._position + n <= self._datalen
+        res = self._data[self._position : self._position + n]
         self._position += n
         return res
 

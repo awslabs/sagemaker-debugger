@@ -18,10 +18,12 @@ def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
         op = f(tensor_data)
         return op
     elif reduction_name in ALLOWED_NORMS:
-        if reduction_name in ['l1', 'l2']:
+        if reduction_name in ["l1", "l2"]:
             ord = int(reduction_name[1])
         else:
-            raise RuntimeError("Invalid normalization operation {0} for torch.Tensor".format(reduction_name))
+            raise RuntimeError(
+                "Invalid normalization operation {0} for torch.Tensor".format(reduction_name)
+            )
         op = torch.norm(tensor_data, p=ord)
         return op
     elif hasattr(torch, reduction_name):
@@ -41,5 +43,7 @@ def make_numpy_array(x):
     elif isinstance(x, tuple):
         return np.asarray(x, dtype=x.dtype)
     else:
-        raise TypeError('_make_numpy_array only accepts input types of numpy.ndarray, scalar,'
-                        ' and Torch Tensor, while received type {}'.format(str(type(x))))
+        raise TypeError(
+            "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"
+            " and Torch Tensor, while received type {}".format(str(type(x)))
+        )

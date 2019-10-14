@@ -4,7 +4,7 @@ import numpy as np
 from .util import make_numpy_array
 from .proto.summary_pb2 import Summary, HistogramProto
 
-_INVALID_TAG_CHARACTERS = re.compile(r'[^-/\w\.]')
+_INVALID_TAG_CHARACTERS = re.compile(r"[^-/\w\.]")
 
 
 def _clean_tag(name):
@@ -27,8 +27,8 @@ def _clean_tag(name):
     # This function replaces all illegal characters with _s, and logs a warning.
     # It also strips leading slashes from the name.
     if name is not None:
-        new_name = _INVALID_TAG_CHARACTERS.sub('_', name)
-        new_name = new_name.lstrip('/')  # Remove leading slashes
+        new_name = _INVALID_TAG_CHARACTERS.sub("_", name)
+        new_name = new_name.lstrip("/")  # Remove leading slashes
         if new_name != name:
             name = new_name
     return name
@@ -54,7 +54,7 @@ def scalar_summary(tag, scalar):
     """
     tag = _clean_tag(tag)
     scalar = make_numpy_array(scalar)
-    assert(scalar.squeeze().ndim == 0), 'scalar should be 0D'
+    assert scalar.squeeze().ndim == 0, "scalar should be 0D"
     scalar = float(scalar)
     return Summary(value=[Summary.Value(tag=tag, simple_value=scalar)])
 
@@ -63,7 +63,7 @@ def _make_histogram(values, bins, max_bins):
     """Converts values into a histogram proto using logic from
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/lib/histogram/histogram.cc"""
     if values.size == 0:
-        raise ValueError('The input has no element.')
+        raise ValueError("The input has no element.")
     values = values.reshape(-1)
     counts, limits = np.histogram(values, bins=bins)
     num_bins = len(counts)
@@ -71,8 +71,12 @@ def _make_histogram(values, bins, max_bins):
         subsampling = num_bins // max_bins
         subsampling_remainder = num_bins % subsampling
         if subsampling_remainder != 0:
-            counts = np.pad(counts, pad_width=[[0, subsampling - subsampling_remainder]],
-                            mode="constant", constant_values=0)
+            counts = np.pad(
+                counts,
+                pad_width=[[0, subsampling - subsampling_remainder]],
+                mode="constant",
+                constant_values=0,
+            )
         counts = counts.reshape(-1, subsampling).sum(axis=-1)
         new_limits = np.empty((counts.size + 1,), limits.dtype)
         new_limits[:-1] = limits[:-1:subsampling]
@@ -90,20 +94,22 @@ def _make_histogram(values, bins, max_bins):
     # included, we include an empty bin left.
     # If start == 0, we need to add an empty one left, otherwise we can just include the bin left to the
     # first nonzero-count bin:
-    counts = counts[start - 1:end] if start > 0 else np.concatenate([[0], counts[:end]])
-    limits = limits[start:end + 1]
+    counts = counts[start - 1 : end] if start > 0 else np.concatenate([[0], counts[:end]])
+    limits = limits[start : end + 1]
 
     if counts.size == 0 or limits.size == 0:
-        raise ValueError('The histogram is empty, please file a bug report.')
+        raise ValueError("The histogram is empty, please file a bug report.")
 
     sum_sq = values.dot(values)
-    return HistogramProto(min=values.min(),
-                          max=values.max(),
-                          num=len(values),
-                          sum=values.sum(),
-                          sum_squares=sum_sq,
-                          bucket_limit=limits.tolist(),
-                          bucket=counts.tolist())
+    return HistogramProto(
+        min=values.min(),
+        max=values.max(),
+        num=len(values),
+        sum=values.sum(),
+        sum_squares=sum_sq,
+        bucket_limit=limits.tolist(),
+        bucket=counts.tolist(),
+    )
 
 
 def _get_default_bins():
@@ -111,10 +117,10 @@ def _get_default_bins():
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/lib/histogram/histogram.cc
     See the following tutorial for more details on how TensorFlow initialize bin distribution.
     https://www.tensorflow.org/programmers_guide/tensorboard_histograms"""
-    v = 1E-12
+    v = 1e-12
     buckets = []
     neg_buckets = []
-    while v < 1E20:
+    while v < 1e20:
         buckets.append(v)
         neg_buckets.append(-v)
         v *= 1.1

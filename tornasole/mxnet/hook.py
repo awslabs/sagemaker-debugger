@@ -1,8 +1,10 @@
 import mxnet as mx
 from tornasole.core.collection import CollectionKeys
 from tornasole.core.hook import CallbackHook
-from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, \
-    create_hook_from_json_config
+from tornasole.core.json_config import (
+    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
+    create_hook_from_json_config,
+)
 from tornasole.mxnet.mxnet_collection import get_collection_manager
 from tornasole.mxnet.singleton_utils import set_hook
 from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
@@ -14,30 +16,33 @@ COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = [
     CollectionKeys.WEIGHTS,
     CollectionKeys.BIASES,
     CollectionKeys.GRADIENTS,
-    CollectionKeys.LOSSES
+    CollectionKeys.LOSSES,
 ]
 
 
 class TornasoleHook(CallbackHook):
-    def __init__(self,
-                 out_dir=None,
-                 dry_run=False,
-                 reduction_config=None,
-                 save_config=None,
-                 include_regex=None,
-                 include_collections=None,
-                 save_all=False):
+    def __init__(
+        self,
+        out_dir=None,
+        dry_run=False,
+        reduction_config=None,
+        save_config=None,
+        include_regex=None,
+        include_collections=None,
+        save_all=False,
+    ):
         super().__init__(
-                collection_manager=get_collection_manager(),
-                default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-                data_type_name=mx.ndarray.NDArray.__name__,
-                out_dir=out_dir,
-                dry_run=dry_run,
-                reduction_config=reduction_config,
-                save_config=save_config,
-                include_regex=include_regex,
-                include_collections=include_collections,
-                save_all=save_all)
+            collection_manager=get_collection_manager(),
+            default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            data_type_name=mx.ndarray.NDArray.__name__,
+            out_dir=out_dir,
+            dry_run=dry_run,
+            reduction_config=reduction_config,
+            save_config=save_config,
+            include_regex=include_regex,
+            include_collections=include_collections,
+            save_all=save_all,
+        )
         # We would like to collect loss collection
         # even if user does not specify any collections
         if CollectionKeys.LOSSES not in self.include_collections:
@@ -49,7 +54,6 @@ class TornasoleHook(CallbackHook):
 
         set_hook(self)
 
-
     def get_worker_name(self):
         return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
@@ -58,7 +62,9 @@ class TornasoleHook(CallbackHook):
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):
-        return create_hook_from_json_config(cls, get_collection_manager(), json_config_path=json_config_path)
+        return create_hook_from_json_config(
+            cls, get_collection_manager(), json_config_path=json_config_path
+        )
 
     def _cleanup(self):
         # Write the gradients of the past step if the writer is still available.
@@ -76,9 +82,11 @@ class TornasoleHook(CallbackHook):
     def log_param(self, param):
         self._save_for_tensor(tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0]))
         # If Gradient for this param is available
-        if param.grad_req != 'null':
-            self._save_for_tensor(tensor_name=self.GRADIENT_PREFIX + param.name,
-                                  tensor_value=param.grad(param.list_ctx()[0]))
+        if param.grad_req != "null":
+            self._save_for_tensor(
+                tensor_name=self.GRADIENT_PREFIX + param.name,
+                tensor_value=param.grad(param.list_ctx()[0]),
+            )
 
     def _export_model(self):
         if self.model is not None:
@@ -86,10 +94,11 @@ class TornasoleHook(CallbackHook):
                 self._get_tb_writer().write_graph(_net2pb(self.model))
             except (RuntimeError, TypeError) as e:
                 self.logger.warning(
-                        f'Could not export model graph for tensorboard '
-                        f'due to the mxnet exception: {e}')
+                    f"Could not export model graph for tensorboard "
+                    f"due to the mxnet exception: {e}"
+                )
         else:
-            self.logger.warning('Tornasole does not know the model')
+            self.logger.warning("Tornasole does not know the model")
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, block, inputs):
@@ -151,13 +160,19 @@ class TornasoleHook(CallbackHook):
 
         # Check if default collection has a regex associated with it.
         # If it does we would need to apply hook recursively.
-        if len(self.collection_manager.get(CollectionKeys.DEFAULT).get_include_regex()) != 0 \
-                and CollectionKeys.DEFAULT in collections_to_save:
+        if (
+            len(self.collection_manager.get(CollectionKeys.DEFAULT).get_include_regex()) != 0
+            and CollectionKeys.DEFAULT in collections_to_save
+        ):
             return True
 
         # Get the collections that are to be saved but are not part of default collections
         # We will need to apply hook recursively to get tensors specified in those collections.
-        extra_coll = [value for value in collections_to_save if value not in COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK]
+        extra_coll = [
+            value
+            for value in collections_to_save
+            if value not in COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK
+        ]
 
         # extra_coll contains the collections that are not part of default collections.
         return len(extra_coll) != 0
@@ -172,8 +187,9 @@ class TornasoleHook(CallbackHook):
         """
         if not isinstance(block, mx.gluon.Block):
             self.logger.error(
-                    f"The given block type {block.__class__.__name__} is not "
-                    f"currently supported by Tornasole Hook")
+                f"The given block type {block.__class__.__name__} is not "
+                f"currently supported by Tornasole Hook"
+            )
             return
 
         # Skip the forward pre hook for the Loss blocks.

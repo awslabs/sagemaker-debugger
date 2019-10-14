@@ -17,10 +17,7 @@ def list_s3_objects(bucket, prefix, start_after_key=None, delimiter=""):
     last_token = None
     if start_after_key is None:
         start_after_key = prefix
-    req = ListRequest(Bucket=bucket,
-                      Prefix=prefix,
-                      StartAfter=start_after_key,
-                      Delimiter=delimiter)
+    req = ListRequest(Bucket=bucket, Prefix=prefix, StartAfter=start_after_key, Delimiter=delimiter)
     objects = _list_s3_prefixes([req])
     if len(objects) > 0:
         last_token = objects[-1]
@@ -30,6 +27,7 @@ def list_s3_objects(bucket, prefix, start_after_key=None, delimiter=""):
 def parse_collection_files_from_s3_objects(s3_objects):
     collection_files = []
     import re
+
     regexp = re.compile(".+/(.+_collections.(json|ts))")
     for s3_object in s3_objects:
         match = re.match(regexp, s3_object)

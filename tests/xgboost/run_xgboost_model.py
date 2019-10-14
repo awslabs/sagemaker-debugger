@@ -17,7 +17,9 @@ def run_xgboost_model(hook, num_round=10, seed=42):
     params = {}
 
     xgboost.train(
-        params, dtrain,
+        params,
+        dtrain,
         evals=[(dtrain, "train"), (dtest, "test")],
         num_boost_round=num_round,
-        callbacks=[hook])
+        callbacks=[hook],
+    )

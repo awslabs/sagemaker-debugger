@@ -12,16 +12,27 @@ from joblib import Parallel, delayed
 
 
 class LocalTrial(Trial):
-    def __init__(self, name, dirname,
-                 range_steps=None, parallel=True,
-                 check=False,
-                 index_mode=True,
-                 cache=False):
-        super().__init__(name, range_steps=range_steps, parallel=parallel,
-                         check=check, index_mode=index_mode, cache=cache)
+    def __init__(
+        self,
+        name,
+        dirname,
+        range_steps=None,
+        parallel=True,
+        check=False,
+        index_mode=True,
+        cache=False,
+    ):
+        super().__init__(
+            name,
+            range_steps=range_steps,
+            parallel=parallel,
+            check=check,
+            index_mode=index_mode,
+            cache=cache,
+        )
         self.path = os.path.expanduser(dirname)
         self.trial_dir = self.path
-        self.logger.info(f'Loading trial {name} at path {self.trial_dir}')
+        self.logger.info(f"Loading trial {name} at path {self.trial_dir}")
         self._load_collections()
         self.load_tensors()
 
@@ -29,13 +40,13 @@ class LocalTrial(Trial):
         for tname in index_tensors_dict:
             for step, itds in index_tensors_dict[tname].items():
                 for worker in itds:
-                    self.add_tensor(int(step), worker, itds[worker]['tensor_location'])
+                    self.add_tensor(int(step), worker, itds[worker]["tensor_location"])
 
     def _load_tensors_from_event_files(self):
         try:
             step_dirs = TensorFileLocation.get_step_dirs(self.trial_dir)
         except FileNotFoundError:
-            self.logger.debug('Waiting to see data for steps')
+            self.logger.debug("Waiting to see data for steps")
             return
 
         if self.range_steps is not None:
@@ -44,15 +55,16 @@ class LocalTrial(Trial):
         step_dirs.sort()
 
         if self.last_event_token:
-            self.logger.debug("Trying to load events for steps after {}"
-                              .format(int(self.last_event_token)))
+            self.logger.debug(
+                "Trying to load events for steps after {}".format(int(self.last_event_token))
+            )
             i = index(step_dirs, self.last_event_token)
 
             if i == len(step_dirs) - 1:
                 # no new step
                 return
             else:
-                step_dirs = step_dirs[i + 1:]
+                step_dirs = step_dirs[i + 1 :]
 
         self._read_step_dirs(step_dirs)
 
@@ -76,23 +88,24 @@ class LocalTrial(Trial):
             # Temp fix with intentional code duplication
             # Expected to be fixed with the introduction of index_reader
             try:
-                dirnames_efts = Parallel(n_jobs=multiprocessing.cpu_count(), verbose=0) \
-                    (delayed(self._read_folder) \
-                         (TensorFileLocation.get_step_dir_path(self.trial_dir, step_dir),
-                          check=self.check) \
-                     for step_dir in step_dirs)
+                dirnames_efts = Parallel(n_jobs=multiprocessing.cpu_count(), verbose=0)(
+                    delayed(self._read_folder)(
+                        TensorFileLocation.get_step_dir_path(self.trial_dir, step_dir),
+                        check=self.check,
+                    )
+                    for step_dir in step_dirs
+                )
                 # sort them as parallel returns in random order
                 # we want to sort them by dirname
                 dirnames_efts.sort(key=lambda x: int(os.path.basename(x[0])))
             except struct.error:
-                self.logger.warning('Failed to load with parallel. Loading events serially now')
+                self.logger.warning("Failed to load with parallel. Loading events serially now")
                 self.parallel = False
                 self._read_step_dirs(step_dirs)
         else:
             for step_dir in step_dirs:
                 step_dir_path = TensorFileLocation.get_step_dir_path(self.trial_dir, step_dir)
-                dirnames_efts.extend(self._read_folder(step_dir_path,
-                                                       check=self.check))
+                dirnames_efts.extend(self._read_folder(step_dir_path, check=self.check))
 
         for dirname, dir_efts in dirnames_efts:
             self._add_tensors_at_steps(dir_efts)
@@ -120,7 +133,14 @@ class LocalTrial(Trial):
                 summary_values = fr.read_tensors(check=check)
                 for sv in summary_values:
                     n, s, d, mode, mode_step = sv
-                    eft = EventFileTensor(fname, tensor_name=n, step_num=s, tensor_value=d,
-                                          mode=mode, mode_step=mode_step, worker=worker)
+                    eft = EventFileTensor(
+                        fname,
+                        tensor_name=n,
+                        step_num=s,
+                        tensor_value=d,
+                        mode=mode,
+                        mode_step=mode_step,
+                        worker=worker,
+                    )
                     res.append(eft)
         return dirname, res

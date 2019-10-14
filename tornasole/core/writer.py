@@ -18,8 +18,12 @@
 """APIs for logging data in the event file."""
 from tornasole.core.tfevent.util import make_tensor_proto
 from tornasole.core.tfevent.event_file_writer import EventFileWriter
-from tornasole.core.tfevent.summary import make_numpy_array, histogram_summary, \
-    _get_default_bins, scalar_summary
+from tornasole.core.tfevent.summary import (
+    make_numpy_array,
+    histogram_summary,
+    _get_default_bins,
+    scalar_summary,
+)
 from tornasole.core.tfevent.index_file_writer import IndexWriter
 from tornasole.core.tfevent.proto.event_pb2 import Event, TaggedRunMetadata
 from tornasole.core.tfevent.proto.summary_pb2 import Summary, SummaryMetadata
@@ -35,10 +39,18 @@ logger = get_logger()
 
 
 class FileWriter:
-    def __init__(self, trial_dir, step=0, worker=None,
-                 wtype='events', mode=ModeKeys.GLOBAL,
-                 max_queue=10, flush_secs=120,
-                 verbose=False, write_checksum=False):
+    def __init__(
+        self,
+        trial_dir,
+        step=0,
+        worker=None,
+        wtype="events",
+        mode=ModeKeys.GLOBAL,
+        max_queue=10,
+        flush_secs=120,
+        verbose=False,
+        write_checksum=False,
+    ):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `trial_dir`.
 
@@ -66,25 +78,29 @@ class FileWriter:
             self.worker = socket.gethostname()
 
         self.mode = mode
-        if wtype == 'events':
+        if wtype == "events":
             el = TensorFileLocation(step_num=self.step, worker_name=self.worker)
             event_file_path = el.get_file_location(trial_dir=self.trial_dir)
             index_file_path = IndexFileLocationUtils.get_index_key_for_step(
-                    self.trial_dir, self.step, self.worker)
+                self.trial_dir, self.step, self.worker
+            )
             self.index_writer = IndexWriter(index_file_path)
-        elif wtype == 'tensorboard':
-            el = TensorboardFileLocation(step_num=self.step,
-                                         worker_name=self.worker,
-                                         mode=self.mode)
+        elif wtype == "tensorboard":
+            el = TensorboardFileLocation(
+                step_num=self.step, worker_name=self.worker, mode=self.mode
+            )
             event_file_path = el.get_file_location(trial_dir=self.trial_dir)
             self.index_writer = None
         else:
-            assert False, 'Writer type not supported: {}'.format(wtype)
+            assert False, "Writer type not supported: {}".format(wtype)
 
         self._writer = EventFileWriter(
-                path=event_file_path, index_writer=self.index_writer,
-                max_queue=max_queue, flush_secs=flush_secs,
-                verbose=verbose, write_checksum=write_checksum
+            path=event_file_path,
+            index_writer=self.index_writer,
+            max_queue=max_queue,
+            flush_secs=flush_secs,
+            verbose=verbose,
+            write_checksum=write_checksum,
         )
         self._default_bins = _get_default_bins()
 
@@ -98,28 +114,21 @@ class FileWriter:
 
     @staticmethod
     def _get_metadata(mode, mode_step):
-        sm2 = SummaryMetadata.PluginData(plugin_name=MODE_STEP_PLUGIN_NAME,
-                                         content=str(mode_step))
-        sm3 = SummaryMetadata.PluginData(plugin_name=MODE_PLUGIN_NAME,
-                                         content=str(mode.value))
-        plugin_data = [
-            sm2,
-            sm3]
+        sm2 = SummaryMetadata.PluginData(plugin_name=MODE_STEP_PLUGIN_NAME, content=str(mode_step))
+        sm3 = SummaryMetadata.PluginData(plugin_name=MODE_PLUGIN_NAME, content=str(mode.value))
+        plugin_data = [sm2, sm3]
         smd = SummaryMetadata(plugin_data=plugin_data)
         return smd
 
-    def write_tensor(self, tdata, tname, write_index=True,
-                     mode=ModeKeys.GLOBAL, mode_step=None):
+    def write_tensor(self, tdata, tname, write_index=True, mode=ModeKeys.GLOBAL, mode_step=None):
         mode, mode_step = self._check_mode_step(mode, mode_step, self.step)
         smd = self._get_metadata(mode, mode_step)
         value = make_numpy_array(tdata)
         tag = tname
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
-        s = Summary(value=[Summary.Value(tag=tag, metadata=smd,
-                                         tensor=tensor_proto)])
+        s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
         if write_index:
-            self._writer.write_summary_with_index(
-                    s, self.step, tname, mode, mode_step)
+            self._writer.write_summary_with_index(s, self.step, tname, mode, mode_step)
         else:
             self._writer.write_summary(s, self.step)
 
@@ -133,15 +142,14 @@ class FileWriter:
         stepstats = graph_profile[1]
         event = Event(graph_def=graph.SerializeToString())
         self._writer.write_event(event)
-        trm = TaggedRunMetadata(
-                tag='step1', run_metadata=stepstats.SerializeToString())
+        trm = TaggedRunMetadata(tag="step1", run_metadata=stepstats.SerializeToString())
         event = Event(tagged_run_metadata=trm)
         self._writer.write_event(event)
 
     def write_summary(self, summ, global_step):
         self._writer.write_summary(summ, global_step)
 
-    def write_histogram_summary(self, tdata, tname, global_step, bins='default'):
+    def write_histogram_summary(self, tdata, tname, global_step, bins="default"):
         """Add histogram data to the event file.
         Parameters
         ----------
@@ -164,13 +172,13 @@ class FileWriter:
             for detailed definitions of those strings.
             https://docs.scipy.org/doc/numpy/reference/generated/numpy.histogram.html
         """
-        if bins == 'default':
+        if bins == "default":
             bins = self._default_bins
         try:
             s = histogram_summary(tname, tdata, bins)
             self._writer.write_summary(s, global_step)
         except ValueError as e:
-            logger.error(f'Unable to write histogram {tname} at {global_step}')
+            logger.error(f"Unable to write histogram {tname} at {global_step}")
 
     def write_scalar_summary(self, name, value, global_step):
         s = scalar_summary(name, value)

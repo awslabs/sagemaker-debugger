@@ -3,22 +3,30 @@ import numpy as np
 from datetime import datetime
 import os
 from os.path import isfile, join
-from tornasole.tensorflow import TornasoleOptimizer, TornasoleHook, SaveConfig, SaveConfigMode, \
-    ReductionConfig, get_collection, CollectionManager, reset_collections
+from tornasole.tensorflow import (
+    TornasoleOptimizer,
+    TornasoleHook,
+    SaveConfig,
+    SaveConfigMode,
+    ReductionConfig,
+    get_collection,
+    CollectionManager,
+    reset_collections,
+)
 
-TORNASOLE_TF_HOOK_TESTS_DIR = '/tmp/tornasole_tf/tests/'
+TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
 
 
 def simple_model(hook, steps=10, lr=0.4):
     # Network definition
-    with tf.name_scope('foobar'):
+    with tf.name_scope("foobar"):
         x = tf.placeholder(shape=(None, 2), dtype=tf.float32)
-        w = tf.Variable(initial_value=[[10.], [10.]], name='weight1')
-    with tf.name_scope('foobaz'):
-        w0 = [[1], [1.]]
+        w = tf.Variable(initial_value=[[10.0], [10.0]], name="weight1")
+    with tf.name_scope("foobaz"):
+        w0 = [[1], [1.0]]
         y = tf.matmul(x, w0)
     loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
-    get_collection('losses').add(loss)
+    get_collection("losses").add(loss)
     global_step = tf.Variable(17, name="global_step", trainable=False)
     increment_global_step_op = tf.assign(global_step, global_step + 1)
 
@@ -31,7 +39,7 @@ def simple_model(hook, steps=10, lr=0.4):
     for i in range(steps):
         x_ = np.random.random((10, 2)) * 0.1
         _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
-        print(f'Step={i}, Loss={_loss}')
+        print(f"Step={i}, Loss={_loss}")
 
     sess.close()
 

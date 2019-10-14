@@ -22,6 +22,7 @@ from tornasole.core.access_layer.s3 import TSAccessS3
 from tornasole.core.utils import is_s3
 from tornasole.core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
 
+
 class RecordReader:
     """Read records in the following format for a single record event_str:
     uint64 len(event_str)
@@ -34,15 +35,16 @@ class RecordReader:
     The flush and close mechanism is totally controlled in this class.
     In TensorFlow, _dest is a object instance of ZlibOutputBuffer (C++) which has its own flush
     and close mechanism defined."""
+
     def __init__(self, path):
         s3, bucket_name, key_name = is_s3(path)
         try:
             if s3:
                 self._reader = TSAccessS3(bucket_name, key_name)
             else:
-                self._reader = TSAccessFile(path, 'rb')
+                self._reader = TSAccessFile(path, "rb")
         except (OSError, IOError) as err:
-            raise ValueError('failed to open {}: {}'.format(path, str(err)))
+            raise ValueError("failed to open {}: {}".format(path, str(err)))
         except:
             raise
         self._reader.ingest_all()
@@ -52,24 +54,24 @@ class RecordReader:
 
     def has_data(self):
         has = self._reader.has_data()
-        #print("HASDATA=", has)
+        # print("HASDATA=", has)
         return has
 
-    def read_record(self, check='minimal'):
+    def read_record(self, check="minimal"):
         strlen_bytes = self._reader.read(8)
-        strlen = struct.unpack('Q', strlen_bytes)[0]
-        saved_len_crc = struct.unpack('I', self._reader.read(4))[0]
+        strlen = struct.unpack("Q", strlen_bytes)[0]
+        saved_len_crc = struct.unpack("I", self._reader.read(4))[0]
 
-        if check in ['minimal', 'full']:
+        if check in ["minimal", "full"]:
             computed_len_crc = masked_crc32c(strlen_bytes)
             assert saved_len_crc == computed_len_crc
 
         payload = self._reader.read(strlen)
-        saved_payload_crc = struct.unpack('I', self._reader.read(4))[0]
-        if check == 'full':
+        saved_payload_crc = struct.unpack("I", self._reader.read(4))[0]
+        if check == "full":
             computed_payload_crc = masked_crc32c(payload)
             assert saved_payload_crc == computed_payload_crc
-        elif check == 'minimal':
+        elif check == "minimal":
             computed_payload_crc = masked_crc32c(CHECKSUM_MAGIC_BYTES)
             assert saved_payload_crc == computed_payload_crc
         else:
@@ -92,10 +94,10 @@ def masked_crc32c(data):
     """Copied from
     https://github.com/TeamHG-Memex/tensorboard_logger/blob/master/tensorboard_logger/tensorboard_logger.py"""
     x = u32(crc32c(data))  # pylint: disable=invalid-name
-    return u32(((x >> 15) | u32(x << 17)) + 0xa282ead8)
+    return u32(((x >> 15) | u32(x << 17)) + 0xA282EAD8)
 
 
 def u32(x):  # pylint: disable=invalid-name
     """Copied from
     https://github.com/TeamHG-Memex/tensorboard_logger/blob/master/tensorboard_logger/tensorboard_logger.py"""
-    return x & 0xffffffff
+    return x & 0xFFFFFFFF

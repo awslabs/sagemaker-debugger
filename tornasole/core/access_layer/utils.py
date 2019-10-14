@@ -20,12 +20,12 @@ def training_has_ended(trial_prefix):
     except RuntimeError:
         # dir exists
         pass
-    file_path=os.path.join(trial_prefix, END_OF_JOB_FILENAME)
+    file_path = os.path.join(trial_prefix, END_OF_JOB_FILENAME)
     s3, bucket_name, key_name = is_s3(file_path)
     if s3:
         writer = TSAccessS3(bucket_name, key_name, binary=False)
     else:
-        writer = TSAccessFile(file_path, 'a+')
+        writer = TSAccessFile(file_path, "a+")
     writer.write("end of training job")
     writer.flush()
     writer.close()
@@ -44,9 +44,9 @@ def has_training_ended(trial_prefix):
             else:
                 return False
         except ClientError as ex:
-            status_code = ex.response['ResponseMetadata']['HTTPStatusCode']
-            logger.info(f'Client error occurred : {ex}')
-            if status_code.startswith('4'):
+            status_code = ex.response["ResponseMetadata"]["HTTPStatusCode"]
+            logger.info(f"Client error occurred : {ex}")
+            if status_code.startswith("4"):
                 raise ex
             else:
                 return False
@@ -58,14 +58,15 @@ def delete_s3_prefixes(bucket, keys):
     s3_handler = S3Handler()
     if not isinstance(keys, list):
         keys = [keys]
-    list_prefixes = s3_handler.list_prefixes([ListRequest(Bucket=bucket,
-                                                 Prefix=key) for key in keys])
+    list_prefixes = s3_handler.list_prefixes(
+        [ListRequest(Bucket=bucket, Prefix=key) for key in keys]
+    )
     prefixes = [item for sublist in list_prefixes for item in sublist]
     loop = asyncio.get_event_loop()
 
     async def del_folder(bucket, keys):
         loop = asyncio.get_event_loop()
-        client = aioboto3.client('s3', loop=loop, region_name=get_region())
+        client = aioboto3.client("s3", loop=loop, region_name=get_region())
         await asyncio.gather(*[client.delete_object(Bucket=bucket, Key=key) for key in keys])
         await client.close()
 

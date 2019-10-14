@@ -11,6 +11,8 @@ hook = ts.hook()
 import tornasole.core.singleton_utils as sutils
 from tornasole.core.singleton_utils import set_hook
 
-def get_hook(json_config_path=None) -> 'TornasoleHook':
+
+def get_hook(json_config_path=None) -> "TornasoleHook":
     from tornasole.pytorch.hook import TornasoleHook
+
     return sutils.get_hook(json_config_path=json_config_path, tornasole_hook_class=TornasoleHook)

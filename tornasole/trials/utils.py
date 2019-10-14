@@ -9,11 +9,6 @@ def create_trial(path, name=None, **kwargs):
         name = os.path.basename(path)
     s3, bucket_name, prefix_name = is_s3(path)
     if s3:
-        return S3Trial(name=name,
-                       bucket_name=bucket_name,
-                       prefix_name=prefix_name,
-                       **kwargs)
+        return S3Trial(name=name, bucket_name=bucket_name, prefix_name=prefix_name, **kwargs)
     else:
-        return LocalTrial(name=name,
-                          dirname=path,
-                          **kwargs)
+        return LocalTrial(name=name, dirname=path, **kwargs)

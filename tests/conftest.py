@@ -13,7 +13,7 @@ def pytest_addoption(parser):
     # Running --skipslow is not comprehensive, but it will catch import errors and obvious bugs fast
     parser.addoption(
         "--skipslow", action="store_true", default=False, help="skip slow tests"
-    ) # Anything taking longer than 2 seconds
+    )  # Anything taking longer than 2 seconds
 
 
 def pytest_configure(config):

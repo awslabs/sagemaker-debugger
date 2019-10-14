@@ -7,7 +7,8 @@ _logger_initialized = False
 
 
 class MaxLevelFilter(logging.Filter):
-    '''Filters (lets through) all messages with level < LEVEL'''
+    """Filters (lets through) all messages with level < LEVEL"""
+
     def __init__(self, level):
         super().__init__()
         self.level = level
@@ -18,48 +19,50 @@ class MaxLevelFilter(logging.Filter):
 
 
 def _get_log_level():
-    default = 'info'
-    log_level = os.environ.get('TORNASOLE_LOG_LEVEL', default=default)
+    default = "info"
+    log_level = os.environ.get("TORNASOLE_LOG_LEVEL", default=default)
     log_level = log_level.lower()
-    allowed_levels = ['info', 'debug', 'warning', 'error', 'critical', 'off']
+    allowed_levels = ["info", "debug", "warning", "error", "critical", "off"]
     if log_level not in allowed_levels:
         log_level = default
 
     level = None
-    if log_level is None or log_level == 'off':
+    if log_level is None or log_level == "off":
         level = None
     else:
-        if log_level == 'critical':
+        if log_level == "critical":
             level = logging.CRITICAL
-        elif log_level == 'error':
+        elif log_level == "error":
             level = logging.ERROR
-        elif log_level == 'warning':
+        elif log_level == "warning":
             level = logging.WARNING
-        elif log_level == 'info':
+        elif log_level == "info":
             level = logging.INFO
-        elif log_level == 'debug':
+        elif log_level == "debug":
             level = logging.DEBUG
     return level
 
 
-def get_logger(name='tornasole'):
+def get_logger(name="tornasole"):
     global _logger_initialized
     if not _logger_initialized:
         worker_pid = f"{socket.gethostname()}:{os.getpid()}"
-        log_context = os.environ.get('TORNASOLE_LOG_CONTEXT',
-                                     default=worker_pid)
+        log_context = os.environ.get("TORNASOLE_LOG_CONTEXT", default=worker_pid)
         level = _get_log_level()
         logger = logging.getLogger(name)
 
         logger.handlers = []
-        log_formatter = logging.Formatter(fmt='[%(asctime)s.%(msecs)03d ' + log_context +
-                                          ' %(levelname)s %(filename)s:%(lineno)d] %(message)s',
-                                          datefmt='%Y-%m-%d %H:%M:%S')
+        log_formatter = logging.Formatter(
+            fmt="[%(asctime)s.%(msecs)03d "
+            + log_context
+            + " %(levelname)s %(filename)s:%(lineno)d] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setFormatter(log_formatter)
 
-        if os.environ.get('TORNASOLE_LOG_ALL_TO_STDOUT', default='TRUE').lower() == 'false':
+        if os.environ.get("TORNASOLE_LOG_ALL_TO_STDOUT", default="TRUE").lower() == "false":
             stderr_handler = logging.StreamHandler(sys.stderr)
             min_level = logging.DEBUG
             # lets through all levels less than ERROR
@@ -75,7 +78,7 @@ def get_logger(name='tornasole'):
         # TORNASOLE_LOG_PATH is the full path to log file
         # by default, log is only written to stdout&stderr
         # if this is set, it is written to file
-        path = os.environ.get('TORNASOLE_LOG_PATH', default=None)
+        path = os.environ.get("TORNASOLE_LOG_PATH", default=None)
         if path is not None:
             fh = logging.FileHandler(path)
             fh.setFormatter(log_formatter)

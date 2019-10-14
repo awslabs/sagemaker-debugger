@@ -3,8 +3,8 @@ from .base import TSAccessBase
 import os
 import shutil
 
-NON_SAGEMAKER_TEMP_PATH_PREFIX = '/tmp'
-SAGEMAKER_TEMP_PATH_SUFFIX = '.tmp'
+NON_SAGEMAKER_TEMP_PATH_PREFIX = "/tmp"
+SAGEMAKER_TEMP_PATH_SUFFIX = ".tmp"
 
 
 def ensure_dir(file_path, is_file=True):
@@ -21,13 +21,13 @@ def get_temp_path(file_path):
     if directory.startswith(DEFAULT_SAGEMAKER_TORNASOLE_PATH):
         temp_path = file_path + SAGEMAKER_TEMP_PATH_SUFFIX
     else:
-        if len(file_path) > 0 and file_path[0] == '/':
+        if len(file_path) > 0 and file_path[0] == "/":
             file_path = file_path[1:]
         temp_path = os.path.join(NON_SAGEMAKER_TEMP_PATH_PREFIX, file_path)
     return temp_path
 
 
-WRITE_MODES = ['w', 'w+', 'wb', 'wb+', 'a', 'a+', 'ab', 'ab+']
+WRITE_MODES = ["w", "w+", "wb", "wb+", "a", "a+", "ab", "ab+"]
 
 
 class TSAccessFile(TSAccessBase):
@@ -69,7 +69,7 @@ class TSAccessFile(TSAccessBase):
 
     def read(self, n):
         assert self._position + n <= self._datalen
-        res = self._data[self._position:self._position + n]
+        res = self._data[self._position : self._position + n]
         self._position += n
         return res
 

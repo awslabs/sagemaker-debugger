@@ -4,27 +4,27 @@ import setuptools
 
 exec(open("tornasole/_version.py").read())
 CURRENT_VERSION = __version__
-FRAMEWORKS = ['tensorflow', 'pytorch', 'mxnet', 'xgboost']
+FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 
 
 def compile_summary_protobuf():
-    proto_paths = ['tornasole/core/tfevent/proto', 'tornasole/pytorch/proto']
-    cmd = 'set -ex && protoc '
+    proto_paths = ["tornasole/core/tfevent/proto", "tornasole/pytorch/proto"]
+    cmd = "set -ex && protoc "
     for proto_path in proto_paths:
-        proto_files = os.path.join(proto_path, '*.proto')
-        cmd += proto_files + ' '
-        print('compiling protobuf files in {}'.format(proto_path))
-    cmd += ' --python_out=.'
+        proto_files = os.path.join(proto_path, "*.proto")
+        cmd += proto_files + " "
+        print("compiling protobuf files in {}".format(proto_path))
+    cmd += " --python_out=."
     return os.system(cmd)
 
 
 def get_framework_packages(f):
-    return ['tornasole.' + f + '*', 'tests.' + f + '*']
+    return ["tornasole." + f + "*", "tests." + f + "*"]
 
 
 def get_frameworks_to_build():
-    only_rules = os.environ.get('TORNASOLE_FOR_RULES', False)
-    if only_rules in ['1', 'True', 'true']:
+    only_rules = os.environ.get("TORNASOLE_FOR_RULES", False)
+    if only_rules in ["1", "True", "true"]:
         only_rules = True
     else:
         only_rules = False
@@ -32,15 +32,15 @@ def get_frameworks_to_build():
     with_frameworks = {}
     if not only_rules:
         for f in FRAMEWORKS:
-            with_frameworks[f] = os.environ.get('TORNASOLE_WITH_' + f.upper(), False)
-            if with_frameworks[f] in ['1', 'True', 'true']:
+            with_frameworks[f] = os.environ.get("TORNASOLE_WITH_" + f.upper(), False)
+            if with_frameworks[f] in ["1", "True", "true"]:
                 with_frameworks[f] = True
             else:
                 with_frameworks[f] = False
         enabled_some_framework = any(with_frameworks.values())
 
         if not enabled_some_framework:
-            print('Building for all frameworks in one package')
+            print("Building for all frameworks in one package")
             for f in FRAMEWORKS:
                 with_frameworks[f] = True
     else:
@@ -65,13 +65,13 @@ def get_packages_to_include(frameworks_to_build):
 
 
 def get_tests_packages(frameworks_to_build):
-    tests_packages = ['pytest']
+    tests_packages = ["pytest"]
     for f, v in frameworks_to_build.items():
         if v:
-            if f in ['tensorflow', 'mxnet', 'xgboost']:
+            if f in ["tensorflow", "mxnet", "xgboost"]:
                 tests_packages.append(f)
-            if f == 'pytorch':
-                tests_packages.extend(['torch', 'torchvision'])
+            if f == "pytorch":
+                tests_packages.extend(["torch", "torchvision"])
     return tests_packages
 
 
@@ -84,7 +84,7 @@ def build_package(version):
     tests_packages = get_tests_packages(frameworks_to_build)
     packages = get_packages_to_include(frameworks_to_build)
     setuptools.setup(
-        name='tornasole',
+        name="tornasole",
         version=version,
         author="The Tornasole Team",
         author_email="tornasole@amazon.com",
@@ -98,23 +98,31 @@ def build_package(version):
             "License :: OSI Approved :: Apache Software License",
             "Operating System :: OS Independent",
         ],
-        #pinning aioboto3 version as aiobot3 is pinning versions
+        # pinning aioboto3 version as aiobot3 is pinning versions
         # https://github.com/aio-libs/aiobotocore/issues/718
-        install_requires = ['aioboto3==6.4.1', 'nest_asyncio',
-                            'protobuf>=3.6.0' ,'botocore==1.12.91',
-                            'boto3==1.9.91', 'aiobotocore==0.10.2',
-                            'numpy', 'joblib'],
+        install_requires=[
+            "aioboto3==6.4.1",
+            "nest_asyncio",
+            "protobuf>=3.6.0",
+            "botocore==1.12.91",
+            "boto3==1.9.91",
+            "aiobotocore==0.10.2",
+            "numpy",
+            "joblib",
+        ],
         setup_requires=["pytest-runner"],
         tests_require=tests_packages,
-        python_requires='>=3.6'
+        python_requires=">=3.6",
     )
 
 
 if compile_summary_protobuf() != 0:
-    print('ERROR: Compiling summary protocol buffers failed. You will not be '
-          'able to use Tornasole.'
-          'Please make sure that you have installed protobuf3 '
-          'compiler and runtime correctly.')
+    print(
+        "ERROR: Compiling summary protocol buffers failed. You will not be "
+        "able to use Tornasole."
+        "Please make sure that you have installed protobuf3 "
+        "compiler and runtime correctly."
+    )
     sys.exit(1)
 
 build_package(version=CURRENT_VERSION)

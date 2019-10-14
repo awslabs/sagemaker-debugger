@@ -21,24 +21,28 @@ import shutil
 import tornasole.pytorch as ts
 from tornasole.trials import Trial, create_trial
 
-out_dir = '/tmp/run'
+out_dir = "/tmp/run"
+
 
 class Net(nn.Module):
     """Returns f(x) = sigmoid(w*x + b)"""
+
     def __init__(self):
         super().__init__()
-        self.add_module('fc', nn.Linear(1, 1))
+        self.add_module("fc", nn.Linear(1, 1))
 
     def forward(self, x):
         x = self.fc(x)
         x = F.sigmoid(x)
         return x
 
+
 def dataset(batch_size=4):
     """Return a dataset of (data, target)."""
     data = torch.rand(batch_size, 1)
     target = F.sigmoid(2 * data + 1)
     return data, target
+
 
 def train(model, device, optimizer, num_steps=10):
     """Runs the training loop, no explicit Tornasole here."""
@@ -55,19 +59,16 @@ def train(model, device, optimizer, num_steps=10):
         optimizer.step()
 
 
-
 def run(rank, size, num_epochs=10, batch_size=128, num_batches=10):
     """Distributed function to be implemented later."""
     torch.manual_seed(1234)
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=1)
 
     shutil.rmtree(out_dir, ignore_errors=True)
     hook = ts.TornasoleHook(
-        out_dir=out_dir,
-        save_config=ts.SaveConfig(save_steps=[0, 1, 5]),
-        save_all=True,
+        out_dir=out_dir, save_config=ts.SaveConfig(save_steps=[0, 1, 5]), save_all=True
     )
     hook.register_hook(model)
 
@@ -92,6 +93,7 @@ def run(rank, size, num_epochs=10, batch_size=128, num_batches=10):
     except FileNotFoundError:
         pass
 
+
 def average_gradients(model):
     """Gradient averaging."""
     size = float(dist.get_world_size())
@@ -99,25 +101,25 @@ def average_gradients(model):
         dist.all_reduce(param.grad.data, op=dist.reduce_op.SUM)
         param.grad.data /= size
 
-def init_processes(rank, size, fn, backend='gloo'):
+
+def init_processes(rank, size, fn, backend="gloo"):
     """Initialize the distributed environment."""
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
     fn(rank, size)
+
 
 def test_run_net_single_process():
     """Runs a single linear layer."""
     ts.reset_collections()
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.01)
 
     shutil.rmtree(out_dir, ignore_errors=True)
     hook = ts.TornasoleHook(
-        out_dir=out_dir,
-        save_config=ts.SaveConfig(save_steps=[0, 1, 5]),
-        save_all=True,
+        out_dir=out_dir, save_config=ts.SaveConfig(save_steps=[0, 1, 5]), save_all=True
     )
     hook.register_hook(model)
     train(model=model, device=device, optimizer=optimizer)
@@ -130,10 +132,11 @@ def test_run_net_single_process():
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
     shutil.rmtree(out_dir, ignore_errors=True)
 
+
 def test_run_net_distributed():
     """Runs a single linear layer on 2 processes."""
     # torch.distributed is empty on Mac on Torch <= 1.2
-    if not hasattr(dist, 'is_initialized'):
+    if not hasattr(dist, "is_initialized"):
         return
 
     ts.reset_collections()
@@ -151,7 +154,7 @@ def test_run_net_distributed():
     # https://stackoverflow.com/questions/13400546/py-test-how-to-automatically-detect-an-exception-in-a-child-process
     assert all([not p.exitcode for p in processes]), f"Some processes failed. processes={processes}"
 
-    out_dir = '/tmp/run'
+    out_dir = "/tmp/run"
     trial = create_trial(path=out_dir)
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"

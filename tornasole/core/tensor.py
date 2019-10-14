@@ -19,6 +19,7 @@ class StepState(Enum):
 
 class ModeSteps:
     """Contains a ModeKey and a dictionary mapping step numbers to a dictionary of workers to steps."""
+
     def __init__(self, mode):
         self.mode = mode
         self._steps = {}
@@ -76,6 +77,7 @@ class ModeSteps:
 
 class Step:
     """Contains the step number, value, location, and reduction values/locations."""
+
     def __init__(self, step_num, value=None, location=None):
         self.step_num = step_num
         self.value = value
@@ -164,14 +166,16 @@ class Tensor:
         else:
             # else convert to mode_step and check
             mode, mode_step_num = self.trial.mode_modestep(step_num)
-            if mode in self._mode_steps and \
-                    self._mode_steps[mode].has_step(mode_step_num):
+            if mode in self._mode_steps and self._mode_steps[mode].has_step(mode_step_num):
                 return True
         return False
 
     def _get_step_dict(self, step_num, mode):
-        if mode == ModeKeys.GLOBAL and ModeKeys.GLOBAL in self._mode_steps \
-                and self._mode_steps[ModeKeys.GLOBAL].has_step(step_num):
+        if (
+            mode == ModeKeys.GLOBAL
+            and ModeKeys.GLOBAL in self._mode_steps
+            and self._mode_steps[ModeKeys.GLOBAL].has_step(step_num)
+        ):
             # step was saved as GLOBAL step
             return self._mode_steps[mode].step(step_num)
         else:
@@ -196,8 +200,8 @@ class Tensor:
 
     def step(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
         raise NotImplementedError(
-            'step method has been removed. Please use tensor.value '
-            'or tensor.reduction_value methods'
+            "step method has been removed. Please use tensor.value "
+            "or tensor.reduction_value methods"
         )
 
     def _step(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
@@ -222,9 +226,11 @@ class Tensor:
                         last_step = avail_steps[-1]
                     raise NoMoreData(
                         "Looking for step:{} for mode {} and reached end of training. Max step available is {}".format(
-                            step_num, mode, last_step))
+                            step_num, mode, last_step
+                        )
+                    )
                 raise StepNotYetAvailable(step_num, mode)
-        assert False, 'Should not happen'
+        assert False, "Should not happen"
 
     def value(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
         # step refreshes
@@ -252,18 +258,21 @@ class Tensor:
                 red_types = s.reduction_values().keys()
             for red_name, abs_val in red_types:
                 rvs[(red_name, abs_val)] = self.reduction_value(
-                        step_num, red_name, mode, worker, abs_val)
+                    step_num, red_name, mode, worker, abs_val
+                )
             return rvs
         else:
-            assert False, 'Should not happen'
+            assert False, "Should not happen"
 
     def workers_for_step(self, step_num, mode=ModeKeys.GLOBAL):
         step = self._get_step_dict(step_num, mode)
         if step is None:
-            raise ValueError('invalid step')
+            raise ValueError("invalid step")
         return list(step.keys())
 
-    def reduction_value(self, step_num, reduction_name, mode=ModeKeys.GLOBAL, worker=None, abs=False):
+    def reduction_value(
+        self, step_num, reduction_name, mode=ModeKeys.GLOBAL, worker=None, abs=False
+    ):
         """
         Returns the value of the reduction requested.
         If the tensor was saved as a reduction, then just fetches that.
@@ -303,8 +312,10 @@ class Tensor:
     def _create_mode_step(self, mode, mode_step):
         mode_step = int(mode_step)
         if mode_step < 0:
-            raise ValueError('mode step number {} for tensor {} '
-                             'can not be less than 0'.format(mode_step, self.name))
+            raise ValueError(
+                "mode step number {} for tensor {} "
+                "can not be less than 0".format(mode_step, self.name)
+            )
         if mode not in self._mode_steps:
             self._mode_steps[mode] = ModeSteps(mode)
 
@@ -314,8 +325,7 @@ class Tensor:
 
     def add_reduction_step(self, mode, mode_step, worker, red_name, abs, red_value):
         self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_reduction_value(mode_step, worker,
-                                                        red_name, abs, red_value)
+        self._mode_steps[mode].set_step_reduction_value(mode_step, worker, red_name, abs, red_value)
 
     def add_step_lazy(self, mode, mode_step, worker, location):
         self._create_mode_step(mode, mode_step)
@@ -323,8 +333,9 @@ class Tensor:
 
     def add_reduction_step_lazy(self, mode, mode_step, worker, red_name, abs, red_location):
         self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_reduction_location(mode_step, worker,
-                                                        red_name, abs, red_location)
+        self._mode_steps[mode].set_step_reduction_location(
+            mode_step, worker, red_name, abs, red_location
+        )
 
     def prev_steps(self, step, n=None, mode=ModeKeys.GLOBAL):
         """

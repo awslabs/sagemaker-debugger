@@ -38,7 +38,7 @@ class Rule(ABC):
     # step specific for which global step this rule was invoked
     # storage_handler is used to save & get states across different invocations
     def invoke(self, step):
-        self.logger.debug('Invoking rule {} for step {}'.format(self.rule_name, step))
+        self.logger.debug("Invoking rule {} for step {}".format(self.rule_name, step))
         self.base_trial.wait_for_steps([step])
 
         # do not refresh during invoke at step

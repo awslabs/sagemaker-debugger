@@ -34,7 +34,7 @@ def as_dtype(t):
         types_pb2.DT_INT32: np.int32,
         types_pb2.DT_INT64: np.int64,
         types_pb2.DT_STRING: np.str,
-        types_pb2.DT_BOOL: np.bool
+        types_pb2.DT_BOOL: np.bool,
     }
     return _INTERN_TABLE[t]
 
@@ -43,21 +43,21 @@ def get_tensor_data(tensor):
     shape = [d.size for d in tensor.tensor_shape.dim]
     # num_elements = np.prod(shape, dtype=np.int64)
     if tensor.dtype == 0 and tensor.string_val:
-        assert len(shape)==1
+        assert len(shape) == 1
         res = []
         for i in range(shape[0]):
             r = tensor.string_val[i]
-            r = r.decode('utf-8')
+            r = r.decode("utf-8")
             res.append(r)
         return np.array(res)
 
     dtype = as_dtype(tensor.dtype)
-    #dtype = tensor_dtype.as_numpy_dtype
-    #dtype = np.float32
-    #print("FOO=", tensor)
-    #print("FOOTYPE=", tensor.dtype)
+    # dtype = tensor_dtype.as_numpy_dtype
+    # dtype = np.float32
+    # print("FOO=", tensor)
+    # print("FOOTYPE=", tensor.dtype)
     if tensor.tensor_content:
-        return (np.frombuffer(tensor.tensor_content, dtype=dtype).copy().reshape(shape))
+        return np.frombuffer(tensor.tensor_content, dtype=dtype).copy().reshape(shape)
     elif dtype == np.int32:
         if len(tensor.int_val) > 0:
             return np.int32(tensor.int_val)
@@ -75,13 +75,14 @@ def get_tensor_data(tensor):
         assert len(tensor.bool_val) > 0
         return np.bool(tensor.bool_val)
     else:
-        raise Exception(f'Unknown type for Tensor={tensor}')
+        raise Exception(f"Unknown type for Tensor={tensor}")
 
 
 class EventsReader(object):
     """Writes `Event` protocol buffers to an event file. This class is ported from
     EventsReader defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
+
     def __init__(self, filename):
         self._filename = filename
         self._tfrecord_reader = RecordReader(self._filename)
@@ -89,7 +90,7 @@ class EventsReader(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self._tfrecord_reader.__exit__(exc_type, exc_value, traceback)
 
-    def read_events(self, check='minimal'):
+    def read_events(self, check="minimal"):
         while self._tfrecord_reader.has_data():
             rec = self._tfrecord_reader.read_record(check=check)
             event = Event()
@@ -97,8 +98,7 @@ class EventsReader(object):
             yield event
 
 
-
-class EventFileReader():
+class EventFileReader:
     """This class is adapted from EventFileWriter in Tensorflow:
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py
     Writes `Event` protocol buffers to an event file.
@@ -118,7 +118,7 @@ class EventFileReader():
         self._filename = fname
         self._ev_reader = EventsReader(self._filename)
 
-    def __exit__(self,exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback):
         self._ev_reader.__exit__(exc_type, exc_value, traceback)
 
     def _get_mode_modestep(self, step, plugin_data):
@@ -131,23 +131,22 @@ class EventFileReader():
                 mode = ModeKeys(int(metadata.content))
         return mode, mode_step
 
-    def read_tensors(self, check='minimal'):
+    def read_tensors(self, check="minimal"):
         for step, summ in self.read_summaries(check=check):
             for v in summ.value:
-                val = v.WhichOneof('value')
-                assert val == 'tensor'
+                val = v.WhichOneof("value")
+                assert val == "tensor"
                 tensor_name = v.tag
                 # We have found the right tensor at the right step
                 tensor_data = get_tensor_data(v.tensor)
-                mode, mode_step = self._get_mode_modestep(
-                        step, v.metadata.plugin_data)
+                mode, mode_step = self._get_mode_modestep(step, v.metadata.plugin_data)
                 yield (tensor_name, step, tensor_data, mode, mode_step)
 
-    def read_summaries(self, check='minimal'):
+    def read_summaries(self, check="minimal"):
         for ev in self.read_events(check=check):
             # graph gets bypassed here
-            if ev.HasField('summary'):
+            if ev.HasField("summary"):
                 yield (ev.step, ev.summary)
 
-    def read_events(self, check='minimal'):
+    def read_events(self, check="minimal"):
         return self._ev_reader.read_events(check=check)

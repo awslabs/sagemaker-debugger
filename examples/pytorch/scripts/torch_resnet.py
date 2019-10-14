@@ -12,33 +12,56 @@ from torch.autograd import Variable
 from tornasole.pytorch import *
 import time
 
-model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
+model_names = sorted(
+    name
+    for name in models.__dict__
+    if name.islower() and not name.startswith("__") and callable(models.__dict__[name])
+)
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--data_dir', default='~/.pytorch/datasets/imagenet',
-                    help='path to dataset')
-parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet50',
-                    choices=model_names,
-                    help='model architecture: ' +
-                        ' | '.join(model_names) +
-                        ' (default: resnet50)')
-parser.add_argument('--epochs', default=90, type=int, metavar='N',
-                    help='number of total epochs to run')
-parser.add_argument('-b', '--batch-size', default=256, type=int,
-                    metavar='N',
-                    help='mini-batch size (default: 256), this is the total '
-                         'batch size of all GPUs on the current node when '
-                         'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
-                    metavar='LR', help='initial learning rate', dest='lr')
-parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                    help='momentum')
-parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
-                    metavar='W', help='weight decay (default: 1e-4)',
-                    dest='weight_decay')
+parser = argparse.ArgumentParser(description="PyTorch ImageNet Training")
+parser.add_argument("--data_dir", default="~/.pytorch/datasets/imagenet", help="path to dataset")
+parser.add_argument(
+    "-a",
+    "--arch",
+    metavar="ARCH",
+    default="resnet50",
+    choices=model_names,
+    help="model architecture: " + " | ".join(model_names) + " (default: resnet50)",
+)
+parser.add_argument(
+    "--epochs", default=90, type=int, metavar="N", help="number of total epochs to run"
+)
+parser.add_argument(
+    "-b",
+    "--batch-size",
+    default=256,
+    type=int,
+    metavar="N",
+    help="mini-batch size (default: 256), this is the total "
+    "batch size of all GPUs on the current node when "
+    "using Data Parallel or Distributed Data Parallel",
+)
+parser.add_argument(
+    "--lr",
+    "--learning-rate",
+    default=0.1,
+    type=float,
+    metavar="LR",
+    help="initial learning rate",
+    dest="lr",
+)
+parser.add_argument("--momentum", default=0.9, type=float, metavar="M", help="momentum")
+parser.add_argument(
+    "--wd",
+    "--weight-decay",
+    default=1e-4,
+    type=float,
+    metavar="W",
+    help="weight decay (default: 1e-4)",
+    dest="weight_decay",
+)
 args = parser.parse_args()
+
 
 def main():
     start = time.time()
@@ -48,12 +71,11 @@ def main():
     net.to(device)
     # register the hook
 
-    hook = create_tornasole_hook('./output_resnet', net, save_interval=50)
+    hook = create_tornasole_hook("./output_resnet", net, save_interval=50)
 
     hook.register_hook(net)
     loss_optim = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=1.0, momentum=0.9)
-
 
     print("Loaded training")
     batch_size = 64
@@ -74,11 +96,12 @@ def main():
     end = time.time()
     print("Time taken:", end - start)
 
+
 # Create a tornasole hook. The initilization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initilization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_dir, module, trial_id='trial-resnet', save_interval=100):
+def create_tornasole_hook(output_dir, module, trial_id="trial-resnet", save_interval=100):
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0) and then continue to save tensors at interval of
     # 100,000 steps. Note: union operation is applied to produce resulting config
@@ -94,5 +117,6 @@ def create_tornasole_hook(output_dir, module, trial_id='trial-resnet', save_inte
     hook = TornasoleHook(out_dir=output_dir)
     return hook
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

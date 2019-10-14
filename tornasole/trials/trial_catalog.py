@@ -17,14 +17,15 @@ class TrialCatalog(object):
 
 
 class LocalTrialCatalog(TrialCatalog):
-    def __init__(self,localdir):
+    def __init__(self, localdir):
         super().__init__()
-        self.localdir=localdir
+        self.localdir = localdir
 
     def list_candidates(self):
         files_and_folders = os.listdir(self.localdir)
         folders = [x for x in files_and_folders if os.path.isdir(os.path.join(self.localdir, x))]
         return folders
+
 
 """
 class SageMakerTrialCatalog(TrialCatalog):

@@ -23,8 +23,7 @@ class EventsWriter:
     def _init_if_needed(self):
         if self.tfrecord_writer is not None:
             return
-        self.tfrecord_writer = RecordWriter(self._filename,
-                                            self.write_checksum)
+        self.tfrecord_writer = RecordWriter(self._filename, self.write_checksum)
 
     def init(self):
         self._init_if_needed()
@@ -33,8 +32,7 @@ class EventsWriter:
         """Appends event to the file."""
         # Check if event is of type event_pb2.Event proto.
         if not isinstance(event, Event):
-            raise TypeError("expected an event_pb2.Event proto, "
-                            " but got %s" % type(event))
+            raise TypeError("expected an event_pb2.Event proto, " " but got %s" % type(event))
         return self._write_serialized_event(event.SerializeToString())
 
     def _write_serialized_event(self, event_str):
@@ -50,8 +48,11 @@ class EventsWriter:
             return
         self.tfrecord_writer.flush()
         if self.verbose and self._logger is not None:
-            self._logger.debug('wrote %d %s to disk', self._num_outstanding_events,
-                              'event' if self._num_outstanding_events == 1 else 'events')
+            self._logger.debug(
+                "wrote %d %s to disk",
+                self._num_outstanding_events,
+                "event" if self._num_outstanding_events == 1 else "events",
+            )
         self._num_outstanding_events = 0
 
     def close(self):

@@ -13,8 +13,7 @@ class RequiredTensors:
     def add(self, name, steps, trial=None, should_match_regex=False):
         if trial is None:
             trial = self.base_trial
-        self._per_trial[trial].add(name, steps,
-                                   should_match_regex=should_match_regex)
+        self._per_trial[trial].add(name, steps, should_match_regex=should_match_regex)
 
     def get_tensor_steps(self, name, trial=None):
         if trial is None:

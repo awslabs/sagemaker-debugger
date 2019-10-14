@@ -12,7 +12,9 @@ from tornasole.xgboost import TornasoleHook, get_collection
 from tornasole import SaveConfig
 from tornasole.core.access_layer.utils import has_training_ended
 from tornasole.core.json_config import (
-    TORNASOLE_CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_TORNASOLE_PATH)
+    TORNASOLE_CONFIG_FILE_PATH_ENV_STR,
+    DEFAULT_SAGEMAKER_TORNASOLE_PATH,
+)
 from tornasole.xgboost import reset_collections
 from tornasole.trials import create_trial
 
@@ -51,22 +53,19 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
 @pytest.mark.skip(reason="If no config file is found, then SM doesn't want a TornasoleHook")
 def test_default_hook(monkeypatch):
     reset_collections()
-    shutil.rmtree('/opt/ml/output/tensors', ignore_errors=True)
+    shutil.rmtree("/opt/ml/output/tensors", ignore_errors=True)
     monkeypatch.delenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, raising=False)
     hook = TornasoleHook.hook_from_config()
     assert hook.out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
 
-@pytest.mark.slow # 0:05 to run
+@pytest.mark.slow  # 0:05 to run
 def test_hook_save_all(tmpdir):
     reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
 
-    hook = TornasoleHook(
-        out_dir=out_dir,
-        save_config=save_config,
-        save_all=True)
+    hook = TornasoleHook(out_dir=out_dir, save_config=save_config, save_all=True)
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
@@ -79,16 +78,14 @@ def test_hook_save_all(tmpdir):
     assert any(t.endswith("/feature_importance") for t in tensors)
 
 
-@pytest.mark.slow # 0:05 to run
+@pytest.mark.slow  # 0:05 to run
 def test_hook_save_config_collections(tmpdir):
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = TornasoleHook(out_dir=out_dir)
 
-    get_collection("metric").set_save_config(
-        SaveConfig(save_interval=2))
-    get_collection("feature_importance").set_save_config(
-        SaveConfig(save_interval=3))
+    get_collection("metric").set_save_config(SaveConfig(save_interval=2))
+    get_collection("feature_importance").set_save_config(SaveConfig(save_interval=3))
 
     run_xgboost_model(hook=hook)
 
@@ -100,7 +97,7 @@ def test_hook_save_config_collections(tmpdir):
     assert all(step % 3 == 0 for step in fimp_steps[:-1])
 
 
-@pytest.mark.slow # 0:05 to run
+@pytest.mark.slow  # 0:05 to run
 def test_hook_shap(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(5, 10)
@@ -118,7 +115,7 @@ def test_hook_shap(tmpdir):
     assert "average_shap" in trial.collections()
 
 
-@pytest.mark.slow # 0:05 to run
+@pytest.mark.slow  # 0:05 to run
 def test_hook_validation(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(5, 10)

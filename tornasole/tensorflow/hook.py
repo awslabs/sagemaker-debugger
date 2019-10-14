@@ -7,25 +7,33 @@ from tornasole.core.utils import match_inc
 from tornasole.core.collection import CollectionKeys, SUMMARIES_COLLECTIONS
 from tornasole.core.hook import BaseHook
 from tornasole.core.reductions import get_reduction_tensor_name
-from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
+from tornasole.core.json_config import (
+    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
+    create_hook_from_json_config,
+)
 from tornasole.tensorflow.singleton_utils import set_hook
 
 
-DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.WEIGHTS,
-                               CollectionKeys.GRADIENTS,
-                               CollectionKeys.DEFAULT,
-                               CollectionKeys.LOSSES,
-                               CollectionKeys.SCALARS]
+DEFAULT_INCLUDE_COLLECTIONS = [
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.GRADIENTS,
+    CollectionKeys.DEFAULT,
+    CollectionKeys.LOSSES,
+    CollectionKeys.SCALARS,
+]
 
 
 class TornasoleHook(tf.train.SessionRunHook, BaseHook):
-    def __init__(self, out_dir=None,
-                 dry_run=False,
-                 reduction_config=None,
-                 save_config=None,
-                 include_regex=None,
-                 include_collections=None,
-                 save_all=False):
+    def __init__(
+        self,
+        out_dir=None,
+        dry_run=False,
+        reduction_config=None,
+        save_config=None,
+        include_regex=None,
+        include_collections=None,
+        save_all=False,
+    ):
         """
         A class used to represent the hook which gets attached to the
         training process. This takes the form appropriate for the framework
@@ -69,15 +77,17 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             a shortcut for saving all tensors in the model.
             they are all saved in the collection `all`
         """
-        super().__init__(collection_manager=get_collection_manager(),
-                         default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-                         out_dir=out_dir,
-                         dry_run=dry_run,
-                         reduction_config=reduction_config,
-                         save_config=save_config,
-                         include_regex=include_regex,
-                         include_collections=include_collections,
-                         save_all=save_all)
+        super().__init__(
+            collection_manager=get_collection_manager(),
+            default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            out_dir=out_dir,
+            dry_run=dry_run,
+            reduction_config=reduction_config,
+            save_config=save_config,
+            include_regex=include_regex,
+            include_collections=include_collections,
+            save_all=save_all,
+        )
         self.reduction_original_tensors = {}
         self.subgraph_nodes_cache = {}
         self.summaries_original_tensors = {}
@@ -86,18 +96,19 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
 
         set_hook(self)
 
-
     def get_worker_name(self):
         try:
             import horovod.tensorflow as hvd
+
             if hvd.size():
-                return f'worker_{hvd.rank()}'
+                return f"worker_{hvd.rank()}"
         except (ModuleNotFoundError, ValueError, ImportError):
             return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
     def get_num_workers(self):
         try:
             import horovod.tensorflow as hvd
+
             if hvd.size():
                 return hvd.size()
         except (ModuleNotFoundError, ValueError, ImportError):
@@ -105,8 +116,9 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):
-        return create_hook_from_json_config(cls, get_collection_manager(), json_config_path=json_config_path)
-
+        return create_hook_from_json_config(
+            cls, get_collection_manager(), json_config_path=json_config_path
+        )
 
     def _prepare_tensors(self):
         """
@@ -161,8 +173,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                 # look at regex patterns
                 continue
 
-            if match_inc(t.name, coll.get_include_regex()) \
-                    or t.name in coll.tensor_names:
+            if match_inc(t.name, coll.get_include_regex()) or t.name in coll.tensor_names:
                 self._process_matched_tensor(t, coll)
                 added = True
         return added
@@ -228,33 +239,40 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         self._prepare_tensors()
 
         for coll in self._get_all_collections_to_save():
-            self.logger.info(f'Saving the collection {coll.name} with {len(coll.tensors)} tensors ' \
-                    f'and {len(coll.reduction_tensors_added)} reductions')
-            self.logger.debug(f'  Collection {coll.name} has tensors: {coll.tensors}')
-            self.logger.debug(f'  Collection {coll.name} has reductions: {coll.reduction_tensors_added}')
+            self.logger.info(
+                f"Saving the collection {coll.name} with {len(coll.tensors)} tensors "
+                f"and {len(coll.reduction_tensors_added)} reductions"
+            )
+            self.logger.debug(f"  Collection {coll.name} has tensors: {coll.tensors}")
+            self.logger.debug(
+                f"  Collection {coll.name} has reductions: {coll.reduction_tensors_added}"
+            )
 
         self._export_model()
         self.export_collections()
 
     def _export_model(self):
-        self.logger.info('Writing graph')
+        self.logger.info("Writing graph")
         self._get_tb_writer().write_graph(self.graph.as_graph_def(add_shapes=True))
         # self._close_tb_writer()
 
     def _get_tensors_to_save_this_step(self):
-        tensors_to_save = {'watched': [], 'added': []}
+        tensors_to_save = {"watched": [], "added": []}
         for coll in self._get_collections_to_save_for_step():
-            tensors_to_save['watched'].extend(coll.tensors)
-            tensors_to_save['added'].extend(coll.reduction_tensors_added)
+            tensors_to_save["watched"].extend(coll.tensors)
+            tensors_to_save["added"].extend(coll.reduction_tensors_added)
         # dedup watched and added
-        tensors_to_save['watched'] = list(set(tensors_to_save['watched']))
-        tensors_to_save['added'] = list(set(tensors_to_save['added']))
+        tensors_to_save["watched"] = list(set(tensors_to_save["watched"]))
+        tensors_to_save["added"] = list(set(tensors_to_save["added"]))
         return tensors_to_save
 
     def _filter_to_be_saved(self, dict_to_save, fetches):
         # todo: handle all types of complex fetches
-        if not isinstance(fetches, list) and not isinstance(fetches, tuple) \
-                and not isinstance(fetches, dict):
+        if (
+            not isinstance(fetches, list)
+            and not isinstance(fetches, tuple)
+            and not isinstance(fetches, dict)
+        ):
             fetches = [fetches]
         fetches_tuple = tuple(fetches)
         if fetches_tuple in self.subgraph_nodes_cache:
@@ -263,7 +281,8 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             original_fetch_ops = get_original_fetch_ops(fetches)
             dest_names = [n.name for n in original_fetch_ops]
             subgraph = tf.graph_util.extract_sub_graph(
-                tf.get_default_graph().as_graph_def(), dest_names)
+                tf.get_default_graph().as_graph_def(), dest_names
+            )
             _, subgraph_nodes, _ = extract_graph_summary(subgraph)
             self.subgraph_nodes_cache[fetches_tuple] = subgraph_nodes
 
@@ -272,7 +291,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         # check that this run includes the ops whose tensors are to be saved
         filtered = []
         skipped = []
-        for tensor in dict_to_save['watched']:
+        for tensor in dict_to_save["watched"]:
             if node_name(tensor.name) in subgraph_nodes:
                 filtered.append(tensor)
             elif tensor.name in self.summaries_original_tensors.keys():
@@ -285,7 +304,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                     skipped.append(tensor)
             else:
                 skipped.append(tensor)
-        for tensor in dict_to_save['added']:
+        for tensor in dict_to_save["added"]:
             assert isinstance(tensor, tf.Tensor)
             original_tensor = self.reduction_original_tensors[tensor.name]
             if node_name(original_tensor.name) in subgraph_nodes:
@@ -294,20 +313,20 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                 skipped.append(tensor)
 
         if len(skipped) > 0:
-            self.logger.debug(f'Skipped {len(skipped)} unreachable tensors: {skipped}')
+            self.logger.debug(f"Skipped {len(skipped)} unreachable tensors: {skipped}")
 
         # todo(huilgolr) can we filter tensors with (0)shape here. do we want to?
         return filtered
 
     def before_run(self, run_context):
         tensors_to_save = self._get_tensors_to_save_this_step()
-        if len(tensors_to_save['watched']) + len(tensors_to_save['added']) > 0:
+        if len(tensors_to_save["watched"]) + len(tensors_to_save["added"]) > 0:
             if run_context:
                 list_to_save = self._filter_to_be_saved(
-                        tensors_to_save, run_context.original_args.fetches)
+                    tensors_to_save, run_context.original_args.fetches
+                )
             else:
-                list_to_save = tensors_to_save['watched'] + \
-                               tensors_to_save['added']
+                list_to_save = tensors_to_save["watched"] + tensors_to_save["added"]
         else:
             list_to_save = []
         self.tensors_to_save_this_step = list_to_save
@@ -316,14 +335,12 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
     def _write_tf_summary(self, tensor, value):
         try:
             # likely a summary
-            self.logger.debug(
-                f'Saving summary {tensor.name} with length {len(value)}')
+            self.logger.debug(f"Saving summary {tensor.name} with length {len(value)}")
             s = Summary.FromString(value)
             self._get_tb_writer().write_summary(s, self.step)
         except Exception as e:
             # can it not be a summary?
-            self.logger.error(
-                f'Ran into the exception when saving {tensor}: {e}')
+            self.logger.error(f"Ran into the exception when saving {tensor}: {e}")
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
         # if reduction tensor
@@ -343,7 +360,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                 assert not (isinstance(item, list) or isinstance(item, tuple))
                 yield item, value
             elif isinstance(value, list) or isinstance(value, tuple):
-                assert (isinstance(item, list) or isinstance(item, tuple))
+                assert isinstance(item, list) or isinstance(item, tuple)
                 for i in range(len(value)):
                     yield item[i], value[i]
 
@@ -354,8 +371,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                 if tensor.dtype == tf.string:
                     self._write_tf_summary(tensor, value)
                 else:
-                    self._save_for_tensor(tensor.name, value,
-                                          check_before_write=False)
+                    self._save_for_tensor(tensor.name, value, check_before_write=False)
             self._close_writer()
         self._close_tb_writer()
         self._increment_step()

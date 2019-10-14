@@ -8,8 +8,10 @@ import torch.optim as optim
 import tornasole.pytorch as ts
 from tornasole.trials import Trial, create_trial
 
+
 class Net(nn.Module):
     """CIFAR-10 classification network structure."""
+
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
@@ -28,10 +30,11 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
 
+
 def test_register_loss():
     """Test that the loss is saved as a tensor."""
     ts.reset_collections()
-    out_dir = '/tmp/pytorch_test_loss'
+    out_dir = "/tmp/pytorch_test_loss"
     shutil.rmtree(out_dir, ignore_errors=True)
 
     net = Net()
@@ -46,7 +49,7 @@ def test_register_loss():
         save_config=ts.SaveConfig(save_interval=1),
     )
     hook.register_hook(net)
-    hook.register_loss(criterion) # This is the important line
+    hook.register_loss(criterion)  # This is the important line
 
     batch_size = 1
     n_steps = 5
@@ -59,22 +62,22 @@ def test_register_loss():
         loss.backward()
         optimizer.step()
 
-    #TODO(nieljare): Remove reliance on hook._cleanup()
+    # TODO(nieljare): Remove reliance on hook._cleanup()
     # What if the user has a training loop, then calls the Trials API in the same Python script
     # (like we do here). Then it'll crash, likewise in a Jupyter notebook.
     hook._cleanup()
 
     trial = create_trial(path=out_dir)
-    loss_coll = hook.collection_manager.get('losses')
+    loss_coll = hook.collection_manager.get("losses")
     assert len(loss_coll.get_tensor_names()) == 3
 
-    loss_tensor = trial.tensor('CrossEntropyLoss_output_0')
+    loss_tensor = trial.tensor("CrossEntropyLoss_output_0")
     print(f"loss_tensor.steps() = {loss_tensor.steps()}")
 
-    gradient_tensor = trial.tensor('gradient/Net_fc1.weight')
+    gradient_tensor = trial.tensor("gradient/Net_fc1.weight")
     print(f"gradient_tensor.steps() = {gradient_tensor.steps()}")
 
-    weight_tensor = trial.tensor('Net_fc1.weight')
+    weight_tensor = trial.tensor("Net_fc1.weight")
     print(f"weight_tensor.steps() = {weight_tensor.steps()}")
 
     assert len(trial.available_steps()) == n_steps

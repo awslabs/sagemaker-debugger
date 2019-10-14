@@ -23,7 +23,7 @@ from tornasole.core.access_layer.file import TSAccessFile
 from tornasole.core.access_layer.s3 import TSAccessS3
 from tornasole.core.utils import is_s3
 
-CHECKSUM_MAGIC_BYTES = b'0x12345678'
+CHECKSUM_MAGIC_BYTES = b"0x12345678"
 
 
 class RecordWriter:
@@ -46,21 +46,21 @@ class RecordWriter:
             if s3:
                 self._writer = TSAccessS3(bucket_name, key_name)
             else:
-                self._writer = TSAccessFile(path, 'wb')
+                self._writer = TSAccessFile(path, "wb")
         except (OSError, IOError) as err:
-            raise ValueError('failed to open {}: {}'.format(path, str(err)))
+            raise ValueError("failed to open {}: {}".format(path, str(err)))
 
     def __del__(self):
         self.close()
 
     def write_record(self, event_str):
         """Writes a serialized event to file."""
-        header = struct.pack('Q', len(event_str))
-        header += struct.pack('I', masked_crc32c(header))
+        header = struct.pack("Q", len(event_str))
+        header += struct.pack("I", masked_crc32c(header))
         if self.write_checksum:
-            footer = struct.pack('I', masked_crc32c(event_str))
+            footer = struct.pack("I", masked_crc32c(event_str))
         else:
-            footer = struct.pack('I', masked_crc32c(CHECKSUM_MAGIC_BYTES))
+            footer = struct.pack("I", masked_crc32c(CHECKSUM_MAGIC_BYTES))
         position_and_length_of_record = self._writer.write(header + event_str + footer)
         return position_and_length_of_record
 
@@ -81,10 +81,10 @@ def masked_crc32c(data):
     """Copied from
     https://github.com/TeamHG-Memex/tensorboard_logger/blob/master/tensorboard_logger/tensorboard_logger.py"""
     x = u32(crc32c(data))  # pylint: disable=invalid-name
-    return u32(((x >> 15) | u32(x << 17)) + 0xa282ead8)
+    return u32(((x >> 15) | u32(x << 17)) + 0xA282EAD8)
 
 
 def u32(x):  # pylint: disable=invalid-name
     """Copied from
     https://github.com/TeamHG-Memex/tensorboard_logger/blob/master/tensorboard_logger/tensorboard_logger.py"""
-    return x & 0xffffffff
+    return x & 0xFFFFFFFF

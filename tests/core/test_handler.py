@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from tornasole.core.access_layer.s3handler import *
 from tornasole.core.tfrecord.tensor_reader import *
+
 ######## HELPER CLASSES AND FUNCTIONS #######
 class TensorLocation:
     def __init__(self, event_file_name, start=0, length=None):
@@ -9,12 +10,20 @@ class TensorLocation:
         self.start = start
         self.length = None
 
-class Index():
+
+class Index:
     def __init__(self):
         self.dummy = dict()
         self.dummy["s3://tornasolecodebuildtest/tfevents"] = dict()
         for i in range(5000):
-            self.dummy["s3://tornasolecodebuildtest/tfevents"]["demo_" + str(i)] = [(0, TensorLocation("s3://tornasolecodebuildtest/tfevents/demo_"+str(i)+".out.tfevents"))]
+            self.dummy["s3://tornasolecodebuildtest/tfevents"]["demo_" + str(i)] = [
+                (
+                    0,
+                    TensorLocation(
+                        "s3://tornasolecodebuildtest/tfevents/demo_" + str(i) + ".out.tfevents"
+                    ),
+                )
+            ]
 
     # input to get_index_for_tensors is a dict {path:{tensornames:[step_nums]}}
     # output of that fn is dict {path:{tname:[(step_num, TensorLocation)]}}
@@ -26,16 +35,19 @@ class Index():
                 dict_to_return[key][tname] = self.dummy[key][tname]
         return dict_to_return
 
+
 def load_index():
     return Index()
 
+
 ######### HELPER FUNCTIONS ######
+
 
 def read_tensor_from_record(data):
     event_str = read_record(data)
     event = Event()
     event.ParseFromString(event_str)
-    assert event.HasField('summary')
+    assert event.HasField("summary")
     summ = event.summary
     tensors = []
     for v in summ.value:
@@ -44,18 +56,20 @@ def read_tensor_from_record(data):
         tensors += [tensor_data]
     return tensors
 
+
 def read_record(data, check=True):
     payload = None
     strlen_bytes = data[:8]
     data = data[8:]
     # will give you payload for the record, which is essentially the event.
-    strlen = struct.unpack('Q', strlen_bytes)[0]
-    saved_len_crc = struct.unpack('I', data[:4])[0]
+    strlen = struct.unpack("Q", strlen_bytes)[0]
+    saved_len_crc = struct.unpack("I", data[:4])[0]
     data = data[4:]
     payload = data[:strlen]
     data = data[strlen:]
-    saved_payload_crc = struct.unpack('I', data[:4])[0]
+    saved_payload_crc = struct.unpack("I", data[:4])[0]
     return payload
+
 
 ##########################################
 
@@ -71,7 +85,7 @@ def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
     for name, steps in tlist:
         index_dict[name] = steps
     key_lst = []
-    t_index = index.get_index_for_tensors({parent_path:index_dict})
+    t_index = index.get_index_for_tensors({parent_path: index_dict})
     for tname in t_index[parent_path].keys():
         for step, tloc in t_index[parent_path][tname]:
             path, start, length = tloc.event_file_name, tloc.start, tloc.length
@@ -91,11 +105,12 @@ def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
         # tensors[key_lst[i]] = list(TensorReader(data).read_tensors())[0]
     return tensors
 
+
 ##########################################################
 ## Tests that downloads of objects from S3 handler are working correctly
 ## Downloads and checks values of 100 numpy tensors asynchronously from the S3 bucket ljain-tests
 @pytest.mark.skip("No bucket access")
-def test_download_objects(compare_speeds = False):
+def test_download_objects(compare_speeds=False):
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     index = load_index()
     s3_handler = S3Handler()
@@ -106,11 +121,13 @@ def test_download_objects(compare_speeds = False):
     for tup in tensors.keys():
         tensor = tensors[tup]
         assert tensor.shape == (300, 300, 2)
-        assert not np.any(np.ones((300,300,2)) - tensor)
+        assert not np.any(np.ones((300, 300, 2)) - tensor)
     if compare_speeds:
         print("Synchronous...")
-        tensors = get_tensors(index, s3_handler, tlist, num_async_calls = 1, timer=True)
+        tensors = get_tensors(index, s3_handler, tlist, num_async_calls=1, timer=True)
     s3_handler.close_client()
+
+
 ##########################################################
 ## Tests that listing of objects from S3 handler are working correctly
 ## Lists files from 4 different directories
@@ -119,11 +136,16 @@ def test_download_objects(compare_speeds = False):
 def test_list_objects():
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     s3_handler = S3Handler()
-    req1 = ListRequest('tornasolecodebuildtest', 'tfevents', '', '')
-    req2 = ListRequest('tornasolecodebuildtest', 'rand_4mb_1000', '', '')
-    req3 = ListRequest('tornasolecodebuildtest', 'rand_8mb_1000', '', '')
-    req4 = ListRequest('tornasolecodebuildtest', 'demo_dir_structure/attempts/', '/')
-    req5 = ListRequest('tornasolecodebuildtest', 'demo_dir_structure/attempts/', '/', 'demo_dir_structure/attempts/help')
+    req1 = ListRequest("tornasolecodebuildtest", "tfevents", "", "")
+    req2 = ListRequest("tornasolecodebuildtest", "rand_4mb_1000", "", "")
+    req3 = ListRequest("tornasolecodebuildtest", "rand_8mb_1000", "", "")
+    req4 = ListRequest("tornasolecodebuildtest", "demo_dir_structure/attempts/", "/")
+    req5 = ListRequest(
+        "tornasolecodebuildtest",
+        "demo_dir_structure/attempts/",
+        "/",
+        "demo_dir_structure/attempts/help",
+    )
     files = s3_handler.list_prefixes([req1, req2, req3, req4, req5])
     # test StartAfter and delimiters
     assert len(files[3]) == 5 and len(files[4]) == 3

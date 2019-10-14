@@ -48,9 +48,15 @@ class EventFileWriter:
     is encoded using the tfrecord format, which is similar to RecordIO.
     """
 
-    def __init__(self, path, max_queue=10, flush_secs=120,
-                 index_writer=None,
-                 verbose=False, write_checksum=False):
+    def __init__(
+        self,
+        path,
+        max_queue=10,
+        flush_secs=120,
+        index_writer=None,
+        verbose=False,
+        write_checksum=False,
+    ):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
         This event file will contain `Event` protocol buffers, which are written to
@@ -60,18 +66,20 @@ class EventFileWriter:
         """
         self._path = path
         self._event_queue = six.moves.queue.Queue(max_queue)
-        self._ev_writer = EventsWriter(path=self._path,
-                                       index_writer=index_writer,
-                                       verbose=verbose,
-                                       write_checksum=write_checksum)
+        self._ev_writer = EventsWriter(
+            path=self._path,
+            index_writer=index_writer,
+            verbose=verbose,
+            write_checksum=write_checksum,
+        )
         self._ev_writer.init()
         self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()
         self._worker = _EventLoggerThread(
-                queue=self._event_queue,
-                ev_writer=self._ev_writer,
-                flush_secs=self._flush_secs,
-                sentinel_event=self._sentinel_event
+            queue=self._event_queue,
+            ev_writer=self._ev_writer,
+            flush_secs=self._flush_secs,
+            sentinel_event=self._sentinel_event,
         )
         self._worker.start()
 
@@ -154,13 +162,14 @@ class _EventLoggerThread(threading.Thread):
                     eventfile = self._ev_writer.name()
                     eventfile = get_relative_event_file_path(eventfile)
                     tensorlocation = TensorLocation(
-                            tname=event_in_queue.tensorname,
-                            mode=event_in_queue.get_mode(),
-                            mode_step=event_in_queue.mode_step,
-                            event_file_name=eventfile,
-                            start_idx=positions[0],
-                            length=positions[1],
-                            worker=parse_worker_name_from_file(eventfile))
+                        tname=event_in_queue.tensorname,
+                        mode=event_in_queue.get_mode(),
+                        mode_step=event_in_queue.mode_step,
+                        event_file_name=eventfile,
+                        start_idx=positions[0],
+                        length=positions[1],
+                        worker=parse_worker_name_from_file(eventfile),
+                    )
                     self._ev_writer.index_writer.add_index(tensorlocation)
                 # Flush the event writer every so often.
                 now = time.time()

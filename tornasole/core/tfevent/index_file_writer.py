@@ -19,7 +19,7 @@ class IndexWriter(object):
         if s3:
             writer = TSAccessS3(bucket_name, key_name, binary=False)
         else:
-            writer = TSAccessFile(self.file_path, 'a+')
+            writer = TSAccessFile(self.file_path, "a+")
         return writer
 
     def add_index(self, tensorlocation):
@@ -27,7 +27,7 @@ class IndexWriter(object):
             self.index_meta = {
                 "mode": tensorlocation.mode,
                 "mode_step": tensorlocation.mode_step,
-                "event_file_name": tensorlocation.event_file_name
+                "event_file_name": tensorlocation.event_file_name,
             }
         self.index_payload.append(tensorlocation.to_dict())
 
@@ -65,4 +65,4 @@ class EventWithIndex(object):
         self.mode_step = mode_step
 
     def get_mode(self):
-        return str(self.mode).split('.')[-1]
+        return str(self.mode).split(".")[-1]

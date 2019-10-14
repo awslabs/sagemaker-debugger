@@ -7,7 +7,11 @@ from typing import Optional, List, Union, Tuple, Dict, Set
 
 from tornasole.core.utils import match_inc, size_and_shape
 from tornasole.core.reduction_config import ReductionConfig
-from tornasole.core.collection import CollectionKeys, SUMMARIES_COLLECTIONS, NON_HISTOGRAM_COLLECTIONS
+from tornasole.core.collection import (
+    CollectionKeys,
+    SUMMARIES_COLLECTIONS,
+    NON_HISTOGRAM_COLLECTIONS,
+)
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.access_layer import training_has_ended
@@ -24,17 +28,19 @@ logger = get_logger()
 class BaseHook:
     __metaclass__ = ABCMeta
 
-    def __init__(self,
-                 collection_manager: CollectionManager,
-                 default_include_collections: List[str],
-                 init_step: int = 0,
-                 out_dir: Optional[str] = None,
-                 dry_run: bool = False,
-                 reduction_config: Optional[ReductionConfig] = None,
-                 save_config: Optional[Union[SaveConfig, Dict[ModeKeys, SaveConfigMode]]] = None,
-                 include_regex: Optional[List[str]] = None,
-                 include_collections: Optional[List[str]] = None,
-                 save_all: bool = False):
+    def __init__(
+        self,
+        collection_manager: CollectionManager,
+        default_include_collections: List[str],
+        init_step: int = 0,
+        out_dir: Optional[str] = None,
+        dry_run: bool = False,
+        reduction_config: Optional[ReductionConfig] = None,
+        save_config: Optional[Union[SaveConfig, Dict[ModeKeys, SaveConfigMode]]] = None,
+        include_regex: Optional[List[str]] = None,
+        include_collections: Optional[List[str]] = None,
+        save_all: bool = False,
+    ):
         """
         A class used to represent the hook which gets attached to the
         training process. This takes the form appropriate for the framework
@@ -102,14 +108,18 @@ class BaseHook:
 
         self.save_all = save_all
         if self.save_all:
-            collection_manager.get(CollectionKeys.ALL).include('.*')
+            collection_manager.get(CollectionKeys.ALL).include(".*")
             if CollectionKeys.ALL not in self.include_collections:
                 self.include_collections.append(CollectionKeys.ALL)
 
-        if CollectionKeys.DEFAULT not in self.include_collections and \
-                collection_manager.get(CollectionKeys.DEFAULT).get_include_regex():
-            self.logger.warn('The `default` collection was not passed to '
-                             'include_collections. So it is not being saved')
+        if (
+            CollectionKeys.DEFAULT not in self.include_collections
+            and collection_manager.get(CollectionKeys.DEFAULT).get_include_regex()
+        ):
+            self.logger.warn(
+                "The `default` collection was not passed to "
+                "include_collections. So it is not being saved"
+            )
 
         self._collections_to_save = set()
         self._collections_to_save_for_step = None
@@ -120,7 +130,7 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
         self.tb_writers = {}
-        self.logger.info('Saving to {}'.format(self.out_dir))
+        self.logger.info("Saving to {}".format(self.out_dir))
         atexit.register(self._cleanup)
 
     @abstractmethod
@@ -137,25 +147,23 @@ class BaseHook:
         return coll_name in self.include_collections
 
     def _assert_prep(self):
-        assert self.prepared_collections, \
-            "Collections have not been prepared yet"
+        assert self.prepared_collections, "Collections have not been prepared yet"
 
-    def _get_all_collections_to_save(self) -> Set['Collection']:
+    def _get_all_collections_to_save(self) -> Set["Collection"]:
         self._assert_prep()
         return self._collections_to_save
 
-    def _get_collections_to_save_for_step(self) -> Set['Collection']:
+    def _get_collections_to_save_for_step(self) -> Set["Collection"]:
         if self._collections_to_save_for_step is None:
             self._assert_prep()
             s = set()
             for coll in self._collections_to_save:
-                if coll.get_save_config().should_save_step(
-                        self.mode, self.mode_steps[self.mode]):
+                if coll.get_save_config().should_save_step(self.mode, self.mode_steps[self.mode]):
                     s.add(coll)
             self._collections_to_save_for_step = s
         return self._collections_to_save_for_step
 
-    def _get_collections_with_tensor(self, tensor_name) -> Set['Collection']:
+    def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
         self._assert_prep()
         # for tf this will be prepopulated because of prepare_tensors
         if not tensor_name in self.tensor_to_collections:
@@ -185,8 +193,7 @@ class BaseHook:
         """Populate collections_to_save and ensure every collection has
         a save_config and reduction_config."""
         for c_name, c in self.collection_manager.get_collections().items():
-            if self._should_collection_be_saved(c_name) \
-                    and c not in self._collections_to_save:
+            if self._should_collection_be_saved(c_name) and c not in self._collections_to_save:
                 self._collections_to_save.add(c)
 
         # Populate configs_for_collections and reduction_config
@@ -202,8 +209,7 @@ class BaseHook:
                 # Otherwise, set missing modes to the defaults
                 c.save_config.merge_default_save_config(self.save_config)
             else:
-                raise TypeError(
-                    f"save_config={c.save_config} must be None or SaveConfig")
+                raise TypeError(f"save_config={c.save_config} must be None or SaveConfig")
 
             if c_name in SUMMARIES_COLLECTIONS:
                 c.set_reduction_config(ReductionConfig(save_raw_tensor=True))
@@ -240,8 +246,7 @@ class BaseHook:
     def _initialize_writer(self) -> None:
         if self.dry_run:
             return
-        self.writer = FileWriter(
-                trial_dir=self.out_dir, step=self.step, worker=self.worker)
+        self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
     def _get_tb_writer(self):
         if self.mode in self.tb_writers:
@@ -252,12 +257,12 @@ class BaseHook:
             # s = self.step
             # if s < 0: s = 0
             self.tb_writers[self.mode] = FileWriter(
-                    trial_dir=self.out_dir,
-                    step=self.step,
-                    worker=self.worker,
-                    write_checksum=True,
-                    wtype='tensorboard',
-                    mode=self.mode
+                trial_dir=self.out_dir,
+                step=self.step,
+                worker=self.worker,
+                write_checksum=True,
+                wtype="tensorboard",
+                mode=self.mode,
             )
             return self.tb_writers[self.mode]
 
@@ -283,8 +288,9 @@ class BaseHook:
         if mode in ALLOWED_MODES:
             self.mode = mode
         else:
-            raise ValueError('Invalid mode {}. Valid modes are {}.'
-                             .format(mode, ','.join(ALLOWED_MODES)))
+            raise ValueError(
+                "Invalid mode {}. Valid modes are {}.".format(mode, ",".join(ALLOWED_MODES))
+            )
 
         if mode not in self.mode_steps:
             self.mode_steps[mode] = self.init_step
@@ -292,34 +298,27 @@ class BaseHook:
         self._collections_to_save_for_step = None
 
     def export_collections(self):
-        collection_file_name = f'{self.worker}_collections.json'
-        self.collection_manager.export(os.path.join(
-                self.out_dir, collection_file_name))
+        collection_file_name = f"{self.worker}_collections.json"
+        self.collection_manager.export(os.path.join(self.out_dir, collection_file_name))
 
     def _write_reduction(self, tensor_name, tensor_value, reduction_name, abs):
-        reduction_tensor_name = get_reduction_tensor_name(
-                tensor_name, reduction_name, abs)
-        tensor_data = self._get_reduction_of_data(
-                reduction_name, tensor_value, tensor_name, abs)
+        reduction_tensor_name = get_reduction_tensor_name(tensor_name, reduction_name, abs)
+        tensor_data = self._get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs)
         self._write_raw_tensor_simple(reduction_tensor_name, tensor_data)
 
     def _write_reductions(self, tensor_name, tensor_value, save_collections):
         reductions_saved = set()
         for s_col in save_collections:
             reduction_config = s_col.get_reduction_config()
-            for reduction_list in (reduction_config.reductions,
-                                   reduction_config.norms):
+            for reduction_list in (reduction_config.reductions, reduction_config.norms):
                 for reduction in reduction_list:
                     if (reduction, abs) not in reductions_saved:
-                        self._write_reduction(
-                                tensor_name, tensor_value, reduction, abs=False)
+                        self._write_reduction(tensor_name, tensor_value, reduction, abs=False)
                         reductions_saved.add((reduction, False))
-            for reduction_list in (reduction_config.abs_reductions,
-                                   reduction_config.abs_norms):
+            for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
                 for reduction in reduction_list:
                     if (reduction, abs) not in reductions_saved:
-                        self._write_reduction(
-                                tensor_name, tensor_value, reduction, abs=True)
+                        self._write_reduction(tensor_name, tensor_value, reduction, abs=True)
                         reductions_saved.add((reduction, True))
 
     def _write_scalar_summary(self, tensor_name, tensor_value, save_colls):
@@ -330,12 +329,12 @@ class BaseHook:
                     return
 
                 if np_val.squeeze().ndim == 0:
-                    self._get_tb_writer().write_scalar_summary(
-                        tensor_name, np_val, self.step)
+                    self._get_tb_writer().write_scalar_summary(tensor_name, np_val, self.step)
                 else:
                     self.logger.debug(
-                            f'Value of {tensor_name} is not scalar, '
-                            f'so scalar summary could not be created')
+                        f"Value of {tensor_name} is not scalar, "
+                        f"so scalar summary could not be created"
+                    )
                 break
 
     def _write_histogram_summary(self, tensor_name, tensor_value, save_collections):
@@ -347,11 +346,10 @@ class BaseHook:
                 if self.dry_run or np_value.dtype == np.bool or np_value.nbytes == 0:
                     return
 
-                hist_name = f'histograms/{s_col.name}/{tensor_name}'
+                hist_name = f"histograms/{s_col.name}/{tensor_name}"
                 self._get_tb_writer().write_histogram_summary(
-                        tdata=np_value,
-                        tname=hist_name,
-                        global_step=self.step)
+                    tdata=np_value, tname=hist_name, global_step=self.step
+                )
                 break
 
     # Fix step number for saving scalar and tensor
@@ -388,19 +386,24 @@ class BaseHook:
         this_size, this_shape = size_and_shape(numpy_tensor_value)
         if self.dry_run is False and this_size > 0:
             self.writer.write_tensor(
-                tdata=numpy_tensor_value, tname=tensor_name, mode=self.mode,
-                mode_step=self.mode_steps[self.mode])
+                tdata=numpy_tensor_value,
+                tname=tensor_name,
+                mode=self.mode,
+                mode_step=self.mode_steps[self.mode],
+            )
 
-    def _save_for_tensor(self, tensor_name, tensor_value,
-                         check_before_write=True):
-        if check_before_write and \
-                self._should_save_tensor_for_step(tensorname=tensor_name) is False:
+    def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
+        if (
+            check_before_write
+            and self._should_save_tensor_for_step(tensorname=tensor_name) is False
+        ):
             return
-        self.logger.debug(f'Processing {tensor_name} for global step {self.step}')
+        self.logger.debug(f"Processing {tensor_name} for global step {self.step}")
 
         save_collections = self._get_collections_with_tensor(tensor_name)
         save_collections_for_tensor = save_collections.intersection(
-                self._get_collections_to_save_for_step())
+            self._get_collections_to_save_for_step()
+        )
         self._write_for_tensor(tensor_name, tensor_value, save_collections_for_tensor)
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
@@ -453,32 +456,36 @@ class BaseHook:
 
 class CallbackHook(BaseHook):
     __metaclass__ = ABCMeta
-    INVALID_TAG_CHARACTERS = _re.compile(r'[^-/\w\.]')
-    INPUT_TENSOR_SUFFIX = '_input_'
-    OUTPUT_TENSOR_SUFFIX = '_output_'
-    GRADIENT_PREFIX = 'gradient/'
+    INVALID_TAG_CHARACTERS = _re.compile(r"[^-/\w\.]")
+    INPUT_TENSOR_SUFFIX = "_input_"
+    OUTPUT_TENSOR_SUFFIX = "_output_"
+    GRADIENT_PREFIX = "gradient/"
 
-    def __init__(self,
-                 collection_manager: CollectionManager,
-                 default_include_collections: List[str],
-                 data_type_name: Optional[str] = None,
-                 out_dir: Optional[str] = None,
-                 dry_run: bool = False,
-                 reduction_config: Optional[ReductionConfig] = None,
-                 save_config: Optional[SaveConfig] = None,
-                 include_regex: Optional[List[str]] = None,
-                 include_collections: Optional[List[str]] = None,
-                 save_all: bool = False):
-        super().__init__(collection_manager=collection_manager,
-                         default_include_collections=default_include_collections,
-                         init_step=-1,
-                         out_dir=out_dir,
-                         dry_run=dry_run,
-                         reduction_config=reduction_config,
-                         save_config=save_config,
-                         include_regex=include_regex,
-                         include_collections=include_collections,
-                         save_all=save_all)
+    def __init__(
+        self,
+        collection_manager: CollectionManager,
+        default_include_collections: List[str],
+        data_type_name: Optional[str] = None,
+        out_dir: Optional[str] = None,
+        dry_run: bool = False,
+        reduction_config: Optional[ReductionConfig] = None,
+        save_config: Optional[SaveConfig] = None,
+        include_regex: Optional[List[str]] = None,
+        include_collections: Optional[List[str]] = None,
+        save_all: bool = False,
+    ):
+        super().__init__(
+            collection_manager=collection_manager,
+            default_include_collections=default_include_collections,
+            init_step=-1,
+            out_dir=out_dir,
+            dry_run=dry_run,
+            reduction_config=reduction_config,
+            save_config=save_config,
+            include_regex=include_regex,
+            include_collections=include_collections,
+            save_all=save_all,
+        )
         self.last_saved_step = None
         self.exported_collections = False
         self.data_type_name = data_type_name
@@ -491,8 +498,7 @@ class CallbackHook(BaseHook):
 
     def _write(self, module_name, var, suffix, idx):
         if self.data_type_name is None:
-            raise RuntimeError(
-                    "This method can not be called when data_type is None")
+            raise RuntimeError("This method can not be called when data_type is None")
 
         if var.__class__.__name__ == self.data_type_name:
             self._save_for_tensor(module_name + suffix + str(idx), var)
@@ -502,9 +508,10 @@ class CallbackHook(BaseHook):
                 idx = self._write(module_name, val, suffix, idx)
         else:
             logger.warning(
-                    f"var is not {self.data_type_name} or list or tuple "
-                    f"of {self.data_type_name}s, "
-                    f"module_name:{module_name} {var.__class__.__name__}")
+                f"var is not {self.data_type_name} or list or tuple "
+                f"of {self.data_type_name}s, "
+                f"module_name:{module_name} {var.__class__.__name__}"
+            )
 
     def _write_inputs(self, name, inputs):
         self._write(name, inputs, CallbackHook.INPUT_TENSOR_SUFFIX, idx=0)

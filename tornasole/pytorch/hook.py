@@ -1,8 +1,10 @@
 from copy import deepcopy
 import torch
 import torch.distributed as dist
-from tornasole.core.json_config import create_hook_from_json_config, \
-    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+from tornasole.core.json_config import (
+    create_hook_from_json_config,
+    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
+)
 from tornasole.core.logger import get_logger
 from tornasole.core.hook import CallbackHook
 from tornasole.core.collection import CollectionKeys
@@ -21,26 +23,29 @@ DEFAULT_INCLUDE_COLLECTIONS = [
 
 
 class TornasoleHook(CallbackHook):
-    def __init__(self,
-                 out_dir=None,
-                 dry_run=False,
-                 reduction_config=None,
-                 save_config=None,
-                 include_regex=None,
-                 include_collections=None,
-                 save_all=False):
+    def __init__(
+        self,
+        out_dir=None,
+        dry_run=False,
+        reduction_config=None,
+        save_config=None,
+        include_regex=None,
+        include_collections=None,
+        save_all=False,
+    ):
 
         super().__init__(
-                collection_manager=get_collection_manager(),
-                default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-                data_type_name=torch.Tensor.__name__,
-                out_dir=out_dir,
-                dry_run=dry_run,
-                reduction_config=reduction_config,
-                save_config=save_config,
-                include_regex=include_regex,
-                include_collections=include_collections,
-                save_all=save_all)
+            collection_manager=get_collection_manager(),
+            default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            data_type_name=torch.Tensor.__name__,
+            out_dir=out_dir,
+            dry_run=dry_run,
+            reduction_config=reduction_config,
+            save_config=save_config,
+            include_regex=include_regex,
+            include_collections=include_collections,
+            save_all=save_all,
+        )
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()
@@ -50,17 +55,17 @@ class TornasoleHook(CallbackHook):
 
         set_hook(self)
 
-
     def get_num_workers(self):
         """Check horovod and torch.distributed."""
         # Try torch.distributed
         # torch.distributed is empty on Mac on Torch <= 1.2
-        if hasattr(dist, 'is_initialized') and dist.is_initialized():
+        if hasattr(dist, "is_initialized") and dist.is_initialized():
             return torch.distributed.get_world_size()
         # Try horovod
         else:
             try:
                 import horovod.torch as hvd
+
                 if hvd.size():
                     return hvd.size()
             except (ModuleNotFoundError, ValueError, ImportError):
@@ -72,12 +77,13 @@ class TornasoleHook(CallbackHook):
         """Check horovod and torch.distributed."""
         # Try torch.distributed
         # torch.distributed is empty on Mac on Torch <= 1.2
-        if hasattr(dist, 'is_initialized') and dist.is_initialized():
+        if hasattr(dist, "is_initialized") and dist.is_initialized():
             return f"worker_{dist.get_rank()}"
         # Try horovod
         else:
             try:
                 import horovod.torch as hvd
+
                 if hvd.size():
                     return f"worker_{hvd.rank()}"
             except (ModuleNotFoundError, ValueError, ImportError):
@@ -98,16 +104,14 @@ class TornasoleHook(CallbackHook):
             return None.
         """
         return create_hook_from_json_config(
-            cls,
-            get_collection_manager(),
-            json_config_path=json_config_path
+            cls, get_collection_manager(), json_config_path=json_config_path
         )
 
     def log_params(self, module):
         module_name = module._get_name()
         params = module.named_parameters()
         for name, param in params:
-            pname = module_name + '_' + name
+            pname = module_name + "_" + name
             # This overwhelms the logs; turn back on if you really need it
             # self.logger.debug(
             # "Processing the global step {0} for parameter {1}".format(self.step, pname))
@@ -117,12 +121,12 @@ class TornasoleHook(CallbackHook):
         # todo: export model when only run for 1 step in cleanup
         if self.model is not None:
             try:
-                self._get_tb_writer().write_pytorch_graph(
-                    create_graph(self.model, inputs))
+                self._get_tb_writer().write_pytorch_graph(create_graph(self.model, inputs))
             except ValueError as e:
                 self.logger.warning(
-                        f'Could not export model graph for tensorboard '
-                        f'due to the pytorch exception: {e}')
+                    f"Could not export model graph for tensorboard "
+                    f"due to the pytorch exception: {e}"
+                )
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
@@ -173,9 +177,9 @@ class TornasoleHook(CallbackHook):
         def back(grad):
             if self._get_collections_to_save_for_step():
                 if grad is not None:
-                    self.logger.debug(f"Processing the backward step "
-                                      f"{self.step} for {tname}")
+                    self.logger.debug(f"Processing the backward step " f"{self.step} for {tname}")
                     self._save_for_tensor(self.GRADIENT_PREFIX + tname, grad)
+
         return back
 
     def _backward_apply(self, module):
@@ -185,7 +189,7 @@ class TornasoleHook(CallbackHook):
         """
         params = module.named_parameters()
         for name, param in params:
-            pname = module._get_name() + '_' + name
+            pname = module._get_name() + "_" + name
             param.register_hook(self.backward_hook(pname))
 
     def closure_for_registering_forward_hook(self, module):
@@ -201,11 +205,13 @@ class TornasoleHook(CallbackHook):
         """
         # Typechecking
         if not isinstance(module, torch.nn.Module):
-            raise ValueError(f"Module type {module.__class__.__name__} must be type torch.nn.Module")
+            raise ValueError(
+                f"Module type {module.__class__.__name__} must be type torch.nn.Module"
+            )
 
         # deepcopy the model because models with hooks can't be exported
         self.model = deepcopy(module)
-        
+
         # Create a mapping from modules to their names
         for name, submodule in module.named_modules():
             assert submodule not in self.module_maps, f"Don't register module={module} twice"
@@ -234,7 +240,6 @@ class TornasoleHook(CallbackHook):
         self.module_maps[loss_module] = name
         # Add a callback to the forward pass
         loss_module.register_forward_hook(self.forward_hook)
-
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):

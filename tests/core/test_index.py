@@ -6,16 +6,18 @@ import os
 import numpy as np
 import json
 
+
 def test_index():
-    numpy_tensor = [np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
-                    np.array([[1.0, 2.0, 4.0], [3.0, 4.0, 5.0]], dtype=np.float32)]
+    numpy_tensor = [
+        np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+        np.array([[1.0, 2.0, 4.0], [3.0, 4.0, 5.0]], dtype=np.float32),
+    ]
     runid = "default"
     logdir = "."
     step = 0
     worker = "worker_0"
-    run_dir = os.path.join(logdir,runid)
-    writer = FileWriter(trial_dir=run_dir,
-                        step=step, worker=worker, verbose=True)
+    run_dir = os.path.join(logdir, runid)
+    writer = FileWriter(trial_dir=run_dir, step=step, worker=worker, verbose=True)
     for i in (0, len(numpy_tensor) - 1):
         n = "tensor" + str(i)
         writer.write_tensor(tdata=numpy_tensor[i], tname=n)
@@ -28,19 +30,21 @@ def test_index():
     fo = open(eventfile, "rb")
     with open(indexfile) as idx_file:
         index_data = json.load(idx_file)
-        tensor_payload = index_data['tensor_payload']
+        tensor_payload = index_data["tensor_payload"]
         i = 0
         for tensor in tensor_payload:
-            start_idx = int(tensor['start_idx'])
+            start_idx = int(tensor["start_idx"])
             fo.seek(start_idx, 0)
-            length = int(tensor['length'])
+            length = int(tensor["length"])
             line = fo.read(length)
             zoo = open("test.txt", "wb")
             zoo.write(line)
             zoo.close()
             testfile_reader = FileReader("./test.txt")
             tensor_values = list(testfile_reader.read_tensors())
-            assert np.allclose(tensor_values[0][2].all(), numpy_tensor[i].all()), "indexwriter not working"
+            assert np.allclose(
+                tensor_values[0][2].all(), numpy_tensor[i].all()
+            ), "indexwriter not working"
             i = i + 1
 
     fo.close()

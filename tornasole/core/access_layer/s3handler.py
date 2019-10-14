@@ -12,6 +12,7 @@ def check_notebook():
     try:
         get_ipython()
         import nest_asyncio
+
         nest_asyncio.apply()
     except NameError:
         pass
@@ -31,7 +32,7 @@ class ReadObjectRequest:
         assert start >= 0 and (start == 0 or length is not None)
         self.start = start
         self.length = length
-        self.download_entire_file = (self.start == 0 and self.length is None)
+        self.download_entire_file = self.start == 0 and self.length is None
 
 
 # Only to list files in S3. Accepts strings Bucket, Prefix, Delimiter, and StartAfter
@@ -53,14 +54,14 @@ class S3Handler:
         # if you are creating an s3handler object in jupyter, ensure the nest_asyncio is applied
         check_notebook()
         self.loop = asyncio.get_event_loop()
-        self.client = aioboto3.client('s3', loop=self.loop, region_name=get_region())
+        self.client = aioboto3.client("s3", loop=self.loop, region_name=get_region())
         self.num_retries = num_retries
         self.logger = get_logger()
         if debug:
             self.loop.set_debug(True)
             self.loop.slow_callback_duration = 4
             logging.basicConfig(level=logging.DEBUG)
-            aioboto3.set_stream_logger(name='boto3', level=logging.DEBUG, format_string=None)
+            aioboto3.set_stream_logger(name="boto3", level=logging.DEBUG, format_string=None)
 
     # Accepts a bucket, prefix, delimiter, and start token
     # and returns list of all file names from that bucket that matches the given configuration
@@ -75,9 +76,14 @@ class S3Handler:
         # try num_retries times to establish a connection and download the file; if none can be established, log an error and exit
         while count < self.num_retries and not success:
             try:
-                paginator = self.client.get_paginator('list_objects_v2')
-                page_iterator = paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter=delimiter,
-                                                   StartAfter=start_after, PaginationConfig={'PageSize': 1000})
+                paginator = self.client.get_paginator("list_objects_v2")
+                page_iterator = paginator.paginate(
+                    Bucket=bucket,
+                    Prefix=prefix,
+                    Delimiter=delimiter,
+                    StartAfter=start_after,
+                    PaginationConfig={"PageSize": 1000},
+                )
                 success = True
             except Exception as e:
                 self.logger.warning(str(e))
@@ -88,19 +94,19 @@ class S3Handler:
         keys = []
         async for page in page_iterator:
             if delimiter:
-                if 'CommonPrefixes' in page.keys():
-                    for pre in page['CommonPrefixes']:
-                        if 'Prefix' in pre.keys():
-                            keys += [pre['Prefix']]
-                if 'Contents' in page.keys():
-                    for obj in page['Contents']:
-                        if 'Key' in obj.keys():
-                            keys += [obj['Key']]
+                if "CommonPrefixes" in page.keys():
+                    for pre in page["CommonPrefixes"]:
+                        if "Prefix" in pre.keys():
+                            keys += [pre["Prefix"]]
+                if "Contents" in page.keys():
+                    for obj in page["Contents"]:
+                        if "Key" in obj.keys():
+                            keys += [obj["Key"]]
             else:
-                if 'Contents' in page.keys():
-                    for obj in page['Contents']:
-                        if 'Key' in obj.keys():
-                            keys += [obj['Key']]
+                if "Contents" in page.keys():
+                    for obj in page["Contents"]:
+                        if "Key" in obj.keys():
+                            keys += [obj["Key"]]
         return keys
 
     # accepts a bucket and key and fetches data from s3 beginning at the offset = start with the provided length
@@ -114,7 +120,7 @@ class S3Handler:
                     resp = await self.client.get_object(Bucket=bucket, Key=key, Range=bytes_range)
                 else:
                     resp = await self.client.get_object(Bucket=bucket, Key=key)
-                body = await resp['Body'].read()
+                body = await resp["Body"].read()
             except Exception as e:
                 self.logger.warning(str(e))
                 msg = "Unable to read tensor from object " + str(bucket) + "/" + str(key)
@@ -134,7 +140,11 @@ class S3Handler:
         for obj in object_requests:
             request_params += [(obj.bucket, obj.path, obj.start, obj.length)]
         data = await asyncio.gather(
-            *[self._get_object(bucket, key, start, length) for bucket, key, start, length in request_params])
+            *[
+                self._get_object(bucket, key, start, length)
+                for bucket, key, start, length in request_params
+            ]
+        )
         return data
 
     # list_requests: a list of ListRequest objects
@@ -143,8 +153,12 @@ class S3Handler:
         request_params = []
         for req in list_requests:
             request_params += [(req.bucket, req.prefix, req.delimiter, req.start_after)]
-        data = await asyncio.gather(*[self._list_files(bucket, prefix, delimiter, start_after)
-                                      for bucket, prefix, delimiter, start_after in request_params])
+        data = await asyncio.gather(
+            *[
+                self._list_files(bucket, prefix, delimiter, start_after)
+                for bucket, prefix, delimiter, start_after in request_params
+            ]
+        )
         return data
 
     # Closes the client
@@ -163,13 +177,19 @@ class S3Handler:
         idx = 0
         data = []
         while idx < len(object_requests):
-            task = self.loop.create_task(self._get_objects(object_requests[idx:idx + num_async_calls]))
+            task = self.loop.create_task(
+                self._get_objects(object_requests[idx : idx + num_async_calls])
+            )
             done = self.loop.run_until_complete(task)
             data += done
             idx += num_async_calls
         if timer:
             self.logger.info(
-                "total time taken for " + str(len(object_requests)) + " requests: " + str(time.time() - start))
+                "total time taken for "
+                + str(len(object_requests))
+                + " requests: "
+                + str(time.time() - start)
+            )
         return data
 
     # accepts a list of ListRequest objects, returns list of lists of files fetched.

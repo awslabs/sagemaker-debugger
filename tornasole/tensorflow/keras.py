@@ -4,40 +4,41 @@ from tornasole.core.hook import BaseHook
 from tornasole.core.save_config import SaveConfig
 
 
-DEFAULT_INCLUDE_COLLECTIONS=[
-    CollectionKeys.WEIGHTS,
-    CollectionKeys.GRADIENTS,
-    'metrics'
-]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.WEIGHTS, CollectionKeys.GRADIENTS, "metrics"]
 
 
 class TornasoleHook(keras.callbacks.Callback, BaseHook):
-    def __init__(self, out_dir,
-                 dry_run=False,
-                 reduction_config=None,
-                 save_config=SaveConfig(),
-                 include_regex=None,
-                 include_collections=None,
-                 save_all=False):
+    def __init__(
+        self,
+        out_dir,
+        dry_run=False,
+        reduction_config=None,
+        save_config=SaveConfig(),
+        include_regex=None,
+        include_collections=None,
+        save_all=False,
+    ):
         if include_regex is not None:
             msg = "'include_regex' is not yet supported and will be ignored."
             self.logger.warning(msg)
         if save_all is not None:
             msg = "'include_regex' is not yet supported and will be ignored."
             self.logger.warning(msg)
-        super().__init__(collection_manager=get_collection_manager(),
-                         default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-                         out_dir=out_dir,
-                         dry_run=dry_run,
-                         reduction_config=reduction_config,
-                         save_config=save_config,
-                         include_regex=None,
-                         include_collections=include_collections,
-                         save_all=False)
+        super().__init__(
+            collection_manager=get_collection_manager(),
+            default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            out_dir=out_dir,
+            dry_run=dry_run,
+            reduction_config=reduction_config,
+            save_config=save_config,
+            include_regex=None,
+            include_collections=include_collections,
+            save_all=False,
+        )
         self.exported_collections = False
 
-    def _export_collections( self, logs):
-        if self.exported_collections :
+    def _export_collections(self, logs):
+        if self.exported_collections:
             return
 
         for k in logs:
@@ -50,7 +51,7 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
             cfg = layer.get_config()
             multi = len(ws) > 1
             for i in range(len(ws)):
-                tensor_name = cfg['name']
+                tensor_name = cfg["name"]
                 if multi:
                     tensor_name += "_" + str(i)
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add_tensor_name(tensor_name)
@@ -85,9 +86,9 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
             if self._should_save_tensor_for_step(k) or force:
                 val = logs[k]
                 self._initialize_writer()
-                self.writer.write_tensor(tname=k, tdata=val,
-                                         mode=self.mode,
-                                         mode_step=self.mode_steps[self.mode])
+                self.writer.write_tensor(
+                    tname=k, tdata=val, mode=self.mode, mode_step=self.mode_steps[self.mode]
+                )
 
     def save_layer_data(self):
         assert len(self.model.layers) > 0
@@ -99,13 +100,14 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
 
             multi = len(ws) > 1
             for i, tensor_value in enumerate(ws):
-                tensor_name = cfg['name']
+                tensor_name = cfg["name"]
                 if multi:
                     tensor_name += "_" + str(i)
                 if self._should_save_tensor_for_step(tensor_name):
                     self._initialize_writer()
                     self.writer.write_tensor(
-                            tdata=tensor_value,
-                            tname=tensor_name,
-                            mode=self.mode,
-                            mode_step=self.mode_steps[self.mode])
+                        tdata=tensor_value,
+                        tname=tensor_name,
+                        mode=self.mode,
+                        mode_step=self.mode_steps[self.mode],
+                    )

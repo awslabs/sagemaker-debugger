@@ -4,52 +4,67 @@ from tests.analysis.utils import generate_data
 from tornasole.trials import create_trial
 from tornasole.exceptions import *
 
-@pytest.mark.slow # 0:38 to run
+
+@pytest.mark.slow  # 0:38 to run
 def test_refresh_tensors():
     trial_name = str(uuid.uuid4())
-    path = 's3://tornasole-testing/rules/tensors/ts_output/train/'
+    path = "s3://tornasole-testing/rules/tensors/ts_output/train/"
     num_steps = 8
     num_tensors = 10
     for i in range(num_steps):
-      if i % 2 == 0:
-        continue
-      generate_data(path=path, trial=trial_name, num_tensors=num_tensors,
-                    step=i, tname_prefix='foo', worker='algo-1', shape=(3, 3, 3))
+        if i % 2 == 0:
+            continue
+        generate_data(
+            path=path,
+            trial=trial_name,
+            num_tensors=num_tensors,
+            step=i,
+            tname_prefix="foo",
+            worker="algo-1",
+            shape=(3, 3, 3),
+        )
     tr = create_trial(path + trial_name)
     assert len(tr.available_steps()) == 4
 
     try:
-      tr.tensor('bar')
-      assert False
+        tr.tensor("bar")
+        assert False
     except TensorUnavailable:
-      pass
+        pass
 
-    assert tr.tensor('foo_1') is not None
+    assert tr.tensor("foo_1") is not None
     # available
-    assert tr.tensor('foo_1').value(num_steps - 1) is not None
+    assert tr.tensor("foo_1").value(num_steps - 1) is not None
     # not saved
     try:
-      tr.tensor('foo_1').value(num_steps - 2)
-      assert False
+        tr.tensor("foo_1").value(num_steps - 2)
+        assert False
     except StepUnavailable:
-      pass
+        pass
 
-    for i in range(num_steps, num_steps*2):
-      if i % 2 == 0:
-        continue
-      generate_data(path=path, trial=trial_name, num_tensors=num_tensors,
-        step=i, tname_prefix='foo', worker='algo-1', shape=(3, 3, 3))
+    for i in range(num_steps, num_steps * 2):
+        if i % 2 == 0:
+            continue
+        generate_data(
+            path=path,
+            trial=trial_name,
+            num_tensors=num_tensors,
+            step=i,
+            tname_prefix="foo",
+            worker="algo-1",
+            shape=(3, 3, 3),
+        )
 
     # refreshed
-    assert tr.tensor('foo_1').value(num_steps + 1) is not None
+    assert tr.tensor("foo_1").value(num_steps + 1) is not None
     try:
-      tr.tensor('foo_1').value(num_steps)
-      assert False
+        tr.tensor("foo_1").value(num_steps)
+        assert False
     except StepUnavailable:
-      pass
+        pass
 
     try:
-      tr.tensor('foo_1').value(num_steps * 3)
-      assert False
+        tr.tensor("foo_1").value(num_steps * 3)
+        assert False
     except StepNotYetAvailable:
-      pass
+        pass
