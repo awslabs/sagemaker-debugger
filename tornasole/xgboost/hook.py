@@ -10,6 +10,8 @@ from tornasole.core.hook import CallbackHook
 from tornasole.core.tfevent.util import make_numpy_array
 from tornasole.core.access_layer.utils import training_has_ended
 from tornasole.core.json_config import create_hook_from_json_config
+from tornasole.xgboost.singleton_utils import set_hook
+
 
 from .collection import get_collection_manager
 from .utils import validate_data_file_path, get_content_type, get_dmatrix
@@ -90,6 +92,7 @@ class TornasoleHook(CallbackHook):
         self.validation_data = self._validate_data(validation_data)
         # as we do cleanup ourselves at end of job
         atexit.unregister(self._cleanup)
+        set_hook(self)
 
     def __call__(self, env: CallbackEnv) -> None:
         self._callback(env)
@@ -103,8 +106,8 @@ class TornasoleHook(CallbackHook):
         pass
 
     @classmethod
-    def hook_from_config(cls):
-        return create_hook_from_json_config(cls, get_collection_manager())
+    def hook_from_config(cls, json_config_path=None):
+        return create_hook_from_json_config(cls, get_collection_manager(), json_config_path=json_config_path)
 
     def _cleanup(self):
         # todo: this second export should go

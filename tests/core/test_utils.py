@@ -1,3 +1,5 @@
+import pytest
+
 from tornasole.core.utils import is_s3, check_dir_exists
 from tornasole.core.json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH, collect_tornasole_config_params
 from tornasole.core.collection_manager import CollectionManager
@@ -51,6 +53,7 @@ def test_check_dir_exists_no():
   except Exception as e:
     pass
 
+@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a TornasoleHook")
 def test_collect_tornasole_config_params():
   tornasole_params = collect_tornasole_config_params(collection_manager=CollectionManager())
   assert(tornasole_params["out_dir"] == DEFAULT_SAGEMAKER_TORNASOLE_PATH)

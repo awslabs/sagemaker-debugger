@@ -7,6 +7,7 @@ from tornasole.core.logger import get_logger
 from tornasole.core.hook import CallbackHook
 from tornasole.core.collection import CollectionKeys
 from tornasole.pytorch.collection import get_collection_manager
+from tornasole.pytorch.singleton_utils import set_hook
 from tornasole.pytorch.utils import get_reduction_of_data, make_numpy_array
 # from tornasole.pytorch._pytorch_graph import graph as create_graph
 
@@ -43,8 +44,12 @@ class TornasoleHook(CallbackHook):
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()
+
         self.model = None
         self.exported_model = False
+
+        set_hook(self)
+
 
     def get_num_workers(self):
         """Check horovod and torch.distributed."""
@@ -81,8 +86,22 @@ class TornasoleHook(CallbackHook):
         return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
 
     @classmethod
-    def hook_from_config(cls):
-        return create_hook_from_json_config(cls, get_collection_manager())
+    def hook_from_config(cls, json_config_path=None):
+        """Relies on the existence of a JSON file.
+
+        First, check json_config_path. If it's not None,
+            If the file exists, use that.
+            If the file does not exist, throw an error.
+        Otherwise, check the filepath set by a SageMaker environment variable.
+            If the file exists, use that.
+        Otherwise,
+            return None.
+        """
+        return create_hook_from_json_config(
+            cls,
+            get_collection_manager(),
+            json_config_path=json_config_path
+        )
 
     def log_params(self, module):
         module_name = module._get_name()

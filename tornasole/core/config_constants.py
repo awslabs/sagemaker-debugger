@@ -1,6 +1,6 @@
 TORNASOLE_CONFIG_DEFAULT_WORKER_NAME = "worker_0"
 TORNASOLE_CONFIG_FILE_PATH_ENV_STR = "TORNASOLE_CONFIG_FILE_PATH"
-DEFAULT_CONFIG_FILE_PATH = "/opt/ml/input/data/tornasole-config/tornasole-hook-config.json"
+DEFAULT_CONFIG_FILE_PATH = "/opt/ml/input/config/debughookconfig.json"
 TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY = "reduction_configs"
 TORNASOLE_CONFIG_SAVE_CONFIGS_KEY = "save_configs"
 TORNASOLE_CONFIG_OUTDIR_KEY = "LocalPath"

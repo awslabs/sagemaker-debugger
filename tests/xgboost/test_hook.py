@@ -48,6 +48,7 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
     run_xgboost_model(hook=hook)
 
 
+@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a TornasoleHook")
 def test_default_hook(monkeypatch):
     reset_collections()
     shutil.rmtree('/opt/ml/output/tensors', ignore_errors=True)

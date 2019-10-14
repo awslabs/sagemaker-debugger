@@ -52,13 +52,27 @@ from tornasole.core.config_constants import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
     TORNASOLE_CONFIG_OUTDIR_KEY, TORNASOLE_CONFIG_RDN_CFG_KEY, TORNASOLE_CONFIG_INCLUDE_REGEX_KEY, \
     TORNASOLE_CONFIG_SAVE_ALL_KEY, DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
+def get_json_config_as_dict(json_config_path) -> Dict:
+    """Checks json_config_path, then environment variables, then attempts to load.
 
-def create_hook_from_json_config(hook_cls, collection_manager):
+    Will throw FileNotFoundError if a config is not available.
+    """
+    if json_config_path is not None:
+        path = json_config_path
+    else:
+        path = os.getenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, DEFAULT_CONFIG_FILE_PATH)
+
+    with open(path) as json_config_file:
+        params_dict = json.load(json_config_file)
+    return params_dict
+
+def create_hook_from_json_config(hook_cls, collection_manager, json_config_path):
     """Returns a TornasoleHook object corresponding to either TF, PT, or MXNet.
 
+    If json_config_path is None, an environment variable must be set.
     Here we compare HookParameters with CollectionConfiguration and set all the defaults.
     """
-    tornasole_params = collect_tornasole_config_params(collection_manager)
+    tornasole_params = collect_tornasole_config_params(collection_manager, json_config_path=json_config_path)
     if "collections" in tornasole_params:
         include_collections = []
         for obj in tornasole_params["collections"].values():
@@ -84,23 +98,15 @@ def create_hook_from_json_config(hook_cls, collection_manager):
     )
 
 
-def collect_tornasole_config_params(collection_manager) -> Dict:
+def collect_tornasole_config_params(collection_manager, json_config_path) -> Dict:
     """Read the config file from an environment variable and return a dictionary.
 
     Return a dictionary, example keys:
     dict_keys(['reduction_configs', 'save_configs', 'collections', 'out_dir', 'reduction_config', 'save_config',
     'include_regex', 'config_name', 's3_path'])
     """
-    # Build params dictionary if given a json file, otherwise leave it empty
-    params_dict = {}
-    json_config_file_path = os.getenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, DEFAULT_CONFIG_FILE_PATH)
-    if os.path.exists(json_config_file_path):
-        with open(json_config_file_path) as json_config_file:
-            params_dict = json.load(json_config_file)
-    else:
-        get_logger().info(
-            f"json config file path {json_config_file_path} doesn't exist. Creating a default hook."
-        )
+    # Build params dictionary from the json file
+    params_dict = get_json_config_as_dict(json_config_path=json_config_path)
 
     # Declare defaults
     tornasole_params_dict = {

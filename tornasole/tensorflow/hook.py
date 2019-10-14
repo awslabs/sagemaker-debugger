@@ -8,6 +8,8 @@ from tornasole.core.collection import CollectionKeys, SUMMARIES_COLLECTIONS
 from tornasole.core.hook import BaseHook
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
+from tornasole.tensorflow.singleton_utils import set_hook
+
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.WEIGHTS,
                                CollectionKeys.GRADIENTS,
@@ -82,6 +84,9 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         self.graph = None
         self.tensors_to_save_this_step = None
 
+        set_hook(self)
+
+
     def get_worker_name(self):
         try:
             import horovod.tensorflow as hvd
@@ -99,8 +104,8 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             return 1
 
     @classmethod
-    def hook_from_config(cls):
-        return create_hook_from_json_config(cls, get_collection_manager())
+    def hook_from_config(cls, json_config_path=None):
+        return create_hook_from_json_config(cls, get_collection_manager(), json_config_path=json_config_path)
 
 
     def _prepare_tensors(self):

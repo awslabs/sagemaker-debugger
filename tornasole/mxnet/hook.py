@@ -4,6 +4,7 @@ from tornasole.core.hook import CallbackHook
 from tornasole.core.json_config import TORNASOLE_CONFIG_DEFAULT_WORKER_NAME, \
     create_hook_from_json_config
 from tornasole.mxnet.mxnet_collection import get_collection_manager
+from tornasole.mxnet.singleton_utils import set_hook
 from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
 # from tornasole.mxnet.graph import _net2pb
 
@@ -42,8 +43,12 @@ class TornasoleHook(CallbackHook):
         if CollectionKeys.LOSSES not in self.include_collections:
             self.include_collections.append(CollectionKeys.LOSSES)
         self.last_block = None
+
         self.model = None
         self.exported_model = False
+
+        set_hook(self)
+
 
     def get_worker_name(self):
         return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
@@ -52,8 +57,8 @@ class TornasoleHook(CallbackHook):
         return 1
 
     @classmethod
-    def hook_from_config(cls):
-        return create_hook_from_json_config(cls, get_collection_manager())
+    def hook_from_config(cls, json_config_path=None):
+        return create_hook_from_json_config(cls, get_collection_manager(), json_config_path=json_config_path)
 
     def _cleanup(self):
         # Write the gradients of the past step if the writer is still available.
