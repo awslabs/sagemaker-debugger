@@ -40,6 +40,27 @@ GitHub provides additional document on [forking a repository](https://help.githu
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
 
+## Developing Tornasole
+To develop Tornasole on your machine, here are some tips:
+1. Uninstall all existing Tornasole installs:
+```
+pip uninstall tornasole
+```
+2. Clone a copy of Tornasole from source:
+```
+git clone https://github.com/awslabs/tornasole_core
+cd tornasole_core
+```
+3. Install Tornasole in `develop` mode:
+```
+python setup.py develop
+```
+4. Install git hooks for auto-formatting:
+```
+pip install pre-commit
+pre-commit install
+```
+
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/tornasole_core/labels/help%20wanted) issues is a great place to start.
 
