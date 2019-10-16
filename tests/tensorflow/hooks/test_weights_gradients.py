@@ -1,6 +1,6 @@
 from .utils import *
 from tornasole.tensorflow import reset_collections
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 import tornasole.tensorflow as ts

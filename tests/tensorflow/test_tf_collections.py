@@ -1,5 +1,5 @@
 from tornasole.tensorflow import Collection, CollectionManager
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def test_manager_export_load():

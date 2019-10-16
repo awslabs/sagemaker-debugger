@@ -1,4 +1,4 @@
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from .utils import *
 from .reductions import get_tensorflow_reduction
 from .collection import get_collection_manager

@@ -1,5 +1,5 @@
 from tensorflow.python.distribute import values
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tornasole.core.collection import Collection as BaseCollection, CollectionKeys
 from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager
 

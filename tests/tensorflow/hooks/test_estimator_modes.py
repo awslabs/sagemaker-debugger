@@ -10,7 +10,7 @@ Integration tests with S3 take 95% of the time.
 """
 
 import pytest
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import numpy as np
 import shutil
 import os

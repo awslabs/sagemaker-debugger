@@ -31,7 +31,7 @@ try:
     from builtins import range
 except ImportError:
     pass
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.image.python.ops import distort_image_ops
 from tensorflow.python.ops import data_flow_ops

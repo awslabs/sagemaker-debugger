@@ -1,4 +1,4 @@
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
 
 
