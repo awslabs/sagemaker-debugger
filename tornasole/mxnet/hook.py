@@ -51,6 +51,8 @@ class TornasoleHook(CallbackHook):
 
         self.model = None
         self.exported_model = False
+        # Keep the set of blocks to which this hook is registered. The blocks include loss blocks as well.
+        self.registered_blocks = set()
 
         set_hook(self)
 
@@ -145,6 +147,7 @@ class TornasoleHook(CallbackHook):
 
         # Output output tensors
         self._write_outputs(block_name, outputs)
+
         self.last_saved_step = self.step
 
     def _recursive_apply(self, block):
@@ -153,7 +156,12 @@ class TornasoleHook(CallbackHook):
         registers the forward hook to each module. It helps logging the input output tensors
         of that module.
         """
+        # Check if the hook is already registered for this block.
+        if block in self.registered_blocks:
+            self.logger.warning(f"The hook is already registered to block {block.name}")
+            return
         block.register_forward_hook(self.forward_hook)
+        self.registered_blocks.add(block)
 
     def _is_recursive_needed(self):
         collections_to_save = self.include_collections
@@ -185,6 +193,7 @@ class TornasoleHook(CallbackHook):
         The hook is registered recursively, if user has specified the collections that are more than
         the default collectors viz. gradients, weight and bias
         """
+
         if not isinstance(block, mx.gluon.Block):
             self.logger.error(
                 f"The given block type {block.__class__.__name__} is not "
@@ -192,10 +201,16 @@ class TornasoleHook(CallbackHook):
             )
             return
 
+        # Check if the hook is already registered for this block.
+        if block in self.registered_blocks:
+            self.logger.warning(f"The hook is already registered to block {block.name}")
+            return
+
         # Skip the forward pre hook for the Loss blocks.
         if isinstance(block, mx.gluon.loss.Loss):
             self.logger.info(f"Registering hook for block {block.name}")
             block.register_forward_hook(self.forward_hook)
+            self.registered_blocks.add(block)
             return
         else:
             self.model = block
@@ -206,6 +221,7 @@ class TornasoleHook(CallbackHook):
             block.apply(self._recursive_apply)
         else:
             block.register_forward_hook(self.forward_hook)
+            self.registered_blocks.add(block)
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
