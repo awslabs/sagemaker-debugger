@@ -8,6 +8,7 @@ The key methods are
 """
 import numpy as nn
 import os
+import pytest
 import torch
 import torch.distributed as dist
 from torch.multiprocessing import Process
@@ -110,6 +111,7 @@ def init_processes(rank, size, fn, backend="gloo"):
     fn(rank, size)
 
 
+@pytest.mark.slow  # 0:05 to run
 def test_run_net_single_process():
     """Runs a single linear layer."""
     ts.reset_collections()

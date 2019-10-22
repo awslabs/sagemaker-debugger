@@ -31,6 +31,7 @@ class Net(nn.Module):
         return x
 
 
+@pytest.mark.slow  # 0:05 to run
 def test_register_loss():
     """Test that the loss is saved as a tensor."""
     ts.reset_collections()

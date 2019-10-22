@@ -1,4 +1,6 @@
 from copy import deepcopy
+import types
+from typing import Callable, Union
 import torch
 import torch.distributed as dist
 from tornasole.core.json_config import (
@@ -52,6 +54,9 @@ class TornasoleHook(CallbackHook):
 
         self.model = None
         self.exported_model = False
+
+        self.has_registered_module = False
+        self.has_registered_loss_module = False
 
         set_hook(self)
 
@@ -155,6 +160,14 @@ class TornasoleHook(CallbackHook):
             self.export_collections()
             self.exported_collections = True
 
+    def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
+        """Used for registering functional directly, such as F.mse_loss()."""
+        assert isinstance(
+            tensor_value, torch.Tensor
+        ), f"tensor_value={tensor_value} must be torch.Tensor"
+
+        self._write_outputs(tensor_name, tensor_value)
+
     # This hook is invoked by trainer after running the forward pass.
     def forward_hook(self, module, inputs, outputs):
         if not self._get_collections_to_save_for_step():
@@ -228,6 +241,8 @@ class TornasoleHook(CallbackHook):
         # Capture the gradient for each parameter in the net
         self._backward_apply(module)
 
+        self.has_registered_module = True
+
     def register_loss(self, loss_module):
         """Register something like `criterion = nn.CrossEntropyLoss()`."""
         # Typechecking
@@ -240,6 +255,7 @@ class TornasoleHook(CallbackHook):
         self.module_maps[loss_module] = name
         # Add a callback to the forward pass
         loss_module.register_forward_hook(self.forward_hook)
+        self.has_registered_loss_module = True
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
