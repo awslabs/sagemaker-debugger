@@ -18,6 +18,8 @@
       $CODEBUILD_SRC_DIR/examples/mxnet/scripts/mnist_gluon_all_zero_demo.py,
      mnist_gluon_vg_demo.py: &mnist_gluon_vg_demo
       $CODEBUILD_SRC_DIR/examples/mxnet/scripts/mnist_gluon_vg_demo.py,
+     test_dead_relu.py: &test_dead_relu
+      $CODEBUILD_SRC_DIR/tests/analysis/rules/test_dead_relu.py,
      invoker.py: &invoker
       $CODEBUILD_SRC_DIR/tests/analysis/invoker.py,
      Enable: &Enable # enable the test case
@@ -177,6 +179,24 @@
      --random_seed True --num_steps 5,
      *invoker,
      --rule_name allzero --flag True --end_step 3 --collection_names ReluActivation
+    ]
+-
+  - dead_relu/mxnet/true
+  - mxnet
+  - *Enable
+  - [*test_dead_relu,
+     --flag True,
+     *invoker,
+     --rule_name deadrelu --flag True --end_step 0 --collection_names ReluActivation
+    ]
+-
+  - dead_relu/mxnet/false
+  - mxnet
+  - *Enable
+  - [*test_dead_relu,
+     --flag False,
+     *invoker,
+     --rule_name deadrelu --flag False --end_step 4 --collection_names ReluActivation
     ]
 
 # test cases for pytorch
