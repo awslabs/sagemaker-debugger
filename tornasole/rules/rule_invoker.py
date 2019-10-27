@@ -61,6 +61,8 @@ def get_rule(rule_name):
         return UnchangedTensor
     elif rule_name_lower == "lossnotdecreasing":
         return LossNotDecreasing
+    elif rule_name_lower == "checkinputimages":
+        return CheckInputImages
     elif rule_name_lower == "deadrelu":
         return DeadRelu
     elif rule_name_lower == "confusion":

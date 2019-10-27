@@ -18,6 +18,8 @@
       $CODEBUILD_SRC_DIR/examples/mxnet/scripts/mnist_gluon_all_zero_demo.py,
      mnist_gluon_vg_demo.py: &mnist_gluon_vg_demo
       $CODEBUILD_SRC_DIR/examples/mxnet/scripts/mnist_gluon_vg_demo.py,
+     test_check_input_images.py: &test_check_input_images
+      $CODEBUILD_SRC_DIR/tests/analysis/rules/test_check_input_images.py,
      test_dead_relu.py: &test_dead_relu
       $CODEBUILD_SRC_DIR/tests/analysis/rules/test_dead_relu.py,
      invoker.py: &invoker
@@ -181,6 +183,24 @@
      --rule_name allzero --flag True --end_step 3 --collection_names ReluActivation
     ]
 -
+  - check_input_images/mxnet/true
+  - mxnet
+  - *Enable
+  - [*test_check_input_images,
+     --flag True,
+     *invoker,
+     --rule_name checkinputimages --flag True --end_step 7 --collection_names input
+    ]
+-
+  - check_input_images/mxnet/false
+  - mxnet
+  - *Enable
+  - [*test_check_input_images,
+     --flag False,
+     *invoker,
+     --rule_name checkinputimages --flag False --end_step 936 --collection_names input
+    ]
+-
   - dead_relu/mxnet/true
   - mxnet
   - *Enable
@@ -199,7 +219,7 @@
      --rule_name deadrelu --flag False --end_step 4 --collection_names ReluActivation
     ]
 
-# test cases for pytorch
+    # test cases for pytorch
 -
   - exploding_tensor/pytorch/false
   - pytorch
