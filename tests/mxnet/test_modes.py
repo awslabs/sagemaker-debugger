@@ -3,6 +3,7 @@ from tornasole.mxnet.hook import TornasoleHook as t_hook
 from tornasole.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
 from datetime import datetime
 from tornasole.trials import create_trial
+from tornasole import modes
 
 
 def test_modes(hook=None, path=None):
@@ -18,10 +19,10 @@ def test_modes(hook=None, path=None):
                     modes.EVAL: SaveConfigMode(save_interval=3),
                 }
             ),
-            include_collections=["gradients"],
+            include_collections=["gradients", "weights"],
         )
     run_mnist_gluon_model(
-        hook=hook, set_modes=True, register_to_loss_block=True, num_steps_train=5, num_steps_eval=5
+        hook=hook, set_modes=True, register_to_loss_block=True, num_steps_train=6, num_steps_eval=6
     )
 
     tr = create_trial(path)
@@ -29,6 +30,22 @@ def test_modes(hook=None, path=None):
     assert len(tr.available_steps()) == 5
     assert len(tr.available_steps(mode=modes.TRAIN)) == 3
     assert len(tr.available_steps(mode=modes.EVAL)) == 2
+
+    # Ensure that the gradients are available in TRAIN modes only.
+    grad_tns_name = tr.tensors_matching_regex("^gradient.")[0]
+    grad_tns = tr.tensor(grad_tns_name)
+    grad_train_steps = grad_tns.steps(mode=modes.TRAIN)
+    grad_eval_steps = grad_tns.steps(mode=modes.EVAL)
+    assert len(grad_train_steps) == 3
+    assert grad_eval_steps == None
+
+    # Ensure that the weights are available in TRAIN and EVAL  modes.
+    wt_tns_name = tr.tensors_matching_regex("conv\d+_weight")[0]
+    wt_tns = tr.tensor(wt_tns_name)
+    wt_train_steps = wt_tns.steps(mode=modes.TRAIN)
+    wt_eval_steps = wt_tns.steps(mode=modes.EVAL)
+    assert len(wt_train_steps) == 3
+    assert len(wt_eval_steps) == 2
 
 
 def test_modes_hook_from_json_config():

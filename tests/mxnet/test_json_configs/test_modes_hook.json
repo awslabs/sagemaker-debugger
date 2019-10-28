@@ -6,6 +6,7 @@
     "eval.save_interval": 3
   },
   "CollectionConfiguration": [
-    { "CollectionName": "gradients" }
+    { "CollectionName": "gradients" },
+    { "CollectionName": "weights" }
   ]
 }

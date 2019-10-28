@@ -158,6 +158,11 @@ class BaseHook:
             self._assert_prep()
             s = set()
             for coll in self._collections_to_save:
+                if coll.name == CollectionKeys.GRADIENTS and self.mode in [
+                    ModeKeys.EVAL,
+                    ModeKeys.PREDICT,
+                ]:
+                    continue
                 if coll.get_save_config().should_save_step(self.mode, self.mode_steps[self.mode]):
                     s.add(coll)
             self._collections_to_save_for_step = s
