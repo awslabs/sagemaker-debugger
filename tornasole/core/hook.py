@@ -403,6 +403,7 @@ class BaseHook:
             and self._should_save_tensor_for_step(tensorname=tensor_name) is False
         ):
             return
+        self.logger.debug(f"Processing {tensor_name} for global step {self.step}")
 
         save_collections = self._get_collections_with_tensor(tensor_name)
         save_collections_for_tensor = save_collections.intersection(
@@ -417,7 +418,6 @@ class BaseHook:
         :param tensor_value: value (could be in framework tensor dtype)
         :param save_collections: list of collections which are being saved for this step
         """
-        self.logger.debug(f"Saving {tensor_name} for global step {self.step}")
         # write reductions defined for collections this tensor may be part of
         self._write_reductions(tensor_name, tensor_value, save_collections)
 
