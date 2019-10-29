@@ -2,7 +2,6 @@ import subprocess
 import argparse
 import sys
 import os
-import boto3
 
 parser = argparse.ArgumentParser(description="Build Tornasole binaries")
 parser.add_argument(

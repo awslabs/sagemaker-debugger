@@ -101,12 +101,16 @@ def build_package(version):
         # pinning aioboto3 version as aiobot3 is pinning versions
         # https://github.com/aio-libs/aiobotocore/issues/718
         install_requires=[
-            "aioboto3==6.4.1",
+            "s3transfer",
+            # aiboto3 explicitly depends on aiobotocore
+            "aioboto3==6.4.1",  # no version deps
+            "aiobotocore==0.10.4",  # pinned to a specific botocore & boto3
+            "aiohttp>=3.6.0,<4.0",  # aiobotocore breaks with 4.0
+            # boto3 explicitly depends on botocore
+            "boto3==1.9.252",  # Sagemaker requires >= 1.9.213
+            "botocore==1.12.252",
             "nest_asyncio",
             "protobuf>=3.6.0",
-            "botocore==1.12.91",
-            "boto3==1.9.91",
-            "aiobotocore==0.10.2",
             "numpy",
             "joblib",
         ],
@@ -118,10 +122,8 @@ def build_package(version):
 
 if compile_summary_protobuf() != 0:
     print(
-        "ERROR: Compiling summary protocol buffers failed. You will not be "
-        "able to use Tornasole."
-        "Please make sure that you have installed protobuf3 "
-        "compiler and runtime correctly."
+        "ERROR: Compiling summary protocol buffers failed. You will not be able to use Tornasole. "
+        "Please make sure that you have installed protobuf3 compiler and runtime correctly."
     )
     sys.exit(1)
 
