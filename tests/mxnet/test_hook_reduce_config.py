@@ -17,15 +17,15 @@ def test_save_config(hook=None, out_dir=None):
         global_save_config = SaveConfig(save_steps=[0, 1, 2, 3])
 
         tm.get_collection("ReluActivation").include(["relu*"])
-        tm.get_collection("ReluActivation").set_save_config(SaveConfig(save_steps=[4, 5, 6]))
-        tm.get_collection("ReluActivation").set_reduction_config(
-            ReductionConfig(reductions=["min"], abs_reductions=["max"])
+        tm.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
+        tm.get_collection("ReluActivation").reduction_config = ReductionConfig(
+            reductions=["min"], abs_reductions=["max"]
         )
 
         tm.get_collection("flatten").include(["flatten*"])
-        tm.get_collection("flatten").set_save_config(SaveConfig(save_steps=[4, 5, 6]))
-        tm.get_collection("flatten").set_reduction_config(
-            ReductionConfig(norms=["l1"], abs_norms=["l2"])
+        tm.get_collection("flatten").save_config = SaveConfig(save_steps=[4, 5, 6])
+        tm.get_collection("flatten").reduction_config = ReductionConfig(
+            norms=["l1"], abs_norms=["l2"]
         )
 
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")

@@ -66,7 +66,7 @@ def train_model(batch_size, net, train_data, lr, hook):
 def create_tornasole_hook(output_s3_uri):
     save_config = SaveConfig(save_interval=1)
     custom_collect = tm.get_collection("inputData")
-    custom_collect.set_save_config(save_config)
+    custom_collect.save_config = save_config
     custom_collect.include([".*hybridsequential0_input_0"])
     hook = TornasoleHook(
         out_dir=output_s3_uri, save_config=save_config, include_collections=["inputData"]

@@ -14,6 +14,7 @@ def helper_test_only_w_g(trial_dir, hook):
 
     assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
     cm = CollectionManager.load(join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
+    assert ts.get_collections() == cm.collections
     num_tensors_loaded_collection = (
         len(cm.collections["weights"].tensor_names)
         + len(cm.collections["gradients"].tensor_names)

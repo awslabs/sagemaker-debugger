@@ -285,7 +285,7 @@ If the mode was not set, all steps will be available together.
 You can choose to have different save configurations (SaveConfigs)
 for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
-The hook's `save_config` parameter accepts such a dictionary, as well as collection's `set_save_config` method.
+The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
 from tornasole.tensorflow import TornasoleHook, get_collection, modes, SaveConfig
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
@@ -298,7 +298,7 @@ hook = TornasoleHook(...,
 
 ```
 from tornasole.tensorflow import get_collection, modes, SaveConfigMode
-get_collection('weights').set_save_config({modes.TRAIN: SaveConfigMode(save_interval=10),
+get_collection('weights').save_config = {modes.TRAIN: SaveConfigMode(save_interval=10),
                                            modes.EVAL: SaveConfigMode(save_interval=1000)}
 ```
 

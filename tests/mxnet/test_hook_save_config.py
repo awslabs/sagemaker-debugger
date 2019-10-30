@@ -14,7 +14,7 @@ def test_save_config(hook=None):
         save_config_collection = SaveConfig(save_steps=[4, 5, 6])
 
         custom_collect = tm.get_collection("ReluActivation")
-        custom_collect.set_save_config(save_config_collection)
+        custom_collect.save_config = save_config_collection
         custom_collect.include(["relu*", "input_*", "output*"])
         save_config = SaveConfig(save_steps=[0, 1, 2, 3])
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")

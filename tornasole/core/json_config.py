@@ -167,9 +167,9 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
             mode_save_configs = {
                 mode: SaveConfigMode.from_dict(val) for mode, val in coll_config_modes.items()
             }
-            coll.set_save_config(mode_save_configs)
+            coll.save_config = mode_save_configs
             if "reductions" in coll_params:
-                coll.set_reduction_config(ReductionConfig.from_dict(coll_params))
+                coll.reduction_config = ReductionConfig.from_dict(coll_params)
             if "include_regex" in coll_params:
                 coll.include(split(coll_params["include_regex"]))
             tornasole_params_dict["collections"][name] = coll

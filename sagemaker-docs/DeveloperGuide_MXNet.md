@@ -102,7 +102,7 @@ If the mode was not set, all steps will be available together.
 You can choose to have different save configurations (SaveConfigMode)
 for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
-The hook's `save_config` parameter accepts such a dictionary, as well as collection's `set_save_config` method.
+The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
 from tornasole.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
@@ -115,7 +115,7 @@ hook = TornasoleHook(...,
 
 ```
 from tornasole.tensorflow import get_collection, modes, SaveConfigMode
-get_collection('weights').set_save_config({modes.TRAIN: SaveConfigMode(save_interval=10),
+get_collection('weights').save_config = {modes.TRAIN: SaveConfigMode(save_interval=10),
                                            modes.EVAL: SaveConfigMode(save_interval=1000)}
 ```
 #### Collection
@@ -185,12 +185,12 @@ Or ReductionConfig can be specified for an individual collection as follows
 ```
 import tornasole.mxnet as tm
 tm.get_collection("ReluActivation").include(["relu*"])
-tm.get_collection("ReluActivation").set_save_config(SaveConfig(save_steps=[4,5,6]))
-tm.get_collection("ReluActivation").set_reduction_config(ReductionConfig(reductions=["min"], abs_reductions=["max"]))
+tm.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4,5,6])
+tm.get_collection("ReluActivation").reduction_config = ReductionConfig(reductions=["min"], abs_reductions=["max"])
 ...
 tm.get_collection("flatten").include(["flatten*"])
-tm.get_collection("flatten").set_save_config(SaveConfig(save_steps=[4,5,6]))
-tm.get_collection("flatten").set_reduction_config(ReductionConfig(norms=["l1"], abs_norms=["l2"]))
+tm.get_collection("flatten").save_config = SaveConfig(save_steps=[4,5,6])
+tm.get_collection("flatten").reduction_config = ReductionConfig(norms=["l1"], abs_norms=["l2"])
 hook = TornasoleHook(out_dir=out_dir, include_collections=['weights', 'biases','gradients',
                                                     'default', 'ReluActivation', 'flatten'])
 ```

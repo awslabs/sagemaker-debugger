@@ -169,7 +169,7 @@ class TornasoleHook(CallbackHook):
         # Check if default collection has a regex associated with it.
         # If it does we would need to apply hook recursively.
         if (
-            len(self.collection_manager.get(CollectionKeys.DEFAULT).get_include_regex()) != 0
+            len(self.collection_manager.get(CollectionKeys.DEFAULT).include_regex) != 0
             and CollectionKeys.DEFAULT in collections_to_save
         ):
             return True

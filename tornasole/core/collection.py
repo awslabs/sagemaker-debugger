@@ -25,6 +25,7 @@ class CollectionKeys:
     BIASES = "biases"
     SCALARS = "scalars"
 
+    OPTIMIZER_VARIABLES = "optimizer_variables"
     TENSORFLOW_SUMMARIES = "tensorflow_summaries"
 
     # XGBOOST
@@ -84,21 +85,29 @@ class Collection:
     ):
         self.name = name
         self.include_regex = include_regex if include_regex is not None else []
-        self.set_reduction_config(reduction_config)
-        self.set_save_config(save_config)
+        self.reduction_config = reduction_config
+        self.save_config = save_config
         self.save_histogram = save_histogram
 
         # todo: below comment is broken now that we have set. do we need it back?
         # we want to maintain order here so that different collections can be analyzed together
         # for example, weights and gradients collections can have 1:1 mapping if they
         # are entered in the same order
-        self.tensor_names = set(tensor_names) if tensor_names is not None else set()
+        self.tensor_names = tensor_names
 
-    def get_include_regex(self):
-        return self.include_regex
+    @property
+    def tensor_names(self):
+        return self._tensor_names
 
-    def get_tensor_names(self):
-        return self.tensor_names
+    @tensor_names.setter
+    def tensor_names(self, tensor_names):
+        if tensor_names is None:
+            tensor_names = set()
+        elif isinstance(tensor_names, list):
+            tensor_names = set(tensor_names)
+        elif not isinstance(tensor_names, set):
+            raise TypeError("tensor_names can only be list or set")
+        self._tensor_names = tensor_names
 
     def include(self, t):
         if isinstance(t, list):
@@ -109,44 +118,48 @@ class Collection:
         else:
             raise TypeError("Can only include str or list")
 
-    def get_reduction_config(self):
-        return self.reduction_config
+    @property
+    def reduction_config(self):
+        return self._reduction_config
 
-    def get_save_config(self):
-        return self.save_config
+    @property
+    def save_config(self):
+        return self._save_config
 
-    def set_reduction_config(self, reduction_config):
+    @reduction_config.setter
+    def reduction_config(self, reduction_config):
         if reduction_config is None:
-            self.reduction_config = None
+            self._reduction_config = None
         elif not isinstance(reduction_config, ReductionConfig):
             raise TypeError(f"reduction_config={reduction_config} must be of type ReductionConfig")
         else:
-            self.reduction_config = reduction_config
+            self._reduction_config = reduction_config
 
-    def set_save_config(self, save_config: Union[SaveConfig, Dict[ModeKeys, SaveConfigMode]]):
+    @save_config.setter
+    def save_config(self, save_config: Union[SaveConfig, Dict[ModeKeys, SaveConfigMode]]):
         """Pass in either a fully-formed SaveConfig, or a dictionary with partial keys mapping to SaveConfigMode.
 
     If partial keys are passed (for example, only ModeKeys.TRAIN), then the other mdoes are populated
     from `base_save_config`.
     """
         if save_config is None:
-            self.save_config = None
+            self._save_config = None
         elif isinstance(save_config, dict):
-            self.save_config = SaveConfig(mode_save_configs=save_config)
+            self._save_config = SaveConfig(mode_save_configs=save_config)
         elif isinstance(save_config, SaveConfig):
-            self.save_config = save_config
+            self._save_config = save_config
         else:
             raise ValueError(
                 f"save_config={save_config} must be of type SaveConfig of type Dict[ModeKeys, SaveConfigMode]"
             )
 
     def add_tensor_name(self, tname):
-        if tname not in self.tensor_names:
-            self.tensor_names.add(tname)
+        if tname not in self._tensor_names:
+            self._tensor_names.add(tname)
 
     def remove_tensor_name(self, tname):
-        if tname in self.tensor_names:
-            self.tensor_names.remove(tname)
+        if tname in self._tensor_names:
+            self._tensor_names.remove(tname)
 
     def to_json_dict(self) -> Dict:
         return {

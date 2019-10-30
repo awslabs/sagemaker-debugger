@@ -114,7 +114,7 @@ class BaseHook:
 
         if (
             CollectionKeys.DEFAULT not in self.include_collections
-            and collection_manager.get(CollectionKeys.DEFAULT).get_include_regex()
+            and collection_manager.get(CollectionKeys.DEFAULT).include_regex
         ):
             self.logger.warn(
                 "The `default` collection was not passed to "
@@ -163,15 +163,15 @@ class BaseHook:
                     ModeKeys.PREDICT,
                 ]:
                     continue
-                if coll.get_save_config().should_save_step(self.mode, self.mode_steps[self.mode]):
+                if coll.save_config.should_save_step(self.mode, self.mode_steps[self.mode]):
                     s.add(coll)
             self._collections_to_save_for_step = s
         return self._collections_to_save_for_step
 
     def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
         self._assert_prep()
-        # for tf this will be prepopulated because of prepare_tensors
-        if not tensor_name in self.tensor_to_collections:
+        # for tf this will be prepopulated in check_and_add_tensor
+        if tensor_name not in self.tensor_to_collections:
             # for mxnet it is computed and then cached
             matched_colls = set()
             for coll in self._collections_to_save:
@@ -179,7 +179,7 @@ class BaseHook:
                     # if being matched as reduction,
                     # it must be in reduction_tensor_name, not with regex
                     matched_colls.add(coll)
-                elif match_inc(tensor_name, coll.get_include_regex()):
+                elif match_inc(tensor_name, coll.include_regex):
                     coll.add_tensor_name(tensor_name)
                     matched_colls.add(coll)
             self.tensor_to_collections[tensor_name] = matched_colls
@@ -217,9 +217,9 @@ class BaseHook:
                 raise TypeError(f"save_config={c.save_config} must be None or SaveConfig")
 
             if c_name in SUMMARIES_COLLECTIONS:
-                c.set_reduction_config(ReductionConfig(save_raw_tensor=True))
-            elif c.get_reduction_config() is None:
-                c.set_reduction_config(self.reduction_config)
+                c.reduction_config = ReductionConfig(save_raw_tensor=True)
+            elif c.reduction_config is None:
+                c.reduction_config = self.reduction_config
 
         self.prepared_collections = True
 
@@ -314,7 +314,7 @@ class BaseHook:
     def _write_reductions(self, tensor_name, tensor_value, save_collections):
         reductions_saved = set()
         for s_col in save_collections:
-            reduction_config = s_col.get_reduction_config()
+            reduction_config = s_col.reduction_config
             for reduction_list in (reduction_config.reductions, reduction_config.norms):
                 for reduction in reduction_list:
                     if (reduction, abs) not in reductions_saved:
@@ -380,7 +380,7 @@ class BaseHook:
 
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections):
         for s_col in save_collections:
-            reduction_config = s_col.get_reduction_config()
+            reduction_config = s_col.reduction_config
             if reduction_config.save_raw_tensor is True:
                 self._write_raw_tensor_simple(tensor_name, tensor_value)
                 break
@@ -398,6 +398,8 @@ class BaseHook:
             )
 
     def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
+        # for TF, the tensor_name coming in will the name of object in graph
+        # it is converted to tornasole_name in write_for_tensor
         if (
             check_before_write
             and self._should_save_tensor_for_step(tensorname=tensor_name) is False

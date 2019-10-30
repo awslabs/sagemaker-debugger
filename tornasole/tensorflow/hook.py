@@ -134,7 +134,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                         self.tensor_to_collections[t.name].add(c)
 
     def _process_matched_tensor(self, tensor, collection):
-        reduction_config = collection.get_reduction_config()
+        reduction_config = collection.reduction_config
         if reduction_config:
             for reduction_list in (reduction_config.reductions, reduction_config.norms):
                 for reduction in reduction_list:
@@ -173,7 +173,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                 # look at regex patterns
                 continue
 
-            if match_inc(t.name, coll.get_include_regex()) or t.name in coll.tensor_names:
+            if match_inc(t.name, coll.include_regex) or t.name in coll.tensor_names:
                 self._process_matched_tensor(t, coll)
                 added = True
         return added

@@ -84,8 +84,8 @@ def test_hook_save_config_collections(tmpdir):
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = TornasoleHook(out_dir=out_dir)
 
-    get_collection("metric").set_save_config(SaveConfig(save_interval=2))
-    get_collection("feature_importance").set_save_config(SaveConfig(save_interval=3))
+    get_collection("metric").save_config = SaveConfig(save_interval=2)
+    get_collection("feature_importance").save_config = SaveConfig(save_interval=3)
 
     run_xgboost_model(hook=hook)
 

@@ -109,9 +109,10 @@ def test_save_config_modes():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     pre_test_clean_up()
-    get_collection("weights").set_save_config(
-        {modes.TRAIN: SaveConfigMode(save_interval=2), modes.EVAL: SaveConfigMode(save_interval=3)}
-    )
+    get_collection("weights").save_config = {
+        modes.TRAIN: SaveConfigMode(save_interval=2),
+        modes.EVAL: SaveConfigMode(save_interval=3),
+    }
     hook = TornasoleHook(out_dir=trial_dir)
     helper_save_config_modes(trial_dir, hook)
 

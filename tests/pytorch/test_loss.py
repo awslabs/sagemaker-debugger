@@ -70,7 +70,7 @@ def test_register_loss():
 
     trial = create_trial(path=out_dir)
     loss_coll = hook.collection_manager.get("losses")
-    assert len(loss_coll.get_tensor_names()) == 3
+    assert len(loss_coll.tensor_names) == 3
 
     loss_tensor = trial.tensor("CrossEntropyLoss_output_0")
     print(f"loss_tensor.steps() = {loss_tensor.steps()}")

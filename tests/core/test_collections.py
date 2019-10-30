@@ -67,7 +67,7 @@ def test_manager():
     assert len(cm.collections) == 3
     assert cm.get("default") == cm.collections["default"]
     assert "loss" in cm.get("default").include_regex
-    assert len(cm.get("default").get_tensor_names()) > 0
+    assert len(cm.get("default").tensor_names) > 0
     assert "total_loss" in cm.collections["trial2"].include_regex
 
 
@@ -80,7 +80,7 @@ def test_collection_defaults_to_hook_config():
   """
     cm = CollectionManager()
     cm.create_collection("foo")
-    cm.get("foo").set_save_config({ModeKeys.EVAL: SaveConfigMode(save_interval=20)})
+    cm.get("foo").save_config = {ModeKeys.EVAL: SaveConfigMode(save_interval=20)}
 
     hook = TornasoleHook(
         out_dir="/tmp/test_collections/" + str(datetime.datetime.now()),

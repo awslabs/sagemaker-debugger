@@ -60,7 +60,7 @@ def train_model(batch_size, net, lr, hook):
 def create_tornasole_hook(output_s3_uri):
     save_config = SaveConfig(save_interval=1)
     custom_collect = tm.get_collection("ReluActivation")
-    custom_collect.set_save_config(save_config)
+    custom_collect.save_config = save_config
     custom_collect.include([".*relu_output"])
     hook = TornasoleHook(
         out_dir=output_s3_uri, save_config=save_config, include_collections=["ReluActivation"]

@@ -124,11 +124,9 @@ The following methods can be called on a collection object.
 |----|----|
 | ```coll.include(t)```  |  Takes a regex or a list of regex to match tensors to be included to the collection |
 | ```coll.add_block_tensors(block, input=False, output=False)```  | Takes an instance Gluon block, input and output flags. Users can use this Collection to log input/output tensors for a specific block  |
-| ```coll.get_include_regex()```  | Returns include_regex for the collection  |
-| ```coll.get_save_config()```  | Returns save config for the collection  |
-| ```coll.set_save_config(s)```  | Sets save config for the collection. You can either pass a SaveConfig instance or a dictionary from mode to SaveConfigMode |
-| ```coll.get_reduction_config()```  | Returns reduction config for the collection  |
-| ```coll.set_reduction_config()```  | Sets reduction config for the collection  |
+| ```coll.include_regex```  | Gets include_regex for the collection  |
+| ```coll.save_config```  | Get or set save config for the collection. You can either pass a SaveConfig instance or a dictionary from mode to SaveConfigMode |
+| ```coll.reduction_config```  | Get or set reduction config for the collection  |
 
 ### SaveConfig
 SaveConfig class allows you to customize the frequency of saving tensors.

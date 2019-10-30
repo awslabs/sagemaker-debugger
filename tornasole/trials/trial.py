@@ -317,9 +317,9 @@ class Trial(ABC):
 
     def tensors_in_collection(self, coll_name):
         rval = set()
-        for x in self.collection(coll_name).get_tensor_names():
+        for x in self.collection(coll_name).tensor_names:
             rval.add(x)
-        regex = self.collection(coll_name).get_include_regex()
+        regex = self.collection(coll_name).include_regex
         if regex:
             for x in self.tensors_matching_regex(regex):
                 rval.add(x)

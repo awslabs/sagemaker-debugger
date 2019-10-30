@@ -18,9 +18,9 @@ def test_reduce_config(hook=None, out_dir=None):
         global_save_config = SaveConfig(save_steps=[0, 1, 2, 3])
 
         ts.get_collection("ReluActivation").include(["relu*"])
-        ts.get_collection("ReluActivation").set_save_config(SaveConfig(save_steps=[4, 5, 6]))
-        ts.get_collection("ReluActivation").set_reduction_config(
-            ReductionConfig(reductions=["min"], abs_reductions=["max"])
+        ts.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
+        ts.get_collection("ReluActivation").reduction_config = ReductionConfig(
+            reductions=["min"], abs_reductions=["max"]
         )
 
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
