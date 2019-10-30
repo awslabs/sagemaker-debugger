@@ -69,15 +69,15 @@ These collections are then also available during analysis with `tornasole_rules`
 
 #### Default Collections
 Currently, the XGBoost TornasoleHook creates Collection objects for
-'metric', 'feature\_importance', 'average\_shap', and 'default'.
+'metrics', 'feature\_importance', 'average\_shap', and 'default'.
 
-##### Evaluation metrics: metric
+##### Evaluation metrics: metrics
 When the [eval\_metric](https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters)
 parameter is specified in `params` or the [eval](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.train)
 parameter is set in [xgboost.train()](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.train),
-XGBoost computes the evaluatoin metrics for training and/or validation data.
+XGBoost computes the evaluation metrics for training and/or validation data.
 TornasoleHook will match the regex pattern of these evaluation metrics
-and provide them in a collection named `metric`.
+and provide them in a collection named `metrics`.
 
 ##### Feature importances: feature\_importance
 Tornasole provides the feature importance of each feature in a collection named

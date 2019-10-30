@@ -11,7 +11,7 @@ class CollectionManager(BaseCollectionManager):
             self._register_default_collections()
 
     def _register_default_collections(self):
-        self.get(CollectionKeys.METRIC).include("^[a-zA-z]+-[a-zA-z0-9]+$")
+        self.get(CollectionKeys.METRICS).include("^[a-zA-z]+-[a-zA-z0-9]+$")
         self.get(CollectionKeys.PREDICTIONS).include("^predictions$")
         self.get(CollectionKeys.LABELS).include("^labels$")
         self.get(CollectionKeys.FEATURE_IMPORTANCE).include("^.*/feature_importance$")

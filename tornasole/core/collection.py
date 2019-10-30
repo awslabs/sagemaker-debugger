@@ -29,7 +29,7 @@ class CollectionKeys:
     TENSORFLOW_SUMMARIES = "tensorflow_summaries"
 
     # XGBOOST
-    METRIC = "metric"
+    METRICS = "metrics"
     PREDICTIONS = "predictions"
     LABELS = "labels"
     FEATURE_IMPORTANCE = "feature_importance"

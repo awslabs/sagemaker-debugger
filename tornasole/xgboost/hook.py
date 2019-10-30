@@ -18,7 +18,7 @@ from .utils import validate_data_file_path, get_content_type, get_dmatrix
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [
-    CollectionKeys.METRIC,
+    CollectionKeys.METRICS,
     CollectionKeys.PREDICTIONS,
     CollectionKeys.LABELS,
     CollectionKeys.FEATURE_IMPORTANCE,
@@ -156,7 +156,7 @@ class TornasoleHook(CallbackHook):
 
         self._initialize_writer()
 
-        if self._is_collection_being_saved_for_step(CollectionKeys.METRIC):
+        if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self.write_metrics(env)
 
         if self._is_collection_being_saved_for_step(CollectionKeys.PREDICTIONS):

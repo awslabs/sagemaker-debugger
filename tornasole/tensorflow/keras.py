@@ -4,7 +4,11 @@ from tornasole.core.hook import BaseHook
 from tornasole.core.save_config import SaveConfig
 
 
-DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.WEIGHTS, CollectionKeys.GRADIENTS, "metrics"]
+DEFAULT_INCLUDE_COLLECTIONS = [
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.GRADIENTS,
+    CollectionKeys.METRICS,
+]
 
 
 class TornasoleHook(keras.callbacks.Callback, BaseHook):
@@ -42,7 +46,7 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
             return
 
         for k in logs:
-            self.collection_manager.get("metrics").add_tensor_name(k)
+            self.collection_manager.get(CollectionKeys.METRICS).add_tensor_name(k)
 
         for layer in self.model.layers:
             ws = layer.get_weights()

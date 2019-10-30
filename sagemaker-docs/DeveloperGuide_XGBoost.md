@@ -64,7 +64,7 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 ```
 import tornasole.xgboost as tx
 tx.TornasoleHook(save_config=SaveConfig(save_interval=10),
-                 include_collections=['metric', 'feature_importance'])
+                 include_collections=['metrics', 'feature_importance'])
 ```
 
 - Save custom tensors by regex pattern to a local path
@@ -127,7 +127,7 @@ Therefore, if the `reduction_config` parameter is set in
 There are different ways to save tensors when using Tornasole.
 Tornasole provides easy ways to save certain standard tensors by way of default
 collections (a Collection represents a group of tensors).
-Examples of such collections are 'metric', 'feature\_importance',
+Examples of such collections are 'metrics', 'feature\_importance',
 'average\_shap', and 'default'.
 Besides the tensors in above default collections, you can save tensors by name or regex patterns on those names.
 This section will take you through these ways in more detail.
@@ -137,7 +137,7 @@ The TornasoleHook API supports *include\_regex* parameter. The users can specify
 
 #### Default Collections
 Currently, the XGBoost TornasoleHook creates Collection objects for
-'metric', 'feature\_importance', 'average\_shap', and 'default'. These
+'metrics', 'feature\_importance', 'average\_shap', and 'default'. These
 collections contain the regex pattern that match with
 evaluation metrics, feature importances, and SHAP values. The regex pattern for
 the 'default' collection is set when user specifies *include\_regex* with
@@ -161,7 +161,7 @@ collections by invoking helper methods as described in the [API](api.md) documen
 
 ```
 from tornasole.xgboost as get_collection
-get_collection('metric').include(['validation-auc'])
+get_collection('metrics').include(['validation-auc'])
 ```
 
 ##### Adding tensors
@@ -177,7 +177,7 @@ The tensors which match these patterns are included and added to the collection.
 
 ```
 from tornasole.xgboost import get_collection
-get_collection('metric').include(["train*", "*-auc"])
+get_collection('metrics').include(["train*", "*-auc"])
 ```
 
 #### Saving All Tensors
