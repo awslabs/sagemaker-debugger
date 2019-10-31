@@ -1,7 +1,11 @@
 from tensorflow.python.distribute import values
 import tensorflow as tf
+from .tensor import Tensor, TensorType
 from tornasole.core.collection import Collection as BaseCollection, CollectionKeys
 from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager
+from tornasole.core.logger import get_logger
+
+logger = get_logger()
 
 
 class Collection(BaseCollection):
@@ -17,66 +21,70 @@ class Collection(BaseCollection):
         super().__init__(
             name, include_regex, tensor_names, reduction_config, save_config, save_histogram
         )
-        self.tensors = []
-        # has the new tensors added to graph
-        # reduction_tensor_names has the names of original tensors
-        # whose reductions these are
-        self.reduction_tensors_added = []
+        # mapping from name_in_graph to TensorInCollection object
+        self._tensors = {}
+
+    def _store_ts_tensor(self, ts_tensor):
+        if ts_tensor:
+            self._tensors[ts_tensor.name_in_graph] = ts_tensor
+            self.add_tensor_name(ts_tensor.tornasole_name)
+
+    def add_tensor(self, arg, name=None):
+        """
+         Adds tensors to the collection from a given Operation, Tensor, Variable or MirroredVariable
+         :param arg: the argument to add to collection
+         :param name: used only if the added object is tensor or variable
+         """
+        if isinstance(arg, tf.Operation):
+            for t in arg.outputs:
+                self._store_ts_tensor(Tensor.from_tensor(t))
+        elif isinstance(arg, tf.Variable):
+            self._store_ts_tensor(Tensor.from_variable(arg, name))
+        elif isinstance(arg, tf.Tensor):
+            self._store_ts_tensor(Tensor.from_tensor(arg, name))
+        elif isinstance(arg, values.MirroredVariable):
+            for value in arg._values:
+                self._store_ts_tensor(Tensor.from_variable(value))
+        else:
+            logger.error(
+                f"Could not add {arg} of type {arg.__class__} to collection {self.name}."
+                "Add can only take tf.Operation, tf.Variable, tf.Tensor, "
+                "tf.MirroredVariable and list or set of any of the above."
+            )
 
     def add(self, arg):
         if isinstance(arg, list) or isinstance(arg, set):
             for a in arg:
                 self.add(a)
-        elif isinstance(arg, tf.Operation):
-            for t in arg.outputs:
-                self.add_tensor(t)
-        elif isinstance(arg, tf.Variable) or isinstance(arg, tf.Tensor):
+        elif isinstance(arg, (tf.Tensor, tf.Operation, tf.Variable, values.MirroredVariable)):
             self.add_tensor(arg)
-        elif isinstance(arg, values.MirroredVariable):
-            for value in arg._values:
-                self.add_tensor(value)
         else:
-            raise TypeError(
-                "Unknown type of argument %s."
-                "Add can only take tf.Operation, tf.Variable, tf.Tensor"
-                "and list or set of any of the above." % arg
+            logger.error(
+                f"Could not add {arg} of type {arg.__class__} to collection {self.name}."
+                "Add can only take tf.Operation, tf.Variable, tf.Tensor, "
+                "tf.MirroredVariable and list or set of any of the above."
             )
 
-    def add_tensor(self, t):
-        self.add_tensor_name(t.name)
-        # tf tries to add variables both by tensor and variable.
-        # to avoid duplications, we need to check names
-        for x in self.tensors:
-            if x.name == t.name:
-                return
-        self.tensors.append(t)
+    def add_reduction_tensor(self, tensor, original_tensor, tornasole_name=None):
+        ts_tensor = Tensor.create_reduction(tensor, original_tensor, tornasole_name)
+        if ts_tensor:
+            self._tensors[ts_tensor.name_in_graph] = ts_tensor
 
-    def add_reduction_tensor(self, t, original_tensor):
-        self.add_tensor_name(original_tensor.name)
-        # tf tries to add variables both by tensor and variable.
-        # to avoid duplications, we need to check names
-        for x in self.reduction_tensors_added:
-            if x.name == t.name:
-                return
-        self.reduction_tensors_added.append(t)
+    def get_tensors_dict(self):
+        return self._tensors
 
-    def remove_tensor(self, t):
-        # have to compare names because tensors can have variables, \
-        # we don't want to end up comparing tensors and variables
-        if t.name in self.tensor_names:
-            found_index = None
-            for i, lt in enumerate(self.tensors):
-                if lt.name == t.name:
-                    found_index = i
+    def get_tensors(self):
+        return self._tensors.values()
 
-            self.tensor_names.remove(t.name)
+    def get_tensor(self, name):
+        return self._tensors[name]
 
-            # this can happen when tensors is cleared but tensor names is not cleared
-            # because of emptying tensors and reduction_tensors lists in
-            # prepare_collections
-            if found_index is None:
-                raise IndexError("Could not find tensor to remove")
-            self.tensors.pop(found_index)
+    def set_tensor(self, tensor):
+        name = tensor.name_in_graph
+        self._tensors[name] = tensor
+
+    def has_tensor(self, name):
+        return name in self._tensors
 
 
 class CollectionManager(BaseCollectionManager):

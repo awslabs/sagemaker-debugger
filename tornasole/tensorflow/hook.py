@@ -1,8 +1,11 @@
+from typing import Set
+
 import tensorflow as tf
-from .utils import *
+from .utils import node_name, extract_graph_summary, get_original_fetch_ops
 from .reductions import get_tensorflow_reduction
-from .collection import get_collection_manager
+from .collection import get_collection_manager, Tensor, TensorType
 from tornasole.core.tfevent.proto.summary_pb2 import Summary
+from tornasole.core.tfevent.util import make_numpy_array
 from tornasole.core.utils import match_inc
 from tornasole.core.collection import CollectionKeys, SUMMARIES_COLLECTIONS
 from tornasole.core.hook import BaseHook
@@ -88,9 +91,8 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             include_collections=include_collections,
             save_all=save_all,
         )
-        self.reduction_original_tensors = {}
         self.subgraph_nodes_cache = {}
-        self.summaries_original_tensors = {}
+
         self.graph = None
         self.tensors_to_save_this_step = None
 
@@ -120,48 +122,51 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             cls, get_collection_manager(), json_config_path=json_config_path
         )
 
-    def _prepare_tensors(self):
-        """
-        If collections have already been populated with tensors,
-        then we can add them to the tensor_to_collections map
-        """
-        for c in self._get_all_collections_to_save():
-            for t_list in (c.tensors, c.reduction_tensors_added):
-                for t in t_list:
-                    if t.name not in self.tensor_to_collections:
-                        self.tensor_to_collections[t.name] = {c}
-                    else:
-                        self.tensor_to_collections[t.name].add(c)
+    def _add_reduction(self, tensor, reduction_name, collection, on_absolute_values=False):
+        if tensor.dtype in [tf.bool, tf.string]:
+            return
+        ts_tensor = self._get_ts_tensor(tensor.name)
+        tname = get_reduction_tensor_name(
+            ts_tensor.tornasole_name, reduction_name, on_absolute_values, remove_colon_index=False
+        )
+        red_tensor = get_tensorflow_reduction(reduction_name, tensor, abs=on_absolute_values)
+        collection.add_reduction_tensor(
+            tensor=red_tensor, original_tensor=tensor, tornasole_name=tname
+        )
+        # since tensor_to_collections is a mapping from graph name
+        if red_tensor.name not in self.tensor_to_collections:
+            self.tensor_to_collections[red_tensor.name] = {collection}
+        else:
+            self.tensor_to_collections[red_tensor.name].add(collection)
 
-    def _process_matched_tensor(self, tensor, collection):
+    def _add_reductions(self, tensor, collection):
         reduction_config = collection.reduction_config
-        if reduction_config:
-            for reduction_list in (reduction_config.reductions, reduction_config.norms):
-                for reduction in reduction_list:
-                    self._add_reduction(tensor, reduction, collection, False)
-            for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
-                for reduction in reduction_list:
-                    self._add_reduction(tensor, reduction, collection, True)
+        for reduction_list in (reduction_config.reductions, reduction_config.norms):
+            for reduction in reduction_list:
+                self._add_reduction(tensor, reduction, collection, False)
+        for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
+            for reduction in reduction_list:
+                self._add_reduction(tensor, reduction, collection, True)
 
-        if reduction_config.save_raw_tensor is False:
-            # this is for export so that trial knows that this tensor
-            # belongs to this collection
-            collection.add_tensor_name(tensor.name)
+    def _merge_ts_tensor_objects_across_collections(self, tensor):
+        # merge tensor objects in all collections which has this tensor
+        # this ensures that whichever collection you query for this tensorname
+        # it returns the same Tornasole Tensor object
+        ts_tensor = None
+        for coll in self.tensor_to_collections[tensor.name]:
+            if ts_tensor is None:
+                ts_tensor = coll.get_tensor(tensor.name)
+            else:
+                coll.set_tensor(ts_tensor)
 
-        case1 = collection.name in [CollectionKeys.SCALARS, CollectionKeys.LOSSES]
-        case2 = collection.name in self.include_collections and collection.save_histogram is True
-        case3 = reduction_config.save_raw_tensor is True
-        if case1 or case2 or case3:
-            collection.add(tensor)
-
-    def _check_and_add_tensor(self, t):
-        if t.dtype == tf.resource or t.dtype == tf.variant:
+    def _check_and_add_tensor(self, tensor):
+        if tensor.dtype == tf.resource or tensor.dtype == tf.variant:
             return False
 
-        if not self.graph.is_fetchable(t.op):
+        if not self.graph.is_fetchable(tensor.op):
             return False
 
-        added = False
+        colls_with_tensor = set()
         for coll in self._get_all_collections_to_save():
             if coll.name in SUMMARIES_COLLECTIONS:
                 # these summaries directly does not take any regex patterns
@@ -173,46 +178,39 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
                 # look at regex patterns
                 continue
 
-            if match_inc(t.name, coll.include_regex) or t.name in coll.tensor_names:
-                self._process_matched_tensor(t, coll)
-                added = True
-        return added
+            if match_inc(tensor.name, coll.include_regex):
+                coll.add(tensor)
 
-    def _add_reduction(self, tensor, reduction_name, collection, abs=False):
-        if tensor.dtype in [tf.bool, tf.string]:
-            return
-        tname = get_reduction_tensor_name(tensor.name, reduction_name, abs)
-        red_tensor = get_tensorflow_reduction(reduction_name, tensor, tname, abs=abs)
-        self.reduction_original_tensors[red_tensor.name] = tensor
-        collection.add_reduction_tensor(red_tensor, original_tensor=tensor)
+            if coll.has_tensor(tensor.name):
+                ts_tensor = coll.get_tensor(tensor.name)
+                ts_tensor.obj_in_graph = tensor
+                colls_with_tensor.add(coll)
+
+        if colls_with_tensor:
+            # this is mapping from graph name
+            self.tensor_to_collections[tensor.name] = colls_with_tensor
+            self._merge_ts_tensor_objects_across_collections(tensor)
+            for coll in colls_with_tensor:
+                # this should be after we add tensor.name to tensor_to_collections
+                self._add_reductions(tensor, coll)
 
     def _add_tensors(self):
-        # gradients and optimizer_variables added
-        # in user code or TornasoleOptimizer
-        total_tensor_count = 0
+        # so collections have save configs and reduction configs
+        self._prepare_collections()
+
         # todo: do we ever need inputs of the op
         for op in self.graph.get_operations():
             for tensor in op.outputs:
                 self._check_and_add_tensor(tensor)
-                total_tensor_count += 1
-        return total_tensor_count
 
     def _add_summaries_tensors(self):
         if CollectionKeys.TENSORFLOW_SUMMARIES in self.include_collections:
-            c = self.collection_manager.get(CollectionKeys.TENSORFLOW_SUMMARIES)
-            for t in tf.get_collection(tf.GraphKeys.SUMMARIES):
-                self.summaries_original_tensors[t.name] = t.op.inputs[1]
-                c.add(t)
-
-    def _clear_tensor_objects_from_collections(self):
-        for coll_name, coll in self.collection_manager.get_collections().items():
-            # to make multiple graphs work with the same tensor names
-            # this can happen when we use same hook for training and evaluation
-            # what is going on here is that we clear the tensors and reduction tensors
-            # but we use the tensor names field in collection to readd tensors
-            # from the new graph to the collection so we can them right
-            coll.tensors = []
-            coll.reduction_tensors_added = []
+            c = self.collection_manager.get(CollectionKeys.TENSORFLOW_SUMMARIES).add(
+                tf.get_collection(tf.GraphKeys.SUMMARIES)
+            )
+            for t in c.get_tensors():
+                t.type = TensorType.SUMMARY
+                t.original_tensor = t.op.inputs[1]
 
     def begin(self):
         # todo: should this be called first time a mode changes
@@ -225,28 +223,8 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         losses = tf.losses.get_losses()
         self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
 
-        # so that new graph does not cause conflicts for the graph
-        # property of tensors added
-        self._clear_tensor_objects_from_collections()
-
-        # needs this so save_config for collection can be used in add_tensors
-        self._prepare_collections()
-
         self._add_summaries_tensors()
         self._add_tensors()
-
-        # after all tensors are added
-        self._prepare_tensors()
-
-        for coll in self._get_all_collections_to_save():
-            self.logger.info(
-                f"Saving the collection {coll.name} with {len(coll.tensors)} tensors "
-                f"and {len(coll.reduction_tensors_added)} reductions"
-            )
-            self.logger.debug(f"  Collection {coll.name} has tensors: {coll.tensors}")
-            self.logger.debug(
-                f"  Collection {coll.name} has reductions: {coll.reduction_tensors_added}"
-            )
 
         self._export_model()
         self.export_collections()
@@ -254,19 +232,17 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
     def _export_model(self):
         self.logger.info("Writing graph")
         self._get_tb_writer().write_graph(self.graph.as_graph_def(add_shapes=True))
-        # self._close_tb_writer()
+        # don't close writer as it might be needed in the step that follows
+        # else we will have to open the file again
 
     def _get_tensors_to_save_this_step(self):
-        tensors_to_save = {"watched": [], "added": []}
+        tensors_to_save = set()
         for coll in self._get_collections_to_save_for_step():
-            tensors_to_save["watched"].extend(coll.tensors)
-            tensors_to_save["added"].extend(coll.reduction_tensors_added)
-        # dedup watched and added
-        tensors_to_save["watched"] = list(set(tensors_to_save["watched"]))
-        tensors_to_save["added"] = list(set(tensors_to_save["added"]))
-        return tensors_to_save
+            for ts_tensor in coll.get_tensors():
+                tensors_to_save.add(ts_tensor.obj_in_graph)
+        return list(tensors_to_save)
 
-    def _filter_to_be_saved(self, dict_to_save, fetches):
+    def _filter_to_be_saved(self, tensors_to_save, fetches):
         # todo: handle all types of complex fetches
         if (
             not isinstance(fetches, list)
@@ -291,46 +267,49 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         # check that this run includes the ops whose tensors are to be saved
         filtered = []
         skipped = []
-        for tensor in dict_to_save["watched"]:
-            if node_name(tensor.name) in subgraph_nodes:
-                filtered.append(tensor)
-            elif tensor.name in self.summaries_original_tensors.keys():
-                ot = self.summaries_original_tensors[tensor.name]
-                if node_name(ot.name) in subgraph_nodes:
-                    # summary should only be included
-                    # if the original tensor is included for safety
+        for tensor in tensors_to_save:
+            ts_tensor = self._get_ts_tensor(tensor.name)
+            if ts_tensor.type == TensorType.REGULAR:
+                if node_name(tensor.name) in subgraph_nodes:
+                    filtered.append(tensor)
+            else:
+                if node_name(ts_tensor.original_tensor.name) in subgraph_nodes:
                     filtered.append(tensor)
                 else:
                     skipped.append(tensor)
-            else:
-                skipped.append(tensor)
-        for tensor in dict_to_save["added"]:
-            assert isinstance(tensor, tf.Tensor)
-            original_tensor = self.reduction_original_tensors[tensor.name]
-            if node_name(original_tensor.name) in subgraph_nodes:
-                filtered.append(tensor)
-            else:
-                skipped.append(tensor)
-
         if len(skipped) > 0:
             self.logger.debug(f"Skipped {len(skipped)} unreachable tensors: {skipped}")
 
-        # todo(huilgolr) can we filter tensors with (0)shape here. do we want to?
+        # todo(huilgolr) can we filter tensors with (0) size here. do we want to?
         return filtered
+
+    def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
+        self._assert_prep()
+        return self.tensor_to_collections[tensor_name]
+
+    def _get_ts_tensor(self, tf_tensor_name, save_collections=None):
+        if save_collections is None:
+            save_collections = self._get_collections_with_tensor(tf_tensor_name)
+        if save_collections:
+            return next(iter(save_collections)).get_tensor(tf_tensor_name)
+        else:
+            raise RuntimeError(
+                f"Hook attempted to save unknown tensor {tf_tensor_name}."
+                f"This does not belong to any collection"
+            )
 
     def before_run(self, run_context):
         tensors_to_save = self._get_tensors_to_save_this_step()
-        if len(tensors_to_save["watched"]) + len(tensors_to_save["added"]) > 0:
+        if tensors_to_save:
             if run_context:
-                list_to_save = self._filter_to_be_saved(
+                tensors_to_save = self._filter_to_be_saved(
                     tensors_to_save, run_context.original_args.fetches
                 )
-            else:
-                list_to_save = tensors_to_save["watched"] + tensors_to_save["added"]
+            self.tensors_to_save_this_step = tensors_to_save
+            return tf.train.SessionRunArgs(tensors_to_save)
         else:
-            list_to_save = []
-        self.tensors_to_save_this_step = list_to_save
-        return tf.train.SessionRunArgs(list_to_save) if list_to_save else None
+            self.tensors_to_save_this_step = tensors_to_save
+            return None
 
     def _write_tf_summary(self, tensor, value):
         try:
@@ -343,16 +322,20 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             self.logger.error(f"Ran into the exception when saving {tensor}: {e}")
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
-        # if reduction tensor
-        if tensor_name in self.reduction_original_tensors:
-            self._write_raw_tensor_simple(tensor_name, tensor_value)
+        # this tensor_name is tf tensor name, need to convert to tornasole_name
+        ts_tensor = self._get_ts_tensor(tensor_name, save_collections=save_collections)
+        name = ts_tensor.tornasole_name
+        self.logger.debug(f"Saving {name} for global step {self.step}")
+        if ts_tensor.type == TensorType.REDUCTION:
+            self._write_raw_tensor_simple(name, tensor_value)
         else:
-            self._write_histogram_summary(tensor_name, tensor_value, save_collections)
+            self._write_histogram_summary(name, tensor_value, save_collections)
+
             # skip writing reductions as TF handles them in the graph itself
 
             # save raw tensor if reduction config calls for that
-            self._write_raw_tensor(tensor_name, tensor_value, save_collections)
-            self._write_scalar_summary(tensor_name, tensor_value, save_collections)
+            self._write_raw_tensor(name, tensor_value, save_collections)
+            self._write_scalar_summary(name, tensor_value, save_collections)
 
     def _get_all_tensors_values(self, results):
         for (item, value) in zip(self.tensors_to_save_this_step, results):
@@ -382,7 +365,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         Convert the tensor value into a numpy array.
         Here it's already numpy array
         """
-        return tensor_value
+        return make_numpy_array(tensor_value)
 
     def end(self, sess):
         pass
