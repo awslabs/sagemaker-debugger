@@ -29,6 +29,7 @@ class CollectionKeys:
     TENSORFLOW_SUMMARIES = "tensorflow_summaries"
 
     # XGBOOST
+    HYPERPARAMETERS = "hyperparameters"
     METRICS = "metrics"
     PREDICTIONS = "predictions"
     LABELS = "labels"

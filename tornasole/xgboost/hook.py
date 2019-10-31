@@ -1,6 +1,6 @@
 import atexit
 import os
-from typing import Optional, List, Union, Tuple, Dict
+from typing import Optional, List, Union, Tuple, Dict, Any
 import numpy as np
 from xgboost import DMatrix
 from xgboost.core import CallbackEnv
@@ -18,6 +18,7 @@ from .utils import validate_data_file_path, get_content_type, get_dmatrix, parse
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [
+    CollectionKeys.HYPERPARAMETERS,
     CollectionKeys.METRICS,
     CollectionKeys.PREDICTIONS,
     CollectionKeys.LABELS,
@@ -39,6 +40,7 @@ class TornasoleHook(CallbackHook):
         include_regex: Optional[List[str]] = None,
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
+        hyperparameters: Optional[Dict[str, Any]] = None,
         train_data: Union[None, Tuple[str, str], DMatrix] = None,
         validation_data: Union[None, Tuple[str, str], DMatrix] = None,
     ) -> None:
@@ -67,6 +69,8 @@ class TornasoleHook(CallbackHook):
         include_collections: Tensors that should be saved.
             If not given, all known collections will be saved.
         save_all: If true, all evaluations are saved in the collection 'all'.
+        hyperparameters: When this dictionary is given, the key-value pairs
+            will be available in the 'hyperparameters' collection.
         train_data: When this parameter is a tuple (file path, content type) or
             an xboost.DMatrix instance, the average feature contributions
             (SHAP values) will be calcaulted against the provided data set.
@@ -91,6 +95,7 @@ class TornasoleHook(CallbackHook):
         if reduction_config is not None:
             msg = "'reduction_config' is not supported and will be ignored."
             self.logger.warning(msg)
+        self.hyperparameters = hyperparameters
         self.train_data = self._validate_data(train_data)
         self.validation_data = self._validate_data(validation_data)
         # as we do cleanup ourselves at end of job
@@ -157,6 +162,9 @@ class TornasoleHook(CallbackHook):
 
         self._initialize_writer()
 
+        if self._is_collection_being_saved_for_step(CollectionKeys.HYPERPARAMETERS):
+            self.write_hyperparameters(env)
+
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self.write_metrics(env)
 
@@ -182,6 +190,12 @@ class TornasoleHook(CallbackHook):
             self._cleanup()
 
         self.logger.info("Saved iteration {}.".format(self.step))
+
+    def write_hyperparameters(self, env: CallbackEnv):
+        if not self.hyperparameters:
+            return
+        for param_name, param_value in self.hyperparameters.items():
+            self._save_for_tensor("hyperparameters/{}".format(param_name), param_value)
 
     def write_metrics(self, env: CallbackEnv):
         # Get metrics measured at current boosting round

@@ -156,8 +156,32 @@ def test_hook_tree_model(tmpdir):
 
     trial = create_trial(out_dir)
     tensors = trial.tensors()
-    print(tensors)
     assert len(tensors) > 0
     assert "trees" in trial.collections()
     for col in df.columns:
         assert "trees/{}".format(col) in tensors
+
+
+@pytest.mark.slow  # 0:05 to run
+def test_hook_params(tmpdir):
+    np.random.seed(42)
+    train_data = np.random.rand(5, 10)
+    train_label = np.random.randint(2, size=5)
+    dtrain = xgboost.DMatrix(train_data, label=train_label)
+    valid_data = np.random.rand(5, 10)
+    valid_label = np.random.randint(2, size=5)
+    dvalid = xgboost.DMatrix(valid_data, label=valid_label)
+    params = {"objective": "binary:logistic", "num_round": 20, "eta": 0.1}
+
+    reset_collections()
+    out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+    hook = TornasoleHook(out_dir=out_dir, hyperparameters=params)
+    run_xgboost_model(hook=hook)
+
+    trial = create_trial(out_dir)
+    tensors = trial.tensors()
+    assert len(tensors) > 0
+    assert "hyperparameters" in trial.collections()
+    assert trial.tensor("hyperparameters/objective").value(0) == "binary:logistic"
+    assert trial.tensor("hyperparameters/num_round").value(0) == 20
+    assert trial.tensor("hyperparameters/eta").value(0) == 0.1
