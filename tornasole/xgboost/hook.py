@@ -14,7 +14,7 @@ from tornasole.xgboost.singleton_utils import set_hook
 
 
 from .collection import get_collection_manager
-from .utils import validate_data_file_path, get_content_type, get_dmatrix
+from .utils import validate_data_file_path, get_content_type, get_dmatrix, parse_tree_model
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [
@@ -23,6 +23,7 @@ DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.LABELS,
     CollectionKeys.FEATURE_IMPORTANCE,
     CollectionKeys.AVERAGE_SHAP,
+    CollectionKeys.TREES,
 ]
 
 
@@ -171,6 +172,9 @@ class TornasoleHook(CallbackHook):
         if self._is_collection_being_saved_for_step(CollectionKeys.AVERAGE_SHAP):
             self.write_average_shap(env)
 
+        if self._is_collection_being_saved_for_step(CollectionKeys.TREES):
+            self.write_tree_model(env)
+
         if not self._is_last_step(env):
             self._close_writer()
 
@@ -220,6 +224,17 @@ class TornasoleHook(CallbackHook):
         for feature_id, feature_name in enumerate(feature_names):
             if shap_avg[feature_id] > 0:
                 self._save_for_tensor("{}/average_shap".format(feature_name), shap_avg[feature_id])
+
+    def write_tree_model(self, env: CallbackEnv):
+        if hasattr(env.model, "booster") and env.model.booster not in {"gbtree", "dart"}:
+            self.logger.warning(
+                "Tree model dump is not supported for Booster type %s", env.model.booster
+            )
+            return
+        tree = parse_tree_model(env.model, env.iteration)
+        for column_name, column_values in tree.items():
+            tensor_name = "trees/{}".format(column_name)
+            self._save_for_tensor(tensor_name, np.array(column_values))
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
         self._write_raw_tensor(tensor_name, tensor_value, save_collections)

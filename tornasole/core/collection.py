@@ -34,6 +34,7 @@ class CollectionKeys:
     LABELS = "labels"
     FEATURE_IMPORTANCE = "feature_importance"
     AVERAGE_SHAP = "average_shap"
+    TREES = "trees"
 
 
 # Collection with summary objects instead of tensors

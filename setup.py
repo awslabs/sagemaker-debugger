@@ -68,10 +68,12 @@ def get_tests_packages(frameworks_to_build):
     tests_packages = ["pytest"]
     for f, v in frameworks_to_build.items():
         if v:
-            if f in ["tensorflow", "mxnet", "xgboost"]:
+            if f in ["tensorflow", "mxnet"]:
                 tests_packages.append(f)
             if f == "pytorch":
                 tests_packages.extend(["torch", "torchvision"])
+            if f == "xgboost":
+                tests_packages.extend(["xgboost", "pandas"])
     return tests_packages
 
 

@@ -16,6 +16,7 @@ class CollectionManager(BaseCollectionManager):
         self.get(CollectionKeys.LABELS).include("^labels$")
         self.get(CollectionKeys.FEATURE_IMPORTANCE).include("^.*/feature_importance$")
         self.get(CollectionKeys.AVERAGE_SHAP).include("^((?!bias).)*/average_shap$")
+        self.get(CollectionKeys.TREES).include("^trees/.*")
 
 
 _collection_manager = CollectionManager()

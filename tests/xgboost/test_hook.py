@@ -137,3 +137,27 @@ def test_hook_validation(tmpdir):
     assert "predictions" in trial.collections()
     assert "labels" in tensors
     assert "predictions" in tensors
+
+
+@pytest.mark.slow  # 0:05 to run
+def test_hook_tree_model(tmpdir):
+    np.random.seed(42)
+    train_data = np.random.rand(5, 10)
+    train_label = np.random.randint(2, size=5)
+    dtrain = xgboost.DMatrix(train_data, label=train_label)
+    params = {"objective": "binary:logistic"}
+    bst = xgboost.train(params, dtrain, num_boost_round=0)
+    df = bst.trees_to_dataframe()
+
+    reset_collections()
+    out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+    hook = TornasoleHook(out_dir=out_dir)
+    run_xgboost_model(hook=hook)
+
+    trial = create_trial(out_dir)
+    tensors = trial.tensors()
+    print(tensors)
+    assert len(tensors) > 0
+    assert "trees" in trial.collections()
+    for col in df.columns:
+        assert "trees/{}".format(col) in tensors
