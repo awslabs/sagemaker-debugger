@@ -1,5 +1,6 @@
 from tornasole import modes
 import shutil, os
+import socket
 import numpy as np
 from tornasole.trials import create_trial
 from tornasole.core.tensor import StepState
@@ -22,8 +23,9 @@ def test_mode_data():
     c.get("default").tensor_names = ["arr"]
     c.export(os.path.join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
     tr = create_trial(trial_dir)
+    worker = socket.gethostname()
     for s in range(0, 10):
-        fw = FileWriter(trial_dir=trial_dir, step=s)
+        fw = FileWriter(trial_dir=trial_dir, step=s, worker=worker)
         if s % 2 == 0:
             fw.write_tensor(
                 tdata=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),

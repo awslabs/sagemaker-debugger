@@ -3,14 +3,16 @@ from tornasole.core.reader import FileReader
 import numpy as np
 from tornasole.core.modes import ModeKeys
 from datetime import datetime
+import socket
 import glob
 import shutil
 
 
 def test_mode_writing():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
+    worker = socket.gethostname()
     for s in range(0, 10):
-        fw = FileWriter(trial_dir="ts_outputs/" + run_id, step=s)
+        fw = FileWriter(trial_dir="ts_outputs/" + run_id, step=s, worker=worker)
         if s % 2 == 0:
             fw.write_tensor(
                 tdata=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),

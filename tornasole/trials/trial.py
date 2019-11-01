@@ -209,6 +209,7 @@ class Trial(ABC):
 
     def add_tensor(self, step_num, worker, tensor_object):
         to = tensor_object
+        self.worker_set.add(worker)
         # todo, use worker_name here
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
             tname, red_name, abs = reverse_reduction_tensor_name(to.tensorname)

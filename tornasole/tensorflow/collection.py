@@ -45,6 +45,8 @@ class Collection(BaseCollection):
         elif isinstance(arg, values.MirroredVariable):
             for value in arg._values:
                 self._store_ts_tensor(Tensor.from_variable(value))
+        elif isinstance(arg, values.AggregatingVariable):
+            self._store_ts_tensor(Tensor.from_variable(arg.get()))
         else:
             logger.error(
                 f"Could not add {arg} of type {arg.__class__} to collection {self.name}."
@@ -56,7 +58,16 @@ class Collection(BaseCollection):
         if isinstance(arg, list) or isinstance(arg, set):
             for a in arg:
                 self.add(a)
-        elif isinstance(arg, (tf.Tensor, tf.Operation, tf.Variable, values.MirroredVariable)):
+        elif isinstance(
+            arg,
+            (
+                tf.Tensor,
+                tf.Operation,
+                tf.Variable,
+                values.MirroredVariable,
+                values.AggregatingVariable,
+            ),
+        ):
             self.add_tensor(arg)
         else:
             logger.error(

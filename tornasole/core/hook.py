@@ -17,7 +17,7 @@ from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.access_layer import training_has_ended
 from tornasole.core.hook_utils import verify_and_get_out_dir
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.utils import flatten
+from tornasole.core.utils import flatten, get_tb_worker
 from tornasole.core.logger import get_logger
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.writer import FileWriter
@@ -83,7 +83,7 @@ class BaseHook:
         self.out_dir = verify_and_get_out_dir(out_dir)
 
         self.dry_run = dry_run
-        self.worker = self.get_worker_name()
+        self.worker = None
         if include_collections is None:
             include_collections = default_include_collections
         self.default_include_collections = default_include_collections
@@ -240,6 +240,8 @@ class BaseHook:
 
         self._close_writer()
         to_delete_writers = []
+
+        # Delete all the tb writers
         for mode, writer in self.tb_writers.items():
             if writer is not None:
                 writer.flush()
@@ -253,6 +255,13 @@ class BaseHook:
             return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
+    def get_writers(self, tensor_name) -> List[FileWriter]:
+        """
+        :param tensor_name:
+        :return: List[FileWriter]
+        """
+        return [self.writer]
+
     def _get_tb_writer(self):
         if self.mode in self.tb_writers:
             assert self.tb_writers[self.mode] is not None
@@ -264,7 +273,7 @@ class BaseHook:
             self.tb_writers[self.mode] = FileWriter(
                 trial_dir=self.out_dir,
                 step=self.step,
-                worker=self.worker,
+                worker=get_tb_worker(),
                 write_checksum=True,
                 wtype="tensorboard",
                 mode=self.mode,
@@ -303,6 +312,7 @@ class BaseHook:
         self._collections_to_save_for_step = None
 
     def export_collections(self):
+        self.collection_manager.set_num_workers(self.get_num_workers())
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(os.path.join(self.out_dir, collection_file_name))
 
@@ -390,12 +400,14 @@ class BaseHook:
         numpy_tensor_value = self._make_numpy_array(tensor_value)
         this_size, this_shape = size_and_shape(numpy_tensor_value)
         if self.dry_run is False and this_size > 0:
-            self.writer.write_tensor(
-                tdata=numpy_tensor_value,
-                tname=tensor_name,
-                mode=self.mode,
-                mode_step=self.mode_steps[self.mode],
-            )
+            writers = self.get_writers(tensor_name)
+            for writer in writers:
+                writer.write_tensor(
+                    tdata=numpy_tensor_value,
+                    tname=tensor_name,
+                    mode=self.mode,
+                    mode_step=self.mode_steps[self.mode],
+                )
 
     def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
         # for TF, the tensor_name coming in will the name of object in graph

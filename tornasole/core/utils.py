@@ -1,6 +1,7 @@
 import os
 import re
 import bisect
+import socket
 from botocore.exceptions import ClientError
 import json
 from pathlib import Path
@@ -62,36 +63,6 @@ def is_s3(path):
         return False, None, None
 
 
-def check_dir_exists(path):
-    from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
-
-    s3, bucket_name, key_name = is_s3(path)
-    if s3:
-        try:
-            s3_handler = S3Handler()
-            request = ListRequest(bucket_name, key_name)
-            folder = s3_handler.list_prefixes([request])[0]
-            if len(folder) > 0:
-                raise RuntimeError(
-                    "The path:{} already exists on s3. "
-                    "Please provide a directory path that does "
-                    "not already exist.".format(path)
-                )
-        except ClientError as ex:
-            if ex.response["Error"]["Code"] == "NoSuchBucket":
-                # then we do not need to raise any error
-                pass
-            else:
-                # do not know the error
-                raise ex
-    elif os.path.exists(path):
-        raise RuntimeError(
-            "The path:{} already exists on local disk. "
-            "Please provide a directory path that does "
-            "not already exist".format(path)
-        )
-
-
 def list_files_in_directory(directory):
     files = []
     for root, dir_name, filename in os.walk(directory):
@@ -108,9 +79,29 @@ def list_collection_files_in_directory(directory):
     return files
 
 
-def get_worker_name_from_collection_file(filename):
-    worker_name_regex = re.compile("(.+)_collections.(json|ts)")
-    return re.match(worker_name_regex, filename).group(1)
+def serialize_tf_device(device: str) -> str:
+    """
+    TF device strings have special characters that cannot be used in filenames.
+    This function is used to convert those special characters/
+    :param device:str
+    :return: device:str
+    """
+    # _replica-0_task-0_device-GPU-0 = /replica:0/task:0/device:GPU:0
+    device = device.replace("/", "_")
+    device = device.replace(":", "-")
+    return device
+
+
+def deserialize_tf_device(device_name: str) -> str:
+    """
+    This function converts filenames back into tf device strings
+    :param device_name: str
+    :return: device_name: str
+    """
+    # /replica:0/task:0/device:GPU:0 = _replica-0_task-0_device-GPU-0
+    device_name = device_name.replace("_", "/")
+    device_name = device_name.replace("-", ":")
+    return device_name
 
 
 def match_inc(tname, include):
@@ -161,7 +152,44 @@ def size_and_shape(t):
     return (t.nbytes, t.shape)
 
 
-def parse_worker_name_from_file(filename):
+def get_worker_name_from_collection_file(filename: str) -> str:
+    """
+    Extracts the worker name from the collection file.
+    Collection files can currently have two formats:
+        1. worker_0_collections.json
+        2. _job-worker_replica-0_task-1_device-GPU-0_collections.json
+    The leading underscore is used to indicate
+    a distributed TF job worker in MirroredStrategy that needs to be deserialized.
+    :param filename: str
+    :return: worker_name: str
+    """
+    worker_name_regex = re.compile("(.+)_collections.(json|ts)")
+    worker_name = re.match(worker_name_regex, filename).group(1)
+    if worker_name[0] == "_":
+        worker_name = deserialize_tf_device(worker_name)
+    return worker_name
+
+
+def parse_worker_name_from_file(filename: str) -> str:
+    """
+    Extracts the worker name from the index or event file.
+    Index / Event files can currently have two formats:
+        1. (path_prefix)/(step_prefix)_worker_0.json
+        2. (path_prefix)/(step_prefix)__replica-0_task-1_device-GPU-0.json
+    The double underscore after step prefix is used to indicate
+    a distributed TF job worker in MirroredStrategy that needs to be deserialized.
+    :param filename: str
+    :return: worker_name: str
+    """
     # worker_2 = /tmp/ts-logs/index/000000001/000000001230_worker_2.json
     worker_name_regex = re.compile(".+\/\d+_(.+)\.(json|csv|tfevents)$")
-    return re.match(worker_name_regex, filename).group(1)
+    worker_name = re.match(worker_name_regex, filename).group(1)
+    if "__" in filename:
+        # /replica:0/task:0/device:GPU:0 = replica-0_task-0_device-GPU-0.json
+        worker_name = deserialize_tf_device(worker_name)
+    return worker_name
+
+
+def get_tb_worker():
+    """Generates a unique string to be used as a worker name for tensorboard writers"""
+    return f"{os.getpid()}_{socket.gethostname()}"

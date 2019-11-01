@@ -77,7 +77,7 @@ class LocalIndexReader:
     @staticmethod
     def get_disk_responses(
         path, start_after_key=0, range_steps=None
-    ) -> Tuple[List[bytes], List[int], int]:
+    ) -> Tuple[List[bytes], List[int], int, List[str]]:
         """Read files like `trial_{datetime}/index/000/{step}_{worker}.json.
 
         Returns:

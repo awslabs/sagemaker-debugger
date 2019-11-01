@@ -5,6 +5,7 @@ from tornasole.core.access_layer.file import (
     SAGEMAKER_TEMP_PATH_SUFFIX,
     NON_SAGEMAKER_TEMP_PATH_PREFIX,
 )
+from tornasole.core.access_layer.utils import training_has_ended
 import os
 import uuid
 
@@ -15,6 +16,7 @@ def test_outdir_non_sagemaker():
     out_dir = verify_and_get_out_dir(path)
     assert out_dir == path
     os.makedirs(path)
+    training_has_ended(path)
     try:
         verify_and_get_out_dir(path)
         # should raise exception as dir present
@@ -47,3 +49,13 @@ def test_temp_paths():
         tp = get_temp_path(path)
         assert not SAGEMAKER_TEMP_PATH_SUFFIX in tp
         assert tp.startswith(NON_SAGEMAKER_TEMP_PATH_PREFIX)
+
+
+def test_s3_path_that_exists_without_end_of_job():
+    path = "s3://tornasole-testing/s3-path-without-end-of-job"
+    verify_and_get_out_dir(path)
+    try:
+        verify_and_get_out_dir(path)
+        # should not raise as dir present but does not have the end of job file
+    except RuntimeError as e:
+        assert False

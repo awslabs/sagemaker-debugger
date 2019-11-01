@@ -54,10 +54,9 @@ class TornasoleHook(CallbackHook):
 
         self.model = None
         self.exported_model = False
-
         self.has_registered_module = False
         self.has_registered_loss_module = False
-
+        self.worker = self.get_worker_name()
         set_hook(self)
 
     def get_num_workers(self):

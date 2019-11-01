@@ -1,6 +1,7 @@
 import pytest
 
-from tornasole.core.utils import is_s3, check_dir_exists
+from tornasole.core.utils import is_s3
+from tornasole.core.access_layer import check_dir_exists
 from tornasole.core.json_config import (
     DEFAULT_SAGEMAKER_TORNASOLE_PATH,
     collect_tornasole_config_params,

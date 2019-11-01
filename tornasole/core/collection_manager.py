@@ -17,8 +17,7 @@ class CollectionManager:
         if collections is None:
             collections = {}
         self.collections = collections
-        self._meta = {}
-        self._meta["num_workers"] = 1
+        self._meta = {"num_workers": 1}
 
     def create_collection(self, name, cls=Collection):
         if name not in self.collections:

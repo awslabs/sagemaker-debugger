@@ -42,8 +42,8 @@ class FileWriter:
     def __init__(
         self,
         trial_dir,
+        worker,
         step=0,
-        worker=None,
         wtype="events",
         mode=ModeKeys.GLOBAL,
         max_queue=10,
@@ -58,10 +58,10 @@ class FileWriter:
         ----------
             trial_dir : str
                 Directory where event file will be written.
-            step: int
-                Global step number
             worker: str
                 Worker name
+            step: int
+                Global step number
             wtype: str
                 Used to denote what sort of data we are writing
             max_queue : int
@@ -75,8 +75,7 @@ class FileWriter:
         self.step = step
         self.worker = worker
         if worker is None:
-            self.worker = socket.gethostname()
-
+            assert False, "Worker should not be none. Check worker name initialization"
         self.mode = mode
         if wtype == "events":
             el = TensorFileLocation(step_num=self.step, worker_name=self.worker)

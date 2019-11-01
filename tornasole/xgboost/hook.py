@@ -10,7 +10,10 @@ from tornasole.core.save_config import SaveConfig
 from tornasole.core.hook import CallbackHook
 from tornasole.core.tfevent.util import make_numpy_array
 from tornasole.core.access_layer.utils import training_has_ended
-from tornasole.core.json_config import create_hook_from_json_config
+from tornasole.core.json_config import (
+    create_hook_from_json_config,
+    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
+)
 from tornasole.xgboost.singleton_utils import set_hook
 
 
@@ -95,6 +98,7 @@ class TornasoleHook(CallbackHook):
         self.train_data = self._validate_data(train_data)
         self.validation_data = self._validate_data(validation_data)
         # as we do cleanup ourselves at end of job
+        self.worker = self.get_worker_name()
         atexit.unregister(self._cleanup)
         set_hook(self)
 

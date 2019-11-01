@@ -53,7 +53,7 @@ class TornasoleHook(CallbackHook):
         self.exported_model = False
         # Keep the set of blocks to which this hook is registered. The blocks include loss blocks as well.
         self.registered_blocks = set()
-
+        self.worker = self.get_worker_name()
         set_hook(self)
 
     def get_worker_name(self):
