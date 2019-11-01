@@ -4,12 +4,12 @@ from tornasole.core.collection_manager import CollectionManager as BaseCollectio
 
 
 class Collection(BaseCollection):
-    def add_block_tensors(self, block, inputs=False, outputs=False):
+    def add_block_tensors(self, block, inputs=False, outputs=True):
         if inputs:
             input_tensor_regex = block.name + "_input_*"
             self.include(input_tensor_regex)
         if outputs:
-            output_tensor_regex = block.name + "_output"
+            output_tensor_regex = block.name + "_output_*"
             self.include(output_tensor_regex)
 
 

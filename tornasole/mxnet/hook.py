@@ -5,7 +5,7 @@ from tornasole.core.json_config import (
     TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
     create_hook_from_json_config,
 )
-from tornasole.mxnet.mxnet_collection import get_collection_manager
+from tornasole.mxnet.collection import get_collection_manager
 from tornasole.mxnet.singleton_utils import set_hook
 from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
 from tornasole.mxnet.graph import _net2pb

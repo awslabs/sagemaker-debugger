@@ -133,6 +133,16 @@ class TornasoleHook(CallbackHook):
                     f"due to the pytorch exception: {e}"
                 )
 
+    def _prepare_collections(self):
+        super()._prepare_collections()
+        for coll in self.collection_manager.collections.values():
+            for m, (include_inputs, include_outputs) in coll.modules.items():
+                module_name = self.module_maps[m]
+                if include_inputs:
+                    coll.include(module_name + "_input_")
+                if include_outputs:
+                    coll.include(module_name + "_output_")
+
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
         # Write the gradients of the past step if the writer is still available.
@@ -190,7 +200,7 @@ class TornasoleHook(CallbackHook):
         def back(grad):
             if self._get_collections_to_save_for_step():
                 if grad is not None:
-                    self.logger.debug(f"Processing the backward step " f"{self.step} for {tname}")
+                    # self.logger.debug(f"Processing the backward step " f"{self.step} for {tname}")
                     self._save_for_tensor(self.GRADIENT_PREFIX + tname, grad)
 
         return back

@@ -4,13 +4,27 @@ from tornasole.core.collection_manager import CollectionManager as BaseCollectio
 
 
 class Collection(BaseCollection):
-    def add_module_tensors(self, module, inputs=False, outputs=False):
-        if inputs:
-            input_tensor_regex = module._get_name() + "_input_*"
-            self.include(input_tensor_regex)
-        if outputs:
-            output_tensor_regex = module._get_name() + "_output"
-            self.include(output_tensor_regex)
+    def __init__(
+        self,
+        name,
+        include_regex=None,
+        tensor_names=None,
+        reduction_config=None,
+        save_config=None,
+        save_histogram=True,
+    ):
+        super().__init__(
+            name, include_regex, tensor_names, reduction_config, save_config, save_histogram
+        )
+        # Mapping from module to a tuple of booleans (include_inputs, include_outputs)
+        self._modules = {}
+
+    def add_module_tensors(self, module, inputs=False, outputs=True):
+        self._modules[module] = (inputs, outputs)
+
+    @property
+    def modules(self):
+        return self._modules
 
 
 class CollectionManager(BaseCollectionManager):

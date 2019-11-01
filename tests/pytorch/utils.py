@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from tornasole import modes
+from tornasole.pytorch import get_collection
 
 
 class Net(nn.Module):
@@ -13,7 +14,9 @@ class Net(nn.Module):
         self.add_module("relu0", nn.ReLU())
         self.add_module("max_pool", nn.MaxPool2d(2, stride=2))
         self.add_module("conv2", nn.Conv2d(20, 50, 5, 1))
-        self.add_module("relu1", nn.ReLU())
+        relu_module = nn.ReLU()
+        self.add_module("relu1", relu_module)
+        get_collection("relu_activations").add_module_tensors(relu_module)
         self.add_module("max_pool2", nn.MaxPool2d(2, stride=2))
         self.add_module("fc1", nn.Linear(4 * 4 * 50, 500))
         self.add_module("relu2", nn.ReLU())

@@ -106,9 +106,7 @@ The following methods can be called on a collection object.
 | ```coll.include_regex```  | Gets include_regex for the collection  |
 | ```coll.save_config```  | Get or set save config for the collection. You can either pass a SaveConfig instance or a dictionary from mode to SaveConfigMode |
 | ```coll.reduction_config```  | Get or set reduction config for the collection  |
-| ```coll.add_module_tensors(module, input=False, output=False)```  | Takes an instance of a module, along with input and output flags. Users can use this Collection to log input/output tensors for a specific module  |
-
-
+| ```coll.add_module_tensors(module, inputs=False, outputs=True)```  | Takes an instance of a module, along with inputs and outputs flags. Users can use this Collection to log input/output tensors for a specific module. By default if you use this method, outputs of the module will be saved. |
 
 
 ### SaveConfig

@@ -4,7 +4,7 @@ from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_N
 from tornasole.core.reduction_config import ReductionConfig
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.modes import ModeKeys
-from tornasole.pytorch.hook import TornasoleHook
+from tornasole.mxnet.hook import TornasoleHook
 import datetime
 
 

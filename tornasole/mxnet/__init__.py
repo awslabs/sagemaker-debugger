@@ -1,6 +1,6 @@
 from .hook import TornasoleHook
-from .mxnet_collection import Collection, CollectionManager
-from .mxnet_collection import (
+from .collection import Collection, CollectionManager
+from .collection import (
     get_collections,
     get_collection,
     get_collection_manager,
