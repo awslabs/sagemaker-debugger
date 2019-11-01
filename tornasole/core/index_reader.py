@@ -14,7 +14,7 @@ from tornasole.core.utils import (
 from tornasole.core.logger import get_logger
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.modes import ModeKeys
-from tornasole.exceptions import IndexReaderException
+from tornasole.exceptions import IndexReaderException, TensorUnavailable, TensorUnavailableForStep
 
 
 """
@@ -110,16 +110,30 @@ class IndexReader:
         start = tensor_location.start_idx
         length = tensor_location.length
         s3, bucket_name, prefix_name = is_s3(event_file_name)
+        res = []
+        num_retries = 5
         if s3:
-            request = [ReadObjectRequest(event_file_name, int(start), int(length))]
-            s3_handler = S3Handler()
-            res = s3_handler.get_objects(request)
+            while not bool(res) and num_retries > 0:
+                request = [ReadObjectRequest(event_file_name, int(start), int(length))]
+                s3_handler = S3Handler()
+                res = s3_handler.get_objects(request)
+                num_retries -= 1
         else:
-            with open(event_file_name, "rb") as event_file:
-                event_file.seek(start)
-                tensor_object = event_file.read(length)
+            tensor_object = None
+            while not bool(tensor_object) and num_retries > 0:
+                try:
+                    with open(event_file_name, "rb") as event_file:
+                        event_file.seek(start)
+                        tensor_object = event_file.read(length)
+                except EnvironmentError:  # parent of IOError, OSError
+                    num_retries -= 1
             res = [tensor_object]
-
+        if res[0] is None:
+            raise TensorUnavailableForStep(
+                tname=tensor_location.tensorname,
+                mode=tensor_location.mode,
+                step=tensor_location.mode_step,
+            )
         tr = TensorReader(res[0])  # Access the only element in res
         tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
