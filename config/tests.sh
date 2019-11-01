@@ -19,7 +19,6 @@ run_for_framework() {
 
 export TF_CPP_MIN_LOG_LEVEL=1
 export TORNASOLE_LOG_LEVEL=debug
-export TORNASOLE_CONFIG_MAX_WAIT_STEPS=10
 #export BLOCK_STDOUT=TRUE
 #export BLOCK_STDERR=FALSE
 

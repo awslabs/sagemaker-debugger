@@ -5,9 +5,7 @@ from tornasole.core.json_config import (
     DEFAULT_SAGEMAKER_TORNASOLE_PATH,
     collect_tornasole_config_params,
 )
-from tornasole.core.locations import IndexFileLocationUtils
 from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.index_reader import IndexFilesCache
 
 
 def test_normal():
@@ -66,40 +64,6 @@ def test_check_dir_exists_no():
         assert False
     except Exception as e:
         pass
-
-
-def test_index_files_cache():
-    """
-    Test to verify that the index file cache is behaving as it should.
-        1. The cache should not save elements already present
-        2. The cache should remove its old elements when it attempts to save more elements
-        that its set limit.
-    """
-    index_file_cache = IndexFilesCache()
-    index_file_cache.cache_limit = 2  # override cache limit
-    index_file_cache.add("file_1")
-    index_file_cache.add("file_1")
-    assert len(index_file_cache.lookup_set) == 1
-    assert index_file_cache.has_not_read("file_1") is False
-    assert index_file_cache.has_not_read("file_2") is True
-    index_file_cache.add("file_2")
-    index_file_cache.add("file_3")
-    index_file_cache.add("file_4")  # cache should reset
-    assert len(index_file_cache.lookup_set) == 2
-
-
-def test_get_prefix_from_index_file():
-    local_index_filepath = (
-        "/opt/ml/tornasole-testing/run_1/index/000000000/000000000000_worker_0.json"
-    )
-    prefix = IndexFileLocationUtils.get_prefix_from_index_file(local_index_filepath)
-
-    assert prefix == "/opt/ml/tornasole-testing/run_1"
-
-    s3_index_filepath = "s3://tornasole-testing/run_1/index/000000000/000000000000_worker_0.json"
-    prefix = IndexFileLocationUtils.get_prefix_from_index_file(s3_index_filepath)
-
-    assert prefix == "s3://tornasole-testing/run_1"
 
 
 @pytest.mark.skip(reason="If no config file is found, then SM doesn't want a TornasoleHook")

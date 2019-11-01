@@ -1,12 +1,10 @@
 import numpy as np
 import os
 import json
-from bisect import bisect_left
 from typing import Any, Dict, List, Tuple
 from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
 from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
-from tornasole.core.config_constants import TORNASOLE_CONFIG_MAX_WAIT_STEPS
 from tornasole.core.utils import (
     is_s3,
     list_files_in_directory,
@@ -36,54 +34,29 @@ It currently exposes two functions:
 logger = get_logger()
 
 
-class IndexFilesCache:
-    """
-    Simple lookup cache to prevent repeated reads of index files.
-    The file cache currently empties itself when it has saved the
-    max number of filenames it can save
-    """
-
-    def __init__(self):
-        self.lookup_set = set()
-        self.cache_limit = TORNASOLE_CONFIG_MAX_WAIT_STEPS
-
-    def has_not_read(self, index_file: str) -> bool:
-        return index_file not in self.lookup_set
-
-    def add(self, index_file: str) -> None:
-        if len(self.lookup_set) == self.cache_limit:
-            self.lookup_set.pop()
-        self.lookup_set.add(index_file)
-
-
-index_file_cache = IndexFilesCache()
-
-
 class S3IndexReader:
     @staticmethod
     def get_s3_responses(bucket_name, prefix_name, start_after_key, range_steps=None):
         object_requests = []
         steps = []
         workers = []
-        index_files, start_after_key = S3IndexReader.list_all_index_files_from_s3(
+        index_files, last_index_token = S3IndexReader.list_all_index_files_from_s3(
             bucket_name, prefix_name, start_after_key
         )
-        logger.debug(f'Loaded Index Files: {",".join(index_files)}')
+        logger.debug(",".join(index_files))
         for index_file in index_files:
-            if index_file_cache.has_not_read(index_file):
-                step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
-                if (
-                    range_steps is not None and step_in_range(range_steps, step)
-                ) or range_steps is None:
-                    steps.append(step)
-                    workers.append(parse_worker_name_from_file(index_file))
-                    object_requests.append(
-                        ReadObjectRequest(format(f"s3://{bucket_name}/") + index_file)
-                    )
-                index_file_cache.add(index_file)
+            step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
+            if (
+                range_steps is not None and step_in_range(range_steps, step)
+            ) or range_steps is None:
+                steps.append(step)
+                workers.append(parse_worker_name_from_file(index_file))
+                object_requests.append(
+                    ReadObjectRequest(format(f"s3://{bucket_name}/") + index_file)
+                )
 
         responses = S3Handler().get_objects(object_requests)
-        return responses, steps, start_after_key, workers
+        return responses, steps, last_index_token, workers
 
     @staticmethod
     def list_all_index_files_from_s3(bucket_name, prefix_name, start_after_key=None):
@@ -103,8 +76,8 @@ class LocalIndexReader:
 
     @staticmethod
     def get_disk_responses(
-        path, start_after_key, range_steps=None
-    ) -> Tuple[List[bytes], List[int], str, List[int]]:
+        path, start_after_key=0, range_steps=None
+    ) -> Tuple[List[bytes], List[int], int]:
         """Read files like `trial_{datetime}/index/000/{step}_{worker}.json.
 
         Returns:
@@ -116,24 +89,17 @@ class LocalIndexReader:
         steps = []
         workers = []
         responses = []
-        if start_after_key is not None:
-            start_after_index = bisect_left(index_files, start_after_key)
-        else:
-            start_after_index = 0
-        index_files = index_files[start_after_index:]  # ignore files we have already read
+        index_files = index_files[start_after_key:]  # ignore files we have already read
         for index_file in index_files:
-            if index_file_cache.has_not_read(index_file):
-                step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
-                if (
-                    range_steps is not None and step_in_range(range_steps, step)
-                ) or range_steps is None:
-                    steps.append(step)
-                    workers.append(parse_worker_name_from_file(index_file))
-                    with open(index_file) as f:
-                        responses.append(f.read().encode())
-                index_file_cache.add(index_file)
-        if len(index_files) > 0:
-            start_after_key = index_files[-1]  # Last file that we have read
+            step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
+            if (
+                range_steps is not None and step_in_range(range_steps, step)
+            ) or range_steps is None:
+                steps.append(step)
+                workers.append(parse_worker_name_from_file(index_file))
+                with open(index_file) as f:
+                    responses.append(f.read().encode())
+        start_after_key += len(index_files)  # Last file that we have read
         return responses, steps, start_after_key, workers
 
 
