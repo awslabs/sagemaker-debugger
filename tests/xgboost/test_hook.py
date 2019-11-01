@@ -69,20 +69,24 @@ def test_hook_save_all(tmpdir):
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
+    collections = trial.collections()
     tensors = trial.tensors()
     assert len(tensors) > 0
     assert len(trial.available_steps()) == 4
-    assert "metrics" in trial.collections()
-    assert "feature_importance" in trial.collections()
+    assert "all" in collections
+    assert "metrics" in collections
+    assert "feature_importance" in collections
     assert "train-rmse" in tensors
     assert any(t.endswith("/feature_importance") for t in tensors)
+    assert any(t.startswith("trees/") for t in tensors)
+    assert len(collections["all"].tensor_names) == len(tensors)
 
 
 @pytest.mark.slow  # 0:05 to run
 def test_hook_save_config_collections(tmpdir):
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
-    hook = TornasoleHook(out_dir=out_dir)
+    hook = TornasoleHook(out_dir=out_dir, include_collections=["metrics", "feature_importance"])
 
     get_collection("metrics").save_config = SaveConfig(save_interval=2)
     get_collection("feature_importance").save_config = SaveConfig(save_interval=3)
@@ -100,19 +104,20 @@ def test_hook_save_config_collections(tmpdir):
 @pytest.mark.slow  # 0:05 to run
 def test_hook_shap(tmpdir):
     np.random.seed(42)
-    train_data = np.random.rand(5, 10)
-    train_label = np.random.randint(2, size=5)
+    train_data = np.random.rand(10, 10)
+    train_label = np.random.randint(2, size=10)
     dtrain = xgboost.DMatrix(train_data, label=train_label)
 
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
-    hook = TornasoleHook(out_dir=out_dir, train_data=dtrain)
+    hook = TornasoleHook(out_dir=out_dir, include_collections=["average_shap"], train_data=dtrain)
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
     tensors = trial.tensors()
     assert len(tensors) > 0
     assert "average_shap" in trial.collections()
+    assert any(t.endswith("/average_shap") for t in tensors)
 
 
 @pytest.mark.slow  # 0:05 to run
@@ -127,7 +132,12 @@ def test_hook_validation(tmpdir):
 
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
-    hook = TornasoleHook(out_dir=out_dir, train_data=dtrain, validation_data=dvalid)
+    hook = TornasoleHook(
+        out_dir=out_dir,
+        include_collections=["labels", "predictions"],
+        train_data=dtrain,
+        validation_data=dvalid,
+    )
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
@@ -151,7 +161,7 @@ def test_hook_tree_model(tmpdir):
 
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
-    hook = TornasoleHook(out_dir=out_dir)
+    hook = TornasoleHook(out_dir=out_dir, include_collections=["trees"])
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
@@ -175,7 +185,9 @@ def test_hook_params(tmpdir):
 
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
-    hook = TornasoleHook(out_dir=out_dir, hyperparameters=params)
+    hook = TornasoleHook(
+        out_dir=out_dir, include_collections=["hyperparameters"], hyperparameters=params
+    )
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)

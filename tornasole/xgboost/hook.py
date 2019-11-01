@@ -2,6 +2,7 @@ import atexit
 import os
 from typing import Optional, List, Union, Tuple, Dict, Any
 import numpy as np
+import xgboost as xgb
 from xgboost import DMatrix
 from xgboost.core import CallbackEnv
 from tornasole.core.collection import Collection, CollectionKeys
@@ -17,15 +18,9 @@ from .collection import get_collection_manager
 from .utils import validate_data_file_path, get_content_type, get_dmatrix, parse_tree_model
 
 
-DEFAULT_INCLUDE_COLLECTIONS = [
-    CollectionKeys.HYPERPARAMETERS,
-    CollectionKeys.METRICS,
-    CollectionKeys.PREDICTIONS,
-    CollectionKeys.LABELS,
-    CollectionKeys.FEATURE_IMPORTANCE,
-    CollectionKeys.AVERAGE_SHAP,
-    CollectionKeys.TREES,
-]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.METRICS]
+
+DEFAULT_SAVE_CONFIG_INTERVAL = 10
 
 
 class TornasoleHook(CallbackHook):
@@ -59,7 +54,6 @@ class TornasoleHook(CallbackHook):
         out_dir: A path into which tornasole outputs will be written.
         dry_run: When dry_run is True, behavior is only described in the log
             file, and evaluations are not actually saved.
-        worker: name of worker in distributed setting.
         reduction_config: This parameter is not used.
             Placeholder to keep the API consistent with other hooks.
         save_config: A tornasole_core.SaveConfig object.
@@ -80,6 +74,8 @@ class TornasoleHook(CallbackHook):
             train_data = xgboost.DMatrix('train.svm.txt')
         validation_data: Same as train_data, but for validation data.
         """  # noqa: E501
+        if save_config is None:
+            save_config = SaveConfig(save_interval=DEFAULT_SAVE_CONFIG_INTERVAL)
         super().__init__(
             collection_manager=get_collection_manager(),
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
@@ -106,12 +102,10 @@ class TornasoleHook(CallbackHook):
         self._callback(env)
 
     def get_num_workers(self):
-        # TODO :
-        return 1
+        return xgb.rabit.get_world_size()
 
     def get_worker_name(self):
-        # TODO :
-        pass
+        return "worker_{}".format(xgb.rabit.get_rank())
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):
@@ -128,7 +122,8 @@ class TornasoleHook(CallbackHook):
         return env.iteration + 1 == env.end_iteration
 
     def _is_collection_being_saved_for_step(self, name):
-        return self.collection_manager.get(name) in self._get_collections_to_save_for_step()
+        collections = [self.collection_manager.get("all"), self.collection_manager.get(name)]
+        return any(c in self._get_collections_to_save_for_step() for c in collections)
 
     def _increment_step(self, iteration):
         self.step = self.mode_steps[self.mode] = iteration
@@ -156,9 +151,6 @@ class TornasoleHook(CallbackHook):
         if not self._is_last_step(env) and not self._get_collections_to_save_for_step():
             self.logger.debug("Skipping iteration {}".format(self.step))
             return
-
-        if env.rank > 0:
-            self.worker = "worker_{}".format(env.rank)
 
         self._initialize_writer()
 
