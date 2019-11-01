@@ -59,7 +59,6 @@ def test_default_hook(monkeypatch):
     assert hook.out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
 
-@pytest.mark.slow  # 0:05 to run
 def test_hook_save_all(tmpdir):
     reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
@@ -82,7 +81,6 @@ def test_hook_save_all(tmpdir):
     assert len(collections["all"].tensor_names) == len(tensors)
 
 
-@pytest.mark.slow  # 0:05 to run
 def test_hook_save_config_collections(tmpdir):
     reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
@@ -101,7 +99,6 @@ def test_hook_save_config_collections(tmpdir):
     assert all(step % 3 == 0 for step in fimp_steps[:-1])
 
 
-@pytest.mark.slow  # 0:05 to run
 def test_hook_shap(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(10, 10)
@@ -120,7 +117,6 @@ def test_hook_shap(tmpdir):
     assert any(t.endswith("/average_shap") for t in tensors)
 
 
-@pytest.mark.slow  # 0:05 to run
 def test_hook_validation(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(5, 10)
@@ -149,7 +145,6 @@ def test_hook_validation(tmpdir):
     assert "predictions" in tensors
 
 
-@pytest.mark.slow  # 0:05 to run
 def test_hook_tree_model(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(5, 10)
@@ -172,7 +167,6 @@ def test_hook_tree_model(tmpdir):
         assert "trees/{}".format(col) in tensors
 
 
-@pytest.mark.slow  # 0:05 to run
 def test_hook_params(tmpdir):
     np.random.seed(42)
     train_data = np.random.rand(5, 10)

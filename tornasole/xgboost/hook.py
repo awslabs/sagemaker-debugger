@@ -1,4 +1,3 @@
-import atexit
 import os
 from typing import Optional, List, Union, Tuple, Dict, Any
 import numpy as np
@@ -97,9 +96,7 @@ class TornasoleHook(CallbackHook):
         self.hyperparameters = hyperparameters
         self.train_data = self._validate_data(train_data)
         self.validation_data = self._validate_data(validation_data)
-        # as we do cleanup ourselves at end of job
         self.worker = self.get_worker_name()
-        atexit.unregister(self._cleanup)
         set_hook(self)
 
     def __call__(self, env: CallbackEnv) -> None:
@@ -113,16 +110,23 @@ class TornasoleHook(CallbackHook):
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):
+        """Relies on the existence of a JSON file.
+
+        First, check json_config_path. If it's not None,
+            If the file exists, use that.
+            If the file does not exist, throw an error.
+        Otherwise, check the filepath set by a SageMaker environment variable.
+            If the file exists, use that.
+        Otherwise,
+            return None.
+        """
         return create_hook_from_json_config(
             cls, get_collection_manager(), json_config_path=json_config_path
         )
 
-    def _cleanup(self):
-        # todo: this second export should go
-        self.export_collections()
-        training_has_ended(self.out_dir)
-
     def _is_last_step(self, env: CallbackEnv) -> bool:
+        # env.iteration: current boosting round.
+        # env.end_iteration: round # when training will end. this is always num_round + 1.  # noqa: E501
         return env.iteration + 1 == env.end_iteration
 
     def _is_collection_being_saved_for_step(self, name):
@@ -134,11 +138,9 @@ class TornasoleHook(CallbackHook):
         self._collections_to_save_for_step = None
 
     def _callback(self, env: CallbackEnv) -> None:
-        # env.rank: rabit rank of the node/process. master node has rank 0.
-        # env.iteration: current boosting round.
-        # env.begin_iteration: round # when training started. this is always 0.
-        # env.end_iteration: round # when training will end. this is always num_round + 1.  # noqa: E501
-        # env.model: model object.
+        # Write the tensors from the previous step if the write is still available.
+        self._close_writer()
+
         if not self.prepared_collections:
             # at this point we need all collections to be ready
             # this may not be the case at creation of hook
@@ -146,13 +148,13 @@ class TornasoleHook(CallbackHook):
             self._prepare_collections()
             self.prepared_collections = True
 
-        if not self.exported_collections:
+        self._increment_step(env.iteration)
+
+        if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
             self.exported_collections = True
 
-        self._increment_step(env.iteration)
-
-        if not self._is_last_step(env) and not self._get_collections_to_save_for_step():
+        if not self._get_collections_to_save_for_step():
             self.logger.debug("Skipping iteration {}".format(self.step))
             return
 
@@ -179,12 +181,7 @@ class TornasoleHook(CallbackHook):
         if self._is_collection_being_saved_for_step(CollectionKeys.TREES):
             self.write_tree_model(env)
 
-        if not self._is_last_step(env):
-            self._close_writer()
-
-        if self._is_last_step(env):
-            self._cleanup()
-
+        self.last_saved_step = self.step
         self.logger.info("Saved iteration {}.".format(self.step))
 
     def write_hyperparameters(self, env: CallbackEnv):
@@ -251,7 +248,7 @@ class TornasoleHook(CallbackHook):
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
-        raise NotImplementedError("Reductions are not support by XGBoost hook")
+        raise NotImplementedError("Reductions are not supported by XGBoost hook")
 
     @staticmethod
     def _make_numpy_array(tensor_value):
