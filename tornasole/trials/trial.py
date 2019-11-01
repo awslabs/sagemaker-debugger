@@ -18,8 +18,9 @@ from tornasole.core.s3_utils import list_s3_objects, parse_collection_files_from
 from tornasole.core.logger import get_logger
 from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys
-from tornasole.core.locations import TensorLocation
+from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
 from tornasole.core import index_reader
+from tornasole.core.config_constants import TORNASOLE_CONFIG_MAX_WAIT_STEPS
 
 
 class EventFileTensor:
@@ -76,10 +77,12 @@ class Trial(ABC):
         self.index_tensors_dict = {}
         self.index_mode = index_mode
         self.last_event_token = None
-        self.last_index_token = 0
+        self.last_index_token = None
         self.index_reader = index_reader.IndexReader
         self.worker_set = set()
         self.num_workers = 0
+        self.num_workers_for_step = {}
+        self.last_complete_step = -1
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
@@ -165,7 +168,7 @@ class Trial(ABC):
             return
         retry_count = 1
         training_ended = has_training_ended(self.path)
-        if training_ended and self.loaded_all_steps == False:
+        if training_ended and self.loaded_all_steps is False:
             retry_count = 2
         while retry_count > 0:
             if name is None:
@@ -179,6 +182,10 @@ class Trial(ABC):
         if training_ended is True and self.loaded_all_steps is False:
             self.loaded_all_steps = True
             self.logger.info("Marked loaded all steps to True")
+            self.logger.debug(
+                f"Training Has Ended : last_complete_step was: {self.last_complete_step}"
+            )
+            self.logger.debug(f"Training Has Ended : last_index_token was: {self.last_index_token}")
 
     def refresh_tensor(self, tname, steps=None):
         # for now we load all tensors at once
@@ -207,6 +214,26 @@ class Trial(ABC):
         if step_num not in self._global_to_mode:
             self._global_to_mode[step_num] = (tensor_object.mode, tensor_object.mode_step)
 
+    def _populate_num_workers_for_step(self, step, worker) -> None:
+        """
+        The self.num_workers_for_step dictionary holds a mapping of
+        step number and a set of all the workers that have written the step.
+
+        This function is used to add a worker to that set. To mark that a particular worker
+        has finished writing the step.
+        :param step:
+        :param worker:
+        :return: None
+        """
+        if step not in self.num_workers_for_step:
+            self.num_workers_for_step[step] = set()
+        self.num_workers_for_step[step].add(worker)
+        if (
+            len(self.num_workers_for_step[step]) == self.num_workers
+            and step > self.last_complete_step
+        ):
+            self.last_complete_step = step
+
     def add_tensor(self, step_num, worker, tensor_object):
         to = tensor_object
         # todo, use worker_name here
@@ -219,6 +246,7 @@ class Trial(ABC):
             self._tensors[tname] = t
         t = self._tensors[tname]
         self._populate_step_dict(to, step_num)
+        self._populate_num_workers_for_step(step_num, worker)
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
             if type(to) is TensorLocation:
                 t.add_reduction_step_lazy(to.mode, to.mode_step, worker, red_name, abs, to)
@@ -342,14 +370,53 @@ class Trial(ABC):
                         raise NoMoreData(step, mode, last_step)
                     time.sleep(5)
 
-    def has_passed_step(self, step, mode=ModeKeys.GLOBAL):
+    def has_passed_step(self, step, mode=ModeKeys.GLOBAL) -> StepState:
+        """
+        This function indicates whether a step is complete (AVAILABLE),
+        incomplete ( NOT_YET_AVAILABLE ) or absent ( UNAVAILABLE ).
+
+        Overview of logic:
+
+            1. if the queried step is greater than all the available steps (complete / incomplete):
+                if job is not complete:
+                    return StepState.NOT_YET_AVAILABLE
+                else:
+                    return StepState.UNAVAILABLE
+            2. if the queried step is less or equal to a step in available steps (complete / incomplete):
+                if the queried step is less than all the available steps:
+                    if single_worker:
+                        return UNAVAILABLE ( step has been skipped or will not written)
+                    else:
+                        return NOT_YET_AVAILABLE
+            3. queried step is available:
+                if all workers have written the step or job is complete
+                or last_complete_step > step ( this can happen if we chosen to not wait for the step to complete)
+                    return AVAILABLE
+                else:
+                     return NOT_YET_AVAILABLE
+        :param step:
+        :param mode:
+        :return: StepState
+        """
         available_steps = self.available_steps(mode=mode)
         bisect_idx = bisect_left(available_steps, step)
         if bisect_idx < len(available_steps):
             if available_steps[bisect_idx] > step:
-                return StepState.UNAVAILABLE
+                if self.num_workers == 1:
+                    return StepState.UNAVAILABLE
+                else:
+                    return StepState.NOT_YET_AVAILABLE
             elif available_steps[bisect_idx] == step:
-                return StepState.AVAILABLE
+                if len(self.num_workers_for_step[step]) == self.num_workers:
+                    return StepState.AVAILABLE
+                elif self.loaded_all_steps is True:
+                    return StepState.AVAILABLE
+                elif step <= self.last_complete_step:
+                    return StepState.AVAILABLE
+                else:
+                    return StepState.NOT_YET_AVAILABLE
+        if self.loaded_all_steps is True:
+            return StepState.UNAVAILABLE
         return StepState.NOT_YET_AVAILABLE
 
     def _add_tensors_at_steps(self, event_file_tensors):
@@ -362,20 +429,73 @@ class Trial(ABC):
         else:
             self._load_tensors_from_event_files()
 
+    def _update_last_index_token(self, new_index_token):
+        """
+        This function updates the last_index_token in the following scenarios:
+            1. last_complete_step > last_index_token_step :
+                this means that the token isn't pointing to the latest completed step
+            2. number of steps available ( complete or incomplete ) - (last_completed_step+1) > window_size_limit:
+                we maintain a window to stop querying for older steps that have not completed.
+                if the total number of steps, we are querying for completion is greater than our window_size_limit
+                we update the last_index_token and last_complete_step by (window_size_limit // 2)
+        :param new_index_token:
+        :return:None
+        """
+        if self.last_index_token is None:
+            last_index_token_step = 0
+        else:
+            last_index_token_step = IndexFileLocationUtils.parse_step_from_index_file_name(
+                self.last_index_token
+            )
+
+        # Case 1:
+        if self.last_complete_step > last_index_token_step:
+            prefix = IndexFileLocationUtils.get_prefix_from_index_file(new_index_token)
+            last_worker = sorted(list(self.worker_set))[
+                -1
+            ]  # sort lexicographically and select the last worker
+            self.last_index_token = IndexFileLocationUtils.get_index_key_for_step(
+                prefix, self.last_complete_step, last_worker
+            )
+
+        # Case 2:
+        available_step = self._global_to_mode.keys()
+        if len(available_step) - (self.last_complete_step + 1) > TORNASOLE_CONFIG_MAX_WAIT_STEPS:
+            prefix = IndexFileLocationUtils.get_prefix_from_index_file(new_index_token)
+            last_worker = sorted(list(self.worker_set))[-1]
+            self.last_index_token = IndexFileLocationUtils.get_index_key_for_step(
+                prefix,
+                self.last_complete_step + (TORNASOLE_CONFIG_MAX_WAIT_STEPS // 2),
+                last_worker,
+            )
+            self.last_complete_step = IndexFileLocationUtils.parse_step_from_index_file_name(
+                self.last_index_token
+            )
+            self.logger.info(
+                f"Waiting for: {len(available_step) - (self.last_complete_step + 1)} Steps. \n"
+                f"TORNASOLE_CONFIG_MAX_WAIT_STEPS: {TORNASOLE_CONFIG_MAX_WAIT_STEPS}. \n"
+                f"Updating last_index_token to: {self.last_index_token}. \n"
+                f"Updating last_complete_step to: {self.last_complete_step}. "
+            )
+
     def _load_tensors_from_index_files(self):
-        self.index_tensors_dict, self.last_index_token = self.index_reader.load_tensor_data_from_index_files(
-            self.path, self.last_index_token, range_steps=self.range_steps
+        self.index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(
+            self.path, start_after_key=self.last_index_token, range_steps=self.range_steps
         )
         self._load_tensors_from_index_tensors(self.index_tensors_dict)
+        if new_index_token:  # new index token can be None if there are no new index files
+            self._update_last_index_token(new_index_token)
 
     def refresh_tensors(self):
         # TODO if job finished
         if self.index_mode:
-            index_tensors_dict, self.last_index_token = self.index_reader.load_tensor_data_from_index_files(
+            index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(
                 self.path, start_after_key=self.last_index_token, range_steps=self.range_steps
             )
             if len(index_tensors_dict):
                 self.index_tensors_dict.update(index_tensors_dict)
                 self._load_tensors_from_index_tensors(index_tensors_dict)
+            if new_index_token:  # new index token can be None if there are no new index files
+                self._update_last_index_token(new_index_token)
         else:
             self._load_tensors_from_event_files(start_after_key=self.last_event_token)
