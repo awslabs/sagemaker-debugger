@@ -50,7 +50,7 @@ def create_gluon_model():
     return net
 
 
-def train_model(batch_size, net, train_data, lr, hook):
+def train_model(batch_size, net, train_data, lr):
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
     trainer = gluon.Trainer(net.collect_params(), "sgd", {"learning_rate": lr})
     for epoch in range(1):
