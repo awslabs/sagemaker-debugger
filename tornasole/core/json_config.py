@@ -54,6 +54,10 @@ from tornasole.core.config_constants import (
     TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY,
     TORNASOLE_CONFIG_SAVE_CONFIGS_KEY,
     TORNASOLE_CONFIG_OUTDIR_KEY,
+    TORNASOLE_CONFIG_HOOK_PARAMS_KEY,
+    TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY,
+    TORNASOLE_CONFIG_COLLECTION_NAME_KEY,
+    TORNASOLE_CONFIG_COLLECTION_PARAMS_KEY,
     TORNASOLE_CONFIG_RDN_CFG_KEY,
     TORNASOLE_CONFIG_INCLUDE_REGEX_KEY,
     TORNASOLE_CONFIG_SAVE_ALL_KEY,
@@ -134,7 +138,9 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
     )
 
     # Get the main HookParameters; pass these as defaults
-    hook_params = params_dict.get("HookParameters", {})
+    hook_params = params_dict.get(TORNASOLE_CONFIG_HOOK_PARAMS_KEY, {})
+    # If we have {"HookParameters": null}, replace null with {}.
+    hook_params = {} if hook_params is None else hook_params
     base_config_modes = parse_save_config_modes_dict(params=hook_params)
     tornasole_params_dict["save_config_modes"] = base_config_modes
 
@@ -149,16 +155,22 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
         )
 
     # For each collection configuration, also create the reduction config and save config.
-    if "CollectionConfiguration" in params_dict:
+    if (
+        TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY in params_dict
+        and params_dict[TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY] is not None
+    ):
         tornasole_params_dict["collections"] = {}
-        for config in params_dict["CollectionConfiguration"]:
+        for config in params_dict[TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY]:
             # Require name and parameters for each collection.
-            if "CollectionName" not in config:
-                raise ValueError("Must specify 'CollectionName' in JSON config.")
+            if TORNASOLE_CONFIG_COLLECTION_NAME_KEY not in config:
+                raise ValueError(
+                    f"Must specify '{TORNASOLE_CONFIG_COLLECTION_NAME_KEY}' in JSON config."
+                )
 
-            name = config["CollectionName"]
-            coll_params = config.get("CollectionParameters", {})
-
+            name = config[TORNASOLE_CONFIG_COLLECTION_NAME_KEY]
+            coll_params = config.get(TORNASOLE_CONFIG_COLLECTION_PARAMS_KEY, {})
+            # If we have {"CollectionParameters": null}, replace null with {}.
+            coll_params = {} if coll_params is None else coll_params
             collection_manager.add(name)
             coll = collection_manager.get(name)
             coll_config_modes = parse_save_config_modes_dict(
