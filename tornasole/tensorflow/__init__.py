@@ -13,6 +13,7 @@ from .collection import (
 
 from .optimizer import TornasoleOptimizer
 from .singleton_utils import get_hook, set_hook
+from tornasole.trials import create_trial
 from tornasole import modes
 from tornasole.core.collection import CollectionKeys
 from tornasole import SaveConfig, SaveConfigMode, ReductionConfig

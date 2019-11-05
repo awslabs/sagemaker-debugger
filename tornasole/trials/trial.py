@@ -103,6 +103,17 @@ class Trial(ABC):
                     )
                 )
 
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__module__}.{self.__class__.__name__} object at {hex(id(self))}>:(\n"
+            f"    name={self.name},\n"
+            f"    path={self.path},\n"
+            f"    steps={self.available_steps()},\n"
+            f"    collections={list(self.collections().keys())},\n"
+            f"    tensors={self.tensors()},\n"
+            f")"
+        )
+
     @abstractmethod
     def read_collections(self, collection_files):
         pass

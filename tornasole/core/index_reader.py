@@ -164,8 +164,10 @@ class IndexReader:
 
     @staticmethod
     def _validate(index_dict):
-        if "meta" not in index_dict or len(index_dict["meta"]) == 0:
+        if "meta" not in index_dict:
             raise IndexReaderException("meta section is not present")
+        if len(index_dict["meta"]) == 0:
+            raise IndexReaderException("meta section is empty")
         if "tensor_payload" not in index_dict:
             raise IndexReaderException("tensor_payload section is not present")
 

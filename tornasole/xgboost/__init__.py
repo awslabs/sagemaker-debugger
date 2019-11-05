@@ -10,3 +10,4 @@ from .collection import (
 )
 from tornasole import SaveConfig, SaveConfigMode
 from tornasole import modes
+from tornasole.trials import create_trial

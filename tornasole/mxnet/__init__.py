@@ -12,3 +12,4 @@ from .collection import (
 from .singleton_utils import get_hook, set_hook
 from tornasole import SaveConfig, SaveConfigMode, ReductionConfig
 from tornasole import modes
+from tornasole.trials import create_trial

@@ -1,4 +1,5 @@
 import os
+import shutil
 import re
 import bisect
 import socket
@@ -7,6 +8,8 @@ import json
 from pathlib import Path
 
 from typing import Dict, List
+
+from tornasole.core.config_constants import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 
 
 def load_json_as_dict(s):
@@ -193,3 +196,48 @@ def parse_worker_name_from_file(filename: str) -> str:
 def get_tb_worker():
     """Generates a unique string to be used as a worker name for tensorboard writers"""
     return f"{os.getpid()}_{socket.gethostname()}"
+
+
+class SagemakerSimulator(object):
+    """
+    Creates an environment variable pointing to a JSON config file, and creates the config file.
+    Used for integration testing with zero-code-change.
+
+    If `disable=True`, then we still create the `out_dir` directory, but ignore the config file.
+    """
+
+    def __init__(
+        self,
+        out_dir="/tmp/zcc",
+        json_config_path="/tmp/zcc_config.json",
+        training_job_name="sm_job",
+        disable=False,
+    ):
+        self.out_dir = out_dir
+        self.json_config_path = json_config_path
+        self.training_job_name = training_job_name
+        self.disable = disable
+
+    def __enter__(self):
+        shutil.rmtree(self.out_dir, ignore_errors=True)
+        if not self.disable:
+            shutil.rmtree(self.json_config_path, ignore_errors=True)
+            os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = self.json_config_path
+            os.environ["TRAINING_JOB_NAME"] = self.training_job_name
+            with open(self.json_config_path, "w+") as my_file:
+                my_file.write(
+                    """
+                    {
+                        "LocalPath": "/tmp/zcc"
+                    }
+                    """
+                )
+        return self
+
+    def __exit__(self, *args):
+        # Throws errors when the writers try to close.
+        # shutil.rmtree(self.out_dir, ignore_errors=True)
+        if not self.disable:
+            shutil.rmtree(self.json_config_path, ignore_errors=True)
+            del os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR]
+            del os.environ["TRAINING_JOB_NAME"]

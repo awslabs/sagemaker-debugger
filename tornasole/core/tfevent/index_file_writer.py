@@ -33,7 +33,17 @@ class IndexWriter(object):
 
     def flush(self):
         """Flushes the event string to file."""
-        assert self.writer is not None
+        if not self.writer:
+            raise ValueError(f"Cannot flush because self.writer={self.writer}")
+        if not self.index_meta:
+            raise ValueError(
+                f"Cannot write empty index_meta={self.index_meta} to file {self.file_path}"
+            )
+        if not self.index_payload:
+            raise ValueError(
+                f"Cannot write empty index_payload={self.index_payload} to file {self.file_path}"
+            )
+
         index = Index(meta=self.index_meta, tensor_payload=self.index_payload)
         self.writer.write(index.to_json())
         self.writer.flush()
@@ -43,7 +53,8 @@ class IndexWriter(object):
     def close(self):
         """Closes the record writer."""
         if self.writer is not None:
-            self.flush()
+            if self.index_meta and self.index_payload:
+                self.flush()
             self.writer.close()
             self.writer = None
 
@@ -54,7 +65,7 @@ class Index:
         self.tensor_payload = tensor_payload
 
     def to_json(self):
-        return json.dumps(self.__dict__)
+        return json.dumps({"meta": self.meta, "tensor_payload": self.tensor_payload})
 
 
 class EventWithIndex(object):

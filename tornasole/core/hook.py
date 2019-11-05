@@ -133,6 +133,22 @@ class BaseHook:
         self.logger.info("Saving to {}".format(self.out_dir))
         atexit.register(self._cleanup)
 
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__module__}.{self.__class__.__name__} object at {hex(id(self))}>:(\n"
+            f"    out_dir={self.out_dir},\n"
+            f"    step={self.step},\n"
+            f"    mode={self.mode},\n"
+            f"    mode_steps={self.mode_steps},\n"
+            f"    include_collections={self.include_collections},\n"
+            f"    writer={self.writer},\n"
+            f"    save_config={str(self.save_config)[:200]} ...>,\n"
+            f"    reduction_config={str(self.reduction_config)},\n"
+            f"    save_all={self.save_all},\n"
+            f"    dry_run={self.dry_run},\n"
+            f")"
+        )
+
     @abstractmethod
     def get_worker_name(self):
         pass
