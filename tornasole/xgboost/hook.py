@@ -9,10 +9,7 @@ from tornasole.core.save_config import SaveConfig
 from tornasole.core.hook import CallbackHook
 from tornasole.core.tfevent.util import make_numpy_array
 from tornasole.core.access_layer.utils import training_has_ended
-from tornasole.core.json_config import (
-    create_hook_from_json_config,
-    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
-)
+from tornasole.core.json_config import create_hook_from_json_config
 from tornasole.xgboost.singleton_utils import set_hook
 
 
@@ -21,8 +18,10 @@ from .utils import validate_data_file_path, get_content_type, get_dmatrix, parse
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.METRICS]
-
 DEFAULT_SAVE_CONFIG_INTERVAL = 10
+DEFAULT_SAVE_CONFIG_START_STEP = 0
+DEFAULT_SAVE_CONFIG_END_STEP = None
+DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 
 
 class TornasoleHook(CallbackHook):
@@ -120,8 +119,17 @@ class TornasoleHook(CallbackHook):
         Otherwise,
             return None.
         """
+        default_values = dict(
+            save_interval=DEFAULT_SAVE_CONFIG_INTERVAL,
+            start_step=DEFAULT_SAVE_CONFIG_START_STEP,
+            end_step=DEFAULT_SAVE_CONFIG_END_STEP,
+            save_steps=DEFAULT_SAVE_CONFIG_SAVE_STEPS,
+        )
         return create_hook_from_json_config(
-            cls, get_collection_manager(), json_config_path=json_config_path
+            cls,
+            get_collection_manager(),
+            json_config_path=json_config_path,
+            default_values=default_values,
         )
 
     def _is_last_step(self, env: CallbackEnv) -> bool:

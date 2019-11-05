@@ -108,7 +108,9 @@ class SaveConfig:
                     self.set_save_config(mode=mode, save_config_mode=SaveConfigMode())
 
     @classmethod
-    def from_dict(cls, params: Dict[ModeKeys, Any]) -> "SaveConfig":
+    def from_dict(
+        cls, params: Dict[ModeKeys, Any], default_values: Dict[str, Any] = None
+    ) -> "SaveConfig":
         """Parses a dict into a SaveConfig object.
 
     Appropriate formats:
@@ -119,12 +121,17 @@ class SaveConfig:
     """
         if params is None:
             return None
+        if default_values is None:
+            default_values = {}
         # Maybe convert strings to enums
-        if all([isinstance(key, str) for key, value in params.items()]):
+        if all(isinstance(key, str) for key, value in params.items()):
             params = {ModeKeys[key]: value for key, value in params.items()}
         # Maybe convert dicts to SaveConfigMode
-        if all([value is None or isinstance(value, dict) for key, value in params.items()]):
-            params = {key: SaveConfigMode.from_dict(value) for key, value in params.items()}
+        if all(value is None or isinstance(value, dict) for key, value in params.items()):
+            params = {
+                key: SaveConfigMode.from_dict(value, default_values)
+                for key, value in params.items()
+            }
         return cls(mode_save_configs=params)
 
     @classmethod
@@ -171,18 +178,18 @@ class SaveConfig:
 
 class SaveConfigMode:
     """
-  Wrapping all the save configuration parameters into this object.
-  This would make it easier to set different save configuration for
-  different collections and for the base tensors saved.
+    Wrapping all the save configuration parameters into this object.
+    This would make it easier to set different save configuration for
+    different collections and for the base tensors saved.
 
-  This class should not be serialized by itself, only inside of SaveConfig.
+    This class should not be serialized by itself, only inside of SaveConfig.
 
-  Parameters:
-    save_interval (int): Save every n steps.
-    save_steps (list of int): Save at all the steps given in this list. Overrides save_interval.
-    start_step (int): Save after n steps.
-    end_step (int): Stop saving after n steps.
-  """
+    Parameters:
+      save_interval (int): Save every n steps.
+      save_steps (list of int): Save at all the steps given in this list. Overrides save_interval.
+      start_step (int): Save after n steps.
+      end_step (int): Stop saving after n steps.
+    """
 
     def __init__(
         self,
@@ -222,16 +229,20 @@ class SaveConfigMode:
         }
 
     @classmethod
-    def from_dict(cls, params: Dict[str, Any]):
+    def from_dict(cls, params: Dict[str, Any], default_values: Dict[str, Any] = None):
         if params is None:
             return None
         elif not isinstance(params, dict):
             raise TypeError(f"params={params} is not a dict.")
+        if default_values is None:
+            default_values = {}
+        elif not isinstance(default_values, dict):
+            raise TypeError(f"default_values={default_values} is not a dict.")
         return cls(
-            save_interval=params.get("save_interval"),
-            start_step=params.get("start_step"),
-            end_step=params.get("end_step"),
-            save_steps=params.get("save_steps"),
+            save_interval=params.get("save_interval", default_values.get("save_interval")),
+            start_step=params.get("start_step", default_values.get("start_step")),
+            end_step=params.get("end_step", default_values.get("end_step")),
+            save_steps=params.get("save_steps", default_values.get("save_steps")),
         )
 
     def __eq__(self, other):

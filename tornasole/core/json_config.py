@@ -80,7 +80,9 @@ def get_json_config_as_dict(json_config_path) -> Dict:
     return params_dict
 
 
-def create_hook_from_json_config(hook_cls, collection_manager, json_config_path):
+def create_hook_from_json_config(
+    hook_cls, collection_manager, json_config_path, default_values=None
+):
     """Returns a TornasoleHook object corresponding to either TF, PT, or MXNet.
 
     If json_config_path is None, an environment variable must be set.
@@ -100,7 +102,7 @@ def create_hook_from_json_config(hook_cls, collection_manager, json_config_path)
     out_dir = tornasole_params.get("out_dir", DEFAULT_SAGEMAKER_TORNASOLE_PATH)
     dry_run = tornasole_params.get("dry_run", False)
     reduction_config = tornasole_params.get(TORNASOLE_CONFIG_RDN_CFG_KEY)
-    save_config = SaveConfig.from_dict(tornasole_params.get("save_config_modes"))
+    save_config = SaveConfig.from_dict(tornasole_params.get("save_config_modes"), default_values)
     include_regex = tornasole_params.get(TORNASOLE_CONFIG_INCLUDE_REGEX_KEY)
     save_all = tornasole_params.get(TORNASOLE_CONFIG_SAVE_ALL_KEY, False)
     return hook_cls(
