@@ -21,6 +21,14 @@ from tornasole.core.utils import flatten, get_tb_worker
 from tornasole.core.logger import get_logger
 from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.writer import FileWriter
+from tornasole.core.state_store import StateStore
+from tornasole.core.config_constants import (
+    TRAINING_RUN,
+    LATEST_GLOBAL_STEP_SAVED,
+    LATEST_GLOBAL_STEP_SEEN,
+    LATEST_MODE_STEP,
+)
+
 
 logger = get_logger()
 
@@ -126,12 +134,32 @@ class BaseHook:
         self.prepared_collections = False
         self.tensor_to_collections = {}
         self.step = init_step
+        self.last_saved_step = None
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
         self.tb_writers = {}
         self.logger.info("Saving to {}".format(self.out_dir))
         atexit.register(self._cleanup)
+
+        # Check if there is any last saved tornasole state. Initialize the hook based last saved state.
+        self.training_run = 0
+        self._initialize_to_last_saved_state()
+
+    def _initialize_to_last_saved_state(self):
+        self.state_store = StateStore()
+        last_tornasole_state = self.state_store.get_last_saved_tornasole_state()
+        if last_tornasole_state is not None:
+            self.last_saved_step = last_tornasole_state[LATEST_GLOBAL_STEP_SAVED]
+            self.init_step = last_tornasole_state[LATEST_GLOBAL_STEP_SEEN]
+            self.training_run = 1 + last_tornasole_state[TRAINING_RUN]
+            for (mode, step) in last_tornasole_state[LATEST_MODE_STEP].items():
+                self.mode_steps[ModeKeys[mode]] = step
+            self.mode_steps[ModeKeys.GLOBAL] = self.init_step
+            self.step = self.init_step
+            self.logger.info(
+                f"Initialized the hook with the last saved state: last_saved_step={self.last_saved_step} init_step = {self.init_step}, step = {self.step} mode_steps = {str(self.mode_steps)}"
+            )
 
     def __repr__(self):
         return (
@@ -309,9 +337,24 @@ class BaseHook:
         training_has_ended(self.out_dir)
 
     def _increment_step(self):
+        # Update the last_tornasole_state to the last step number that was saved or seen
+        self._write_tornasole_state()
+
         self.step += 1
         self.mode_steps[self.mode] += 1
         self._collections_to_save_for_step = None
+
+    def _write_tornasole_state(self):
+        if self.state_store.is_checkpoint_updated():
+            current_tornasole_state = dict()
+            current_tornasole_state[TRAINING_RUN] = self.training_run
+            current_tornasole_state[LATEST_GLOBAL_STEP_SAVED] = self.last_saved_step
+            current_tornasole_state[LATEST_GLOBAL_STEP_SEEN] = self.step
+            mode_step = dict()
+            for (mode, step) in self.mode_steps.items():
+                mode_step[mode.name] = step
+            current_tornasole_state[LATEST_MODE_STEP] = mode_step
+            self.state_store.update_tornasole_state(current_tornasole_state)
 
     def set_mode(self, mode):
         # train
@@ -521,7 +564,6 @@ class CallbackHook(BaseHook):
             include_collections=include_collections,
             save_all=save_all,
         )
-        self.last_saved_step = None
         self.exported_collections = False
         self.data_type_name = data_type_name
 

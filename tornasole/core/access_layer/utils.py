@@ -5,14 +5,21 @@ from .s3 import TSAccessS3
 from tornasole.core.utils import is_s3, get_region
 from tornasole.core.logger import get_logger
 from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
+from tornasole.core.sagemaker_utils import is_sagemaker_job
 import asyncio
 import aioboto3
 
-END_OF_JOB_FILENAME = "END_OF_JOB.ts"
+END_OF_JOB_FILENAME = "training_job_end.ts"
 logger = get_logger()
 
 
 def training_has_ended(trial_prefix):
+    # Emit the end of training file only if the job is not running under SageMaker.
+    if is_sagemaker_job():
+        logger.info(
+            f"The end of training job file will not be written for jobs running under SageMaker."
+        )
+        return
     try:
         check_dir_exists(trial_prefix)
         # if path does not exist, then we don't need to write a file
