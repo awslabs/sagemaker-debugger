@@ -23,7 +23,7 @@ def test_loss_collection_default():
     print("Created the trial with out_dir {0}".format(out_dir))
     tr = create_trial(out_dir)
     assert tr
-    assert len(tr.available_steps()) == 4
+    assert len(tr.steps()) == 4
 
     print(tr.tensors())
     tname = tr.tensors_matching_regex(".*loss")[0]
@@ -48,7 +48,7 @@ def test_loss_collection_with_no_other_collections():
     print("Created the trial with out_dir {0}".format(out_dir))
     tr = create_trial(out_dir)
     assert tr
-    assert len(tr.available_steps()) == 4
+    assert len(tr.steps()) == 4
 
     print(tr.tensors())
     tname = tr.tensors_matching_regex(".*loss")[0]

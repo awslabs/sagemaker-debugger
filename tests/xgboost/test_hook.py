@@ -71,7 +71,7 @@ def test_hook_save_all(tmpdir):
     collections = trial.collections()
     tensors = trial.tensors()
     assert len(tensors) > 0
-    assert len(trial.available_steps()) == 4
+    assert len(trial.steps()) == 4
     assert "all" in collections
     assert "metrics" in collections
     assert "feature_importance" in collections

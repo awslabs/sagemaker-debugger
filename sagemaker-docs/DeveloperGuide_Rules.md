@@ -94,14 +94,14 @@ For example, your job executes 10 steps, out of which the first 4 are training s
 Please note that indexing starts from 0.
 In such a case, when you query for the global steps as below:
 ```
-trial.available_steps()
+trial.steps()
 ```
 you will see `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`.
 
 If you query for training steps as below:
 ```
 from tornasole_rules import modes
-trial.available_steps(modes.TRAIN)
+trial.steps(modes.TRAIN)
 ```
  you will see `[0, 1, 2, 3, 4, 5, 6, 7, 8]` because there were 8 training step.
 The training step with mode_step 4 here refers to the global step number 5.
@@ -134,7 +134,7 @@ The global step represents the sequence of steps across all modes executed by th
 
 ```
 from tornasole import modes
-trial.available_steps(mode=modes.TRAIN)
+trial.steps(mode=modes.TRAIN)
 ```
 
 **See all global steps seen by the Trial**
@@ -142,7 +142,7 @@ trial.available_steps(mode=modes.TRAIN)
 This is the list of steps across all modes.
 
 ```
-trial.available_steps()
+trial.steps()
 ```
 
 **Get the mode and step number within mode for a given global step**

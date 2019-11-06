@@ -50,7 +50,7 @@ def test_estimator(script_mode: bool):
         # Check that hook created and tensors saved
         trial = ts.create_trial(path=sim.out_dir)
         assert ts.get_hook() is not None, "Hook was not created."
-        assert len(trial.available_steps()) > 0, "Nothing saved at any step."
+        assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
 
@@ -75,7 +75,7 @@ def test_linear_classifier(script_mode: bool):
         # Check that hook created and tensors saved
         trial = ts.create_trial(path=sim.out_dir)
         assert ts.get_hook() is not None, "Hook was not created."
-        assert len(trial.available_steps()) > 0, "Nothing saved at any step."
+        assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
 
@@ -101,7 +101,7 @@ def test_monitored_session(script_mode: bool):
         # Check that hook created and tensors saved
         trial = ts.create_trial(path=sim.out_dir)
         assert ts.get_hook() is not None, "Hook was not created."
-        assert len(trial.available_steps()) > 0, "Nothing saved at any step."
+        assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
 
@@ -134,7 +134,7 @@ def test_keras_v1(script_mode: bool):
         # Check that hook created and tensors saved
         trial = ts.create_trial(path=sim.out_dir)
         assert ts.get_hook() is not None, "Hook was not created."
-        assert len(trial.available_steps()) > 0, "Nothing saved at any step."
+        assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
 

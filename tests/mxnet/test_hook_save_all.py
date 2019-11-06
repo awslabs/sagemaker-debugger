@@ -22,7 +22,7 @@ def test_save_all(hook=None, out_dir=None):
     tr = create_trial(out_dir)
     tensor_list = tr.tensors()
     assert tr
-    assert len(tr.available_steps()) == 4
+    assert len(tr.steps()) == 4
     # some tensor names, like input and output, can't be retrieved from training session, so here we only assert for tensor numbers
     # 46 is gotten from index file
     # if no assertion failure, then the script could save all tensors

@@ -119,14 +119,41 @@ class Tensor:
         self.trial = trial
         self.cache = cache
 
-    def steps(self, mode=ModeKeys.GLOBAL):
-        self.trial.maybe_refresh(self.name)
+    def steps(self, mode=ModeKeys.GLOBAL, show_incomplete_steps=False) -> list:
+        """
+        the steps function call returns only completed steps to
+        the user.
+        :param mode: ModeKeys
+        :param show_incomplete_steps: bool
+        :return: list
+        """
+        all_steps = self._all_steps(mode)
+        if show_incomplete_steps is True:
+            return all_steps
+        completed_steps = list()
+        for step in all_steps:
+            if (
+                self.workers_for_step(step, mode) == self.trial.num_workers
+                or self.trial.loaded_all_steps is True
+                or self.trial.last_complete_step >= step
+            ):
+                completed_steps.append(step)
+        return completed_steps
+
+    def _all_steps(self, mode=ModeKeys.GLOBAL) -> list:
+        """
+        the all_steps function call returns all the steps,
+        complete or incomplete the user.
+        :param mode: ModeKeys
+        :return: list
+        """
+        self.trial.maybe_refresh()
         if mode == ModeKeys.GLOBAL:
             return self._global_steps()
         elif mode in self._mode_steps:
             return self._mode_steps[mode].steps()
         else:
-            return None
+            return []
 
     def _global_steps(self):
         gs = []
@@ -137,36 +164,9 @@ class Tensor:
         gs.sort(key=int)
         return gs
 
-    def _has_step(self, step_num, mode=ModeKeys.GLOBAL):
-        if self._has_step_currently(step_num, mode):
-            return True
-        else:
-            self.trial.maybe_refresh(self.name)
-            if self._has_step_currently(step_num, mode):
-                return True
-        return False
-
-    def _has_step_currently(self, step_num, mode):
-        if mode == ModeKeys.GLOBAL:
-            return self._has_global_step_currently(step_num)
-        else:
-            return self._has_mode_step_currently(step_num, mode)
-
     def _has_mode_step_currently(self, step_num, mode):
         if mode in self._mode_steps:
             if self._mode_steps[mode].has_step(step_num):
-                return True
-        return False
-
-    def _has_global_step_currently(self, step_num):
-        # first check if in global mode,
-        if ModeKeys.GLOBAL in self._mode_steps:
-            if self._mode_steps[ModeKeys.GLOBAL].has_step(step_num):
-                return True
-        else:
-            # else convert to mode_step and check
-            mode, mode_step_num = self.trial.mode_modestep(step_num)
-            if mode in self._mode_steps and self._mode_steps[mode].has_step(mode_step_num):
                 return True
         return False
 
@@ -221,7 +221,7 @@ class Tensor:
             elif ss == StepState.NOT_YET_AVAILABLE:
                 if self.trial.loaded_all_steps is True:
                     last_step = -1
-                    avail_steps = self.trial.available_steps(mode=mode)
+                    avail_steps = self.trial.steps(mode=mode)
                     if len(avail_steps) > 0:
                         last_step = avail_steps[-1]
                     raise NoMoreData(
@@ -264,11 +264,11 @@ class Tensor:
         else:
             assert False, "Should not happen"
 
-    def workers_for_step(self, step_num, mode=ModeKeys.GLOBAL):
-        step = self._get_step_dict(step_num, mode)
-        if step is None:
+    def workers_for_step(self, step_num, mode=ModeKeys.GLOBAL) -> list:
+        step_dict = self._get_step_dict(step_num, mode)
+        if step_dict is None:
             raise ValueError("invalid step")
-        return list(step.keys())
+        return list(step_dict.keys())
 
     def reduction_value(
         self, step_num, reduction_name, mode=ModeKeys.GLOBAL, worker=None, abs=False

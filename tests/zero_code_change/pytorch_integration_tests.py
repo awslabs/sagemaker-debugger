@@ -61,7 +61,7 @@ def test_pytorch(script_mode: bool):
         import tornasole_rules
 
         trial = create_trial(path=sim.out_dir)
-        print(f"trial.available_steps() = {trial.available_steps()}")
+        print(f"trial.steps() = {trial.steps()}")
         print(f"trial.tensors() = {trial.tensors()}")
 
         print(f"collection_manager = {hook.collection_manager}")

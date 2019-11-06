@@ -29,7 +29,7 @@ def test_hook_all_zero(hook=None, out_dir=None):
     print("Created the trial with out_dir {0}".format(out_dir))
     tr = create_trial(out_dir)
     assert tr
-    assert len(tr.available_steps()) == 4
+    assert len(tr.steps()) == 4
 
     tnames = tr.tensors_matching_regex("conv._input")
     print(tnames)

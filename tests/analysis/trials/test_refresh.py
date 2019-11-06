@@ -20,7 +20,7 @@ def help_test_refresh_with_range(path):
             shape=(3, 3, 3),
         )
     tr = create_trial(path + trial_name, range_steps=(0, 5))
-    assert len(tr.available_steps()) == 5
+    assert len(tr.steps()) == 5
     for i in range(num_steps, num_steps * 2):
         generate_data(
             path=path,
@@ -32,7 +32,7 @@ def help_test_refresh_with_range(path):
             shape=(3, 3, 3),
             export_colls=False,
         )
-    assert len(tr.available_steps()) == 5
+    assert len(tr.steps()) == 5
 
 
 def help_test_refresh(path):
@@ -53,7 +53,7 @@ def help_test_refresh(path):
 
     assert "foo_" + str(num_tensors + 1) not in tr.tensors()
     assert "foo_1" in tr.tensors()
-    assert len(tr.available_steps()) == num_steps
+    assert len(tr.steps()) == num_steps
     assert len(tr.tensor("foo_1").steps()) == num_steps
 
     for i in range(num_steps, num_steps * 2):
@@ -68,7 +68,7 @@ def help_test_refresh(path):
             export_colls=False,
         )
     assert len(tr.tensor("foo_1").steps()) == num_steps * 2
-    assert len(tr.available_steps()) == num_steps * 2
+    assert len(tr.steps()) == num_steps * 2
 
     generate_data(
         path=path,
@@ -80,7 +80,7 @@ def help_test_refresh(path):
         shape=(3, 3, 3),
         export_colls=False,
     )
-    assert len(tr.available_steps()) == num_steps * 2 + 1
+    assert len(tr.steps()) == num_steps * 2 + 1
 
     generate_data(
         path=path,
@@ -114,7 +114,7 @@ def help_test_no_refresh(path):
 
     assert "foo_" + str(num_tensors + 1) not in tr.tensors()
     assert "foo_1" in tr.tensors()
-    assert len(tr.available_steps()) == num_steps
+    assert len(tr.steps()) == num_steps
     assert len(tr.tensor("foo_1").steps()) == num_steps
 
     for i in range(num_steps, num_steps * 2):
@@ -131,15 +131,15 @@ def help_test_no_refresh(path):
 
     with no_refresh([tr]) as [tr]:
         assert len(tr.tensor("foo_1").steps()) == num_steps
-        assert len(tr.available_steps()) == num_steps
+        assert len(tr.steps()) == num_steps
 
     with no_refresh([tr]):
         assert len(tr.tensor("foo_1").steps()) == num_steps
-        assert len(tr.available_steps()) == num_steps
+        assert len(tr.steps()) == num_steps
 
     with no_refresh(tr):
         assert len(tr.tensor("foo_1").steps()) == num_steps
-        assert len(tr.available_steps()) == num_steps
+        assert len(tr.steps()) == num_steps
 
 
 def test_no_refresh_local():

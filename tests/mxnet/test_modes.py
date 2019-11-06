@@ -27,9 +27,9 @@ def test_modes(hook=None, path=None):
 
     tr = create_trial(path)
     assert len(tr.modes()) == 2
-    assert len(tr.available_steps()) == 5
-    assert len(tr.available_steps(mode=modes.TRAIN)) == 3
-    assert len(tr.available_steps(mode=modes.EVAL)) == 2
+    assert len(tr.steps()) == 5, tr.steps()
+    assert len(tr.steps(mode=modes.TRAIN)) == 3
+    assert len(tr.steps(mode=modes.EVAL)) == 2, tr.steps()
 
     # Ensure that the gradients are available in TRAIN modes only.
     grad_tns_name = tr.tensors_matching_regex("^gradient.")[0]
@@ -37,7 +37,7 @@ def test_modes(hook=None, path=None):
     grad_train_steps = grad_tns.steps(mode=modes.TRAIN)
     grad_eval_steps = grad_tns.steps(mode=modes.EVAL)
     assert len(grad_train_steps) == 3
-    assert grad_eval_steps == None
+    assert grad_eval_steps == []
 
     # Ensure that the weights are available in TRAIN and EVAL  modes.
     wt_tns_name = tr.tensors_matching_regex("conv\d+_weight")[0]

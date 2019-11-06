@@ -48,7 +48,7 @@ def test_reduce_config(hook=None, out_dir=None):
     # Testing
     tr = create_trial(out_dir)
     assert tr
-    assert len(tr.available_steps()) == 7
+    assert len(tr.steps()) == 7
     print(tr.tensors())
     tname = tr.tensors_matching_regex("Net_conv[0-9]+.weight")[0]
     print(tr.tensors())

@@ -138,9 +138,9 @@ def help_test_mnist(
 
 def helper_test_mnist_trial(trial_dir):
     tr = create_trial(trial_dir)
-    assert len(tr.available_steps()) == 3
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 2
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 1
+    assert len(tr.steps()) == 3
+    assert len(tr.steps(mode=ts.modes.TRAIN)) == 2
+    assert len(tr.steps(mode=ts.modes.EVAL)) == 1
     assert len(tr.tensors()) == 17
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
@@ -185,9 +185,9 @@ def test_mnist_s3():
 
 def helper_test_multi_save_configs_trial(trial_dir):
     tr = create_trial(trial_dir)
-    assert len(tr.available_steps()) == 5, tr.available_steps()
-    assert len(tr.available_steps(mode=ts.modes.TRAIN)) == 3
-    assert len(tr.available_steps(mode=ts.modes.EVAL)) == 2
+    assert len(tr.steps()) == 5, tr.steps()
+    assert len(tr.steps(mode=ts.modes.TRAIN)) == 3
+    assert len(tr.steps(mode=ts.modes.EVAL)) == 2
     assert len(tr.tensors()) == 17
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:

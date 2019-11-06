@@ -184,8 +184,8 @@ def helper_test_weights_bias_gradients(hook=None):
 
     tensors = grads + bias + weights
 
-    assert len(trial.available_steps()) == len(save_steps)
-    for step in trial.available_steps():
+    assert len(trial.steps()) == len(save_steps)
+    for step in trial.steps():
         for tname in tensors:
             assert tname in trial.tensors()
             assert step in trial.tensor(tname).steps()
@@ -234,9 +234,9 @@ def saveall_test_helper(hook=None):
     outputs = ["fc1_output_0", "relu1_output_0", "fc2_output_0", "relu2_output_0", "fc3_output_0"]
     tensors = grads + bias + weights + inputs + outputs
 
-    assert len(trial.available_steps()) == len(save_steps)
+    assert len(trial.steps()) == len(save_steps)
 
-    for step in trial.available_steps():
+    for step in trial.steps():
         for tname in tensors:
             assert tname in trial.tensors()
             assert step in trial.tensor(tname).steps()
@@ -274,7 +274,7 @@ def helper_test_multi_collections(hook, out_dir):
     outputs = ["fc1_output_0", "relu1_output_0", "relu2_output_0"]
     tensors = grads + bias + weights + inputs + outputs
 
-    assert len(trial.available_steps()) == len(save_steps)
+    assert len(trial.steps()) == len(save_steps)
 
     for tname in tensors:
         assert tname in trial.tensors()

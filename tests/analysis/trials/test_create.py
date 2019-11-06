@@ -20,7 +20,7 @@ def test_creation_local():
             shape=(3, 3, 3),
         )
     tr = create_trial(path + "/" + trial_name, range_steps=(0, 5))
-    assert len(tr.available_steps()) == 5
+    assert len(tr.steps()) == 5
 
 
 @pytest.mark.slow  # 0:20 to run
@@ -40,4 +40,4 @@ def test_creation_s3():
             shape=(3, 3, 3),
         )
     tr = create_trial(path + trial_name, range_steps=(0, 5))
-    assert len(tr.available_steps()) == 5
+    assert len(tr.steps()) == 5

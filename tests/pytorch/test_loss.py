@@ -81,7 +81,7 @@ def test_register_loss():
     weight_tensor = trial.tensor("Net_fc1.weight")
     print(f"weight_tensor.steps() = {weight_tensor.steps()}")
 
-    assert len(trial.available_steps()) == n_steps
+    assert len(trial.steps()) == n_steps
     assert len(weight_tensor.steps()) == n_steps
     assert len(gradient_tensor.steps()) == n_steps
     assert len(loss_tensor.steps()) == n_steps

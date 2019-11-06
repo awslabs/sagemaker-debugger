@@ -53,9 +53,9 @@ def test_mode_data():
         assert tr.has_passed_step(s + 1, mode=modes.TRAIN) == StepState.NOT_YET_AVAILABLE
 
     assert len(tr.tensors()) == 1
-    assert len(tr.available_steps()) == 10
-    assert len(tr.available_steps(mode=modes.TRAIN)) == 5
-    assert len(tr.available_steps(mode=modes.EVAL)) == 5
+    assert len(tr.steps()) == 10
+    assert len(tr.steps(mode=modes.TRAIN)) == 5
+    assert len(tr.steps(mode=modes.EVAL)) == 5
     assert len(tr.modes()) == 2
 
     for i in range(10):

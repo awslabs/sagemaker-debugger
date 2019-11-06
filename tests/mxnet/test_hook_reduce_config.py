@@ -50,7 +50,7 @@ def test_save_config(hook=None, out_dir=None):
     print("Created the trial with out_dir {0}".format(out_dir))
     tr = create_trial(out_dir)
     assert tr
-    assert len(tr.available_steps()) == 7
+    assert len(tr.steps()) == 7
 
     print(tr.tensors())
     tname = tr.tensors_matching_regex("conv\d+_weight")[0]

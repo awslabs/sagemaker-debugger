@@ -130,7 +130,7 @@ class IndexFileLocationUtils:
         index_prefix_for_step_str = IndexFileLocationUtils.get_index_prefix_for_step(step_num)
         step_num_str = format(step_num, "012")
         index_filename = format(f"{step_num_str}_{worker_name}.json")
-        index_key = format(f"{trial_prefix}/index/{index_prefix_for_step_str}/{index_filename}")
+        index_key = os.path.join(trial_prefix, "index", index_prefix_for_step_str, index_filename)
         return index_key
 
     # for a step_num index files lies
@@ -157,3 +157,20 @@ class IndexFileLocationUtils:
     @staticmethod
     def get_index_path(path):
         return os.path.join(path, "index")
+
+    @staticmethod
+    def get_prefix_from_index_file(index_file: str) -> str:
+        """
+        The function returns the filepath prefix before 'index/' in the
+        the index_file names.
+
+        For example:
+            get_prefix_from_index_file("prefix/index/000000000/000000000010_worker.json")
+
+            will return prefix
+        :param index_file: str
+        :return: str
+        """
+        # prefix = prefix/index/000000000/000000000010_worker.json'
+        r = re.compile("(.+)/index/.+$")
+        return re.match(r, index_file).group(1)

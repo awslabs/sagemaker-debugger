@@ -24,7 +24,7 @@ def test_refresh_tensors():
             shape=(3, 3, 3),
         )
     tr = create_trial(path + trial_name)
-    assert len(tr.available_steps()) == 4
+    assert len(tr.steps()) == 4
 
     try:
         tr.tensor("bar")

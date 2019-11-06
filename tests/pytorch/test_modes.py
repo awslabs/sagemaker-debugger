@@ -97,9 +97,9 @@ def helper_test_modes(hook=None, out_dir="./test_output/test_hook_modes/"):
     trial = create_trial(path=out_dir, name="test output")
 
     assert len(trial.modes()) == 1
-    assert len(trial.available_steps()) == 5
-    assert len(trial.available_steps(mode=modes.TRAIN)) == 5
-    assert len(trial.available_steps(mode=modes.EVAL)) == 0
+    assert len(trial.steps()) == 5
+    assert len(trial.steps(mode=modes.TRAIN)) == 5
+    assert len(trial.steps(mode=modes.EVAL)) == 0
 
     if hook is None:
         shutil.rmtree(out_dir)

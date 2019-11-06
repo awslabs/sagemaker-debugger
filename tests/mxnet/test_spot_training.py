@@ -191,7 +191,7 @@ def test_spot_hook():
     print("Created the trial with out_dir {0} for the first training".format(out_dir_1))
     tr = create_trial(out_dir_1)
     assert tr
-    available_steps_1 = tr.available_steps()
+    available_steps_1 = tr.steps()
     assert 40 not in available_steps_1
     assert 80 not in available_steps_1
     print(available_steps_1)
@@ -199,7 +199,7 @@ def test_spot_hook():
     print("Created the trial with out_dir {0} for the second training".format(out_dir_2))
     tr = create_trial(out_dir_2)
     assert tr
-    available_steps_2 = tr.available_steps()
+    available_steps_2 = tr.steps()
     assert 40 in available_steps_2
     assert 50 in available_steps_2
     assert 60 in available_steps_2
