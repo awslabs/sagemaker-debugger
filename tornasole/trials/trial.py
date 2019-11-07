@@ -193,9 +193,11 @@ class Trial(ABC):
             retry_count -= 1
         if training_ended is True and self.loaded_all_steps is False:
             self.loaded_all_steps = True
-            self.last_complete_step = sorted(self._global_to_mode.keys())[
-                -1
-            ]  # Update last_complete_step to the last step written
+            self.last_complete_step = (
+                sorted(self._global_to_mode.keys())[-1]
+                if len(self._global_to_mode)
+                else self.last_complete_step
+            )  # Update last_complete_step to the last step written
             self.logger.info("Marked loaded all steps to True")
             self.logger.debug(
                 f"Training Has Ended : last_complete_step was: {self.last_complete_step}"
