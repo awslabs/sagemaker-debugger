@@ -55,7 +55,7 @@ def dump_data():
 def test_invoker_exception():
     path = dump_data()
     tr = create_trial(path)
-    r = ExplodingTensor(tr)
+    r = ExplodingTensor(tr, collection_names="gradients,weights")
 
     c = 0
     for start_step in range(2):

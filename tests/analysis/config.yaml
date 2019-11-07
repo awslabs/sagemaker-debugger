@@ -38,7 +38,7 @@
   - [*simple,
      --lr 0.001 --scale 1 --steps 68 --tornasole_frequency 13 --random_seed True,
      *invoker,
-     --rule_name explodingtensor --flag False --end_step 66
+     --rule_name explodingtensor --flag False --end_step 66 --collection_names gradients,weights
     ]
 -
   - exploding_tensor/tf/true
@@ -47,7 +47,7 @@
   - [*simple,
      --lr 1000000000000 --scale 10000000000000 --tornasole_frequency 9 --steps 66 --random_seed True,
      *invoker,
-     --rule_name explodingtensor --flag True --end_step 64
+     --rule_name explodingtensor --flag True --end_step 64 --collection_names gradients,weights
     ]
 
 -
@@ -115,7 +115,7 @@
   - [*mnist_gluon_basic_hook_demo,
      --random_seed True --num_steps 6,
      *invoker,
-     --rule_name explodingtensor --flag False --end_step 4
+     --rule_name explodingtensor --flag False --end_step 4 --collection_names gradients,weights
     ]
 -
   - exploding_tensor/mxnet/true
@@ -124,7 +124,7 @@
   - [*mnist_gluon_basic_hook_demo,
      --learning_rate 1000000000 --random_seed True --num_steps 6,
      *invoker,
-     --rule_name explodingtensor --flag True --end_step 4
+     --rule_name explodingtensor --flag True --end_step 4 --collection_names gradients,weights
     ]
 
 -
@@ -227,7 +227,7 @@
   - [*torch_simple,
      --lr .01 --momentum 0.8 --tornasole-frequency 15 --steps 46 --hook-type saveall --random-seed True,
      *invoker,
-     --rule_name explodingtensor --end_step 46  --flag False
+     --rule_name explodingtensor --end_step 46  --flag False --collection_names gradients,weights
     ]
 -
   - exploding_tensor/pytorch/true
@@ -236,7 +236,7 @@
   - [*torch_simple,
      --lr 1000000.0 --momentum 10 --tornasole-frequency 8 --steps 20 --hook-type saveall --random-seed True,
      *invoker,
-     --rule_name explodingtensor --end_step 20 --flag True
+     --rule_name explodingtensor --end_step 20 --flag True --collection_names gradients,weights
     ]
 -
   - vanishing_grad/pytorch/false
