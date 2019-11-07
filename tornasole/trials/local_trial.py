@@ -3,7 +3,13 @@ from .trial import EventFileTensor, Trial
 from tornasole.core.locations import TensorFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.reader import FileReader
-from tornasole.core.utils import index, step_in_range, parse_worker_name_from_file
+from tornasole.core.utils import (
+    index,
+    get_path_to_collections,
+    list_files_in_directory,
+    step_in_range,
+    parse_worker_name_from_file,
+)
 
 import os
 import multiprocessing
@@ -35,6 +41,9 @@ class LocalTrial(Trial):
         self.logger.info(f"Loading trial {name} at path {self.trial_dir}")
         self._load_collections()
         self.load_tensors()
+
+    def get_collection_files(self) -> list:
+        return list_files_in_directory(get_path_to_collections(self.path))
 
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
         for tname in index_tensors_dict:
@@ -70,8 +79,7 @@ class LocalTrial(Trial):
 
     def read_collections(self, collection_files):
         first_collection_file = collection_files[0]  # First Collection File
-        collections_file_path = os.path.join(self.trial_dir, first_collection_file)
-        self.collection_manager = CollectionManager.load(collections_file_path)
+        self.collection_manager = CollectionManager.load(first_collection_file)
         self.num_workers = self.collection_manager.get_num_workers()
 
     def get_tensors(self, tname_steps_dict, should_regex_match=False):

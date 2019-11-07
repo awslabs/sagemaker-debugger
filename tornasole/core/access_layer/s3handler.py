@@ -193,9 +193,7 @@ class S3Handler:
         return data
 
     # accepts a list of ListRequest objects, returns list of lists of files fetched.
-    def list_prefixes(self, list_requests):
-        if type(list_requests) != list:
-            raise TypeError("list_prefixes accepts a list of ListRequest objects.")
+    def list_prefixes(self, list_requests: list):
         task = self.loop.create_task(self._list_files_from_requests(list_requests))
         done = self.loop.run_until_complete(task)
         return done

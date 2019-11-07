@@ -21,7 +21,7 @@ def test_mode_data():
     c = CollectionManager()
     c.add("default")
     c.get("default").tensor_names = ["arr"]
-    c.export(os.path.join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
+    c.export(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
     tr = create_trial(trial_dir)
     worker = socket.gethostname()
     for s in range(0, 10):

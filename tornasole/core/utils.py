@@ -3,7 +3,6 @@ import shutil
 import re
 import bisect
 import socket
-from botocore.exceptions import ClientError
 import json
 from pathlib import Path
 
@@ -75,10 +74,11 @@ def list_files_in_directory(directory):
 
 
 def list_collection_files_in_directory(directory):
+    collections_directory = get_path_to_collections(directory)
     import re
 
     collections_file_regex = re.compile(".*_?collections.json")
-    files = [f for f in os.listdir(directory) if re.match(collections_file_regex, f)]
+    files = [f for f in os.listdir(collections_directory) if re.match(collections_file_regex, f)]
     return files
 
 
@@ -155,6 +155,10 @@ def size_and_shape(t):
     return (t.nbytes, t.shape)
 
 
+def get_path_to_collections(directory):
+    return os.path.join(directory, "collections/")
+
+
 def get_worker_name_from_collection_file(filename: str) -> str:
     """
     Extracts the worker name from the collection file.
@@ -166,7 +170,7 @@ def get_worker_name_from_collection_file(filename: str) -> str:
     :param filename: str
     :return: worker_name: str
     """
-    worker_name_regex = re.compile("(.+)_collections.(json|ts)")
+    worker_name_regex = re.compile(".*/collections/(.+)_collections.(json|ts)")
     worker_name = re.match(worker_name_regex, filename).group(1)
     if worker_name[0] == "_":
         worker_name = deserialize_tf_device(worker_name)

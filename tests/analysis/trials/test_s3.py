@@ -44,8 +44,8 @@ def help_test_multiple_trials(num_steps=20, num_tensors=10):
     c = CollectionManager()
     c.add("default")
     c.get("default").tensor_names = ["foo_" + str(i) for i in range(num_tensors)]
-    c.export(path + trial_name + "/" + TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
-    c.export(path + trial_name + "/" + TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+    c.export(path + trial_name, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+    c.export(path + trial_name, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
     for i in range(num_steps):
         generate_data(
             path=path,

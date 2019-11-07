@@ -6,9 +6,11 @@ from tornasole.core.utils import (
     deserialize_tf_device,
     parse_worker_name_from_file,
     get_worker_name_from_collection_file,
+    get_path_to_collections,
 )
+
+from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.index_reader import S3IndexReader
-from tornasole.core.s3_utils import list_s3_objects, parse_collection_files_from_s3_objects
 
 
 def test_tf_device_name_serialize_and_deserialize():
@@ -50,15 +52,14 @@ def test_parse_worker_name_from_collection_file():
     path = "s3://tornasole-testing/one-index-file"
     _, bucket_name, key_name = is_s3(path)
 
-    s3_objects, _ = list_s3_objects(bucket_name, key_name)
-    collection_files = parse_collection_files_from_s3_objects(s3_objects)
+    collection_files, _ = list_s3_objects(bucket_name, get_path_to_collections(key_name))
 
-    assert collection_files == ["_job-worker_replica-0_task-1_device-GPU-0_collections.json"]
+    assert len(collection_files) == 1
 
     collection_file = collection_files[0]
     worker_name = get_worker_name_from_collection_file(collection_file)
     assert worker_name == "/job:worker/replica:0/task:1/device:GPU:0"
 
-    file_name = "job-worker_1_collections.json"
+    file_name = "/tmp/collections/job-worker_1_collections.json"
     worker_name = get_worker_name_from_collection_file(file_name)
     assert worker_name == "job-worker_1"

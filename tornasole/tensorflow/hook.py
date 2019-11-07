@@ -167,10 +167,10 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         if self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
             for device, serialized_device in self.device_map.items():
                 collection_file_name = f"{serialized_device}_collections.json"
-                self.collection_manager.export(os.path.join(self.out_dir, collection_file_name))
+                self.collection_manager.export(self.out_dir, collection_file_name)
         else:
             collection_file_name = f"{self.worker}_collections.json"
-            self.collection_manager.export(os.path.join(self.out_dir, collection_file_name))
+            self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _initialize_writer(self) -> None:
         if self.dry_run:

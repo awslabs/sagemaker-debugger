@@ -1,5 +1,6 @@
 import os
 import re
+import os
 import time
 from bisect import bisect_left
 from abc import ABC, abstractmethod
@@ -9,13 +10,7 @@ from tornasole.core.tensor import Tensor, StepState
 from tornasole.exceptions import *
 from tornasole.analysis.utils import refresh
 from tornasole.core.locations import TensorFileLocation
-from tornasole.core.utils import (
-    flatten,
-    is_s3,
-    list_collection_files_in_directory,
-    get_worker_name_from_collection_file,
-)
-from tornasole.core.s3_utils import list_s3_objects, parse_collection_files_from_s3_objects
+from tornasole.core.utils import flatten, get_worker_name_from_collection_file
 from tornasole.core.logger import get_logger
 from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from tornasole.core.modes import ModeKeys
@@ -130,6 +125,10 @@ class Trial(ABC):
     def read_collections(self, collection_files):
         pass
 
+    @abstractmethod
+    def get_collection_files(self):
+        pass
+
     def _load_collections(self):
         num_times_before_warning = 10
         collection_files = []
@@ -137,14 +136,7 @@ class Trial(ABC):
         def _fetch():
             nonlocal collection_files
             nonlocal num_times_before_warning
-            s3, bucket_name, key_name = is_s3(self.path)
-            if s3:
-                s3_objects, _ = list_s3_objects(
-                    self.bucket_name, self.prefix_name, start_after_key=None, delimiter=""
-                )
-                collection_files = parse_collection_files_from_s3_objects(s3_objects)
-            else:
-                collection_files = list_collection_files_in_directory(self.trial_dir)
+            collection_files = self.get_collection_files()
 
             num_times_before_warning -= 1
             if num_times_before_warning < 0:

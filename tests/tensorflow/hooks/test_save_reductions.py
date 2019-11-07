@@ -5,17 +5,20 @@ import glob
 from tornasole.core.reader import FileReader
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.utils import get_path_to_collections
 
 
 def helper_save_reductions(trial_dir, hook):
     simple_model(hook)
-    _, files = get_dirs_files(trial_dir)
+    files = get_collection_files(trial_dir)
     coll = get_collections()
     assert len(coll["weights"].tensor_names) == 1
     assert len(coll["gradients"].tensor_names) == 1
 
     assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
-    cm = CollectionManager.load(join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
+    cm = CollectionManager.load(
+        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+    )
     assert len(cm.collections) == len(coll)
     assert len(cm.collections["weights"].tensor_names) == 1
     assert len(cm.collections["gradients"].tensor_names) == 1

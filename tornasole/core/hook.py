@@ -373,7 +373,7 @@ class BaseHook:
     def export_collections(self):
         self.collection_manager.set_num_workers(self.get_num_workers())
         collection_file_name = f"{self.worker}_collections.json"
-        self.collection_manager.export(os.path.join(self.out_dir, collection_file_name))
+        self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _write_reduction(self, tensor_name, tensor_value, reduction_name, abs):
         reduction_tensor_name = get_reduction_tensor_name(tensor_name, reduction_name, abs)

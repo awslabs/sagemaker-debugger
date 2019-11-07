@@ -13,6 +13,8 @@ from tornasole.tensorflow import (
     CollectionManager,
     reset_collections,
 )
+from tornasole.core.utils import get_path_to_collections
+
 
 TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
 
@@ -49,6 +51,13 @@ def get_dirs_files(path):
     onlyfiles = [f for f in entries if isfile(join(path, f))]
     subdirs = [x for x in entries if x not in onlyfiles]
     return subdirs, onlyfiles
+
+
+def get_collection_files(path):
+    path = get_path_to_collections(path)
+    entries = os.listdir(path)
+    files = [f for f in entries if isfile(join(path, f))]
+    return files
 
 
 def get_event_file_path_length(dir_path):

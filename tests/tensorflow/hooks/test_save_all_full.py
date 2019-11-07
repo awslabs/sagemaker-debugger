@@ -1,9 +1,11 @@
 from .utils import *
 from tornasole.tensorflow import reset_collections, get_collections, CollectionManager, Collection
-import shutil, glob
+import glob
+import shutil
 from tornasole.core.reader import FileReader
 from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
 from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.utils import get_path_to_collections
 
 
 def test_save_all_full(hook=None, trial_dir=None):
@@ -20,7 +22,7 @@ def test_save_all_full(hook=None, trial_dir=None):
         hook_created = True
 
     simple_model(hook)
-    _, files = get_dirs_files(trial_dir)
+    files = get_collection_files(trial_dir)
     dirs, _ = get_dirs_files(os.path.join(trial_dir, "events"))
 
     coll = get_collections()
@@ -32,7 +34,9 @@ def test_save_all_full(hook=None, trial_dir=None):
     assert len(coll["losses"].tensor_names) == 1
 
     assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
-    cm = CollectionManager.load(join(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME))
+    cm = CollectionManager.load(
+        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+    )
 
     assert len(cm.collections) == len(coll), (coll, cm.collections)
     assert len(cm.collections["weights"].tensor_names) == 1

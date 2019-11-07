@@ -5,7 +5,7 @@ from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.locations import TensorFileLocation
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.tfrecord.tensor_reader import TensorReader
-from tornasole.core.utils import step_in_range
+from tornasole.core.utils import get_path_to_collections, step_in_range
 
 from .trial import EventFileTensor, Trial
 
@@ -45,6 +45,15 @@ class S3Trial(Trial):
         self._load_collections()
         self.load_tensors()
 
+    def get_collection_files(self) -> list:
+        collection_files, _ = list_s3_objects(
+            self.bucket_name,
+            get_path_to_collections(self.prefix_name),
+            start_after_key=None,
+            delimiter="",
+        )
+        return collection_files
+
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
         for tname in index_tensors_dict:
             for step, itds in index_tensors_dict[tname].items():
@@ -53,7 +62,7 @@ class S3Trial(Trial):
 
     def read_collections(self, collection_files):
         first_collection_file = collection_files[0]  # First Collection File
-        key = os.path.join(self.prefix_name, first_collection_file)
+        key = os.path.join(first_collection_file)
         collections_req = ReadObjectRequest(self._get_s3_location(key))
         obj_data = self.s3_handler.get_objects([collections_req])[0]
         obj_data = obj_data.decode("utf-8")

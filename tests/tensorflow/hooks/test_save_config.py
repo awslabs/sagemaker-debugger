@@ -9,7 +9,7 @@ import pytest
 
 def helper_test_save_config(trial_dir, hook):
     simple_model(hook)
-    _, files = get_dirs_files(trial_dir)
+    files = get_collection_files(trial_dir)
     steps, _ = get_dirs_files(os.path.join(trial_dir, "events"))
     assert len(steps) == 5
     assert len(files) == 1
