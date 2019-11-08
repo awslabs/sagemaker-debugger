@@ -22,12 +22,24 @@
       $CODEBUILD_SRC_DIR/tests/analysis/rules/test_check_input_images.py,
      test_dead_relu.py: &test_dead_relu
       $CODEBUILD_SRC_DIR/tests/analysis/rules/test_dead_relu.py,
+     xgboost_mnist_basic_hook_demo.py: &xgboost_mnist_basic_hook_demo
+      $CODEBUILD_SRC_DIR/examples/xgboost/scripts/xgboost_mnist_basic_hook_demo.py,
      invoker.py: &invoker
       $CODEBUILD_SRC_DIR/tests/analysis/invoker.py,
      Enable: &Enable # enable the test case
        True,
      Disable: &Disable # disable the test case
        False,
+    ]
+# test cases for xgboost
+-
+  - class_imbalance/xgboost/true
+  - xgboost
+  - *Enable
+  - [*xgboost_mnist_basic_hook_demo,
+      --tornasole_frequency 1,
+     *invoker,
+     --rule_name classimbalance --flag True --end_step 9
     ]
 
 # test cases for tensorflow
