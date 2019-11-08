@@ -33,6 +33,24 @@
     ]
 # test cases for xgboost
 -
+  - tree_depth/xgboost/true
+  - xgboost
+  - *Enable
+  - [*xgboost_mnist_basic_hook_demo,
+     --max_depth 100,
+     *invoker,
+     --rule_name treedepth --flag True --end_step 0
+    ]
+-
+  - tree_depth/xgboost/false
+  - xgboost
+  - *Enable
+  - [*xgboost_mnist_basic_hook_demo,
+     --max_depth 4 --num_round 10,
+     *invoker,
+     --rule_name treedepth --flag False --end_step 9
+    ]
+-
   - class_imbalance/xgboost/true
   - xgboost
   - *Enable

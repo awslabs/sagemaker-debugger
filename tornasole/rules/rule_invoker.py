@@ -65,6 +65,8 @@ def get_rule(rule_name):
         return CheckInputImages
     elif rule_name_lower == "deadrelu":
         return DeadRelu
+    elif rule_name_lower == "treedepth":
+        return TreeDepth
     elif rule_name_lower == "classimbalance":
         return ClassImbalance
     elif rule_name_lower == "confusion":
