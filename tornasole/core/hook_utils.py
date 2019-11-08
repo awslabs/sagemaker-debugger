@@ -26,7 +26,7 @@ def verify_and_get_out_dir(out_dir):
     else:
         if out_dir is None:
             raise RuntimeError(
-                "out_dir is a required argument when " "running outside of SageMaker environments"
+                "out_dir is a required argument when running outside of SageMaker environments"
             )
         is_s3_path, _, _ = is_s3(out_dir)
         if not is_s3_path:

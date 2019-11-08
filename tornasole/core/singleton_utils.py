@@ -51,3 +51,9 @@ def set_hook(custom_hook: "TornasoleHook") -> None:
 
     global _ts_hook
     _ts_hook = custom_hook
+
+
+def del_hook() -> None:
+    """ Set the hook singleton to None. """
+    global _ts_hook
+    _ts_hook = None

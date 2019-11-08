@@ -1,6 +1,6 @@
 import boto3
 import os
-from .json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH
+from tornasole.core.config_constants import DEFAULT_SAGEMAKER_TORNASOLE_PATH
 
 
 def is_sagemaker_job():

@@ -9,7 +9,7 @@ hook = ts.hook()
 """
 
 import tornasole.core.singleton_utils as sutils
-from tornasole.core.singleton_utils import set_hook
+from tornasole.core.singleton_utils import set_hook, del_hook
 
 
 def get_hook(json_config_path: str = None, hook_type: str = None) -> "TornasoleHook":

@@ -5,6 +5,8 @@ Example JSON config:
   "S3Path": "s3://bucket/prefix",
   "LocalPath": "newlogsRunTest/test_hook_from_json_config_full",
   "HookParameters": {
+    "export_tensorboard": true,
+    "tensorboard_dir": "/tmp/tensorboard",
     "save_all": false,
     "include_regex": "regexe1,regex2",
     "save_interval": 100,
@@ -40,11 +42,13 @@ Example JSON config:
 
 import json
 import os
-from typing import Dict
+from pathlib import Path
+from typing import Dict, Optional
 
 from tornasole.core.modes import ModeKeys
 from tornasole.core.logger import get_logger
 from tornasole.core.utils import merge_two_dicts, split
+from tornasole.core.sagemaker_utils import is_sagemaker_job
 from tornasole import ReductionConfig, SaveConfig, SaveConfigMode
 
 from tornasole.core.config_constants import (
@@ -62,6 +66,9 @@ from tornasole.core.config_constants import (
     TORNASOLE_CONFIG_INCLUDE_REGEX_KEY,
     TORNASOLE_CONFIG_SAVE_ALL_KEY,
     DEFAULT_SAGEMAKER_TORNASOLE_PATH,
+    DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
+    EXPORT_TENSORBOARD_KEY,
+    TENSORBOARD_DIR_KEY,
 )
 
 
@@ -78,6 +85,20 @@ def get_json_config_as_dict(json_config_path) -> Dict:
     with open(path) as json_config_file:
         params_dict = json.load(json_config_file)
     return params_dict
+
+
+def get_tensorboard_dir_from_json_config(tb_json_config_path: str) -> Optional[str]:
+    """ Expects tb_json_config_path to contain { “LocalPath”: /my/tensorboard/path }.
+
+    Returns the path contained in that json file, or None if not exists.
+    """
+    path = Path(tb_json_config_path)
+    if path.is_file():
+        my_dict = json.loads(path.read_text())
+        tensorboard_out_dir = my_dict.get("LocalPath")
+        return tensorboard_out_dir
+    else:
+        return None
 
 
 def create_hook_from_json_config(
@@ -105,14 +126,26 @@ def create_hook_from_json_config(
     save_config = SaveConfig.from_dict(tornasole_params.get("save_config_modes"), default_values)
     include_regex = tornasole_params.get(TORNASOLE_CONFIG_INCLUDE_REGEX_KEY)
     save_all = tornasole_params.get(TORNASOLE_CONFIG_SAVE_ALL_KEY, False)
+
+    # If Sagemaker, emit TB only if JSON file exists
+    if is_sagemaker_job():
+        tensorboard_dir = get_tensorboard_dir_from_json_config(DEFAULT_SAGEMAKER_TENSORBOARD_PATH)
+        export_tensorboard = bool(tensorboard_dir is not None)
+    # Otherwise, place TB artifacts in out_dir
+    else:
+        tensorboard_dir = tornasole_params[EXPORT_TENSORBOARD_KEY]
+        export_tensorboard = tornasole_params[TENSORBOARD_DIR_KEY]
+
     return hook_cls(
-        out_dir,
-        dry_run,
-        reduction_config,
-        save_config,
-        include_regex,
-        include_collections,
-        save_all,
+        out_dir=out_dir,
+        export_tensorboard=export_tensorboard,
+        tensorboard_dir=tensorboard_dir,
+        dry_run=dry_run,
+        reduction_config=reduction_config,
+        save_config=save_config,
+        include_regex=include_regex,
+        include_collections=include_collections,
+        save_all=save_all,
     )
 
 
@@ -138,6 +171,8 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
     tornasole_params_dict["out_dir"] = params_dict.get(
         TORNASOLE_CONFIG_OUTDIR_KEY, DEFAULT_SAGEMAKER_TORNASOLE_PATH
     )
+    tornasole_params_dict[EXPORT_TENSORBOARD_KEY] = params_dict.get(EXPORT_TENSORBOARD_KEY, False)
+    tornasole_params_dict[TENSORBOARD_DIR_KEY] = params_dict.get(TENSORBOARD_DIR_KEY, None)
 
     # Get the main HookParameters; pass these as defaults
     hook_params = params_dict.get(TORNASOLE_CONFIG_HOOK_PARAMS_KEY, {})

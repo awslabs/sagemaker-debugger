@@ -9,7 +9,7 @@ from .collection import (
     add_to_default_collection,
     reset_collections,
 )
-from .singleton_utils import get_hook, set_hook
+from .singleton_utils import get_hook, set_hook, del_hook
 from tornasole import SaveConfig, SaveConfigMode, ReductionConfig
 from tornasole import modes
 from tornasole.trials import create_trial

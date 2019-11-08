@@ -24,6 +24,8 @@ class TornasoleHook(CallbackHook):
     def __init__(
         self,
         out_dir=None,
+        export_tensorboard=False,
+        tensorboard_dir=None,
         dry_run=False,
         reduction_config=None,
         save_config=None,
@@ -36,6 +38,8 @@ class TornasoleHook(CallbackHook):
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             data_type_name=mx.ndarray.NDArray.__name__,
             out_dir=out_dir,
+            export_tensorboard=export_tensorboard,
+            tensorboard_dir=tensorboard_dir,
             dry_run=dry_run,
             reduction_config=reduction_config,
             save_config=save_config,
@@ -93,7 +97,11 @@ class TornasoleHook(CallbackHook):
     def _export_model(self):
         if self.model is not None:
             try:
-                self._get_tb_writer().write_graph(_net2pb(self.model))
+                tb_writer = self._maybe_get_tb_writer()
+                if tb_writer:
+                    tb_writer.write_graph(_net2pb(self.model))
+                else:
+                    self.logger.warning("Model export failed because hook.tensorboard_dir is None")
             except (RuntimeError, TypeError) as e:
                 self.logger.warning(
                     f"Could not export model graph for tensorboard "

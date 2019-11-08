@@ -28,6 +28,8 @@ class TornasoleHook(CallbackHook):
     def __init__(
         self,
         out_dir=None,
+        export_tensorboard=False,
+        tensorboard_dir=None,
         dry_run=False,
         reduction_config=None,
         save_config=None,
@@ -41,6 +43,8 @@ class TornasoleHook(CallbackHook):
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             data_type_name=torch.Tensor.__name__,
             out_dir=out_dir,
+            export_tensorboard=export_tensorboard,
+            tensorboard_dir=tensorboard_dir,
             dry_run=dry_run,
             reduction_config=reduction_config,
             save_config=save_config,
@@ -125,7 +129,11 @@ class TornasoleHook(CallbackHook):
         # todo: export model when only run for 1 step in cleanup
         if self.model is not None:
             try:
-                self._get_tb_writer().write_pytorch_graph(create_graph(self.model, inputs))
+                tb_writer = self._maybe_get_tb_writer()
+                if tb_writer:
+                    tb_writer.write_pytorch_graph(create_graph(self.model, inputs))
+                else:
+                    self.logger.warning("Model export failed because hook.tensorboard_dir is None")
             except ValueError as e:
                 self.logger.warning(
                     f"Could not export model graph for tensorboard "

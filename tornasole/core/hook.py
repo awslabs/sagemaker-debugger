@@ -16,6 +16,7 @@ from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.access_layer import training_has_ended
 from tornasole.core.hook_utils import verify_and_get_out_dir
+from tornasole.core.sagemaker_utils import is_sagemaker_job
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
 from tornasole.core.utils import flatten, get_tb_worker
 from tornasole.core.logger import get_logger
@@ -42,6 +43,8 @@ class BaseHook:
         default_include_collections: List[str],
         init_step: int = 0,
         out_dir: Optional[str] = None,
+        export_tensorboard: bool = False,
+        tensorboard_dir: Optional[str] = None,
         dry_run: bool = False,
         reduction_config: Optional[ReductionConfig] = None,
         save_config: Optional[Union[SaveConfig, Dict[ModeKeys, SaveConfigMode]]] = None,
@@ -89,6 +92,16 @@ class BaseHook:
             they are all saved in the collection `all`
         """
         self.out_dir = verify_and_get_out_dir(out_dir)
+
+        if export_tensorboard and tensorboard_dir:
+            self.tensorboard_dir = tensorboard_dir
+        elif not export_tensorboard and tensorboard_dir:
+            # Assume the user forgot `export_tensorboard` and save anyway.
+            self.tensorboard_dir = tensorboard_dir
+        elif export_tensorboard and not tensorboard_dir:
+            self.tensorboard_dir = out_dir
+        else:
+            self.tensorboard_dir = None
 
         self.dry_run = dry_run
         self.worker = None
@@ -138,6 +151,7 @@ class BaseHook:
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
+        # Maps ModeKeys to FileWriter objects
         self.tb_writers = {}
         self.logger.info("Saving to {}".format(self.out_dir))
         atexit.register(self._cleanup)
@@ -165,6 +179,7 @@ class BaseHook:
         return (
             f"<{self.__class__.__module__}.{self.__class__.__name__} object at {hex(id(self))}>:(\n"
             f"    out_dir={self.out_dir},\n"
+            f"    tensorboard_dir={self.tensorboard_dir},\n"
             f"    step={self.step},\n"
             f"    mode={self.mode},\n"
             f"    mode_steps={self.mode_steps},\n"
@@ -306,7 +321,14 @@ class BaseHook:
         """
         return [self.writer]
 
-    def _get_tb_writer(self):
+    def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
+        """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
+
+        Creates a writer if does not exist.
+        """
+        if not self.tensorboard_dir:
+            return None
+
         if self.mode in self.tb_writers:
             assert self.tb_writers[self.mode] is not None
             # would be there if set_mode was called
@@ -315,7 +337,7 @@ class BaseHook:
             # s = self.step
             # if s < 0: s = 0
             self.tb_writers[self.mode] = FileWriter(
-                trial_dir=self.out_dir,
+                trial_dir=self.tensorboard_dir,
                 step=self.step,
                 worker=get_tb_worker(),
                 write_checksum=True,
@@ -396,35 +418,41 @@ class BaseHook:
                         reductions_saved.add((reduction, True))
 
     def _write_scalar_summary(self, tensor_name, tensor_value, save_colls):
-        for s_col in save_colls:
-            if s_col.name in [CollectionKeys.LOSSES, CollectionKeys.SCALARS]:
-                np_val = self._make_numpy_array(tensor_value)
-                if self.dry_run:
-                    return
+        """ Maybe write to TensorBoard. """
+        tb_writer = self._maybe_get_tb_writer()
+        if tb_writer:
+            for s_col in save_colls:
+                if s_col.name in [CollectionKeys.LOSSES, CollectionKeys.SCALARS]:
+                    np_val = self._make_numpy_array(tensor_value)
+                    if self.dry_run:
+                        return
 
-                if np_val.squeeze().ndim == 0:
-                    self._get_tb_writer().write_scalar_summary(tensor_name, np_val, self.step)
-                else:
-                    self.logger.debug(
-                        f"Value of {tensor_name} is not scalar, "
-                        f"so scalar summary could not be created"
-                    )
-                break
+                    if np_val.squeeze().ndim == 0:
+                        tb_writer.write_scalar_summary(tensor_name, np_val, self.step)
+                    else:
+                        self.logger.debug(
+                            f"Value of {tensor_name} is not scalar, "
+                            f"so scalar summary could not be created"
+                        )
+                    break
 
     def _write_histogram_summary(self, tensor_name, tensor_value, save_collections):
-        for s_col in save_collections:
-            if s_col.name in SUMMARIES_COLLECTIONS:
-                continue
-            elif s_col.save_histogram is True:
-                np_value = self._make_numpy_array(tensor_value)
-                if self.dry_run or np_value.dtype == np.bool or np_value.nbytes == 0:
-                    return
+        """ Maybe write to TensorBoard. """
+        tb_writer = self._maybe_get_tb_writer()
+        if tb_writer:
+            for s_col in save_collections:
+                if s_col.name in SUMMARIES_COLLECTIONS:
+                    continue
+                elif s_col.save_histogram is True:
+                    np_value = self._make_numpy_array(tensor_value)
+                    if self.dry_run or np_value.dtype == np.bool or np_value.nbytes == 0:
+                        return
 
-                hist_name = f"histograms/{s_col.name}/{tensor_name}"
-                self._get_tb_writer().write_histogram_summary(
-                    tdata=np_value, tname=hist_name, global_step=self.step
-                )
-                break
+                    hist_name = f"histograms/{s_col.name}/{tensor_name}"
+                    tb_writer.write_histogram_summary(
+                        tdata=np_value, tname=hist_name, global_step=self.step
+                    )
+                    break
 
     # Fix step number for saving scalar and tensor
     # def save_scalar(self, name, value):
@@ -545,6 +573,8 @@ class CallbackHook(BaseHook):
         default_include_collections: List[str],
         data_type_name: Optional[str] = None,
         out_dir: Optional[str] = None,
+        export_tensorboard: bool = False,
+        tensorboard_dir: Optional[str] = None,
         dry_run: bool = False,
         reduction_config: Optional[ReductionConfig] = None,
         save_config: Optional[SaveConfig] = None,
@@ -557,6 +587,8 @@ class CallbackHook(BaseHook):
             default_include_collections=default_include_collections,
             init_step=-1,
             out_dir=out_dir,
+            export_tensorboard=export_tensorboard,
+            tensorboard_dir=tensorboard_dir,
             dry_run=dry_run,
             reduction_config=reduction_config,
             save_config=save_config,

@@ -30,6 +30,8 @@ class TornasoleHook(CallbackHook):
     def __init__(
         self,
         out_dir: Optional[str] = None,
+        export_tensorboard: bool = False,
+        tensorboard_dir: Optional[str] = None,
         dry_run: bool = False,
         reduction_config=None,
         save_config: Optional[SaveConfig] = None,
@@ -82,6 +84,8 @@ class TornasoleHook(CallbackHook):
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             data_type_name=None,
             out_dir=out_dir,
+            export_tensorboard=export_tensorboard,
+            tensorboard_dir=tensorboard_dir,
             dry_run=dry_run,
             reduction_config=None,
             save_config=save_config,

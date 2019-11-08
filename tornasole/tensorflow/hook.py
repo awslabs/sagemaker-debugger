@@ -39,6 +39,8 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
     def __init__(
         self,
         out_dir=None,
+        export_tensorboard=False,
+        tensorboard_dir=None,
         dry_run=False,
         reduction_config=None,
         save_config=None,
@@ -89,6 +91,8 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             collection_manager=get_collection_manager(),
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             out_dir=out_dir,
+            export_tensorboard=export_tensorboard,
+            tensorboard_dir=tensorboard_dir,
             dry_run=dry_run,
             reduction_config=reduction_config,
             save_config=save_config,
@@ -330,7 +334,11 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
 
     def _export_model(self):
         self.logger.info("Writing graph")
-        self._get_tb_writer().write_graph(self.graph.as_graph_def(add_shapes=True))
+        tb_writer = self._maybe_get_tb_writer()
+        if tb_writer:
+            tb_writer.write_graph(self.graph.as_graph_def(add_shapes=True))
+        else:
+            self.logger.debug("Graph not exported because `hook.tensorboard_dir` is None")
         # don't close writer as it might be needed in the step that follows
         # else we will have to open the file again
 
@@ -415,7 +423,9 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             # likely a summary
             self.logger.debug(f"Saving summary {tensor.name} with length {len(value)}")
             s = Summary.FromString(value)
-            self._get_tb_writer().write_summary(s, self.step)
+            tb_writer = self._maybe_get_tb_writer()
+            if tb_writer:
+                tb_writer.write_summary(s, self.step)
         except Exception as e:
             # can it not be a summary?
             self.logger.error(f"Ran into the exception when saving {tensor}: {e}")

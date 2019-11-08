@@ -6,7 +6,10 @@ from tornasole.core.access_layer.file import (
     NON_SAGEMAKER_TEMP_PATH_PREFIX,
 )
 from tornasole.core.access_layer.utils import training_has_ended
+from tornasole.core.utils import SagemakerSimulator, ScriptSimulator
+import tornasole.tensorflow as ts
 import os
+import shutil
 import uuid
 
 
@@ -33,6 +36,45 @@ def test_outdir_sagemaker():
         out_dir = verify_and_get_out_dir(path)
         assert out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH
     del os.environ["TRAINING_JOB_NAME"]
+
+
+def test_tensorboard_dir_sagemaker():
+    """ In Sagemaker, we read the tensorboard_dir from a separate JSON config file. """
+    with SagemakerSimulator() as sim:
+        ts.del_hook()
+        hook = ts.get_hook()
+        assert hook.out_dir == sim.out_dir
+        assert hook.tensorboard_dir == sim.tensorboard_dir
+
+
+def test_tensorboard_dir_script_default():
+    """ In script mode, we default to no tensorboard. """
+    with ScriptSimulator() as sim:
+        hook = ts.TornasoleHook(out_dir=sim.out_dir)
+        assert hook.tensorboard_dir is None
+
+
+def test_tensorboard_dir_script_export_tensorboard():
+    """ In script mode, passing `export_tensorboard=True` results in tensorboard_dir=out_dir. """
+    with ScriptSimulator() as sim:
+        hook = ts.TornasoleHook(out_dir=sim.out_dir, export_tensorboard=True)
+        assert hook.tensorboard_dir == hook.out_dir
+
+
+def test_tensorboard_dir_script_specify_tensorboard_dir():
+    """ In script mode, passing `export_tensorboard` and `tensorboard_dir` works. """
+    with ScriptSimulator(tensorboard_dir="/tmp/tensorboard_dir") as sim:
+        hook = ts.TornasoleHook(
+            out_dir=sim.out_dir, export_tensorboard=True, tensorboard_dir=sim.tensorboard_dir
+        )
+        assert hook.tensorboard_dir == sim.tensorboard_dir
+
+
+def test_tensorboard_dir_non_sagemaker_forgot_export_tensorboard():
+    """ In script mode, passing tensorboard_dir will work. """
+    with ScriptSimulator(tensorboard_dir="/tmp/tensorboard_dir") as sim:
+        hook = ts.TornasoleHook(out_dir=sim.out_dir, tensorboard_dir=sim.tensorboard_dir)
+        assert hook.tensorboard_dir == sim.tensorboard_dir
 
 
 def test_temp_paths():
