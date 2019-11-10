@@ -2,9 +2,12 @@ from tornasole.core.writer import FileWriter
 from tornasole.core.reader import FileReader
 import numpy as np
 from tornasole.core.modes import ModeKeys
+from tornasole.trials import create_trial
 from datetime import datetime
 import socket
 import glob
+
+from .utils import write_dummy_collection_file
 import shutil
 
 
@@ -28,14 +31,27 @@ def test_mode_writing():
                 mode_step=s // 2,
             )
         fw.close()
+    write_dummy_collection_file("ts_outputs/" + run_id)
     files = glob.glob("ts_outputs/" + run_id + "/**/*.tfevents", recursive=True)
+
+    global_steps = []
+    train_steps = []
+    eval_steps = []
     for f in files:
         fr = FileReader(fname=f)
         for tu in fr.read_tensors():
             tensor_name, step, tensor_data, mode, mode_step = tu
             if step % 2 == 0:
                 assert mode == ModeKeys.TRAIN
+                train_steps.append(step // 2)
             else:
                 assert mode == ModeKeys.EVAL
+                eval_steps.append(step // 2)
             assert mode_step == step // 2
+            global_steps.append(step)
+
+    trial = create_trial("ts_outputs/" + run_id)
+    assert trial.steps() == sorted(global_steps)
+    assert trial.steps(ModeKeys.TRAIN) == sorted(train_steps)
+    assert trial.steps(ModeKeys.EVAL) == sorted(eval_steps)
     shutil.rmtree("ts_outputs/" + run_id)

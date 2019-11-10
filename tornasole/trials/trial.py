@@ -295,12 +295,11 @@ class Trial(ABC):
             return all_steps
         completed_steps = list()
         for step in all_steps:
-            if mode != ModeKeys.GLOBAL:
-                step = self._mode_to_global[mode][step]
+            global_step = self._mode_to_global[mode][step] if mode != ModeKeys.GLOBAL else step
             if (
-                len(self.workers_for_step[step]) == self.num_workers
+                len(self.workers_for_step[global_step]) == self.num_workers
                 or self.loaded_all_steps is True
-                or self.last_complete_step >= step
+                or self.last_complete_step >= global_step
             ):
                 completed_steps.append(step)
         return completed_steps
