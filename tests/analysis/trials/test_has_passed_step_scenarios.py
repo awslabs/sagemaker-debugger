@@ -465,6 +465,7 @@ def test_override_if_too_many_steps_skipped():
     del os.environ["TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW"]
 
 
+@pytest.mark.slow
 def test_partially_written_tensors():
     """
     The trial data accessed by this test was generated with the following hook configs:

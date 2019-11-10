@@ -1,6 +1,6 @@
 from .collection import Collection
 from .access_layer import TSAccessFile, TSAccessS3
-from .utils import is_s3, load_json_as_dict
+from .utils import is_s3, load_json_as_dict, get_path_to_collections
 import os
 import json
 
@@ -68,7 +68,7 @@ class CollectionManager:
         return d
 
     def export(self, out_dir, filename):
-        filename = os.path.join(out_dir, "collections", filename)
+        filename = os.path.join(get_path_to_collections(out_dir), filename)
         on_s3, bucket, obj = is_s3(filename)
         if on_s3:
             f = TSAccessS3(bucket_name=bucket, key_name=obj, binary=False)

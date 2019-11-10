@@ -60,6 +60,6 @@ def test_parse_worker_name_from_collection_file():
     worker_name = get_worker_name_from_collection_file(collection_file)
     assert worker_name == "/job:worker/replica:0/task:1/device:GPU:0"
 
-    file_name = "/tmp/collections/job-worker_1_collections.json"
+    file_name = "/tmp/collections/000000000/job-worker_1_collections.json"
     worker_name = get_worker_name_from_collection_file(file_name)
     assert worker_name == "job-worker_1"

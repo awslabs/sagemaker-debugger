@@ -160,7 +160,10 @@ def size_and_shape(t):
 
 
 def get_path_to_collections(directory):
-    return os.path.join(directory, "collections/")
+    collection_step = 0  # TODO: logic to determine collection steps
+    return os.path.join(
+        directory, "collections", format(collection_step, "09"), ""
+    )  # The last "" adds a trailing /
 
 
 def get_worker_name_from_collection_file(filename: str) -> str:
@@ -174,7 +177,7 @@ def get_worker_name_from_collection_file(filename: str) -> str:
     :param filename: str
     :return: worker_name: str
     """
-    worker_name_regex = re.compile(".*/collections/(.+)_collections.(json|ts)")
+    worker_name_regex = re.compile(".*/collections/.+/(.+)_collections.(json|ts)")
     worker_name = re.match(worker_name_regex, filename).group(1)
     if worker_name[0] == "_":
         worker_name = deserialize_tf_device(worker_name)
