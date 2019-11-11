@@ -335,8 +335,6 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         tb_writer = self._maybe_get_tb_writer()
         if tb_writer:
             tb_writer.write_graph(self.graph.as_graph_def(add_shapes=True))
-        else:
-            self.logger.debug("Graph not exported because `hook.tensorboard_dir` is None")
         # don't close writer as it might be needed in the step that follows
         # else we will have to open the file again
 

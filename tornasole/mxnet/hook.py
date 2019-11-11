@@ -112,8 +112,6 @@ class TornasoleHook(CallbackHook):
                 tb_writer = self._maybe_get_tb_writer()
                 if tb_writer:
                     tb_writer.write_graph(_net2pb(self.model))
-                else:
-                    self.logger.warning("Model export failed because hook.tensorboard_dir is None")
             except (RuntimeError, TypeError) as e:
                 self.logger.warning(
                     f"Could not export model graph for tensorboard "

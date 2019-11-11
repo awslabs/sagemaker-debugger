@@ -117,6 +117,11 @@ class BaseHook:
 
         self.logger = logger
 
+        if self.tensorboard_dir is None:
+            self.logger.info(
+                f"`tensorboard_dir` has not been set. Disabling export of tensorboard summaries."
+            )
+
         if include_regex is not None:
             collection_manager.get(CollectionKeys.DEFAULT).include(include_regex)
             if CollectionKeys.DEFAULT not in self.include_collections:
