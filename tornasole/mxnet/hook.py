@@ -59,9 +59,23 @@ class TornasoleHook(CallbackHook):
         set_hook(self)
 
     def get_worker_name(self):
+        try:
+            import horovod.mxnet as hvd
+
+            if hvd.size():
+                return f"worker_{hvd.rank()}"
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
         return CONFIG_DEFAULT_WORKER_NAME
 
     def get_num_workers(self):
+        try:
+            import horovod.mxnet as hvd
+
+            if hvd.size():
+                return hvd.size()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
         return 1
 
     @classmethod
