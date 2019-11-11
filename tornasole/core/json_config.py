@@ -82,7 +82,7 @@ def get_json_config_as_dict(json_config_path) -> Dict:
         path = json_config_path
     else:
         path = os.getenv(CONFIG_FILE_PATH_ENV_STR, DEFAULT_CONFIG_FILE_PATH)
-
+    get_logger().info(f"Loaded Hook configuration from {path}")
     with open(path) as json_config_file:
         params_dict = json.load(json_config_file)
     return params_dict
@@ -162,7 +162,6 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
     """
     # Build params dictionary from the json file
     params_dict = get_json_config_as_dict(json_config_path=json_config_path)
-
     # Declare defaults
     tornasole_params_dict = {
         CONFIG_RDN_CFG_KEY: None,
@@ -200,9 +199,7 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
         for config in params_dict[CONFIG_COLLECTION_CONFIG_KEY]:
             # Require name and parameters for each collection.
             if CONFIG_COLLECTION_NAME_KEY not in config:
-                raise ValueError(
-                    f"Must specify '{TORNASOLE_CONFIG_COLLECTION_NAME_KEY}' in JSON config."
-                )
+                raise ValueError(f"Must specify '{CONFIG_COLLECTION_NAME_KEY}' in JSON config.")
 
             name = config[CONFIG_COLLECTION_NAME_KEY]
             coll_params = config.get(CONFIG_COLLECTION_PARAMS_KEY, {})

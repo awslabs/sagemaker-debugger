@@ -47,12 +47,12 @@ If you do not specify this, it saves steps under a `GLOBAL` mode.
 hook.set_mode(ts.modes.TRAIN)
 ```
 
-Wrap your optimizer with TornasoleOptimizer so that
+Wrap your optimizer with wrap_optimizer so that
 Tornasole can identify your gradients and automatically
 provide these tensors as part of the `gradients` collection.
 Use this new optimizer to minimize the loss.
 ```
-optimizer = ts.TornasoleOptimizer(optimizer)
+optimizer = hook.wrap_optimizer(optimizer)
 ```
 
 Create a monitored session with the above hook, and use this for executing your TensorFlow job.
@@ -82,12 +82,12 @@ If you do not specify this, it saves steps under a `GLOBAL` mode.
 ```
 hook.set_mode(ts.modes.TRAIN)
 ```
-Wrap your optimizer with TornasoleOptimizer so that
+Wrap your optimizer with wrap_optimizer so that
 Tornasole can identify your gradients and automatically
 provide these tensors as part of the `gradients` collection.
 Use this new optimizer to minimize the loss.
 ```
-opt = ts.TornasoleOptimizer(opt)
+opt = hook.wrap_optimizer(opt)
 ```
 Now pass this hook to the estimator object's train, predict or evaluate methods, whichever ones you want to monitor.
 ```
@@ -282,13 +282,13 @@ hook = ts.TornasoleHook(..., include_collections = ['weights'], ...)
 
 #### Gradients
 We provide an easy way to populate the collection named `gradients` with the gradients wrt to the weights.
-This can be done by wrapping around your optimizer with `TornasoleOptimizer` as follows.
+This can be done by wrapping around your optimizer with `wrap_optimizer` as follows.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 
 ```
 import tornasole.tensorflow as ts
 ...
-opt = ts.TornasoleOptimizer(opt)
+opt = hook.wrap_optimizer(opt)
 ```
 
 You can refer to [customize collections](#customizing-collections) for
@@ -321,7 +321,7 @@ hook = ts.TornasoleHook(..., include_collections = ['losses'..], ...)
 
 #### Optimizer Variables
 Optimizer variables such as momentum can also be saved easily with the
-above approach of wrapping your optimizer with `TornasoleOptimizer`
+above approach of wrapping your optimizer with `wrap_optimizer`
 followed by passing `optimizer_variables` in the `include_collections` parameter of the hook.
 ```
 import tornasole.tensorflow as ts
@@ -333,7 +333,7 @@ Please refer [API](api.md) for more details on using collections
 ### Customizing collections
 You can also create any other customized collection yourself.
 You can create new collections as well as modify existing collections
-(such as including gradients if you do not want to use the above `TornasoleOptimizer`)
+(such as including gradients if you do not want to use the above `wrap_optimizer`)
 #### Creating or accessing a collection
 Each collection should have a unique name (which is a string).
 You can get the collection named as `collection_name` by

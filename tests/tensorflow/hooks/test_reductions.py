@@ -18,18 +18,22 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
     assert len(tr.tensors()) == 3, tr.tensors()
     for tname in tr.tensors():
         t = tr.tensor(tname)
-        try:
-            print(t.value(0))
-            if save_raw_tensor is False:
-                assert False, (tname, t.value(0))
-        except TensorUnavailableForStep as e:
+        if tname in tr.tensors_in_collection("losses"):
+            # no reductions
+            assert t.value(0) is not None
+        else:
             if save_raw_tensor is True:
-                assert False, (t.name, e)
-            pass
-        assert len(t.reduction_values(0)) == 18
-        for r in ALLOWED_REDUCTIONS + ALLOWED_NORMS:
-            for b in [False, True]:
-                assert t.reduction_value(0, reduction_name=r, abs=b, worker=None) is not None
+                assert t.value(0) is not None
+            else:
+                try:
+                    print(t.value(0))
+                    assert False, (tname, e)
+                except TensorUnavailableForStep as e:
+                    pass
+            assert len(t.reduction_values(0)) == 18
+            for r in ALLOWED_REDUCTIONS + ALLOWED_NORMS:
+                for b in [False, True]:
+                    assert t.reduction_value(0, reduction_name=r, abs=b, worker=None) is not None
 
 
 def test_reductions(save_raw_tensor=False):

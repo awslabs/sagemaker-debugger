@@ -16,13 +16,13 @@ ts.TornasoleHook(..., save_all=True, ...)
 ```
 **Saving gradients**
 
-We need to wrap our optimizer with TornasoleOptimizer, and use this optimizer to minimize loss.
+We need to wrap our optimizer with wrap_optimizer, and use this optimizer to minimize loss.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
-opt = TornasoleOptimizer(opt)
-optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
+hook = ts.TornasoleHook(..., include_collections=[..,'gradients'], ...)
+opt = hook.wrap_optimizer(opt)
+optimizer_op = opt.minimize(loss, global_step=increment_global_step_op)
 
-ts.TornasoleHook(..., include_collections=[..,'gradients'], ...)
 ```
 **Saving losses**
 

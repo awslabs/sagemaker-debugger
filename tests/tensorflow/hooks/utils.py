@@ -4,7 +4,6 @@ from datetime import datetime
 import os
 from os.path import isfile, join
 from tornasole.tensorflow import (
-    TornasoleOptimizer,
     TornasoleHook,
     SaveConfig,
     SaveConfigMode,
@@ -33,7 +32,7 @@ def simple_model(hook, steps=10, lr=0.4):
     increment_global_step_op = tf.assign(global_step, global_step + 1)
 
     optimizer = tf.train.AdamOptimizer(lr)
-    optimizer = TornasoleOptimizer(optimizer)
+    optimizer = hook.wrap_optimizer(optimizer)
     optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 
     sess = tf.train.MonitoredSession(hooks=[hook])

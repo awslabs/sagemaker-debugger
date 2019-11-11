@@ -2,7 +2,7 @@ from tornasole.core.modes import ModeKeys
 import os
 import shutil
 from .utils import pre_test_clean_up
-from tornasole.pytorch.hook import TornasoleHook
+from tornasole.tensorflow.session import TornasoleHook
 from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
 

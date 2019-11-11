@@ -7,7 +7,7 @@ from tornasole.core.access_layer.file import (
 )
 from tornasole.core.access_layer.utils import training_has_ended
 from tornasole.core.utils import SagemakerSimulator, ScriptSimulator
-import tornasole.tensorflow as ts
+import tornasole.pytorch as ts
 import os
 import shutil
 import uuid
@@ -42,7 +42,7 @@ def test_tensorboard_dir_sagemaker():
     """ In Sagemaker, we read the tensorboard_dir from a separate JSON config file. """
     with SagemakerSimulator() as sim:
         ts.del_hook()
-        hook = ts.get_hook()
+        hook = ts.get_hook(create_if_not_exists=True)
         assert hook.out_dir == sim.out_dir
         assert hook.tensorboard_dir == sim.tensorboard_dir
 

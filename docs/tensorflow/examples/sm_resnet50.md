@@ -20,10 +20,10 @@ include_collections.append('weights')
 ```
 **Saving gradients**
 
-We need to wrap our optimizer with TornasoleOptimizer, and use this optimizer to minimize loss.
+We need to wrap our optimizer with wrap_optimizer, and use this optimizer to minimize loss.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
-opt = TornasoleOptimizer(opt)
+opt = hook.wrap_optimizer(opt)
 
 include_collections.append('gradients')
 ts.TornasoleHook(..., include_collections=include_collections, ...)

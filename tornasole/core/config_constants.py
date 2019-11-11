@@ -26,3 +26,6 @@ LATEST_GLOBAL_STEP_SEEN = "latest-global-step-seen"
 LATEST_GLOBAL_STEP_SAVED = "latest-global-step-saved"
 LATEST_MODE_STEP = "latest-mode-step"
 TRAINING_RUN = "training-run"
+
+TRAINING_END_DELAY_REFRESH_KEY = "training_end_delay_refresh"
+TRAINING_END_DELAY_REFRESH_DEFAULT = 5

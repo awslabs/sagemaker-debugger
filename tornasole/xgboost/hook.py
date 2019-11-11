@@ -142,10 +142,6 @@ class TornasoleHook(CallbackHook):
         # env.end_iteration: round # when training will end. this is always num_round + 1.  # noqa: E501
         return env.iteration + 1 == env.end_iteration
 
-    def _is_collection_being_saved_for_step(self, name):
-        collections = [self.collection_manager.get("all"), self.collection_manager.get(name)]
-        return any(c in self._get_collections_to_save_for_step() for c in collections)
-
     def _increment_step(self, iteration):
         self.step = self.mode_steps[self.mode] = iteration
         self._collections_to_save_for_step = None

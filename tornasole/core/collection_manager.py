@@ -56,6 +56,8 @@ class CollectionManager:
     def to_json_dict(self):
         d = dict()
         for a, v in self.__dict__.items():
+            if a == "_tensors":
+                continue
             if a == "collections":
                 coll_dict = dict()
                 for n, v in self.collections.items():

@@ -46,6 +46,24 @@ if args.random_seed:
     np.random.seed(2)
     random.seed(12)
 
+
+# save tensors as reductions if necessary
+rdnc = (
+    ts.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
+    if args.reductions
+    else None
+)
+
+# create the hook
+# Note that we are saving all tensors here by passing save_all=True
+hook = ts.TornasoleHook(
+    out_dir=args.tornasole_path,
+    save_all=args.save_all,
+    include_collections=["weights", "gradients", "losses"],
+    save_config=ts.SaveConfig(save_interval=args.tornasole_frequency),
+    reduction_config=rdnc,
+)
+
 # Network definition
 # Note the use of name scopes
 with tf.name_scope("foobar"):
@@ -66,29 +84,11 @@ summ = tf.summary.merge_all()
 
 optimizer = tf.train.AdamOptimizer(args.lr)
 
-# Wrap the optimizer with TornasoleOptimizer so Tornasole can find gradients and optimizer_variables to save
-optimizer = ts.TornasoleOptimizer(optimizer)
+# Wrap the optimizer with wrap_optimizer so Tornasole can find gradients and optimizer_variables to save
+optimizer = hook.wrap_optimizer(optimizer)
 
 # use this wrapped optimizer to minimize loss
 optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
-
-# save tensors as reductions if necessary
-rdnc = (
-    ts.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
-    if args.reductions
-    else None
-)
-
-# create the hook
-# Note that we are saving all tensors here by passing save_all=True
-hook = ts.TornasoleHook(
-    out_dir=args.tornasole_path,
-    save_all=args.save_all,
-    include_collections=["weights", "gradients", "losses"],
-    save_config=ts.SaveConfig(save_interval=args.tornasole_frequency),
-    reduction_config=rdnc,
-    tensorboard_dir=args.tornasole_path + "/tb/",
-)
 
 hook.set_mode(ts.modes.TRAIN)
 

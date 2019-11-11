@@ -11,6 +11,7 @@ import os
 import pytest
 import torch
 import torch.distributed as dist
+from torch import multiprocessing
 from torch.multiprocessing import Process
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -140,7 +141,7 @@ def test_run_net_distributed():
     # torch.distributed is empty on Mac on Torch <= 1.2
     if not hasattr(dist, "is_initialized"):
         return
-
+    multiprocessing.set_start_method("spawn")
     ts.reset_collections()
     size = 2
     processes = []

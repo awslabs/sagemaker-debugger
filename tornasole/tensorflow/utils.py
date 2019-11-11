@@ -1,6 +1,8 @@
 import json
 import tensorflow as tf
-
+from tornasole.core.modes import ModeKeys
+from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
+from tensorflow.python.distribute import values
 from enum import Enum
 
 
@@ -41,6 +43,8 @@ def get_original_fetch_ops(fetches):
         return [fetches.op]
     elif isinstance(fetches, tf.Operation):
         return [fetches]
+    elif isinstance(fetches, values.Mirrored):
+        return [x.op for x in fetches.values]
     elif isinstance(fetches, list):
         rval = []
         for f in fetches:
@@ -138,6 +142,12 @@ def is_parameter_server_strategy(tf_config: str) -> bool:
     return "cluster" in tf_config and "ps" in tf_config["cluster"]
 
 
+def is_mirrored_strategy(strat):
+    return isinstance(
+        strat, (tf.distribute.MirroredStrategy, tf.contrib.distribute.MirroredStrategy)
+    )
+
+
 def get_worker_id_from_tf_config(tf_config: str) -> str:
     """Valid roles in a cluster is "chief", "worker", "ps" and "evaluator"."""
     tf_config = json.loads(tf_config)
@@ -153,3 +163,69 @@ def get_num_workers_from_tf_config(tf_config: str) -> int:
     if "chief" in tf_config["cluster"]:
         workers.extend(tf_config["cluster"]["chief"])
     return len(workers)
+
+
+def is_keras_optimizer(obj):
+    for cls in obj.__class__.__mro__:
+        if ".".join([cls.__module__, cls.__name__]) == "keras.optimizers.Optimizer":
+            return True
+    return False
+
+
+def mode_to_keras_mode(mode):
+    if mode == ModeKeys.TRAIN:
+        return KerasModeKeys.TRAIN
+    elif mode == ModeKeys.EVAL:
+        return KerasModeKeys.TEST
+    elif mode == ModeKeys.PREDICT:
+        return KerasModeKeys.PREDICT
+
+
+def get_export_name_for_keras(layer, tensor_type, tensor):
+    if tensor_type in ["input", "output", "weight"]:
+        return f"{layer.name}/{tensor_type}s/{tensor.name}"
+    else:
+        return None
+
+
+def get_keras_layer_inputs(layer):
+    # will throw an exception if _inbound_nodes is not loaded
+    layer.get_input_at(0)
+    input_tensors = []
+    for idx in range(len(layer._inbound_nodes)):
+        inputs = layer.get_input_at(idx)
+        if not isinstance(inputs, list):
+            inputs = [inputs]
+        for input_index, inp in enumerate(inputs):
+            input_tensors.append(inp)
+    return input_tensors
+
+
+def get_non_device_tensors(tensor_refs):
+    non_dev_tensors = []
+    for tensor_ref in tensor_refs:
+        if not tensor_ref.tf_obj.device:
+            non_dev_tensors.append(tensor_ref)
+    return non_dev_tensors
+
+
+def get_keras_layer_outputs(layer):
+    # will throw an exception if _inbound_nodes is not loaded
+    layer.get_output_at(0)
+    output_tensors = []
+    for idx in range(len(layer._inbound_nodes)):
+        outputs = layer.get_output_at(idx)
+        if not isinstance(outputs, list):
+            outputs = [outputs]
+        for output_index, outp in enumerate(outputs):
+            output_tensors.append(outp)
+    return output_tensors
+
+
+def get_keras_mode(mode):
+    if mode == ModeKeys.TRAIN:
+        return KerasModeKeys.TRAIN
+    elif mode == ModeKeys.EVAL:
+        return KerasModeKeys.TEST
+    elif mode == ModeKeys.PREDICT:
+        return KerasModeKeys.PREDICT

@@ -20,7 +20,7 @@ from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
 import tornasole.tensorflow as ts
 from tornasole.tensorflow import reset_collections
-from tornasole.tensorflow.hook import TornasoleHook
+from tornasole.tensorflow.session import TornasoleHook
 from tornasole.trials import create_trial
 from tornasole.core.utils import is_s3
 from tests.analysis.utils import delete_s3_prefix
@@ -84,7 +84,7 @@ def help_test_mnist(
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-            optimizer = ts.TornasoleOptimizer(optimizer)
+            optimizer = ts.get_hook().wrap_optimizer(optimizer)
             train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 

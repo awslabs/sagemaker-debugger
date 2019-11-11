@@ -113,7 +113,7 @@ def cnn_model_fn(features, labels, mode):
         optimizer = hvd.DistributedOptimizer(optimizer)
 
         # Tornasole: add Tornasole Optimizer
-        optimizer = ts.TornasoleOptimizer(optimizer)
+        optimizer = ts.get_hook().wrap_optimizer(optimizer)
 
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)

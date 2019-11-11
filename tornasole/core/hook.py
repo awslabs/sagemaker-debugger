@@ -9,8 +9,9 @@ from tornasole.core.utils import match_inc, size_and_shape
 from tornasole.core.reduction_config import ReductionConfig
 from tornasole.core.collection import (
     CollectionKeys,
-    SUMMARIES_COLLECTIONS,
+    NON_REDUCTION_COLLECTIONS,
     NON_HISTOGRAM_COLLECTIONS,
+    SCALAR_COLLECTIONS,
 )
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
@@ -146,6 +147,7 @@ class BaseHook:
         self._collections_to_save_for_step = None
         self.prepared_collections = False
         self.tensor_to_collections = {}
+
         self.step = init_step
         self.last_saved_step = None
         self.mode = ModeKeys.GLOBAL
@@ -212,19 +214,31 @@ class BaseHook:
         self._assert_prep()
         return self._collections_to_save
 
+    def _is_collection_being_saved_for_step(self, name):
+        # if saving all, all collections will be part of colls_for_step
+        colls_for_step = self._get_collections_to_save_for_step()
+        return self.collection_manager.get(name) in colls_for_step
+
     def _get_collections_to_save_for_step(self) -> Set["Collection"]:
         if self._collections_to_save_for_step is None:
             self._assert_prep()
-            s = set()
-            for coll in self._collections_to_save:
-                if coll.name == CollectionKeys.GRADIENTS and self.mode in [
-                    ModeKeys.EVAL,
-                    ModeKeys.PREDICT,
-                ]:
-                    continue
+            self._collections_to_save_for_step = set()
+            for coll in self._get_all_collections_to_save():
+                if self.mode in [ModeKeys.EVAL, ModeKeys.PREDICT]:
+                    if coll.name in [CollectionKeys.GRADIENTS, CollectionKeys.OPTIMIZER_VARIABLES]:
+                        continue
                 if coll.save_config.should_save_step(self.mode, self.mode_steps[self.mode]):
-                    s.add(coll)
-            self._collections_to_save_for_step = s
+                    self._collections_to_save_for_step.add(coll)
+
+            if self._collections_to_save_for_step:
+                if self.mode == ModeKeys.GLOBAL:
+                    step_str = f"for step {self.step}"
+                else:
+                    step_str = f"for step {self.mode_steps[self.mode]} of mode {self.mode.name}"
+                self.logger.info(
+                    f"Saving the collections "
+                    f"{', '.join([x.name for x in self._collections_to_save_for_step])} {step_str}"
+                )
         return self._collections_to_save_for_step
 
     def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
@@ -244,22 +258,20 @@ class BaseHook:
             self.tensor_to_collections[tensor_name] = matched_colls
         return self.tensor_to_collections[tensor_name]
 
-    def _should_save_tensor_for_step(self, tensorname) -> bool:
-        """Returns whether tensorname should be saved for this mode, mode_step
-        as a bool
-        """
-        for coll in self._get_collections_with_tensor(tensorname):
-            if coll in self._get_collections_to_save_for_step():
-                return True
-        return False
-
     def _prepare_collections(self):
         """Populate collections_to_save and ensure every collection has
         a save_config and reduction_config."""
         for c_name, c in self.collection_manager.get_collections().items():
-            if self._should_collection_be_saved(c_name) and c not in self._collections_to_save:
+            if c in self._collections_to_save:
+                continue
+            elif self._should_collection_be_saved(CollectionKeys.ALL):
+                self._collections_to_save.add(c)
+            elif self._should_collection_be_saved(c_name):
                 self._collections_to_save.add(c)
 
+        self.logger.info(
+            f'Monitoring the collections: {", ".join([x.name for x in self._collections_to_save])}'
+        )
         # Populate configs_for_collections and reduction_config
         for c_name, c in self.collection_manager.get_collections().items():
 
@@ -275,7 +287,7 @@ class BaseHook:
             else:
                 raise TypeError(f"save_config={c.save_config} must be None or SaveConfig")
 
-            if c_name in SUMMARIES_COLLECTIONS:
+            if c_name in NON_REDUCTION_COLLECTIONS:
                 c.reduction_config = ReductionConfig(save_raw_tensor=True)
             elif c.reduction_config is None:
                 c.reduction_config = self.reduction_config
@@ -314,9 +326,10 @@ class BaseHook:
             return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
-    def get_writers(self, tensor_name) -> List[FileWriter]:
+    def get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
         :param tensor_name:
+        :param tensor_ref: used by TF
         :return: List[FileWriter]
         """
         return [self.writer]
@@ -400,24 +413,40 @@ class BaseHook:
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
-    def _write_reduction(self, tensor_name, tensor_value, reduction_name, abs):
-        reduction_tensor_name = get_reduction_tensor_name(tensor_name, reduction_name, abs)
-        tensor_data = self._get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs)
-        self._write_raw_tensor_simple(reduction_tensor_name, tensor_data)
+    def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
+        return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=True)
 
-    def _write_reductions(self, tensor_name, tensor_value, save_collections):
+    def _write_reduction(self, tensor_name, tensor_value, reduction_name, abs, tensor_ref=None):
+        reduction_tensor_name = self._get_reduction_tensor_name(tensor_name, reduction_name, abs)
+        try:
+            tensor_data = self._get_reduction_of_data(
+                reduction_name, tensor_value, tensor_name, abs
+            )
+            self._write_raw_tensor_simple(reduction_tensor_name, tensor_data, tensor_ref=tensor_ref)
+        except ValueError as e:
+            self.logger.error(
+                f"Could not compute reduction {reduction_name} of {tensor_name} due to {e}"
+            )
+
+    def _write_reductions(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         reductions_saved = set()
         for s_col in save_collections:
+            if s_col.name in SCALAR_COLLECTIONS:
+                continue
             reduction_config = s_col.reduction_config
             for reduction_list in (reduction_config.reductions, reduction_config.norms):
                 for reduction in reduction_list:
-                    if (reduction, abs) not in reductions_saved:
-                        self._write_reduction(tensor_name, tensor_value, reduction, abs=False)
+                    if (reduction, False) not in reductions_saved:
+                        self._write_reduction(
+                            tensor_name, tensor_value, reduction, abs=False, tensor_ref=tensor_ref
+                        )
                         reductions_saved.add((reduction, False))
             for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
                 for reduction in reduction_list:
-                    if (reduction, abs) not in reductions_saved:
-                        self._write_reduction(tensor_name, tensor_value, reduction, abs=True)
+                    if (reduction, True) not in reductions_saved:
+                        self._write_reduction(
+                            tensor_name, tensor_value, reduction, abs=True, tensor_ref=tensor_ref
+                        )
                         reductions_saved.add((reduction, True))
 
     def _write_scalar_summary(self, tensor_name, tensor_value, save_colls):
@@ -425,7 +454,7 @@ class BaseHook:
         tb_writer = self._maybe_get_tb_writer()
         if tb_writer:
             for s_col in save_colls:
-                if s_col.name in [CollectionKeys.LOSSES, CollectionKeys.SCALARS]:
+                if s_col.name in SCALAR_COLLECTIONS:
                     np_val = self._make_numpy_array(tensor_value)
                     if self.dry_run:
                         return
@@ -447,7 +476,7 @@ class BaseHook:
         tb_writer = self._maybe_get_tb_writer()
         if tb_writer:
             for s_col in save_collections:
-                if s_col.name in SUMMARIES_COLLECTIONS:
+                if s_col.name in NON_HISTOGRAM_COLLECTIONS:
                     continue
                 elif s_col.save_histogram is True:
                     np_value = self._make_numpy_array(tensor_value)
@@ -482,19 +511,20 @@ class BaseHook:
     #         self._init_writer()
     #     self._save_raw_tensor(name, value)
 
-    def _write_raw_tensor(self, tensor_name, tensor_value, save_collections):
+    def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         for s_col in save_collections:
             reduction_config = s_col.reduction_config
             if reduction_config.save_raw_tensor is True:
-                self._write_raw_tensor_simple(tensor_name, tensor_value)
+                self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
                 break
 
-    def _write_raw_tensor_simple(self, tensor_name, tensor_value):
+    def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None):
+        # tensor_ref is used by TF
         # todo: if fp16, check perf of saving as fp16 in proto vs as fp32
         numpy_tensor_value = self._make_numpy_array(tensor_value)
         this_size, this_shape = size_and_shape(numpy_tensor_value)
         if self.dry_run is False and this_size > 0:
-            writers = self.get_writers(tensor_name)
+            writers = self.get_writers(tensor_name, tensor_ref=tensor_ref)
             for writer in writers:
                 writer.write_tensor(
                     tdata=numpy_tensor_value,
@@ -504,19 +534,45 @@ class BaseHook:
                 )
 
     def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
-        # for TF, the tensor_name coming in will the name of object in graph
-        # it is converted to tornasole_name in write_for_tensor
-        if (
-            check_before_write
-            and self._should_save_tensor_for_step(tensorname=tensor_name) is False
-        ):
-            return
+        """
+        Identifies if this tensor should be saved for this step
+        based on the save configs for the collections it belongs to.
+        If this tensor is to be saved, calls write_for_tensor.
 
+        This check can be disabled by passing check_before_write=False.
+        Disabling this check is cleaner for TF, as for TF this method is never
+        called if tensor should not be saved for this step.
+        :param tensor_name: str
+        The name of tensor. In TensorFlow's case, this is graph name of tensor
+        and will be converted to Tornasole name in write_for_tensor.
+        :param tensor_value: dtype is tensor class of corresponding framework
+            value of the tensor to be saved
+        :param check_before_write: bool
+            checks whether to save tensor for this step
+        :return:
+        """
         save_collections = self._get_collections_with_tensor(tensor_name)
         save_collections_for_tensor = save_collections.intersection(
             self._get_collections_to_save_for_step()
         )
+        if check_before_write and bool(save_collections_for_tensor) is False:
+            return
+        elif not check_before_write:
+            # if not checking before write, means we want to write
+            # regardless of whether the collection should be written for step
+            save_collections_for_tensor = save_collections
+
         self._write_for_tensor(tensor_name, tensor_value, save_collections_for_tensor)
+
+    def _log_save(self, tensor_name, save_collections):
+        coll_str = ", ".join([x.name for x in save_collections])
+        many_colls = len(save_collections) > 1
+        if self.mode != ModeKeys.GLOBAL:
+            step_str = f"for step {self.mode_steps[self.mode]} of mode {self.mode.name}"
+        else:
+            step_str = f"for step: {self.step}"
+        base_str = f"Saving {tensor_name} from {'collections' if many_colls else 'collection'}"
+        self.logger.debug(f"{base_str} {coll_str} {step_str}")
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
         """
@@ -525,7 +581,7 @@ class BaseHook:
         :param tensor_value: value (could be in framework tensor dtype)
         :param save_collections: list of collections which are being saved for this step
         """
-        self.logger.debug(f"Saving {tensor_name} for global step {self.step}")
+        self._log_save(tensor_name, save_collections)
         # write reductions defined for collections this tensor may be part of
         self._write_reductions(tensor_name, tensor_value, save_collections)
 

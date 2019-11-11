@@ -1,10 +1,14 @@
 import os
 import re
-import os
 import time
 from bisect import bisect_left
 from abc import ABC, abstractmethod
 
+from tornasole.core.config_constants import (
+    TRAINING_END_DELAY_REFRESH_KEY,
+    TRAINING_END_DELAY_REFRESH_DEFAULT,
+)
+from tornasole.core.utils import serialize_tf_device
 from tornasole.core.access_layer.utils import has_training_ended
 from tornasole.core.tensor import Tensor, StepState
 from tornasole.exceptions import *
@@ -91,7 +95,10 @@ class Trial(ABC):
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
         self.dynamic_refresh = True
-
+        # number of seconds to wait before refreshing after seeing end of trial
+        self.training_end_delay_refresh = int(
+            os.getenv(TRAINING_END_DELAY_REFRESH_KEY, TRAINING_END_DELAY_REFRESH_DEFAULT)
+        )
         if self.range_steps is not None:
             assert self.range_steps[0] is None or (
                 isinstance(self.range_steps[0], int) and self.range_steps[0] >= 0
@@ -189,7 +196,7 @@ class Trial(ABC):
                 self.refresh_tensor(name)
             if retry_count > 1:
                 self.logger.info("Training has ended, will try to do a final refresh in 5 sec")
-                time.sleep(5)
+                time.sleep(self.training_end_delay_refresh)
             retry_count -= 1
         if training_ended is True and self.loaded_all_steps is False:
             self.loaded_all_steps = True
@@ -250,8 +257,7 @@ class Trial(ABC):
 
     def add_tensor(self, step_num, worker, tensor_object):
         to = tensor_object
-        self.worker_set.add(worker)
-        # todo, use worker_name here
+        # self.worker_set.add(worker)
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
             tname, red_name, abs = reverse_reduction_tensor_name(to.tensorname)
         else:
@@ -503,11 +509,13 @@ class Trial(ABC):
         # Case 1:
         if self.last_complete_step > last_index_token_step:
             prefix = IndexFileLocationUtils.get_prefix_from_index_file(new_index_token)
-            last_worker = sorted(list(self.worker_set))[
-                -1
-            ]  # sort lexicographically and select the last worker
+            # sort lexicographically and select the last worker
+            last_worker = sorted(list(self.worker_set))[-1]
+            # below converts worker_name to serialized workerName
+            # if it's a tf device, else no effect
+            last_worker_serialized = serialize_tf_device(last_worker)
             self.last_index_token = IndexFileLocationUtils.get_index_key_for_step(
-                prefix, self.last_complete_step, last_worker
+                prefix, self.last_complete_step, last_worker_serialized
             )
 
         # Case 2:
@@ -518,10 +526,13 @@ class Trial(ABC):
         ):
             prefix = IndexFileLocationUtils.get_prefix_from_index_file(new_index_token)
             last_worker = sorted(list(self.worker_set))[-1]
+            # below converts worker_name to serialized workerName
+            # if it's a tf device, else no effect
+            last_worker_serialized = serialize_tf_device(last_worker)
             self.last_index_token = IndexFileLocationUtils.get_index_key_for_step(
                 prefix,
                 self.last_complete_step + (self.incomplete_wait_for_step_window // 2),
-                last_worker,
+                last_worker_serialized,
             )
             self.last_complete_step = IndexFileLocationUtils.parse_step_from_index_file_name(
                 self.last_index_token

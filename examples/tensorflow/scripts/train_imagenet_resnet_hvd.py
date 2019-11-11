@@ -845,7 +845,7 @@ def cnn_model_function(features, labels, mode, params):
             opt = LarcOptimizer(opt, learning_rate, leta, clip=True)
 
         opt = MixedPrecisionOptimizer(opt, scale=loss_scale)
-        opt = ts.TornasoleOptimizer(opt)
+        opt = ts.get_hook().wrap_optimizer(opt)
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) or []
         with tf.control_dependencies(update_ops):

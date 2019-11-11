@@ -15,10 +15,10 @@ import tornasole.tensorflow as ts
 ```
 **Saving gradients**
 
-We need to wrap our optimizer with TornasoleOptimizer, and use this optimizer to minimize loss.
+We need to wrap our optimizer with hook.wrap_optimizer, and use this optimizer to minimize loss.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
-optimizer = ts.TornasoleOptimizer(optimizer)
+optimizer = hook.wrap_optimizer(optimizer)
 ```
 
 

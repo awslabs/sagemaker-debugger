@@ -1,7 +1,7 @@
 import os
 import json
 
-from tornasole.tensorflow.hook import TornasoleHook
+from tornasole.tensorflow.session import TornasoleHook
 from tornasole.tensorflow.utils import (
     TFDistributionStrategy,
     get_worker_id_from_tf_config,

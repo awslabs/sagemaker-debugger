@@ -7,13 +7,34 @@ import tornasole.(pytorch | tensorflow | mxnet) as ts
 hook = ts.hook()
 """
 
-import logging
-import os
+from tornasole.core.logger import get_logger
 
+logger = get_logger()
 _ts_hook = None
 
 
-def get_hook(json_config_path, tornasole_hook_class) -> "TornasoleHook":
+def _create_hook(json_config_path, tornasole_hook_class):
+    from tornasole.core.hook import BaseHook  # prevent circular imports
+
+    if tornasole_hook_class is None:
+        raise ValueError("tornasole_hook_class can not be None.", tornasole_hook_class)
+    if not issubclass(tornasole_hook_class, BaseHook):
+        raise TypeError(
+            "tornasole_hook_class needs to be a subclass of BaseHook", tornasole_hook_class
+        )
+
+    # Either returns a hook or None
+    try:
+        hook = tornasole_hook_class.hook_from_config(json_config_path=json_config_path)
+        set_hook(custom_hook=hook)
+    except FileNotFoundError:
+        logger.info(
+            f"Tornasole is disabled as hook was not created in code "
+            f"as well as json config file to create hook from was not found."
+        )
+
+
+def get_hook(json_config_path, tornasole_hook_class, create_if_not_exists) -> "TornasoleHook":
     """Return a singleton TornasoleHook or None.
 
     If the singleton hook exists, we return it. No questions asked, `json_config_path` is a no-op.
@@ -21,25 +42,13 @@ def get_hook(json_config_path, tornasole_hook_class) -> "TornasoleHook":
     """
     global _ts_hook
 
-    # If global hook exists, return it
-    if _ts_hook:
-        if json_config_path is not None:
-            logging.error(
-                f"`json_config_path` was passed, but TornasoleHook already exists. "
-                f"Using the existing hook."
-            )
-        return _ts_hook
-    # Otherwise return hook_from_config
-    else:
-        # Either returns a hook or None
-        try:
-            set_hook(
-                custom_hook=tornasole_hook_class.hook_from_config(json_config_path=json_config_path)
-            )
-        except FileNotFoundError:
-            pass
-
-        return _ts_hook
+    if create_if_not_exists:
+        # If global hook exists, return it
+        if _ts_hook:
+            logger.info(f"Tornasole will use the existing TornasoleHook.")
+        else:
+            _create_hook(json_config_path, tornasole_hook_class)
+    return _ts_hook
 
 
 def set_hook(custom_hook: "TornasoleHook") -> None:

@@ -18,7 +18,8 @@ ALLOWED_PARAMS = [
 class CollectionKeys:
     DEFAULT = "default"
     ALL = "all"
-
+    INPUTS = "inputs"
+    OUTPUTS = "outputs"
     WEIGHTS = "weights"
     GRADIENTS = "gradients"
     LOSSES = "losses"
@@ -42,12 +43,12 @@ class CollectionKeys:
 # so we don't create summaries or reductions of these
 SUMMARIES_COLLECTIONS = {CollectionKeys.TENSORFLOW_SUMMARIES}
 
+SCALAR_COLLECTIONS = {CollectionKeys.LOSSES, CollectionKeys.METRICS, CollectionKeys.SCALARS}
 
-NON_HISTOGRAM_COLLECTIONS = {
-    CollectionKeys.LOSSES,
-    CollectionKeys.SCALARS,
-    CollectionKeys.TENSORFLOW_SUMMARIES,
-}
+# used by pt, mx, keras
+NON_REDUCTION_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)
+
+NON_HISTOGRAM_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)
 
 
 class Collection:
@@ -154,6 +155,9 @@ class Collection:
             raise ValueError(
                 f"save_config={save_config} must be of type SaveConfig of type Dict[ModeKeys, SaveConfigMode]"
             )
+
+    def has_tensor_name(self, tname):
+        return tname in self._tensor_names
 
     def add_tensor_name(self, tname):
         if tname not in self._tensor_names:

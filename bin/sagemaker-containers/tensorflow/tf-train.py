@@ -4,7 +4,7 @@ import sys
 import tensorflow as tf
 import time
 import uuid
-from tornasole.tensorflow import TornasoleHook, TornasoleOptimizer, SaveConfig
+from tornasole.tensorflow import TornasoleHook, SaveConfig, get_hook
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lr", type=float, help="Learning Rate", default=0.001)
@@ -18,6 +18,13 @@ parser.add_argument("--local_reductions", nargs="+", type=str, default=[])
 # running in Tf estimator mode, script need to accept --model_dir parameter
 parser.add_argument("--model_dir", type=str, help="model dir", default=str(uuid.uuid4()))
 args = parser.parse_args()
+
+t = str(time.time())
+hook = TornasoleHook(
+    "s3://tornasolecodebuildtest/container_testing/ts_outputs/tf" + t,
+    save_config=SaveConfig(save_interval=10),
+)
+
 # Network definition
 with tf.name_scope("foobar"):
     x = tf.placeholder(shape=(None, 2), dtype=tf.float32)
@@ -29,15 +36,10 @@ loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
 global_step = tf.Variable(17, name="global_step", trainable=False)
 increment_global_step_op = tf.assign(global_step, global_step + 1)
 optimizer = tf.train.AdamOptimizer(args.lr)
-optimizer = TornasoleOptimizer(optimizer)
+optimizer = get_hook().wrap_optimizer(optimizer)
 optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 graph = tf.get_default_graph()
 list_of_tuples = [op.outputs for op in graph.get_operations()]
-t = str(time.time())
-hook = TornasoleHook(
-    "s3://tornasolecodebuildtest/container_testing/ts_outputs/tf" + t,
-    save_config=SaveConfig(save_interval=10),
-)
 sess = tf.train.MonitoredSession(hooks=[hook])
 for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale

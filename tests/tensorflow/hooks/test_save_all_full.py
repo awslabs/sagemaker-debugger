@@ -60,7 +60,6 @@ def test_save_all_full(hook=None, trial_dir=None):
             for x in fr.read_tensors():
                 tensor_name, step, tensor_data, mode, mode_step = x
                 i += 1
-                print(tensor_name)
                 size += tensor_data.nbytes
         assert i == 84
         assert size == 1462

@@ -24,13 +24,13 @@ because by default Tornasole tries to save weights, gradients and losses.
 
 **Saving gradients**
 
-We need to wrap our optimizer with TornasoleOptimizer, and use this optimizer to minimize loss.
+We need to wrap our optimizer with wrap_optimizer, and use this optimizer to minimize loss.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
-opt = TornasoleOptimizer(opt)
-
 include_collections.append('gradients')
 ts.TornasoleHook(..., include_collections=include_collections, ...)
+
+opt = hook.wrap_optimizer(opt)
 ```
 Note that if include_collections is not passed to the hook,
 by default Tornasole tries to save weights, gradients and losses.
