@@ -1,8 +1,10 @@
-import numpy as np
+# Standard Library
 import typing as Tuple
+
+# Third Party
+import numpy as np
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
-
 
 ### Used for tf.estimator.Estimator ###
 

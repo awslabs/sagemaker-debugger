@@ -1,10 +1,15 @@
+# Standard Library
 import argparse
 import random
-from mxnet import gluon, autograd
-from mxnet.gluon import nn
+
+# Third Party
 import mxnet as mx
-from tornasole.mxnet import TornasoleHook, SaveConfig, modes
 import numpy as np
+from mxnet import autograd, gluon
+from mxnet.gluon import nn
+
+# First Party
+from tornasole.mxnet import SaveConfig, TornasoleHook, modes
 
 
 def parse_args():

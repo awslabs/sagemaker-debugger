@@ -1,12 +1,19 @@
-from tornasole.pytorch.hook import TornasoleHook as t_hook
-from tornasole.pytorch import SaveConfig, Collection, ReductionConfig, reset_collections
-import tornasole.pytorch as ts
-from tornasole.trials import create_trial
+# Standard Library
+import os
 import shutil
+from datetime import datetime
+
+# Third Party
 import torch
 import torch.optim as optim
-from datetime import datetime
-import os
+
+# First Party
+import tornasole.pytorch as ts
+from tornasole.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
+from tornasole.pytorch.hook import TornasoleHook as t_hook
+from tornasole.trials import create_trial
+
+# Local
 from .utils import Net, train
 
 

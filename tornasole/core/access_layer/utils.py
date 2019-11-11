@@ -1,13 +1,20 @@
+# Standard Library
+import asyncio
 import os
+
+# Third Party
+import aioboto3
 from botocore.exceptions import ClientError
+
+# First Party
+from tornasole.core.access_layer.s3handler import ListRequest, S3Handler
+from tornasole.core.logger import get_logger
+from tornasole.core.sagemaker_utils import is_sagemaker_job
+from tornasole.core.utils import get_region, is_s3
+
+# Local
 from .file import TSAccessFile
 from .s3 import TSAccessS3
-from tornasole.core.utils import is_s3, get_region
-from tornasole.core.logger import get_logger
-from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
-from tornasole.core.sagemaker_utils import is_sagemaker_job
-import asyncio
-import aioboto3
 
 END_OF_JOB_FILENAME = "training_job_end.ts"
 logger = get_logger()

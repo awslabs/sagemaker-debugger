@@ -1,16 +1,19 @@
-from tornasole.core.writer import FileWriter
+# Standard Library
+import os
+import uuid
+
+# Third Party
+import numpy as np
+import pytest
+
+# First Party
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-
-from tornasole.rules.generic import Confusion
-from tornasole.trials import create_trial
-import pytest
-import os
-
-import uuid
-import numpy as np
+from tornasole.core.writer import FileWriter
 from tornasole.exceptions import *
+from tornasole.rules.generic import Confusion
 from tornasole.rules.rule_invoker import invoke_rule
+from tornasole.trials import create_trial
 
 
 def gen_y_and_y_hat(path, trial, step, y, y_name, y_hat, y_hat_name, colls={}):

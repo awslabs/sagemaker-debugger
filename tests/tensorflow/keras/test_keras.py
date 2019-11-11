@@ -1,19 +1,23 @@
+# Standard Library
 import os
-import pytest
 import shutil
 from datetime import datetime
 
+# Third Party
+import pytest
+import tensorflow as tf
+from tests.tensorflow.utils import create_trial_fast_refresh
+
+# First Party
 from tornasole.core.access_layer import has_training_ended
 from tornasole.core.collection import CollectionKeys
 from tornasole.core.modes import ModeKeys
 from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from tornasole.exceptions import TensorUnavailableForStep
-from tornasole.tensorflow import reset_collections, get_collection, SaveConfig, ReductionConfig
+from tornasole.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
 from tornasole.tensorflow.keras import TornasoleKerasHook
-from tests.tensorflow.utils import create_trial_fast_refresh
 
 TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
-import tensorflow as tf
 
 
 class FetchTensorCallback(tf.keras.callbacks.Callback):

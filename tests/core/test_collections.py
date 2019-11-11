@@ -1,13 +1,16 @@
+# Standard Library
+import datetime
+import os
+
+# First Party
 from tornasole.core.collection import Collection
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.modes import ModeKeys
 from tornasole.core.reduction_config import ReductionConfig
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
-from tornasole.core.modes import ModeKeys
 from tornasole.core.utils import get_path_to_collections
 from tornasole.mxnet.hook import TornasoleHook
-import datetime
-import os
 
 
 def test_export_load():

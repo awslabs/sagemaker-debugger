@@ -9,21 +9,27 @@ nice if we could speed up the S3 integration testing.
 Integration tests with S3 take 95% of the time.
 """
 
+# Standard Library
+import os
+import shutil
+from datetime import datetime
+
+# Third Party
+import numpy as np
 import pytest
 import tensorflow as tf
-import numpy as np
-import shutil
-import os
-from datetime import datetime
-from .utils import TORNASOLE_TF_HOOK_TESTS_DIR
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tests.analysis.utils import delete_s3_prefix
 
+# First Party
 import tornasole.tensorflow as ts
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.utils import is_s3
 from tornasole.tensorflow import reset_collections
 from tornasole.tensorflow.session import TornasoleHook
 from tornasole.trials import create_trial
-from tornasole.core.utils import is_s3
-from tests.analysis.utils import delete_s3_prefix
+
+# Local
+from .utils import TORNASOLE_TF_HOOK_TESTS_DIR
 
 
 def help_test_mnist(

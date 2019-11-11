@@ -1,9 +1,12 @@
+# Standard Library
 import os
 
+# Third Party
 import pytest
 
-from tornasole.trials import create_trial
+# First Party
 from tornasole.core.tensor import StepState
+from tornasole.trials import create_trial
 
 
 @pytest.mark.slow

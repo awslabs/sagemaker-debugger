@@ -1,14 +1,20 @@
-from tornasole.core.writer import FileWriter
-from tornasole.core.reader import FileReader
-import numpy as np
-from tornasole.core.modes import ModeKeys
-from tornasole.trials import create_trial
-from datetime import datetime
-import socket
+# Standard Library
 import glob
-
-from .utils import write_dummy_collection_file
 import shutil
+import socket
+from datetime import datetime
+
+# Third Party
+import numpy as np
+
+# First Party
+from tornasole.core.modes import ModeKeys
+from tornasole.core.reader import FileReader
+from tornasole.core.writer import FileWriter
+from tornasole.trials import create_trial
+
+# Local
+from .utils import write_dummy_collection_file
 
 
 def test_mode_writing():

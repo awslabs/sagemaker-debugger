@@ -1,11 +1,15 @@
+# Standard Library
+import uuid
+
+# Third Party
+import numpy as np
 from tests.analysis.utils import generate_data
 
-from tornasole.rules.generic import UnchangedTensor
-from tornasole.trials import create_trial
-import uuid
-import numpy as np
+# First Party
 from tornasole.exceptions import *
+from tornasole.rules.generic import UnchangedTensor
 from tornasole.rules.rule_invoker import invoke_rule
+from tornasole.trials import create_trial
 
 
 def test_unchanged():

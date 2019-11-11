@@ -1,7 +1,11 @@
-import pytest
+# Third Party
 import numpy as np
+import pytest
+
+# First Party
 from tornasole.core.access_layer.s3handler import *
 from tornasole.core.tfrecord.tensor_reader import *
+
 
 ######## HELPER CLASSES AND FUNCTIONS #######
 class TensorLocation:

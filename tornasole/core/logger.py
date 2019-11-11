@@ -1,7 +1,8 @@
+# Standard Library
 import logging
-import sys
-import socket
 import os
+import socket
+import sys
 
 _logger_initialized = False
 

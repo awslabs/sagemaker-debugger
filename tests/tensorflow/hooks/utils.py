@@ -1,19 +1,23 @@
-import tensorflow as tf
-import numpy as np
-from datetime import datetime
+# Standard Library
 import os
+from datetime import datetime
 from os.path import isfile, join
+
+# Third Party
+import numpy as np
+import tensorflow as tf
+
+# First Party
+from tornasole.core.utils import get_path_to_collections
 from tornasole.tensorflow import (
-    TornasoleHook,
+    CollectionManager,
+    ReductionConfig,
     SaveConfig,
     SaveConfigMode,
-    ReductionConfig,
+    TornasoleHook,
     get_collection,
-    CollectionManager,
     reset_collections,
 )
-from tornasole.core.utils import get_path_to_collections
-
 
 TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
 

@@ -1,13 +1,19 @@
-from tornasole import modes
-import shutil, os
+# Standard Library
+import os
+import shutil
 import socket
-import numpy as np
-from tornasole.trials import create_trial
-from tornasole.core.tensor import StepState
 from datetime import datetime
-from tornasole.core.writer import FileWriter
+
+# Third Party
+import numpy as np
+
+# First Party
+from tornasole import modes
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.tensor import StepState
+from tornasole.core.writer import FileWriter
+from tornasole.trials import create_trial
 
 
 def test_modes_on_global_data():

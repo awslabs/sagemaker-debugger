@@ -1,6 +1,9 @@
+# Standard Library
 import argparse
-from sagemaker.tensorflow import TensorFlow
 import os
+
+# Third Party
+from sagemaker.tensorflow import TensorFlow
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 train_script_path = os.path.join(dir_path, "tf-train.py")

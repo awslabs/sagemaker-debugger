@@ -1,15 +1,22 @@
 # Credit to the official pytorch mnist example set https://github.com/pytorch/examples/blob/master/mnist/main.py for help with this
 
+# Future
 from __future__ import print_function
+
+# Standard Library
 import argparse
+
+# Third Party
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms
 from torch.autograd import Variable
-from tornasole.pytorch import *
+from torchvision import datasets, transforms
+
+# First Party
 import tornasole.pytorch as ts
+from tornasole.pytorch import *
 
 
 class Net(nn.Module):

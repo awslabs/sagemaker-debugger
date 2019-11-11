@@ -1,7 +1,12 @@
-import pytest
-import uuid
+# Standard Library
 import os
+import uuid
+
+# Third Party
+import pytest
 from tests.analysis.utils import generate_data
+
+# First Party
 from tornasole.trials import LocalTrial, S3Trial
 
 NUM_STEPS = 5

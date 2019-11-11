@@ -1,18 +1,20 @@
-from tornasole.core.config_constants import (
-    DEFAULT_CHECKPOINT_CONFIG_FILE,
-    CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR,
-    CHECKPOINT_DIR_KEY,
-    METADATA_FILENAME,
-    TRAINING_RUN,
-    LATEST_GLOBAL_STEP_SAVED,
-    LATEST_GLOBAL_STEP_SEEN,
-    LATEST_MODE_STEP,
-)
+# Standard Library
 import json
 import os
 import time
-from tornasole.core.logger import get_logger
 
+# First Party
+from tornasole.core.config_constants import (
+    CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR,
+    CHECKPOINT_DIR_KEY,
+    DEFAULT_CHECKPOINT_CONFIG_FILE,
+    LATEST_GLOBAL_STEP_SAVED,
+    LATEST_GLOBAL_STEP_SEEN,
+    LATEST_MODE_STEP,
+    METADATA_FILENAME,
+    TRAINING_RUN,
+)
+from tornasole.core.logger import get_logger
 
 logger = get_logger()
 # This is 'predicate' for sorting the list of states based on seen steps.

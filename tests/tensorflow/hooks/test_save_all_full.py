@@ -1,11 +1,16 @@
-from .utils import *
-from tornasole.tensorflow import reset_collections, get_collections, CollectionManager, Collection
+# Standard Library
 import glob
 import shutil
-from tornasole.core.reader import FileReader
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+
+# First Party
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.reader import FileReader
 from tornasole.core.utils import get_path_to_collections
+from tornasole.tensorflow import Collection, CollectionManager, get_collections, reset_collections
+
+# Local
+from .utils import *
 
 
 def test_save_all_full(hook=None, trial_dir=None):

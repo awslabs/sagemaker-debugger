@@ -1,8 +1,11 @@
-from tornasole.exceptions import *
-from tornasole.core.logger import get_logger
-from tornasole.trials import create_trial
-from tornasole.rules.generic import *
+# Standard Library
 import inspect
+
+# First Party
+from tornasole.core.logger import get_logger
+from tornasole.exceptions import *
+from tornasole.rules.generic import *
+from tornasole.trials import create_trial
 
 logger = get_logger()
 

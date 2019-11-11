@@ -1,17 +1,16 @@
+# Standard Library
 import argparse
-import numpy as np
 import os
 
+# Third Party
 import keras
-
+import numpy as np
+from keras.layers import Activation, Conv1D, Dense, Dropout, Embedding, GlobalMaxPooling1D
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation
-from keras.layers import Embedding
-from keras.layers import Conv1D, GlobalMaxPooling1D
 
-from tornasole.tensorflow.keras import TornasoleHook
+# First Party
 from tornasole import SaveConfig
-
+from tornasole.tensorflow.keras import TornasoleHook
 
 max_features = 20000
 maxlen = 400

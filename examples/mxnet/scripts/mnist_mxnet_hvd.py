@@ -1,14 +1,17 @@
+# Standard Library
 import argparse
 import logging
 import os
-import zipfile
 import time
+import zipfile
 
-import mxnet as mx
+# Third Party
 import horovod.mxnet as hvd
+import mxnet as mx
 from mxnet import autograd, gluon, nd
 from mxnet.test_utils import download
 
+# First Party
 from tornasole import SaveConfig, modes
 from tornasole.mxnet import TornasoleHook
 

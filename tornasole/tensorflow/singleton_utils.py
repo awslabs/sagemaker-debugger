@@ -8,8 +8,9 @@ import tornasole.tensorflow as ts
 hook = ts.get_hook()
 """
 
+# First Party
 import tornasole.core.singleton_utils as sutils
-from tornasole.core.singleton_utils import set_hook, del_hook
+from tornasole.core.singleton_utils import del_hook, set_hook
 
 
 def get_hook(

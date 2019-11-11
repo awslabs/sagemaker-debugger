@@ -1,21 +1,24 @@
 # Using batch size 4 instead of 1024 decreases runtime from 35 secs to 4 secs.
 
-from mxnet import gluon, init, autograd
-from mxnet.gluon import nn
-from mxnet.gluon.data.vision import datasets, transforms
+# Standard Library
+import os
+import shutil
 import time
-import mxnet as mx
-from tornasole import modes
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole import SaveConfig
-from tornasole.mxnet import reset_collections
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.core.config_constants import CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR
-from tornasole.trials import create_trial
 from datetime import datetime
 
-import shutil
-import os
+# Third Party
+import mxnet as mx
+from mxnet import autograd, gluon, init
+from mxnet.gluon import nn
+from mxnet.gluon.data.vision import datasets, transforms
+
+# First Party
+from tornasole import SaveConfig, modes
+from tornasole.core.access_layer.utils import has_training_ended
+from tornasole.core.config_constants import CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR
+from tornasole.mxnet import reset_collections
+from tornasole.mxnet.hook import TornasoleHook as t_hook
+from tornasole.trials import create_trial
 
 
 def acc(output, label):

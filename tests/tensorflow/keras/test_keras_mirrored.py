@@ -1,25 +1,30 @@
+# Future
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# Standard Library
 import os
-import pytest
 import shutil
-import tensorflow_datasets as tfds
 from datetime import datetime
 
+# Third Party
+import pytest
 import tensorflow as tf
+import tensorflow_datasets as tfds
+from tensorflow.python.keras.distribute.distributed_training_utils import get_distributed_model
+from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
+from tests.tensorflow.utils import create_trial_fast_refresh
+
+# First Party
+from tornasole.core.access_layer import has_training_ended
+from tornasole.core.collection import CollectionKeys
+from tornasole.core.modes import ModeKeys
+from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from tornasole.exceptions import TensorUnavailable, TensorUnavailableForStep
+from tornasole.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
+from tornasole.tensorflow.keras import TornasoleKerasHook
 
 tfds.disable_progress_bar()
 
-from tornasole.exceptions import TensorUnavailableForStep, TensorUnavailable
-from tornasole.core.modes import ModeKeys
-from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from tornasole.tensorflow import reset_collections, get_collection, SaveConfig, ReductionConfig
-from tornasole.tensorflow.keras import TornasoleKerasHook
-from tests.tensorflow.utils import create_trial_fast_refresh
-from tornasole.core.collection import CollectionKeys
-from tornasole.core.access_layer import has_training_ended
-from tensorflow.python.keras.distribute.distributed_training_utils import get_distributed_model
-from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
 
 TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
 

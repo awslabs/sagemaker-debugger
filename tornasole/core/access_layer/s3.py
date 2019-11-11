@@ -1,5 +1,10 @@
-import boto3
+# Standard Library
 import re
+
+# Third Party
+import boto3
+
+# First Party
 from tornasole.core.access_layer.base import TSAccessBase
 from tornasole.core.utils import get_region
 

@@ -1,9 +1,14 @@
-from .mnist_gluon_model import run_mnist_gluon_model
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
+# Standard Library
 from datetime import datetime
-from tornasole.trials import create_trial
+
+# First Party
 from tornasole import modes
+from tornasole.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
+from tornasole.mxnet.hook import TornasoleHook as t_hook
+from tornasole.trials import create_trial
+
+# Local
+from .mnist_gluon_model import run_mnist_gluon_model
 
 
 def test_modes(hook=None, path=None):

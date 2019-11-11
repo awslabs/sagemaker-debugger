@@ -1,20 +1,25 @@
-import numpy as np
-import os
+# Standard Library
 import json
+import os
 from bisect import bisect_left
 from typing import Any, Dict, List, Tuple
-from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
-from tornasole.core.s3_utils import list_s3_objects
+
+# Third Party
+import numpy as np
+
+# First Party
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
+from tornasole.core.locations import IndexFileLocationUtils, TensorLocation
+from tornasole.core.logger import get_logger
+from tornasole.core.modes import ModeKeys
+from tornasole.core.s3_utils import list_s3_objects
+from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.utils import (
     is_s3,
     list_files_in_directory,
-    step_in_range,
     parse_worker_name_from_file,
+    step_in_range,
 )
-from tornasole.core.logger import get_logger
-from tornasole.core.tfrecord.tensor_reader import TensorReader
-from tornasole.core.modes import ModeKeys
 from tornasole.exceptions import IndexReaderException, TensorUnavailableForStep
 
 logger = get_logger()

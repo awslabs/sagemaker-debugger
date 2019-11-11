@@ -1,4 +1,7 @@
+# Standard Library
 import json
+
+# First Party
 from tornasole.core.access_layer.file import TSAccessFile
 from tornasole.core.access_layer.s3 import TSAccessS3
 from tornasole.core.utils import is_s3

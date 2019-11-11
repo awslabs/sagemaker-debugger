@@ -17,15 +17,19 @@
 
 """Writes events to disk in a trial dir."""
 
+# Standard Library
 import threading
 import time
+
+# Third Party
 import six
+
+# First Party
 from tornasole.core.locations import TensorLocation
 from tornasole.core.tfevent.events_writer import EventsWriter
-from tornasole.core.tfevent.proto.event_pb2 import Event
 from tornasole.core.tfevent.index_file_writer import EventWithIndex
-from tornasole.core.utils import get_relative_event_file_path
-from tornasole.core.utils import parse_worker_name_from_file
+from tornasole.core.tfevent.proto.event_pb2 import Event
+from tornasole.core.utils import get_relative_event_file_path, parse_worker_name_from_file
 
 
 def size_and_shape(t):

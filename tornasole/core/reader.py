@@ -17,6 +17,7 @@
 
 """APIs for logging data in the event file."""
 
+# First Party
 from tornasole.core.tfevent.event_file_reader import EventFileReader
 
 

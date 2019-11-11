@@ -1,10 +1,12 @@
+# Standard Library
 import os
 
-from .json_config import DEFAULT_SAGEMAKER_OUTDIR
-from .sagemaker_utils import is_sagemaker_job, get_sagemaker_out_dir
-from .utils import is_s3
-from .logger import get_logger
+# Local
 from .access_layer.utils import check_dir_exists
+from .json_config import DEFAULT_SAGEMAKER_OUTDIR
+from .logger import get_logger
+from .sagemaker_utils import get_sagemaker_out_dir, is_sagemaker_job
+from .utils import is_s3
 
 logger = get_logger()
 

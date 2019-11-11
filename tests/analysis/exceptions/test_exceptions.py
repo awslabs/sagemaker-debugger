@@ -1,11 +1,16 @@
-import shutil
-import pytest
-import uuid
-from tests.analysis.utils import generate_data
-from tornasole.trials import create_trial
-from tornasole.exceptions import *
-import boto3 as boto3
+# Standard Library
 import os
+import shutil
+import uuid
+
+# Third Party
+import boto3 as boto3
+import pytest
+from tests.analysis.utils import generate_data
+
+# First Party
+from tornasole.exceptions import *
+from tornasole.trials import create_trial
 
 
 def del_s3(bucket, file_path):

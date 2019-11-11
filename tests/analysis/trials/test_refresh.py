@@ -1,8 +1,13 @@
-import pytest
+# Standard Library
 import uuid
+
+# Third Party
+import pytest
 from tests.analysis.utils import generate_data
-from tornasole.trials import create_trial
+
+# First Party
 from tornasole.analysis.utils import no_refresh
+from tornasole.trials import create_trial
 
 
 def help_test_refresh_with_range(path):

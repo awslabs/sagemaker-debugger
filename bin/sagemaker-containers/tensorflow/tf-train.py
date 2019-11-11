@@ -1,10 +1,15 @@
+# Standard Library
 import argparse
-import numpy as np
 import sys
-import tensorflow as tf
 import time
 import uuid
-from tornasole.tensorflow import TornasoleHook, SaveConfig, get_hook
+
+# Third Party
+import numpy as np
+import tensorflow as tf
+
+# First Party
+from tornasole.tensorflow import SaveConfig, TornasoleHook, get_hook
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lr", type=float, help="Learning Rate", default=0.001)

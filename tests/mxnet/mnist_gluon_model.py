@@ -1,12 +1,17 @@
 # Using batch size 4 instead of 1024 decreases runtime from 35 secs to 4 secs.
 
-from mxnet import gluon, init, autograd
+# Standard Library
+import time
+
+# Third Party
+import mxnet as mx
+import numpy as np
+from mxnet import autograd, gluon, init
 from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
-import time
-import mxnet as mx
+
+# First Party
 from tornasole import modes
-import numpy as np
 
 
 def acc(output, label):

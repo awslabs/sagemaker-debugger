@@ -14,20 +14,25 @@ Test with AdamOptimizer and SGD.
 We check that certain tensors are saved.
 """
 
+# Standard Library
 import argparse
-import numpy as np
 import random
+
+# Third Party
+import numpy as np
 import tensorflow as tf
-import tornasole.tensorflow as ts
-from tornasole.core.utils import SagemakerSimulator
 from tf_utils import (
+    get_data,
     get_estimator,
     get_input_fns,
-    get_train_op_and_placeholders,
-    get_data,
     get_keras_data,
     get_keras_model_v1,
+    get_train_op_and_placeholders,
 )
+
+# First Party
+import tornasole.tensorflow as ts
+from tornasole.core.utils import SagemakerSimulator
 
 
 def test_estimator(script_mode: bool):

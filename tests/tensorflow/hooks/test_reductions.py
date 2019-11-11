@@ -1,11 +1,15 @@
+# Standard Library
 import os
 import shutil
 from datetime import datetime
 
-from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.exceptions import *
+# First Party
 import tornasole.tensorflow as ts
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from tornasole.exceptions import *
+
+# Local
 from .utils import *
 
 

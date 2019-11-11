@@ -1,8 +1,12 @@
+# Standard Library
 from enum import Enum
-from tornasole.core.logger import get_logger
+
+# Third Party
 import tensorflow as tf
 from tensorflow.python.distribute import values
 
+# First Party
+from tornasole.core.logger import get_logger
 
 logger = get_logger()
 

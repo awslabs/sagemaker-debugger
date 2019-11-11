@@ -1,9 +1,14 @@
+# Standard Library
 import json
-import tensorflow as tf
-from tornasole.core.modes import ModeKeys
-from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
-from tensorflow.python.distribute import values
 from enum import Enum
+
+# Third Party
+import tensorflow as tf
+from tensorflow.python.distribute import values
+from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
+
+# First Party
+from tornasole.core.modes import ModeKeys
 
 
 class TFDistributionStrategy(Enum):

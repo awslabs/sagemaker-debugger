@@ -1,11 +1,16 @@
-from tornasole.trials import S3Trial
+# Standard Library
+import os
+import uuid
+
+# Third Party
+import pytest
+from tests.analysis.utils import check_trial, delete_s3_prefix, generate_data
+
+# First Party
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-import uuid
-import os
-import pytest
 from tornasole.core.utils import is_s3
-from tests.analysis.utils import generate_data, check_trial, delete_s3_prefix
+from tornasole.trials import S3Trial
 
 
 def check_s3_trial(path, num_steps=20, num_tensors=10):

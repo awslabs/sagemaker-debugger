@@ -1,12 +1,15 @@
+# Standard Library
 import os
 
+# First Party
 from tornasole.core.access_layer.s3handler import ReadObjectRequest, S3Handler
-from tornasole.core.s3_utils import list_s3_objects
-from tornasole.core.locations import TensorFileLocation
 from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.locations import TensorFileLocation
+from tornasole.core.s3_utils import list_s3_objects
 from tornasole.core.tfrecord.tensor_reader import TensorReader
 from tornasole.core.utils import get_path_to_collections, step_in_range
 
+# Local
 from .trial import EventFileTensor, Trial
 
 

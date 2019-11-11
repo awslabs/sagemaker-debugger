@@ -1,6 +1,11 @@
+# Standard Library
 import re
+
+# Third Party
 import numpy as np
-from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
+
+# First Party
+from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 
 TORNASOLE_REDUCTIONS_PREFIX = "tornasole/reductions/"
 

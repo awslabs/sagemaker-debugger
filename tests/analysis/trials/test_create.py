@@ -1,6 +1,11 @@
-import pytest
+# Standard Library
 import uuid
+
+# Third Party
+import pytest
 from tests.analysis.utils import generate_data
+
+# First Party
 from tornasole.trials import create_trial
 
 

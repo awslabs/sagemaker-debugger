@@ -7,6 +7,7 @@ import tornasole.(pytorch | tensorflow | mxnet) as ts
 hook = ts.hook()
 """
 
+# First Party
 from tornasole.core.logger import get_logger
 
 logger = get_logger()

@@ -1,11 +1,16 @@
-from tornasole.core.writer import FileWriter
+# Standard Library
+import asyncio
+import os
+
+# Third Party
+import aioboto3
 import numpy as np
+
+# First Party
+from tornasole.core.access_layer.s3handler import ListRequest, S3Handler
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-import os
-import aioboto3
-import asyncio
-from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
+from tornasole.core.writer import FileWriter
 
 
 def generate_data(

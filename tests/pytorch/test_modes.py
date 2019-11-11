@@ -1,21 +1,28 @@
+# Future
 from __future__ import print_function
-import numpy as np
+
+# Standard Library
+import os
+import shutil
+import uuid
 from pathlib import Path
+
+# Third Party
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from tornasole import modes, SaveConfig, SaveConfigMode
+
+# First Party
 import tornasole.pytorch as ts
-from tornasole.pytorch.hook import *
-from tornasole.pytorch.collection import *
-from tornasole.pytorch import reset_collections
+from tornasole import SaveConfig, SaveConfigMode, modes
 from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-import uuid
+from tornasole.pytorch import reset_collections
+from tornasole.pytorch.collection import *
+from tornasole.pytorch.hook import *
 from tornasole.trials import create_trial
-import shutil
-import os
 
 
 class Net(nn.Module):

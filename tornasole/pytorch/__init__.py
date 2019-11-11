@@ -1,15 +1,17 @@
-from .hook import TornasoleHook
-from .collection import Collection, CollectionManager
+# First Party
+from tornasole import ReductionConfig, SaveConfig, SaveConfigMode, modes
+from tornasole.trials import create_trial
 
+# Local
 from .collection import (
-    get_collections,
-    get_collection,
-    load_collections,
+    Collection,
+    CollectionManager,
     add_to_collection,
     add_to_default_collection,
+    get_collection,
+    get_collections,
+    load_collections,
     reset_collections,
 )
-from .singleton_utils import get_hook, set_hook, del_hook
-from tornasole import SaveConfig, SaveConfigMode, ReductionConfig
-from tornasole import modes
-from tornasole.trials import create_trial
+from .hook import TornasoleHook
+from .singleton_utils import del_hook, get_hook, set_hook

@@ -1,4 +1,5 @@
-from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
+# First Party
+from tornasole.core.access_layer.s3handler import ListRequest, S3Handler
 
 
 # list_info will be a list of ListRequest objects. Returns list of lists of files for each request

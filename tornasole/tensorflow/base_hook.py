@@ -1,27 +1,32 @@
-from abc import ABCMeta
+# Standard Library
 import os
+from abc import ABCMeta
+from typing import Dict, List, Optional, Set, Tuple, Union
 
+# Third Party
 import tensorflow as tf
-from tornasole.core.reductions import get_reduction_tensor_name
-from tornasole.core.modes import ModeKeys
+
+# First Party
+from tornasole.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
 from tornasole.core.hook import BaseHook
 from tornasole.core.json_config import create_hook_from_json_config
+from tornasole.core.modes import ModeKeys
+from tornasole.core.reductions import get_reduction_tensor_name
 from tornasole.core.tfevent.util import make_numpy_array
-from tornasole.core.writer import FileWriter
-from tornasole.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
 from tornasole.core.utils import serialize_tf_device
+from tornasole.core.writer import FileWriter
+
+# Local
+from .collection import CollectionKeys, get_collection_manager
 from .singleton_utils import set_hook
-from .collection import get_collection_manager, CollectionKeys
 from .tensor_ref import TensorType
 from .utils import (
     TFDistributionStrategy,
-    is_parameter_server_strategy,
     get_num_workers_from_tf_config,
     get_worker_id_from_tf_config,
     is_mirrored_strategy,
+    is_parameter_server_strategy,
 )
-
-from typing import Optional, List, Union, Tuple, Dict, Set
 
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.WEIGHTS,

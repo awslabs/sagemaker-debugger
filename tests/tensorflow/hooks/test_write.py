@@ -1,14 +1,22 @@
-import tensorflow as tf
+# Standard Library
+import os
+import shutil
+
+# Third Party
 import numpy as np
-from tornasole.tensorflow.session import TornasoleHook
+import tensorflow as tf
 from tensorflow.python.tools import inspect_checkpoint as chkp
-import os, shutil
-from tornasole.tensorflow import reset_collections
-from .utils import *
-from tornasole.core.reader import FileReader
-from tornasole.core.locations import TensorFileLocation
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+
+# First Party
 import tornasole.tensorflow as ts
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.locations import TensorFileLocation
+from tornasole.core.reader import FileReader
+from tornasole.tensorflow import reset_collections
+from tornasole.tensorflow.session import TornasoleHook
+
+# Local
+from .utils import *
 
 
 def helper_tornasole_hook_write(data_dir, hook):

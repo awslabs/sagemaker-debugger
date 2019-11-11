@@ -1,9 +1,14 @@
-from .mnist_gluon_model import run_mnist_gluon_model
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.mxnet import Collection, SaveConfig, reset_collections
-import tornasole.mxnet as tm
-from datetime import datetime
+# Standard Library
 import shutil
+from datetime import datetime
+
+# First Party
+import tornasole.mxnet as tm
+from tornasole.mxnet import Collection, SaveConfig, reset_collections
+from tornasole.mxnet.hook import TornasoleHook as t_hook
+
+# Local
+from .mnist_gluon_model import run_mnist_gluon_model
 
 
 def test_hook_custom_collection():

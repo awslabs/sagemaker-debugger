@@ -1,5 +1,10 @@
+# Standard Library
 import os
+
+# First Party
 from tornasole.core.utils import is_s3
+
+# Local
 from .local_trial import LocalTrial
 from .s3_trial import S3Trial
 

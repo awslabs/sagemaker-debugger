@@ -1,5 +1,8 @@
+# Standard Library
 import json
 from typing import Any, Dict, List
+
+# First Party
 from tornasole.core.utils import split
 
 ALLOWED_REDUCTIONS = ["min", "max", "mean", "std", "variance", "sum", "prod"]

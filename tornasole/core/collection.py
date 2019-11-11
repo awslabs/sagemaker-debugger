@@ -1,9 +1,11 @@
-from .reduction_config import ReductionConfig
-from .save_config import SaveConfig, SaveConfigMode
-from .modes import ModeKeys
-
+# Standard Library
 import json
 from typing import Any, Dict, List, Optional, Union
+
+# Local
+from .modes import ModeKeys
+from .reduction_config import ReductionConfig
+from .save_config import SaveConfig, SaveConfigMode
 
 ALLOWED_PARAMS = [
     "name",

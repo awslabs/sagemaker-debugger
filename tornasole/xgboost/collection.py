@@ -1,7 +1,6 @@
+# First Party
 from tornasole.core.collection import CollectionKeys
-from tornasole.core.collection_manager import (
-    CollectionManager as BaseCollectionManager,
-)  # noqa: E501
+from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager
 
 
 class CollectionManager(BaseCollectionManager):

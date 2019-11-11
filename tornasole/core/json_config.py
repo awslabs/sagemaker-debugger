@@ -40,37 +40,38 @@ Example JSON config:
 }
 """
 
+# Standard Library
 import json
 import os
 from pathlib import Path
 from typing import Dict, Optional
 
-from tornasole.core.modes import ModeKeys
-from tornasole.core.logger import get_logger
-from tornasole.core.utils import merge_two_dicts, split
-from tornasole.core.sagemaker_utils import is_sagemaker_job
+# First Party
 from tornasole import ReductionConfig, SaveConfig, SaveConfigMode
-
 from tornasole.core.config_constants import (
-    CONFIG_DEFAULT_WORKER_NAME,
-    CONFIG_FILE_PATH_ENV_STR,
-    DEFAULT_CONFIG_FILE_PATH,
-    CONFIG_REDUCTION_CONFIGS_KEY,
-    CONFIG_SAVE_CONFIGS_KEY,
-    CONFIG_OUTDIR_KEY,
-    CONFIG_HOOK_PARAMS_KEY,
     CONFIG_COLLECTION_CONFIG_KEY,
     CONFIG_COLLECTION_NAME_KEY,
     CONFIG_COLLECTION_PARAMS_KEY,
-    CONFIG_RDN_CFG_KEY,
+    CONFIG_DEFAULT_WORKER_NAME,
+    CONFIG_FILE_PATH_ENV_STR,
+    CONFIG_HOOK_PARAMS_KEY,
     CONFIG_INCLUDE_REGEX_KEY,
+    CONFIG_OUTDIR_KEY,
+    CONFIG_RDN_CFG_KEY,
+    CONFIG_REDUCTION_CONFIGS_KEY,
     CONFIG_SAVE_ALL_KEY,
+    CONFIG_SAVE_CONFIGS_KEY,
+    DEFAULT_CONFIG_FILE_PATH,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     EXPORT_TENSORBOARD_KEY,
-    TENSORBOARD_DIR_KEY,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
+    TENSORBOARD_DIR_KEY,
 )
+from tornasole.core.logger import get_logger
+from tornasole.core.modes import ModeKeys
+from tornasole.core.sagemaker_utils import is_sagemaker_job
+from tornasole.core.utils import merge_two_dicts, split
 
 
 def get_json_config_as_dict(json_config_path) -> Dict:

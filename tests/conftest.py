@@ -4,8 +4,11 @@ To only run the fast tests, run `pytest tests --skipslow`.
 For CI, we will always run the full test suite.
 """
 
-import pytest
+# Standard Library
 import shutil
+
+# Third Party
+import pytest
 
 
 def pytest_addoption(parser):

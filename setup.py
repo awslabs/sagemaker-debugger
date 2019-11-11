@@ -1,5 +1,8 @@
+# Standard Library
 import os
 import sys
+
+# Third Party
 import setuptools
 
 exec(open("tornasole/_version.py").read())

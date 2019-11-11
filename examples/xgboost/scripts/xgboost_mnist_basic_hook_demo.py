@@ -1,3 +1,4 @@
+# Standard Library
 import argparse
 import bz2
 import json
@@ -7,7 +8,10 @@ import random
 import tempfile
 import urllib.request
 
+# Third Party
 import xgboost
+
+# First Party
 from tornasole import SaveConfig
 from tornasole.xgboost import TornasoleHook
 

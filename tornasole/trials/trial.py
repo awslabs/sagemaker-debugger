@@ -1,25 +1,25 @@
+# Standard Library
 import os
 import re
 import time
-from bisect import bisect_left
 from abc import ABC, abstractmethod
+from bisect import bisect_left
 
-from tornasole.core.config_constants import (
-    TRAINING_END_DELAY_REFRESH_KEY,
-    TRAINING_END_DELAY_REFRESH_DEFAULT,
-)
-from tornasole.core.utils import serialize_tf_device
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.core.tensor import Tensor, StepState
-from tornasole.exceptions import *
+# First Party
 from tornasole.analysis.utils import refresh
-from tornasole.core.locations import TensorFileLocation
-from tornasole.core.utils import flatten, get_worker_name_from_collection_file
-from tornasole.core.logger import get_logger
-from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
-from tornasole.core.modes import ModeKeys
-from tornasole.core.locations import TensorLocation, IndexFileLocationUtils
 from tornasole.core import index_reader
+from tornasole.core.access_layer.utils import has_training_ended
+from tornasole.core.config_constants import (
+    TRAINING_END_DELAY_REFRESH_DEFAULT,
+    TRAINING_END_DELAY_REFRESH_KEY,
+)
+from tornasole.core.locations import IndexFileLocationUtils, TensorFileLocation, TensorLocation
+from tornasole.core.logger import get_logger
+from tornasole.core.modes import ModeKeys
+from tornasole.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
+from tornasole.core.tensor import StepState, Tensor
+from tornasole.core.utils import flatten, get_worker_name_from_collection_file, serialize_tf_device
+from tornasole.exceptions import *
 
 
 class EventFileTensor:

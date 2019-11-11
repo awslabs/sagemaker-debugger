@@ -1,11 +1,16 @@
+# Standard Library
 import argparse
-from mxnet import gluon, init, autograd
+import time
+
+# Third Party
+import mxnet as mx
+from mxnet import autograd, gluon, init
 from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
-import time
-import mxnet as mx
-from tornasole.mxnet import TornasoleHook, SaveConfig, modes
+
+# First Party
 import tornasole.mxnet as tm
+from tornasole.mxnet import SaveConfig, TornasoleHook, modes
 
 
 def parse_args():

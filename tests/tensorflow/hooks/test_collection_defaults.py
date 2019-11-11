@@ -1,9 +1,14 @@
-from tornasole.core.modes import ModeKeys
+# Standard Library
 import os
 import shutil
-from .utils import pre_test_clean_up
-from tornasole.tensorflow.session import TornasoleHook
+
+# First Party
 from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.modes import ModeKeys
+from tornasole.tensorflow.session import TornasoleHook
+
+# Local
+from .utils import pre_test_clean_up
 
 
 def test_collection_defaults_json():

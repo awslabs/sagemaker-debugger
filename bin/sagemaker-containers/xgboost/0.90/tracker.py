@@ -21,18 +21,20 @@ Implements the tracker control protocol
 
 Tianqi Chen
 """
+# Future
 # pylint: disable=invalid-name, missing-docstring, too-many-arguments, too-many-locals
 # pylint: disable=too-many-branches, too-many-statements
 from __future__ import absolute_import
 
+# Standard Library
+import argparse
+import logging
 import os
-import sys
 import socket
 import struct
 import subprocess
-import argparse
+import sys
 import time
-import logging
 from threading import Thread
 
 logger = logging.getLogger("RabitTracker")

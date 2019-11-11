@@ -1,15 +1,22 @@
+# Standard Library
 import os
+
+# Third Party
 import tensorflow as tf
 from tensorflow.python.distribute import values
-from .utils import node_name, extract_graph_summary, get_original_fetch_ops, TFDistributionStrategy
+
+# First Party
+from tornasole.core.collection import SUMMARIES_COLLECTIONS, CollectionKeys
+from tornasole.core.reductions import get_reduction_tensor_name
+from tornasole.core.tfevent.proto.summary_pb2 import Summary
+from tornasole.core.tfevent.util import make_numpy_array
+from tornasole.core.utils import match_inc
+
+# Local
+from .base_hook import TensorflowBaseHook
 from .reductions import get_tensorflow_reduction
 from .tensor_ref import TensorType
-from tornasole.core.tfevent.proto.summary_pb2 import Summary
-from tornasole.core.utils import match_inc
-from tornasole.core.tfevent.util import make_numpy_array
-from tornasole.core.collection import CollectionKeys, SUMMARIES_COLLECTIONS
-from tornasole.core.reductions import get_reduction_tensor_name
-from .base_hook import TensorflowBaseHook
+from .utils import TFDistributionStrategy, extract_graph_summary, get_original_fetch_ops, node_name
 
 
 class TornasoleSessionHook(tf.train.SessionRunHook, TensorflowBaseHook):

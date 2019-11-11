@@ -1,8 +1,12 @@
+# Standard Library
 import re
 
+# Third Party
 import numpy as np
+
+# Local
+from .proto.summary_pb2 import HistogramProto, Summary
 from .util import make_numpy_array
-from .proto.summary_pb2 import Summary, HistogramProto
 
 _INVALID_TAG_CHARACTERS = re.compile(r"[^-/\w\.]")
 

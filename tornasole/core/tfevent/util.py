@@ -1,8 +1,12 @@
+# Third Party
+import numpy as np
+
+# First Party
+from tornasole.core.logger import get_logger
+
+# Local
 from .proto.tensor_pb2 import TensorProto
 from .proto.tensor_shape_pb2 import TensorShapeProto
-
-import numpy as np
-from tornasole.core.logger import get_logger
 
 logger = get_logger()
 

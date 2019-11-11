@@ -1,4 +1,7 @@
+# Third Party
 import pytest
+
+# First Party
 from tornasole.core.reduction_config import ReductionConfig
 
 

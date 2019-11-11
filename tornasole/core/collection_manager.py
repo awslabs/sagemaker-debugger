@@ -1,8 +1,11 @@
-from .collection import Collection
-from .access_layer import TSAccessFile, TSAccessS3
-from .utils import is_s3, load_json_as_dict, get_path_to_collections
-import os
+# Standard Library
 import json
+import os
+
+# Local
+from .access_layer import TSAccessFile, TSAccessS3
+from .collection import Collection
+from .utils import get_path_to_collections, is_s3, load_json_as_dict
 
 ALLOWED_PARAMS = ["collections", "_meta"]
 

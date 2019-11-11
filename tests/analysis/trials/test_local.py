@@ -1,8 +1,13 @@
-import uuid
+# Standard Library
 import os
-from tests.analysis.utils import generate_data, check_trial
-from tornasole.trials.trial_catalog import LocalTrialCatalog
+import uuid
+
+# Third Party
+from tests.analysis.utils import check_trial, generate_data
+
+# First Party
 from tornasole.trials import LocalTrial
+from tornasole.trials.trial_catalog import LocalTrialCatalog
 
 
 def check_local(localdir, trial_name, num_steps, num_tensors):

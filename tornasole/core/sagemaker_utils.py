@@ -1,5 +1,10 @@
-import boto3
+# Standard Library
 import os
+
+# Third Party
+import boto3
+
+# First Party
 from tornasole.core.config_constants import DEFAULT_SAGEMAKER_OUTDIR
 
 

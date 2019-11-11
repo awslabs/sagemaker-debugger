@@ -1,21 +1,25 @@
+# Standard Library
 import os
-from typing import Optional, List, Union, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+# Third Party
 import numpy as np
 import xgboost as xgb
 from xgboost import DMatrix
 from xgboost.core import CallbackEnv
-from tornasole.core.collection import Collection, CollectionKeys
-from tornasole.core.save_config import SaveConfig
-from tornasole.core.hook import CallbackHook
-from tornasole.core.tfevent.util import make_numpy_array
+
+# First Party
 from tornasole.core.access_layer.utils import training_has_ended
+from tornasole.core.collection import Collection, CollectionKeys
+from tornasole.core.hook import CallbackHook
 from tornasole.core.json_config import create_hook_from_json_config
+from tornasole.core.save_config import SaveConfig
+from tornasole.core.tfevent.util import make_numpy_array
 from tornasole.xgboost.singleton_utils import set_hook
 
-
+# Local
 from .collection import get_collection_manager
-from .utils import validate_data_file_path, get_content_type, get_dmatrix, parse_tree_model
-
+from .utils import get_content_type, get_dmatrix, parse_tree_model, validate_data_file_path
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.METRICS]
 DEFAULT_SAVE_CONFIG_INTERVAL = 10

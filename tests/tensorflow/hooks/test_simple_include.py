@@ -1,11 +1,17 @@
-from .utils import *
-from tornasole.tensorflow import get_collection
+# Standard Library
+import glob
+import shutil
+
+# First Party
 import tornasole.tensorflow as ts
-import glob, shutil
-from tornasole.core.reader import FileReader
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.reader import FileReader
 from tornasole.core.utils import get_path_to_collections
+from tornasole.tensorflow import get_collection
+
+# Local
+from .utils import *
 
 
 def helper_test_simple_include(trial_dir, hook):

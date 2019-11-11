@@ -13,23 +13,28 @@
 #  limitations under the License.
 """Convolutional Neural Network Estimator for MNIST, built with tf.layers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# Future
+from __future__ import absolute_import, division, print_function
 
+# Standard Library
+import os
+from datetime import datetime
+
+# Third Party
 import numpy as np
 import pytest
 import tensorflow as tf
 from tensorflow.python.client import device_lib
-
-import tornasole.tensorflow as ts
-from tornasole.core.modes import ModeKeys
-from tornasole.core.collection import CollectionKeys
-from tornasole.exceptions import TensorUnavailableForStep
 from tests.tensorflow.utils import create_trial_fast_refresh
+
+# First Party
+import tornasole.tensorflow as ts
+from tornasole.core.collection import CollectionKeys
+from tornasole.core.modes import ModeKeys
+from tornasole.exceptions import TensorUnavailableForStep
+
+# Local
 from .utils import TORNASOLE_TF_HOOK_TESTS_DIR
-import os
-from datetime import datetime
 
 
 def cnn_model_fn(features, labels, mode):

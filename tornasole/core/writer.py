@@ -16,24 +16,27 @@
 # under the License.
 
 """APIs for logging data in the event file."""
-from tornasole.core.tfevent.util import make_tensor_proto
+# Standard Library
+import socket
+
+# First Party
+from tornasole.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from tornasole.core.tfevent.event_file_writer import EventFileWriter
-from tornasole.core.tfevent.summary import (
-    make_numpy_array,
-    histogram_summary,
-    _get_default_bins,
-    scalar_summary,
-)
 from tornasole.core.tfevent.index_file_writer import IndexWriter
 from tornasole.core.tfevent.proto.event_pb2 import Event, TaggedRunMetadata
 from tornasole.core.tfevent.proto.summary_pb2 import Summary, SummaryMetadata
-from tornasole.core.modes import MODE_STEP_PLUGIN_NAME, MODE_PLUGIN_NAME
+from tornasole.core.tfevent.summary import (
+    _get_default_bins,
+    histogram_summary,
+    make_numpy_array,
+    scalar_summary,
+)
+from tornasole.core.tfevent.util import make_tensor_proto
+
+# Local
+from .locations import IndexFileLocationUtils, TensorboardFileLocation, TensorFileLocation
 from .logger import get_logger
-from .locations import TensorFileLocation, IndexFileLocationUtils, TensorboardFileLocation
 from .modes import ModeKeys
-
-import socket
-
 
 logger = get_logger()
 

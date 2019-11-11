@@ -1,3 +1,4 @@
+# First Party
 from tornasole.core.collection import Collection as BaseCollection
 from tornasole.core.collection import CollectionKeys
 from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager

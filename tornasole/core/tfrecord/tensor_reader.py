@@ -1,11 +1,13 @@
+# Standard Library
 import struct
 
-from tornasole.core.tfevent.proto.event_pb2 import Event
+# First Party
+from tornasole.core.logger import get_logger
+from tornasole.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME, ModeKeys
 from tornasole.core.tfevent.event_file_reader import get_tensor_data
+from tornasole.core.tfevent.proto.event_pb2 import Event
 from tornasole.core.tfrecord.record_reader import masked_crc32c
 from tornasole.core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
-from tornasole.core.modes import ModeKeys, MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
-from tornasole.core.logger import get_logger
 
 logger = get_logger()
 

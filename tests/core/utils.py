@@ -1,3 +1,4 @@
+# First Party
 from tornasole.core.collection import Collection
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME

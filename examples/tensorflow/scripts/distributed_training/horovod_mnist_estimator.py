@@ -14,19 +14,21 @@
 #  limitations under the License.
 """Convolutional Neural Network Estimator for MNIST, built with tf.layers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# Future
+from __future__ import absolute_import, division, print_function
 
+# Standard Library
 import argparse
-import os
 import errno
+import os
+
+# Third Party
+import horovod.tensorflow as hvd
 import numpy as np
 import tensorflow as tf
-import horovod.tensorflow as hvd
-
 from tensorflow import keras
 
+# First Party
 import tornasole.tensorflow as ts
 
 tf.logging.set_verbosity(tf.logging.INFO)

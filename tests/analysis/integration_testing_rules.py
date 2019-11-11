@@ -1,6 +1,22 @@
+# Standard Library
+import asyncio
 import os
+import re
+import shutil
 import sys
+import time
 import uuid
+from multiprocessing import *
+from subprocess import PIPE, Popen
+from time import sleep
+
+# Third Party
+import aioboto3
+import yaml
+
+# First Party
+from tornasole.core.access_layer.s3handler import ListRequest, S3Handler
+from tornasole.core.logger import get_logger
 
 # set environment variable values for tornasole
 os.environ["TORNASOLE_LOG_LEVEL"] = "DEBUG"
@@ -20,17 +36,6 @@ if stderr:
     f = open(os.devnull, "w")
     sys.stderr = f
 
-import shutil
-from multiprocessing import *
-import yaml
-import time
-import asyncio
-import aioboto3
-from tornasole.core.access_layer.s3handler import S3Handler, ListRequest
-from tornasole.core.logger import get_logger
-from subprocess import Popen, PIPE
-from time import sleep
-import re
 
 TEST_NAME_INDEX = 0
 FRAMEWORK_INDEX = 1

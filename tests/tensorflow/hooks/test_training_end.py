@@ -1,12 +1,19 @@
-from .utils import *
-from tornasole.tensorflow import reset_collections
-import tensorflow as tf
-from tornasole.core.access_layer.utils import has_training_ended
-import shutil
+# Standard Library
 import os
-import sys
+import shutil
 import subprocess
+import sys
+
+# Third Party
 import pytest
+import tensorflow as tf
+
+# First Party
+from tornasole.core.access_layer.utils import has_training_ended
+from tornasole.tensorflow import reset_collections
+
+# Local
+from .utils import *
 
 
 @pytest.mark.slow  # 0:03 to run

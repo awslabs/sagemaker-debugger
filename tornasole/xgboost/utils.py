@@ -1,13 +1,15 @@
 """
 Modified from https://github.com/aws/sagemaker-xgboost-container/blob/master/src/sagemaker_xgboost_container/data_utils.py
 """
+# Standard Library
 import csv
 import logging
 import os
 import re
+
+# Third Party
 import numpy as np
 import xgboost as xgb
-
 
 CSV = "csv"
 LIBSVM = "libsvm"

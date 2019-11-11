@@ -1,7 +1,10 @@
-from tornasole.core.utils import step_in_range
-from tornasole.core.modes import ModeKeys
+# Standard Library
 import json
 from typing import Any, Dict, List
+
+# First Party
+from tornasole.core.modes import ModeKeys
+from tornasole.core.utils import step_in_range
 
 DEFAULT_SAVE_CONFIG_INTERVAL = 100
 DEFAULT_SAVE_CONFIG_START_STEP = 0

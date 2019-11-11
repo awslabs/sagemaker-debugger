@@ -1,16 +1,19 @@
-from tornasole.core.hook_utils import verify_and_get_out_dir
-from tornasole.core.json_config import DEFAULT_SAGEMAKER_OUTDIR
-from tornasole.core.access_layer.file import (
-    get_temp_path,
-    SAGEMAKER_TEMP_PATH_SUFFIX,
-    NON_SAGEMAKER_TEMP_PATH_PREFIX,
-)
-from tornasole.core.access_layer.utils import training_has_ended
-from tornasole.core.utils import SagemakerSimulator, ScriptSimulator
-import tornasole.pytorch as ts
+# Standard Library
 import os
 import shutil
 import uuid
+
+# First Party
+import tornasole.pytorch as ts
+from tornasole.core.access_layer.file import (
+    NON_SAGEMAKER_TEMP_PATH_PREFIX,
+    SAGEMAKER_TEMP_PATH_SUFFIX,
+    get_temp_path,
+)
+from tornasole.core.access_layer.utils import training_has_ended
+from tornasole.core.hook_utils import verify_and_get_out_dir
+from tornasole.core.json_config import DEFAULT_SAGEMAKER_OUTDIR
+from tornasole.core.utils import SagemakerSimulator, ScriptSimulator
 
 
 def test_outdir_non_sagemaker():

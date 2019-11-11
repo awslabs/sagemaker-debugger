@@ -1,9 +1,13 @@
+# Future
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import tensorflow_datasets as tfds
+# Third Party
 import tensorflow as tf
-from tornasole.tensorflow import TornasoleKerasHook, get_collection
+import tensorflow_datasets as tfds
+
+# First Party
 from tornasole.core.collection import CollectionKeys
+from tornasole.tensorflow import TornasoleKerasHook, get_collection
 
 tfds.disable_progress_bar()
 

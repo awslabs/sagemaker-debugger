@@ -1,16 +1,19 @@
-from tests.analysis.utils import generate_data
-
-from tornasole.rules.generic import ExplodingTensor
-from tornasole.trials import create_trial
-import uuid
-import numpy as np
-import pytest
-from tornasole.exceptions import *
-from tornasole.rules.rule_invoker import invoke_rule
-
+# Standard Library
+import shutil
 import subprocess
 import sys
-import shutil
+import uuid
+
+# Third Party
+import numpy as np
+import pytest
+from tests.analysis.utils import generate_data
+
+# First Party
+from tornasole.exceptions import *
+from tornasole.rules.generic import ExplodingTensor
+from tornasole.rules.rule_invoker import invoke_rule
+from tornasole.trials import create_trial
 
 
 def dump_data():

@@ -1,10 +1,16 @@
-from .utils import *
-import tornasole.tensorflow as ts
-from tornasole.trials import create_trial
+# Standard Library
 import shutil
+
+# Third Party
 import pytest
 
+# First Party
+import tornasole.tensorflow as ts
+from tornasole.trials import create_trial
+
+# Local
 from .test_estimator_modes import help_test_mnist
+from .utils import *
 
 
 @pytest.mark.slow  # 0:02 to run

@@ -6,20 +6,23 @@ how we want to support DistributedDataParallel with limited user configuration.
 The key methods are
     torch.distributed.get_rank() - when manually spawning processes
 """
-import numpy as nn
+# Standard Library
 import os
+import shutil
+
+# Third Party
+import numpy as nn
 import pytest
 import torch
 import torch.distributed as dist
-from torch import multiprocessing
-from torch.multiprocessing import Process
 import torch.nn as nn
-from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn.functional as F
 import torch.optim as optim
-import shutil
+from torch import multiprocessing
+from torch.multiprocessing import Process
+from torch.nn.parallel import DistributedDataParallel as DDP
 
-
+# First Party
 import tornasole.pytorch as ts
 from tornasole.trials import Trial, create_trial
 

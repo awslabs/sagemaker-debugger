@@ -1,7 +1,12 @@
+# Standard Library
 import argparse
-import numpy as np
 import random
+
+# Third Party
+import numpy as np
 import tensorflow as tf
+
+# First Party
 import tornasole.tensorflow as ts
 
 parser = argparse.ArgumentParser()

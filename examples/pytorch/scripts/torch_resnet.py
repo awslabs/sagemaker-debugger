@@ -1,16 +1,18 @@
-import torch.nn.parallel
-
-import torch.optim
-import torchvision.models as models
-
+# Standard Library
 import argparse
+import time
+
+# Third Party
 import torch
 import torch.nn as nn
+import torch.nn.parallel
 import torch.optim as optim
-from torchvision import datasets, transforms
+import torchvision.models as models
 from torch.autograd import Variable
+from torchvision import datasets, transforms
+
+# First Party
 from tornasole.pytorch import *
-import time
 
 model_names = sorted(
     name

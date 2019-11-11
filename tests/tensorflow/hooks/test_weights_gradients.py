@@ -1,11 +1,18 @@
-from .utils import *
-from tornasole.tensorflow import reset_collections
+# Standard Library
+import shutil
+
+# Third Party
 import tensorflow as tf
+
+# First Party
+import tornasole.tensorflow as ts
 from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from tornasole.core.utils import get_path_to_collections
-import tornasole.tensorflow as ts
-import shutil
+from tornasole.tensorflow import reset_collections
+
+# Local
+from .utils import *
 
 
 def helper_test_only_w_g(trial_dir, hook):

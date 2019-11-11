@@ -1,7 +1,12 @@
-from tornasole.core.sagemaker_utils import is_sagemaker_job
-from .base import TSAccessBase
+# Standard Library
 import os
 import shutil
+
+# First Party
+from tornasole.core.sagemaker_utils import is_sagemaker_job
+
+# Local
+from .base import TSAccessBase
 
 NON_SAGEMAKER_TEMP_PATH_PREFIX = "/tmp"
 SAGEMAKER_TEMP_PATH_SUFFIX = ".tmp"

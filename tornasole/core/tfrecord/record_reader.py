@@ -15,12 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# Standard Library
 import struct
-from ._crc32c import crc32c
+
+# First Party
 from tornasole.core.access_layer.file import TSAccessFile
 from tornasole.core.access_layer.s3 import TSAccessS3
-from tornasole.core.utils import is_s3
 from tornasole.core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
+from tornasole.core.utils import is_s3
+
+# Local
+from ._crc32c import crc32c
 
 
 class RecordReader:

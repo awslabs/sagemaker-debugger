@@ -1,12 +1,17 @@
-from .mnist_gluon_model import run_mnist_gluon_model
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole import SaveConfig
-from tornasole.mxnet import reset_collections
-from datetime import datetime
-import shutil
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.trials import create_trial
+# Standard Library
 import os
+import shutil
+from datetime import datetime
+
+# First Party
+from tornasole import SaveConfig
+from tornasole.core.access_layer.utils import has_training_ended
+from tornasole.mxnet import reset_collections
+from tornasole.mxnet.hook import TornasoleHook as t_hook
+from tornasole.trials import create_trial
+
+# Local
+from .mnist_gluon_model import run_mnist_gluon_model
 
 
 def test_loss_collection_default():

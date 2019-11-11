@@ -8,8 +8,9 @@ import tornasole.mxnet as ts
 hook = ts.hook()
 """
 
+# First Party
 import tornasole.core.singleton_utils as sutils
-from tornasole.core.singleton_utils import set_hook, del_hook
+from tornasole.core.singleton_utils import del_hook, set_hook
 
 
 def get_hook(json_config_path=None, create_if_not_exists: bool = False) -> "TornasoleHook":

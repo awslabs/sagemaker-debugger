@@ -1,10 +1,15 @@
-from tests.analysis.utils import generate_data
-from tornasole.rules.generic import ClassImbalance
-from tornasole.trials import create_trial
-from tornasole.exceptions import *
-from tornasole.rules.rule_invoker import invoke_rule
+# Standard Library
 import uuid
+
+# Third Party
 import numpy as np
+from tests.analysis.utils import generate_data
+
+# First Party
+from tornasole.exceptions import *
+from tornasole.rules.generic import ClassImbalance
+from tornasole.rules.rule_invoker import invoke_rule
+from tornasole.trials import create_trial
 
 
 def dump_data(values):

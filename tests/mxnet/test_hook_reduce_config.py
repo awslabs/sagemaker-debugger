@@ -1,11 +1,15 @@
-from .mnist_gluon_model import run_mnist_gluon_model
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.mxnet import SaveConfig, Collection, ReductionConfig, reset_collections
-import tornasole.mxnet as tm
-from tornasole.trials import create_trial
+# Standard Library
 import shutil
-
 from datetime import datetime
+
+# First Party
+import tornasole.mxnet as tm
+from tornasole.mxnet import Collection, ReductionConfig, SaveConfig, reset_collections
+from tornasole.mxnet.hook import TornasoleHook as t_hook
+from tornasole.trials import create_trial
+
+# Local
+from .mnist_gluon_model import run_mnist_gluon_model
 
 
 def test_save_config(hook=None, out_dir=None):

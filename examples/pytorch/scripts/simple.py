@@ -1,12 +1,19 @@
+# Future
 from __future__ import print_function
-import numpy as np
-import random
+
+# Standard Library
 import argparse
+import random
+
+# Third Party
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+
+# First Party
 from tornasole.pytorch import *
 
 

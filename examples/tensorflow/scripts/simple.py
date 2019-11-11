@@ -1,8 +1,13 @@
+# Standard Library
 import argparse
+import random
+
+# Third Party
 import numpy as np
 import tensorflow as tf
+
+# First Party
 import tornasole.tensorflow as ts
-import random
 
 
 def str2bool(v):

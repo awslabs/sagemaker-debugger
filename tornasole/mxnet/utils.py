@@ -1,7 +1,10 @@
+# Third Party
 import mxnet as mx
 import numpy as np
 from mxnet.ndarray import NDArray
-from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
+
+# First Party
+from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from tornasole.core.reductions import get_numpy_reduction
 
 

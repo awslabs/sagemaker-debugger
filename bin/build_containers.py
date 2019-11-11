@@ -1,9 +1,9 @@
-import subprocess
+# Standard Library
 import argparse
-from multiprocessing import Process
 import os
+import subprocess
+from multiprocessing import Process
 from time import sleep
-
 
 FRAMEWORK_VERSIONS = {
     "mxnet": "1.4.1",

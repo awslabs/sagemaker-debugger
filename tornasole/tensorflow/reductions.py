@@ -1,5 +1,8 @@
+# Third Party
 import tensorflow as tf
-from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
+
+# First Party
+from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 
 
 def get_tensorflow_reduction(reduction_name, tensor, on_absolute_values=False):

@@ -1,9 +1,15 @@
-from tensorflow.python.distribute import values
+# Third Party
 import tensorflow as tf
-from .tensor_ref import TensorRef, TensorType
-from tornasole.core.collection import Collection as BaseCollection, CollectionKeys
+from tensorflow.python.distribute import values
+
+# First Party
+from tornasole.core.collection import Collection as BaseCollection
+from tornasole.core.collection import CollectionKeys
 from tornasole.core.collection_manager import CollectionManager as BaseCollectionManager
 from tornasole.core.logger import get_logger
+
+# Local
+from .tensor_ref import TensorRef, TensorType
 
 logger = get_logger()
 

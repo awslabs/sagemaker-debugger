@@ -1,8 +1,13 @@
+# Standard Library
+import uuid
+
+# Third Party
 import numpy as np
 import pytest
-import uuid
-from tornasole.core.writer import FileWriter
+
+# First Party
 from tornasole.core.reader import FileReader
+from tornasole.core.writer import FileWriter
 
 
 def rw(path):

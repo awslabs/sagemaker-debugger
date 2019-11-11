@@ -1,13 +1,17 @@
+# Standard Library
 import argparse
-from mxnet import gluon, init, autograd
-from mxnet.gluon import nn
-from mxnet.gluon.data.vision import datasets, transforms
-import time
-import mxnet as mx
 import random
-import numpy as np
+import time
 from datetime import datetime
 
+# Third Party
+import mxnet as mx
+import numpy as np
+from mxnet import autograd, gluon, init
+from mxnet.gluon import nn
+from mxnet.gluon.data.vision import datasets, transforms
+
+# First Party
 from tornasole import SaveConfig, modes
 from tornasole.mxnet import TornasoleHook
 

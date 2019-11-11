@@ -1,6 +1,9 @@
-import torch
-from tornasole.core.reduction_config import ALLOWED_REDUCTIONS, ALLOWED_NORMS
+# Third Party
 import numpy as np
+import torch
+
+# First Party
+from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from tornasole.core.reductions import get_numpy_reduction
 
 

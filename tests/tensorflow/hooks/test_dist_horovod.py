@@ -1,5 +1,8 @@
-from tornasole.trials import create_trial
+# Third Party
 import pytest
+
+# First Party
+from tornasole.trials import create_trial
 
 
 @pytest.mark.slow  # 0:11 to run

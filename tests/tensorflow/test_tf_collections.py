@@ -1,10 +1,14 @@
-from tornasole.tensorflow import Collection, CollectionManager, reset_collections, get_collection
-from tornasole.core.utils import get_path_to_collections
-import tensorflow as tf
-from tornasole.tensorflow.tensor_ref import get_tf_names
-
-import uuid
+# Standard Library
 import os
+import uuid
+
+# Third Party
+import tensorflow as tf
+
+# First Party
+from tornasole.core.utils import get_path_to_collections
+from tornasole.tensorflow import Collection, CollectionManager, get_collection, reset_collections
+from tornasole.tensorflow.tensor_ref import get_tf_names
 
 
 def test_manager_export_load():

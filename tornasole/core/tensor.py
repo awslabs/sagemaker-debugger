@@ -1,12 +1,17 @@
+# Standard Library
 import bisect
 from enum import Enum
 from typing import Dict, Tuple
 
+# Third Party
 import numpy as np
 
+# First Party
 from tornasole.exceptions import *
-from .locations import TensorLocation
+
+# Local
 from .index_reader import IndexReader
+from .locations import TensorLocation
 from .modes import ModeKeys
 from .reductions import get_numpy_reduction
 

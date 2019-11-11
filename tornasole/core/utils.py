@@ -1,17 +1,18 @@
-import os
-import shutil
-import re
+# Standard Library
 import bisect
-import socket
 import json
+import os
+import re
+import shutil
+import socket
 from pathlib import Path
-
 from typing import Dict, List
 
+# First Party
 from tornasole.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
-    DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     DEFAULT_SAGEMAKER_OUTDIR,
+    DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
 

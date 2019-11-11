@@ -7,15 +7,19 @@ https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html.
 This should work without changing anything from the tutorial.
 Afterwards, we read from the directory and ensure that all the values are there.
 """
+# Standard Library
 import argparse
+
+# Third Party
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from pt_utils import Net, get_dataloaders
 
+# First Party
 import tornasole.pytorch as ts
 from tornasole.core.utils import SagemakerSimulator
-from pt_utils import get_dataloaders, Net
 
 
 def test_pytorch(script_mode: bool):

@@ -1,20 +1,25 @@
-from .trial import EventFileTensor, Trial
+# Standard Library
+import multiprocessing
+import os
+import struct
 
-from tornasole.core.locations import TensorFileLocation
+# Third Party
+from joblib import Parallel, delayed
+
+# First Party
 from tornasole.core.collection_manager import CollectionManager
+from tornasole.core.locations import TensorFileLocation
 from tornasole.core.reader import FileReader
 from tornasole.core.utils import (
-    index,
     get_path_to_collections,
+    index,
     list_files_in_directory,
-    step_in_range,
     parse_worker_name_from_file,
+    step_in_range,
 )
 
-import os
-import multiprocessing
-import struct
-from joblib import Parallel, delayed
+# Local
+from .trial import EventFileTensor, Trial
 
 
 class LocalTrial(Trial):

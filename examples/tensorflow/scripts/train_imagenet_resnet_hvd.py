@@ -25,30 +25,37 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# Future
 from __future__ import print_function
+
+# Standard Library
+import argparse
+import logging
+import math
+import os
+import random
+import re
+import shutil
+import sys
+import time
+from glob import glob
+from operator import itemgetter
+
+# Third Party
+import horovod.tensorflow as hvd
+import numpy as np
+import tensorflow as tf
+from tensorflow.contrib.image.python.ops import distort_image_ops
+from tensorflow.python.ops import data_flow_ops
+from tensorflow.python.util import nest
+
+# First Party
+import tornasole.tensorflow as ts
 
 try:
     from builtins import range
 except ImportError:
     pass
-import tensorflow as tf
-import numpy as np
-from tensorflow.contrib.image.python.ops import distort_image_ops
-from tensorflow.python.ops import data_flow_ops
-import horovod.tensorflow as hvd
-import os
-import sys
-import time
-import argparse
-import random
-import shutil
-import logging
-import math
-import re
-from glob import glob
-from operator import itemgetter
-from tensorflow.python.util import nest
-import tornasole.tensorflow as ts
 
 
 def rank0log(logger, *args, **kwargs):

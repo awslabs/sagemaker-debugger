@@ -1,36 +1,38 @@
+# Standard Library
 import atexit
-from abc import ABCMeta, abstractmethod
-import re as _re
 import os
-import numpy as np
-from typing import Optional, List, Union, Tuple, Dict, Set
+import re as _re
+from abc import ABCMeta, abstractmethod
+from typing import Dict, List, Optional, Set, Tuple, Union
 
-from tornasole.core.utils import match_inc, size_and_shape
-from tornasole.core.reduction_config import ReductionConfig
+# Third Party
+import numpy as np
+
+# First Party
+from tornasole.core.access_layer import training_has_ended
 from tornasole.core.collection import (
-    CollectionKeys,
-    NON_REDUCTION_COLLECTIONS,
     NON_HISTOGRAM_COLLECTIONS,
+    NON_REDUCTION_COLLECTIONS,
     SCALAR_COLLECTIONS,
+    CollectionKeys,
 )
 from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.save_config import SaveConfig, SaveConfigMode
-from tornasole.core.access_layer import training_has_ended
-from tornasole.core.hook_utils import verify_and_get_out_dir, get_tensorboard_dir
-from tornasole.core.sagemaker_utils import is_sagemaker_job
-from tornasole.core.modes import ModeKeys, ALLOWED_MODES
-from tornasole.core.utils import flatten, get_tb_worker
-from tornasole.core.logger import get_logger
-from tornasole.core.reductions import get_reduction_tensor_name
-from tornasole.core.writer import FileWriter
-from tornasole.core.state_store import StateStore
 from tornasole.core.config_constants import (
-    TRAINING_RUN,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
+    TRAINING_RUN,
 )
-
+from tornasole.core.hook_utils import get_tensorboard_dir, verify_and_get_out_dir
+from tornasole.core.logger import get_logger
+from tornasole.core.modes import ALLOWED_MODES, ModeKeys
+from tornasole.core.reduction_config import ReductionConfig
+from tornasole.core.reductions import get_reduction_tensor_name
+from tornasole.core.sagemaker_utils import is_sagemaker_job
+from tornasole.core.save_config import SaveConfig, SaveConfigMode
+from tornasole.core.state_store import StateStore
+from tornasole.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
+from tornasole.core.writer import FileWriter
 
 logger = get_logger()
 

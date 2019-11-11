@@ -1,12 +1,16 @@
-from mxnet.ndarray import NDArray
-from mxnet.symbol import Symbol
-from mxnet.gluon import HybridBlock
+# Standard Library
 import json
 
+# Third Party
+from mxnet.gluon import HybridBlock
+from mxnet.ndarray import NDArray
+from mxnet.symbol import Symbol
+
+# First Party
+from tornasole.core.tfevent.proto.attr_value_pb2 import AttrValue
 from tornasole.core.tfevent.proto.graph_pb2 import GraphDef
 from tornasole.core.tfevent.proto.node_def_pb2 import NodeDef
 from tornasole.core.tfevent.proto.versions_pb2 import VersionDef
-from tornasole.core.tfevent.proto.attr_value_pb2 import AttrValue
 
 
 def _scoped_name(scope_name, node_name):

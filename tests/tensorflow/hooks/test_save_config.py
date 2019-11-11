@@ -1,10 +1,17 @@
-from tornasole.trials import create_trial
-from .utils import *
-from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
-from tornasole.tensorflow import reset_collections, get_collection, TornasoleHook, modes
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+# Standard Library
 import shutil
+
+# Third Party
 import pytest
+from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
+
+# First Party
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.tensorflow import TornasoleHook, get_collection, modes, reset_collections
+from tornasole.trials import create_trial
+
+# Local
+from .utils import *
 
 
 def helper_test_save_config(trial_dir, hook):

@@ -1,7 +1,8 @@
-import subprocess
+# Standard Library
 import argparse
-import sys
 import os
+import subprocess
+import sys
 
 parser = argparse.ArgumentParser(description="Build Tornasole binaries")
 parser.add_argument(

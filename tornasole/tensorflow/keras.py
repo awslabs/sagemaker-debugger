@@ -1,24 +1,29 @@
+# Standard Library
 import functools
 
-from tensorflow.python.distribute import values
-from tensorflow.python.keras.distribute.distributed_training_utils import get_distributed_model
+# Third Party
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.python.distribute import values
+from tensorflow.python.keras.distribute.distributed_training_utils import get_distributed_model
 
+# First Party
 from tornasole.core.modes import ModeKeys
 from tornasole.core.reductions import get_numpy_reduction
 from tornasole.core.utils import match_inc, serialize_tf_device
+
+# Local
 from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
-    is_keras_optimizer,
     TFDistributionStrategy,
-    mode_to_keras_mode,
+    get_export_name_for_keras,
     get_keras_layer_inputs,
     get_keras_layer_outputs,
-    get_export_name_for_keras,
     get_keras_mode,
+    is_keras_optimizer,
+    mode_to_keras_mode,
 )
 
 

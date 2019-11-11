@@ -1,10 +1,15 @@
+# Standard Library
 import shutil
-from tornasole.core.access_layer.utils import has_training_ended
 import subprocess
-import uuid
-from tests.analysis.utils import delete_s3_prefix
 import sys
+import uuid
+
+# Third Party
 import pytest
+from tests.analysis.utils import delete_s3_prefix
+
+# First Party
+from tornasole.core.access_layer.utils import has_training_ended
 
 
 @pytest.mark.slow  # 0:03 to run

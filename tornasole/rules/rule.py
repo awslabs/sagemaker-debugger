@@ -1,9 +1,13 @@
+# Standard Library
 from abc import ABC, abstractmethod
 
-from .req_tensors import RequiredTensors
+# First Party
 from tornasole.analysis.utils import no_refresh
 from tornasole.core.logger import get_logger
 from tornasole.exceptions import RuleEvaluationConditionMet
+
+# Local
+from .req_tensors import RequiredTensors
 
 
 # This is Rule interface

@@ -1,8 +1,13 @@
-import pytest
+# Standard Library
 import uuid
+
+# Third Party
+import pytest
 from tests.analysis.utils import generate_data
-from tornasole.trials import create_trial
+
+# First Party
 from tornasole.exceptions import *
+from tornasole.trials import create_trial
 
 
 @pytest.mark.slow  # 0:38 to run

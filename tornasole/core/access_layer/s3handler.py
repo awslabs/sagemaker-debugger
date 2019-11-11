@@ -1,9 +1,14 @@
-import aioboto3
+# Standard Library
 import asyncio
-from tornasole.core.utils import is_s3, get_region
-from tornasole.core.logger import get_logger
 import logging
 import time
+
+# Third Party
+import aioboto3
+
+# First Party
+from tornasole.core.logger import get_logger
+from tornasole.core.utils import get_region, is_s3
 
 
 def check_notebook():

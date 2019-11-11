@@ -1,13 +1,18 @@
-from tornasole.core.access_layer.utils import (
-    has_training_ended,
-    training_has_ended,
-    delete_s3_prefixes,
-)
-import pytest
+# Standard Library
 import shutil
-from tornasole.core.utils import is_s3
+
+# Third Party
+import pytest
+
+# First Party
 from tornasole.core.access_layer.file import ensure_dir
 from tornasole.core.access_layer.s3 import TSAccessS3
+from tornasole.core.access_layer.utils import (
+    delete_s3_prefixes,
+    has_training_ended,
+    training_has_ended,
+)
+from tornasole.core.utils import is_s3
 
 
 def test_local_training_end():

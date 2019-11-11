@@ -1,19 +1,23 @@
+# Standard Library
 import os
+import shutil
 import uuid
+
+# Third Party
 import numpy as np
 import pytest
-import shutil
 import xgboost
 
-from .run_xgboost_model import run_xgboost_model
-from .json_config import get_json_config, get_json_config_full
-
-from tornasole.xgboost import TornasoleHook, get_collection
+# First Party
 from tornasole import SaveConfig
 from tornasole.core.access_layer.utils import has_training_ended
 from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
-from tornasole.xgboost import reset_collections
 from tornasole.trials import create_trial
+from tornasole.xgboost import TornasoleHook, get_collection, reset_collections
+
+# Local
+from .json_config import get_json_config, get_json_config_full
+from .run_xgboost_model import run_xgboost_model
 
 
 def test_hook(tmpdir):

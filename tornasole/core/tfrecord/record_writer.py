@@ -17,11 +17,16 @@
 
 """Writer for writing events to the event file."""
 
+# Standard Library
 import struct
-from ._crc32c import crc32c
+
+# First Party
 from tornasole.core.access_layer.file import TSAccessFile
 from tornasole.core.access_layer.s3 import TSAccessS3
 from tornasole.core.utils import is_s3
+
+# Local
+from ._crc32c import crc32c
 
 CHECKSUM_MAGIC_BYTES = b"0x12345678"
 

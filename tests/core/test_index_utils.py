@@ -1,16 +1,17 @@
+# Third Party
 import pytest
 
-from tornasole.core.utils import (
-    is_s3,
-    serialize_tf_device,
-    deserialize_tf_device,
-    parse_worker_name_from_file,
-    get_worker_name_from_collection_file,
-    get_path_to_collections,
-)
-
-from tornasole.core.s3_utils import list_s3_objects
+# First Party
 from tornasole.core.index_reader import S3IndexReader
+from tornasole.core.s3_utils import list_s3_objects
+from tornasole.core.utils import (
+    deserialize_tf_device,
+    get_path_to_collections,
+    get_worker_name_from_collection_file,
+    is_s3,
+    parse_worker_name_from_file,
+    serialize_tf_device,
+)
 
 
 def test_tf_device_name_serialize_and_deserialize():
