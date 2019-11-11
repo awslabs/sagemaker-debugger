@@ -78,19 +78,21 @@ def test_tensorboard_dir_non_sagemaker_forgot_export_tensorboard():
 
 
 def test_temp_paths():
-    for path in [
-        "/opt/ml/output/tensors/events/a",
-        "/opt/ml/output/tensors/a",
-        "/opt/ml/output/tensors/events/a/b",
-    ]:
-        tp = get_temp_path(path)
-        assert tp.endswith(SAGEMAKER_TEMP_PATH_SUFFIX)
-        assert not tp.startswith(NON_SAGEMAKER_TEMP_PATH_PREFIX)
+    with SagemakerSimulator() as sim:
+        for path in [
+            "/opt/ml/output/tensors/events/a",
+            "/opt/ml/output/tensors/a",
+            "/opt/ml/output/tensors/events/a/b",
+        ]:
+            tp = get_temp_path(path)
+            assert tp.endswith(SAGEMAKER_TEMP_PATH_SUFFIX)
+            assert not tp.startswith(NON_SAGEMAKER_TEMP_PATH_PREFIX)
 
-    for path in ["/a/b/c", "/opt/ml/output/a", "a/b/c"]:
-        tp = get_temp_path(path)
-        assert not SAGEMAKER_TEMP_PATH_SUFFIX in tp
-        assert tp.startswith(NON_SAGEMAKER_TEMP_PATH_PREFIX)
+    with ScriptSimulator() as sim:
+        for path in ["/a/b/c", "/opt/ml/output/a", "a/b/c"]:
+            tp = get_temp_path(path)
+            assert not SAGEMAKER_TEMP_PATH_SUFFIX in tp
+            assert tp.startswith(NON_SAGEMAKER_TEMP_PATH_PREFIX)
 
 
 def test_s3_path_that_exists_without_end_of_job():

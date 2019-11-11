@@ -70,6 +70,7 @@ def test_linear_classifier(script_mode: bool):
             hook = ts.TornasoleEstimatorHook(out_dir=sim.out_dir)
             estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
         else:
+            # hook = ts.get_hook() ?
             estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
 
         # Check that hook created and tensors saved

@@ -12,6 +12,7 @@ from tornasole.core.config_constants import (
     TORNASOLE_CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     DEFAULT_SAGEMAKER_TORNASOLE_PATH,
+    TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
 
 
@@ -233,6 +234,7 @@ class SagemakerSimulator(object):
         shutil.rmtree(self.out_dir, ignore_errors=True)
         shutil.rmtree(self.json_config_path, ignore_errors=True)
         os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = self.json_config_path
+        os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR] = self.tb_json_config_path
         os.environ["TRAINING_JOB_NAME"] = self.training_job_name
         with open(self.json_config_path, "w+") as my_file:
             # We'll just use the defaults, but the file is expected to exist
@@ -265,6 +267,7 @@ class SagemakerSimulator(object):
         os.remove(self.tb_json_config_path)
         del os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR]
         del os.environ["TRAINING_JOB_NAME"]
+        del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
 
 
 class ScriptSimulator(object):

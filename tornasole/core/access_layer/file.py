@@ -1,3 +1,4 @@
+from tornasole.core.sagemaker_utils import is_sagemaker_job
 from tornasole.core.json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH
 from .base import TSAccessBase
 import os
@@ -18,7 +19,7 @@ def ensure_dir(file_path, is_file=True):
 
 def get_temp_path(file_path):
     directory = os.path.dirname(file_path)
-    if directory.startswith(DEFAULT_SAGEMAKER_TORNASOLE_PATH):
+    if is_sagemaker_job():
         temp_path = file_path + SAGEMAKER_TEMP_PATH_SUFFIX
     else:
         if len(file_path) > 0 and file_path[0] == "/":

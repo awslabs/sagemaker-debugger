@@ -69,6 +69,7 @@ from tornasole.core.config_constants import (
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     EXPORT_TENSORBOARD_KEY,
     TENSORBOARD_DIR_KEY,
+    TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
 
 
@@ -87,11 +88,14 @@ def get_json_config_as_dict(json_config_path) -> Dict:
     return params_dict
 
 
-def get_tensorboard_dir_from_json_config(tb_json_config_path: str) -> Optional[str]:
+def get_tensorboard_dir_from_json_config() -> Optional[str]:
     """ Expects tb_json_config_path to contain { “LocalPath”: /my/tensorboard/path }.
 
     Returns the path contained in that json file, or None if not exists.
     """
+    tb_json_config_path = os.getenv(
+        TENSORBOARD_CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_TENSORBOARD_PATH
+    )
     path = Path(tb_json_config_path)
     if path.is_file():
         my_dict = json.loads(path.read_text())
@@ -129,7 +133,7 @@ def create_hook_from_json_config(
 
     # If Sagemaker, emit TB only if JSON file exists
     if is_sagemaker_job():
-        tensorboard_dir = get_tensorboard_dir_from_json_config(DEFAULT_SAGEMAKER_TENSORBOARD_PATH)
+        tensorboard_dir = get_tensorboard_dir_from_json_config()
         export_tensorboard = bool(tensorboard_dir is not None)
     # Otherwise, place TB artifacts in out_dir
     else:
