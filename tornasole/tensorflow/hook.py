@@ -18,10 +18,7 @@ from tornasole.core.collection import CollectionKeys, SUMMARIES_COLLECTIONS
 from tornasole.core.hook import BaseHook
 from tornasole.core.writer import FileWriter
 from tornasole.core.reductions import get_reduction_tensor_name
-from tornasole.core.json_config import (
-    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
-    create_hook_from_json_config,
-)
+from tornasole.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
 from tornasole.tensorflow.singleton_utils import set_hook
 from typing import Optional, List, Union, Tuple, Dict, Set
 
@@ -151,7 +148,7 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
         tf_config = os.getenv("TF_CONFIG")
         if tf_config and is_parameter_server_strategy(tf_config):
             return get_worker_id_from_tf_config(tf_config)
-        return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+        return CONFIG_DEFAULT_WORKER_NAME
 
     def get_num_workers(self):
         try:

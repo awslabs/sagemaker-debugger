@@ -32,14 +32,14 @@ def test_save_all(hook=None, out_dir=None):
 
 
 def test_save_all_hook_from_json():
-    from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
     import os
 
     reset_collections()
     out_dir = "newlogsRunTest2/test_hook_save_all_hook_from_json"
     shutil.rmtree(out_dir, True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_save_all_hook.json"
     hook = t_hook.hook_from_config()
     test_save_all(hook, out_dir)

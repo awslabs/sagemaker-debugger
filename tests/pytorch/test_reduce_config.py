@@ -84,13 +84,13 @@ def test_reduce_config(hook=None, out_dir=None):
 
 # Test creating hook by loading the json file with reduction configs.
 def test_reduce_config_with_json():
-    from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
     reset_collections()
     out_dir = "test_output/test_hook_reduction_config/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_reduction_config.json"
     hook = t_hook.hook_from_config()
     test_reduce_config(hook=hook, out_dir=out_dir)

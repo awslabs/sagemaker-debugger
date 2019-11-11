@@ -10,7 +10,7 @@ from tornasole import SaveConfig
 from tornasole.pytorch.hook import *
 from tornasole.pytorch.collection import *
 from tornasole.pytorch import reset_collections
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 import uuid
 from tornasole.trials import create_trial
 import shutil
@@ -295,7 +295,7 @@ def test_weightsbiasgradients_json():
     out_dir = "test_output/test_hook_save_weightsbiasgradients/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_weightsbiasgradients.json"
     hook = TornasoleHook.hook_from_config()
     helper_test_weights_bias_gradients(hook)
@@ -309,9 +309,7 @@ def test_saveall_json():
     reset_collections()
     out_dir = "test_output/test_hook_saveall/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
-    os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/pytorch/test_json_configs/test_hook_saveall.json"
+    os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_hook_saveall.json"
     hook = TornasoleHook.hook_from_config()
     saveall_test_helper(hook)
 
@@ -326,7 +324,7 @@ def test_multi_collection_json():
     out_dir = "test_output/test_hook_multi_collection/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_multi_collections.json"
     hook = TornasoleHook.hook_from_config()
     helper_test_multi_collections(hook, out_dir)

@@ -3,8 +3,8 @@ from tornasole.tensorflow import reset_collections, get_collections, CollectionM
 import glob
 import shutil
 from tornasole.core.reader import FileReader
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from tornasole.core.utils import get_path_to_collections
 
 
@@ -33,9 +33,9 @@ def test_save_all_full(hook=None, trial_dir=None):
     assert len(coll["gradients"].tensor_names) == 1
     assert len(coll["losses"].tensor_names) == 1
 
-    assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
+    assert DEFAULT_COLLECTIONS_FILE_NAME in files
     cm = CollectionManager.load(
-        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+        join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
 
     assert len(cm.collections) == len(coll), (coll, cm.collections)
@@ -72,7 +72,7 @@ def test_hook_config_json():
     out_dir = "newlogsRunTest1/test_hook_from_json_config"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json"
     reset_collections()
     hook = TornasoleHook.hook_from_config()

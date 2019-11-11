@@ -1,6 +1,6 @@
 from tornasole.core.collection import Collection
 from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from tornasole.core.reduction_config import ReductionConfig
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.modes import ModeKeys
@@ -53,11 +53,9 @@ def test_manager_export_load():
     cm.add(Collection("trial1"))
     cm.add("trial2")
     cm.get("trial2").include("total_loss")
-    cm.export("dummy_trial", TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+    cm.export("dummy_trial", DEFAULT_COLLECTIONS_FILE_NAME)
     cm2 = CollectionManager.load(
-        os.path.join(
-            get_path_to_collections("dummy_trial"), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
-        )
+        os.path.join(get_path_to_collections("dummy_trial"), DEFAULT_COLLECTIONS_FILE_NAME)
     )
     assert cm == cm2
 

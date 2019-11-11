@@ -1,5 +1,5 @@
 from tornasole.core.hook_utils import verify_and_get_out_dir
-from tornasole.core.json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH
+from tornasole.core.json_config import DEFAULT_SAGEMAKER_OUTDIR
 from tornasole.core.access_layer.file import (
     get_temp_path,
     SAGEMAKER_TEMP_PATH_SUFFIX,
@@ -34,7 +34,7 @@ def test_outdir_sagemaker():
     paths = ["/tmp/tests/" + id, "s3://tmp/tests/" + id]
     for path in paths:
         out_dir = verify_and_get_out_dir(path)
-        assert out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH
+        assert out_dir == DEFAULT_SAGEMAKER_OUTDIR
     del os.environ["TRAINING_JOB_NAME"]
 
 

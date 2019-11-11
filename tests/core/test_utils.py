@@ -2,10 +2,7 @@ import pytest
 
 from tornasole.core.utils import is_s3
 from tornasole.core.access_layer import check_dir_exists
-from tornasole.core.json_config import (
-    DEFAULT_SAGEMAKER_TORNASOLE_PATH,
-    collect_tornasole_config_params,
-)
+from tornasole.core.json_config import DEFAULT_SAGEMAKER_OUTDIR, collect_tornasole_config_params
 from tornasole.core.locations import IndexFileLocationUtils
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.index_reader import ReadIndexFilesCache
@@ -115,4 +112,4 @@ def test_get_prefix_from_index_file():
 @pytest.mark.skip(reason="If no config file is found, then SM doesn't want a TornasoleHook")
 def test_collect_tornasole_config_params():
     tornasole_params = collect_tornasole_config_params(collection_manager=CollectionManager())
-    assert tornasole_params["out_dir"] == DEFAULT_SAGEMAKER_TORNASOLE_PATH
+    assert tornasole_params["out_dir"] == DEFAULT_SAGEMAKER_OUTDIR

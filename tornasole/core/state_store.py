@@ -2,7 +2,7 @@ from tornasole.core.config_constants import (
     DEFAULT_CHECKPOINT_CONFIG_FILE,
     CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR,
     CHECKPOINT_DIR_KEY,
-    TORNASOLE_META_DATA_FILE,
+    METADATA_FILENAME,
     TRAINING_RUN,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
@@ -28,7 +28,7 @@ class StateStore:
         self._checkpoint_dir = None
         self._retrieve_path_to_checkpoint()
         if self._checkpoint_dir is not None:
-            self._states_file = self._checkpoint_dir + "/" + TORNASOLE_META_DATA_FILE
+            self._states_file = os.path.join(self._checkpoint_dir, METADATA_FILENAME)
             self._read_tornasole_states_file()
             self._checkpoint_update_timestamp = max(
                 os.path.getmtime(child) for child, _, _ in os.walk(self._checkpoint_dir)

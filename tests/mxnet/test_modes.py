@@ -49,16 +49,14 @@ def test_modes(hook=None, path=None):
 
 
 def test_modes_hook_from_json_config():
-    from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
     import shutil
     import os
 
     reset_collections()
     out_dir = "newlogsRunTest2/test_modes_hookjson"
     shutil.rmtree(out_dir, True)
-    os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/mxnet/test_json_configs/test_modes_hook.json"
+    os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/mxnet/test_json_configs/test_modes_hook.json"
     hook = t_hook.hook_from_config()
     test_modes(hook, out_dir)
     shutil.rmtree(out_dir, True)

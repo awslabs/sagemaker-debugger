@@ -1,8 +1,8 @@
 from .utils import *
 from tornasole.tensorflow import reset_collections
 import tensorflow as tf
-from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from tornasole.core.utils import get_path_to_collections
 import tornasole.tensorflow as ts
 import shutil
@@ -13,9 +13,9 @@ def helper_test_only_w_g(trial_dir, hook):
     steps, _ = get_dirs_files(os.path.join(trial_dir, "events"))
     collection_files = get_collection_files(trial_dir)
 
-    assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in collection_files
+    assert DEFAULT_COLLECTIONS_FILE_NAME in collection_files
     cm = CollectionManager.load(
-        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+        join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
     assert ts.get_collections() == cm.collections
     num_tensors_loaded_collection = (
@@ -46,7 +46,7 @@ def test_only_w_g_json():
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_only_weights_and_gradients.json"
     hook = ts.TornasoleHook.hook_from_config()
     helper_test_only_w_g(trial_dir, hook)

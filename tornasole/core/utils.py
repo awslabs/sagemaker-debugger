@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Dict, List
 
 from tornasole.core.config_constants import (
-    TORNASOLE_CONFIG_FILE_PATH_ENV_STR,
+    CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
-    DEFAULT_SAGEMAKER_TORNASOLE_PATH,
+    DEFAULT_SAGEMAKER_OUTDIR,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
 
@@ -224,7 +224,7 @@ class SagemakerSimulator(object):
         tensorboard_dir="/tmp/tensorboard",
         training_job_name="sm_job",
     ):
-        self.out_dir = DEFAULT_SAGEMAKER_TORNASOLE_PATH
+        self.out_dir = DEFAULT_SAGEMAKER_OUTDIR
         self.json_config_path = json_config_path
         self.tb_json_config_path = DEFAULT_SAGEMAKER_TENSORBOARD_PATH
         self.tensorboard_dir = tensorboard_dir
@@ -233,7 +233,7 @@ class SagemakerSimulator(object):
     def __enter__(self):
         shutil.rmtree(self.out_dir, ignore_errors=True)
         shutil.rmtree(self.json_config_path, ignore_errors=True)
-        os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR] = self.json_config_path
+        os.environ[CONFIG_FILE_PATH_ENV_STR] = self.json_config_path
         os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR] = self.tb_json_config_path
         os.environ["TRAINING_JOB_NAME"] = self.training_job_name
         with open(self.json_config_path, "w+") as my_file:
@@ -265,7 +265,7 @@ class SagemakerSimulator(object):
         # shutil.rmtree(self.out_dir, ignore_errors=True)
         os.remove(self.json_config_path)
         os.remove(self.tb_json_config_path)
-        del os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR]
+        del os.environ[CONFIG_FILE_PATH_ENV_STR]
         del os.environ["TRAINING_JOB_NAME"]
         del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
 

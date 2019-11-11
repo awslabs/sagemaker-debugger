@@ -1,10 +1,7 @@
 import mxnet as mx
 from tornasole.core.collection import CollectionKeys
 from tornasole.core.hook import CallbackHook
-from tornasole.core.json_config import (
-    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
-    create_hook_from_json_config,
-)
+from tornasole.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
 from tornasole.mxnet.collection import get_collection_manager
 from tornasole.mxnet.singleton_utils import set_hook
 from tornasole.mxnet.utils import get_reduction_of_data, make_numpy_array
@@ -62,7 +59,7 @@ class TornasoleHook(CallbackHook):
         set_hook(self)
 
     def get_worker_name(self):
-        return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+        return CONFIG_DEFAULT_WORKER_NAME
 
     def get_num_workers(self):
         return 1

@@ -7,7 +7,7 @@ from tornasole.tensorflow import reset_collections
 from .utils import *
 from tornasole.core.reader import FileReader
 from tornasole.core.locations import TensorFileLocation
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 import tornasole.tensorflow as ts
 
 
@@ -102,7 +102,7 @@ def test_tornasole_hook_write_json():
     shutil.rmtree(data_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_write.json"
 
     shutil.rmtree(data_dir, ignore_errors=True)

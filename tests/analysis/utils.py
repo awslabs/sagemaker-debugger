@@ -1,7 +1,7 @@
 from tornasole.core.writer import FileWriter
 import numpy as np
 from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 import os
 import aioboto3
 import asyncio
@@ -34,7 +34,7 @@ def generate_data(
         c.get("default").tensor_names = [f"{tname_prefix}_{i}" for i in range(num_tensors)]
         c.add("gradients")
         c.get("gradients").tensor_names = [f"{tname_prefix}_{i}" for i in range(num_tensors)]
-        c.export(os.path.join(path, trial), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+        c.export(os.path.join(path, trial), DEFAULT_COLLECTIONS_FILE_NAME)
 
 
 def check_trial(trial_obj, num_steps, num_tensors):

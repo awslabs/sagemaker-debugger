@@ -11,7 +11,7 @@ import tornasole.pytorch as ts
 from tornasole.pytorch.hook import *
 from tornasole.pytorch.collection import *
 from tornasole.pytorch import reset_collections
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 import uuid
 from tornasole.trials import create_trial
 import shutil
@@ -126,9 +126,7 @@ def test_training_mode_json():
     reset_collections()
     out_dir = "test_output/test_hook_modes/jsonloading"
     shutil.rmtree(out_dir, True)
-    os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/pytorch/test_json_configs/test_modes.json"
+    os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_modes.json"
     hook = TornasoleHook.hook_from_config()
     helper_test_modes(hook, out_dir)
     shutil.rmtree(out_dir, True)

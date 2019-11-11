@@ -16,7 +16,7 @@ import shutil
 import os
 from datetime import datetime
 from .utils import TORNASOLE_TF_HOOK_TESTS_DIR
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
 import tornasole.tensorflow as ts
 from tornasole.tensorflow import reset_collections
@@ -169,7 +169,7 @@ def test_mnist_local_json():
     out_dir = "newlogsRunTest1/test_mnist_local_json_config"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"
     hook = TornasoleHook.hook_from_config()
     help_test_mnist(path=out_dir, hook=hook, num_train_steps=4, num_eval_steps=2)
@@ -231,7 +231,7 @@ def test_mnist_local_multi_save_configs_json():
     out_dir = "newlogsRunTest1/test_save_config_modes_hook_config"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json"
     hook = ts.TornasoleHook.hook_from_config()
     help_test_mnist(out_dir, hook=hook, num_train_steps=6, num_eval_steps=4)

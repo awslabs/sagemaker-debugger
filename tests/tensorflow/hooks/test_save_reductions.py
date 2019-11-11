@@ -3,8 +3,8 @@ from tornasole.tensorflow import reset_collections, get_collections, CollectionM
 import shutil
 import glob
 from tornasole.core.reader import FileReader
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from tornasole.core.utils import get_path_to_collections
 
 
@@ -15,9 +15,9 @@ def helper_save_reductions(trial_dir, hook):
     assert len(coll["weights"].tensor_names) == 1
     assert len(coll["gradients"].tensor_names) == 1
 
-    assert TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME in files
+    assert DEFAULT_COLLECTIONS_FILE_NAME in files
     cm = CollectionManager.load(
-        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+        join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
     assert len(cm.collections) == len(coll)
     assert len(cm.collections["weights"].tensor_names) == 1
@@ -74,7 +74,7 @@ def test_save_reductions_json():
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_save_reductions.json"
     hook = TornasoleHook.hook_from_config()
     helper_save_reductions(trial_dir, hook)

@@ -1,6 +1,6 @@
 import boto3
 import os
-from tornasole.core.config_constants import DEFAULT_SAGEMAKER_TORNASOLE_PATH
+from tornasole.core.config_constants import DEFAULT_SAGEMAKER_OUTDIR
 
 
 def is_sagemaker_job():
@@ -15,7 +15,7 @@ def is_sagemaker_job():
 
 
 def get_sagemaker_out_dir():
-    return DEFAULT_SAGEMAKER_TORNASOLE_PATH
+    return DEFAULT_SAGEMAKER_OUTDIR
 
 
 class SageMakerUtils:

@@ -1,5 +1,4 @@
 from tornasole.core.sagemaker_utils import is_sagemaker_job
-from tornasole.core.json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH
 from .base import TSAccessBase
 import os
 import shutil

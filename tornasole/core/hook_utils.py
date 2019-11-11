@@ -1,6 +1,6 @@
 import os
 
-from .json_config import DEFAULT_SAGEMAKER_TORNASOLE_PATH
+from .json_config import DEFAULT_SAGEMAKER_OUTDIR
 from .sagemaker_utils import is_sagemaker_job, get_sagemaker_out_dir
 from .utils import is_s3
 from .logger import get_logger
@@ -16,7 +16,7 @@ def verify_and_get_out_dir(out_dir):
                 "The out_dir parameter was set but job is running in a "
                 "SageMaker environment, hence it is being ignored. "
                 "Writing tensors to "
-                "{}".format(DEFAULT_SAGEMAKER_TORNASOLE_PATH)
+                "{}".format(DEFAULT_SAGEMAKER_OUTDIR)
             )
         out_dir = get_sagemaker_out_dir()
         # here we don't check whether the directory exists because

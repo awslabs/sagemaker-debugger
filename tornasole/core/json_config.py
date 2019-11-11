@@ -52,20 +52,20 @@ from tornasole.core.sagemaker_utils import is_sagemaker_job
 from tornasole import ReductionConfig, SaveConfig, SaveConfigMode
 
 from tornasole.core.config_constants import (
-    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
-    TORNASOLE_CONFIG_FILE_PATH_ENV_STR,
+    CONFIG_DEFAULT_WORKER_NAME,
+    CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_CONFIG_FILE_PATH,
-    TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY,
-    TORNASOLE_CONFIG_SAVE_CONFIGS_KEY,
-    TORNASOLE_CONFIG_OUTDIR_KEY,
-    TORNASOLE_CONFIG_HOOK_PARAMS_KEY,
-    TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY,
-    TORNASOLE_CONFIG_COLLECTION_NAME_KEY,
-    TORNASOLE_CONFIG_COLLECTION_PARAMS_KEY,
-    TORNASOLE_CONFIG_RDN_CFG_KEY,
-    TORNASOLE_CONFIG_INCLUDE_REGEX_KEY,
-    TORNASOLE_CONFIG_SAVE_ALL_KEY,
-    DEFAULT_SAGEMAKER_TORNASOLE_PATH,
+    CONFIG_REDUCTION_CONFIGS_KEY,
+    CONFIG_SAVE_CONFIGS_KEY,
+    CONFIG_OUTDIR_KEY,
+    CONFIG_HOOK_PARAMS_KEY,
+    CONFIG_COLLECTION_CONFIG_KEY,
+    CONFIG_COLLECTION_NAME_KEY,
+    CONFIG_COLLECTION_PARAMS_KEY,
+    CONFIG_RDN_CFG_KEY,
+    CONFIG_INCLUDE_REGEX_KEY,
+    CONFIG_SAVE_ALL_KEY,
+    DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     EXPORT_TENSORBOARD_KEY,
     TENSORBOARD_DIR_KEY,
@@ -81,7 +81,7 @@ def get_json_config_as_dict(json_config_path) -> Dict:
     if json_config_path is not None:
         path = json_config_path
     else:
-        path = os.getenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, DEFAULT_CONFIG_FILE_PATH)
+        path = os.getenv(CONFIG_FILE_PATH_ENV_STR, DEFAULT_CONFIG_FILE_PATH)
 
     with open(path) as json_config_file:
         params_dict = json.load(json_config_file)
@@ -124,12 +124,12 @@ def create_hook_from_json_config(
     else:
         include_collections = None
 
-    out_dir = tornasole_params.get("out_dir", DEFAULT_SAGEMAKER_TORNASOLE_PATH)
+    out_dir = tornasole_params.get("out_dir", DEFAULT_SAGEMAKER_OUTDIR)
     dry_run = tornasole_params.get("dry_run", False)
-    reduction_config = tornasole_params.get(TORNASOLE_CONFIG_RDN_CFG_KEY)
+    reduction_config = tornasole_params.get(CONFIG_RDN_CFG_KEY)
     save_config = SaveConfig.from_dict(tornasole_params.get("save_config_modes"), default_values)
-    include_regex = tornasole_params.get(TORNASOLE_CONFIG_INCLUDE_REGEX_KEY)
-    save_all = tornasole_params.get(TORNASOLE_CONFIG_SAVE_ALL_KEY, False)
+    include_regex = tornasole_params.get(CONFIG_INCLUDE_REGEX_KEY)
+    save_all = tornasole_params.get(CONFIG_SAVE_ALL_KEY, False)
 
     # If Sagemaker, emit TB only if JSON file exists
     if is_sagemaker_job():
@@ -165,21 +165,19 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
 
     # Declare defaults
     tornasole_params_dict = {
-        TORNASOLE_CONFIG_RDN_CFG_KEY: None,
-        TORNASOLE_CONFIG_REDUCTION_CONFIGS_KEY: {},
-        TORNASOLE_CONFIG_SAVE_CONFIGS_KEY: {},
-        TORNASOLE_CONFIG_INCLUDE_REGEX_KEY: None,
+        CONFIG_RDN_CFG_KEY: None,
+        CONFIG_REDUCTION_CONFIGS_KEY: {},
+        CONFIG_SAVE_CONFIGS_KEY: {},
+        CONFIG_INCLUDE_REGEX_KEY: None,
     }
     # Set top-level path parameters
     # SageMaker doesn't have any way to specify this for now, so default to using their path
-    tornasole_params_dict["out_dir"] = params_dict.get(
-        TORNASOLE_CONFIG_OUTDIR_KEY, DEFAULT_SAGEMAKER_TORNASOLE_PATH
-    )
+    tornasole_params_dict["out_dir"] = params_dict.get(CONFIG_OUTDIR_KEY, DEFAULT_SAGEMAKER_OUTDIR)
     tornasole_params_dict[EXPORT_TENSORBOARD_KEY] = params_dict.get(EXPORT_TENSORBOARD_KEY, False)
     tornasole_params_dict[TENSORBOARD_DIR_KEY] = params_dict.get(TENSORBOARD_DIR_KEY, None)
 
     # Get the main HookParameters; pass these as defaults
-    hook_params = params_dict.get(TORNASOLE_CONFIG_HOOK_PARAMS_KEY, {})
+    hook_params = params_dict.get(CONFIG_HOOK_PARAMS_KEY, {})
     # If we have {"HookParameters": null}, replace null with {}.
     hook_params = {} if hook_params is None else hook_params
     base_config_modes = parse_save_config_modes_dict(params=hook_params)
@@ -187,29 +185,27 @@ def collect_tornasole_config_params(collection_manager, json_config_path) -> Dic
 
     # If we pass reduction=None, then the full tensor is saved by default
     if "reductions" in hook_params:
-        tornasole_params_dict[TORNASOLE_CONFIG_RDN_CFG_KEY] = ReductionConfig.from_dict(hook_params)
+        tornasole_params_dict[CONFIG_RDN_CFG_KEY] = ReductionConfig.from_dict(hook_params)
     if "save_all" in hook_params:
-        tornasole_params_dict[TORNASOLE_CONFIG_SAVE_ALL_KEY] = hook_params["save_all"]
+        tornasole_params_dict[CONFIG_SAVE_ALL_KEY] = hook_params["save_all"]
     if "include_regex" in hook_params:
-        tornasole_params_dict[TORNASOLE_CONFIG_INCLUDE_REGEX_KEY] = split(
-            hook_params["include_regex"]
-        )
+        tornasole_params_dict[CONFIG_INCLUDE_REGEX_KEY] = split(hook_params["include_regex"])
 
     # For each collection configuration, also create the reduction config and save config.
     if (
-        TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY in params_dict
-        and params_dict[TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY] is not None
+        CONFIG_COLLECTION_CONFIG_KEY in params_dict
+        and params_dict[CONFIG_COLLECTION_CONFIG_KEY] is not None
     ):
         tornasole_params_dict["collections"] = {}
-        for config in params_dict[TORNASOLE_CONFIG_COLLECTION_CONFIG_KEY]:
+        for config in params_dict[CONFIG_COLLECTION_CONFIG_KEY]:
             # Require name and parameters for each collection.
-            if TORNASOLE_CONFIG_COLLECTION_NAME_KEY not in config:
+            if CONFIG_COLLECTION_NAME_KEY not in config:
                 raise ValueError(
                     f"Must specify '{TORNASOLE_CONFIG_COLLECTION_NAME_KEY}' in JSON config."
                 )
 
-            name = config[TORNASOLE_CONFIG_COLLECTION_NAME_KEY]
-            coll_params = config.get(TORNASOLE_CONFIG_COLLECTION_PARAMS_KEY, {})
+            name = config[CONFIG_COLLECTION_NAME_KEY]
+            coll_params = config.get(CONFIG_COLLECTION_PARAMS_KEY, {})
             # If we have {"CollectionParameters": null}, replace null with {}.
             coll_params = {} if coll_params is None else coll_params
             collection_manager.add(name)

@@ -3,8 +3,8 @@ from tornasole.tensorflow import get_collection
 import tornasole.tensorflow as ts
 import glob, shutil
 from tornasole.core.reader import FileReader
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from tornasole.core.utils import get_path_to_collections
 
 
@@ -15,7 +15,7 @@ def helper_test_simple_include(trial_dir, hook):
     steps, _ = get_dirs_files(os.path.join(trial_dir, "events"))
 
     cm = CollectionManager.load(
-        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+        join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
     assert len(cm.collections["default"].tensor_names) == 1
     assert len(steps) == 5
@@ -48,7 +48,7 @@ def test_simple_include_json():
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_simple_include.json"
     hook = TornasoleHook.hook_from_config()
     helper_test_simple_include(trial_dir, hook)
@@ -60,7 +60,7 @@ def helper_test_simple_include_regex(trial_dir, hook):
     steps, _ = get_dirs_files(os.path.join(trial_dir, "events"))
 
     cm = CollectionManager.load(
-        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+        join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
     assert len(cm.collections["default"].tensor_names) == 1
     assert len(steps) == 5
@@ -99,7 +99,7 @@ def test_simple_include_regex_json():
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_simple_include_regex.json"
     hook = TornasoleHook.hook_from_config()
     helper_test_simple_include_regex(trial_dir, hook)
@@ -111,7 +111,7 @@ def helper_test_multi_collection_match(trial_dir, hook):
     steps, _ = get_dirs_files(os.path.join(trial_dir, "events"))
 
     cm = CollectionManager.load(
-        join(get_path_to_collections(trial_dir), TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+        join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
     assert len(cm.collections["default"].tensor_names) == 1
     assert len(cm.collections["trial"].tensor_names) == 1
@@ -152,7 +152,7 @@ def test_multi_collection_match_json():
     pre_test_clean_up()
     ts.get_collection("trial").include("loss:0")
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_multi_collection_match.json"
     hook = TornasoleHook.hook_from_config()
     helper_test_multi_collection_match(trial_dir, hook)

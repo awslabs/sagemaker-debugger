@@ -3,7 +3,7 @@ import os
 import shutil
 from .utils import pre_test_clean_up
 from tornasole.pytorch.hook import TornasoleHook
-from tornasole.core.json_config import TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
 
 def test_collection_defaults_json():
@@ -11,7 +11,7 @@ def test_collection_defaults_json():
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json"
     hook = TornasoleHook.hook_from_config()
     # Check save_intervals for each mode

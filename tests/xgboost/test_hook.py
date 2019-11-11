@@ -11,10 +11,7 @@ from .json_config import get_json_config, get_json_config_full
 from tornasole.xgboost import TornasoleHook, get_collection
 from tornasole import SaveConfig
 from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.core.json_config import (
-    TORNASOLE_CONFIG_FILE_PATH_ENV_STR,
-    DEFAULT_SAGEMAKER_TORNASOLE_PATH,
-)
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
 from tornasole.xgboost import reset_collections
 from tornasole.trials import create_trial
 
@@ -33,7 +30,7 @@ def test_hook_from_json_config(tmpdir, monkeypatch):
     out_dir = tmpdir.join("test_hook_from_json_config")
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config(str(out_dir)))
-    monkeypatch.setenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, str(config_file))
+    monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
     hook = TornasoleHook.hook_from_config()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
@@ -44,7 +41,7 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
     out_dir = tmpdir.join("test_hook_from_json_config_full")
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config_full(str(out_dir)))
-    monkeypatch.setenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, str(config_file))
+    monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
     hook = TornasoleHook.hook_from_config()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
@@ -54,9 +51,9 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
 def test_default_hook(monkeypatch):
     reset_collections()
     shutil.rmtree("/opt/ml/output/tensors", ignore_errors=True)
-    monkeypatch.delenv(TORNASOLE_CONFIG_FILE_PATH_ENV_STR, raising=False)
+    monkeypatch.delenv(CONFIG_FILE_PATH_ENV_STR, raising=False)
     hook = TornasoleHook.hook_from_config()
-    assert hook.out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH
+    assert hook.out_dir == DEFAULT_SAGEMAKER_OUTDIR
 
 
 def test_hook_save_all(tmpdir):

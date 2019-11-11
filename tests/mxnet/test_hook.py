@@ -7,10 +7,7 @@ import shutil
 from tornasole.core.access_layer.utils import has_training_ended
 import pytest
 import os
-from tornasole.core.json_config import (
-    TORNASOLE_CONFIG_FILE_PATH_ENV_STR,
-    DEFAULT_SAGEMAKER_TORNASOLE_PATH,
-)
+from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
 
 
 def test_hook():
@@ -31,7 +28,7 @@ def test_hook_from_json_config():
     out_dir = "newlogsRunTest1/test_hook_from_json_config"
     shutil.rmtree(out_dir, True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_from_json_config.json"
     hook = t_hook.hook_from_config()
     assert has_training_ended(out_dir) == False
@@ -46,7 +43,7 @@ def test_hook_from_json_config_full():
     out_dir = "newlogsRunTest2/test_hook_from_json_config_full"
     shutil.rmtree(out_dir, True)
     os.environ[
-        TORNASOLE_CONFIG_FILE_PATH_ENV_STR
+        CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_from_json_config_full.json"
     hook = t_hook.hook_from_config()
     assert has_training_ended(out_dir) == False
@@ -60,7 +57,7 @@ def test_hook_from_json_config_full():
 def test_default_hook():
     reset_collections()
     shutil.rmtree("/opt/ml/output/tensors", ignore_errors=True)
-    if TORNASOLE_CONFIG_FILE_PATH_ENV_STR in os.environ:
-        del os.environ[TORNASOLE_CONFIG_FILE_PATH_ENV_STR]
+    if CONFIG_FILE_PATH_ENV_STR in os.environ:
+        del os.environ[CONFIG_FILE_PATH_ENV_STR]
     hook = t_hook.hook_from_config()
-    assert hook.out_dir == DEFAULT_SAGEMAKER_TORNASOLE_PATH
+    assert hook.out_dir == DEFAULT_SAGEMAKER_OUTDIR

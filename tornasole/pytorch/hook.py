@@ -3,10 +3,7 @@ import types
 from typing import Callable, Union
 import torch
 import torch.distributed as dist
-from tornasole.core.json_config import (
-    create_hook_from_json_config,
-    TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
-)
+from tornasole.core.json_config import create_hook_from_json_config, CONFIG_DEFAULT_WORKER_NAME
 from tornasole.core.logger import get_logger
 from tornasole.core.hook import CallbackHook
 from tornasole.core.collection import CollectionKeys
@@ -88,7 +85,7 @@ class TornasoleHook(CallbackHook):
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
         # Return default
-        return TORNASOLE_CONFIG_DEFAULT_WORKER_NAME
+        return CONFIG_DEFAULT_WORKER_NAME
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):

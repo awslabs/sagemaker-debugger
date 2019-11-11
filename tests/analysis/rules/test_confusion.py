@@ -1,6 +1,6 @@
 from tornasole.core.writer import FileWriter
 from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME
+from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 
 from tornasole.rules.generic import Confusion
 from tornasole.trials import create_trial
@@ -22,7 +22,7 @@ def gen_y_and_y_hat(path, trial, step, y, y_name, y_hat, y_hat_name, colls={}):
     for coll in colls:
         c.add(coll)
         c.get(coll).tensor_names = colls[coll]
-    c.export(trial_dir, TORNASOLE_DEFAULT_COLLECTIONS_FILE_NAME)
+    c.export(trial_dir, DEFAULT_COLLECTIONS_FILE_NAME)
 
 
 @pytest.mark.slow  # 0:06 to run
