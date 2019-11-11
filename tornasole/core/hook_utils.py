@@ -37,3 +37,18 @@ def verify_and_get_out_dir(out_dir):
         check_dir_exists(out_dir)
 
     return out_dir
+
+
+def get_tensorboard_dir(export_tensorboard, tensorboard_dir, out_dir):
+    if tensorboard_dir is not None:
+        tensorboard_dir = os.path.expanduser(tensorboard_dir)
+
+    if export_tensorboard and tensorboard_dir:
+        return tensorboard_dir
+    elif not export_tensorboard and tensorboard_dir:
+        # Assume the user forgot `export_tensorboard` and save anyway.
+        return tensorboard_dir
+    elif export_tensorboard and not tensorboard_dir:
+        return os.path.join(out_dir, "tensorboard")
+    else:
+        return None

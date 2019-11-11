@@ -87,6 +87,7 @@ hook = ts.TornasoleHook(
     include_collections=["weights", "gradients", "losses"],
     save_config=ts.SaveConfig(save_interval=args.tornasole_frequency),
     reduction_config=rdnc,
+    tensorboard_dir=args.tornasole_path + "/tb/",
 )
 
 hook.set_mode(ts.modes.TRAIN)

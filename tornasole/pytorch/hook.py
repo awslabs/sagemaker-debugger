@@ -13,7 +13,6 @@ from tornasole.core.collection import CollectionKeys
 from tornasole.pytorch.collection import get_collection_manager
 from tornasole.pytorch.singleton_utils import set_hook
 from tornasole.pytorch.utils import get_reduction_of_data, make_numpy_array
-from tornasole.pytorch._pytorch_graph import graph as create_graph
 
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.WEIGHTS,
@@ -56,8 +55,6 @@ class TornasoleHook(CallbackHook):
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()
 
-        self.model = None
-        self.exported_model = False
         self.has_registered_module = False
         self.has_registered_loss_module = False
         self.worker = self.get_worker_name()
@@ -125,20 +122,8 @@ class TornasoleHook(CallbackHook):
             # "Processing the global step {0} for parameter {1}".format(self.step, pname))
             self._save_for_tensor(tensor_name=pname, tensor_value=param.data)
 
-    def _export_model(self, inputs):
-        # todo: export model when only run for 1 step in cleanup
-        if self.model is not None:
-            try:
-                tb_writer = self._maybe_get_tb_writer()
-                if tb_writer:
-                    tb_writer.write_pytorch_graph(create_graph(self.model, inputs))
-                else:
-                    self.logger.warning("Model export failed because hook.tensorboard_dir is None")
-            except ValueError as e:
-                self.logger.warning(
-                    f"Could not export model graph for tensorboard "
-                    f"due to the pytorch exception: {e}"
-                )
+    def _export_model(self):
+        pass
 
     def _prepare_collections(self):
         super()._prepare_collections()
@@ -168,10 +153,6 @@ class TornasoleHook(CallbackHook):
         if self._get_collections_to_save_for_step():
             self._initialize_writer()
             self.log_params(module)
-
-        if self.exported_model is False:
-            self._export_model(inputs)
-            self.exported_model = True
 
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
@@ -238,9 +219,6 @@ class TornasoleHook(CallbackHook):
             raise ValueError(
                 f"Module type {module.__class__.__name__} must be type torch.nn.Module"
             )
-
-        # deepcopy the model because models with hooks can't be exported
-        self.model = deepcopy(module)
 
         # Create a mapping from modules to their names
         for name, submodule in module.named_modules():

@@ -8,7 +8,7 @@ FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 
 
 def compile_summary_protobuf():
-    proto_paths = ["tornasole/core/tfevent/proto", "tornasole/pytorch/proto"]
+    proto_paths = ["tornasole/core/tfevent/proto"]
     cmd = "set -ex && protoc "
     for proto_path in proto_paths:
         proto_files = os.path.join(proto_path, "*.proto")

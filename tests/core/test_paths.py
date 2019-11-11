@@ -58,7 +58,7 @@ def test_tensorboard_dir_script_export_tensorboard():
     """ In script mode, passing `export_tensorboard=True` results in tensorboard_dir=out_dir. """
     with ScriptSimulator() as sim:
         hook = ts.TornasoleHook(out_dir=sim.out_dir, export_tensorboard=True)
-        assert hook.tensorboard_dir == hook.out_dir
+        assert hook.tensorboard_dir == os.path.join(hook.out_dir, "tensorboard")
 
 
 def test_tensorboard_dir_script_specify_tensorboard_dir():

@@ -42,7 +42,10 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_ste
     # Create a hook that logs weights, biases, gradients and inputs/ouputs of model
     if hook_type == "saveall":
         hook = TornasoleHook(
-            out_dir=output_dir, save_config=SaveConfig(save_steps=save_steps), save_all=True
+            out_dir=output_dir,
+            save_config=SaveConfig(save_steps=save_steps),
+            save_all=True,
+            export_tensorboard=True,
         )
     elif hook_type == "module-input-output":
         # The names of input and output tensors of a module are in following format
@@ -57,11 +60,12 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_ste
             out_dir=output_dir,
             save_config=SaveConfig(save_steps=save_steps),
             include_collections=["weights", "gradients", "biases", "l_mod"],
+            export_tensorboard=True,
         )
     elif hook_type == "weights-bias-gradients":
         save_config = SaveConfig(save_steps=save_steps)
         # Create a hook that logs ONLY weights, biases, and gradients
-        hook = TornasoleHook(out_dir=output_dir, save_config=save_config)
+        hook = TornasoleHook(out_dir=output_dir, save_config=save_config, export_tensorboard=True)
     return hook
 
 

@@ -36,7 +36,6 @@ class TSAccessFile(TSAccessBase):
         self.path = path
         self.mode = mode
         ensure_dir(path)
-
         if mode in WRITE_MODES:
             self.temp_path = get_temp_path(self.path)
             ensure_dir(self.temp_path)

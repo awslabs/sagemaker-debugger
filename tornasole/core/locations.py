@@ -56,9 +56,8 @@ class EventFileLocation(ABC):
                 logger.error("Failed to load efl: ", s)
             return None
 
-    @staticmethod
     @abstractmethod
-    def get_dir(trial_dir):
+    def get_file_location(self):
         pass
 
 
@@ -94,13 +93,10 @@ class TensorboardFileLocation(EventFileLocation):
         self.mode = mode
         self.type = "tensorboard"
 
-    @staticmethod
-    def get_dir(trial_dir):
-        return os.path.join(trial_dir, "tensorboard")
-
-    def get_file_location(self, trial_dir=""):
-        if trial_dir:
-            event_key_prefix = os.path.join(self.get_dir(trial_dir), self.mode.name)
+    def get_file_location(self, base_dir=""):
+        # when base_dir is empty it just returns the relative file path
+        if base_dir:
+            event_key_prefix = os.path.join(base_dir, self.mode.name)
         else:
             event_key_prefix = os.path.join(self.type, self.mode.name)
 

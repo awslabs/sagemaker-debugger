@@ -133,8 +133,8 @@ def create_hook_from_json_config(
         export_tensorboard = bool(tensorboard_dir is not None)
     # Otherwise, place TB artifacts in out_dir
     else:
-        tensorboard_dir = tornasole_params[EXPORT_TENSORBOARD_KEY]
-        export_tensorboard = tornasole_params[TENSORBOARD_DIR_KEY]
+        tensorboard_dir = tornasole_params[TENSORBOARD_DIR_KEY]
+        export_tensorboard = tornasole_params[EXPORT_TENSORBOARD_KEY]
 
     return hook_cls(
         out_dir=out_dir,

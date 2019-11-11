@@ -15,7 +15,7 @@ from tornasole.core.collection import (
 from tornasole.core.collection_manager import CollectionManager
 from tornasole.core.save_config import SaveConfig, SaveConfigMode
 from tornasole.core.access_layer import training_has_ended
-from tornasole.core.hook_utils import verify_and_get_out_dir
+from tornasole.core.hook_utils import verify_and_get_out_dir, get_tensorboard_dir
 from tornasole.core.sagemaker_utils import is_sagemaker_job
 from tornasole.core.modes import ModeKeys, ALLOWED_MODES
 from tornasole.core.utils import flatten, get_tb_worker
@@ -92,16 +92,11 @@ class BaseHook:
             they are all saved in the collection `all`
         """
         self.out_dir = verify_and_get_out_dir(out_dir)
-
-        if export_tensorboard and tensorboard_dir:
-            self.tensorboard_dir = tensorboard_dir
-        elif not export_tensorboard and tensorboard_dir:
-            # Assume the user forgot `export_tensorboard` and save anyway.
-            self.tensorboard_dir = tensorboard_dir
-        elif export_tensorboard and not tensorboard_dir:
-            self.tensorboard_dir = out_dir
-        else:
-            self.tensorboard_dir = None
+        self.tensorboard_dir = get_tensorboard_dir(
+            export_tensorboard=export_tensorboard,
+            tensorboard_dir=tensorboard_dir,
+            out_dir=self.out_dir,
+        )
 
         self.dry_run = dry_run
         self.worker = None
@@ -428,6 +423,9 @@ class BaseHook:
                         return
 
                     if np_val.squeeze().ndim == 0:
+                        self.logger.debug(
+                            f"Saving scalar summary {tensor_name} for global step {self.step}"
+                        )
                         tb_writer.write_scalar_summary(tensor_name, np_val, self.step)
                     else:
                         self.logger.debug(
@@ -449,6 +447,7 @@ class BaseHook:
                         return
 
                     hist_name = f"histograms/{s_col.name}/{tensor_name}"
+                    self.logger.debug(f"Saving {hist_name} for global step {self.step}")
                     tb_writer.write_histogram_summary(
                         tdata=np_value, tname=hist_name, global_step=self.step
                     )

@@ -88,7 +88,7 @@ class FileWriter:
             el = TensorboardFileLocation(
                 step_num=self.step, worker_name=self.worker, mode=self.mode
             )
-            event_file_path = el.get_file_location(trial_dir=self.trial_dir)
+            event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
         else:
             assert False, "Writer type not supported: {}".format(wtype)
