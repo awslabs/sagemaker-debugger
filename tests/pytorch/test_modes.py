@@ -1,11 +1,13 @@
 from __future__ import print_function
 import numpy as np
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from tornasole import modes, SaveConfig, SaveConfigMode
+import tornasole.pytorch as ts
 from tornasole.pytorch.hook import *
 from tornasole.pytorch.collection import *
 from tornasole.pytorch import reset_collections
@@ -61,6 +63,7 @@ def train(model, device, optimizer, num_steps=500, save_steps=[]):
         optimizer.zero_grad()
         output = model(Variable(data, requires_grad=True))
         loss = F.nll_loss(output, target)
+        ts.get_hook().record_tensor_value(tensor_name="my_loss", tensor_value=loss)
         loss.backward()
         if i in save_steps:
             model.saved["gradient/Net_fc1.weight"][i] = model.fc1.weight.grad.data.numpy().copy()
@@ -84,16 +87,24 @@ def helper_test_modes(hook=None, out_dir="./test_output/test_hook_modes/"):
     model = Net(to_save=save_steps).to(device)
     json = hook is not None
     if hook is None:
-        out_dir = out_dir + "/" + prefix
+        out_dir = str(Path(out_dir, prefix))
         hook = TornasoleHook(
             out_dir=out_dir,
             save_config=SaveConfig({modes.TRAIN: SaveConfigMode(save_steps=save_steps)}),
+            include_collections=[
+                CollectionKeys.WEIGHTS,
+                CollectionKeys.BIASES,
+                CollectionKeys.GRADIENTS,
+                CollectionKeys.DEFAULT,
+                CollectionKeys.LOSSES,
+            ],
         )
 
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     hook.set_mode(mode=modes.TRAIN)
     train(model, device, optimizer, num_steps=10, save_steps=save_steps)
+
     trial = create_trial(path=out_dir, name="test output")
 
     assert len(trial.modes()) == 1

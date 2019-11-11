@@ -52,29 +52,29 @@ NON_HISTOGRAM_COLLECTIONS = {
 
 class Collection:
     """
-  Collection object helps group tensors for easier handling during saving as well
-  as analysis. A collection has its own list of tensors, reduction config
-  and save config. This allows setting of different save and reduction configs
-  for different tensors.
+    Collection object helps group tensors for easier handling during saving as well
+    as analysis. A collection has its own list of tensors, reduction config
+    and save config. This allows setting of different save and reduction configs
+    for different tensors.
 
-  ...
-  Attributes
-  ----------
-  name: str
-  name of collection
+    ...
+    Attributes
+    ----------
+    name: str
+    name of collection
 
-  include_regex: list of (str representing regex for tensor names or block names)
-  list of regex expressions representing names of tensors (tf) or blocks(gluon)
-  to include for this collection
+    include_regex: list of (str representing regex for tensor names or block names)
+    list of regex expressions representing names of tensors (tf) or blocks(gluon)
+    to include for this collection
 
-  reduction_config: ReductionConfig object
-  reduction config to be applied for this collection.
-  if this is not passed, uses the default reduction_config
+    reduction_config: ReductionConfig object
+    reduction config to be applied for this collection.
+    if this is not passed, uses the default reduction_config
 
-  save_config: SaveConfig object
-  save config to be applied for this collection.
-  if this is not passed, uses the default save_config
-  """
+    save_config: SaveConfig object
+    save config to be applied for this collection.
+    if this is not passed, uses the default save_config
+    """
 
     def __init__(
         self,

@@ -31,58 +31,86 @@ class Net(nn.Module):
         return x
 
 
-@pytest.mark.slow  # 0:05 to run
-def test_register_loss():
-    """Test that the loss is saved as a tensor."""
-    ts.reset_collections()
-    out_dir = "/tmp/pytorch_test_loss"
-    shutil.rmtree(out_dir, ignore_errors=True)
+def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_functional=False):
+    assert (
+        use_loss_module != use_loss_functional
+    ), "Exactly one of `use_loss_module` and `use_loss_functional` must be true."
 
     net = Net()
-    criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.05, momentum=0.9)
+    criterion = nn.CrossEntropyLoss()
 
-    hook = ts.TornasoleHook(
-        out_dir=out_dir,
-        # With the default SaveConfig, the weights are not saved (only loss/gradient).
-        # The weights tensors will be saved only at the final step, and only if they're a multiple
-        # of save_interval. Issue with flushing?
-        save_config=ts.SaveConfig(save_interval=1),
-    )
+    ts.reset_collections()
+    hook = ts.TornasoleHook(out_dir=out_dir, save_config=ts.SaveConfig(save_interval=1))
     hook.register_hook(net)
-    hook.register_loss(criterion)  # This is the important line
+    if use_loss_module:
+        hook.register_loss(criterion)
 
     batch_size = 1
-    n_steps = 5
     # Use the same data at each step to test loss decreasing
     inputs, labels = torch.rand(batch_size, 3, 32, 32), torch.zeros(batch_size).long()
     for _ in range(n_steps):
         optimizer.zero_grad()
         outputs = net(inputs)
-        loss = criterion(outputs, labels)
+        if use_loss_module:
+            loss = criterion(outputs, labels)
+        if use_loss_functional:
+            loss = F.cross_entropy(outputs, labels)
+            hook.record_tensor_value(tensor_name="cross_entropy_loss", tensor_value=loss)
         loss.backward()
         optimizer.step()
 
-    # TODO(nieljare): Remove reliance on hook._cleanup()
-    # What if the user has a training loop, then calls the Trials API in the same Python script
-    # (like we do here). Then it'll crash, likewise in a Jupyter notebook.
-    hook._cleanup()
+    # Users can call this method to immediately use the Trials API.
+    hook.close()
+    ts.del_hook()
+
+
+@pytest.mark.slow  # 0:05 to run
+def test_register_loss_functional(out_dir):
+    """ Test that the loss (as F.cross_entropy_loss) is saved as a tensor. """
+    n_steps = 5
+    create_net_and_train(out_dir=out_dir, n_steps=n_steps, use_loss_functional=True)
 
     trial = create_trial(path=out_dir)
-    loss_coll = hook.collection_manager.get("losses")
+    loss_coll = trial.collection("losses")
+    loss_tensor = trial.tensor("cross_entropy_loss_output_0")
+
+    # Capture ['cross_entropy_loss_output_0']
+    assert len(trial.tensors()) == 1
+    assert len(loss_coll.tensor_names) == 1
+
+    # Loss should be logged for all the steps since passed `available_steps = range(n_steps)`
+    assert len(trial.steps()) == n_steps
+    assert len(loss_tensor.steps()) == n_steps
+
+    # Loss should be decreasing
+    assert loss_tensor.value(0) > loss_tensor.value(4)
+
+
+@pytest.mark.slow  # 0:05 to run
+@pytest.mark.skip(
+    "Nihal will re-enable"
+)  # TODO (NihalHarish): Re-enable after removing the cache singleton.
+def test_register_loss_module(out_dir):
+    """ Test that the loss (as nn.Module) is saved as a tensor.
+
+    Also test that nothing else is saved under the default config.
+    """
+    breakpoint()
+    n_steps = 5
+    create_net_and_train(out_dir=out_dir, n_steps=n_steps, use_loss_module=True)
+
+    trial = create_trial(path=out_dir)
+    loss_coll = trial.collection("losses")
+    loss_tensor = trial.tensor("CrossEntropyLoss_output_0")
+
+    # Capture ['CrossEntropyLoss_input_0', 'CrossEntropyLoss_input_1', 'CrossEntropyLoss_output_0']
+    assert len(trial.tensors()) == 3
     assert len(loss_coll.tensor_names) == 3
 
-    loss_tensor = trial.tensor("CrossEntropyLoss_output_0")
-    print(f"loss_tensor.steps() = {loss_tensor.steps()}")
-
-    gradient_tensor = trial.tensor("gradient/Net_fc1.weight")
-    print(f"gradient_tensor.steps() = {gradient_tensor.steps()}")
-
-    weight_tensor = trial.tensor("Net_fc1.weight")
-    print(f"weight_tensor.steps() = {weight_tensor.steps()}")
-
+    # Loss should be logged for all the steps since passed `available_steps = range(n_steps)`
     assert len(trial.steps()) == n_steps
-    assert len(weight_tensor.steps()) == n_steps
-    assert len(gradient_tensor.steps()) == n_steps
     assert len(loss_tensor.steps()) == n_steps
+
+    # Loss should be decreasing
     assert loss_tensor.value(0) > loss_tensor.value(4)

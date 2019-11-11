@@ -6,10 +6,11 @@ from tornasole.core.utils import is_s3
 
 class IndexWriter(object):
     def __init__(self, file_path):
+        """ Writer is initialized upon adding the first index. """
         self.file_path = file_path
-        self.writer = self._init_writer()
         self.index_payload = []
         self.index_meta = {}
+        self.writer = None
 
     def __exit__(self):
         self.close()
@@ -17,12 +18,13 @@ class IndexWriter(object):
     def _init_writer(self):
         s3, bucket_name, key_name = is_s3(self.file_path)
         if s3:
-            writer = TSAccessS3(bucket_name, key_name, binary=False)
+            self.writer = TSAccessS3(bucket_name, key_name, binary=False)
         else:
-            writer = TSAccessFile(self.file_path, "a+")
-        return writer
+            self.writer = TSAccessFile(self.file_path, "a+")
 
     def add_index(self, tensorlocation):
+        if not self.writer:
+            self._init_writer()
         if not self.index_meta:
             self.index_meta = {
                 "mode": tensorlocation.mode,
@@ -55,8 +57,8 @@ class IndexWriter(object):
         if self.writer is not None:
             if self.index_meta and self.index_payload:
                 self.flush()
-            self.writer.close()
-            self.writer = None
+                self.writer.close()
+                self.writer = None
 
 
 class Index:

@@ -349,6 +349,9 @@ class BaseHook:
             self.tb_writers[self.mode].close()
             del self.tb_writers[self.mode]
 
+    def close(self):
+        self._cleanup()
+
     def _cleanup(self):
         self._close_writers()
         training_has_ended(self.out_dir)

@@ -79,8 +79,9 @@ class TornasoleHook(CallbackHook):
         """  # noqa: E501
         if save_config is None:
             save_config = SaveConfig(save_interval=DEFAULT_SAVE_CONFIG_INTERVAL)
+        collection_manager = get_collection_manager()
         super().__init__(
-            collection_manager=get_collection_manager(),
+            collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             data_type_name=None,
             out_dir=out_dir,

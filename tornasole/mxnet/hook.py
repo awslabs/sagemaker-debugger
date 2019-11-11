@@ -33,8 +33,9 @@ class TornasoleHook(CallbackHook):
         include_collections=None,
         save_all=False,
     ):
+        collection_manager = get_collection_manager()
         super().__init__(
-            collection_manager=get_collection_manager(),
+            collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             data_type_name=mx.ndarray.NDArray.__name__,
             out_dir=out_dir,
@@ -107,8 +108,6 @@ class TornasoleHook(CallbackHook):
                     f"Could not export model graph for tensorboard "
                     f"due to the mxnet exception: {e}"
                 )
-        else:
-            self.logger.warning("Tornasole does not know the model")
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, block, inputs):

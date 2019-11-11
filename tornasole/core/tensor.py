@@ -232,6 +232,12 @@ class Tensor:
                 raise StepNotYetAvailable(step_num, mode)
         assert False, "Should not happen"
 
+    def values(self, mode=ModeKeys.GLOBAL, worker=None):
+        res = {}
+        for step in self.steps():
+            res[step] = self.value(step_num=step, mode=mode, worker=worker)
+        return res
+
     def value(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
         # step refreshes
         s = self._step(step_num=step_num, mode=mode, worker=worker)

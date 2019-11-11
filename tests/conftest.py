@@ -5,6 +5,7 @@ For CI, we will always run the full test suite.
 """
 
 import pytest
+import shutil
 
 
 def pytest_addoption(parser):
@@ -27,3 +28,15 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
+
+
+@pytest.fixture(scope="function")
+def out_dir():
+    """ Use this method to construct an out_dir.
+
+    Then it will be automatically cleaned up for you, passed into the test method, and we'll have
+    fewer folders lying around.
+    """
+    out_dir = "/tmp/test"
+    shutil.rmtree(out_dir, ignore_errors=True)
+    return out_dir

@@ -87,8 +87,9 @@ class TornasoleHook(tf.train.SessionRunHook, BaseHook):
             a shortcut for saving all tensors in the model.
             they are all saved in the collection `all`
         """
+        collection_manager = get_collection_manager()
         super().__init__(
-            collection_manager=get_collection_manager(),
+            collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,

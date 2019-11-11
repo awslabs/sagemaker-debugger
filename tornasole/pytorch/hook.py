@@ -14,13 +14,7 @@ from tornasole.pytorch.collection import get_collection_manager
 from tornasole.pytorch.singleton_utils import set_hook
 from tornasole.pytorch.utils import get_reduction_of_data, make_numpy_array
 
-DEFAULT_INCLUDE_COLLECTIONS = [
-    CollectionKeys.WEIGHTS,
-    CollectionKeys.BIASES,
-    CollectionKeys.GRADIENTS,
-    CollectionKeys.DEFAULT,
-    CollectionKeys.LOSSES,
-]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
 class TornasoleHook(CallbackHook):
@@ -36,9 +30,9 @@ class TornasoleHook(CallbackHook):
         include_collections=None,
         save_all=False,
     ):
-
+        collection_manager = get_collection_manager()
         super().__init__(
-            collection_manager=get_collection_manager(),
+            collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             data_type_name=torch.Tensor.__name__,
             out_dir=out_dir,

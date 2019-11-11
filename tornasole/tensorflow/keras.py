@@ -28,8 +28,9 @@ class TornasoleHook(keras.callbacks.Callback, BaseHook):
         if save_all is not None:
             msg = "'include_regex' is not yet supported and will be ignored."
             self.logger.warning(msg)
+        collection_manager = get_collection_manager()
         super().__init__(
-            collection_manager=get_collection_manager(),
+            collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             out_dir=out_dir,
             dry_run=dry_run,
