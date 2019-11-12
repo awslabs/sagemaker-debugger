@@ -21,7 +21,7 @@ import tensorflow as tf
 from tests.analysis.utils import delete_s3_prefix
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import is_s3
 from smdebug.tensorflow import reset_collections
@@ -90,7 +90,7 @@ def help_test_mnist(
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-            optimizer = ts.get_hook().wrap_optimizer(optimizer)
+            optimizer = smd.get_hook().wrap_optimizer(optimizer)
             train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
@@ -124,19 +124,19 @@ def help_test_mnist(
         x={"x": eval_data}, y=eval_labels, num_epochs=1, batch_size=1, shuffle=False
     )
     if hook is None:
-        hook = ts.TornasoleHook(out_dir=trial_dir, save_config=save_config)
+        hook = smd.TornasoleHook(out_dir=trial_dir, save_config=save_config)
 
     if set_modes:
-        hook.set_mode(ts.modes.TRAIN)
+        hook.set_mode(smd.modes.TRAIN)
     # train one step and display the probabilties
     train(num_train_steps / 2)
 
     if set_modes:
-        hook.set_mode(ts.modes.EVAL)
+        hook.set_mode(smd.modes.EVAL)
     mnist_classifier.evaluate(input_fn=eval_input_fn, steps=num_eval_steps, hooks=[hook])
 
     if set_modes:
-        hook.set_mode(ts.modes.TRAIN)
+        hook.set_mode(smd.modes.TRAIN)
     train(num_train_steps / 2)
 
     return train
@@ -145,8 +145,8 @@ def help_test_mnist(
 def helper_test_mnist_trial(trial_dir):
     tr = create_trial(trial_dir)
     assert len(tr.steps()) == 3
-    assert len(tr.steps(mode=ts.modes.TRAIN)) == 2
-    assert len(tr.steps(mode=ts.modes.EVAL)) == 1
+    assert len(tr.steps(mode=smd.modes.TRAIN)) == 2
+    assert len(tr.steps(mode=smd.modes.EVAL)) == 1
     assert len(tr.tensors()) == 17
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
@@ -165,7 +165,7 @@ def test_mnist(on_s3=False):
     else:
         trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     help_test_mnist(
-        trial_dir, save_config=ts.SaveConfig(save_interval=2), num_train_steps=4, num_eval_steps=2
+        trial_dir, save_config=smd.SaveConfig(save_interval=2), num_train_steps=4, num_eval_steps=2
     )
     helper_test_mnist_trial(trial_dir)
 
@@ -192,8 +192,8 @@ def test_mnist_s3():
 def helper_test_multi_save_configs_trial(trial_dir):
     tr = create_trial(trial_dir)
     assert len(tr.steps()) == 5, tr.steps()
-    assert len(tr.steps(mode=ts.modes.TRAIN)) == 3
-    assert len(tr.steps(mode=ts.modes.EVAL)) == 2
+    assert len(tr.steps(mode=smd.modes.TRAIN)) == 3
+    assert len(tr.steps(mode=smd.modes.EVAL)) == 2
     assert len(tr.tensors()) == 17
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
@@ -214,10 +214,10 @@ def test_mnist_local_multi_save_configs(on_s3=False):
         trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     help_test_mnist(
         trial_dir,
-        ts.SaveConfig(
+        smd.SaveConfig(
             {
-                ts.modes.TRAIN: ts.SaveConfigMode(save_interval=2),
-                ts.modes.EVAL: ts.SaveConfigMode(save_interval=3),
+                smd.modes.TRAIN: smd.SaveConfigMode(save_interval=2),
+                smd.modes.EVAL: smd.SaveConfigMode(save_interval=3),
             }
         ),
         num_train_steps=6,
@@ -239,6 +239,6 @@ def test_mnist_local_multi_save_configs_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json"
-    hook = ts.TornasoleHook.hook_from_config()
+    hook = smd.TornasoleHook.hook_from_config()
     help_test_mnist(out_dir, hook=hook, num_train_steps=6, num_eval_steps=4)
     helper_test_multi_save_configs_trial(out_dir)

@@ -124,7 +124,7 @@ model.hybridize()
 # Create optimizer
 optimizer_params = {"momentum": args.momentum, "learning_rate": args.lr * hvd.size()}
 opt = mx.optimizer.create("sgd", **optimizer_params)
-# opt = ts.TornasoleOptimizer(opt)
+# opt = smd.TornasoleOptimizer(opt)
 
 # Initialize parameters
 initializer = mx.init.Xavier(rnd_type="gaussian", factor_type="in", magnitude=2)

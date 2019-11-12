@@ -53,7 +53,7 @@ Set the mode you are running the job in. This helps you group steps by mode,
 for easier analysis.
 If you do not specify this, it saves steps under a `default` mode.
 ```
-hook.set_mode(ts.modes.TRAIN)
+hook.set_mode(smd.modes.TRAIN)
 ```
 
 ## API
@@ -73,16 +73,16 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 - Save weights and gradients every 100 steps to an S3 location
 
 ```
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
-                 save_config=tm.SaveConfig(save_interval=100),
+                 save_config=smd.SaveConfig(save_interval=100),
                  include_collections=['weights', 'gradients'])
 ```
 
 - Save custom tensors by regex pattern to a local path
 
 ```
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 tm.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
                  include_regex=['relu*'])
 ```
@@ -175,15 +175,15 @@ to the tensors belonging to that collection.
 These reduction config instances can be passed to the hook as follows
 
 ```
-	import smdebug.mxnet as tm
-	global_reduce_config = tm.ReductionConfig(reductions=["max", "mean"])
-	hook = tm.TornasoleHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
+	import smdebug.mxnet as smd
+	global_reduce_config = smd.ReductionConfig(reductions=["max", "mean"])
+	hook = smd.TornasoleHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
 ```
 
 Or ReductionConfig can be specified for an individual collection as follows
 
 ```
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 tm.get_collection("ReluActivation").include(["relu*"])
 tm.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4,5,6])
 tm.get_collection("ReluActivation").reduction_config = ReductionConfig(reductions=["min"], abs_reductions=["max"])
@@ -221,7 +221,7 @@ You can create new collections as well as modify existing collections
 Each collection should have a unique name (which is a string). You can create collections by invoking helper methods as described in the [API](api.md) documentation
 
 ```
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 tm.get_collection('weights').include(['weight'])
 ```
 
@@ -236,7 +236,7 @@ patterns to match those tensornames, you can pass the regex patterns to the coll
 The tensors which match these patterns are included and added to the collection.
 
 ```
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 tm.get_collection('ReluActivation').include(["relu*", "input_*"])
 ```
 
@@ -244,7 +244,7 @@ tm.get_collection('ReluActivation').include(["relu*", "input_*"])
 If users want to log the inputs and outputs of a particular block in the Gluon model. They can do so by creating a collection as shown below.
 
 ```
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 tm.get_collection('Conv2DBlock').add_block_tensors(conv2d, inputs=True, outputs=True)
 ```
 

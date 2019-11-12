@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 
 # First Party
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 from smdebug.mxnet import SaveConfig, reset_collections
 from smdebug.mxnet.hook import TornasoleHook as t_hook
 
@@ -17,7 +17,7 @@ def test_save_config(hook=None):
         reset_collections()
         save_config_collection = SaveConfig(save_steps=[4, 5, 6])
 
-        custom_collect = tm.get_collection("ReluActivation")
+        custom_collect = smd.get_collection("ReluActivation")
         custom_collect.save_config = save_config_collection
         custom_collect.include(["relu*", "input_*", "output*"])
         save_config = SaveConfig(save_steps=[0, 1, 2, 3])

@@ -27,7 +27,7 @@ import tensorflow as tf
 from tensorflow.python.client import device_lib
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -74,7 +74,7 @@ def cnn_model_fn(features, labels, mode):
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-        optimizer = ts.get_hook().wrap_optimizer(optimizer)
+        optimizer = smd.get_hook().wrap_optimizer(optimizer)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
@@ -238,20 +238,20 @@ def main(unused_argv):
 
     # save tensors as reductions if necessary
     rdnc = (
-        ts.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
+        smd.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
         if FLAGS.reductions
         else None
     )
 
-    ts_hook = ts.TornasoleHook(
+    ts_hook = smd.TornasoleHook(
         out_dir=FLAGS.tornasole_path,
         save_all=FLAGS.save_all,
         include_collections=["weights", "gradients", "losses", "biases"],
-        save_config=ts.SaveConfig(save_interval=FLAGS.tornasole_frequency),
+        save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_frequency),
         reduction_config=rdnc,
     )
 
-    ts_hook.set_mode(ts.modes.TRAIN)
+    ts_hook.set_mode(smd.modes.TRAIN)
 
     # Create the Estimator
     # pass RunConfig

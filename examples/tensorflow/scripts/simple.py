@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 
 
 def str2bool(v):
@@ -54,18 +54,18 @@ if args.random_seed:
 
 # save tensors as reductions if necessary
 rdnc = (
-    ts.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
+    smd.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
     if args.reductions
     else None
 )
 
 # create the hook
 # Note that we are saving all tensors here by passing save_all=True
-hook = ts.TornasoleHook(
+hook = smd.TornasoleHook(
     out_dir=args.tornasole_path,
     save_all=args.save_all,
     include_collections=["weights", "gradients", "losses"],
-    save_config=ts.SaveConfig(save_interval=args.tornasole_frequency),
+    save_config=smd.SaveConfig(save_interval=args.tornasole_frequency),
     reduction_config=rdnc,
 )
 
@@ -79,7 +79,7 @@ with tf.name_scope("foobaz"):
     w0 = [[1], [1.0]]
     y = tf.matmul(x, w0)
 loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
-ts.add_to_collection("losses", loss)
+smd.add_to_collection("losses", loss)
 tf.summary.scalar("loss_summ", loss)
 
 global_step = tf.Variable(17, name="global_step", trainable=False)
@@ -95,7 +95,7 @@ optimizer = hook.wrap_optimizer(optimizer)
 # use this wrapped optimizer to minimize loss
 optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 
-hook.set_mode(ts.modes.TRAIN)
+hook.set_mode(smd.modes.TRAIN)
 
 # pass the hook to hooks parameter of monitored session
 sess = tf.train.MonitoredSession(hooks=[hook])
@@ -106,7 +106,7 @@ for i in range(args.steps):
     _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
     print(f"Step={i}, Loss={_loss}")
 
-hook.set_mode(ts.modes.EVAL)
+hook.set_mode(smd.modes.EVAL)
 for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale
     sess.run([loss, increment_global_step_op], {x: x_})

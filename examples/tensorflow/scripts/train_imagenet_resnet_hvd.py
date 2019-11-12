@@ -50,7 +50,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.util import nest
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 
 try:
     from builtins import range
@@ -177,7 +177,7 @@ class LayerBuilder(object):
         )
 
     def spatial_average2d(self, inputs):
-        shape = inputs.get_shape().as_list()
+        shape = inpusmd.get_shape().as_list()
         if self.data_format == "channels_last":
             n, h, w, c = shape
         else:
@@ -218,7 +218,7 @@ class LayerBuilder(object):
 
 
 def resnet_bottleneck_v1(builder, inputs, depth, depth_bottleneck, stride, basic=False):
-    num_inputs = inputs.get_shape().as_list()[1]
+    num_inputs = inpusmd.get_shape().as_list()[1]
     x = inputs
     with tf.name_scope("resnet_v1"):
         if depth == num_inputs:
@@ -238,7 +238,7 @@ def resnet_bottleneck_v1(builder, inputs, depth, depth_bottleneck, stride, basic
             # x = builder.conv2d_linear(x, depth,            1, 1,      'SAME')
             x = builder.conv2d_linear_last_bn(x, depth, 1, 1, "SAME")
         x = tf.nn.relu(x + shortcut)
-        ts.add_to_collection("relu_activations", x)
+        smd.add_to_collection("relu_activations", x)
         return x
 
 
@@ -767,7 +767,7 @@ def cnn_model_function(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN:
         with tf.device("/cpu:0"):
             preload_op, (inputs, labels) = stage([inputs, labels])
-            ts.add_to_collection("inputs", inputs)
+            smd.add_to_collection("inputs", inputs)
 
     with tf.device(device):
         if mode == tf.estimator.ModeKeys.TRAIN:
@@ -852,7 +852,7 @@ def cnn_model_function(features, labels, mode, params):
             opt = LarcOptimizer(opt, learning_rate, leta, clip=True)
 
         opt = MixedPrecisionOptimizer(opt, scale=loss_scale)
-        opt = ts.get_hook().wrap_optimizer(opt)
+        opt = smd.get_hook().wrap_optimizer(opt)
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) or []
         with tf.control_dependencies(update_ops):
@@ -1196,7 +1196,7 @@ def get_tornasole_hook(FLAGS):
         for r in FLAGS.tornasole_relu_reductions_abs:
             abs_reductions.append(r)
     if reductions or abs_reductions:
-        rnc = ts.ReductionConfig(reductions=reductions, abs_reductions=abs_reductions)
+        rnc = smd.ReductionConfig(reductions=reductions, abs_reductions=abs_reductions)
     else:
         rnc = None
 
@@ -1211,11 +1211,11 @@ def get_tornasole_hook(FLAGS):
     if FLAGS.tornasole_save_inputs is True:
         include_collections.append("inputs")
     if FLAGS.tornasole_include:
-        ts.get_collection("default").include(FLAGS.tornasole_include)
+        smd.get_collection("default").include(FLAGS.tornasole_include)
         include_collections.append("default")
-    return ts.TornasoleHook(
+    return smd.TornasoleHook(
         out_dir=FLAGS.tornasole_path,
-        save_config=ts.SaveConfig(save_interval=FLAGS.tornasole_step_interval),
+        save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_step_interval),
         reduction_config=rnc,
         include_collections=include_collections,
         save_all=FLAGS.tornasole_save_all,
@@ -1412,7 +1412,7 @@ def main():
                 training_hooks.append(hook)
         try:
             if FLAGS.enable_tornasole is True:
-                hook.set_mode(ts.modes.TRAIN)
+                hook.set_mode(smd.modes.TRAIN)
             start_time = time.time()
             classifier.train(
                 input_fn=lambda: make_dataset(

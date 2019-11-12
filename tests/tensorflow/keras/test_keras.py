@@ -218,14 +218,17 @@ def exhaustive_check(use_tf_keras):
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:08 to run
 def test_keras():
     exhaustive_check(False)
 
 
+@pytest.mark.slow  # 0:07 to run
 def test_tf_keras():
     exhaustive_check(True)
 
 
+@pytest.mark.slow  # 0:03 to run
 def test_tf_keras_non_keras_opt():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -254,6 +257,7 @@ def test_tf_keras_non_keras_opt():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:09 to run
 def test_save_all():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -264,6 +268,7 @@ def test_save_all():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:03 to run
 def test_base_reductions():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -294,6 +299,7 @@ def test_base_reductions():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:03 to run
 def test_collection_reductions():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -321,6 +327,7 @@ def test_collection_reductions():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:03 to run
 def test_training_end():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -330,6 +337,7 @@ def test_training_end():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:06 to run
 def test_collection_add():
     reset_collections()
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
@@ -350,6 +358,7 @@ def test_collection_add():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:06 to run
 def test_include_regex():
     reset_collections()
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
@@ -370,6 +379,7 @@ def test_include_regex():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:03 to run
 def test_clash_with_tb_callback():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -384,6 +394,7 @@ def test_clash_with_tb_callback():
     shutil.rmtree(trial_dir)
 
 
+@pytest.mark.slow  # 0:03 to run
 def test_clash_with_custom_callback():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)

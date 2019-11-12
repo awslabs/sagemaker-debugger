@@ -3,7 +3,7 @@ import shutil
 from datetime import datetime
 
 # First Party
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 from smdebug.mxnet import Collection, SaveConfig, reset_collections
 from smdebug.mxnet.hook import TornasoleHook as t_hook
 
@@ -13,7 +13,7 @@ from .mnist_gluon_model import run_mnist_gluon_model
 
 def test_hook_custom_collection():
     reset_collections()
-    tm.get_collection("ReluActivation").include(["relu*", "input_*"])
+    smd.get_collection("ReluActivation").include(["relu*", "input_*"])
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     out_dir = "./newlogsRunTest/" + run_id

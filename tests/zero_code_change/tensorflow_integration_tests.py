@@ -31,7 +31,7 @@ from tf_utils import (
 )
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -45,7 +45,7 @@ def test_estimator(script_mode: bool):
 
         # Train and evaluate
         if script_mode:
-            hook = ts.TornasoleEstimatorHook(out_dir=sim.out_dir)
+            hook = smd.TornasoleEstimatorHook(out_dir=sim.out_dir)
             mnist_classifier.train(input_fn=train_input_fn, steps=50)
             mnist_classifier.evaluate(input_fn=eval_input_fn, steps=10)
         else:
@@ -53,8 +53,8 @@ def test_estimator(script_mode: bool):
             mnist_classifier.evaluate(input_fn=eval_input_fn, steps=10)
 
         # Check that hook created and tensors saved
-        trial = ts.create_trial(path=sim.out_dir)
-        assert ts.get_hook() is not None, "Hook was not created."
+        trial = smd.create_trial(path=sim.out_dir)
+        assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
@@ -72,15 +72,15 @@ def test_linear_classifier(script_mode: bool):
 
         # Train
         if script_mode:
-            hook = ts.TornasoleEstimatorHook(out_dir=sim.out_dir)
+            hook = smd.TornasoleEstimatorHook(out_dir=sim.out_dir)
             estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
         else:
-            # hook = ts.get_hook() ?
+            # hook = smd.get_hook() ?
             estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
 
         # Check that hook created and tensors saved
-        trial = ts.create_trial(path=sim.out_dir)
-        assert ts.get_hook() is not None, "Hook was not created."
+        trial = smd.create_trial(path=sim.out_dir)
+        assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
@@ -93,7 +93,7 @@ def test_monitored_session(script_mode: bool):
         mnist = get_data()
 
         if script_mode:
-            hook = ts.TornasoleKerasHook(out_dir=sim.out_dir)
+            hook = smd.TornasoleKerasHook(out_dir=sim.out_dir)
             sess = tf.train.MonitoredSession(hooks=[hook])
         else:
             sess = tf.train.MonitoredSession()
@@ -105,8 +105,8 @@ def test_monitored_session(script_mode: bool):
                 sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
 
         # Check that hook created and tensors saved
-        trial = ts.create_trial(path=sim.out_dir)
-        assert ts.get_hook() is not None, "Hook was not created."
+        trial = smd.create_trial(path=sim.out_dir)
+        assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
@@ -128,7 +128,7 @@ def test_keras_v1(script_mode: bool):
             metrics=["accuracy"],
         )
         if script_mode:
-            hook = ts.TornasoleKerasHook(out_dir=sim.out_dir)
+            hook = smd.TornasoleKerasHook(out_dir=sim.out_dir)
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
             )
@@ -138,8 +138,8 @@ def test_keras_v1(script_mode: bool):
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         # Check that hook created and tensors saved
-        trial = ts.create_trial(path=sim.out_dir)
-        assert ts.get_hook() is not None, "Hook was not created."
+        trial = smd.create_trial(path=sim.out_dir)
+        assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 

@@ -4,8 +4,8 @@ This is abstracted into its own module to prevent circular import problems.
 
 Sample usage (in AWS-MXNet repo):
 
-import smdebug.mxnet as ts
-hook = ts.hook()
+import smdebug.mxnet as smd
+hook = smd.hook()
 """
 
 # First Party

@@ -3,8 +3,8 @@ Easy-to-use methods for getting the singleton TornasoleHook.
 
 Sample usage:
 
-import smdebug.(pytorch | tensorflow | mxnet) as ts
-hook = ts.hook()
+import smdebug.(pytorch | tensorflow | mxnet) as smd
+hook = smd.hook()
 """
 
 # First Party

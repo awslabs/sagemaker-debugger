@@ -6,6 +6,7 @@ from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.trials import create_trial
 
 
+@pytest.mark.slow  # 0:01 to run
 def test_fetch_tensor_with_missing_event_files():
     path = "s3://tornasole-testing/event-files-missing"
 

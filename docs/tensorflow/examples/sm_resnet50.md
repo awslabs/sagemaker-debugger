@@ -12,7 +12,7 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 ```
 **Saving weights**
 ```
@@ -26,42 +26,42 @@ This will also enable us to access the gradients during analysis without having 
 opt = hook.wrap_optimizer(opt)
 
 include_collections.append('gradients')
-ts.TornasoleHook(..., include_collections=include_collections, ...)
+smd.TornasoleHook(..., include_collections=include_collections, ...)
 ```
 **Saving relu activations by variable**
 ```
 x = tf.nn.relu(x + shortcut)
-ts.add_to_collection('relu_activations', x)
+smd.add_to_collection('relu_activations', x)
 ...
 include_collections.append('relu_activations')
-ts.TornasoleHook(..., include_collections=include_collections, ...)
+smd.TornasoleHook(..., include_collections=include_collections, ...)
 ```
 **Saving relu activations as reductions**
 ```
 
 x = tf.nn.relu(x + shortcut)
-ts.add_to_collection('relu_activations', x)
+smd.add_to_collection('relu_activations', x)
 ...
-rnc = ts.ReductionConfig(reductions=reductions, abs_reductions=abs_reductions)
+rnc = smd.ReductionConfig(reductions=reductions, abs_reductions=abs_reductions)
 ...
-ts.TornasoleHook(..., reduction_config=rnc, ...)
+smd.TornasoleHook(..., reduction_config=rnc, ...)
 ```
 **Saving by regex**
 ```
-ts.get_collection('default').include(FLAGS.tornasole_include)
+smd.get_collection('default').include(FLAGS.tornasole_include)
 include_collections.append('default')
-ts.TornasoleHook(..., include_collections=include_collections, ...)
+smd.TornasoleHook(..., include_collections=include_collections, ...)
 ```
 **Setting save interval**
 ```
-ts.TornasoleHook(...,save_config=ts.SaveConfig(save_interval=FLAGS.tornasole_step_interval)...)
+smd.TornasoleHook(...,save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_step_interval)...)
 ```
 **Setting the right mode**
 
 You will see in the code that the appropriate mode has been set before the train or evaluate function calls.
 For example, the line:
 ```
-hook.set_mode(ts.modes.TRAIN)
+hook.set_mode(smd.modes.TRAIN)
 ```
 
 **Adding the hook**

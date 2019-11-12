@@ -26,7 +26,7 @@ Import the TornasoleHook class along with other helper classes in your training 
 from smdebug.pytorch import TornasoleHook
 from smdebug.pytorch import Collection
 from smdebug import SaveConfig
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 ```
 
 ### Instantiate and initialize tornasole hook
@@ -82,7 +82,7 @@ Set the mode you are running the job in. This helps you group steps by mode,
 for easier analysis.
 If you do not specify this, it saves steps under a `default` mode.
 ```
-hook.set_mode(ts.modes.TRAIN)
+hook.set_mode(smd.modes.TRAIN)
 ```
 
 ## API
@@ -179,8 +179,8 @@ to the tensors belonging to that collection.
 
 These reduction config instances can be passed to the hook as follows
 ```
-import smdebug.pytorch as ts
-hook = ts.TornasoleHook(..., reduction_config=ts.ReductionConfig(norms=['l1']), ...)
+import smdebug.pytorch as smd
+hook = smd.TornasoleHook(..., reduction_config=smd.ReductionConfig(norms=['l1']), ...)
 ```
 Refer [API](api.md) for a full list of the reductions available.
 
@@ -206,7 +206,7 @@ You can create new collections as well as modify existing collections
 Each collection should have a unique name (which is a string). Users can create or retrieve the collection by name as follows.
 
 ```
-weight_collection = ts.get_collection('weight')
+weight_collection = smd.get_collection('weight')
 ```
 
 ##### Adding tensors
@@ -220,7 +220,7 @@ patterns to match those tensornames, you can pass the regex patterns to the coll
 The tensors which match these patterns are included and added to the collection.
 
 ```
-custom_collect = ts.get_collection("ReluActivation")
+custom_collect = smd.get_collection("ReluActivation")
 custom_collect.include(["relu*", "input_*"])
 ```
 
@@ -228,7 +228,7 @@ custom_collect.include(["relu*", "input_*"])
 If users want to log the inputs and outputs of a particular module, they can do so by creating a collection as shown below. For the example below, assume conv2d is the module we wish to log the inputs and outputs of
 
 ```
-module_collection = ts.get_collection('Conv2DModule')
+module_collection = smd.get_collection('Conv2DModule')
 module_collection.add_module_tensors(conv2d, inputs=True, outputs=True)
 ```
 

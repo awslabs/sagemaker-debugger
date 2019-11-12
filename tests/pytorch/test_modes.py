@@ -16,7 +16,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 # First Party
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 from smdebug import SaveConfig, SaveConfigMode, modes
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.pytorch import reset_collections
@@ -70,7 +70,7 @@ def train(model, device, optimizer, num_steps=500, save_steps=[]):
         optimizer.zero_grad()
         output = model(Variable(data, requires_grad=True))
         loss = F.nll_loss(output, target)
-        ts.get_hook().record_tensor_value(tensor_name="my_loss", tensor_value=loss)
+        smd.get_hook().record_tensor_value(tensor_name="my_loss", tensor_value=loss)
         loss.backward()
         if i in save_steps:
             model.saved["gradient/Net_fc1.weight"][i] = model.fc1.weight.grad.data.numpy().copy()

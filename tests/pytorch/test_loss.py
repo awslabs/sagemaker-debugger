@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 # First Party
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 from smdebug.trials import Trial, create_trial
 
 
@@ -44,8 +44,8 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
     optimizer = optim.SGD(net.parameters(), lr=0.05, momentum=0.9)
     criterion = nn.CrossEntropyLoss()
 
-    ts.reset_collections()
-    hook = ts.TornasoleHook(out_dir=out_dir, save_config=ts.SaveConfig(save_interval=1))
+    smd.reset_collections()
+    hook = smd.TornasoleHook(out_dir=out_dir, save_config=smd.SaveConfig(save_interval=1))
     hook.register_hook(net)
     if use_loss_module:
         hook.register_loss(criterion)
@@ -66,7 +66,7 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
 
     # Users can call this method to immediately use the Trials API.
     hook.close()
-    ts.del_hook()
+    smd.del_hook()
 
 
 @pytest.mark.slow  # 0:05 to run

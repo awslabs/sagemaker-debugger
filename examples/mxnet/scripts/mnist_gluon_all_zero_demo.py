@@ -11,7 +11,7 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 from smdebug.mxnet import SaveConfig, TornasoleHook, modes
 
 
@@ -143,7 +143,7 @@ def create_tornasole_hook(output_s3_uri):
     # With the following SaveConfig, we will save tensors for steps 0, 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
-    tm.get_collection("ReluActivation").include(["relu*", "input_*"])
+    smd.get_collection("ReluActivation").include(["relu*", "input_*"])
 
     # Create a hook that logs weights, biases and gradients while training the model.
     hook = TornasoleHook(

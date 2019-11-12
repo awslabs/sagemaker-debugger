@@ -15,7 +15,7 @@ from torch.autograd import Variable
 from torchvision import datasets, transforms
 
 # First Party
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 from smdebug.pytorch import *
 
 
@@ -213,10 +213,10 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         if args.mode:
-            hook.set_mode(ts.modes.TRAIN)
+            hook.set_mode(smd.modes.TRAIN)
         train(args, model, device, train_loader, optimizer, epoch)
         if args.mode:
-            hook.set_mode(ts.modes.EVAL)
+            hook.set_mode(smd.modes.EVAL)
         test(args, model, device, test_loader)
 
 

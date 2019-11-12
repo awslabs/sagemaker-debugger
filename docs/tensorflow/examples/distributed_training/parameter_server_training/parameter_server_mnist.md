@@ -11,7 +11,7 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 ```
 **Saving gradients**
 
@@ -28,24 +28,24 @@ You can set different save intervals for different modes.
 This can be done by passing a dictionary as save_config to the hook.
 This dictionary should have the mode as key and a SaveConfig object as value.
 ```
-ts.TornasoleHook(...,
-    save_config=ts.SaveConfig(save_interval=FLAGS.tornasole_frequency),
+smd.TornasoleHook(...,
+    save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_frequency),
 ```
 **Setting the right mode**
 
 Notice the calls to `hook.set_mode` at various places in the code.
 ```
-hook.set_mode(ts.modes.TRAIN)
+hook.set_mode(smd.modes.TRAIN)
 ```
 
 ```
-hook.set_mode(ts.modes.EVAL)
+hook.set_mode(smd.modes.EVAL)
 ```
 **Passing the hook**
 
 We need to pass this hook to a monitored session and use this session for running the job.
 ```
-ts_hook = ts.TornasoleHook(...)
+ts_hook = smd.TornasoleHook(...)
 mnist_classifier.train(..., hooks=[ts_hook])
 ```
 

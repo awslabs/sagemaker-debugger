@@ -3,7 +3,7 @@ import glob
 import shutil
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.reader import FileReader
@@ -142,7 +142,7 @@ def test_multi_collection_match():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     pre_test_clean_up()
-    ts.get_collection("trial").include("loss:0")
+    smd.get_collection("trial").include("loss:0")
     hook = TornasoleHook(
         out_dir=trial_dir,
         include_regex=["loss:0"],
@@ -156,7 +156,7 @@ def test_multi_collection_match_json():
     trial_dir = "newlogsRunTest1/test_multi_collection_match_json"
     shutil.rmtree(trial_dir, ignore_errors=True)
     pre_test_clean_up()
-    ts.get_collection("trial").include("loss:0")
+    smd.get_collection("trial").include("loss:0")
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_multi_collection_match.json"

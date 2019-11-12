@@ -9,7 +9,7 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 from smdebug.mxnet import SaveConfig, TornasoleHook, modes
 
 
@@ -64,7 +64,7 @@ def train_model(batch_size, net, lr):
 
 def create_tornasole_hook(output_s3_uri):
     save_config = SaveConfig(save_interval=1)
-    custom_collect = tm.get_collection("ReluActivation")
+    custom_collect = smd.get_collection("ReluActivation")
     custom_collect.save_config = save_config
     custom_collect.include([".*relu_output"])
     hook = TornasoleHook(

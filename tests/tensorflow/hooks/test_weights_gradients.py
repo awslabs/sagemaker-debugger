@@ -5,7 +5,7 @@ import shutil
 import tensorflow as tf
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import get_path_to_collections
@@ -24,7 +24,7 @@ def helper_test_only_w_g(trial_dir, hook):
     cm = CollectionManager.load(
         join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
-    assert ts.get_collections() == cm.collections
+    assert smd.get_collections() == cm.collections
     num_tensors_loaded_collection = (
         len(cm.collections["weights"].tensor_names)
         + len(cm.collections["gradients"].tensor_names)
@@ -55,5 +55,5 @@ def test_only_w_g_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_only_weights_and_gradients.json"
-    hook = ts.TornasoleHook.hook_from_config()
+    hook = smd.TornasoleHook.hook_from_config()
     helper_test_only_w_g(trial_dir, hook)

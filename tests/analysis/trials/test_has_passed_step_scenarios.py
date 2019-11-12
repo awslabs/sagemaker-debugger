@@ -473,19 +473,19 @@ def test_partially_written_tensors():
     """
     The trial data accessed by this test was generated with the following hook configs:
 
-        ts.get_collection("gradients").save_config = {
-            ts.modes.TRAIN: ts.SaveConfigMode(save_interval=1, start_step=5, end_step=10),
+        smd.get_collection("gradients").save_config = {
+            smd.modes.TRAIN: smd.SaveConfigMode(save_interval=1, start_step=5, end_step=10),
         }
 
 
-        ts.get_collection("losses").save_config = {
-            ts.modes.TRAIN: ts.SaveConfigMode(save_interval=1, end_step=5),
+        smd.get_collection("losses").save_config = {
+            smd.modes.TRAIN: smd.SaveConfigMode(save_interval=1, end_step=5),
         }
 
-        hook = ts.TornasoleHook(
+        hook = smd.TornasoleHook(
                     ...,
                 include_collections=["weights", "gradients", "losses"],
-                save_config=ts.SaveConfig(save_interval=1, end_step=10),
+                save_config=smd.SaveConfig(save_interval=1, end_step=10),
         )
 
         The training job was executed by two workers.

@@ -8,7 +8,7 @@ import torch
 import torch.optim as optim
 
 # First Party
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 from smdebug.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
 from smdebug.pytorch.hook import TornasoleHook as t_hook
 from smdebug.trials import create_trial
@@ -24,9 +24,9 @@ def test_reduce_config(hook=None, out_dir=None):
         global_reduce_config = ReductionConfig(reductions=["max", "mean", "variance"])
         global_save_config = SaveConfig(save_steps=[0, 1, 2, 3])
 
-        ts.get_collection("ReluActivation").include(["relu*"])
-        ts.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
-        ts.get_collection("ReluActivation").reduction_config = ReductionConfig(
+        smd.get_collection("ReluActivation").include(["relu*"])
+        smd.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
+        smd.get_collection("ReluActivation").reduction_config = ReductionConfig(
             reductions=["min"], abs_reductions=["max"]
         )
 

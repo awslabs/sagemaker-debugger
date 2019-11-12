@@ -4,8 +4,8 @@ This is abstracted into its own module to prevent circular import problems.
 
 Sample usage (in AWS-TensorFlow repo):
 
-import smdebug.tensorflow as ts
-hook = ts.get_hook()
+import smdebug.tensorflow as smd
+hook = smd.get_hook()
 """
 
 # First Party

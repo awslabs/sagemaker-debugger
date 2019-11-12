@@ -8,7 +8,7 @@ import torch
 import torch.optim as optim
 
 # First Party
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 from smdebug.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
 from smdebug.pytorch.hook import TornasoleHook as t_hook
 from smdebug.trials import create_trial

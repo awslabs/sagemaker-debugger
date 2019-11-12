@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--tornasole_path", type=str)
@@ -90,7 +90,7 @@ def cnn_model_fn(features, labels, mode):
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=args.lr)
-        optimizer = ts.get_hook().wrap_optimizer(optimizer)
+        optimizer = smd.get_hook().wrap_optimizer(optimizer)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
@@ -120,19 +120,19 @@ eval_input_fn = tf.estimator.inputs.numpy_input_fn(
     x={"x": eval_data}, y=eval_labels, num_epochs=1, shuffle=False
 )
 
-hook = ts.TornasoleHook(
+hook = smd.TornasoleHook(
     out_dir=args.tornasole_path,
-    save_config=ts.SaveConfig(
+    save_config=smd.SaveConfig(
         {
-            ts.modes.TRAIN: ts.SaveConfigMode(args.tornasole_train_frequency),
-            ts.modes.EVAL: ts.SaveConfigMode(args.tornasole_eval_frequency),
+            smd.modes.TRAIN: smd.SaveConfigMode(args.tornasole_train_frequency),
+            smd.modes.EVAL: smd.SaveConfigMode(args.tornasole_eval_frequency),
         }
     ),
 )
 
-hook.set_mode(ts.modes.TRAIN)
+hook.set_mode(smd.modes.TRAIN)
 # train one step and display the probabilties
 mnist_classifier.train(input_fn=train_input_fn, steps=args.num_steps, hooks=[hook])
 
-hook.set_mode(ts.modes.EVAL)
+hook.set_mode(smd.modes.EVAL)
 mnist_classifier.evaluate(input_fn=eval_input_fn, steps=args.num_eval_steps, hooks=[hook])

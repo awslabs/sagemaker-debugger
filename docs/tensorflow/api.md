@@ -78,7 +78,7 @@ class TornasoleHook:
 
 It also has an important method which can be used to set the appropriate mode.
 Modes can refer to 'training', 'evaluation' or 'prediction'. They can be set as follows:
-```hook.set_mode(ts.modes.TRAIN)```, ```hook.set_mode(ts.modes.EVAL)``` or ```hook.set_mode(ts.modes.PREDICT)```.
+```hook.set_mode(smd.modes.TRAIN)```, ```hook.set_mode(smd.modes.EVAL)``` or ```hook.set_mode(smd.modes.PREDICT)```.
 This allows you to group steps by mode which allows for clearer analysis. Tornasole
 also allows you to see a global ordering of steps which makes it clear after how many training
 steps did a particular evaluation step happen. If you do not set this mode, all steps are saved under
@@ -94,16 +94,16 @@ These collections are then also available during analysis with `tornasole_rules`
 
 #### Creating or accessing a collection
 ```
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 ```
 
 | Function |  Behavior |
 |---|---|
-| ```ts.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection if it doesn't already exist |
-| ```ts.get_collections()```  |  Returns all collections as a dictionary with the keys being names of the collections |
-| ```ts.add_to_collection(collection_name, args)```  | Equivalent to calling `coll.add(args)` on the collection with name `collection_name` |
-| ```ts.add_to_default_collection(args)```  | Equivalent to calling `coll.add(args)` on the collection with the name `default`|
-| ```ts.reset_collections()```  | Clears all collections |
+| ```smd.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection if it doesn't already exist |
+| ```smd.get_collections()```  |  Returns all collections as a dictionary with the keys being names of the collections |
+| ```smd.add_to_collection(collection_name, args)```  | Equivalent to calling `coll.add(args)` on the collection with name `collection_name` |
+| ```smd.add_to_default_collection(args)```  | Equivalent to calling `coll.add(args)` on the collection with the name `default`|
+| ```smd.reset_collections()```  | Clears all collections |
 
 #### Methods
 The following methods can be called on a collection object.

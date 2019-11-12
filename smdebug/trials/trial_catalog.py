@@ -41,7 +41,7 @@ class SageMakerTrialCatalog(TrialCatalog):
     def list_candidates(self):
         points = self.client.query(f"select distinct(expid) from execdata")
         res = []
-        for p in points.get_points():
+        for p in poinsmd.get_points():
             res.append(p['distinct'])
         return res
 """

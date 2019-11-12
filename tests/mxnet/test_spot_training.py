@@ -8,6 +8,7 @@ from datetime import datetime
 
 # Third Party
 import mxnet as mx
+import pytest
 from mxnet import autograd, gluon, init
 from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
@@ -138,6 +139,7 @@ def run_mnist(
             net.save_parameters("{0}/params_{1}.params".format(save_path, epoch))
 
 
+@pytest.mark.slow  # 0:01 to run
 def test_spot_hook():
     reset_collections()
     os.environ[

@@ -18,7 +18,7 @@ import torch.optim as optim
 from pt_utils import Net, get_dataloaders
 
 # First Party
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -30,7 +30,7 @@ def test_pytorch(script_mode: bool):
         optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
         if script_mode:
-            hook = ts.TornasoleHook(out_dir=sim.out_dir)
+            hook = smd.TornasoleHook(out_dir=sim.out_dir)
             hook.register_hook(net)
             hook.register_loss(criterion)
 

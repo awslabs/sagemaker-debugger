@@ -30,9 +30,9 @@ class ModeSteps:
         self._steps = {}
 
     def steps(self):
-        ts = list(self._steps.keys())
-        ts.sort(key=int)
-        return ts
+        step_nums = list(self._steps.keys())
+        step_nums.sort(key=int)
+        return step_nums
 
     def has_step(self, step_num):
         return step_num in self._steps

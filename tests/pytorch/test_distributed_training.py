@@ -23,7 +23,7 @@ from torch.multiprocessing import Process
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # First Party
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 from smdebug.trials import Trial, create_trial
 
 out_dir = "/tmp/run"
@@ -72,8 +72,8 @@ def run(rank, size, num_epochs=10, batch_size=128, num_batches=10):
     optimizer = optim.SGD(model.parameters(), lr=1)
 
     shutil.rmtree(out_dir, ignore_errors=True)
-    hook = ts.TornasoleHook(
-        out_dir=out_dir, save_config=ts.SaveConfig(save_steps=[0, 1, 5]), save_all=True
+    hook = smd.TornasoleHook(
+        out_dir=out_dir, save_config=smd.SaveConfig(save_steps=[0, 1, 5]), save_all=True
     )
     hook.register_hook(model)
 
@@ -118,14 +118,14 @@ def init_processes(rank, size, fn, backend="gloo"):
 @pytest.mark.slow  # 0:05 to run
 def test_run_net_single_process():
     """Runs a single linear layer."""
-    ts.reset_collections()
+    smd.reset_collections()
     device = torch.device("cpu")
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.01)
 
     shutil.rmtree(out_dir, ignore_errors=True)
-    hook = ts.TornasoleHook(
-        out_dir=out_dir, save_config=ts.SaveConfig(save_steps=[0, 1, 5]), save_all=True
+    hook = smd.TornasoleHook(
+        out_dir=out_dir, save_config=smd.SaveConfig(save_steps=[0, 1, 5]), save_all=True
     )
     hook.register_hook(model)
     train(model=model, device=device, optimizer=optimizer)
@@ -145,7 +145,7 @@ def test_run_net_distributed():
     if not hasattr(dist, "is_initialized"):
         return
     multiprocessing.set_start_method("spawn")
-    ts.reset_collections()
+    smd.reset_collections()
     size = 2
     processes = []
     for rank in range(size):

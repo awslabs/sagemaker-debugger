@@ -408,6 +408,7 @@ class TestRules:
                     logger.info(
                         "Process {} ended with exit code {}".format(process.name, process.exitcode)
                     )
+                    assert process.exitcode == 0
                     process.join()
             sleep(2)
 

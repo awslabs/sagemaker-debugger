@@ -4,8 +4,8 @@ This is abstracted into its own module to prevent circular import problems.
 
 Sample usage (in AWS-PyTorch repo):
 
-import smdebug.pytorch as ts
-hook = ts.hook()
+import smdebug.pytorch as smd
+hook = smd.hook()
 """
 
 # First Party

@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import *
@@ -68,5 +68,5 @@ def test_reductions_json():
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/tensorflow/hooks/test_json_configs/test_reductions.json"
     pre_test_clean_up()
-    hook = ts.TornasoleHook.hook_from_config()
+    hook = smd.TornasoleHook.hook_from_config()
     helper_test_reductions(trial_dir, hook, False)

@@ -4,11 +4,12 @@ import shutil
 
 # Third Party
 import numpy as np
+import pytest
 import tensorflow as tf
 from tensorflow.python.tools import inspect_checkpoint as chkp
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.locations import TensorFileLocation
 from smdebug.core.reader import FileReader
@@ -94,6 +95,7 @@ def helper_tornasole_hook_write(data_dir, hook):
                 assert np.allclose(tensor_data, v[tensor_name])
 
 
+@pytest.mark.slow  # 0:01 to run
 def test_tornasole_hook_write():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     data_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -114,5 +116,5 @@ def test_tornasole_hook_write_json():
     ] = "tests/tensorflow/hooks/test_json_configs/test_write.json"
 
     shutil.rmtree(data_dir, ignore_errors=True)
-    hook = ts.TornasoleHook.hook_from_config()
+    hook = smd.TornasoleHook.hook_from_config()
     helper_tornasole_hook_write(data_dir, hook)

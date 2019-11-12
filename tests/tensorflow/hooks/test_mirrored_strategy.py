@@ -28,7 +28,7 @@ from tensorflow.python.client import device_lib
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
 from smdebug.exceptions import TensorUnavailableForStep
@@ -111,7 +111,7 @@ def cnn_model_fn(features, labels, mode):
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-        optimizer = ts.get_hook().wrap_optimizer(optimizer)
+        optimizer = smd.get_hook().wrap_optimizer(optimizer)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
@@ -196,7 +196,7 @@ def helper_mirrored(
     num_devices = num_gpus if num_gpus > 0 else 1
     batch_size = 10 * num_devices
 
-    ts.reset_collections()
+    smd.reset_collections()
 
     # input_fn which serves Dataset
     input_fn_provider = InputFnProvider(per_device_batch_size(batch_size, num_devices))
@@ -216,7 +216,7 @@ def helper_mirrored(
     )
 
     if save_config is None:
-        save_config = ts.SaveConfig(save_interval=2)
+        save_config = smd.SaveConfig(save_interval=2)
 
     if include_collections is None:
         include_collections = [
@@ -225,7 +225,7 @@ def helper_mirrored(
             CollectionKeys.LOSSES,
         ]
 
-    ts_hook = ts.TornasoleHook(
+    ts_hook = smd.TornasoleHook(
         out_dir=trial_dir,
         save_all=save_all,
         include_collections=include_collections,
@@ -240,20 +240,20 @@ def helper_mirrored(
     for s in steps:
         if s == "train":
             print("Starting train")
-            ts_hook.set_mode(ts.modes.TRAIN)
+            ts_hook.set_mode(smd.modes.TRAIN)
             # Train the model
             mnist_classifier.train(
                 input_fn=input_fn_provider.train_input_fn, steps=num_steps, hooks=[ts_hook]
             )
         elif s == "eval":
             print("Starting eval")
-            ts_hook.set_mode(ts.modes.EVAL)
+            ts_hook.set_mode(smd.modes.EVAL)
             # Evaluate the model and print results
             mnist_classifier.evaluate(
                 input_fn=input_fn_provider.eval_input_fn, steps=num_steps, hooks=[ts_hook]
             )
         elif s == "predict":
-            ts_hook.set_mode(ts.modes.PREDICT)
+            ts_hook.set_mode(smd.modes.PREDICT)
             # Evaluate the model and print results
             print("Starting predict")
             p = mnist_classifier.predict(input_fn=input_fn_provider.eval_input_fn, hooks=[ts_hook])
@@ -380,7 +380,7 @@ def test_reductions():
     strategy = helper_mirrored(
         trial_dir,
         steps=["train", "eval"],
-        reduction_config=ts.ReductionConfig(
+        reduction_config=smd.ReductionConfig(
             reductions=["sum", "max", "mean"], abs_reductions=["sum", "max"], norms=["l1"]
         ),
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.LOSSES],

@@ -9,7 +9,7 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-import smdebug.mxnet as tm
+import smdebug.mxnet as smd
 from smdebug.mxnet import SaveConfig, TornasoleHook, modes
 
 
@@ -136,7 +136,7 @@ def create_tornasole_hook(output_s3_uri, block):
     # Inputs :  <block_name>_input_<input_index>, and
     # Output :  <block_name>_output
     # In order to log the inputs and output of a model, we will create a collection as follows:
-    tm.get_collection("TopBlock").add_block_tensors(block, inputs=True, outputs=True)
+    smd.get_collection("TopBlock").add_block_tensors(block, inputs=True, outputs=True)
 
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
     hook = TornasoleHook(

@@ -8,18 +8,18 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import smdebug.tensorflow as ts
+import smdebug.tensorflow as smd
 ```
 **Saving all tensors**
 ```
-ts.TornasoleHook(..., save_all=True, ...)
+smd.TornasoleHook(..., save_all=True, ...)
 ```
 **Saving gradients**
 
 We need to wrap our optimizer with wrap_optimizer, and use this optimizer to minimize loss.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
-hook = ts.TornasoleHook(..., include_collections=[..,'gradients'], ...)
+hook = smd.TornasoleHook(..., include_collections=[..,'gradients'], ...)
 opt = hook.wrap_optimizer(opt)
 optimizer_op = opt.minimize(loss, global_step=increment_global_step_op)
 
@@ -29,29 +29,29 @@ optimizer_op = opt.minimize(loss, global_step=increment_global_step_op)
 Since we are not using a default loss function from Tensorflow,
 we need to tell Tornasole to add our loss to the losses collection as follows
 ```
-ts.add_to_collection('losses', loss)
+smd.add_to_collection('losses', loss)
 ```
 In the code, you will see the following line to do so.
 ```
-ts.TornasoleHook(..., include_collections=[...,'losses'], ...)
+smd.TornasoleHook(..., include_collections=[...,'losses'], ...)
 ```
 
 **Setting save interval**
 ```
-ts.TornasoleHook(...,save_config=ts.SaveConfig(save_interval=args.tornasole_frequency)...)
+smd.TornasoleHook(...,save_config=smd.SaveConfig(save_interval=args.tornasole_frequency)...)
 ```
 **Setting the right mode**
 
 Since we are only training here, you will see in the code that the
 appropriate training mode has been set before the session run calls.
 ```
-hook.set_mode(ts.modes.TRAIN)
+hook.set_mode(smd.modes.TRAIN)
 ```
 **Passing the hook**
 
 We need to pass this hook to a monitored session and use this session for running the job.
 ```
-hook = ts.TornasoleHook(...)
+hook = smd.TornasoleHook(...)
 sess = tf.train.MonitoredSession(hooks=[hook])
 ```
 

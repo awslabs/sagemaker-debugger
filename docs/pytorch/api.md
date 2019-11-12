@@ -85,16 +85,16 @@ These collections are then also available during analysis with `tornasole_rules`
 
 #### Creating or accessing a collection
 ```
-import smdebug.pytorch as ts
+import smdebug.pytorch as smd
 ```
 
 | Function |  Behavior |
 |---|---|
-| ```ts.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection if it doesn't already exist |
-| ```ts.get_collections()```  |  Returns all collections as a dictionary with the keys being names of the collections |
-| ```ts.add_to_collection(collection_name, args)```  | Equivalent to calling `coll.add(args)` on the collection with name `collection_name` |
-| ```ts.add_to_default_collection(args)```  | Equivalent to calling `coll.add(args)` on the collection with the name `default`|
-| ```ts.reset_collections()```  | Clears all collections |
+| ```smd.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection if it doesn't already exist |
+| ```smd.get_collections()```  |  Returns all collections as a dictionary with the keys being names of the collections |
+| ```smd.add_to_collection(collection_name, args)```  | Equivalent to calling `coll.add(args)` on the collection with name `collection_name` |
+| ```smd.add_to_default_collection(args)```  | Equivalent to calling `coll.add(args)` on the collection with the name `default`|
+| ```smd.reset_collections()```  | Clears all collections |
 
 #### Methods
 The following methods can be called on a collection object.

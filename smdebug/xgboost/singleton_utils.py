@@ -4,8 +4,8 @@ This is abstracted into its own module to prevent circular import problems.
 
 Sample usage:
 
-import smdebug.xgboost as ts
-hook = ts.hook()
+import smdebug.xgboost as smd
+hook = smd.hook()
 """
 
 # First Party
