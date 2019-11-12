@@ -92,15 +92,11 @@ def test_register_loss_functional(out_dir):
 
 
 @pytest.mark.slow  # 0:05 to run
-@pytest.mark.skip(
-    "Nihal will re-enable"
-)  # TODO (NihalHarish): Re-enable after removing the cache singleton.
 def test_register_loss_module(out_dir):
     """ Test that the loss (as nn.Module) is saved as a tensor.
 
     Also test that nothing else is saved under the default config.
     """
-    breakpoint()
     n_steps = 5
     create_net_and_train(out_dir=out_dir, n_steps=n_steps, use_loss_module=True)
 

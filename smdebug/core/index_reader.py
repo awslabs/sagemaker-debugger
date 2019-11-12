@@ -1,6 +1,7 @@
 # Standard Library
 import json
 import os
+from abc import ABC, abstractmethod
 from bisect import bisect_left
 from typing import Any, Dict, List, Tuple
 
@@ -80,101 +81,7 @@ class ReadIndexFilesCache:
         self.lookup_set.add(index_file)
 
 
-class S3IndexReader:
-
-    index_file_cache = ReadIndexFilesCache()
-
-    @staticmethod
-    def read_index_files(
-        bucket_name: str, prefix_name: str, start_after_key: str, range_steps=None
-    ) -> Tuple[List[bytes], list, str, List[str]]:
-        """
-            Read files like `trial_{datetime}/index/000/{step}_{worker}.json.
-        :param bucket_name: str
-        :param prefix_name: str
-        :param start_after_key: str
-        :param range_steps:
-        :return: Tuple( responses, steps, start_after_key, workers)
-        """
-        object_requests = []
-        steps = []
-        workers = []
-        index_files, start_after_key = S3IndexReader.list_index_files(
-            bucket_name, prefix_name, start_after_key
-        )
-        logger.debug(f'Loaded Index Files: {",".join(index_files)}')
-        for index_file in index_files:
-            if S3IndexReader.index_file_cache.has_not_read(index_file):
-                step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
-                if (
-                    range_steps is not None and step_in_range(range_steps, step)
-                ) or range_steps is None:
-                    steps.append(step)
-                    workers.append(parse_worker_name_from_file(index_file))
-                    object_requests.append(
-                        ReadObjectRequest(format(f"s3://{bucket_name}/") + index_file)
-                    )
-                S3IndexReader.index_file_cache.add(index_file, start_after_key)
-
-        responses = S3Handler().get_objects(object_requests)
-        return responses, steps, start_after_key, workers
-
-    @staticmethod
-    def list_index_files(bucket_name, prefix_name, start_after_key=None):
-        index_files, last_index_token = list_s3_objects(
-            bucket_name, IndexFileLocationUtils.get_index_path(prefix_name), start_after_key
-        )
-
-        return index_files, last_index_token
-
-
-class LocalIndexReader:
-
-    index_file_cache = ReadIndexFilesCache()
-
-    @staticmethod
-    def list_index_files(dirname):
-        index_dirname = IndexFileLocationUtils.get_index_path(dirname)
-        index_files = list_files_in_directory(index_dirname)
-        return sorted(index_files)
-
-    @staticmethod
-    def read_index_files(
-        path: str, start_after_key: str, range_steps=None
-    ) -> Tuple[List[bytes], list, str, List[str]]:
-        """
-            Read files like `trial_{datetime}/index/000/{step}_{worker}.json.
-        :param path: str
-        :param start_after_key: str
-        :param range_steps: str
-        :return: Tuple( responses, steps, start_after_key, workers)
-        """
-        index_files = LocalIndexReader.list_index_files(path)
-        steps = []
-        workers = []
-        responses = []
-        if start_after_key is not None:
-            start_after_index = bisect_left(index_files, start_after_key)
-        else:
-            start_after_index = 0
-        index_files = index_files[start_after_index:]  # ignore files we have already read
-        for index_file in index_files:
-            if LocalIndexReader.index_file_cache.has_not_read(index_file):
-                step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
-                if (
-                    range_steps is not None and step_in_range(range_steps, step)
-                ) or range_steps is None:
-                    steps.append(step)
-                    workers.append(parse_worker_name_from_file(index_file))
-                    with open(index_file) as f:
-                        responses.append(f.read().encode())
-                LocalIndexReader.index_file_cache.add(index_file, start_after_key)
-        if len(index_files) > 0:
-            start_after_key = index_files[-1]  # Last file that we have read
-        return responses, steps, start_after_key, workers
-
-
-class IndexReader:
+class IndexReader(ABC):
     """
 
     The IndexReader class is responsible for reading index data
@@ -188,6 +95,9 @@ class IndexReader:
 
 
     """
+
+    def __init__(self):
+        pass
 
     @staticmethod
     def fetch_tensor_value(tensor_location: TensorLocation) -> np.ndarray:
@@ -224,28 +134,12 @@ class IndexReader:
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
         return tensor_data
 
-    @staticmethod
+    @abstractmethod
     def load_tensor_data_from_index_files(
-        path, start_after_key=None, range_steps=None
+        self, start_after_key=None, range_steps=None
     ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
         """Return a triply nested dict referring to tensor data."""
-        s3, bucket_name, prefix_name = is_s3(path)
-        if s3:
-            if start_after_key == 0:
-                start_after_key = None
-            responses, steps, last_index_token, workers = S3IndexReader.read_index_files(
-                bucket_name, prefix_name, start_after_key, range_steps
-            )
-        else:
-            responses, steps, last_index_token, workers = LocalIndexReader.read_index_files(
-                path, start_after_key, range_steps
-            )
-        tensor_data = {}
-        for step, response, worker in zip(steps, responses, workers):
-            tensor_data = IndexReader._update_tensors_from_json(
-                tensor_data, step, response, path, worker
-            )
-        return tensor_data, last_index_token
+        pass
 
     @staticmethod
     def _validate(index_dict):
@@ -256,9 +150,8 @@ class IndexReader:
         if "tensor_payload" not in index_dict:
             raise IndexReaderException("tensor_payload section is not present")
 
-    @staticmethod
     def _update_tensors_from_json(
-        index_tensors_dict, step, response: bytes, path, worker
+        self, index_tensors_dict, step, response: bytes, path, worker
     ) -> Dict[str, Dict[int, Dict[str, TensorLocation]]]:
         """Return a triply nested dict referring to tensor data.
 
@@ -304,3 +197,128 @@ class IndexReader:
                     step: {worker: {"tensor_location": tensor_location}}
                 }
         return index_tensors_dict
+
+
+class S3IndexReader(IndexReader):
+    def __init__(self, path):
+        super().__init__()
+        self.path = path
+        _, self.bucket_name, self.prefix_name = is_s3(path)
+
+        self.index_file_cache = ReadIndexFilesCache()
+
+    def load_tensor_data_from_index_files(
+        self, start_after_key=None, range_steps=None
+    ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
+        """Return a triply nested dict referring to tensor data."""
+
+        responses, steps, last_index_token, workers = self.read_index_files(
+            start_after_key, range_steps
+        )
+
+        tensor_data = {}
+        for step, response, worker in zip(steps, responses, workers):
+            tensor_data = self._update_tensors_from_json(
+                tensor_data, step, response, self.path, worker
+            )
+        return tensor_data, last_index_token
+
+    def read_index_files(
+        self, start_after_key: str, range_steps=None
+    ) -> Tuple[List[bytes], list, str, List[str]]:
+        """
+            Read files like `trial_{datetime}/index/000/{step}_{worker}.json.
+        :param start_after_key: str
+        :param range_steps:
+        :return: Tuple( responses, steps, start_after_key, workers)
+        """
+        object_requests = []
+        steps = []
+        workers = []
+        index_files, start_after_key = self.list_index_files(start_after_key)
+        logger.debug(f'Loaded Index Files: {",".join(index_files)}')
+        for index_file in index_files:
+            if self.index_file_cache.has_not_read(index_file):
+                step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
+                if (
+                    range_steps is not None and step_in_range(range_steps, step)
+                ) or range_steps is None:
+                    steps.append(step)
+                    workers.append(parse_worker_name_from_file(index_file))
+                    object_requests.append(
+                        ReadObjectRequest(format(f"s3://{self.bucket_name}/") + index_file)
+                    )
+                self.index_file_cache.add(index_file, start_after_key)
+
+        responses = S3Handler().get_objects(object_requests)
+        return responses, steps, start_after_key, workers
+
+    def list_index_files(self, start_after_key=None):
+        index_files, last_index_token = list_s3_objects(
+            self.bucket_name,
+            IndexFileLocationUtils.get_index_path(self.prefix_name),
+            start_after_key,
+        )
+
+        return index_files, last_index_token
+
+
+class LocalIndexReader(IndexReader):
+    def __init__(self, path):
+        super().__init__()
+        self.index_file_cache = ReadIndexFilesCache()
+        self.path = path
+
+    @staticmethod
+    def list_index_files(dirname):
+        index_dirname = IndexFileLocationUtils.get_index_path(dirname)
+        index_files = list_files_in_directory(index_dirname)
+        return sorted(index_files)
+
+    def load_tensor_data_from_index_files(
+        self, start_after_key=None, range_steps=None
+    ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
+        """Return a triply nested dict referring to tensor data."""
+
+        responses, steps, last_index_token, workers = self.read_index_files(
+            start_after_key, range_steps
+        )
+        tensor_data = {}
+        for step, response, worker in zip(steps, responses, workers):
+            tensor_data = self._update_tensors_from_json(
+                tensor_data, step, response, self.path, worker
+            )
+        return tensor_data, last_index_token
+
+    def read_index_files(
+        self, start_after_key: str, range_steps=None
+    ) -> Tuple[List[bytes], list, str, List[str]]:
+        """
+            Read files like `trial_{datetime}/index/000/{step}_{worker}.json.
+        :param start_after_key: str
+        :param range_steps: str
+        :return: Tuple( responses, steps, start_after_key, workers)
+        """
+        index_files = self.list_index_files(self.path)
+        steps = []
+        workers = []
+        responses = []
+        if start_after_key is not None:
+            start_after_index = bisect_left(index_files, start_after_key)
+        else:
+            start_after_index = 0
+        index_files = index_files[start_after_index:]  # ignore files we have already read
+        for index_file in index_files:
+            if self.index_file_cache.has_not_read(index_file):
+                step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
+                if (
+                    range_steps is not None and step_in_range(range_steps, step)
+                ) or range_steps is None:
+                    steps.append(step)
+                    workers.append(parse_worker_name_from_file(index_file))
+                    with open(index_file) as f:
+                        responses.append(f.read().encode())
+                self.index_file_cache.add(index_file, start_after_key)
+        if len(index_files) > 0:
+            start_after_key = index_files[-1]  # Last file that we have read
+        return responses, steps, start_after_key, workers

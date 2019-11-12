@@ -4,13 +4,12 @@ import os
 # First Party
 from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from smdebug.core.collection_manager import CollectionManager
-from smdebug.core.locations import TensorFileLocation
+from smdebug.core.index_reader import S3IndexReader
 from smdebug.core.s3_utils import list_s3_objects
-from smdebug.core.tfrecord.tensor_reader import TensorReader
-from smdebug.core.utils import get_path_to_collections, step_in_range
+from smdebug.core.utils import get_path_to_collections
 
 # Local
-from .trial import EventFileTensor, Trial
+from .trial import Trial
 
 
 class S3Trial(Trial):
@@ -44,6 +43,7 @@ class S3Trial(Trial):
         self.bucket_name = bucket_name
         self.prefix_name = os.path.join(prefix_name, "")
         self.path = "s3://" + os.path.join(self.bucket_name, self.prefix_name)
+        self.index_reader = S3IndexReader(self.path)
         self.s3_handler = S3Handler()
         self._load_collections()
         self.load_tensors()
@@ -77,70 +77,5 @@ class S3Trial(Trial):
         # now we do not need to do anything since we read the full event file from S3
         pass
 
-    def _load_tensors_from_event_files(self, start_after_key=None):
-        # TODO
-        # if job ended is saved then there is no more listing required for this bucket prefix
-        # if job has ended, save that job ended
-        self.keys = []
-        # todo get path for events from smdebug.core
-        objects, self.last_event_token = list_s3_objects(
-            self.bucket_name, os.path.join(self.prefix_name, "events"), start_after_key
-        )
-        self.logger.debug("Got objects:{}".format(objects))
-        for objname in objects:
-            efl = TensorFileLocation.match_regex(objname)
-            if efl:
-                if (
-                    self.range_steps is not None and step_in_range(self.range_steps, efl.step_num)
-                ) or self.range_steps is None:
-                    self.keys.append(objname)
-                else:
-                    self.logger.debug(
-                        "Skipping step:{} as it is not in range{} {}".format(
-                            efl.step_num, self.range_steps[0], self.range_steps[1]
-                        )
-                    )
-            else:
-                self.logger.debug(f"Skipping object {objname}")
-        self.logger.debug(f"Loading {len(self.keys)} new steps")
-        self._read_keys()
-
-    def _read_keys(self):
-        reqs = []
-        filenames = []
-        for key in self.keys:
-            reqs += self._read_key(key)
-            filenames += [self._get_s3_location(key)]
-        raw_data = self.s3_handler.get_objects(reqs)
-        tensors_in_eventfiles = []
-        for i in range(len(raw_data)):
-            data = raw_data[i]
-            sf = self._read_tensors_from_data(data)
-            for tup in sf:
-                n, s, d, mode, mode_step = tup
-                eft = EventFileTensor(
-                    filenames[i],
-                    tensor_name=n,
-                    step_num=s,
-                    tensor_value=d,
-                    mode=mode,
-                    mode_step=mode_step,
-                )
-                tensors_in_eventfiles.append(eft)
-        self._add_tensors_at_steps(tensors_in_eventfiles)
-
-    def _read_key(self, key):
-        reqs = []
-        full_name = self._get_s3_location(key)
-        self.logger.debug(f"Reading from {full_name}")
-        req = ReadObjectRequest(full_name)
-        reqs += [req]
-        return reqs
-
     def _get_s3_location(self, obj):
         return "s3://" + self.bucket_name + "/" + obj
-
-    def _read_tensors_from_data(self, data):
-        tr = TensorReader(data)
-        res = tr.read_tensors(check=self.check)
-        return list(res)

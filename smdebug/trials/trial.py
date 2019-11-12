@@ -7,36 +7,18 @@ from bisect import bisect_left
 
 # First Party
 from smdebug.analysis.utils import refresh
-from smdebug.core import index_reader
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.config_constants import (
     TRAINING_END_DELAY_REFRESH_DEFAULT,
     TRAINING_END_DELAY_REFRESH_KEY,
 )
-from smdebug.core.locations import IndexFileLocationUtils, TensorFileLocation, TensorLocation
+from smdebug.core.locations import IndexFileLocationUtils, TensorLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from smdebug.core.tensor import StepState, Tensor
 from smdebug.core.utils import flatten, get_worker_name_from_collection_file, serialize_tf_device
 from smdebug.exceptions import *
-
-
-class EventFileTensor:
-    def __init__(
-        self, filename, tensor_name, step_num, tensor_value, mode=None, mode_step=None, worker=None
-    ):
-        self.location = TensorFileLocation.load_filename(filename)
-        self.tensorname = tensor_name
-        self.tensor_value = tensor_value
-        self.step_num = step_num
-        if mode is None:
-            mode = ModeKeys.GLOBAL
-        if mode_step is None:
-            mode_step = step_num
-        self.mode = mode
-        self.mode_step = mode_step
-        self.worker = worker
 
 
 class Trial(ABC):
@@ -77,7 +59,6 @@ class Trial(ABC):
         self.index_mode = index_mode
         self.last_event_token = None
         self.last_index_token = None
-        self.index_reader = index_reader.IndexReader
         self.worker_set = set()
         self.num_workers = 0
         self.workers_for_step = {}
@@ -172,10 +153,6 @@ class Trial(ABC):
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
         pass
 
-    @abstractmethod
-    def _load_tensors_from_event_files(self, start_after_key=None):
-        pass
-
     def __hash__(self):
         return hash((self.name, self.path))
 
@@ -255,7 +232,7 @@ class Trial(ABC):
         if len(self.workers_for_step[step]) == self.num_workers and step > self.last_complete_step:
             self.last_complete_step = step
 
-    def add_tensor(self, step_num, worker, tensor_object):
+    def add_tensor(self, step_num, worker, tensor_object: TensorLocation):
         to = tensor_object
         # self.worker_set.add(worker)
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
@@ -268,16 +245,11 @@ class Trial(ABC):
         t = self._tensors[tname]
         self._populate_step_dict(to, step_num)
         self._populate_workers_for_step(step_num, worker)
+
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
-            if type(to) is TensorLocation:
-                t.add_reduction_step_lazy(to.mode, to.mode_step, worker, red_name, abs, to)
-            else:
-                t.add_reduction_step(to.mode, to.mode_step, worker, red_name, abs, to.tensor_value)
+            t.add_reduction_step(to.mode, to.mode_step, worker, red_name, abs, to)
         else:
-            if type(to) is TensorLocation:
-                t.add_step_lazy(to.mode, to.mode_step, worker, to)
-            else:
-                t.add_step(to.mode, to.mode_step, worker, to.tensor_value)
+            t.add_step(to.mode, to.mode_step, worker, to)
 
     def tensors(self):
         self.maybe_refresh()
@@ -477,15 +449,9 @@ class Trial(ABC):
             return StepState.UNAVAILABLE
         return StepState.NOT_YET_AVAILABLE
 
-    def _add_tensors_at_steps(self, event_file_tensors):
-        for eft in event_file_tensors:
-            self.add_tensor(eft.step_num, worker=eft.worker, tensor_object=eft)
-
     def load_tensors(self):
         if self.index_mode:
             self._load_tensors_from_index_files()
-        else:
-            self._load_tensors_from_event_files()
 
     def _update_last_index_token(self, new_index_token: str) -> None:
         """
@@ -547,7 +513,7 @@ class Trial(ABC):
 
     def _load_tensors_from_index_files(self):
         self.index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(
-            self.path, start_after_key=self.last_index_token, range_steps=self.range_steps
+            start_after_key=self.last_index_token, range_steps=self.range_steps
         )
         self._load_tensors_from_index_tensors(self.index_tensors_dict)
         if new_index_token:  # new index token can be None if there are no new index files
@@ -557,12 +523,10 @@ class Trial(ABC):
         # TODO if job finished
         if self.index_mode:
             index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(
-                self.path, start_after_key=self.last_index_token, range_steps=self.range_steps
+                start_after_key=self.last_index_token, range_steps=self.range_steps
             )
             if len(index_tensors_dict):
                 self.index_tensors_dict.update(index_tensors_dict)
                 self._load_tensors_from_index_tensors(index_tensors_dict)
             if new_index_token:  # new index token can be None if there are no new index files
                 self._update_last_index_token(new_index_token)
-        else:
-            self._load_tensors_from_event_files(start_after_key=self.last_event_token)

@@ -330,19 +330,11 @@ class Tensor:
         if mode not in self._mode_steps:
             self._mode_steps[mode] = ModeSteps(mode)
 
-    def add_step(self, mode, mode_step, worker, value):
-        self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_value(mode_step, worker, value)
-
-    def add_reduction_step(self, mode, mode_step, worker, red_name, abs, red_value):
-        self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_reduction_value(mode_step, worker, red_name, abs, red_value)
-
-    def add_step_lazy(self, mode, mode_step, worker, location):
+    def add_step(self, mode, mode_step, worker, location):
         self._create_mode_step(mode, mode_step)
         self._mode_steps[mode].set_step_location(mode_step, worker, location)
 
-    def add_reduction_step_lazy(self, mode, mode_step, worker, red_name, abs, red_location):
+    def add_reduction_step(self, mode, mode_step, worker, red_name, abs, red_location):
         self._create_mode_step(mode, mode_step)
         self._mode_steps[mode].set_step_reduction_location(
             mode_step, worker, red_name, abs, red_location

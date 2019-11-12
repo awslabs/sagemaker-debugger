@@ -42,7 +42,8 @@ def test_parse_worker_name_from_index_file():
 
     _, bucket, prefix = is_s3(path)
 
-    index_files, _ = S3IndexReader.list_index_files(bucket, prefix)
+    index_reader = S3IndexReader(path)
+    index_files, _ = index_reader.list_index_files()
 
     filename = index_files[0]
     worker_name = parse_worker_name_from_file(filename)
