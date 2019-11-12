@@ -139,12 +139,13 @@ def test_run_net_single_process():
     shutil.rmtree(out_dir, ignore_errors=True)
 
 
+@pytest.mark.slow  # 0:07 to run
 def test_run_net_distributed():
     """Runs a single linear layer on 2 processes."""
     # torch.distributed is empty on Mac on Torch <= 1.2
     if not hasattr(dist, "is_initialized"):
         return
-    multiprocessing.set_start_method("spawn")
+    multiprocessing.set_start_method("spawn", force=True)
     smd.reset_collections()
     size = 2
     processes = []
