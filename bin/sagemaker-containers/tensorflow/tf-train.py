@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 
 # First Party
-from tornasole.tensorflow import SaveConfig, TornasoleHook, get_hook
+from smdebug.tensorflow import SaveConfig, TornasoleHook, get_hook
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lr", type=float, help="Learning Rate", default=0.001)
@@ -52,9 +52,9 @@ for i in range(args.steps):
     print(f"Step={i}, Loss={_loss}")
 
 
-# from tornasole.trials import create_trial
+# from smdebug.trials import create_trial
 # tr = create_trial('s3://tornasolecodebuildtest/container_testing/ts_outputs/tf'+t)
-# from tornasole.rules.generic import VanishingGradient
+# from smdebug.rules.generic import VanishingGradient
 # r = VanishingGradient(tr)
-# from tornasole.rules.rule_invoker import invoke_rule
+# from smdebug.rules.rule_invoker import invoke_rule
 # invoke_rule(r, start_step=0, end_step=80)

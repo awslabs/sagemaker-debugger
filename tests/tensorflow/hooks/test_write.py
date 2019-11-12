@@ -8,12 +8,12 @@ import tensorflow as tf
 from tensorflow.python.tools import inspect_checkpoint as chkp
 
 # First Party
-import tornasole.tensorflow as ts
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.locations import TensorFileLocation
-from tornasole.core.reader import FileReader
-from tornasole.tensorflow import reset_collections
-from tornasole.tensorflow.session import TornasoleHook
+import smdebug.tensorflow as ts
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.core.locations import TensorFileLocation
+from smdebug.core.reader import FileReader
+from smdebug.tensorflow import reset_collections
+from smdebug.tensorflow.session import TornasoleHook
 
 # Local
 from .utils import *

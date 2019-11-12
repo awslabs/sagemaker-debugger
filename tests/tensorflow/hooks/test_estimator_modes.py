@@ -21,12 +21,12 @@ import tensorflow as tf
 from tests.analysis.utils import delete_s3_prefix
 
 # First Party
-import tornasole.tensorflow as ts
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.utils import is_s3
-from tornasole.tensorflow import reset_collections
-from tornasole.tensorflow.session import TornasoleHook
-from tornasole.trials import create_trial
+import smdebug.tensorflow as ts
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.core.utils import is_s3
+from smdebug.tensorflow import reset_collections
+from smdebug.tensorflow.session import TornasoleHook
+from smdebug.trials import create_trial
 
 # Local
 from .utils import TORNASOLE_TF_HOOK_TESTS_DIR

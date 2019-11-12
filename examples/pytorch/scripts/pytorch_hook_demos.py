@@ -15,8 +15,8 @@ from torch.autograd import Variable
 from torchvision import datasets, transforms
 
 # First Party
-import tornasole.pytorch as ts
-from tornasole.pytorch import *
+import smdebug.pytorch as ts
+from smdebug.pytorch import *
 
 
 class Net(nn.Module):

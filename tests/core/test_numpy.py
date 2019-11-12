@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 # First Party
-from tornasole.core.reader import FileReader
-from tornasole.core.writer import FileWriter
+from smdebug.core.reader import FileReader
+from smdebug.core.writer import FileWriter
 
 
 def rw(path):
@@ -45,7 +45,7 @@ def test_s3():
     my_region = my_session.region_name
     my_account = boto3.client("sts").get_caller_identity().get("Account")
     bucket_name = "tornasole-testing"
-    key_name = "core-tests/tornasole/{}".format(str(uuid.uuid4()))
+    key_name = "core-tests/smdebug/{}".format(str(uuid.uuid4()))
     # sagemaker-us-east-1-722321484884
     location = "s3://{}/{}".format(bucket_name, key_name)
     print("Saving to Location")

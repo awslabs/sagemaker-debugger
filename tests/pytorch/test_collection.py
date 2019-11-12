@@ -8,10 +8,10 @@ import torch
 import torch.optim as optim
 
 # First Party
-import tornasole.pytorch as ts
-from tornasole.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
-from tornasole.pytorch.hook import TornasoleHook as t_hook
-from tornasole.trials import create_trial
+import smdebug.pytorch as ts
+from smdebug.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
+from smdebug.pytorch.hook import TornasoleHook as t_hook
+from smdebug.trials import create_trial
 
 # Local
 from .utils import Net, train

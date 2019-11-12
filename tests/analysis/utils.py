@@ -7,10 +7,10 @@ import aioboto3
 import numpy as np
 
 # First Party
-from tornasole.core.access_layer.s3handler import ListRequest, S3Handler
-from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-from tornasole.core.writer import FileWriter
+from smdebug.core.access_layer.s3handler import ListRequest, S3Handler
+from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from smdebug.core.writer import FileWriter
 
 
 def generate_data(

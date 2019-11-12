@@ -12,7 +12,7 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 **Saving weights**
 ```
@@ -131,7 +131,7 @@ python train_imagenet_resnet_hvd.py --clear_log True --enable_tornasole True \
 ##### Rule: VanishingGradient
 You can monitor vanishing gradients by doing the following
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing --rule-name VanishingGradient
+python -m smdebug.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing --rule-name VanishingGradient
 ```
 #### Saving activations of RELU layers in full
 ```
@@ -163,7 +163,7 @@ You can invoke the rule to
 monitor the ratio of weights to updates every step.
 A quick way to invoke the rule is like this:
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name WeightUpdateRatio
+python -m smdebug.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name WeightUpdateRatio
 ```
 If you want to customize the thresholds, you can pass the arguments taken by the rule as command line arguments above.
 
@@ -171,7 +171,7 @@ If you want to customize the thresholds, you can pass the arguments taken by the
 You can also invoke this rule to
 monitor if tensors are not changing at every step. Here we are passing '.*' as the tensor_regex to monitor all tensors.
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name UnchangedTensor --tensor_regex .*
+python -m smdebug.rules.rule_invoker --trial-dir ~/ts_outputs/weights --rule-name UnchangedTensor --tensor_regex .*
 ```
 
 #### Running with tornasole disabled

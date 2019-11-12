@@ -12,8 +12,8 @@ from mxnet import autograd, gluon, nd
 from mxnet.test_utils import download
 
 # First Party
-from tornasole import SaveConfig, modes
-from tornasole.mxnet import TornasoleHook
+from smdebug import SaveConfig, modes
+from smdebug.mxnet import TornasoleHook
 
 # Training settings
 parser = argparse.ArgumentParser(description="MXNet MNIST Example")

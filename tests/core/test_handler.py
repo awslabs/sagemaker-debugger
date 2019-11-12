@@ -3,8 +3,8 @@ import numpy as np
 import pytest
 
 # First Party
-from tornasole.core.access_layer.s3handler import *
-from tornasole.core.tfrecord.tensor_reader import *
+from smdebug.core.access_layer.s3handler import *
+from smdebug.core.tfrecord.tensor_reader import *
 
 
 ######## HELPER CLASSES AND FUNCTIONS #######

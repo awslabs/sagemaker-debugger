@@ -11,7 +11,7 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-from tornasole import modes
+from smdebug import modes
 
 
 def acc(output, label):

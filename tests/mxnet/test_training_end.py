@@ -9,7 +9,7 @@ import pytest
 from tests.analysis.utils import delete_s3_prefix
 
 # First Party
-from tornasole.core.access_layer.utils import has_training_ended
+from smdebug.core.access_layer.utils import has_training_ended
 
 
 @pytest.mark.slow  # 0:03 to run

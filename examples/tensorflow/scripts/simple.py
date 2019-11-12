@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 # First Party
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 
 
 def str2bool(v):

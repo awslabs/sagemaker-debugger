@@ -4,7 +4,7 @@ import pytest
 import xgboost as xgb
 
 # First Party
-from tornasole.xgboost.utils import parse_tree_model
+from smdebug.xgboost.utils import parse_tree_model
 
 
 @pytest.mark.slow

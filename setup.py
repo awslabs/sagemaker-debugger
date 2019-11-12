@@ -5,13 +5,13 @@ import sys
 # Third Party
 import setuptools
 
-exec(open("tornasole/_version.py").read())
+exec(open("smdebug/_version.py").read())
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 
 
 def compile_summary_protobuf():
-    proto_paths = ["tornasole/core/tfevent/proto"]
+    proto_paths = ["smdebug/core/tfevent/proto"]
     cmd = "set -ex && protoc "
     for proto_path in proto_paths:
         proto_files = os.path.join(proto_path, "*.proto")
@@ -22,7 +22,7 @@ def compile_summary_protobuf():
 
 
 def get_framework_packages(f):
-    return ["tornasole." + f + "*", "tests." + f + "*"]
+    return ["smdebug." + f + "*", "tests." + f + "*"]
 
 
 def get_frameworks_to_build():
@@ -89,11 +89,11 @@ def build_package(version):
     tests_packages = get_tests_packages(frameworks_to_build)
     packages = get_packages_to_include(frameworks_to_build)
     setuptools.setup(
-        name="tornasole",
+        name="smdebug",
         version=version,
-        author="The Tornasole Team",
-        author_email="tornasole@amazon.com",
-        description="Tornasole",
+        # author="The Tornasole Team",
+        # author_email="tornasole@amazon.com",
+        description="Automated debugging for machine lerning",
         # long_description=long_description,
         # long_description_content_type="text/markdown",
         url="https://github.com/awslabs/tornasole_core",
@@ -127,7 +127,7 @@ def build_package(version):
 
 if compile_summary_protobuf() != 0:
     print(
-        "ERROR: Compiling summary protocol buffers failed. You will not be able to use Tornasole. "
+        "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
         "Please make sure that you have installed protobuf3 compiler and runtime correctly."
     )
     sys.exit(1)

@@ -35,7 +35,7 @@
 -
   - tree_depth/xgboost/true
   - xgboost
-  - *Enable
+  - *Disable
   - [*xgboost_mnist_basic_hook_demo,
      --max_depth 100,
      *invoker,
@@ -44,7 +44,7 @@
 -
   - tree_depth/xgboost/false
   - xgboost
-  - *Enable
+  - *Disable
   - [*xgboost_mnist_basic_hook_demo,
      --max_depth 4 --num_round 10,
      *invoker,

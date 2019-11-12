@@ -27,7 +27,7 @@ import tensorflow as tf
 from tensorflow.python.client import device_lib
 
 # First Party
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

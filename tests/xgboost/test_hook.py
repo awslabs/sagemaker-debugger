@@ -9,11 +9,11 @@ import pytest
 import xgboost
 
 # First Party
-from tornasole import SaveConfig
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
-from tornasole.trials import create_trial
-from tornasole.xgboost import TornasoleHook, get_collection, reset_collections
+from smdebug import SaveConfig
+from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
+from smdebug.trials import create_trial
+from smdebug.xgboost import TornasoleHook, get_collection, reset_collections
 
 # Local
 from .json_config import get_json_config, get_json_config_full

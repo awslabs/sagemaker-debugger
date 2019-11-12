@@ -7,10 +7,10 @@ import pytest
 from tests.analysis.utils import check_trial, delete_s3_prefix, generate_data
 
 # First Party
-from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-from tornasole.core.utils import is_s3
-from tornasole.trials import S3Trial
+from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from smdebug.core.utils import is_s3
+from smdebug.trials import S3Trial
 
 
 def check_s3_trial(path, num_steps=20, num_tensors=10):

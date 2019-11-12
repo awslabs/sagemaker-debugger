@@ -7,11 +7,11 @@ from datetime import datetime
 import pytest
 
 # First Party
-from tornasole import SaveConfig
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
-from tornasole.mxnet import reset_collections
-from tornasole.mxnet.hook import TornasoleHook as t_hook
+from smdebug import SaveConfig
+from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
+from smdebug.mxnet import reset_collections
+from smdebug.mxnet.hook import TornasoleHook as t_hook
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model

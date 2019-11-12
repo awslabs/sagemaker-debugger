@@ -6,8 +6,8 @@ import pytest
 from tests.analysis.utils import generate_data
 
 # First Party
-from tornasole.analysis.utils import no_refresh
-from tornasole.trials import create_trial
+from smdebug.analysis.utils import no_refresh
+from smdebug.trials import create_trial
 
 
 def help_test_refresh_with_range(path):

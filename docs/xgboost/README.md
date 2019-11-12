@@ -31,7 +31,7 @@ Please follow [FAQ on S3](#s3access) to make sure that your instance has proper 
 
 #### Instructions
 
-**Make sure that your aws account is whitelisted for Tornasole. [ContactUs](#contactus)**.
+**Make sure that your aws account is whitelisted for smdebug. [ContactUs](#contactus)**.
 
 Once your account is whitelisted, you should be able to install the `tornasole` package built for XGBoost as follows:
 
@@ -57,8 +57,8 @@ Integrating Tornasole into the training job can be accomplished by following ste
 Import the TornasoleHook class along with other helper classes in your training script as shown below
 
 ```
-from tornasole.xgboost import TornasoleHook
-from tornasole import SaveConfig
+from smdebug.xgboost import TornasoleHook
+from smdebug import SaveConfig
 ```
 
 ### Instantiate and initialize tornasole hook
@@ -101,7 +101,7 @@ can monitor if the metrics such as `train-rmse` or `validation-rmse` in the
 `metrics` collection stopped decreasing by doing the following:
 
 ```
-python3 -m tornasole.rules.rule_invoker --trial-dir ~/tornasole-testing/basic-demo/trial-one --rule-name LossNotDecreasing --use_loss_collection False --collection_names 'metric'
+python3 -m smdebug.rules.rule_invoker --trial-dir ~/tornasole-testing/basic-demo/trial-one --rule-name LossNotDecreasing --use_loss_collection False --collection_names 'metric'
 ```
 
 Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
@@ -115,7 +115,7 @@ python3 examples/xgboost/scripts/xgboost_abalone_basic_hook_demo.py --output_uri
 You can monitor the job for non-decreasing metrics by doing the following:
 
 ```
-python3 -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/basic-demo/trial-one --rule-name LossNotDecreasing --use_loss_collection False --collection_names 'metric'
+python3 -m smdebug.rules.rule_invoker --trial-dir s3://tornasole-testing/basic-demo/trial-one --rule-name LossNotDecreasing --use_loss_collection False --collection_names 'metric'
 ```
 Note: You can also try some further analysis on tensors saved by following [programming model](../rules/README.md#the-programming-model) section of our Rules README.
 
@@ -137,7 +137,7 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 - Save evaluation metrics and feature importances every 10 steps to an S3 location:
 
 ```
-import tornasole.xgboost as tx
+import smdebug.xgboost as tx
 tx.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
                  save_config=SaveConfig(save_interval=10),
                  include_collections=['metrics', 'feature_importance'])
@@ -146,7 +146,7 @@ tx.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
 - Save custom tensors by regex pattern to a local path
 
 ```
-import tornasole.xgboost as tx
+import smdebug.xgboost as tx
 tx.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
                  include_regex=['validation*'])
 ```
@@ -189,7 +189,7 @@ Refer to [API](api.md) for all parameters available and detailed descriptions fo
 
 #### ReductionConfig
 
-ReductionConfig is not currently used in XGBoost Tornasole.
+ReductionConfig is not currently used in XGBoost smdebug.
 When Tornasole is used with deep learning frameworks, such as MXNet,
 Tensorflow, or PyTorch, ReductionConfig allows the saving of certain
 reductions of tensors instead of saving the full tensor.
@@ -197,11 +197,11 @@ By reduction here we mean an operation that converts the tensor to a scalar.
 However, in XGBoost, we currently support evaluation metrics, feature
 importances, and average SHAP values, which are all scalars and not tensors.
 Therefore, if the `reduction_config` parameter is set in
-`tornasole.xgboost.TornasoleHook`, it will be ignored and not used at all.
+`smdebug.xgboost.TornasoleHook`, it will be ignored and not used at all.
 
 ### How to save tensors
 
-There are different ways to save tensors when using Tornasole.
+There are different ways to save tensors when using smdebug.
 Tornasole provides easy ways to save certain standard tensors by way of default
 collections (a Collection represents a group of tensors).
 Examples of such collections are 'metric', 'feature\_importance',
@@ -237,7 +237,7 @@ Each collection should have a unique name (which is a string). You can create
 collections by invoking helper methods as described in the [API](api.md) documentation
 
 ```
-from tornasole.xgboost as get_collection
+from smdebug.xgboost as get_collection
 get_collection('metrics').include(['validation-auc'])
 ```
 
@@ -253,7 +253,7 @@ patterns to match those tensornames, you can pass the regex patterns to the coll
 The tensors which match these patterns are included and added to the collection.
 
 ```
-from tornasole.xgboost import get_collection
+from smdebug.xgboost import get_collection
 get_collection('metrics').include(["train*", "*-auc"])
 ```
 
@@ -324,7 +324,7 @@ are analyzed by 'LossNotDecreasing' rule, which shows the number of performance
 metrics that are not decreasing at regular step intervals.
 
 ```
-python3 -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-testing/basic-demo/trial-one --rule-name LossNotDecreasing --use_loss_collection False --collection_names 'metric'
+python3 -m smdebug.rules.rule_invoker --trial-dir s3://tornasole-testing/basic-demo/trial-one --rule-name LossNotDecreasing --use_loss_collection False --collection_names 'metric'
 ```
 
 For details regarding how to analyze the tensor data, usage of existing rules or writing new rules,

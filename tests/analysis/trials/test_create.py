@@ -6,7 +6,7 @@ import pytest
 from tests.analysis.utils import generate_data
 
 # First Party
-from tornasole.trials import create_trial
+from smdebug.trials import create_trial
 
 
 def test_creation_local():

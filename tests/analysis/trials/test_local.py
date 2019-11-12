@@ -6,8 +6,8 @@ import uuid
 from tests.analysis.utils import check_trial, generate_data
 
 # First Party
-from tornasole.trials import LocalTrial
-from tornasole.trials.trial_catalog import LocalTrialCatalog
+from smdebug.trials import LocalTrial
+from smdebug.trials.trial_catalog import LocalTrialCatalog
 
 
 def check_local(localdir, trial_name, num_steps, num_tensors):

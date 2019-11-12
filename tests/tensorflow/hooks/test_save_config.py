@@ -6,9 +6,9 @@ import pytest
 from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
 
 # First Party
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.tensorflow import TornasoleHook, get_collection, modes, reset_collections
-from tornasole.trials import create_trial
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.tensorflow import TornasoleHook, get_collection, modes, reset_collections
+from smdebug.trials import create_trial
 
 # Local
 from .utils import *

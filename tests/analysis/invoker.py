@@ -1,7 +1,7 @@
 # First Party
-from tornasole.core.logger import get_logger
-from tornasole.exceptions import *
-from tornasole.rules.rule_invoker import create_rule
+from smdebug.core.logger import get_logger
+from smdebug.exceptions import *
+from smdebug.rules.rule_invoker import create_rule
 
 logger = get_logger()
 

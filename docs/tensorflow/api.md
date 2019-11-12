@@ -94,7 +94,7 @@ These collections are then also available during analysis with `tornasole_rules`
 
 #### Creating or accessing a collection
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 
 | Function |  Behavior |

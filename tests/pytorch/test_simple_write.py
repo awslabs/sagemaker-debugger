@@ -15,12 +15,12 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 # First Party
-from tornasole import SaveConfig
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.pytorch import reset_collections
-from tornasole.pytorch.collection import *
-from tornasole.pytorch.hook import *
-from tornasole.trials import create_trial
+from smdebug import SaveConfig
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.pytorch import reset_collections
+from smdebug.pytorch.collection import *
+from smdebug.pytorch.hook import *
+from smdebug.trials import create_trial
 
 
 class Net(nn.Module):

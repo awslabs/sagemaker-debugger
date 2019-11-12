@@ -9,7 +9,7 @@ from mxnet import autograd, gluon
 from mxnet.gluon import nn
 
 # First Party
-from tornasole.mxnet import SaveConfig, TornasoleHook, modes
+from smdebug.mxnet import SaveConfig, TornasoleHook, modes
 
 
 def parse_args():

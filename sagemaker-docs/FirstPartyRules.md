@@ -15,7 +15,7 @@ will return True when we invoke this rule.
 The default threshold is `0.0000001`.
 
 ```
-from tornasole.rules.generic import VanishingGradient
+from smdebug.rules.generic import VanishingGradient
 r = VanishingGradient(base_trial, threshold=0.0000001)
 ```
 

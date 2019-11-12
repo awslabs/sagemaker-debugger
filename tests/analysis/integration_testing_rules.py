@@ -15,8 +15,8 @@ import aioboto3
 import yaml
 
 # First Party
-from tornasole.core.access_layer.s3handler import ListRequest, S3Handler
-from tornasole.core.logger import get_logger
+from smdebug.core.access_layer.s3handler import ListRequest, S3Handler
+from smdebug.core.logger import get_logger
 
 # set environment variable values for tornasole
 os.environ["TORNASOLE_LOG_LEVEL"] = "DEBUG"

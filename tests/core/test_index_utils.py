@@ -2,9 +2,9 @@
 import pytest
 
 # First Party
-from tornasole.core.index_reader import S3IndexReader
-from tornasole.core.s3_utils import list_s3_objects
-from tornasole.core.utils import (
+from smdebug.core.index_reader import S3IndexReader
+from smdebug.core.s3_utils import list_s3_objects
+from smdebug.core.utils import (
     deserialize_tf_device,
     get_path_to_collections,
     get_worker_name_from_collection_file,

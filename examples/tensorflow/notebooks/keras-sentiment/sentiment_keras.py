@@ -9,8 +9,8 @@ from keras.layers import Activation, Conv1D, Dense, Dropout, Embedding, GlobalMa
 from keras.models import Sequential
 
 # First Party
-from tornasole import SaveConfig
-from tornasole.tensorflow.keras import TornasoleHook
+from smdebug import SaveConfig
+from smdebug.tensorflow.keras import TornasoleHook
 
 max_features = 20000
 maxlen = 400

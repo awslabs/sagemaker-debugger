@@ -8,8 +8,8 @@ import numpy as np
 import tensorflow as tf
 
 # First Party
-from tornasole.core.utils import get_path_to_collections
-from tornasole.tensorflow import (
+from smdebug.core.utils import get_path_to_collections
+from smdebug.tensorflow import (
     CollectionManager,
     ReductionConfig,
     SaveConfig,

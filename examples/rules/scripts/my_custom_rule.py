@@ -1,5 +1,5 @@
 # First Party
-from tornasole.rules.rule import Rule
+from smdebug.rules.rule import Rule
 
 
 class CustomGradientRule(Rule):

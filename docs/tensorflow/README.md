@@ -37,7 +37,7 @@ You can activate this by doing: `source activate tensorflow_p36`.
 - If you are not using the above environment, please ensure that you have the TensorFlow framework installed.
 
 #### Instructions
-**Make sure that your aws account is whitelisted for Tornasole. [ContactUs](#contactus)**.
+**Make sure that your aws account is whitelisted for smdebug. [ContactUs](#contactus)**.
 
 Once your account is whitelisted, you should be able to install the `tornasole` package built for TensorFlow as follows:
 
@@ -59,9 +59,9 @@ Integrating Tornasole into your job is as easy as adding the following lines of 
 
 ### Session based training
 We need to add Tornasole Hook and use it to create a monitored session for the job.
-First, we need to import `tornasole.tensorflow`.
+First, we need to import `smdebug.tensorflow`.
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 Then create the TornasoleHook by specifying what you want
 to save, when you want to save them and
@@ -92,9 +92,9 @@ Refer [this page](examples/simple.md) describing an example
  of using Tornasole with a session based training script.
 ### Estimator based training
 We need to create TornasoleHook and provide it to the estimator's train, predict or evaluate methods.
-First, we need to import `tornasole.tensorflow`.
+First, we need to import `smdebug.tensorflow`.
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 Then create the TornasoleHook by specifying what you want
 to save, when you want to save them and
@@ -149,7 +149,7 @@ python examples/tensorflow/scripts/simple.py --lr 100 \
 
 You can monitor the exploding tensors by doing the following
 ```
-python -m tornasole.rules.rule_invoker \
+python -m smdebug.rules.rule_invoker \
     --trial-dir ~/ts_outputs/not_good --rule-name ExplodingTensor
 ```
 
@@ -195,7 +195,7 @@ python examples/tensorflow/scripts/train_imagenet_resnet_hvd.py --clear_log \
 
 You can monitor the vanishing tensors by doing the following
 ```
-python -m tornasole.rules.rule_invoker \
+python -m smdebug.rules.rule_invoker \
     --trial-dir ~/ts_outputs/vanishing --rule-name VanishingGradient
 ```
 
@@ -216,7 +216,7 @@ python examples/tensorflow/scripts/train_imagenet_resnet_hvd.py --clear_log \
 
 You can monitor the vanishing tensors by doing the following
 ```
-python -m tornasole.rules.rule_invoker \
+python -m smdebug.rules.rule_invoker \
     --trial-dir s3://my-ts-test/ts_outputs/vanishing --rule-name VanishingGradient
 ```
 **Note: You can run analysis in parallel (potentially on a different machine) when training is going on and
@@ -259,7 +259,7 @@ a `default` mode.
 **Examples**
 - Save weights and gradients every 100 steps to an S3 location
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ts.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
                  save_config=ts.SaveConfig(save_interval=100),
                  include_collections=['weights', 'gradients'])
@@ -267,7 +267,7 @@ ts.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
 
 - Save custom tensors by regex pattern to a local path
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ts.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
                  include_regex=['loss*'])
 ```
@@ -287,7 +287,7 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from tornasole.tensorflow import TornasoleHook, get_collection, modes, SaveConfig
+from smdebug.tensorflow import TornasoleHook, get_collection, modes, SaveConfig
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
@@ -297,7 +297,7 @@ hook = TornasoleHook(...,
 ```
 
 ```
-from tornasole.tensorflow import get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import get_collection, modes, SaveConfigMode
 get_collection('weights').save_config = {modes.TRAIN: SaveConfigMode(save_interval=10),
                                            modes.EVAL: SaveConfigMode(save_interval=1000)}
 ```
@@ -310,18 +310,18 @@ These collections are then also available during analysis with `tornasole_rules`
 - Creating or accessing a collection: The following method allows you to access a collection.
 It also creates the collection if it does not exist. Here `biases` is the name of the collection.
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ts.get_collection('biases')
 ```
 - Adding to a collection
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ts.add_to_collection('inputs', features)
 ```
 
 - Passing regex pattern to collection
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ts.get_collection(collection_name).include(['loss*'])
 ```
 Refer [API](api.md) for all methods available when using collections such as setting SaveConfig,
@@ -353,7 +353,7 @@ The parameters taken by SaveConfig are:
 
 These save config instances can be passed to the hook as follows
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 hook = ts.TornasoleHook(..., save_config=ts.SaveConfig(save_interval=10), ...)
 ```
 Refer [API](api.md) for all parameters available and detailed descriptions for them.
@@ -380,13 +380,13 @@ to the tensors belonging to that collection.
 
 These reduction config instances can be passed to the hook as follows
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 hook = ts.TornasoleHook(..., reduction_config=ts.ReductionConfig(norms=['l1']), ...)
 ```
 Refer [API](api.md) for a full list of the reductions available.
 
 ## How to save tensors
-There are different ways to save tensors when using Tornasole.
+There are different ways to save tensors when using smdebug.
 Tornasole provides easy ways to save certain standard tensors by way of default collections (a Collection represents a group of tensors).
 Examples of such collections are `weights`, `gradients`, `optimizer variables`.
 Besides these tensors, you can save tensors by name or regex patterns on those names.
@@ -401,10 +401,10 @@ Tornasole creates a few default collections and populates
 them with the relevant tensors.
 
 #### Weights
-Weights is a default collection managed by Tornasole.
+Weights is a default collection managed by smdebug.
 Saving weights is as easy as passing `weights` in the `include_collections` parameter of the hook.
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 hook = ts.TornasoleHook(..., include_collections = ['weights'], ...)
 ```
 
@@ -414,7 +414,7 @@ This can be done by wrapping around your optimizer with `wrap_optimizer` as foll
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ...
 opt = hook.wrap_optimizer(opt)
 ```
@@ -424,7 +424,7 @@ information on how you can create the gradients collection manually.
 
 Then, you need to pass `gradients` in the `include_collections` parameter of the hook.
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 hook = ts.TornasoleHook(..., include_collections = ['gradients'], ...)
 ```
 #### Losses
@@ -434,7 +434,7 @@ If you do not pass this argument to the hook, it will save losses by default.
 If you are using your custom loss function, you can either add this to Tensorflow's losses collection or Tornasole's losses collection as follows:
 
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 
 # if your loss function is not a default TF loss function,
 # but is a custom loss function
@@ -452,7 +452,7 @@ Optimizer variables such as momentum can also be saved easily with the
 above approach of wrapping your optimizer with `wrap_optimizer`
 followed by passing `optimizer_variables` in the `include_collections` parameter of the hook.
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 hook = ts.TornasoleHook(..., include_collections = ['optimizer_variables'], ...)
 ```
 
@@ -492,7 +492,7 @@ To make clear the meaning of a given tensor, it helps to organize your code by n
 set the names of different operations you might be interested in.
 
 ##### Adding tensors from variables in the code
-If you do not know the names of the tensors you are interested in, you can also just pass the variables to Tornasole.
+If you do not know the names of the tensors you are interested in, you can also just pass the variables to smdebug.
 Collection has an add method which takes either a TensorFlow Operation, Variable, or Tensor.
 
 For example, say you want to log the activations of relu layers in your model. You can save them as follows to a

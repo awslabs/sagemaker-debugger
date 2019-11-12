@@ -11,8 +11,8 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-import tornasole.mxnet as tm
-from tornasole.mxnet import SaveConfig, TornasoleHook, modes
+import smdebug.mxnet as tm
+from smdebug.mxnet import SaveConfig, TornasoleHook, modes
 
 
 def parse_args():

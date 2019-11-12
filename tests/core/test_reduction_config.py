@@ -2,7 +2,7 @@
 import pytest
 
 # First Party
-from tornasole.core.reduction_config import ReductionConfig
+from smdebug.core.reduction_config import ReductionConfig
 
 
 def test_export_load():

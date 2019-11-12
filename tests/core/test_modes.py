@@ -8,10 +8,10 @@ from datetime import datetime
 import numpy as np
 
 # First Party
-from tornasole.core.modes import ModeKeys
-from tornasole.core.reader import FileReader
-from tornasole.core.writer import FileWriter
-from tornasole.trials import create_trial
+from smdebug.core.modes import ModeKeys
+from smdebug.core.reader import FileReader
+from smdebug.core.writer import FileWriter
+from smdebug.trials import create_trial
 
 # Local
 from .utils import write_dummy_collection_file

@@ -4,11 +4,11 @@ import shutil
 from datetime import datetime
 
 # First Party
-from tornasole import SaveConfig
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.mxnet import reset_collections
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.trials import create_trial
+from smdebug import SaveConfig
+from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.mxnet import reset_collections
+from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.trials import create_trial
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model

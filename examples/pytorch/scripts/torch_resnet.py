@@ -12,7 +12,7 @@ from torch.autograd import Variable
 from torchvision import datasets, transforms
 
 # First Party
-from tornasole.pytorch import *
+from smdebug.pytorch import *
 
 model_names = sorted(
     name

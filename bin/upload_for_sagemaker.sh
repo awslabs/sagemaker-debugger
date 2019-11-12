@@ -39,7 +39,7 @@ aws s3 cp examples/rules/sagemaker-notebooks/BringYourOwnRule.ipynb s3://tornaso
 aws s3 cp examples/rules/scripts/my_custom_rule.py s3://tornasole-external-preview-use1/rules/scripts/my_custom_rule.py
 
 # RULES_PACKAGE
-aws s3 sync tornasole/rules s3://tornasole-external-preview-use1/rules/rules_package
+aws s3 sync smdebug/rules s3://tornasole-external-preview-use1/rules/rules_package
 
 # PUBLIC BUCKET
 aws s3 sync --delete s3://tornasole-binaries-use1/tornasole_rules/py3/latest s3://tornasole-external-preview-use1/sdk/ts-binaries/tornasole_rules/py3/latest

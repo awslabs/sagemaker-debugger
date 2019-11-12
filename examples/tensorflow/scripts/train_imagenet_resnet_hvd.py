@@ -50,7 +50,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.util import nest
 
 # First Party
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 
 try:
     from builtins import range

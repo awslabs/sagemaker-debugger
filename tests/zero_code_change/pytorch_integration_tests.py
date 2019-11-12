@@ -18,8 +18,8 @@ import torch.optim as optim
 from pt_utils import Net, get_dataloaders
 
 # First Party
-import tornasole.pytorch as ts
-from tornasole.core.utils import SagemakerSimulator
+import smdebug.pytorch as ts
+from smdebug.core.utils import SagemakerSimulator
 
 
 def test_pytorch(script_mode: bool):
@@ -61,7 +61,7 @@ def test_pytorch(script_mode: bool):
 
         print("Finished Training")
 
-        from tornasole.trials import Trial, create_trial
+        from smdebug.trials import Trial, create_trial
         import tornasole_rules
 
         trial = create_trial(path=sim.out_dir)

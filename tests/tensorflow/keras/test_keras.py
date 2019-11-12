@@ -9,13 +9,13 @@ import tensorflow as tf
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
-from tornasole.core.access_layer import has_training_ended
-from tornasole.core.collection import CollectionKeys
-from tornasole.core.modes import ModeKeys
-from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from tornasole.exceptions import TensorUnavailableForStep
-from tornasole.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
-from tornasole.tensorflow.keras import TornasoleKerasHook
+from smdebug.core.access_layer import has_training_ended
+from smdebug.core.collection import CollectionKeys
+from smdebug.core.modes import ModeKeys
+from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.exceptions import TensorUnavailableForStep
+from smdebug.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
+from smdebug.tensorflow.keras import TornasoleKerasHook
 
 TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
 

@@ -2,7 +2,7 @@
 import pytest
 
 # First Party
-from tornasole.trials import create_trial
+from smdebug.trials import create_trial
 
 
 @pytest.mark.slow  # 0:11 to run

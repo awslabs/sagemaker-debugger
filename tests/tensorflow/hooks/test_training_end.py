@@ -9,8 +9,8 @@ import pytest
 import tensorflow as tf
 
 # First Party
-from tornasole.core.access_layer.utils import has_training_ended
-from tornasole.tensorflow import reset_collections
+from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.tensorflow import reset_collections
 
 # Local
 from .utils import *

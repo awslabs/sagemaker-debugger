@@ -28,10 +28,10 @@ from tensorflow.python.client import device_lib
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
-import tornasole.tensorflow as ts
-from tornasole.core.collection import CollectionKeys
-from tornasole.core.modes import ModeKeys
-from tornasole.exceptions import TensorUnavailableForStep
+import smdebug.tensorflow as ts
+from smdebug.core.collection import CollectionKeys
+from smdebug.core.modes import ModeKeys
+from smdebug.exceptions import TensorUnavailableForStep
 
 # Local
 from .utils import TORNASOLE_TF_HOOK_TESTS_DIR

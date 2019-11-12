@@ -3,8 +3,8 @@ import json
 import os
 
 # First Party
-from tornasole.tensorflow.session import TornasoleHook
-from tornasole.tensorflow.utils import (
+from smdebug.tensorflow.session import TornasoleHook
+from smdebug.tensorflow.utils import (
     TFDistributionStrategy,
     get_num_workers_from_tf_config,
     get_worker_id_from_tf_config,

@@ -12,7 +12,7 @@ will return True when we invoke this rule.
 The default threshold is `0.0000001`.
 
 ```
-from tornasole.rules.generic import VanishingGradient
+from smdebug.rules.generic import VanishingGradient
 r = VanishingGradient(base_trial, threshold=0.0000001)
 ```
 
@@ -25,7 +25,7 @@ Note that it takes two parameters, `base_trial` the trial whose execution will i
 Here's how you import and instantiate this rule.
 
 ```
-from tornasole.rules.generic import ExplodingTensor
+from smdebug.rules.generic import ExplodingTensor
 r = ExplodingTensor(base_trial)
 ```
 
@@ -37,7 +37,7 @@ The third argument is a regex pattern which can be used to restrict this compari
 It returns `True` if tensors are different at a given step between the two trials.
 
 ```
-from tornasole.rules.generic import SimilarAcrossRuns
+from smdebug.rules.generic import SimilarAcrossRuns
 r = SimilarAcrossRuns(base_trial, other_trial, include=None)
 ```
 
@@ -58,7 +58,7 @@ and very small updates mean slow convergence.
 **Note that for this rule to be executed, weights have to be available for two consecutive steps, so save_interval needs to be 1**
 
 ```
-from tornasole.rules.generic import WeightUpdateRatio
+from smdebug.rules.generic import WeightUpdateRatio
 wur = WeightUpdateRatio(base_trial, large_threshold, small_threshold)
 ```
 
@@ -72,7 +72,7 @@ This rule helps to identify whether the tensors contain all zeros. It takes foll
 For this rule, users must specify either the `collection_names` or `tensor_regex` parameter. If both the parameters are specified the rule will inspect union on tensors.
 
 ```
-from tornasole.rules.generic import AllZero
+from smdebug.rules.generic import AllZero
 collections = ['weights', 'biases']
 tensor_regex = ['input*']
 allzero = AllZero(base_trial=trial_obj, collection_names=collections, tensor_regex=tensor_regex)
@@ -106,7 +106,7 @@ For this rule, users must specify either the `collection_names` or `tensor_regex
 If both the parameters are specified the rule will inspect union on tensors.
 
 ```
-from tornasole.rules.generic import UnchangedTensor
+from smdebug.rules.generic import UnchangedTensor
 ut = UnchangedTensor(base_trial=trial_obj, tensor_regex=['.*'], num_steps=3)
 ```
 
@@ -139,6 +139,6 @@ If this is not passed, the rule checks for eval mode, then training mode and the
 
 
 ```
-from tornasole.rules.generic import LossNotDecreasing
+from smdebug.rules.generic import LossNotDecreasing
 lnd = LossNotDecreasing(base_trial=trial_obj, tensor_regex=['loss*'], num_steps=20)
 ```

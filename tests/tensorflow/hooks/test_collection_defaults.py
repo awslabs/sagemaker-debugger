@@ -3,9 +3,9 @@ import os
 import shutil
 
 # First Party
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.modes import ModeKeys
-from tornasole.tensorflow.session import TornasoleHook
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.core.modes import ModeKeys
+from smdebug.tensorflow.session import TornasoleHook
 
 # Local
 from .utils import pre_test_clean_up

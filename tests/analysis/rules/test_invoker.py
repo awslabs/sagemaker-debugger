@@ -10,10 +10,10 @@ import pytest
 from tests.analysis.utils import generate_data
 
 # First Party
-from tornasole.exceptions import *
-from tornasole.rules.generic import ExplodingTensor
-from tornasole.rules.rule_invoker import invoke_rule
-from tornasole.trials import create_trial
+from smdebug.exceptions import *
+from smdebug.rules.generic import ExplodingTensor
+from smdebug.rules.rule_invoker import invoke_rule
+from smdebug.trials import create_trial
 
 
 def dump_data():
@@ -76,7 +76,7 @@ def test_invoker_rule_default_args():
         [
             sys.executable,
             "-m",
-            "tornasole.rules.rule_invoker",
+            "smdebug.rules.rule_invoker",
             "--trial-dir",
             path,
             "--rule-name",
@@ -95,7 +95,7 @@ def test_invoker_rule_pass_kwargs():
         [
             sys.executable,
             "-m",
-            "tornasole.rules.rule_invoker",
+            "smdebug.rules.rule_invoker",
             "--rule-name",
             "VanishingGradient",
             "--trial-dir",
@@ -118,7 +118,7 @@ def test_invoker_rule_pass_other_trials():
         [
             sys.executable,
             "-m",
-            "tornasole.rules.rule_invoker",
+            "smdebug.rules.rule_invoker",
             "--trial-dir",
             path1,
             "--other-trials",

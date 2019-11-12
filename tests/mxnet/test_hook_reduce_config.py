@@ -3,10 +3,10 @@ import shutil
 from datetime import datetime
 
 # First Party
-import tornasole.mxnet as tm
-from tornasole.mxnet import Collection, ReductionConfig, SaveConfig, reset_collections
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.trials import create_trial
+import smdebug.mxnet as tm
+from smdebug.mxnet import Collection, ReductionConfig, SaveConfig, reset_collections
+from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.trials import create_trial
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
@@ -85,7 +85,7 @@ def test_save_config(hook=None, out_dir=None):
 
 
 def test_save_config_hook_from_json():
-    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+    from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
     import os
 
     out_dir = "newlogsRunTest2/test_hook_reduce_config_hook_from_json"

@@ -12,8 +12,8 @@ import urllib.request
 import xgboost
 
 # First Party
-from tornasole import SaveConfig
-from tornasole.xgboost import TornasoleHook
+from smdebug import SaveConfig
+from smdebug.xgboost import TornasoleHook
 
 
 def parse_args():

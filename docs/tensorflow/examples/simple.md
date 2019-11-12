@@ -8,7 +8,7 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 **Saving all tensors**
 ```
@@ -122,7 +122,7 @@ This can be run even while training is going on, it will continuously monitor te
 invoke the rule on each new step. Once the training ends you can stop this job.
 You can also do the same analysis after the training job has ended.
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/not_good --rule-name ExplodingTensor
+python -m smdebug.rules.rule_invoker --trial-dir ~/ts_outputs/not_good --rule-name ExplodingTensor
 ```
 Refer [this page](../../rules/README.md) for more details on analysis.
 

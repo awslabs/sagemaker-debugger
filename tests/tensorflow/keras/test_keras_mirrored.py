@@ -15,13 +15,13 @@ from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
-from tornasole.core.access_layer import has_training_ended
-from tornasole.core.collection import CollectionKeys
-from tornasole.core.modes import ModeKeys
-from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from tornasole.exceptions import TensorUnavailable, TensorUnavailableForStep
-from tornasole.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
-from tornasole.tensorflow.keras import TornasoleKerasHook
+from smdebug.core.access_layer import has_training_ended
+from smdebug.core.collection import CollectionKeys
+from smdebug.core.modes import ModeKeys
+from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.exceptions import TensorUnavailable, TensorUnavailableForStep
+from smdebug.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
+from smdebug.tensorflow.keras import TornasoleKerasHook
 
 tfds.disable_progress_bar()
 

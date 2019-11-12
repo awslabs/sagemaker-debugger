@@ -6,9 +6,9 @@ import uuid
 import tensorflow as tf
 
 # First Party
-from tornasole.core.utils import get_path_to_collections
-from tornasole.tensorflow import Collection, CollectionManager, get_collection, reset_collections
-from tornasole.tensorflow.tensor_ref import get_tf_names
+from smdebug.core.utils import get_path_to_collections
+from smdebug.tensorflow import Collection, CollectionManager, get_collection, reset_collections
+from smdebug.tensorflow.tensor_ref import get_tf_names
 
 
 def test_manager_export_load():

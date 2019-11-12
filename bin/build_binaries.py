@@ -22,7 +22,7 @@ parser.add_argument(
     "this also requires you to pass --upload",
 )
 args = parser.parse_args()
-exec(open("tornasole/_version.py").read())
+exec(open("smdebug/_version.py").read())
 
 VERSION = __version__
 BINARIES = ["mxnet", "tensorflow", "pytorch", "xgboost", "rules"]

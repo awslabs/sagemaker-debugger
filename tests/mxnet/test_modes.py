@@ -2,10 +2,10 @@
 from datetime import datetime
 
 # First Party
-from tornasole import modes
-from tornasole.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.trials import create_trial
+from smdebug import modes
+from smdebug.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
+from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.trials import create_trial
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
@@ -54,7 +54,7 @@ def test_modes(hook=None, path=None):
 
 
 def test_modes_hook_from_json_config():
-    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+    from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
     import shutil
     import os
 

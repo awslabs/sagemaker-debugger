@@ -7,13 +7,13 @@ import numpy as np
 import pytest
 
 # First Party
-from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-from tornasole.core.writer import FileWriter
-from tornasole.exceptions import *
-from tornasole.rules.generic import Confusion
-from tornasole.rules.rule_invoker import invoke_rule
-from tornasole.trials import create_trial
+from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from smdebug.core.writer import FileWriter
+from smdebug.exceptions import *
+from smdebug.rules.generic import Confusion
+from smdebug.rules.rule_invoker import invoke_rule
+from smdebug.trials import create_trial
 
 
 def gen_y_and_y_hat(path, trial, step, y, y_name, y_hat, y_hat_name, colls={}):

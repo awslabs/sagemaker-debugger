@@ -75,7 +75,7 @@ cpu		072677473360.dkr.ecr.REGION.amazonaws.com/tornasole-preprod-xgboost-0.90-cp
 - Tag the commit on alpha with the version you want.
 - Create a branch for each minor version if it doesn't already exist (all 0.3.x will go into 0.3 branch). Push this new tag to that branch.
 - For new features, use a new minor version. For patch releases, increment the patch version number (0.3.3->0.3.4).
-- Update version in `tornasole/_version.py` in the release branch.
+- Update version in `smdebug/_version.py` in the release branch.
 - Build new binaries
 ```
 python bin/build_binaries.py --upload --replace-latest

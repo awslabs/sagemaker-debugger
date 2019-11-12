@@ -6,8 +6,8 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 # First Party
-from tornasole.core.collection import CollectionKeys
-from tornasole.tensorflow import TornasoleKerasHook, get_collection
+from smdebug.core.collection import CollectionKeys
+from smdebug.tensorflow import TornasoleKerasHook, get_collection
 
 tfds.disable_progress_bar()
 

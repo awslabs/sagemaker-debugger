@@ -14,7 +14,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 # First Party
-from tornasole.pytorch import *
+from smdebug.pytorch import *
 
 
 class Net(nn.Module):

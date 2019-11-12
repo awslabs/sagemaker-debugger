@@ -7,7 +7,7 @@ import pytest
 from tests.analysis.utils import generate_data
 
 # First Party
-from tornasole.trials import LocalTrial, S3Trial
+from smdebug.trials import LocalTrial, S3Trial
 
 NUM_STEPS = 5
 BUCKET = "tornasole-testing"

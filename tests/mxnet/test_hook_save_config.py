@@ -4,9 +4,9 @@ import shutil
 from datetime import datetime
 
 # First Party
-import tornasole.mxnet as tm
-from tornasole.mxnet import SaveConfig, reset_collections
-from tornasole.mxnet.hook import TornasoleHook as t_hook
+import smdebug.mxnet as tm
+from smdebug.mxnet import SaveConfig, reset_collections
+from smdebug.mxnet.hook import TornasoleHook as t_hook
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
@@ -34,7 +34,7 @@ def test_save_config(hook=None):
 
 
 def test_save_config_hookjson_config():
-    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+    from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
     reset_collections()
     out_dir = "newlogsRunTest2/test_hook_from_json_config_full"

@@ -31,8 +31,8 @@ from tf_utils import (
 )
 
 # First Party
-import tornasole.tensorflow as ts
-from tornasole.core.utils import SagemakerSimulator
+import smdebug.tensorflow as ts
+from smdebug.core.utils import SagemakerSimulator
 
 
 def test_estimator(script_mode: bool):

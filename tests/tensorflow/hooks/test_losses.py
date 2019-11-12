@@ -5,8 +5,8 @@ import shutil
 import pytest
 
 # First Party
-import tornasole.tensorflow as ts
-from tornasole.trials import create_trial
+import smdebug.tensorflow as ts
+from smdebug.trials import create_trial
 
 # Local
 from .test_estimator_modes import help_test_mnist

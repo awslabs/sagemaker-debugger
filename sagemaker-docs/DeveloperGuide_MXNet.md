@@ -14,8 +14,8 @@ Integrating Tornasole into the training job can be accomplished by following ste
 Import the TornasoleHook class along with other helper classes in your training script as shown below
 
 ```
-from tornasole.mxnet.hook import TornasoleHook
-from tornasole.mxnet import SaveConfig, Collection
+from smdebug.mxnet.hook import TornasoleHook
+from smdebug.mxnet import SaveConfig, Collection
 ```
 
 ### Instantiate and initialize tornasole hook
@@ -73,7 +73,7 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 - Save weights and gradients every 100 steps to an S3 location
 
 ```
-import tornasole.mxnet as tm
+import smdebug.mxnet as tm
 tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
                  save_config=tm.SaveConfig(save_interval=100),
                  include_collections=['weights', 'gradients'])
@@ -82,7 +82,7 @@ tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
 - Save custom tensors by regex pattern to a local path
 
 ```
-import tornasole.mxnet as tm
+import smdebug.mxnet as tm
 tm.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
                  include_regex=['relu*'])
 ```
@@ -104,7 +104,7 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from tornasole.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
@@ -114,7 +114,7 @@ hook = TornasoleHook(...,
 ```
 
 ```
-from tornasole.tensorflow import get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import get_collection, modes, SaveConfigMode
 get_collection('weights').save_config = {modes.TRAIN: SaveConfigMode(save_interval=10),
                                            modes.EVAL: SaveConfigMode(save_interval=1000)}
 ```
@@ -175,7 +175,7 @@ to the tensors belonging to that collection.
 These reduction config instances can be passed to the hook as follows
 
 ```
-	import tornasole.mxnet as tm
+	import smdebug.mxnet as tm
 	global_reduce_config = tm.ReductionConfig(reductions=["max", "mean"])
 	hook = tm.TornasoleHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
 ```
@@ -183,7 +183,7 @@ These reduction config instances can be passed to the hook as follows
 Or ReductionConfig can be specified for an individual collection as follows
 
 ```
-import tornasole.mxnet as tm
+import smdebug.mxnet as tm
 tm.get_collection("ReluActivation").include(["relu*"])
 tm.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4,5,6])
 tm.get_collection("ReluActivation").reduction_config = ReductionConfig(reductions=["min"], abs_reductions=["max"])
@@ -200,7 +200,7 @@ Refer [API](api.md) for a list of the reductions available as well as examples.
 
 ### How to save tensors
 
-There are different ways to save tensors when using Tornasole.
+There are different ways to save tensors when using smdebug.
 Tornasole provides easy ways to save certain standard tensors by way of default collections (a Collection represents a group of tensors).
 Examples of such collections are 'weights', 'gradients', 'biases' and 'default'.
 Besides the tensors in above default collections, you can save tensors by name or regex patterns on those names.
@@ -221,7 +221,7 @@ You can create new collections as well as modify existing collections
 Each collection should have a unique name (which is a string). You can create collections by invoking helper methods as described in the [API](api.md) documentation
 
 ```
-import tornasole.mxnet as tm
+import smdebug.mxnet as tm
 tm.get_collection('weights').include(['weight'])
 ```
 
@@ -236,7 +236,7 @@ patterns to match those tensornames, you can pass the regex patterns to the coll
 The tensors which match these patterns are included and added to the collection.
 
 ```
-import tornasole.mxnet as tm
+import smdebug.mxnet as tm
 tm.get_collection('ReluActivation').include(["relu*", "input_*"])
 ```
 
@@ -244,7 +244,7 @@ tm.get_collection('ReluActivation').include(["relu*", "input_*"])
 If users want to log the inputs and outputs of a particular block in the Gluon model. They can do so by creating a collection as shown below.
 
 ```
-import tornasole.mxnet as tm
+import smdebug.mxnet as tm
 tm.get_collection('Conv2DBlock').add_block_tensors(conv2d, inputs=True, outputs=True)
 ```
 

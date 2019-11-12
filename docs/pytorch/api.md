@@ -85,7 +85,7 @@ These collections are then also available during analysis with `tornasole_rules`
 
 #### Creating or accessing a collection
 ```
-import tornasole.pytorch as ts
+import smdebug.pytorch as ts
 ```
 
 | Function |  Behavior |

@@ -24,7 +24,7 @@ def __init__(
 
     Example
     -------
-    >>> from tornasole.xgboost import TornasoleHook
+    >>> from smdebug.xgboost import TornasoleHook
     >>> tornasole_hook = TornasoleHook()
     >>> xgboost.train(prams, dtrain, callbacks=[tornasole_hook])
 
@@ -89,7 +89,7 @@ These values are equivalent to the values you would get from
 Zero-valued feature importances are not included in the collection.
 
 #### SHAP values: average\_shap
-If you use the `shap_data` parameter in `tornasole.xgboost.TornasoleHook`,
+If you use the `shap_data` parameter in `smdebug.xgboost.TornasoleHook`,
 Tornasole provides the average [SHAP](https://github.com/slundberg/shap) value
 of each feature in a collection named `average_shap`.
 The `shap_data` parameter can be a tuple (file path, content type) or an
@@ -109,7 +109,7 @@ with *include\_collections* parameter. If user specifies a collection with
 #### Creating or accessing a collection
 
 ```
-import tornasole.xgboost as tx
+import smdebug.xgboost as tx
 ```
 
 | Function |  Behavior |
@@ -168,7 +168,7 @@ The default value of _save\_interval_ is 100. The TornasoleHook that uses a defa
 
 ### ReductionConfig
 
-ReductionConfig is not currently used in XGBoost Tornasole.
+ReductionConfig is not currently used in XGBoost smdebug.
 When Tornasole is used with deep learning frameworks, such as MXNet,
 Tensorflow, or PyTorch, ReductionConfig allows the saving of certain
 reductions of tensors instead of saving the full tensor.
@@ -176,4 +176,4 @@ By reduction here we mean an operation that converts the tensor to a scalar.
 However, in XGBoost, we currently support evaluation metrics, feature
 importances, and average SHAP values, which are all scalars and not tensors.
 Therefore, if the `reduction_config` parameter is set in
-`tornasole.xgboost.TornasoleHook`, it will be ignored and not used at all.
+`smdebug.xgboost.TornasoleHook`, it will be ignored and not used at all.

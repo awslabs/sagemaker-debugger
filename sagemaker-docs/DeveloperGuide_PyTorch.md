@@ -23,10 +23,10 @@ Integrating Tornasole into the training job can be accomplished by following ste
 Import the TornasoleHook class along with other helper classes in your training script as shown below
 
 ```
-from tornasole.pytorch import TornasoleHook
-from tornasole.pytorch import Collection
-from tornasole import SaveConfig
-import tornasole.pytorch as ts
+from smdebug.pytorch import TornasoleHook
+from smdebug.pytorch import Collection
+from smdebug import SaveConfig
+import smdebug.pytorch as ts
 ```
 
 ### Instantiate and initialize tornasole hook
@@ -112,7 +112,7 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from tornasole.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
@@ -122,7 +122,7 @@ hook = TornasoleHook(...,
 ```
 
 ```
-from tornasole.tensorflow import get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import get_collection, modes, SaveConfigMode
 get_collection('weights').save_config = {modes.TRAIN: SaveConfigMode(save_interval=10),
                                            modes.EVAL: SaveConfigMode(save_interval=1000)}
 ```
@@ -179,7 +179,7 @@ to the tensors belonging to that collection.
 
 These reduction config instances can be passed to the hook as follows
 ```
-import tornasole.pytorch as ts
+import smdebug.pytorch as ts
 hook = ts.TornasoleHook(..., reduction_config=ts.ReductionConfig(norms=['l1']), ...)
 ```
 Refer [API](api.md) for a full list of the reductions available.
@@ -187,7 +187,7 @@ Refer [API](api.md) for a full list of the reductions available.
 
 ### How to save tensors
 
-There are different ways to save tensors when using Tornasole.
+There are different ways to save tensors when using smdebug.
 Tornasole provides easy ways to save certain standard tensors by way of default collections (a Collection represents a group of tensors).
 Examples of such collections are 'weights', 'gradients'.
 Besides these tensors, you can save tensors by name or regex patterns on those names.

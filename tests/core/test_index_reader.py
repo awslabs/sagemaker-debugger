@@ -2,8 +2,8 @@
 import pytest
 
 # First Party
-from tornasole.exceptions import TensorUnavailableForStep
-from tornasole.trials import create_trial
+from smdebug.exceptions import TensorUnavailableForStep
+from smdebug.trials import create_trial
 
 
 def test_fetch_tensor_with_missing_event_files():

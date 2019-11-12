@@ -23,8 +23,8 @@ from torch.multiprocessing import Process
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # First Party
-import tornasole.pytorch as ts
-from tornasole.trials import Trial, create_trial
+import smdebug.pytorch as ts
+from smdebug.trials import Trial, create_trial
 
 out_dir = "/tmp/run"
 

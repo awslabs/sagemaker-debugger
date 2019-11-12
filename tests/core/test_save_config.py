@@ -2,7 +2,7 @@
 import pytest
 
 # First Party
-from tornasole.core.save_config import SaveConfig
+from smdebug.core.save_config import SaveConfig
 
 
 def test_export_load():

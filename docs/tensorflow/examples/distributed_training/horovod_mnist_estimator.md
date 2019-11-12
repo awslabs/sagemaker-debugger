@@ -2,14 +2,14 @@
 We provide an example script `horovod_mnist_estimator.py` which is a Tornasole-enabled Horovod training script
 that uses the Estimator interface of TensorFlow.
 
-This is an example of how you can log a distributed training job with Tornasole.
+This is an example of how you can log a distributed training job with smdebug.
 
 ## Integrating Tornasole
 Below we call out the changes for Tornasole in the above script and describe them
 
 **Importing TornasoleTF**
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 **Saving gradients**
 

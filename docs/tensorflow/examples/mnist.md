@@ -1,7 +1,7 @@
 # MNIST Example
 We provide an example script `mnist.py` which is a Tornasole-enabled TensorFlow training script.
 It uses the Estimator interface of TensorFlow.
-In this document we highlight how you can set training and evaluation modes for Tornasole.
+In this document we highlight how you can set training and evaluation modes for smdebug.
 This will allow you to distinguish between training and evaluate steps and analyze them independently.
 
 ## Integrating Tornasole
@@ -9,7 +9,7 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 **Saving gradients**
 

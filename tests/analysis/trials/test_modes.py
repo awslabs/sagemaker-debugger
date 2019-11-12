@@ -8,12 +8,12 @@ from datetime import datetime
 import numpy as np
 
 # First Party
-from tornasole import modes
-from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-from tornasole.core.tensor import StepState
-from tornasole.core.writer import FileWriter
-from tornasole.trials import create_trial
+from smdebug import modes
+from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from smdebug.core.tensor import StepState
+from smdebug.core.writer import FileWriter
+from smdebug.trials import create_trial
 
 
 def test_modes_on_global_data():

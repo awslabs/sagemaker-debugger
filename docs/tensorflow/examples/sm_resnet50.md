@@ -12,7 +12,7 @@ Below we call out the changes for Tornasole in the above script and describe the
 
 **Importing TornasoleTF**
 ```
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 ```
 **Saving weights**
 ```

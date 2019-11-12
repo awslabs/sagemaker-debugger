@@ -6,11 +6,11 @@ from datetime import datetime
 import numpy as np
 
 # First Party
-import tornasole.mxnet as tm
-from tornasole import SaveConfig
-from tornasole.mxnet import reset_collections
-from tornasole.mxnet.hook import TornasoleHook as t_hook
-from tornasole.trials import create_trial
+import smdebug.mxnet as tm
+from smdebug import SaveConfig
+from smdebug.mxnet import reset_collections
+from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.trials import create_trial
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
@@ -51,7 +51,7 @@ def test_hook_all_zero(hook=None, out_dir=None):
 
 
 def test_hook_all_zero_hook_from_json():
-    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+    from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
     import shutil
     import os
 

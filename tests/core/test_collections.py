@@ -3,14 +3,14 @@ import datetime
 import os
 
 # First Party
-from tornasole.core.collection import Collection
-from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-from tornasole.core.modes import ModeKeys
-from tornasole.core.reduction_config import ReductionConfig
-from tornasole.core.save_config import SaveConfig, SaveConfigMode
-from tornasole.core.utils import get_path_to_collections
-from tornasole.mxnet.hook import TornasoleHook
+from smdebug.core.collection import Collection
+from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from smdebug.core.modes import ModeKeys
+from smdebug.core.reduction_config import ReductionConfig
+from smdebug.core.save_config import SaveConfig, SaveConfigMode
+from smdebug.core.utils import get_path_to_collections
+from smdebug.mxnet.hook import TornasoleHook
 
 
 def test_export_load():

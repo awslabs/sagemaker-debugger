@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 # First Party
-import tornasole.tensorflow as ts
+import smdebug.tensorflow as ts
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--tornasole_path", type=str)

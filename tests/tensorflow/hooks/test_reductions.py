@@ -4,10 +4,10 @@ import shutil
 from datetime import datetime
 
 # First Party
-import tornasole.tensorflow as ts
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from tornasole.exceptions import *
+import smdebug.tensorflow as ts
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.exceptions import *
 
 # Local
 from .utils import *
@@ -16,7 +16,7 @@ from .utils import *
 def helper_test_reductions(trial_dir, hook, save_raw_tensor):
     simple_model(hook)
     _, files = get_dirs_files(trial_dir)
-    from tornasole.trials import create_trial
+    from smdebug.trials import create_trial
 
     tr = create_trial(trial_dir)
     assert len(tr.tensors()) == 3, tr.tensors()

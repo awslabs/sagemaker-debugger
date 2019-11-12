@@ -26,13 +26,13 @@ You should see the directory `events` and the file `collections.json` in this pa
 
 ##### Creating local trial
 ```
-from tornasole.trials import create_trial
+from smdebug.trials import create_trial
 trial = create_trial(path='/home/ubuntu/tornasole_outputs/train',
                      name='resnet_training_run')
 ```
 ##### Creating S3 trial
 ```
-from tornasole.trials import create_trial
+from smdebug.trials import create_trial
 trial = create_trial(path='s3://tornasole-testing-bucket/outputs/resnet',
                      name='resnet_training_run')
 ```
@@ -106,7 +106,7 @@ Each of these mode steps has a global step number associated with it.
 The global step represents the sequence of steps across all modes executed by the job.
 
 ```
-from tornasole import modes
+from smdebug import modes
 trial.steps(mode=modes.TRAIN)
 ```
 
@@ -135,7 +135,7 @@ mode_step = trial.mode_step(global_step=100)
 **Know the global step number for a given mode step**
 
 ```
-from tornasole import modes
+from smdebug import modes
 global_step_num = trial.global_step(modes.TRAIN, mode_step=10)
 ```
 
@@ -164,7 +164,7 @@ trial.tensor('relu_activation:0').steps()
 This returns the mode steps for those steps when this tensor's value was saved for this mode.
 
 ```
-from tornasole import modes
+from smdebug import modes
 trial.tensor('relu_activation:0').steps(mode=modes.TRAIN)
 ```
 
@@ -184,7 +184,7 @@ Please see [this section](#when-a-tensor-is-not-available-during-rule-execution)
 This returns the tensor value as a numpy array for the 10th training step.
 
 ```
-from tornasole import modes
+from smdebug import modes
 trial.tensor('relu_activation:0').value(10, mode=modes.TRAIN)
 ```
 
@@ -261,7 +261,7 @@ are not interested in the latest data, you can stop the refreshing of tensors as
 Anything executed inside the with `no_refresh` block will not be refreshed.
 
 ```
-from tornasole.analysis.utils import no_refresh
+from smdebug.analysis.utils import no_refresh
 with no_refresh(trials):
     pass
 ```
@@ -269,7 +269,7 @@ with no_refresh(trials):
 Similarly if you want to refresh tensors only within a block, you can do:
 
 ```
-from tornasole.analysis.utils import refresh
+from smdebug.analysis.utils import refresh
 with refresh(trials):
     pass
 ```
@@ -277,10 +277,10 @@ with refresh(trials):
 #### When a tensor is not available
 Tornasole is designed to be aware that tensors required to execute a rule may not be available at every step.
 Hence it raises a few exceptions which allow us to control what happens when a tensor is missing.
-These are available in the `tornasole.exceptions` module. You can import them as follows:
+These are available in the `smdebug.exceptions` module. You can import them as follows:
 
 ```
-from tornasole.exceptions import *
+from smdebug.exceptions import *
 ```
 
 Here are the exceptions and their meanings:
@@ -290,12 +290,12 @@ this step might not be saved at all by the hook, or that this step might have sa
 tensor is not part of them. Note that when you see this exception, it means that this tensor can never become available
 for this step in the future.
 
-- `TensorUnavailable` : This means that this tensor is not being saved or has not been saved by Tornasole. This means
-that this tensor will never be seen for any step in Tornasole.
+- `TensorUnavailable` : This means that this tensor is not being saved or has not been saved by smdebug. This means
+that this tensor will never be seen for any step in smdebug.
 
 - `StepUnavailable`: This means that the step was not saved and Tornasole has no data from the step.
 
-- `StepNotYetAvailable`: This means that the step has not yet been seen by Tornasole. It may be available in the future if the training is still going on.
+- `StepNotYetAvailable`: This means that the step has not yet been seen by smdebug. It may be available in the future if the training is still going on.
 Tornasole automatically loads new data as and when it becomes available.
 
 - `NoMoreData` : This will be raised when the training ends. Once you see this, you will know that there will be no more steps and no more tensors saved.
@@ -309,14 +309,14 @@ Please ensure your logic respects these semantics, else you will get a `TensorUn
 exception as the data would not yet be available.
 
 #### Writing a rule
-Writing a rule involves implementing the [Rule interface](../../tornasole/rules/rule.py).
+Writing a rule involves implementing the [Rule interface](../../smdebug/rules/rule.py).
 
 ##### Constructor
 Creating a rule involves first inheriting from the base Rule class Tornasole provides.
 For this rule here we do not need to look at any other trials, so we set `other_trials` to None.
 
 ```
-from tornasole.rules import Rule
+from smdebug.rules import Rule
 
 class VanishingGradientRule(Rule):
     def __init__(self, base_trial, threshold=0.0000001):
@@ -356,7 +356,7 @@ This is the `set_required_tensors` method.
 Before we look at how to define this method, let us look at the API for `RequiredTensors` class which
 needs to be used by this method. An object of this class is provided as a member of the rule class, so you can access it as `self.req_tensors`.
 
-**[RequiredTensors](../../tornasole/rules/req_tensors.py) API**
+**[RequiredTensors](../../smdebug/rules/req_tensors.py) API**
 
 ***Adding a required tensor***
 When invoking a rule at a given step, you might require the values of a tensor at certain steps.
@@ -439,12 +439,12 @@ tensor values or steps numbers will stay the same during multiple calls.
 
 #### Executing a rule
 Now that you have written a rule, here's how you can execute it. We provide a function to invoke rules easily.
-Refer [tornasole/rules/rule_invoker.py](../../tornasole/rules/rule_invoker.py)
+Refer [smdebug/rules/rule_invoker.py](../../smdebug/rules/rule_invoker.py)
 The invoke function has the following syntax.
 It takes a instance of a Rule and invokes it for a series of steps one after the other.
 
 ```
-from tornasole.rules import invoke_rule
+from smdebug.rules import invoke_rule
 invoke_rule(rule_obj, start_step=0, end_step=None)
 ```
 
@@ -458,11 +458,11 @@ invoke_rule(vr, start_step=0, end_step=1000)
 For first party Rules (see below) that we provide a rule_invoker module that you can use to run them as follows. You can pass any arguments that the rule takes as command line arguments.
 
 ```
-python -m tornasole.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing_gradients --rule-name VanishingGradient --threshold 0.0000000001
+python -m smdebug.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing_gradients --rule-name VanishingGradient --threshold 0.0000000001
 ```
 
 ```
-python -m tornasole.rules.rule_invoker --trial-dir s3://tornasole-runes/trial0 --rule-name UnchangedTensor --tensor_regex .* --num_steps 10
+python -m smdebug.rules.rule_invoker --trial-dir s3://tornasole-runes/trial0 --rule-name UnchangedTensor --tensor_regex .* --num_steps 10
 ```
 
 #### First party rules

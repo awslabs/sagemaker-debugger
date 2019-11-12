@@ -7,9 +7,9 @@ import shutil
 import numpy as np
 
 # First Party
-from tornasole.core.locations import IndexFileLocationUtils, TensorFileLocation
-from tornasole.core.reader import FileReader
-from tornasole.core.writer import FileWriter
+from smdebug.core.locations import IndexFileLocationUtils, TensorFileLocation
+from smdebug.core.reader import FileReader
+from smdebug.core.writer import FileWriter
 
 
 def test_index():

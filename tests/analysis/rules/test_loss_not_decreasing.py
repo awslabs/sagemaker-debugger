@@ -6,10 +6,10 @@ import numpy as np
 from tests.analysis.utils import generate_data
 
 # First Party
-from tornasole.exceptions import *
-from tornasole.rules.generic import LossNotDecreasing
-from tornasole.rules.rule_invoker import invoke_rule
-from tornasole.trials import create_trial
+from smdebug.exceptions import *
+from smdebug.rules.generic import LossNotDecreasing
+from smdebug.rules.rule_invoker import invoke_rule
+from smdebug.trials import create_trial
 
 
 def dump_data(values):

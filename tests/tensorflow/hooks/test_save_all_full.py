@@ -3,11 +3,11 @@ import glob
 import shutil
 
 # First Party
-from tornasole.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
-from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from tornasole.core.reader import FileReader
-from tornasole.core.utils import get_path_to_collections
-from tornasole.tensorflow import Collection, CollectionManager, get_collections, reset_collections
+from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.core.reader import FileReader
+from smdebug.core.utils import get_path_to_collections
+from smdebug.tensorflow import Collection, CollectionManager, get_collections, reset_collections
 
 # Local
 from .utils import *

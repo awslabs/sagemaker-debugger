@@ -5,8 +5,8 @@ import os
 import pytest
 
 # First Party
-from tornasole.core.tensor import StepState
-from tornasole.trials import create_trial
+from smdebug.core.tensor import StepState
+from smdebug.trials import create_trial
 
 
 @pytest.mark.slow

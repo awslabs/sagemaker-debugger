@@ -2,12 +2,12 @@
 import pytest
 
 # First Party
-from tornasole.core.access_layer import check_dir_exists
-from tornasole.core.collection_manager import CollectionManager
-from tornasole.core.index_reader import ReadIndexFilesCache
-from tornasole.core.json_config import DEFAULT_SAGEMAKER_OUTDIR, collect_tornasole_config_params
-from tornasole.core.locations import IndexFileLocationUtils
-from tornasole.core.utils import is_s3
+from smdebug.core.access_layer import check_dir_exists
+from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.index_reader import ReadIndexFilesCache
+from smdebug.core.json_config import DEFAULT_SAGEMAKER_OUTDIR, collect_tornasole_config_params
+from smdebug.core.locations import IndexFileLocationUtils
+from smdebug.core.utils import is_s3
 
 
 def test_normal():

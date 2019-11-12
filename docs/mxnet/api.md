@@ -104,7 +104,7 @@ These collections are then also available during analysis with `tornasole_rules`
 #### Creating or accessing a collection
 
 ```
-import tornasole.mxnet as ts
+import smdebug.mxnet as ts
 ```
 
 

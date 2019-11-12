@@ -1,5 +1,5 @@
 # First Party
-from tornasole.trials import create_trial
+from smdebug.trials import create_trial
 
 
 def create_trial_fast_refresh(path, **kwargs):

@@ -8,10 +8,10 @@ import torch
 import torch.optim as optim
 
 # First Party
-import tornasole.pytorch as ts
-from tornasole.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
-from tornasole.pytorch.hook import TornasoleHook as t_hook
-from tornasole.trials import create_trial
+import smdebug.pytorch as ts
+from smdebug.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
+from smdebug.pytorch.hook import TornasoleHook as t_hook
+from smdebug.trials import create_trial
 
 # Local
 from .utils import Net, train
@@ -91,7 +91,7 @@ def test_reduce_config(hook=None, out_dir=None):
 
 # Test creating hook by loading the json file with reduction configs.
 def test_reduce_config_with_json():
-    from tornasole.core.json_config import CONFIG_FILE_PATH_ENV_STR
+    from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
     reset_collections()
     out_dir = "test_output/test_hook_reduction_config/jsonloading"

@@ -5,10 +5,10 @@ import uuid
 from tests.analysis.utils import generate_data
 
 # First Party
-from tornasole.analysis.utils import no_refresh
-from tornasole.exceptions import StepNotYetAvailable
-from tornasole.rules import Rule
-from tornasole.trials import create_trial
+from smdebug.analysis.utils import no_refresh
+from smdebug.exceptions import StepNotYetAvailable
+from smdebug.rules import Rule
+from smdebug.trials import create_trial
 
 
 def test_no_refresh_invocation():
