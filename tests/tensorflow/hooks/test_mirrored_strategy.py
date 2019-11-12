@@ -281,39 +281,30 @@ def test_basic(out_dir):
 
     for tname in tr.tensors_in_collection("weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
-            assert (
-                len(tr.tensor(tname).workers_for_step(s, ModeKeys.TRAIN))
-                == strategy.num_replicas_in_sync
-            )
-            for worker in tr.tensor(tname).workers_for_step(s, ModeKeys.TRAIN):
+            assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
+            for worker in tr.tensor(tname).workers(s, ModeKeys.TRAIN):
                 assert tr.tensor(tname).value(s, worker=worker, mode=ModeKeys.TRAIN) is not None
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
-            assert (
-                len(tr.tensor(tname).workers_for_step(s, ModeKeys.EVAL))
-                == strategy.num_replicas_in_sync
-            )
+            assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
     for s in tr.tensor("Identity_2:0").steps(ModeKeys.TRAIN):
-        for w in tr.tensor("Identity_2:0").workers_for_step(s, ModeKeys.TRAIN):
+        for w in tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN):
             assert tr.tensor("Identity_2:0").value(s, worker=w, mode=ModeKeys.TRAIN) is not None
         assert (
-            len(tr.tensor("Identity_2:0").workers_for_step(s, ModeKeys.TRAIN))
+            len(tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN))
             == strategy.num_replicas_in_sync
         )
 
     for tname in tr.tensors_in_collection("losses"):
         if tname != "Identity_2:0":
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
-                assert len(tr.tensor(tname).workers_for_step(s, ModeKeys.TRAIN)) == 1
+                assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1
                 assert tr.tensor(tname).value(s, mode=ModeKeys.TRAIN) is not None
 
     tname = "sparse_softmax_cross_entropy_loss/value:0"
     for s in tr.tensor(tname).steps(ModeKeys.EVAL):
-        assert (
-            len(tr.tensor(tname).workers_for_step(s, ModeKeys.EVAL))
-            == strategy.num_replicas_in_sync
-        )
+        assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
         assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
 
@@ -333,34 +324,28 @@ def test_eval_distributed(out_dir):
 
     for tname in tr.tensors_in_collection("weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
-            assert (
-                len(tr.tensor(tname).workers_for_step(s, ModeKeys.TRAIN))
-                == strategy.num_replicas_in_sync
-            )
-            for worker in tr.tensor(tname).workers_for_step(s, ModeKeys.TRAIN):
+            assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
+            for worker in tr.tensor(tname).workers(s, ModeKeys.TRAIN):
                 assert tr.tensor(tname).value(s, worker=worker, mode=ModeKeys.TRAIN) is not None
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
-            assert (
-                len(tr.tensor(tname).workers_for_step(s, ModeKeys.EVAL))
-                == strategy.num_replicas_in_sync
-            )
+            assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
     for s in tr.tensor("Identity_2:0").steps(ModeKeys.TRAIN):
-        for w in tr.tensor("Identity_2:0").workers_for_step(s, ModeKeys.TRAIN):
+        for w in tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN):
             assert tr.tensor("Identity_2:0").value(s, worker=w, mode=ModeKeys.TRAIN) is not None
         assert (
-            len(tr.tensor("Identity_2:0").workers_for_step(s, ModeKeys.TRAIN))
+            len(tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN))
             == strategy.num_replicas_in_sync
         )
 
     for tname in tr.tensors_in_collection("losses"):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
-            assert len(tr.tensor(tname).workers_for_step(s, ModeKeys.EVAL)) == 1
+            assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
         if tname != "Identity_2:0":
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
-                assert len(tr.tensor(tname).workers_for_step(s, ModeKeys.EVAL)) == 1
+                assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1
                 assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
 

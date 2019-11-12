@@ -60,8 +60,10 @@ class Trial(ABC):
         self.last_event_token = None
         self.last_index_token = None
         self.worker_set = set()
+        self.global_step_to_tensors_map = dict()
+        self.mode_to_tensors_map = dict()
         self.num_workers = 0
-        self.workers_for_step = {}
+        self.workers_for_global_step = {}
         self.last_complete_step = -1
 
         """
@@ -215,10 +217,10 @@ class Trial(ABC):
         if step_num not in self._global_to_mode:
             self._global_to_mode[step_num] = (tensor_object.mode, tensor_object.mode_step)
 
-    def _populate_workers_for_step(self, step, worker) -> None:
+    def _populate_workers_for_global_step(self, step, worker) -> None:
         """
-        The self.workers_for_step dictionary holds a mapping of
-        step number and a set of all the workers that have written the step.
+        The self.workers_for_global_step dictionary holds a mapping of
+        step number and a set of all the workers that have been written for the step.
 
         This function is used to add a worker to that set. To mark that a particular worker
         has finished writing the step.
@@ -226,11 +228,39 @@ class Trial(ABC):
         :param worker:
         :return: None
         """
-        if step not in self.workers_for_step:
-            self.workers_for_step[step] = set()
-        self.workers_for_step[step].add(worker)
-        if len(self.workers_for_step[step]) == self.num_workers and step > self.last_complete_step:
+        if step not in self.workers_for_global_step:
+            self.workers_for_global_step[step] = set()
+        self.workers_for_global_step[step].add(worker)
+        if (
+            len(self.workers_for_global_step[step]) == self.num_workers
+            and step > self.last_complete_step
+        ):
             self.last_complete_step = step
+
+    def _populate_global_step_to_tensor_name_map(self, tensor: TensorLocation, step_num) -> None:
+        """
+        The self.global_step_to_tensors_map dictionary holds a mapping of
+        step number and a set of all the tensor names that have been written for the step.
+
+        :param tensor:
+        :param step_num:
+        :return: None
+        """
+        if step_num not in self.global_step_to_tensors_map:
+            self.global_step_to_tensors_map[step_num] = set()
+        self.global_step_to_tensors_map[step_num].add(tensor.tensorname)
+
+    def _populate_mode_to_tensor_name_map(self, tensor: TensorLocation) -> None:
+        """
+        The self.mode_to_tensors_map dictionary holds a mapping of
+        mode and a set of all the tensor names that have been written for the mode.
+        :param tensor:
+        :return:
+        """
+        if tensor.mode != ModeKeys.GLOBAL:
+            if tensor.mode not in self.mode_to_tensors_map:
+                self.mode_to_tensors_map[tensor.mode] = set()
+            self.mode_to_tensors_map[tensor.mode].add(tensor.tensorname)
 
     def add_tensor(self, step_num, worker, tensor_object: TensorLocation):
         to = tensor_object
@@ -244,17 +274,28 @@ class Trial(ABC):
             self._tensors[tname] = t
         t = self._tensors[tname]
         self._populate_step_dict(to, step_num)
-        self._populate_workers_for_step(step_num, worker)
-
+        self._populate_global_step_to_tensor_name_map(to, step_num)
+        self._populate_workers_for_global_step(step_num, worker)
+        self._populate_mode_to_tensor_name_map(to)
         if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
             t.add_reduction_step(to.mode, to.mode_step, worker, red_name, abs, to)
         else:
             t.add_step(to.mode, to.mode_step, worker, to)
 
-    def tensors(self):
+    def tensors(self, step=None, mode=ModeKeys.GLOBAL):
         self.maybe_refresh()
+        if step is not None:
+            return self._tensors_for_step(step, mode)
+        if step is None and mode != ModeKeys.GLOBAL:
+            return list(self.mode_to_tensors_map[mode])
         ts = list(self._tensors.keys())
         return ts
+
+    def _tensors_for_step(self, step, mode=ModeKeys.GLOBAL) -> list:
+        step = self._mode_to_global[mode][step] if mode != ModeKeys.GLOBAL else step
+        if step in self.global_step_to_tensors_map:
+            return list(self.global_step_to_tensors_map[step])
+        return []
 
     def workers(self):
         self.maybe_refresh()
@@ -275,7 +316,7 @@ class Trial(ABC):
         for step in all_steps:
             global_step = self._mode_to_global[mode][step] if mode != ModeKeys.GLOBAL else step
             if (
-                len(self.workers_for_step[global_step]) == self.num_workers
+                len(self.workers_for_global_step[global_step]) == self.num_workers
                 or self.loaded_all_steps is True
                 or self.last_complete_step >= global_step
             ):
@@ -425,11 +466,11 @@ class Trial(ABC):
                     return StepState.UNAVAILABLE
                 return StepState.NOT_YET_AVAILABLE
             elif all_steps[bisect_idx] == step:
-                if len(self.workers_for_step[step]) == self.num_workers:
+                if len(self.workers_for_global_step[step]) == self.num_workers:
                     return StepState.AVAILABLE
                 elif self.loaded_all_steps is True:
                     self.logger.info(
-                        f"Step: {step} was written only by workers: {self.workers_for_step[step]}"
+                        f"Step: {step} was written only by workers: {self.workers_for_global_step[step]}"
                     )
                     self.logger.info(
                         f"Step: {step} was marked complete because the job is complete"
@@ -437,7 +478,7 @@ class Trial(ABC):
                     return StepState.AVAILABLE
                 elif step <= self.last_complete_step:
                     self.logger.info(
-                        f"Step: {step} was written only by workers: {self.workers_for_step[step]}"
+                        f"Step: {step} was written only by workers: {self.workers_for_global_step[step]}"
                     )
                     self.logger.info(
                         f"Step: {step} was marked complete because the last complete step is {self.last_complete_step}"

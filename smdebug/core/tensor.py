@@ -138,7 +138,7 @@ class Tensor:
         completed_steps = list()
         for step in all_steps:
             if (
-                self.workers_for_step(step, mode) == self.trial.num_workers
+                self.workers(step, mode) == self.trial.num_workers
                 or self.trial.loaded_all_steps is True
                 or self.trial.last_complete_step >= step
             ):
@@ -275,10 +275,10 @@ class Tensor:
         else:
             assert False, "Should not happen"
 
-    def workers_for_step(self, step_num, mode=ModeKeys.GLOBAL) -> list:
+    def workers(self, step_num, mode=ModeKeys.GLOBAL) -> list:
         step_dict = self._get_step_dict(step_num, mode)
         if step_dict is None:
-            raise ValueError("invalid step")
+            raise TensorUnavailableForStep(self.name, step_num, mode)
         return list(step_dict.keys())
 
     def reduction_value(
