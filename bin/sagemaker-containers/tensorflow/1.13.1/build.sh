@@ -27,8 +27,8 @@ cd bin/sagemaker-containers/tensorflow/1.13.1/
 cp ~/sagemaker-tensorflow-container/dist/sagemaker_tensorflow_container-*.tar.gz .
 
 rm -rf tornasole-binary/
-export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_tensorflow/py3/latest
-aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
+export SMDEBUG_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_tensorflow/py3/latest
+aws s3 sync $SMDEBUG_BINARY_PATH tornasole-binary
 cp tornasole-binary/*.whl .
 export TORNASOLE_BINARY=`ls tornasole-*.whl`
 

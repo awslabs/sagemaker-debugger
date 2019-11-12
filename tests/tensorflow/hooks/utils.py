@@ -14,7 +14,7 @@ from smdebug.tensorflow import (
     ReductionConfig,
     SaveConfig,
     SaveConfigMode,
-    TornasoleHook,
+    SessionHook,
     get_collection,
     reset_collections,
 )

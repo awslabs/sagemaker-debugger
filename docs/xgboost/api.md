@@ -3,14 +3,14 @@
 Tornasole XGBoost provides the following constructs:
 
 ### Hook
-TornasoleHook is the entry point for Tornasole into your program.
+SessionHook is the entry point for Tornasole into your program.
 
 ```
 def __init__(
         self,
         out_dir: str,
         dry_run: bool = False,
-        worker: str = TORNASOLE_CONFIG_DEFAULT_WORKER_NAME,
+        worker: str = CONFIG_DEFAULT_WORKER_NAME,
         reduction_config=None,
         save_config: Optional[SaveConfig] = None,
         include_regex: Optional[List[str]] = None,
@@ -24,9 +24,9 @@ def __init__(
 
     Example
     -------
-    >>> from smdebug.xgboost import TornasoleHook
-    >>> tornasole_hook = TornasoleHook()
-    >>> xgboost.train(prams, dtrain, callbacks=[tornasole_hook])
+    >>> from smdebug.xgboost import SessionHook
+    >>> hook = SessionHook()
+    >>> xgboost.train(prams, dtrain, callbacks=[hook])
 
     Parameters
     ----------
@@ -53,7 +53,7 @@ def __init__(
     """
 ```
 
-The `save_config` parameter is optional. If not specified, the TornasoleHook
+The `save_config` parameter is optional. If not specified, the SessionHook
 will use a default SaveConfig that stores tensors with `step_interval`=100.
 That is, the tensors will be saved every 100th step.
 
@@ -68,7 +68,7 @@ This allows setting of different save configs for different tensors.
 These collections are then also available during analysis with `tornasole_rules`.
 
 #### Default Collections
-Currently, the XGBoost TornasoleHook creates Collection objects for
+Currently, the XGBoost SessionHook creates Collection objects for
 'metrics', 'feature\_importance', 'average\_shap', and 'default'.
 
 ##### Evaluation metrics: metrics
@@ -76,7 +76,7 @@ When the [eval\_metric](https://xgboost.readthedocs.io/en/latest/parameter.html#
 parameter is specified in `params` or the [eval](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.train)
 parameter is set in [xgboost.train()](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.train),
 XGBoost computes the evaluation metrics for training and/or validation data.
-TornasoleHook will match the regex pattern of these evaluation metrics
+SessionHook will match the regex pattern of these evaluation metrics
 and provide them in a collection named `metrics`.
 
 ##### Feature importances: feature\_importance
@@ -89,7 +89,7 @@ These values are equivalent to the values you would get from
 Zero-valued feature importances are not included in the collection.
 
 #### SHAP values: average\_shap
-If you use the `shap_data` parameter in `smdebug.xgboost.TornasoleHook`,
+If you use the `shap_data` parameter in `smdebug.xgboost.SessionHook`,
 Tornasole provides the average [SHAP](https://github.com/slundberg/shap) value
 of each feature in a collection named `average_shap`.
 The `shap_data` parameter can be a tuple (file path, content type) or an
@@ -100,8 +100,8 @@ Zero-valued SHAP values are not included in the collection.
 collections contain the regex pattern that match with tensors of type
 evaluation metrics, feature importances, and SHAP values. The regex pattern for
 the 'default' collection is set when user specifies *include\_regex* with
-TornasoleHook or sets the *save_all=True*.  These collections use the SaveConfig
-parameter provided with the TornasoleHook initialization. The TornasoleHook
+SessionHook or sets the *save_all=True*.  These collections use the SaveConfig
+parameter provided with the SessionHook initialization. The SessionHook
 will store the related tensors, if user does not specify any special collection
 with *include\_collections* parameter. If user specifies a collection with
 *include\_collections* the above default collections will not be in effect.
@@ -164,7 +164,7 @@ This list of tensors to watch for is taken as a list of strings representing nam
         if this is given, it ignores the save_interval.
 ```
 
-The default value of _save\_interval_ is 100. The TornasoleHook that uses a default SaveConfig object will store the tensors every 100th step.
+The default value of _save\_interval_ is 100. The SessionHook that uses a default SaveConfig object will store the tensors every 100th step.
 
 ### ReductionConfig
 
@@ -176,4 +176,4 @@ By reduction here we mean an operation that converts the tensor to a scalar.
 However, in XGBoost, we currently support evaluation metrics, feature
 importances, and average SHAP values, which are all scalars and not tensors.
 Therefore, if the `reduction_config` parameter is set in
-`smdebug.xgboost.TornasoleHook`, it will be ignored and not used at all.
+`smdebug.xgboost.SessionHook`, it will be ignored and not used at all.

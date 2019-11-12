@@ -50,7 +50,7 @@ def dataset(batch_size=4):
 
 
 def train(model, device, optimizer, num_steps=10):
-    """Runs the training loop, no explicit Tornasole here."""
+    """Runs the training loop."""
     model.train()
     for i in range(num_steps):
         batch_size = 4
@@ -72,7 +72,7 @@ def run(rank, size, num_epochs=10, batch_size=128, num_batches=10):
     optimizer = optim.SGD(model.parameters(), lr=1)
 
     shutil.rmtree(out_dir, ignore_errors=True)
-    hook = smd.TornasoleHook(
+    hook = smd.Hook(
         out_dir=out_dir, save_config=smd.SaveConfig(save_steps=[0, 1, 5]), save_all=True
     )
     hook.register_hook(model)
@@ -124,7 +124,7 @@ def test_run_net_single_process():
     optimizer = optim.SGD(model.parameters(), lr=0.01)
 
     shutil.rmtree(out_dir, ignore_errors=True)
-    hook = smd.TornasoleHook(
+    hook = smd.Hook(
         out_dir=out_dir, save_config=smd.SaveConfig(save_steps=[0, 1, 5]), save_all=True
     )
     hook.register_hook(model)

@@ -7,7 +7,7 @@ import numpy as np
 # First Party
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 
-TORNASOLE_REDUCTIONS_PREFIX = "smdebug/reductions/"
+REDUCTIONS_PREFIX = "smdebug/reductions/"
 
 
 def get_numpy_reduction(reduction_name, numpy_data, abs=False):
@@ -49,12 +49,12 @@ def get_reduction_tensor_name(tensorname, reduction_name, abs, remove_colon_inde
         tname = re.sub(r":\d+", "", tname)
     if abs:
         tname = "abs_" + tname
-    tname = TORNASOLE_REDUCTIONS_PREFIX + tname
+    tname = REDUCTIONS_PREFIX + tname
     return tname
 
 
 def reverse_reduction_tensor_name(reduction_tensor_name):
-    rest = reduction_tensor_name.split(TORNASOLE_REDUCTIONS_PREFIX)[1]
+    rest = reduction_tensor_name.split(REDUCTIONS_PREFIX)[1]
     parts = rest.split("/", 1)
     reduction_name = parts[0]
     if "abs_" in reduction_name:

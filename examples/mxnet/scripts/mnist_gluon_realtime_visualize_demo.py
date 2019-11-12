@@ -13,7 +13,7 @@ from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
 from smdebug import SaveConfig, modes
-from smdebug.mxnet import TornasoleHook
+from smdebug.mxnet import Hook
 
 
 def parse_args():
@@ -99,7 +99,7 @@ def prepare_data(batch_size):
     return train_data, valid_data
 
 
-# Create a model using gluon API. The tornasole hook is currently
+# Create a model using gluon API. The hook is currently
 # supports MXNet gluon models only.
 def create_gluon_model():
     # Create Model in Gluon
@@ -118,16 +118,16 @@ def create_gluon_model():
     return net
 
 
-# Create a tornasole hook. The initialization of hook determines which tensors
+# Create a hook. The initialization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initialization that enables logging of
 # all tensors in the model.
-def create_tornasole_hook():
+def create_hook():
     # With the following SaveConfig, we will save tensors for every 100 steps
     save_config = SaveConfig(save_interval=100)
 
     # Create a hook that logs weights, biases and gradients while training the model.
-    hook = TornasoleHook(save_config=save_config, save_all=True)
+    hook = Hook(save_config=save_config, save_all=True)
     return hook
 
 
@@ -137,8 +137,8 @@ def main():
     # Create a Gluon Model.
     net = create_gluon_model()
 
-    # Create a tornasole hook for logging all tensors.
-    hook = create_tornasole_hook()
+    # Create a hook for logging all tensors.
+    hook = create_hook()
 
     # Register the hook to the top block.
     hook.register_hook(net)

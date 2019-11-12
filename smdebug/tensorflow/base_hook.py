@@ -109,7 +109,7 @@ class TensorflowBaseHook(BaseHook):
         Device names are used as worker names for this MirroredStrategy.
         The names of the workers are managed by device_map in the case of this strategy.
 
-        It is safe to return the TORNASOLE_CONFIG_DEFAULT_WORKER_NAME in this case.
+        It is safe to return the CONFIG_DEFAULT_WORKER_NAME in this case.
         :return: str
         """
         try:

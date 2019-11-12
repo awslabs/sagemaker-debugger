@@ -95,7 +95,7 @@ def helper_test_modes(hook=None, out_dir="./test_output/test_hook_modes/"):
     json = hook is not None
     if hook is None:
         out_dir = str(Path(out_dir, prefix))
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=out_dir,
             save_config=SaveConfig({modes.TRAIN: SaveConfigMode(save_steps=save_steps)}),
             include_collections=[
@@ -134,6 +134,6 @@ def test_training_mode_json():
     out_dir = "test_output/test_hook_modes/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_modes.json"
-    hook = TornasoleHook.hook_from_config()
+    hook = Hook.hook_from_config()
     helper_test_modes(hook, out_dir)
     shutil.rmtree(out_dir, True)

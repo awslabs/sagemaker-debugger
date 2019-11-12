@@ -19,10 +19,10 @@ from smdebug.core.access_layer.s3handler import ListRequest, S3Handler
 from smdebug.core.logger import get_logger
 
 # set environment variable values for tornasole
-os.environ["TORNASOLE_LOG_LEVEL"] = "DEBUG"
-os.environ["TORNASOLE_LOG_ALL_TO_STDOUT"] = "TRUE"
+os.environ["SMDEBUG_LOG_LEVEL"] = "DEBUG"
+os.environ["SMDEBUG_LOG_ALL_TO_STDOUT"] = "TRUE"
 LOG_PATH = str(uuid.uuid4())
-os.environ["TORNASOLE_LOG_PATH"] = LOG_PATH
+os.environ["SMDEBUG_LOG_PATH"] = LOG_PATH
 
 # if true, block stdout prints on console, if false, show stdout prints on console
 stdout = os.environ.get("BLOCK_STDOUT", default="FALSE") == "TRUE"
@@ -214,7 +214,7 @@ class TestRules:
             local_or_s3 = "s3_mode"
         else:
             local_or_s3 = "local_mode"
-        commands = "python {} --tornasole_path {} {}".format(path_to_script, trial_dir, script_args)
+        commands = "python {} --smdebug_path {} {}".format(path_to_script, trial_dir, script_args)
         logger.info("IntegrationTest running command {}".format(commands))
         # use subprocess to execute cmd line prompt
         command_list = commands.split()
@@ -227,8 +227,8 @@ class TestRules:
             stderr=PIPE if self.stderr_mode else None,
             env=dict(
                 os.environ,
-                TORNASOLE_LOG_CONTEXT="{}_{}".format(path_to_script, trial_dir),
-                TORNASOLE_LOG_PATH=os.path.join(
+                SMDEBUG_LOG_CONTEXT="{}_{}".format(path_to_script, trial_dir),
+                SMDEBUG_LOG_PATH=os.path.join(
                     self.logs_dir,
                     "{}_{}_{}_{}_{}.log".format(
                         mode.split("_")[0],
@@ -238,8 +238,8 @@ class TestRules:
                         time_stamp,
                     ),
                 ),
-                TORNASOLE_LOG_LEVEL="debug",
-                TORNASOLE_LOG_ALL_TO_STDOUT="FALSE",
+                SMDEBUG_LOG_LEVEL="debug",
+                SMDEBUG_LOG_ALL_TO_STDOUT="FALSE",
             ),
         )
 

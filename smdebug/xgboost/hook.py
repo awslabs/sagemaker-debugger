@@ -28,7 +28,7 @@ DEFAULT_SAVE_CONFIG_END_STEP = None
 DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 
 
-class TornasoleHook(CallbackHook):
+class Hook(CallbackHook):
     """Tornasole hook that represents a callback function in XGBoost."""
 
     def __init__(
@@ -52,9 +52,9 @@ class TornasoleHook(CallbackHook):
 
         Example
         -------
-        >>> from smdebug.xgboost import TornasoleHook
-        >>> tornasole_hook = TornasoleHook()
-        >>> xgboost.train(prams, dtrain, callbacks=[tornasole_hook])
+        >>> from smdebug.xgboost import SessionHook
+        >>> hook = SessionHook()
+        >>> xgboost.train(prams, dtrain, callbacks=[hook])
 
         Parameters
         ----------

@@ -9,7 +9,7 @@ from mxnet import autograd, gluon
 from mxnet.gluon import nn
 
 # First Party
-from smdebug.mxnet import SaveConfig, TornasoleHook, modes
+from smdebug.mxnet import Hook, SaveConfig, modes
 
 
 def parse_args():
@@ -23,7 +23,7 @@ def parse_args():
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument(
-        "--tornasole_path",
+        "--smdebug_path",
         type=str,
         default=None,
         help="S3 URI of the bucket where tensor data will be stored.",
@@ -37,7 +37,7 @@ def parse_args():
         "If this is not passed, trains for one epoch "
         "of training and validation data",
     )
-    parser.add_argument("--tornasole_frequency", type=int, default=100)
+    parser.add_argument("--save_frequency", type=int, default=100)
     opt = parser.parse_args()
     return opt
 
@@ -121,7 +121,7 @@ def prepare_data():
     return train_data, val_data
 
 
-# Create a model using gluon API. The tornasole hook is currently
+# Create a model using gluon API. The hook is currently
 # supports MXNet gluon models only.
 def create_gluon_model():
     net = nn.Sequential()
@@ -132,16 +132,16 @@ def create_gluon_model():
     return net
 
 
-# Create a tornasole hook. The initialization of hook determines which tensors
+# Create a hook. The initialization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initialization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_uri, tornasole_frequency):
+def create_hook(output_uri, save_frequency):
     # With the following SaveConfig, we will save tensors with the save_interval 100.
-    save_config = SaveConfig(save_interval=tornasole_frequency)
+    save_config = SaveConfig(save_interval=save_frequency)
 
     # Create a hook that logs weights, biases and gradients while training the model.
-    hook = TornasoleHook(
+    hook = Hook(
         out_dir=output_uri,
         save_config=save_config,
         include_collections=["weights", "gradients", "biases"],
@@ -163,10 +163,10 @@ def main():
     # Create a Gluon Model.
     net = create_gluon_model()
 
-    # Create a tornasole hook for logging the desired tensors.
+    # Create a hook for logging the desired tensors.
     # The output_uri is a the URI where the tensors will be saved. It can be local or s3://bucket/prefix
-    output_uri = opt.tornasole_path if opt.tornasole_path is not None else opt.output_uri
-    hook = create_tornasole_hook(output_uri, opt.tornasole_frequency)
+    output_uri = opt.smdebug_path if opt.smdebug_path is not None else opt.output_uri
+    hook = create_hook(output_uri, opt.save_frequency)
 
     # Register the hook to the top block.
     hook.register_hook(net)

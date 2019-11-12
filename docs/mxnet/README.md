@@ -57,34 +57,34 @@ If you want to quickly run some examples, you can jump to [examples](#examples) 
 
 Integrating Tornasole into the training job can be accomplished by following steps below.
 
-### Import the tornasole_hook package
-Import the TornasoleHook class along with other helper classes in your training script as shown below
+### Import the hook package
+Import the SessionHook class along with other helper classes in your training script as shown below
 
 ```
-from smdebug.mxnet.hook import TornasoleHook
+from smdebug.mxnet.hook import SessionHook
 from smdebug.mxnet import SaveConfig, Collection
 ```
 
-### Instantiate and initialize tornasole hook
+### Instantiate and initialize hook
 
 ```
     # Create SaveConfig that instructs engine to log graph tensors every 10 steps.
     save_config = SaveConfig(save_interval=10)
     # Create a hook that logs tensors of weights, biases and gradients while training the model.
     output_s3_uri = 's3://my_mxnet_training_debug_bucket/12345678-abcd-1234-abcd-1234567890ab'
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config)
+    hook = SessionHook(out_dir=output_s3_uri, save_config=save_config)
 ```
 
-Using the _Collection_ object and/or _include\_regex_ parameter of TornasoleHook , users can control which tensors will be stored by the TornasoleHook.
+Using the _Collection_ object and/or _include\_regex_ parameter of SessionHook , users can control which tensors will be stored by the SessionHook.
 The section [How to save tensors](#how-to-save-tensors) explains various ways users can create _Collection_ object to store the required tensors.
 
-The _SaveConfig_ object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the save\_config parameter is not specified, the TornasoleHook will store tensors after every 100 steps.
+The _SaveConfig_ object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the save\_config parameter is not specified, the SessionHook will store tensors after every 100 steps.
 
-For additional details on TornasoleHook, SaveConfig and Collection please refer to the [API documentation](api.md)
+For additional details on SessionHook, SaveConfig and Collection please refer to the [API documentation](api.md)
 
 ### Register Tornasole hook to the model before starting of the training.
 
-#### NOTE: The tornasole hook can only be registered to Gluon Non-hybrid models.
+#### NOTE: The hook can only be registered to Gluon Non-hybrid models.
 
 After creating or loading the desired model, users can register the hook with the model as shown below.
 
@@ -138,8 +138,8 @@ Note: You can also try some further analysis on tensors saved by following [prog
 Please refer to [this document](api.md) for description of all the functions and parameters that our APIs support
 
 ####  Hook
-TornasoleHook is the entry point for Tornasole into your program.
-Some key parameters to consider when creating the TornasoleHook are the following:
+SessionHook is the entry point for Tornasole into your program.
+Some key parameters to consider when creating the SessionHook are the following:
 
 - `out_dir`: This represents the path to which the outputs of tornasole will be written to under a directory with the name `out_dir`. This can be a local path or an S3 prefix of the form `s3://bucket_name/prefix`.
 - `save_config`: This is an object of [SaveConfig](#saveconfig). The SaveConfig allows user to specify when the tensors are to be stored. User can choose to specify the number of steps or the intervals of steps when the tensors will be stored. If not specified, it defaults to a SaveConfig which saves every 100 steps.
@@ -152,7 +152,7 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 
 ```
 import smdebug.mxnet as smd
-tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
+tm.SessionHook(out_dir='s3://tornasole-testing/trial_job_dir',
                  save_config=smd.SaveConfig(save_interval=100),
                  include_collections=['weights', 'gradients'])
 ```
@@ -161,7 +161,7 @@ tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
 
 ```
 import smdebug.mxnet as smd
-tm.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
+tm.SessionHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
                  include_regex=['relu*'])
 ```
 
@@ -182,11 +182,11 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfig object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from smdebug.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import SessionHook, get_collection, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
-hook = TornasoleHook(...,
+hook = SessionHook(...,
                      save_config=scm,
                      ...)
 ```
@@ -255,7 +255,7 @@ These reduction config instances can be passed to the hook as follows
 ```
 	import smdebug.mxnet as smd
 	global_reduce_config = smd.ReductionConfig(reductions=["max", "mean"])
-	hook = smd.TornasoleHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
+	hook = smd.SessionHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
 ```
 
 Or ReductionConfig can be specified for an individual collection as follows
@@ -269,7 +269,7 @@ tm.get_collection("ReluActivation").reduction_config = ReductionConfig(reduction
 tm.get_collection("flatten").include(["flatten*"])
 tm.get_collection("flatten").save_config = SaveConfig(save_steps=[4,5,6])
 tm.get_collection("flatten").reduction_config = ReductionConfig(norms=["l1"], abs_norms=["l2"])
-hook = TornasoleHook(out_dir=out_dir, include_collections=['weights', 'biases','gradients',
+hook = SessionHook(out_dir=out_dir, include_collections=['weights', 'biases','gradients',
                                                     'default', 'ReluActivation', 'flatten'])
 ```
 
@@ -286,10 +286,10 @@ Users can also specify a certain block in the model to save the inputs and outpu
 This section will take you through these ways in more detail.
 
 #### Saving the tensors with _include\_regex_
-The TornasoleHook API supports _include\_regex_ parameter. The users can specify a regex pattern with this pattern. The TornasoleHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
+The SessionHook API supports _include\_regex_ parameter. The users can specify a regex pattern with this pattern. The SessionHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
 
 #### Default Collections
-Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'biases' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with TornasoleHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the TornasoleHook initialization. The TornasoleHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect.
+Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'biases' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with SessionHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the SessionHook initialization. The SessionHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect.
 
 #### Custom Collections
 You can also create any other customized collection yourself.
@@ -345,23 +345,23 @@ The [mnist\_gluon\_basic\_hook\_demo.py](../../examples/mxnet/scripts/mnist_gluo
 Here is how to create a hook for this purpose.
 
 ```
- # Create a tornasole hook. The initialization of hook determines which tensors
+ # Create a hook. The initialization of hook determines which tensors
  # are logged while training is in progress.
  # Following function shows the default initialization that enables logging of
  # weights, biases and gradients in the model.
-def create_tornasole_hook(output_s3_uri):
+def create_hook(output_s3_uri):
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_steps=[1, 2, 3])
     # Create a hook that logs weights, biases and gradients while training the model.
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config)
+    hook = SessionHook(out_dir=output_s3_uri, save_config=save_config)
     return hook
 ```
 
 Here is how to register the hook
 
 ```
- # Create a model using gluon API. The tornasole hook is currently
+ # Create a model using gluon API. The hook is currently
  # supports MXNet gluon models only.
 def create_gluon_model():
     # Create Model in Gluon
@@ -378,7 +378,7 @@ def create_gluon_model():
 ...
     # Create a Gluon Model.
 	net = create_gluon_model()
-	hook = create_tornasole_hook(output_s3_uri)
+	hook = create_hook(output_s3_uri)
 	hook.register(net)
 ```
 
@@ -395,7 +395,7 @@ python examples/mxnet/scripts/mnist_gluon_basic_hook_demo.py --help
 ```
 
 #### Logging the inputs and output of a model along with weights and gradients
-The [mnist\_gluon\_model\_input\_output\_demo.py](../../examples/mxnet/scripts/mnist_gluon_model_input_output_demo.py) shows how to create and register the tornasole hook that can log the inputs and output of the model in addition to weights and gradients tensors.
+The [mnist\_gluon\_model\_input\_output\_demo.py](../../examples/mxnet/scripts/mnist_gluon_model_input_output_demo.py) shows how to create and register the hook that can log the inputs and output of the model in addition to weights and gradients tensors.
 In order to achieve this we would need to create a collection as follows
 
 ```
@@ -410,11 +410,11 @@ The name of the Collection is "TopBlock". We have created it around top level bl
 Following code shows how to initialize the hook with the above collection.
 
 ```
- # Create a tornasole hook. The initialization of hook determines which tensors
+ # Create a hook. The initialization of hook determines which tensors
  # are logged while training is in progress.
  # Following function shows the hook initialization that enables logging of
  # weights, biases and gradients in the model along with the inputs and outputs of the model.
-def create_tornasole_hook(output_s3_uri, block):
+def create_hook(output_s3_uri, block):
     # Create a SaveConfig that determines tensors from which steps are to be stored.
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3.
     save_config = SaveConfig(save_steps=[1, 2, 3])
@@ -424,14 +424,14 @@ def create_tornasole_hook(output_s3_uri, block):
     # In order to log the inputs and output of a model, we will create a collection as follows:
     smd.get_collection('TopBlock').add_block_tensors(block, inputs=True, outputs=True)
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, include_collections=['weights', 'gradients', 'biases','TopBlock'])
+    hook = SessionHook(out_dir=output_s3_uri, save_config=save_config, include_collections=['weights', 'gradients', 'biases','TopBlock'])
     return hook
 ```
 
 Here is how to register the above hook.
 
 ```
- # Create a model using gluon API. The tornasole hook is currently
+ # Create a model using gluon API. The hook is currently
  # supports MXNet gluon models only.
 def create_gluon_model():
     # Create Model in Gluon
@@ -444,7 +444,7 @@ def create_gluon_model():
     return net
 ...
 net = create_gluon_model()
-hook = create_tornasole_hook(output_s3_uri)
+hook = create_hook(output_s3_uri)
 hook.register(net)
 ```
 
@@ -461,13 +461,13 @@ python examples/mxnet/scripts/mnist_gluon_model_input_output_demo.py --help
 ```
 
 #### Logging the inputs and output of a block in the model along with weights and gradients
-The [mnist\_gluon\_block\_input\_output\_demo.py](../../examples/mxnet/scripts/mnist_gluon_block_input_output_demo.py) shows how to create and register the tornasole hook that can log the inputs and output of a particular block in the model in addition to weights and gradients tensors.
+The [mnist\_gluon\_block\_input\_output\_demo.py](../../examples/mxnet/scripts/mnist_gluon_block_input_output_demo.py) shows how to create and register the hook that can log the inputs and output of a particular block in the model in addition to weights and gradients tensors.
 
 **NOTE: For this type of logging the Gluon Model should not be hybridized.**
 In order to achieve this we need to have access to the block object whose tensors we want to log. The following code snippet shows how we can cache the block objects while creating a model. Ensure that the model is not hybridized.
 
 ```
- # Create a model using gluon API. The tornasole hook is currently
+ # Create a model using gluon API. The hook is currently
  # supports MXNet gluon models only.
 def create_gluon_model():
     # Create Model in Gluon
@@ -484,15 +484,15 @@ def create_gluon_model():
     return net, child_blocks
 ```
 
-We can then create a collection to log the input output tensors of one of the child_blocks. For example, child_block[0] is passed to *create_tornasole_hook* function as 'block' and the function creates collection for that block as shown below
+We can then create a collection to log the input output tensors of one of the child_blocks. For example, child_block[0] is passed to *create_hook* function as 'block' and the function creates collection for that block as shown below
 
 ```
- # Create a tornasole hook. The initialization of hook determines which tensors
+ # Create a hook. The initialization of hook determines which tensors
  # are logged while training is in progress.
  # Following function shows the hook initialization that enables logging of
  # weights, biases and gradients in the model along with the inputs and output of the given
  # child block.
-def create_tornasole_hook(output_s3_uri, block):
+def create_hook(output_s3_uri, block):
     # Create a SaveConfig that determines tensors from which steps are to be stored.
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3.
     save_config = SaveConfig(save_steps=[1, 2, 3])
@@ -502,7 +502,7 @@ def create_tornasole_hook(output_s3_uri, block):
     # In order to log the inputs and output of a model, we will create a collection as follows
     smd.get_collection(block.name).add_block_tensors(block, inputs=True, outputs=True)
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, include_collections=[
+    hook = SessionHook(out_dir=output_s3_uri, save_config=save_config, include_collections=[
         'weights', 'gradients', 'biases', block.name])
     return hook
 ```
@@ -518,14 +518,14 @@ Here is how to register the above hook.
 ```
     # Create a Gluon Model.
     net,child_blocks = create_gluon_model()
-    # Create a tornasole hook for logging the desired tensors.
+    # Create a hook for logging the desired tensors.
     # The output_s3_uri is a the URI for the s3 bucket where the tensors will be saved.
     # The trial_id is used to store the tensors from different trials separately.
     output_s3_uri=opt.output_s3_uri
-    # For creating a tornasole hook that can log inputs and output of the specific child block in the model,
-    # we will pass the desired block object to the create_tornasole_hook function.
+    # For creating a hook that can log inputs and output of the specific child block in the model,
+    # we will pass the desired block object to the create_hook function.
     # In the following case, we are attempting log inputs and output of the first Conv2D block.
-    hook = create_tornasole_hook(output_s3_uri, child_blocks[0])
+    hook = create_hook(output_s3_uri, child_blocks[0])
     # Register the hook to the top block.
     hook.register_hook(net)
 ```
@@ -545,26 +545,26 @@ python examples/mxnet/scripts/mnist_gluon_block_input_output_demo.py --help
 
 #### Saving all tensors in the model
 The [mnist\_gluon\_save_all\_demo.py](../../examples/mxnet/scripts/mnist_gluon_save_all_demo.py) shows how to store every tensor in the model.
-As mentioned above, for saving all the tensors users not required to create a special collection. Users can set _save_all_ flag while creating TornasoleHook as shown below.
+As mentioned above, for saving all the tensors users not required to create a special collection. Users can set _save_all_ flag while creating SessionHook as shown below.
 
 ```
- # Create a tornasole hook. The initialization of hook determines which tensors
+ # Create a hook. The initialization of hook determines which tensors
  # are logged while training is in progress.
- # Following function shows the initialization of tornasole hook that enables logging of
+ # Following function shows the initialization of hook that enables logging of
  # all the tensors in the model.
-def create_tornasole_hook(output_s3_uri):
+def create_hook(output_s3_uri):
     # Create a SaveConfig that determines tensors from which steps are to be stored.
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3.
     save_config = SaveConfig(save_steps=[1, 2, 3])
     # Create a hook that logs all the tensors seen while training the model.
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config, save_all=True)
+    hook = SessionHook(out_dir=output_s3_uri, save_config=save_config, save_all=True)
     return hook
 ```
 
 Here is how to register the above hook.
 
 ```
- # Create a model using gluon API. The tornasole hook is currently
+ # Create a model using gluon API. The hook is currently
  # supports MXNet gluon models only.
 def create_gluon_model():
     # Create Model in Gluon
@@ -577,7 +577,7 @@ def create_gluon_model():
     return net
 ...
 net = create_gluon_model()
-hook = create_tornasole_hook(output_s3_uri)
+hook = create_hook(output_s3_uri)
 hook.register(net)
 ```
 
@@ -629,10 +629,10 @@ logging.getLogger('tornasole').setLevel = logging.INFO
 ```
 
 **Using environment variable**
-You can also set the environment variable `TORNASOLE_LOG_LEVEL` as below
+You can also set the environment variable `SMDEBUG_LOG_LEVEL` as below
 
 ```
-export TORNASOLE_LOG_LEVEL=INFO
+export SMDEBUG_LOG_LEVEL=INFO
 ```
 Log levels available are 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL', 'OFF'.
 

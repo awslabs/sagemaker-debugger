@@ -87,15 +87,15 @@ class Net(nn.Module):
         return out
 
 
-# Create a tornasole hook. The initilization of hook determines which tensors
+# Create a hook. The initilization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initilization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
+def create_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
     reset_collections()
     # Create a hook that logs weights, biases, gradients and inputs/ouputs of model
     if hook_type == "saveall":
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=output_dir, save_config=SaveConfig(save_steps=save_steps), save_all=True
         )
     elif hook_type == "module-input-output":
@@ -107,7 +107,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_ste
         get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=output_dir,
             save_config=SaveConfig(save_steps=save_steps),
             include_collections=[
@@ -120,7 +120,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_ste
     elif hook_type == "weights-bias-gradients":
         save_config = SaveConfig(save_steps=save_steps)
         # Create a hook that logs ONLY weights, biases, and gradients
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=output_dir,
             save_config=save_config,
             include_collections=[
@@ -169,7 +169,7 @@ def helper_test_weights_bias_gradients(hook=None):
     model = Net(mode=hook_type, to_save=save_steps).to(device)
     json = hook is not None
     if not json:
-        hook = create_tornasole_hook(
+        hook = create_hook(
             "test_output/test_hook_save_weightsbiasgradients/" + prefix,
             model,
             hook_type,
@@ -226,7 +226,7 @@ def saveall_test_helper(hook=None):
     model = Net(mode=hook_type, to_save=save_steps).to(device)
     json = hook is not None
     if not json:
-        hook = create_tornasole_hook(
+        hook = create_hook(
             "test_output/test_hook_saveall/" + prefix, model, hook_type, save_steps=save_steps
         )
     hook.register_hook(model)
@@ -303,7 +303,7 @@ def test_weightsbiasgradients_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_weightsbiasgradients.json"
-    hook = TornasoleHook.hook_from_config()
+    hook = Hook.hook_from_config()
     helper_test_weights_bias_gradients(hook)
 
 
@@ -316,7 +316,7 @@ def test_saveall_json():
     out_dir = "test_output/test_hook_saveall/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_hook_saveall.json"
-    hook = TornasoleHook.hook_from_config()
+    hook = Hook.hook_from_config()
     saveall_test_helper(hook)
 
 
@@ -332,5 +332,5 @@ def test_multi_collection_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_multi_collections.json"
-    hook = TornasoleHook.hook_from_config()
+    hook = Hook.hook_from_config()
     helper_test_multi_collections(hook, out_dir)

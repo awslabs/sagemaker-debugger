@@ -88,14 +88,14 @@ def test(args, model, device, test_loader):
     )
 
 
-# Create a tornasole hook. The initilization of hook determines which tensors
+# Create a hook. The initilization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initilization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_dir, module=None, hook_type="saveall"):
+def create_hook(output_dir, module=None, hook_type="saveall"):
     # Create a hook that logs weights, biases, gradients and inputs/ouputs of model every 10 steps while training.
     if hook_type == "saveall":
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=output_dir,
             save_config=SaveConfig(save_steps=[i * 10 for i in range(20)]),
             save_all=True,
@@ -109,7 +109,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall"):
         get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model every 5 steps from steps 0-100 while training.
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=output_dir,
             save_config=SaveConfig(save_steps=[i * 5 for i in range(20)]),
             include_collections=["weights", "gradients", "biases", "l_mod"],
@@ -117,7 +117,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall"):
     elif hook_type == "weights-bias-gradients":
         save_config = SaveConfig(save_steps=[i * 5 for i in range(20)])
         # Create a hook that logs ONLY weights, biases, and gradients every 5 steps (from steps 0-100) while training the model.
-        hook = TornasoleHook(out_dir=output_dir, save_config=save_config)
+        hook = Hook(out_dir=output_dir, save_config=save_config)
     return hook
 
 
@@ -208,7 +208,7 @@ def main():
 
     optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 
-    hook = create_tornasole_hook(output_dir=args.output_uri, module=model, hook_type=args.hook_type)
+    hook = create_hook(output_dir=args.output_uri, module=model, hook_type=args.hook_type)
     hook.register_hook(model)
 
     for epoch in range(1, args.epochs + 1):

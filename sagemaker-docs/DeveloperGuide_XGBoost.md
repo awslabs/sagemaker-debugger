@@ -10,28 +10,28 @@ Integrating Tornasole into the training job can be accomplished by following ste
 
 ### Import the Tornasole package
 
-Import the TornasoleHook class along with other helper classes in your training script as shown below
+Import the SessionHook class along with other helper classes in your training script as shown below
 
 ```
-from smdebug.xgboost import TornasoleHook
+from smdebug.xgboost import SessionHook
 from smdebug import SaveConfig
 ```
 
-### Instantiate and initialize tornasole hook
+### Instantiate and initialize hook
 
 ```
     # Create SaveConfig that instructs engine to log graph tensors every 10 steps.
     save_config = SaveConfig(save_interval=10)
     # Create a hook that logs evaluation metrics and feature importances while training the model.
-    hook = TornasoleHook(save_config=save_config)
+    hook = SessionHook(save_config=save_config)
 ```
 
-Using the *Collection* object and/or *include\_regex* parameter of TornasoleHook , users can control which tensors will be stored by the TornasoleHook.
+Using the *Collection* object and/or *include\_regex* parameter of SessionHook , users can control which tensors will be stored by the SessionHook.
 The section [How to save tensors](#how-to-save-tensors) explains various ways users can create *Collection* object to store the required tensors.
 
-The *SaveConfig* object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the *save\_config* parameter is not specified, the TornasoleHook will store tensors after every 100 steps.
+The *SaveConfig* object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the *save\_config* parameter is not specified, the SessionHook will store tensors after every 100 steps.
 
-For additional details on TornasoleHook, SaveConfig and Collection please refer to the [API documentation](api.md)
+For additional details on SessionHook, SaveConfig and Collection please refer to the [API documentation](api.md)
 
 ### Register Tornasole hook to the model before starting of the training.
 
@@ -49,8 +49,8 @@ Please refer to [this document](api.md) for description of all the functions and
 
 ####  Hook
 
-TornasoleHook is the entry point for Tornasole into your program.
-Some key parameters to consider when creating the TornasoleHook are the following:
+SessionHook is the entry point for Tornasole into your program.
+Some key parameters to consider when creating the SessionHook are the following:
 
 - `out_dir`: This represents the path to which the outputs of tornasole will be written to under a directory with the name `out_dir`. Note that in a SageMaker environment the out_dir will be ignored and always default to `/opt/ml/output/tensors`.
 - `save_config`: This is an object of [SaveConfig](#saveconfig). The SaveConfig allows user to specify when the tensors are to be stored. User can choose to specify the number of steps or the intervals of steps when the tensors will be stored. If not specified, it defaults to a SaveConfig which saves every 100 steps.
@@ -63,7 +63,7 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 
 ```
 import smdebug.xgboost as tx
-tx.TornasoleHook(save_config=SaveConfig(save_interval=10),
+tx.SessionHook(save_config=SaveConfig(save_interval=10),
                  include_collections=['metrics', 'feature_importance'])
 ```
 
@@ -71,7 +71,7 @@ tx.TornasoleHook(save_config=SaveConfig(save_interval=10),
 
 ```
 import smdebug.xgboost as tx
-tx.TornasoleHook(include_regex=['validation*'])
+tx.SessionHook(include_regex=['validation*'])
 ```
 
 Refer [API](api.md) for all parameters available and detailed descriptions.
@@ -120,7 +120,7 @@ By reduction here we mean an operation that converts the tensor to a scalar.
 However, in XGBoost, we currently support evaluation metrics, feature
 importances, and average SHAP values, which are all scalars and not tensors.
 Therefore, if the `reduction_config` parameter is set in
-`smdebug.xgboost.TornasoleHook`, it will be ignored and not used at all.
+`smdebug.xgboost.SessionHook`, it will be ignored and not used at all.
 
 ### How to save tensors
 
@@ -133,16 +133,16 @@ Besides the tensors in above default collections, you can save tensors by name o
 This section will take you through these ways in more detail.
 
 #### Saving the tensors with *include\_regex*
-The TornasoleHook API supports *include\_regex* parameter. The users can specify a regex pattern with this pattern. The TornasoleHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
+The SessionHook API supports *include\_regex* parameter. The users can specify a regex pattern with this pattern. The SessionHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
 
 #### Default Collections
-Currently, the XGBoost TornasoleHook creates Collection objects for
+Currently, the XGBoost SessionHook creates Collection objects for
 'metrics', 'feature\_importance', 'average\_shap', and 'default'. These
 collections contain the regex pattern that match with
 evaluation metrics, feature importances, and SHAP values. The regex pattern for
 the 'default' collection is set when user specifies *include\_regex* with
-TornasoleHook or sets the *save_all=True*.  These collections use the SaveConfig
-parameter provided with the TornasoleHook initialization. The TornasoleHook
+SessionHook or sets the *save_all=True*.  These collections use the SaveConfig
+parameter provided with the SessionHook initialization. The SessionHook
 will store the related tensors, if user does not specify any special collection
 with *include\_collections* parameter. If user specifies a collection with
 *include\_collections* the above default collections will not be in effect.

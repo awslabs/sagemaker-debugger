@@ -160,10 +160,8 @@ def add_cli_args():
     )
 
     cmdline.add_argument("--save_all", type=str2bool, default=True)
-    cmdline.add_argument("--tornasole_path", type=str, default="/opt/ml/output/tensors")
-    cmdline.add_argument(
-        "--tornasole_frequency", type=int, help="How often to save TS data", default=10
-    )
+    cmdline.add_argument("--smdebug_path", type=str, default="/opt/ml/output/tensors")
+    cmdline.add_argument("--save_frequency", type=int, help="How often to save TS data", default=10)
     cmdline.add_argument(
         "--reductions",
         type=str2bool,
@@ -243,11 +241,11 @@ def main(unused_argv):
         else None
     )
 
-    ts_hook = smd.TornasoleHook(
-        out_dir=FLAGS.tornasole_path,
+    ts_hook = smd.SessionHook(
+        out_dir=FLAGS.smdebug_path,
         save_all=FLAGS.save_all,
         include_collections=["weights", "gradients", "losses", "biases"],
-        save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_frequency),
+        save_config=smd.SaveConfig(save_interval=FLAGS.save_frequency),
         reduction_config=rdnc,
     )
 

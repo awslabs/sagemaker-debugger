@@ -5,7 +5,7 @@ import shutil
 # First Party
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.modes import ModeKeys
-from smdebug.tensorflow.session import TornasoleHook
+from smdebug.tensorflow.session import SessionHook
 
 # Local
 from .utils import pre_test_clean_up
@@ -17,7 +17,7 @@ def test_collection_defaults_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     # Check save_intervals for each mode
     assert hook.save_config.get_save_config(ModeKeys.TRAIN).save_interval == 2
     assert hook.save_config.get_save_config(ModeKeys.EVAL).save_interval == 3

@@ -12,7 +12,7 @@ import xgboost
 
 # First Party
 from smdebug import SaveConfig
-from smdebug.xgboost import TornasoleHook
+from smdebug.xgboost import Hook
 
 
 def parse_args():
@@ -27,8 +27,8 @@ def parse_args():
     parser.add_argument("--silent", type=int, default=0)
     parser.add_argument("--objective", type=str, default="reg:squarederror")
     parser.add_argument("--num_round", type=int, default=50)
-    parser.add_argument("--tornasole_path", type=str, default=None)
-    parser.add_argument("--tornasole_frequency", type=int, default=1)
+    parser.add_argument("--smdebug_path", type=str, default=None)
+    parser.add_argument("--save_frequency", type=int, default=1)
     parser.add_argument(
         "--output_uri",
         type=str,
@@ -70,10 +70,10 @@ def load_abalone(train_split=0.8, seed=42):
     return train_file.name, valid_file.name
 
 
-def create_tornasole_hook(out_dir, train_data=None, validation_data=None, frequency=1):
+def create_hook(out_dir, train_data=None, validation_data=None, frequency=1):
 
     save_config = SaveConfig(save_interval=frequency)
-    hook = TornasoleHook(
+    hook = Hook(
         out_dir=out_dir,
         save_config=save_config,
         train_data=train_data,
@@ -109,11 +109,9 @@ def main():
 
     # The output_uri is a the URI for the s3 bucket where the metrics will be
     # saved.
-    output_uri = args.tornasole_path if args.tornasole_path is not None else args.output_uri
+    output_uri = args.smdebug_path if args.smdebug_path is not None else args.output_uri
 
-    hook = create_tornasole_hook(
-        out_dir=output_uri, frequency=args.tornasole_frequency, train_data=dtrain
-    )
+    hook = create_hook(out_dir=output_uri, frequency=args.save_frequency, train_data=dtrain)
 
     bst = xgboost.train(
         params=params,

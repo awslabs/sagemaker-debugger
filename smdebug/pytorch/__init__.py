@@ -13,5 +13,5 @@ from .collection import (
     load_collections,
     reset_collections,
 )
-from .hook import TornasoleHook
+from .hook import Hook
 from .singleton_utils import del_hook, get_hook, set_hook

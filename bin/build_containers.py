@@ -31,7 +31,7 @@ def build_container(framework, version, args):
         run_command(command, None, None)
 
 
-parser = argparse.ArgumentParser(description="Build Tornasole binaries")
+parser = argparse.ArgumentParser(description="Build smdebug binaries")
 parser.add_argument(
     "--tag",
     type=str,

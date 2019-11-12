@@ -14,13 +14,13 @@ from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.locations import TensorFileLocation
 from smdebug.core.reader import FileReader
 from smdebug.tensorflow import reset_collections
-from smdebug.tensorflow.session import TornasoleHook
+from smdebug.tensorflow.session import SessionHook
 
 # Local
 from .utils import *
 
 
-def helper_tornasole_hook_write(data_dir, hook):
+def helper_hook_write(data_dir, hook):
     learning_rate = 1e-3
     batch_size = 5
 
@@ -83,7 +83,7 @@ def helper_tornasole_hook_write(data_dir, hook):
             loss += v["loss"] / 1000
 
     # read saved weights from disk using summary iterator, verify if in-memory weights at end of training
-    # are identical to the ones we have saved using TornasoleHook
+    # are identical to the ones we have saved using SessionHook
     step_dir = TensorFileLocation.get_step_dir_path(data_dir, 999)
     files = os.listdir(step_dir)
     print(v.keys())
@@ -96,19 +96,19 @@ def helper_tornasole_hook_write(data_dir, hook):
 
 
 @pytest.mark.slow  # 0:01 to run
-def test_tornasole_hook_write(out_dir):
+def test_hook_write(out_dir):
     pre_test_clean_up()
-    # set up tornasole hook
-    hook = TornasoleHook(
+    # set up hook
+    hook = SessionHook(
         out_dir, save_all=True, include_collections=None, save_config=SaveConfig(save_interval=999)
     )
-    helper_tornasole_hook_write(out_dir, hook)
+    helper_hook_write(out_dir, hook)
 
 
-def test_tornasole_hook_write_json(out_dir, monkeypatch):
+def test_hook_write_json(out_dir, monkeypatch):
     pre_test_clean_up()
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_write.json"
     )
-    hook = smd.TornasoleHook.hook_from_config()
-    helper_tornasole_hook_write(out_dir, hook)
+    hook = smd.SessionHook.hook_from_config()
+    helper_hook_write(out_dir, hook)

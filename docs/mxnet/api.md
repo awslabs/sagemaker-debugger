@@ -2,11 +2,11 @@
 
 Tornasole MXNet provides the following constructs:
 ### Hook
-TornasoleHook is the entry point for Tornasole into your program.
+SessionHook is the entry point for Tornasole into your program.
 
 ```
 
-	class TornasoleHook
+	class SessionHook
     """
     A class used to represent the hook which gets attached to the
     training process.
@@ -89,7 +89,7 @@ also allows you to see a global ordering of steps which makes it clear after how
 steps did a particular evaluation step happen. If you do not set this mode, all steps are saved under
 a `default` mode.
 
-The _save\_config_ parameter is optional. If not specified, the TornasoleHook will use a default SaveConfig that stores tensors with step_interval=100. That is, the  tensors will be saved every 100th step.
+The _save\_config_ parameter is optional. If not specified, the SessionHook will use a default SaveConfig that stores tensors with step_interval=100. That is, the  tensors will be saved every 100th step.
 
 The _reduction\_config_ is optional. If not specified, the reductions are not applied to the stored tensors.
 
@@ -160,7 +160,7 @@ This list of tensors to watch for is taken as a list of strings representing nam
         if this is given, it ignores the save_interval.
 ```
 
-The default value of _save\_interval_ is 100. The TornasoleHook that uses a default SaveConfig object will store the tensors every 100th step.
+The default value of _save\_interval_ is 100. The SessionHook that uses a default SaveConfig object will store the tensors every 100th step.
 
 
 ### ReductionConfig

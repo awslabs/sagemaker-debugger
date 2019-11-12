@@ -18,7 +18,7 @@ from smdebug import SaveConfig, modes
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.config_constants import CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR
 from smdebug.mxnet import reset_collections
-from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
 

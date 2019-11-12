@@ -405,7 +405,7 @@ def test_override_if_too_many_steps_skipped():
         0: [a], 2: [a], 3: [a], 4: [a], 5: [a], ..., 19: [a]
         }
     END_OF_JOB.ts --> Absent
-    Note: This test needs TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW to be set to 10 to pass
+    Note: This test needs INCOMPLETE_STEP_WAIT_WINDOW to be set to 10 to pass
 
     This test checks the logic of the sliding window that waits for steps to be complete
     before marking them as complete.
@@ -427,7 +427,7 @@ def test_override_if_too_many_steps_skipped():
     The subsequent trial.tensors() queries do not change the value of last_completed_step, because the
     window is smaller than the set threshold
     """
-    os.environ["TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW"] = "10"
+    os.environ["INCOMPLETE_STEP_WAIT_WINDOW"] = "10"
 
     path = "s3://tornasole-testing/has_step_scenarios/too-many-steps-skipped"
     trial = create_trial(path)
@@ -465,7 +465,7 @@ def test_override_if_too_many_steps_skipped():
         == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
 
-    del os.environ["TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW"]
+    del os.environ["INCOMPLETE_STEP_WAIT_WINDOW"]
 
 
 @pytest.mark.slow
@@ -482,7 +482,7 @@ def test_partially_written_tensors():
             smd.modes.TRAIN: smd.SaveConfigMode(save_interval=1, end_step=5),
         }
 
-        hook = smd.TornasoleHook(
+        hook = smd.SessionHook(
                     ...,
                 include_collections=["weights", "gradients", "losses"],
                 save_config=smd.SaveConfig(save_interval=1, end_step=10),

@@ -10,7 +10,7 @@ from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
 import smdebug.mxnet as smd
-from smdebug.mxnet import SaveConfig, TornasoleHook, modes
+from smdebug.mxnet import Hook, SaveConfig, modes
 
 
 def parse_args():
@@ -23,7 +23,7 @@ def parse_args():
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument(
-        "--tornasole_path",
+        "--smdebug_path",
         type=str,
         default=None,
         help="S3 URI of the bucket where tensor data will be stored.",
@@ -62,12 +62,12 @@ def train_model(batch_size, net, lr):
         trainer.step(batch_size)
 
 
-def create_tornasole_hook(output_s3_uri):
+def create_hook(output_s3_uri):
     save_config = SaveConfig(save_interval=1)
     custom_collect = smd.get_collection("ReluActivation")
     custom_collect.save_config = save_config
     custom_collect.include([".*relu_output"])
-    hook = TornasoleHook(
+    hook = Hook(
         out_dir=output_s3_uri, save_config=save_config, include_collections=["ReluActivation"]
     )
     return hook
@@ -76,8 +76,8 @@ def create_tornasole_hook(output_s3_uri):
 def main():
     opt = parse_args()
     net = create_gluon_model(opt.flag)
-    output_s3_uri = opt.tornasole_path if opt.tornasole_path is not None else opt.output_s3_uri
-    hook = create_tornasole_hook(output_s3_uri)
+    output_s3_uri = opt.smdebug_path if opt.smdebug_path is not None else opt.output_s3_uri
+    hook = create_hook(output_s3_uri)
     hook.register_hook(net)
     train_model(64, net, 0.1, hook)
 

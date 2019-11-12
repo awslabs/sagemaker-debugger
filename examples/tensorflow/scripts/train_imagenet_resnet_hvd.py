@@ -1115,10 +1115,10 @@ def add_cli_args():
 
     # tornasole arguments
     cmdline.add_argument(
-        "--enable_tornasole", type=str2bool, default=False, help="""enable Tornasole"""
+        "--enable_smdebug", type=str2bool, default=False, help="""enable Tornasole"""
     )
     cmdline.add_argument(
-        "--tornasole_path",
+        "--smdebug_path",
         default="tornasole_outputs/default_run",
         help="""Directory in which to write tornasole data.
                          This can be a local path or
@@ -1152,13 +1152,10 @@ def add_cli_args():
                          Tornasole's default collection""",
     )
     cmdline.add_argument(
-        "--tornasole_step_interval",
-        default=10,
-        type=int,
-        help="""Save tornasole data every N runs""",
+        "--step_interval", default=10, type=int, help="""Save tornasole data every N runs"""
     )
-    cmdline.add_argument("--tornasole_save_weights", type=str2bool, default=False)
-    cmdline.add_argument("--tornasole_save_gradients", type=str2bool, default=False)
+    cmdline.add_argument("--save_weights", type=str2bool, default=False)
+    cmdline.add_argument("--save_gradients", type=str2bool, default=False)
     cmdline.add_argument("--tornasole_save_inputs", type=str2bool, default=False)
     cmdline.add_argument("--tornasole_save_relu_activations", type=str2bool, default=False)
     cmdline.add_argument(
@@ -1186,7 +1183,7 @@ def add_cli_args():
     return cmdline
 
 
-def get_tornasole_hook(FLAGS):
+def get_hook(FLAGS):
     abs_reductions = []
     reductions = []
     if FLAGS.tornasole_relu_reductions:
@@ -1202,9 +1199,9 @@ def get_tornasole_hook(FLAGS):
 
     include_collections = ["losses"]
 
-    if FLAGS.tornasole_save_weights is True:
+    if FLAGS.save_weights is True:
         include_collections.append("weights")
-    if FLAGS.tornasole_save_gradients is True:
+    if FLAGS.save_gradients is True:
         include_collections.append("gradients")
     if FLAGS.tornasole_save_relu_activations is True:
         include_collections.append("relu_activations")
@@ -1213,9 +1210,9 @@ def get_tornasole_hook(FLAGS):
     if FLAGS.tornasole_include:
         smd.get_collection("default").include(FLAGS.tornasole_include)
         include_collections.append("default")
-    return smd.TornasoleHook(
-        out_dir=FLAGS.tornasole_path,
-        save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_step_interval),
+    return smd.SessionHook(
+        out_dir=FLAGS.smdebug_path,
+        save_config=smd.SaveConfig(save_interval=FLAGS.step_interval),
         reduction_config=rnc,
         include_collections=include_collections,
         save_all=FLAGS.tornasole_save_all,
@@ -1395,8 +1392,8 @@ def main():
         ),
     )
 
-    if FLAGS.enable_tornasole is True and hvd.rank() == 0:
-        hook = get_tornasole_hook(FLAGS)
+    if FLAGS.enable_smdebug is True and hvd.rank() == 0:
+        hook = get_hook(FLAGS)
 
     if not FLAGS.eval:
         num_preproc_threads = 5
@@ -1408,10 +1405,10 @@ def main():
                     global_batch_size, num_training_samples, FLAGS.display_every, logger
                 )
             )
-            if FLAGS.enable_tornasole is True:
+            if FLAGS.enable_smdebug is True:
                 training_hooks.append(hook)
         try:
-            if FLAGS.enable_tornasole is True:
+            if FLAGS.enable_smdebug is True:
                 hook.set_mode(smd.modes.TRAIN)
             start_time = time.time()
             classifier.train(

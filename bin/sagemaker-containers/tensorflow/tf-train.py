@@ -9,15 +9,13 @@ import numpy as np
 import tensorflow as tf
 
 # First Party
-from smdebug.tensorflow import SaveConfig, TornasoleHook, get_hook
+from smdebug.tensorflow import SaveConfig, SessionHook, get_hook
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lr", type=float, help="Learning Rate", default=0.001)
 parser.add_argument("--steps", type=int, help="Number of steps to run", default=100)
 parser.add_argument("--scale", type=float, help="Scaling factor for inputs", default=1.0)
-parser.add_argument(
-    "--tornasole_frequency", type=float, help="How often to save TS data", default=10
-)
+parser.add_argument("--save_frequency", type=float, help="How often to save TS data", default=10)
 parser.add_argument("--run_name", type=str, help="Run Name", default=str(uuid.uuid4()))
 parser.add_argument("--local_reductions", nargs="+", type=str, default=[])
 # running in Tf estimator mode, script need to accept --model_dir parameter
@@ -25,7 +23,7 @@ parser.add_argument("--model_dir", type=str, help="model dir", default=str(uuid.
 args = parser.parse_args()
 
 t = str(time.time())
-hook = TornasoleHook(
+hook = SessionHook(
     "s3://tornasolecodebuildtest/container_testing/ts_outputs/tf" + t,
     save_config=SaveConfig(save_interval=10),
 )

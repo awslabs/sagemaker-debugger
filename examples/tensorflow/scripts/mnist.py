@@ -10,13 +10,9 @@ import tensorflow as tf
 import smdebug.tensorflow as smd
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--tornasole_path", type=str)
-parser.add_argument(
-    "--tornasole_train_frequency", type=int, help="How often to save TS data", default=50
-)
-parser.add_argument(
-    "--tornasole_eval_frequency", type=int, help="How often to save TS data", default=10
-)
+parser.add_argument("--smdebug_path", type=str)
+parser.add_argument("--train_frequency", type=int, help="How often to save TS data", default=50)
+parser.add_argument("--eval_frequency", type=int, help="How often to save TS data", default=10)
 parser.add_argument("--lr", type=float, default=0.001)
 parser.add_argument("--random_seed", type=bool, default=False)
 parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to train for")
@@ -120,12 +116,12 @@ eval_input_fn = tf.estimator.inputs.numpy_input_fn(
     x={"x": eval_data}, y=eval_labels, num_epochs=1, shuffle=False
 )
 
-hook = smd.TornasoleHook(
-    out_dir=args.tornasole_path,
+hook = smd.SessionHook(
+    out_dir=args.smdebug_path,
     save_config=smd.SaveConfig(
         {
-            smd.modes.TRAIN: smd.SaveConfigMode(args.tornasole_train_frequency),
-            smd.modes.EVAL: smd.SaveConfigMode(args.tornasole_eval_frequency),
+            smd.modes.TRAIN: smd.SaveConfigMode(args.train_frequency),
+            smd.modes.EVAL: smd.SaveConfigMode(args.eval_frequency),
         }
     ),
 )

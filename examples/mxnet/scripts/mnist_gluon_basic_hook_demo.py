@@ -11,7 +11,7 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-from smdebug.mxnet import SaveConfig, TornasoleHook, modes
+from smdebug.mxnet import Hook, SaveConfig, modes
 
 
 def parse_args():
@@ -26,7 +26,7 @@ def parse_args():
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument(
-        "--tornasole_path",
+        "--smdebug_path",
         type=str,
         default=None,
         help="S3 URI of the bucket where tensor data will be stored.",
@@ -119,7 +119,7 @@ def prepare_data(batch_size):
     return train_data, valid_data
 
 
-# Create a model using gluon API. The tornasole hook is currently
+# Create a model using gluon API. The hook is currently
 # supports MXNet gluon models only.
 def create_gluon_model():
     # Create Model in Gluon
@@ -138,17 +138,17 @@ def create_gluon_model():
     return net
 
 
-# Create a tornasole hook. The initialization of hook determines which tensors
+# Create a hook. The initialization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initialization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_s3_uri):
+def create_hook(output_s3_uri):
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_steps=[1, 2, 3])
 
     # Create a hook that logs weights, biases and gradients while training the model.
-    hook = TornasoleHook(
+    hook = Hook(
         out_dir=output_s3_uri,
         save_config=save_config,
         include_collections=["weights", "gradients", "biases"],
@@ -170,11 +170,11 @@ def main():
     # Create a Gluon Model.
     net = create_gluon_model()
 
-    # Create a tornasole hook for logging the desired tensors.
+    # Create a hook for logging the desired tensors.
     # The output_s3_uri is a the URI for the s3 bucket where the tensors will be saved.
     # The trial_id is used to store the tensors from different trials separately.
-    output_uri = opt.tornasole_path if opt.tornasole_path is not None else opt.output_uri
-    hook = create_tornasole_hook(output_uri)
+    output_uri = opt.smdebug_path if opt.smdebug_path is not None else opt.output_uri
+    hook = create_hook(output_uri)
 
     net.hybridize()
 

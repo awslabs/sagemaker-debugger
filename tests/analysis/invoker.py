@@ -48,7 +48,7 @@ if __name__ == "__main__":
         "mentioned below are automatically passed when"
         "creating the rule objects."
     )
-    parser.add_argument("--tornasole_path", type=str, required=True)
+    parser.add_argument("--smdebug_path", type=str, required=True)
     parser.add_argument("--rule_name", type=str, required=True)
     parser.add_argument(
         "--other-trials",
@@ -65,6 +65,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args_dict = vars(args)
     # to standardize args for create_rule function
-    args.trial_dir = args.tornasole_path
+    args.trial_dir = args.smdebug_path
     r = create_rule(args, args_dict)
     invoke_rule(r, flag=args.flag, start_step=args.start_step, end_step=args.end_step)

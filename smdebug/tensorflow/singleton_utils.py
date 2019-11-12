@@ -1,5 +1,5 @@
 """
-Easy-to-use methods for getting the singleton TornasoleHook.
+Easy-to-use methods for getting the singleton SessionHook.
 This is abstracted into its own module to prevent circular import problems.
 
 Sample usage (in AWS-TensorFlow repo):
@@ -15,7 +15,7 @@ from smdebug.core.singleton_utils import del_hook, set_hook
 
 def get_hook(
     hook_type: str = None, json_config_path: str = None, create_if_not_exists: bool = False
-) -> "TornasoleHook":
+) -> "SessionHook":
     """
     hook_type can be one of ['session', 'estimator', 'keras', None].
 
@@ -27,16 +27,16 @@ def get_hook(
     from smdebug.tensorflow import session, keras
 
     if hook_type == "session":
-        tornasole_hook_class = session.TornasoleSessionHook
+        hook_class = session.SessionHook
     elif hook_type == "estimator":
-        tornasole_hook_class = session.TornasoleEstimatorHook
+        hook_class = session.EstimatorHook
     elif hook_type == "keras":
-        tornasole_hook_class = keras.TornasoleKerasHook
+        hook_class = keras.KerasHook
     else:
-        tornasole_hook_class = None
+        hook_class = None
 
     return sutils.get_hook(
         json_config_path=json_config_path,
-        tornasole_hook_class=tornasole_hook_class,
+        hook_class=hook_class,
         create_if_not_exists=create_if_not_exists,
     )

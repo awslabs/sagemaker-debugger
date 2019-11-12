@@ -36,7 +36,7 @@ def helper_test_only_w_g(trial_dir, hook):
 
 def test_only_w_g(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(out_dir, save_all=False, save_config=SaveConfig(save_interval=2))
+    hook = SessionHook(out_dir, save_all=False, save_config=SaveConfig(save_interval=2))
     helper_test_only_w_g(out_dir, hook)
 
 
@@ -46,5 +46,5 @@ def test_only_w_g_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_only_weights_and_gradients.json",
     )
-    hook = smd.TornasoleHook.hook_from_config()
+    hook = smd.SessionHook.hook_from_config()
     helper_test_only_w_g(out_dir, hook)

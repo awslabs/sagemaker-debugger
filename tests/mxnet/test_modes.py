@@ -4,7 +4,7 @@ from datetime import datetime
 # First Party
 from smdebug import modes
 from smdebug.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
-from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
 # Local

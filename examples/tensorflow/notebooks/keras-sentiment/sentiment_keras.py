@@ -10,7 +10,7 @@ from keras.models import Sequential
 
 # First Party
 from smdebug import SaveConfig
-from smdebug.tensorflow.keras import TornasoleHook
+from smdebug.tensorflow.keras import SessionHook
 
 max_features = 20000
 maxlen = 400
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     args, _ = parse_args()
 
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=args.tornasole_outdir,
         save_config=SaveConfig(save_interval=args.tornasole_save_interval),
     )

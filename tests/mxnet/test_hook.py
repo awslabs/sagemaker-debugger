@@ -11,7 +11,7 @@ from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
 from smdebug.mxnet import reset_collections
-from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.mxnet.hook import Hook as t_hook
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
@@ -60,7 +60,7 @@ def test_hook_from_json_config_full():
     shutil.rmtree(out_dir, True)
 
 
-@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a TornasoleHook")
+@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a SessionHook")
 def test_default_hook():
     reset_collections()
     shutil.rmtree("/opt/ml/output/tensors", ignore_errors=True)

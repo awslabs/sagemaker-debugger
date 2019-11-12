@@ -15,7 +15,7 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
-from smdebug.tensorflow.keras import TornasoleKerasHook
+from smdebug.tensorflow.keras import KerasHook
 
 
 class FetchTensorCallback(tf.keras.callbacks.Callback):
@@ -80,7 +80,7 @@ def train_model(
     if save_config is None:
         save_config = SaveConfig(save_interval=3)
 
-    hook = TornasoleKerasHook(
+    hook = KerasHook(
         trial_dir,
         save_config=save_config,
         save_all=save_all,

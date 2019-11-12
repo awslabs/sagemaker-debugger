@@ -26,7 +26,7 @@ def get_framework_packages(f):
 
 
 def get_frameworks_to_build():
-    only_rules = os.environ.get("TORNASOLE_FOR_RULES", False)
+    only_rules = os.environ.get("ONLY_RULES", False)
     if only_rules in ["1", "True", "true"]:
         only_rules = True
     else:

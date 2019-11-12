@@ -3,11 +3,11 @@
 Tornasole PyTorch provides the following constructs:
 
 ### Hook
-TornasoleHook is the entry point for Tornasole into your program.
+SessionHook is the entry point for Tornasole into your program.
 
 
 ```
-class TornasoleHook:
+class SessionHook:
 
 A class used to represent the hook which gets attached to the
     training process.

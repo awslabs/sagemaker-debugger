@@ -19,18 +19,18 @@ in parallel with the training job.
 ## Quickstart
 Integrating Tornasole into the training job can be accomplished by following steps below.
 
-### Import the tornasole_hook package
-Import the TornasoleHook class along with other helper classes in your training script as shown below
+### Import the hook package
+Import the SessionHook class along with other helper classes in your training script as shown below
 
 ```
-from smdebug.pytorch import TornasoleHook
+from smdebug.pytorch import SessionHook
 from smdebug.pytorch import Collection
 from smdebug import SaveConfig
 import smdebug.pytorch as smd
 ```
 
-### Instantiate and initialize tornasole hook
-Then create the TornasoleHook by specifying what you want
+### Instantiate and initialize hook
+Then create the SessionHook by specifying what you want
 to save, when you want to save them and
 where you want to save them. Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future, we will make this the default in Sagemaker environments.
 
@@ -38,10 +38,10 @@ where you want to save them. Note that for Sagemaker, you always need to specify
     # Create SaveConfig that instructs engine to log graph tensors every 10 steps.
     save_config = SaveConfig(save_interval=10)
     # Create a hook that logs tensors of weights, biases and gradients while training the model.
-    hook = TornasoleHook(out_dir='/opt/ml/output/tensors', save_config=save_config)
+    hook = SessionHook(out_dir='/opt/ml/output/tensors', save_config=save_config)
 ```
 
-For additional details on TornasoleHook, SaveConfig and Collection please refer to the [API documentation](api.md)
+For additional details on SessionHook, SaveConfig and Collection please refer to the [API documentation](api.md)
 
 ### Register Tornasole hook to the model before starting of the training.
 
@@ -89,8 +89,8 @@ hook.set_mode(smd.modes.TRAIN)
 Please refer to [this document](api.md) for description of all the functions and parameters that our APIs support
 
 ####  Hook
-TornasoleHook is the entry point for Tornasole into your program.
-Some key parameters to consider when creating the TornasoleHook are the following:
+SessionHook is the entry point for Tornasole into your program.
+Some key parameters to consider when creating the SessionHook are the following:
 
 - `outdir`: This represents the path to which the outputs of tornasole will be written to. Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future, we will make this the default in Sagemaker environments.
 - `save_config`: This is an object of [SaveConfig](#saveconfig). The SaveConfig allows user to specify when the tensors are to be stored. User can choose to specify the number of steps or the intervals of steps when the tensors will be stored.
@@ -112,11 +112,11 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from smdebug.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import SessionHook, get_collection, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
-hook = TornasoleHook(...,
+hook = SessionHook(...,
                      save_config=scm,
                      ...)
 ```
@@ -180,7 +180,7 @@ to the tensors belonging to that collection.
 These reduction config instances can be passed to the hook as follows
 ```
 import smdebug.pytorch as smd
-hook = smd.TornasoleHook(..., reduction_config=smd.ReductionConfig(norms=['l1']), ...)
+hook = smd.SessionHook(..., reduction_config=smd.ReductionConfig(norms=['l1']), ...)
 ```
 Refer [API](api.md) for a full list of the reductions available.
 
@@ -251,12 +251,12 @@ Here is how to create a hook for this purpose.
  # are logged while training is in progress.
  # Following function shows the default initilization that enables logging of
  # weights, biases and gradients in the model.
- def create_tornasole_hook(output_dir):
+ def create_hook(output_dir):
     # Create a SaveConfig that determines tensors from which steps are to be stored.
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3.
     save_config = SaveConfig(save_steps=[1, 2, 3])
     # Create a hook that logs ONLY weights, biases, and gradients while training the model.
-    hook = TornasoleHook(out_dir=output_dir, save_config=save_config)
+    hook = SessionHook(out_dir=output_dir, save_config=save_config)
     return hook
 ```
 
@@ -264,7 +264,7 @@ Here is how to register the hook
 
 ```
 # Assume your model is called net
-hook = create_tornasole_hook(output_dir)
+hook = create_hook(output_dir)
 hook.register_hook(net)
 ```
 
@@ -280,7 +280,7 @@ The name of the Collection is "l_mod". We have created it around the top level m
 The following code shows how to initialize the hook with the above collection.
 
 ```
-def create_tornasole_hook(output_dir, module):
+def create_hook(output_dir, module):
     # The names of input and output tensors of a module are in following format
     # Inputs :  <module_name>_input_<input_index>, and
     # Output :  <module_name>_output
@@ -289,7 +289,7 @@ def create_tornasole_hook(output_dir, module):
     get_collection('l_mod').add_module_tensors(module, inputs=True, outputs=True)
 
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
-    hook = TornasoleHook(out_dir=output_dir, save_config=SaveConfig(save_steps=[i * 10 for i in range(5)]),
+    hook = SessionHook(out_dir=output_dir, save_config=SaveConfig(save_steps=[i * 10 for i in range(5)]),
 			    include_collections=['weights', 'gradients', 'biases','l_mod'])
 ```
 
@@ -297,29 +297,29 @@ Here is how to register the above hook.
 
 ```
 # Assume your model is called net
-hook = create_tornasole_hook(output_dir=output_dir, module=net)
+hook = create_hook(output_dir=output_dir, module=net)
 hook.register_hook(net)
 ```
 
 #### Logging the inputs and output of a module in the model along with weights and gradients
 Follow the same procedure as above; just pass
-in the appropriate module into `create_tornasole_hook`.
+in the appropriate module into `create_hook`.
 
 #### Saving all tensors in the model
 For saving all the tensors users not required to create a special collection.
-Users can set the _save_all_ flag while creating a TornasoleHook object in the manner shown below.
+Users can set the _save_all_ flag while creating a SessionHook object in the manner shown below.
 
 ```
  # Create Tornasole hook. The initializations of hook determines which tensors
  # are logged while training is in progress.
  # Following function shows the default initilization that enables logging of
  # weights, biases and gradients in the model.
- def create_tornasole_hook(output_dir):
+ def create_hook(output_dir):
     # Create a SaveConfig that determines tensors from which steps are to be stored.
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3.
     save_config = SaveConfig(save_steps=[1, 2, 3])
     # Create a hook that logs weights, biases, gradients, module inputs, and module outputs of all layers while training the model.
-    hook = TornasoleHook(out_dir=output_dir, save_config=save_config, saveall=True)
+    hook = SessionHook(out_dir=output_dir, save_config=save_config, saveall=True)
     return hook
 ```
 
@@ -327,7 +327,7 @@ Here is how to register the hook
 
 ```
 # Assume your model is called net
-hook = create_tornasole_hook(output_dir)
+hook = create_hook(output_dir)
 hook.register_hook(net)
 ```
 All tensors will be saved as part of a collection named 'all'.
@@ -353,10 +353,10 @@ logging.getLogger('tornasole').setLevel = logging.INFO
 ```
 
 **Using environment variable**
-You can also set the environment variable `TORNASOLE_LOG_LEVEL` as below
+You can also set the environment variable `SMDEBUG_LOG_LEVEL` as below
 
 ```
-export TORNASOLE_LOG_LEVEL=INFO
+export SMDEBUG_LOG_LEVEL=INFO
 ```
 Log levels available are 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL', 'OFF'.
 

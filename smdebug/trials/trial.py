@@ -15,7 +15,7 @@ from smdebug.core.config_constants import (
 from smdebug.core.locations import IndexFileLocationUtils, TensorLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
-from smdebug.core.reductions import TORNASOLE_REDUCTIONS_PREFIX, reverse_reduction_tensor_name
+from smdebug.core.reductions import REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from smdebug.core.tensor import StepState, Tensor
 from smdebug.core.utils import flatten, get_worker_name_from_collection_file, serialize_tf_device
 from smdebug.exceptions import *
@@ -67,13 +67,11 @@ class Trial(ABC):
         self.last_complete_step = -1
 
         """
-        TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW defines the maximum number
+        INCOMPLETE_STEP_WAIT_WINDOW defines the maximum number
         of incomplete steps that the trial will wait for before marking
         half of them as complete.
         """
-        self.incomplete_wait_for_step_window = int(
-            os.getenv("TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW", 1000)
-        )
+        self.incomplete_wait_for_step_window = int(os.getenv("INCOMPLETE_STEP_WAIT_WINDOW", 1000))
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
@@ -265,7 +263,7 @@ class Trial(ABC):
     def add_tensor(self, step_num, worker, tensor_object: TensorLocation):
         to = tensor_object
         # self.worker_set.add(worker)
-        if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
+        if REDUCTIONS_PREFIX in to.tensorname:
             tname, red_name, abs = reverse_reduction_tensor_name(to.tensorname)
         else:
             tname = to.tensorname
@@ -277,7 +275,7 @@ class Trial(ABC):
         self._populate_global_step_to_tensor_name_map(to, step_num)
         self._populate_workers_for_global_step(step_num, worker)
         self._populate_mode_to_tensor_name_map(to)
-        if TORNASOLE_REDUCTIONS_PREFIX in to.tensorname:
+        if REDUCTIONS_PREFIX in to.tensorname:
             t.add_reduction_step(to.mode, to.mode_step, worker, red_name, abs, to)
         else:
             t.add_step(to.mode, to.mode_step, worker, to)
@@ -546,7 +544,7 @@ class Trial(ABC):
             )
             self.logger.info(
                 f"Waiting for: {len(available_step) - (self.last_complete_step + 1)} Steps. \n"
-                f"TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW: {self.incomplete_wait_for_step_window}. \n"
+                f"INCOMPLETE_STEP_WAIT_WINDOW: {self.incomplete_wait_for_step_window}. \n"
                 f"Marking the last {self.incomplete_wait_for_step_window // 2} incomplete steps as complete"
                 f"Updating last_index_token to: {self.last_index_token}. \n"
                 f"Updating last_complete_step to: {self.last_complete_step}. "

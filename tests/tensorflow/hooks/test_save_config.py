@@ -7,7 +7,7 @@ from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
 
 # First Party
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from smdebug.tensorflow import TornasoleHook, get_collection, modes, reset_collections
+from smdebug.tensorflow import SessionHook, get_collection, modes, reset_collections
 from smdebug.trials import create_trial
 
 # Local
@@ -24,7 +24,7 @@ def helper_test_save_config(trial_dir, hook):
 
 def test_save_config(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(out_dir=out_dir, save_all=False, save_config=SaveConfig(save_interval=2))
+    hook = SessionHook(out_dir=out_dir, save_all=False, save_config=SaveConfig(save_interval=2))
     helper_test_save_config(out_dir, hook)
 
 
@@ -33,7 +33,7 @@ def test_save_config_json(out_dir, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_save_config.json"
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     helper_test_save_config(out_dir, hook)
 
 
@@ -46,7 +46,7 @@ def helper_save_config_skip_steps(trial_dir, hook):
 
 def test_save_config_skip_steps(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=out_dir, save_all=False, save_config=SaveConfig(save_interval=2, start_step=8)
     )
     helper_save_config_skip_steps(out_dir, hook)
@@ -58,7 +58,7 @@ def test_save_config_skip_steps_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_skip_steps.json",
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     helper_save_config_skip_steps(out_dir, hook)
 
 
@@ -71,7 +71,7 @@ def helper_save_config_start_and_end(trial_dir, hook):
 
 def test_save_config_start_and_end(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=out_dir,
         save_all=False,
         save_config=SaveConfig(save_interval=2, start_step=8, end_step=14),
@@ -85,7 +85,7 @@ def test_save_config_start_and_end_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_start_and_end.json",
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     helper_save_config_start_and_end(out_dir, hook)
 
 
@@ -105,7 +105,7 @@ def test_save_config_modes(out_dir):
         modes.TRAIN: SaveConfigMode(save_interval=2),
         modes.EVAL: SaveConfigMode(save_interval=3),
     }
-    hook = TornasoleHook(out_dir=out_dir, include_collections=["weights"])
+    hook = SessionHook(out_dir=out_dir, include_collections=["weights"])
     helper_save_config_modes(out_dir, hook)
 
 
@@ -116,5 +116,5 @@ def test_save_config_modes_json(out_dir, monkeypatch):
         "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_config_coll.json",
     )
     reset_collections()
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     helper_save_config_modes(out_dir, hook)

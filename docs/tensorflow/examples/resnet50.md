@@ -17,7 +17,7 @@ import smdebug.tensorflow as smd
 **Saving weights**
 ```
 include_collections.append('weights')
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 ```
 Note that the above line of include_collections is not required
 because by default Tornasole tries to save weights, gradients and losses.
@@ -28,7 +28,7 @@ We need to wrap our optimizer with wrap_optimizer, and use this optimizer to min
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
 include_collections.append('gradients')
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 
 opt = hook.wrap_optimizer(opt)
 ```
@@ -41,7 +41,7 @@ Since we use a default loss function from Tensorflow, we only need to indicate t
 In the code, you will see the following line to do so.
 ```
 include_collections=['losses']
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 ```
 
 **Saving relu activations by variable**
@@ -50,7 +50,7 @@ x = tf.nn.relu(x + shortcut)
 smd.add_to_collection('relu_activations', x)
 ...
 include_collections.append('relu_activations')
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 ```
 **Saving relu activations as reductions**
 ```
@@ -60,17 +60,17 @@ smd.add_to_collection('relu_activations', x)
 ...
 rnc = smd.ReductionConfig(reductions=reductions, abs_reductions=abs_reductions)
 ...
-smd.TornasoleHook(..., reduction_config=rnc, ...)
+smd.SessionHook(..., reduction_config=rnc, ...)
 ```
 **Saving by regex**
 ```
 smd.get_collection('default').include(FLAGS.tornasole_include)
 include_collections.append('default')
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 ```
 **Setting save interval**
 ```
-smd.TornasoleHook(...,save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_step_interval)...)
+smd.SessionHook(...,save_config=smd.SaveConfig(save_interval=FLAGS.step_interval)...)
 ```
 **Setting the right mode**
 
@@ -106,26 +106,26 @@ This flag can be appended to any of the following commands
 to make the job use real data.
 ### Tornasole Path
 We recommend saving tornasole outputs on S3 by passing
-the flag `--tornasole_path` in the format `s3://bucket_name/prefix`.
+the flag `--smdebug_path` in the format `s3://bucket_name/prefix`.
 The commands below will be shown with local path however
 so you can run them immediately without having to setup S3 permissions.
 
 ### Example commands
 #### Saving weights and gradients with Tornasole
 ```
-python train_imagenet_resnet_hvd.py --clear_log True --enable_tornasole True \
-    --tornasole_save_weights True --tornasole_save_gradients True \
-    --tornasole_step_interval 10 \
-    --tornasole_path ~/ts_outputs/default
+python train_imagenet_resnet_hvd.py --clear_log True --enable_smdebug True \
+    --save_weights True --save_gradients True \
+    --step_interval 10 \
+    --smdebug_path ~/ts_outputs/default
 ```
 #### Simulating gradients which 'vanish'
 We simulate the scenario of gradients being really small (vanishing) by initializing weights with a small constant.
 ```
-python train_imagenet_resnet_hvd.py --clear_log True --enable_tornasole True \
-    --tornasole_save_weights True --tornasole_save_gradients True \
-    --tornasole_step_interval 10 \
+python train_imagenet_resnet_hvd.py --clear_log True --enable_smdebug True \
+    --save_weights True --save_gradients True \
+    --step_interval 10 \
     --constant_initializer 0.01 \
-    --tornasole_path ~/ts_outputs/vanishing
+    --smdebug_path ~/ts_outputs/vanishing
 ```
 
 ##### Rule: VanishingGradient
@@ -135,28 +135,28 @@ python -m smdebug.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing --rule-n
 ```
 #### Saving activations of RELU layers in full
 ```
-python train_imagenet_resnet_hvd.py --clear_log True  --enable_tornasole True \
+python train_imagenet_resnet_hvd.py --clear_log True  --enable_smdebug True \
     --tornasole_save_relu_activations True \
-    --tornasole_step_interval 10 \
-    --tornasole_path ~/ts_outputs/full_relu_activations
+    --step_interval 10 \
+    --smdebug_path ~/ts_outputs/full_relu_activations
 ```
 #### Saving activations of RELU layers as reductions
 ```
-python train_imagenet_resnet_hvd.py --clear_log True  --enable_tornasole True \
+python train_imagenet_resnet_hvd.py --clear_log True  --enable_smdebug True \
     --tornasole_save_relu_activations True \
     --tornasole_relu_reductions min max mean variance \
     --tornasole_relu_reductions_abs mean variance \
-    --tornasole_step_interval 10 \
-    --tornasole_path ~/ts_outputs/reductions_relu_activations
+    --step_interval 10 \
+    --smdebug_path ~/ts_outputs/reductions_relu_activations
 ```
 #### Saving weights every step
 If you want to compute and track the ratio of weights and updates,
 you can do that by saving weights every step as follows
 ```
-python train_imagenet_resnet_hvd.py --clear_log True --enable_tornasole True \
-    --tornasole_save_weights True \
-    --tornasole_step_interval 1 \
-    --tornasole_path ~/ts_outputs/weights
+python train_imagenet_resnet_hvd.py --clear_log True --enable_smdebug True \
+    --save_weights True \
+    --step_interval 1 \
+    --smdebug_path ~/ts_outputs/weights
 ```
 ##### Rule: WeightUpdateRatio
 You can invoke the rule to

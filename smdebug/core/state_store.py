@@ -31,7 +31,7 @@ class StateStore:
         self._retrieve_path_to_checkpoint()
         if self._checkpoint_dir is not None:
             self._states_file = os.path.join(self._checkpoint_dir, METADATA_FILENAME)
-            self._read_tornasole_states_file()
+            self._read_states_file()
             self._checkpoint_update_timestamp = max(
                 os.path.getmtime(child) for child, _, _ in os.walk(self._checkpoint_dir)
             )
@@ -61,7 +61,7 @@ class StateStore:
     The states are sorted based on the last seen step.
     """
 
-    def _read_tornasole_states_file(self):
+    def _read_states_file(self):
         if os.path.exists(self._states_file):
             with open(self._states_file) as json_data:
                 parameters = json.load(json_data)
@@ -93,7 +93,7 @@ class StateStore:
     The file can contain multiple states. The function will return only the last saves state.
     """
 
-    def get_last_saved_tornasole_state(self):
+    def get_last_saved_state(self):
         if len(self._saved_states) > 0:
             return self._saved_states[-1]
         return None
@@ -103,7 +103,7 @@ class StateStore:
     in the same folder as that of checkpoints, we update the checkpoint update timestamp after state is written to the file.
     """
 
-    def update_tornasole_state(self, ts_state):
+    def update_state(self, ts_state):
         self._saved_states.append(ts_state)
         with open(self._states_file, "w") as out_file:
             json.dump(self._saved_states, out_file)

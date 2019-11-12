@@ -73,7 +73,7 @@ def main():
     net.to(device)
     # register the hook
 
-    hook = create_tornasole_hook("./output_resnet", net, save_interval=50)
+    hook = create_hook("./output_resnet", net, save_interval=50)
 
     hook.register_hook(net)
     loss_optim = nn.CrossEntropyLoss()
@@ -99,11 +99,11 @@ def main():
     print("Time taken:", end - start)
 
 
-# Create a tornasole hook. The initilization of hook determines which tensors
+# Create a hook. The initilization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initilization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_dir, module, trial_id="trial-resnet", save_interval=100):
+def create_hook(output_dir, module, trial_id="trial-resnet", save_interval=100):
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0) and then continue to save tensors at interval of
     # 100,000 steps. Note: union operation is applied to produce resulting config
@@ -116,7 +116,7 @@ def create_tornasole_hook(output_dir, module, trial_id="trial-resnet", save_inte
     # In order to log the inputs and output of a model, we will create a collection as follows
 
     # Create a hook that logs weights, biases, gradients of model while training.
-    hook = TornasoleHook(out_dir=output_dir)
+    hook = Hook(out_dir=output_dir)
     return hook
 
 

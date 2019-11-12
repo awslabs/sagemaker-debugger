@@ -28,8 +28,8 @@ parser.add_argument("--lr", type=float, help="Learning Rate", default=0.001)
 parser.add_argument("--steps", type=int, help="Number of steps to run", default=100)
 parser.add_argument("--scale", type=float, help="Scaling factor for inputs", default=1.0)
 parser.add_argument("--save_all", type=str2bool, default=True)
-parser.add_argument("--tornasole_path", type=str, default="/opt/ml/output/tensors")
-parser.add_argument("--tornasole_frequency", type=int, help="How often to save TS data", default=10)
+parser.add_argument("--smdebug_path", type=str, default="/opt/ml/output/tensors")
+parser.add_argument("--save_frequency", type=int, help="How often to save TS data", default=10)
 parser.add_argument("--random_seed", type=bool, default=False)
 feature_parser = parser.add_mutually_exclusive_group(required=False)
 feature_parser.add_argument(
@@ -61,11 +61,11 @@ rdnc = (
 
 # create the hook
 # Note that we are saving all tensors here by passing save_all=True
-hook = smd.TornasoleHook(
-    out_dir=args.tornasole_path,
+hook = smd.SessionHook(
+    out_dir=args.smdebug_path,
     save_all=args.save_all,
     include_collections=["weights", "gradients", "losses"],
-    save_config=smd.SaveConfig(save_interval=args.tornasole_frequency),
+    save_config=smd.SaveConfig(save_interval=args.save_frequency),
     reduction_config=rdnc,
 )
 

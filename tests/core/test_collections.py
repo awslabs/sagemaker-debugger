@@ -10,7 +10,7 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ReductionConfig
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.utils import get_path_to_collections
-from smdebug.mxnet.hook import TornasoleHook
+from smdebug.mxnet.hook import Hook
 
 
 def test_export_load():
@@ -89,7 +89,7 @@ def test_collection_defaults_to_hook_config():
     cm.create_collection("foo")
     cm.get("foo").save_config = {ModeKeys.EVAL: SaveConfigMode(save_interval=20)}
 
-    hook = TornasoleHook(
+    hook = Hook(
         out_dir="/tmp/test_collections/" + str(datetime.datetime.now()),
         save_config={ModeKeys.TRAIN: SaveConfigMode(save_interval=10)},
         include_collections=["foo"],

@@ -9,7 +9,7 @@ import numpy as np
 import smdebug.mxnet as smd
 from smdebug import SaveConfig
 from smdebug.mxnet import reset_collections
-from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
 # Local

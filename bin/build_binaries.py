@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 
-parser = argparse.ArgumentParser(description="Build Tornasole binaries")
+parser = argparse.ArgumentParser(description="Build smdebug binaries")
 parser.add_argument(
     "--upload",
     default=False,
@@ -29,7 +29,7 @@ BINARIES = ["mxnet", "tensorflow", "pytorch", "xgboost", "rules"]
 
 for b in BINARIES:
     if b == "rules":
-        env_var = "TORNASOLE_FOR_RULES"
+        env_var = "ONLY_RULES"
     else:
         env_var = "TORNASOLE_WITH_" + b.upper()
     env = dict(os.environ)

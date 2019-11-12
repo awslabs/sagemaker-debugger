@@ -7,7 +7,7 @@ import tensorflow_datasets as tfds
 
 # First Party
 from smdebug.core.collection import CollectionKeys
-from smdebug.tensorflow import TornasoleKerasHook, get_collection
+from smdebug.tensorflow import KerasHook, get_collection
 
 tfds.disable_progress_bar()
 
@@ -41,7 +41,7 @@ def train_model():
     train_dataset = mnist_train.map(scale).cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
     eval_dataset = mnist_test.map(scale).batch(BATCH_SIZE)
 
-    hook = TornasoleKerasHook(
+    hook = KerasHook(
         out_dir="~/ts_outputs/",
         include_collections=[
             # CollectionKeys.WEIGHTS,

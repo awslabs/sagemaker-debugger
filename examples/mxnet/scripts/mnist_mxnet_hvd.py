@@ -13,7 +13,7 @@ from mxnet.test_utils import download
 
 # First Party
 from smdebug import SaveConfig, modes
-from smdebug.mxnet import TornasoleHook
+from smdebug.mxnet import Hook
 
 # Training settings
 parser = argparse.ArgumentParser(description="MXNet MNIST Example")
@@ -31,7 +31,7 @@ parser.add_argument(
 parser.add_argument(
     "--output-uri",
     type=str,
-    default="/opt/ml/output/tensors/tornasole",
+    default="/opt/ml/output/tensors",
     help="S3 URI of the bucket where tensor data will be stored.",
 )
 args = parser.parse_args()
@@ -124,7 +124,6 @@ model.hybridize()
 # Create optimizer
 optimizer_params = {"momentum": args.momentum, "learning_rate": args.lr * hvd.size()}
 opt = mx.optimizer.create("sgd", **optimizer_params)
-# opt = smd.TornasoleOptimizer(opt)
 
 # Initialize parameters
 initializer = mx.init.Xavier(rnd_type="gaussian", factor_type="in", magnitude=2)
@@ -143,13 +142,13 @@ loss_fn = gluon.loss.SoftmaxCrossEntropyLoss()
 metric = mx.metric.Accuracy()
 
 
-def create_tornasole_hook():
+def create_hook():
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_interval=1)
 
     # Create a hook that logs weights, biases and gradients while training the model.
-    ts_hook = TornasoleHook(
+    ts_hook = Hook(
         out_dir=args.output_uri,
         save_config=save_config,
         include_collections=["weights", "gradients", "biases"],
@@ -164,7 +163,7 @@ for epoch in range(args.epochs):
     metric.reset()
 
     # Create Tornasole Hook
-    hook = create_tornasole_hook()
+    hook = create_hook()
     hook.register_hook(model)
 
     for nbatch, batch in enumerate(train_data, start=1):

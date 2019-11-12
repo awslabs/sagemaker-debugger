@@ -17,9 +17,7 @@ def test_save_all_full(out_dir, hook=None):
     tf.reset_default_graph()
     if hook is None:
         reset_collections()
-        hook = TornasoleHook(
-            out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=2)
-        )
+        hook = SessionHook(out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=2))
 
     simple_model(hook)
     files = get_collection_files(out_dir)
@@ -71,5 +69,5 @@ def test_hook_config_json(out_dir, monkeypatch):
         "tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json",
     )
     reset_collections()
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     test_save_all_full(out_dir, hook)

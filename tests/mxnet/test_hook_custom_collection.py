@@ -5,7 +5,7 @@ from datetime import datetime
 # First Party
 import smdebug.mxnet as smd
 from smdebug.mxnet import Collection, SaveConfig, reset_collections
-from smdebug.mxnet.hook import TornasoleHook as t_hook
+from smdebug.mxnet.hook import Hook as t_hook
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model

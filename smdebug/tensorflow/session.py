@@ -19,7 +19,7 @@ from .tensor_ref import TensorType
 from .utils import TFDistributionStrategy, extract_graph_summary, get_original_fetch_ops, node_name
 
 
-class TornasoleSessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
+class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
     def __init__(
         self,
         out_dir=None,
@@ -355,7 +355,4 @@ class TornasoleSessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
 
 # to make it clear for estimator users
-TornasoleEstimatorHook = TornasoleSessionHook
-
-# for backwards compatibility
-TornasoleHook = TornasoleSessionHook
+EstimatorHook = SessionHook

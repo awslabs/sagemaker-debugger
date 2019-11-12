@@ -55,7 +55,7 @@
   - xgboost
   - *Enable
   - [*xgboost_mnist_basic_hook_demo,
-      --tornasole_frequency 1,
+      --save_frequency 1,
      *invoker,
      --rule_name classimbalance --flag True --end_step 9
     ]
@@ -66,7 +66,7 @@
   - tensorflow
   - *Enable
   - [*simple,
-     --lr 0.001 --scale 1 --steps 68 --tornasole_frequency 13 --random_seed True,
+     --lr 0.001 --scale 1 --steps 68 --save_frequency 13 --random_seed True,
      *invoker,
      --rule_name explodingtensor --flag False --end_step 66 --collection_names gradients,weights
     ]
@@ -75,7 +75,7 @@
   - tensorflow
   - *Enable
   - [*simple,
-     --lr 1000000000000 --scale 10000000000000 --tornasole_frequency 9 --steps 66 --random_seed True,
+     --lr 1000000000000 --scale 10000000000000 --save_frequency 9 --steps 66 --random_seed True,
      *invoker,
      --rule_name explodingtensor --flag True --end_step 64 --collection_names gradients,weights
     ]
@@ -85,7 +85,7 @@
   - tensorflow
   - *Enable
   - [*simple,
-     --lr 0.001 --scale 1 --steps 68 --tornasole_frequency 13 --random_seed True,
+     --lr 0.001 --scale 1 --steps 68 --save_frequency 13 --random_seed True,
      *invoker,
      --rule_name vanishinggradient --flag False --end_step 66
     ]
@@ -94,8 +94,8 @@
   - tensorflow
   - *Disable # tested on remote ubuntu machine with tensorflow_p36 venv
   - [*train_imagenet_resnet_hvd, # this training script will generate 190 steps
-     --clear_log --enable_tornasole --tornasole_save_weights --tornasole_save_gradients
-     --tornasole_step_interval 10 --constant_initializer 0.01 --random_seed True,
+     --clear_log --enable_smdebug --save_weights --save_gradients
+     --step_interval 10 --constant_initializer 0.01 --random_seed True,
      *invoker,
      --rule_name vanishinggradient --flag True --end_step 181
     ]
@@ -105,7 +105,7 @@
   - tensorflow
   - *Enable
   - [*simple,
-     --lr 0.001 --scale 1 --steps 75 --tornasole_frequency 1 --random_seed True,
+     --lr 0.001 --scale 1 --steps 75 --save_frequency 1 --random_seed True,
      *invoker,
      --rule_name weightupdateratio --flag False --end_step 71
     ]
@@ -114,7 +114,7 @@
   - tensorflow
   - *Enable
   - [*simple,
-     --lr 0.0000000001 --scale 1 --steps 75 --tornasole_frequency 1 --random_seed True,
+     --lr 0.0000000001 --scale 1 --steps 75 --save_frequency 1 --random_seed True,
      *invoker,
      --rule_name weightupdateratio --flag True --end_step 71
     ]
@@ -123,7 +123,7 @@
   - tensorflow
   - *Disable
   - [*tf_mnist,
-     --lr 0.001 --tornasole_train_frequency 10 --random_seed True --num_steps 100,
+     --lr 0.001 --train_frequency 10 --random_seed True --num_steps 100,
      *invoker,
      --rule_name lossnotdecreasing --flag True --end_step 100
     ]
@@ -132,7 +132,7 @@
   - tensorflow
   - *Disable
   - [*simple,
-     --lr 0.05 --scale 1 --steps 1009 --tornasole_frequency 13 --random_seed True,
+     --lr 0.05 --scale 1 --steps 1009 --save_frequency 13 --random_seed True,
      *invoker,
      --rule_name lossnotdecreasing --flag False --end_step 50 --diff_percent 50
     ]
@@ -171,7 +171,7 @@
   - mxnet
   - *Enable
   - [*mnist_gluon_vg_demo, # this training script will generate 1300 steps
-     --random_seed True --num_steps 33 --tornasole_frequency 30,
+     --random_seed True --num_steps 33 --save_frequency 30,
      *invoker,
      --rule_name vanishinggradient --flag True --start_step 1 --end_step 31
     ] # notice, step 0 always returns False
@@ -255,7 +255,7 @@
   - pytorch
   - *Enable
   - [*torch_simple,
-     --lr .01 --momentum 0.8 --tornasole-frequency 15 --steps 46 --hook-type saveall --random-seed True,
+     --lr .01 --momentum 0.8 --save-frequency 15 --steps 46 --hook-type saveall --random-seed True,
      *invoker,
      --rule_name explodingtensor --end_step 46  --flag False --collection_names gradients,weights
     ]
@@ -264,7 +264,7 @@
   - pytorch
   - *Enable
   - [*torch_simple,
-     --lr 1000000.0 --momentum 10 --tornasole-frequency 8 --steps 20 --hook-type saveall --random-seed True,
+     --lr 1000000.0 --momentum 10 --save-frequency 8 --steps 20 --hook-type saveall --random-seed True,
      *invoker,
      --rule_name explodingtensor --end_step 20 --flag True --collection_names gradients,weights
     ]
@@ -273,7 +273,7 @@
   - pytorch
   - *Enable
   - [*torch_simple,
-     --lr .01 --momentum 0.9 --tornasole-frequency 3 --steps 10 --hook-type saveall --random-seed True,
+     --lr .01 --momentum 0.9 --save-frequency 3 --steps 10 --hook-type saveall --random-seed True,
      *invoker,
      --rule_name vanishinggradient --end_step 10 --flag False
     ]
@@ -282,7 +282,7 @@
   - pytorch
   - *Enable # tested on remote ubuntu machine with tensorflow_p36 venv
   - [*torch_simple, # this training script will generate 100 steps
-     --lr 1.0 --momentum 0.9 --tornasole-frequency 3 --steps 10 --hook-type saveall --random-seed True,
+     --lr 1.0 --momentum 0.9 --save-frequency 3 --steps 10 --hook-type saveall --random-seed True,
      *invoker,
      --rule_name vanishinggradient --end_step 10 --flag True
     ]
@@ -291,7 +291,7 @@
   - pytorch
   - *Enable
   - [*torch_simple,
-     --lr .0001 --momentum 0.08 --tornasole-frequency 1 --steps 15 --hook-type saveall --random-seed True,
+     --lr .0001 --momentum 0.08 --save-frequency 1 --steps 15 --hook-type saveall --random-seed True,
      *invoker,
      --rule_name weightupdateratio --start_step 8 --end_step 15 --flag False
     ]
@@ -300,7 +300,7 @@
   - pytorch
   - *Enable
   - [*torch_simple,
-     --lr .0000000000001 --momentum .000001 --tornasole-frequency 1 --steps 15 --hook-type saveall --random-seed True,
+     --lr .0000000000001 --momentum .000001 --save-frequency 1 --steps 15 --hook-type saveall --random-seed True,
      *invoker,
      --rule_name weightupdateratio --start_step 8 --end_step 15 --flag True
     ]

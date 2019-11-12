@@ -21,7 +21,7 @@ class MaxLevelFilter(logging.Filter):
 
 def _get_log_level():
     default = "info"
-    log_level = os.environ.get("TORNASOLE_LOG_LEVEL", default=default)
+    log_level = os.environ.get("SMDEBUG_LOG_LEVEL", default=default)
     log_level = log_level.lower()
     allowed_levels = ["info", "debug", "warning", "error", "critical", "off"]
     if log_level not in allowed_levels:
@@ -44,11 +44,11 @@ def _get_log_level():
     return level
 
 
-def get_logger(name="tornasole"):
+def get_logger(name="smdebug"):
     global _logger_initialized
     if not _logger_initialized:
         worker_pid = f"{socket.gethostname()}:{os.getpid()}"
-        log_context = os.environ.get("TORNASOLE_LOG_CONTEXT", default=worker_pid)
+        log_context = os.environ.get("SMDEBUG_LOG_CONTEXT", default=worker_pid)
         level = _get_log_level()
         logger = logging.getLogger(name)
 
@@ -63,7 +63,7 @@ def get_logger(name="tornasole"):
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setFormatter(log_formatter)
 
-        if os.environ.get("TORNASOLE_LOG_ALL_TO_STDOUT", default="TRUE").lower() == "false":
+        if os.environ.get("SMDEBUG_LOG_ALL_TO_STDOUT", default="TRUE").lower() == "false":
             stderr_handler = logging.StreamHandler(sys.stderr)
             min_level = logging.DEBUG
             # lets through all levels less than ERROR
@@ -76,10 +76,10 @@ def get_logger(name="tornasole"):
 
         logger.addHandler(stdout_handler)
 
-        # TORNASOLE_LOG_PATH is the full path to log file
+        # SMDEBUG_LOG_PATH is the full path to log file
         # by default, log is only written to stdout&stderr
         # if this is set, it is written to file
-        path = os.environ.get("TORNASOLE_LOG_PATH", default=None)
+        path = os.environ.get("SMDEBUG_LOG_PATH", default=None)
         if path is not None:
             fh = logging.FileHandler(path)
             fh.setFormatter(log_formatter)

@@ -25,7 +25,7 @@ import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import is_s3
 from smdebug.tensorflow import reset_collections
-from smdebug.tensorflow.session import TornasoleHook
+from smdebug.tensorflow.session import SessionHook
 from smdebug.trials import create_trial
 
 
@@ -129,7 +129,7 @@ def help_test_mnist(
     if hook is None:
         if include_collections is None:
             include_collections = ["weights", "gradients", "default", "losses"]
-        hook = smd.TornasoleHook(
+        hook = smd.SessionHook(
             out_dir=trial_dir, save_config=save_config, include_collections=include_collections
         )
 
@@ -180,7 +180,7 @@ def test_mnist_local_json(out_dir, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     help_test_mnist(path=out_dir, hook=hook, num_train_steps=4, num_eval_steps=2)
     helper_test_mnist_trial(out_dir)
 
@@ -240,6 +240,6 @@ def test_mnist_local_multi_save_configs_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json",
     )
-    hook = smd.TornasoleHook.hook_from_config()
+    hook = smd.SessionHook.hook_from_config()
     help_test_mnist(out_dir, hook=hook, num_train_steps=6, num_eval_steps=4)
     helper_test_multi_save_configs_trial(out_dir)

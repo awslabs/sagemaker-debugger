@@ -17,9 +17,9 @@ export ECR_TAG_NAME=$1
 
 cd bin/sagemaker-containers/xgboost/0.90/
 
-export TORNASOLE_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_xgboost/py3/latest
+export SMDEBUG_BINARY_PATH=s3://tornasole-binaries-use1/tornasole_xgboost/py3/latest
 rm -rf tornasole-binary/
-aws s3 sync $TORNASOLE_BINARY_PATH tornasole-binary
+aws s3 sync $SMDEBUG_BINARY_PATH tornasole-binary
 cp tornasole-binary/*.whl .
 export TORNASOLE_BINARY=`ls tornasole-*.whl`
 export SAGEMAKER_FRAMEWORK_BINARY=`ls sagemaker_xgboost_container-*.whl`

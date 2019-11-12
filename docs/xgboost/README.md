@@ -54,29 +54,29 @@ Integrating Tornasole into the training job can be accomplished by following ste
 
 ### Import the Tornasole package
 
-Import the TornasoleHook class along with other helper classes in your training script as shown below
+Import the SessionHook class along with other helper classes in your training script as shown below
 
 ```
-from smdebug.xgboost import TornasoleHook
+from smdebug.xgboost import SessionHook
 from smdebug import SaveConfig
 ```
 
-### Instantiate and initialize tornasole hook
+### Instantiate and initialize hook
 
 ```
     # Create SaveConfig that instructs engine to log graph tensors every 10 steps.
     save_config = SaveConfig(save_interval=10)
     # Create a hook that logs evaluation metrics and feature importances while training the model.
     output_s3_uri = 's3://my_xgboost_training_debug_bucket/12345678-abcd-1234-abcd-1234567890ab'
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config)
+    hook = SessionHook(out_dir=output_s3_uri, save_config=save_config)
 ```
 
-Using the *Collection* object and/or *include\_regex* parameter of TornasoleHook , users can control which tensors will be stored by the TornasoleHook.
+Using the *Collection* object and/or *include\_regex* parameter of SessionHook , users can control which tensors will be stored by the SessionHook.
 The section [How to save tensors](#how-to-save-tensors) explains various ways users can create *Collection* object to store the required tensors.
 
-The *SaveConfig* object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the *save\_config* parameter is not specified, the TornasoleHook will store tensors after every 100 steps.
+The *SaveConfig* object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the *save\_config* parameter is not specified, the SessionHook will store tensors after every 100 steps.
 
-For additional details on TornasoleHook, SaveConfig and Collection please refer to the [API documentation](api.md)
+For additional details on SessionHook, SaveConfig and Collection please refer to the [API documentation](api.md)
 
 ### Register Tornasole hook to the model before starting of the training.
 
@@ -93,7 +93,7 @@ xgboost.train(params, dtrain, callbacks=[hook])
 The example [xgboost\_abalone\_basic\_hook\_demo.py](../../examples/xgboost/scripts/xgboost_abalone_basic_hook_demo.py) is implemented to show how Tornasole is useful in detecting when the evaluation metrics such as validation error stops decreasing.
 
 ```
-python3 examples/xgboost/scripts/xgboost_abalone_basic_hook_demo.py --tornasole_path ~/tornasole-testing/basic-demo/trial-one
+python3 examples/xgboost/scripts/xgboost_abalone_basic_hook_demo.py --smdebug_path ~/tornasole-testing/basic-demo/trial-one
 ```
 
 You can monitor the job by using [rules](../rules/README.md). For example, you
@@ -124,8 +124,8 @@ Please refer to [this document](api.md) for description of all the functions and
 
 ####  Hook
 
-TornasoleHook is the entry point for Tornasole into your program.
-Some key parameters to consider when creating the TornasoleHook are the following:
+SessionHook is the entry point for Tornasole into your program.
+Some key parameters to consider when creating the SessionHook are the following:
 
 - `out_dir`: This represents the path to which the outputs of tornasole will be written to under a directory with the name `out_dir`. This can be a local path or an S3 prefix of the form `s3://bucket_name/prefix`.
 - `save_config`: This is an object of [SaveConfig](#saveconfig). The SaveConfig allows user to specify when the tensors are to be stored. User can choose to specify the number of steps or the intervals of steps when the tensors will be stored. If not specified, it defaults to a SaveConfig which saves every 100 steps.
@@ -138,7 +138,7 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 
 ```
 import smdebug.xgboost as tx
-tx.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
+tx.SessionHook(out_dir='s3://tornasole-testing/trial_job_dir',
                  save_config=SaveConfig(save_interval=10),
                  include_collections=['metrics', 'feature_importance'])
 ```
@@ -147,7 +147,7 @@ tx.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
 
 ```
 import smdebug.xgboost as tx
-tx.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
+tx.SessionHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
                  include_regex=['validation*'])
 ```
 
@@ -197,7 +197,7 @@ By reduction here we mean an operation that converts the tensor to a scalar.
 However, in XGBoost, we currently support evaluation metrics, feature
 importances, and average SHAP values, which are all scalars and not tensors.
 Therefore, if the `reduction_config` parameter is set in
-`smdebug.xgboost.TornasoleHook`, it will be ignored and not used at all.
+`smdebug.xgboost.SessionHook`, it will be ignored and not used at all.
 
 ### How to save tensors
 
@@ -210,16 +210,16 @@ Besides the tensors in above default collections, you can save tensors by name o
 This section will take you through these ways in more detail.
 
 #### Saving the tensors with *include\_regex*
-The TornasoleHook API supports *include\_regex* parameter. The users can specify a regex pattern with this pattern. The TornasoleHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
+The SessionHook API supports *include\_regex* parameter. The users can specify a regex pattern with this pattern. The SessionHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
 
 #### Default Collections
-Currently, the XGBoost TornasoleHook creates Collection objects for
+Currently, the XGBoost SessionHook creates Collection objects for
 'metrics', 'feature\_importance', 'average\_shap', and 'default'. These
 collections contain the regex pattern that match with
 evaluation metrics, feature importances, and SHAP values. The regex pattern for
 the 'default' collection is set when user specifies *include\_regex* with
-TornasoleHook or sets the *save_all=True*.  These collections use the SaveConfig
-parameter provided with the TornasoleHook initialization. The TornasoleHook
+SessionHook or sets the *save_all=True*.  These collections use the SaveConfig
+parameter provided with the SessionHook initialization. The SessionHook
 will store the related tensors, if user does not specify any special collection
 with *include\_collections* parameter. If user specifies a collection with
 *include\_collections* the above default collections will not be in effect.
@@ -275,14 +275,14 @@ The [xgboost\_abalone\_basic\_hook\_demo.py](../../examples/xgboost/scripts/xgbo
 Here is how to create a hook for this purpose:
 
 ```
-# Create a tornasole hook. The initialization of hook determines which tensors
+# Create a hook. The initialization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initialization that enables logging of
 # evaluation metrics, feature importances, and SHAP values.
-def create_tornasole_hook(output_s3_uri, shap_data=None):
+def create_hook(output_s3_uri, shap_data=None):
 
     save_config = SaveConfig(save_interval=5)
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=output_s3_uri,
         save_config=save_config,
         shap_data=shap_data)
@@ -343,10 +343,10 @@ logging.getLogger('tornasole').setLevel = logging.INFO
 ```
 
 **Using environment variable**
-You can also set the environment variable `TORNASOLE_LOG_LEVEL` as below
+You can also set the environment variable `SMDEBUG_LOG_LEVEL` as below
 
 ```
-export TORNASOLE_LOG_LEVEL=INFO
+export SMDEBUG_LOG_LEVEL=INFO
 ```
 Log levels available are 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL', 'OFF'.
 

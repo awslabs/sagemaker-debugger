@@ -166,12 +166,12 @@ class BaseHook:
 
     def _initialize_to_last_saved_state(self):
         self.state_store = StateStore()
-        last_tornasole_state = self.state_store.get_last_saved_tornasole_state()
-        if last_tornasole_state is not None:
-            self.last_saved_step = last_tornasole_state[LATEST_GLOBAL_STEP_SAVED]
-            self.init_step = last_tornasole_state[LATEST_GLOBAL_STEP_SEEN]
-            self.training_run = 1 + last_tornasole_state[TRAINING_RUN]
-            for (mode, step) in last_tornasole_state[LATEST_MODE_STEP].items():
+        last_state = self.state_store.get_last_saved_state()
+        if last_state is not None:
+            self.last_saved_step = last_state[LATEST_GLOBAL_STEP_SAVED]
+            self.init_step = last_state[LATEST_GLOBAL_STEP_SEEN]
+            self.training_run = 1 + last_state[TRAINING_RUN]
+            for (mode, step) in last_state[LATEST_MODE_STEP].items():
                 self.mode_steps[ModeKeys[mode]] = step
             self.mode_steps[ModeKeys.GLOBAL] = self.init_step
             self.step = self.init_step
@@ -377,24 +377,24 @@ class BaseHook:
         training_has_ended(self.out_dir)
 
     def _increment_step(self):
-        # Update the last_tornasole_state to the last step number that was saved or seen
-        self._write_tornasole_state()
+        # Update the last_state to the last step number that was saved or seen
+        self._write_state()
 
         self.step += 1
         self.mode_steps[self.mode] += 1
         self._collections_to_save_for_step = None
 
-    def _write_tornasole_state(self):
+    def _write_state(self):
         if self.state_store.is_checkpoint_updated():
-            current_tornasole_state = dict()
-            current_tornasole_state[TRAINING_RUN] = self.training_run
-            current_tornasole_state[LATEST_GLOBAL_STEP_SAVED] = self.last_saved_step
-            current_tornasole_state[LATEST_GLOBAL_STEP_SEEN] = self.step
+            current_state = dict()
+            current_state[TRAINING_RUN] = self.training_run
+            current_state[LATEST_GLOBAL_STEP_SAVED] = self.last_saved_step
+            current_state[LATEST_GLOBAL_STEP_SEEN] = self.step
             mode_step = dict()
             for (mode, step) in self.mode_steps.items():
                 mode_step[mode.name] = step
-            current_tornasole_state[LATEST_MODE_STEP] = mode_step
-            self.state_store.update_tornasole_state(current_tornasole_state)
+            current_state[LATEST_MODE_STEP] = mode_step
+            self.state_store.update_state(current_state)
 
     def set_mode(self, mode):
         # train

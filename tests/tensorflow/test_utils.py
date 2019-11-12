@@ -3,7 +3,7 @@ import json
 import os
 
 # First Party
-from smdebug.tensorflow.session import TornasoleHook
+from smdebug.tensorflow.session import SessionHook
 from smdebug.tensorflow.utils import (
     TFDistributionStrategy,
     get_num_workers_from_tf_config,
@@ -13,13 +13,13 @@ from smdebug.tensorflow.utils import (
 
 def test_read_tf_config():
     # Case 1: No TF_CONFIG
-    distibution_strategy = TornasoleHook.get_distribution_strategy()
+    distibution_strategy = SessionHook.get_distribution_strategy()
     assert distibution_strategy == TFDistributionStrategy.NONE
 
     # Case 2: TF_CONFIG present but empty
     os.environ["TF_CONFIG"] = json.dumps({})
 
-    distibution_strategy = TornasoleHook.get_distribution_strategy()
+    distibution_strategy = SessionHook.get_distribution_strategy()
     assert distibution_strategy == TFDistributionStrategy.NONE
 
     # Case 2: TF_CONFIG present but invalid because of missing ps field
@@ -30,7 +30,7 @@ def test_read_tf_config():
         }
     )
 
-    distibution_strategy = TornasoleHook.get_distribution_strategy()
+    distibution_strategy = SessionHook.get_distribution_strategy()
     assert distibution_strategy == TFDistributionStrategy.NONE
 
     # Case 2: TF_CONFIG present and valid
@@ -44,7 +44,7 @@ def test_read_tf_config():
         }
     )
 
-    distibution_strategy = TornasoleHook.get_distribution_strategy()
+    distibution_strategy = SessionHook.get_distribution_strategy()
     assert distibution_strategy == TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
 
     del os.environ["TF_CONFIG"]

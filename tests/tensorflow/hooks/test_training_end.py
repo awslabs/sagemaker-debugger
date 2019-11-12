@@ -24,13 +24,13 @@ def test_training_job_has_ended(out_dir):
         [
             sys.executable,
             "examples/tensorflow/scripts/simple.py",
-            "--tornasole_path",
+            "--smdebug_path",
             out_dir,
             "--steps",
             "10",
-            "--tornasole_frequency",
+            "--save_frequency",
             "5",
         ],
-        env={"CUDA_VISIBLE_DEVICES": "-1", "TORNASOLE_LOG_LEVEL": "debug"},
+        env={"CUDA_VISIBLE_DEVICES": "-1", "SMDEBUG_LOG_LEVEL": "debug"},
     )
     assert has_training_ended(out_dir) == True

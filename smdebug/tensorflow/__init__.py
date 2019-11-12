@@ -19,8 +19,8 @@ from .collection import (
     load_collections,
     reset_collections,
 )
-from .keras import TornasoleKerasHook
-from .session import TornasoleEstimatorHook, TornasoleHook, TornasoleSessionHook
+from .keras import KerasHook
+from .session import EstimatorHook, SessionHook
 from .singleton_utils import del_hook, get_hook, set_hook
 
 if version.parse(tf.__version__) >= version.parse("2.0.0") or version.parse(

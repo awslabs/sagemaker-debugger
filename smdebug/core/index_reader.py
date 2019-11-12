@@ -55,7 +55,7 @@ class ReadIndexFilesCache:
     evict any element from the cache, but add more elements to cache.
 
     The start_after_key will eventually move forward, if we see a complete step that is greater than the
-    step marked by the start_after_key, or we breach the TORNASOLE_INCOMPLETE_STEP_WAIT_WINDOW, that
+    step marked by the start_after_key, or we breach the INCOMPLETE_STEP_WAIT_WINDOW, that
     changes the start_after_key if we are waiting for too many steps.
 
     Elements with a lower lexical rank than the start_after_key are guaranteed to be never read again.

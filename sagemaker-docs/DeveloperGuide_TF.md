@@ -29,13 +29,13 @@ First, we need to import `smdebug.tensorflow`.
 ```
 import smdebug.tensorflow as smd
 ```
-Then create the TornasoleHook by specifying what you want
+Then create the SessionHook by specifying what you want
 to save, when you want to save them and
 where you want to save them. Note that for Sagemaker,
 you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future,
 we will make this the default in Sagemaker environments.
 ```
-hook = smd.TornasoleHook(out_dir='/opt/ml/output/tensors',
+hook = smd.SessionHook(out_dir='/opt/ml/output/tensors',
                         include_collections=['weights','gradients'],
                         save_config=smd.SaveConfig(save_interval=2))
 ```
@@ -61,18 +61,18 @@ sess = tf.train.MonitoredSession(hooks=[hook])
 ```
 
 ### Estimator based training
-We need to create TornasoleHook and provide it to the estimator's train, predict or evaluate methods.
+We need to create SessionHook and provide it to the estimator's train, predict or evaluate methods.
 First, we need to import `smdebug.tensorflow`.
 ```
 import smdebug.tensorflow as smd
 ```
-Then create the TornasoleHook by specifying what you want
+Then create the SessionHook by specifying what you want
 to save, when you want to save them and
 where you want to save them. Note that for Sagemaker,
 you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future,
 we will make this the default in Sagemaker environments.
 ```
-hook = smd.TornasoleHook(out_dir='/opt/ml/output/tensors',
+hook = smd.SessionHook(out_dir='/opt/ml/output/tensors',
                         include_collections = ['weights','gradients'],
                         save_config = smd.SaveConfig(save_interval=2))
 ```
@@ -109,10 +109,10 @@ In this section we briefly introduce the main constructs of the Tornasole TF API
 Please refer to [this document](api.md) for description of all the functions and parameters that our APIs support.
 
 ####  Hook
-TornasoleHook is the entry point for Tornasole into your program.
+SessionHook is the entry point for Tornasole into your program.
 It's a subclass of `tf.train.SessionRunHook` and can be used where that is suitable,
 such as MonitoredSession and Estimator's train/predict/evaluate methods.
-Some key parameters to consider when creating the TornasoleHook are the following:
+Some key parameters to consider when creating the SessionHook are the following:
 - `out_dir`: This represents the path to which the outputs of tornasole will be written to. Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future, we will make this the default in Sagemaker environments.
 - `save_config`: The hook takes a SaveConfig object which controls when tensors are saved.
 It defaults to a SaveConfig which saves every 100 steps.
@@ -132,7 +132,7 @@ a `default` mode.
 - Save weights and gradients every 100 steps to an S3 location
 ```
 import smdebug.tensorflow as smd
-smd.TornasoleHook(out_dir='/opt/ml/output/tensors',
+smd.SessionHook(out_dir='/opt/ml/output/tensors',
                  save_config=smd.SaveConfig(save_interval=100),
                  include_collections=['weights', 'gradients'])
 ```
@@ -140,7 +140,7 @@ smd.TornasoleHook(out_dir='/opt/ml/output/tensors',
 - Save custom tensors by regex pattern to a local path
 ```
 import smdebug.tensorflow as smd
-smd.TornasoleHook(out_dir='/opt/ml/output/tensors',
+smd.SessionHook(out_dir='/opt/ml/output/tensors',
                  include_regex=['loss*'])
 ```
 Refer [API](api.md) for all parameters available and their detailed descriptions.
@@ -159,11 +159,11 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from smdebug.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import SessionHook, get_collection, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
-hook = TornasoleHook(...,
+hook = SessionHook(...,
                      save_config=scm,
                      ...)
 ```
@@ -226,7 +226,7 @@ The parameters taken by SaveConfig are:
 These save config instances can be passed to the hook as follows
 ```
 import smdebug.tensorflow as smd
-hook = smd.TornasoleHook(..., save_config=smd.SaveConfig(save_interval=10), ...)
+hook = smd.SessionHook(..., save_config=smd.SaveConfig(save_interval=10), ...)
 ```
 Refer [API](api.md) for all parameters available and detailed descriptions for them.
 
@@ -253,7 +253,7 @@ to the tensors belonging to that collection.
 These reduction config instances can be passed to the hook as follows
 ```
 import smdebug.tensorflow as smd
-hook = smd.TornasoleHook(..., reduction_config=smd.ReductionConfig(norms=['l1']), ...)
+hook = smd.SessionHook(..., reduction_config=smd.ReductionConfig(norms=['l1']), ...)
 ```
 Refer [API](api.md) for a full list of the reductions available.
 
@@ -277,7 +277,7 @@ Weights is a default collection managed by smdebug.
 Saving weights is as easy as passing `weights` in the `include_collections` parameter of the hook.
 ```
 import smdebug.tensorflow as smd
-hook = smd.TornasoleHook(..., include_collections = ['weights'], ...)
+hook = smd.SessionHook(..., include_collections = ['weights'], ...)
 ```
 
 #### Gradients
@@ -297,7 +297,7 @@ information on how you can create the gradients collection manually.
 Then, you need to pass `gradients` in the `include_collections` parameter of the hook.
 ```
 import smdebug.tensorflow as smd
-hook = smd.TornasoleHook(..., include_collections = ['gradients'], ...)
+hook = smd.SessionHook(..., include_collections = ['gradients'], ...)
 ```
 
 #### Losses
@@ -316,7 +316,7 @@ smd.add_to_collection('losses', loss)
 
 # specify losses in include_collections
 # Note that this is included by default
-hook = smd.TornasoleHook(..., include_collections = ['losses'..], ...)
+hook = smd.SessionHook(..., include_collections = ['losses'..], ...)
 ```
 
 #### Optimizer Variables
@@ -325,7 +325,7 @@ above approach of wrapping your optimizer with `wrap_optimizer`
 followed by passing `optimizer_variables` in the `include_collections` parameter of the hook.
 ```
 import smdebug.tensorflow as smd
-hook = smd.TornasoleHook(..., include_collections = ['optimizer_variables'], ...)
+hook = smd.SessionHook(..., include_collections = ['optimizer_variables'], ...)
 ```
 
 Please refer [API](api.md) for more details on using collections
@@ -383,7 +383,7 @@ You can use this approach if you just want to save a small number of tensors and
 The tensors which match these patterns are included and added to the collection named `default`.
 
 ```
-hook = smd.TornasoleHook(...,
+hook = smd.SessionHook(...,
                         include_regex=['foobar/weight*'],
                         ...)
 ```
@@ -409,10 +409,10 @@ logging.getLogger('tornasole').setLevel = logging.INFO
 ```
 
 **Using environment variable**
-You can also set the environment variable `TORNASOLE_LOG_LEVEL` as below
+You can also set the environment variable `SMDEBUG_LOG_LEVEL` as below
 
 ```
-export TORNASOLE_LOG_LEVEL=INFO
+export SMDEBUG_LOG_LEVEL=INFO
 ```
 Log levels available are 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL', 'OFF'.
 

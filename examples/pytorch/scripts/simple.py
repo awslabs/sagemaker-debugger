@@ -41,14 +41,14 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=1)
 
 
-# Create a tornasole hook. The initilization of hook determines which tensors
+# Create a hook. The initilization of hook determines which tensors
 # are logged while training is in progress.
 # Following function shows the default initilization that enables logging of
 # weights, biases and gradients in the model.
-def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
+def create_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
     # Create a hook that logs weights, biases, gradients and inputs/ouputs of model
     if hook_type == "saveall":
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=output_dir,
             save_config=SaveConfig(save_steps=save_steps),
             save_all=True,
@@ -63,7 +63,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_ste
         get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model
-        hook = TornasoleHook(
+        hook = Hook(
             out_dir=output_dir,
             save_config=SaveConfig(save_steps=save_steps),
             include_collections=["weights", "gradients", "biases", "l_mod"],
@@ -72,7 +72,7 @@ def create_tornasole_hook(output_dir, module=None, hook_type="saveall", save_ste
     elif hook_type == "weights-bias-gradients":
         save_config = SaveConfig(save_steps=save_steps)
         # Create a hook that logs ONLY weights, biases, and gradients
-        hook = TornasoleHook(out_dir=output_dir, save_config=save_config, export_tensorboard=True)
+        hook = Hook(out_dir=output_dir, save_config=save_config, export_tensorboard=True)
     return hook
 
 
@@ -111,11 +111,11 @@ def main():
         "--momentum", type=float, default=0.9, metavar="M", help="SGD momentum (default: 0.9)"
     )
     parser.add_argument(
-        "--tornasole-frequency", type=int, default=10, help="frequency with which to save steps"
+        "--save-frequency", type=int, default=10, help="frequency with which to save steps"
     )
     parser.add_argument("--steps", type=int, default=100, help="number of steps")
     parser.add_argument(
-        "--tornasole_path",
+        "--smdebug_path",
         type=str,
         help="output directory to save data in",
         default="/opt/ml/output/tensors",
@@ -136,11 +136,9 @@ def main():
         random.seed(12)
     hook_type = "saveall"
     device = torch.device("cpu")
-    save_steps = [
-        (i + 1) * args.tornasole_frequency for i in range(args.steps // args.tornasole_frequency)
-    ]
+    save_steps = [(i + 1) * args.save_frequency for i in range(args.steps // args.save_frequency)]
     model = Net().to(device)
-    hook = create_tornasole_hook(args.tornasole_path, model, hook_type, save_steps=save_steps)
+    hook = create_hook(args.smdebug_path, model, hook_type, save_steps=save_steps)
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     train(model, device, optimizer, hook, num_steps=args.steps, save_steps=save_steps)

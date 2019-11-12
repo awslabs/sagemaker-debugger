@@ -19,7 +19,7 @@ from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
-class TornasoleHook(CallbackHook):
+class Hook(CallbackHook):
     def __init__(
         self,
         out_dir=None,

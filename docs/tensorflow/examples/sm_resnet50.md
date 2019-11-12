@@ -26,7 +26,7 @@ This will also enable us to access the gradients during analysis without having 
 opt = hook.wrap_optimizer(opt)
 
 include_collections.append('gradients')
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 ```
 **Saving relu activations by variable**
 ```
@@ -34,7 +34,7 @@ x = tf.nn.relu(x + shortcut)
 smd.add_to_collection('relu_activations', x)
 ...
 include_collections.append('relu_activations')
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 ```
 **Saving relu activations as reductions**
 ```
@@ -44,17 +44,17 @@ smd.add_to_collection('relu_activations', x)
 ...
 rnc = smd.ReductionConfig(reductions=reductions, abs_reductions=abs_reductions)
 ...
-smd.TornasoleHook(..., reduction_config=rnc, ...)
+smd.SessionHook(..., reduction_config=rnc, ...)
 ```
 **Saving by regex**
 ```
 smd.get_collection('default').include(FLAGS.tornasole_include)
 include_collections.append('default')
-smd.TornasoleHook(..., include_collections=include_collections, ...)
+smd.SessionHook(..., include_collections=include_collections, ...)
 ```
 **Setting save interval**
 ```
-smd.TornasoleHook(...,save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_step_interval)...)
+smd.SessionHook(...,save_config=smd.SaveConfig(save_interval=FLAGS.step_interval)...)
 ```
 **Setting the right mode**
 
@@ -85,10 +85,10 @@ By default the following commands run with synthetic data. If you have ImageNet 
 ### Saving weights and gradients with Tornasole
 ```
 hyperparams = {
-    'enable_tornasole': True,
-    'tornasole_save_weights': True,
-    'tornasole_save_gradients': True,
-    'tornasole_step_interval': 100
+    'enable_smdebug': True,
+    'save_weights': True,
+    'save_gradients': True,
+    'step_interval': 100
 }
 ```
 
@@ -97,10 +97,10 @@ We simulate the scenario of gradients being really small (vanishing) by initiali
 
 ```
 hyperparams = {
-    'enable_tornasole': True,
-    'tornasole_save_weights': True,
-    'tornasole_save_gradients': True,
-    'tornasole_step_interval': 100,
+    'enable_smdebug': True,
+    'save_weights': True,
+    'save_gradients': True,
+    'step_interval': 100,
     'constant_initializer': 0.01
 }
 ```
@@ -122,17 +122,17 @@ rule_specifications=[
 #### Saving activations of RELU layers in full
 ```
 hyperparams = {
-    'enable_tornasole': True,
+    'enable_smdebug': True,
     'tornasole_save_relu_activations': True,
-    'tornasole_step_interval': 200,
+    'step_interval': 200,
 }
 ```
 #### Saving activations of RELU layers as reductions
 ```
 hyperparams = {
-    'enable_tornasole': True,
+    'enable_smdebug': True,
     'tornasole_save_relu_activations': True,
-    'tornasole_step_interval': 200,
+    'step_interval': 200,
     'tornasole_relu_reductions': 'min,max,mean,variance',
     'tornasole_relu_reductions_abs': 'mean,variance',
 }
@@ -142,9 +142,9 @@ If you want to compute and track the ratio of weights and updates,
 you can do that by saving weights every step as follows
 ```
 hyperparams = {
-    'enable_tornasole': True,
-    'tornasole_save_weights': True,
-    'tornasole_step_interval': 1
+    'enable_smdebug': True,
+    'save_weights': True,
+    'step_interval': 1
 }
 ```
 ##### Rule: WeightUpdateRatio

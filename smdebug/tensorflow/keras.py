@@ -27,7 +27,7 @@ from .utils import (
 )
 
 
-class TornasoleKerasHook(TensorflowBaseHook, keras.callbacks.Callback):
+class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
     def __init__(
         self,
         out_dir,

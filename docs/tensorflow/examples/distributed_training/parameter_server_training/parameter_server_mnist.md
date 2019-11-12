@@ -28,8 +28,8 @@ You can set different save intervals for different modes.
 This can be done by passing a dictionary as save_config to the hook.
 This dictionary should have the mode as key and a SaveConfig object as value.
 ```
-smd.TornasoleHook(...,
-    save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_frequency),
+smd.SessionHook(...,
+    save_config=smd.SaveConfig(save_interval=FLAGS.save_frequency),
 ```
 **Setting the right mode**
 
@@ -45,7 +45,7 @@ hook.set_mode(smd.modes.EVAL)
 
 We need to pass this hook to a monitored session and use this session for running the job.
 ```
-ts_hook = smd.TornasoleHook(...)
+ts_hook = smd.SessionHook(...)
 mnist_classifier.train(..., hooks=[ts_hook])
 ```
 
@@ -60,7 +60,7 @@ source activate tensorflow_p36
 ```
 ### Tornasole Path
 We recommend saving tornasole outputs on S3 by passing the
-flag `--tornasole_path` in the format `s3://bucket_name/prefix`.
+flag `--smdebug_path` in the format `s3://bucket_name/prefix`.
 The commands below will be shown with local path however so you can
 run them immediately without having to setup S3 permissions.
 
@@ -105,8 +105,8 @@ To setup the parameter server:
 python parameter_server_mnist.py \
 --hostfile hostfile.txt \
 --steps 1000 \
---tornasole_path ~/ts_output/ps_training  \
---tornasole_frequency 100 \
+--smdebug_path ~/ts_output/ps_training  \
+--save_frequency 100 \
 --node_type ps --task_index 0
 ```
 
@@ -116,8 +116,8 @@ To setup the first worker server:
 python parameter_server_mnist.py \
 --hostfile hostfile.txt \
 --steps 1000 \
---tornasole_path ~/ts_output/ps_training  \
---tornasole_frequency 100 \
+--smdebug_path ~/ts_output/ps_training  \
+--save_frequency 100 \
 --node_type worker --task_index 0
 ```
 
@@ -127,8 +127,8 @@ To setup the second worker server:
 python parameter_server_mnist.py \
 --hostfile hostfile.txt \
 --steps 1000 \
---tornasole_path ~/ts_output/ps_training  \
---tornasole_frequency 100 \
+--smdebug_path ~/ts_output/ps_training  \
+--save_frequency 100 \
 --node_type worker --task_index 1
 ```
 

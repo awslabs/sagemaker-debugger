@@ -26,8 +26,8 @@ You can set different save intervals for different modes.
 This can be done by passing a dictionary as save_config to the hook.
 This dictionary should have the mode as key and a SaveConfig object as value.
 ```
-smd.TornasoleHook(...,
-    save_config=smd.SaveConfig(save_interval=FLAGS.tornasole_frequency),
+smd.SessionHook(...,
+    save_config=smd.SaveConfig(save_interval=FLAGS.save_frequency),
 ```
 **Setting the right mode**
 
@@ -43,7 +43,7 @@ ts_hook.set_mode(smd.modes.EVAL)
 
 We need to pass this hook to a monitored session and use this session for running the job.
 ```
-ts_hook = smd.TornasoleHook(...)
+ts_hook = smd.SessionHook(...)
 mnist_classifier.train(..., hooks=[...,ts_hook])
 ```
 
@@ -58,7 +58,7 @@ source activate tensorflow_p36
 ```
 ### Tornasole Path
 We recommend saving tornasole outputs on S3 by passing the
-flag `--tornasole_path` in the format `s3://bucket_name/prefix`.
+flag `--smdebug_path` in the format `s3://bucket_name/prefix`.
 The commands below will be shown with local path however so you can
 run them immediately without having to setup S3 permissions.
 
@@ -67,9 +67,9 @@ run them immediately without having to setup S3 permissions.
 To run on a machine with 4 GPUs:
 ```
 horovodrun -np 4 -H localhost:4 python horovod_mnist_estimator.py\
- --tornasole_path ~/ts_output/ts_horovod/logs\
+ --smdebug_path ~/ts_output/ts_horovod/logs\
  --steps 5000\
- --tornasole_frequency 100\
+ --save_frequency 100\
  --reductions False
  --save_all True
 ```
@@ -77,9 +77,9 @@ horovodrun -np 4 -H localhost:4 python horovod_mnist_estimator.py\
 To run on 4 machines with 4 GPUs each:
 ```
 horovodrun -np 16 -H server1:4,server2:4,server3:4,server4:4 python horovod_mnist_estimator.py\
- --tornasole_path ~/ts_output/ts_horovod/logs\
+ --smdebug_path ~/ts_output/ts_horovod/logs\
  --steps 5000\
- --tornasole_frequency 100\
+ --save_frequency 100\
  --reductions False
  --save_all True
 ```

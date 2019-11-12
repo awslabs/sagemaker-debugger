@@ -49,7 +49,7 @@ def test_reductions(out_dir, save_raw_tensor=False):
         abs_norms=ALLOWED_NORMS,
         save_raw_tensor=save_raw_tensor,
     )
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=out_dir,
         save_config=SaveConfig(save_interval=1),
         reduction_config=rdnc,
@@ -67,5 +67,5 @@ def test_reductions_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_reductions.json"
     )
     pre_test_clean_up()
-    hook = smd.TornasoleHook.hook_from_config()
+    hook = smd.SessionHook.hook_from_config()
     helper_test_reductions(out_dir, hook, False)

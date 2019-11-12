@@ -109,14 +109,12 @@ def get_tensorboard_dir_from_json_config() -> Optional[str]:
 def create_hook_from_json_config(
     hook_cls, collection_manager, json_config_path, default_values=None
 ):
-    """Returns a TornasoleHook object corresponding to either TF, PT, or MXNet.
+    """Returns a SessionHook object corresponding to either TF, PT, or MXNet.
 
     If json_config_path is None, an environment variable must be set.
     Here we compare HookParameters with CollectionConfiguration and set all the defaults.
     """
-    tornasole_params = collect_tornasole_config_params(
-        collection_manager, json_config_path=json_config_path
-    )
+    tornasole_params = collect_config_params(collection_manager, json_config_path=json_config_path)
     if "collections" in tornasole_params:
         include_collections = []
         for obj in tornasole_params["collections"].values():
@@ -154,7 +152,7 @@ def create_hook_from_json_config(
     )
 
 
-def collect_tornasole_config_params(collection_manager, json_config_path) -> Dict:
+def collect_config_params(collection_manager, json_config_path) -> Dict:
     """Read the config file from an environment variable and return a dictionary.
 
     Return a dictionary, example keys:

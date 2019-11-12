@@ -20,7 +20,7 @@ COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = [
 ]
 
 
-class TornasoleHook(CallbackHook):
+class Hook(CallbackHook):
     def __init__(
         self,
         out_dir=None,

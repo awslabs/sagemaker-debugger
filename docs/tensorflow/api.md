@@ -2,12 +2,12 @@
 
 Tornasole TF provides the following constructs:
 ### Hook
-TornasoleHook is the entry point for Tornasole into your program.
+SessionHook is the entry point for Tornasole into your program.
 It's a subclass of `tf.train.SessionRunHook` and can be used where that is suitable,
 such as MonitoredSession and Estimator's train/predict/evaluate methods.
 
 ```
-class TornasoleHook:
+class SessionHook:
     """
     A class used to represent the hook which gets attached to the
     training process.

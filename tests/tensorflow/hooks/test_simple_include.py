@@ -41,7 +41,7 @@ def helper_test_simple_include(trial_dir, hook):
 
 def test_simple_include(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=out_dir,
         save_config=SaveConfig(save_interval=2),
         include_collections=["default", "losses"],
@@ -55,7 +55,7 @@ def test_simple_include_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_simple_include.json",
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     helper_test_simple_include(out_dir, hook)
 
 
@@ -86,7 +86,7 @@ def helper_test_simple_include_regex(trial_dir, hook):
 
 def test_simple_include_regex(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=out_dir,
         include_regex=["loss:0"],
         include_collections=[],
@@ -101,7 +101,7 @@ def test_simple_include_regex_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_simple_include_regex.json",
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     helper_test_simple_include_regex(out_dir, hook)
 
 
@@ -134,7 +134,7 @@ def helper_test_multi_collection_match(trial_dir, hook):
 def test_multi_collection_match(out_dir):
     pre_test_clean_up()
     smd.get_collection("trial").include("loss:0")
-    hook = TornasoleHook(
+    hook = SessionHook(
         out_dir=out_dir,
         include_regex=["loss:0"],
         include_collections=["default", "trial"],
@@ -150,5 +150,5 @@ def test_multi_collection_match_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_multi_collection_match.json",
     )
-    hook = TornasoleHook.hook_from_config()
+    hook = SessionHook.hook_from_config()
     helper_test_multi_collection_match(out_dir, hook)

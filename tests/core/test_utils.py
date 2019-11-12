@@ -5,7 +5,7 @@ import pytest
 from smdebug.core.access_layer import check_dir_exists
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.index_reader import ReadIndexFilesCache
-from smdebug.core.json_config import DEFAULT_SAGEMAKER_OUTDIR, collect_tornasole_config_params
+from smdebug.core.json_config import DEFAULT_SAGEMAKER_OUTDIR, collect_config_params
 from smdebug.core.locations import IndexFileLocationUtils
 from smdebug.core.utils import is_s3
 
@@ -111,7 +111,7 @@ def test_get_prefix_from_index_file():
     assert prefix == "s3://tornasole-testing/run_1"
 
 
-@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a TornasoleHook")
-def test_collect_tornasole_config_params():
-    tornasole_params = collect_tornasole_config_params(collection_manager=CollectionManager())
-    assert tornasole_params["out_dir"] == DEFAULT_SAGEMAKER_OUTDIR
+@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a SessionHook")
+def test_collect_config_params():
+    params = collect_config_params(collection_manager=CollectionManager())
+    assert params["out_dir"] == DEFAULT_SAGEMAKER_OUTDIR

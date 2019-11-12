@@ -10,34 +10,34 @@ If you want to quickly run an end to end example, please refer to [mnist noteboo
 
 Integrating Tornasole into the training job can be accomplished by following steps below.
 
-### Import the tornasole_hook package
-Import the TornasoleHook class along with other helper classes in your training script as shown below
+### Import the hook package
+Import the SessionHook class along with other helper classes in your training script as shown below
 
 ```
-from smdebug.mxnet.hook import TornasoleHook
+from smdebug.mxnet.hook import SessionHook
 from smdebug.mxnet import SaveConfig, Collection
 ```
 
-### Instantiate and initialize tornasole hook
+### Instantiate and initialize hook
 
 ```
     # Create SaveConfig that instructs engine to log graph tensors every 10 steps.
     save_config = SaveConfig(save_interval=10)
     # Create a hook that logs tensors of weights, biases and gradients while training the model.
     output_s3_uri = 's3://my_mxnet_training_debug_bucket/12345678-abcd-1234-abcd-1234567890ab'
-    hook = TornasoleHook(out_dir=output_s3_uri, save_config=save_config)
+    hook = SessionHook(out_dir=output_s3_uri, save_config=save_config)
 ```
 
-Using the _Collection_ object and/or _include\_regex_ parameter of TornasoleHook , users can control which tensors will be stored by the TornasoleHook.
+Using the _Collection_ object and/or _include\_regex_ parameter of SessionHook , users can control which tensors will be stored by the SessionHook.
 The section [How to save tensors](#how-to-save-tensors) explains various ways users can create _Collection_ object to store the required tensors.
 
-The _SaveConfig_ object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the save\_config parameter is not specified, the TornasoleHook will store tensors after every 100 steps.
+The _SaveConfig_ object controls when these tensors are stored. The tensors can be stored for specific steps or after certain interval of steps. If the save\_config parameter is not specified, the SessionHook will store tensors after every 100 steps.
 
-For additional details on TornasoleHook, SaveConfig and Collection please refer to the [API documentation](api.md)
+For additional details on SessionHook, SaveConfig and Collection please refer to the [API documentation](api.md)
 
 ### Register Tornasole hook to the model before starting of the training.
 
-#### NOTE: The tornasole hook can only be registered to Gluon Non-hybrid models.
+#### NOTE: The hook can only be registered to Gluon Non-hybrid models.
 
 After creating or loading the desired model, users can register the hook with the model as shown below.
 
@@ -60,8 +60,8 @@ hook.set_mode(smd.modes.TRAIN)
 Please refer to [this document](api.md) for description of all the functions and parameters that our APIs support
 
 ####  Hook
-TornasoleHook is the entry point for Tornasole into your program.
-Some key parameters to consider when creating the TornasoleHook are the following:
+SessionHook is the entry point for Tornasole into your program.
+Some key parameters to consider when creating the SessionHook are the following:
 
 - `out_dir`: This represents the path to which the outputs of tornasole will be written to. Note that for Sagemaker, you always need to specify the out_dir as `/opt/ml/output/tensors`. In the future, we will make this the default in Sagemaker environments.
 - `save_config`: This is an object of [SaveConfig](#saveconfig). The SaveConfig allows user to specify when the tensors are to be stored. User can choose to specify the number of steps or the intervals of steps when the tensors will be stored. If not specified, it defaults to a SaveConfig which saves every 100 steps.
@@ -74,7 +74,7 @@ Some key parameters to consider when creating the TornasoleHook are the followin
 
 ```
 import smdebug.mxnet as smd
-tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
+tm.SessionHook(out_dir='s3://tornasole-testing/trial_job_dir',
                  save_config=smd.SaveConfig(save_interval=100),
                  include_collections=['weights', 'gradients'])
 ```
@@ -83,7 +83,7 @@ tm.TornasoleHook(out_dir='s3://tornasole-testing/trial_job_dir',
 
 ```
 import smdebug.mxnet as smd
-tm.TornasoleHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
+tm.SessionHook(out_dir='/home/ubuntu/tornasole-testing/trial_job_dir',
                  include_regex=['relu*'])
 ```
 
@@ -104,11 +104,11 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from smdebug.tensorflow import TornasoleHook, get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import SessionHook, get_collection, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
-hook = TornasoleHook(...,
+hook = SessionHook(...,
                      save_config=scm,
                      ...)
 ```
@@ -177,7 +177,7 @@ These reduction config instances can be passed to the hook as follows
 ```
 	import smdebug.mxnet as smd
 	global_reduce_config = smd.ReductionConfig(reductions=["max", "mean"])
-	hook = smd.TornasoleHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
+	hook = smd.SessionHook(out_dir=out_dir, save_config=global_save_config,reduction_config=global_reduce_config)
 ```
 
 Or ReductionConfig can be specified for an individual collection as follows
@@ -191,7 +191,7 @@ tm.get_collection("ReluActivation").reduction_config = ReductionConfig(reduction
 tm.get_collection("flatten").include(["flatten*"])
 tm.get_collection("flatten").save_config = SaveConfig(save_steps=[4,5,6])
 tm.get_collection("flatten").reduction_config = ReductionConfig(norms=["l1"], abs_norms=["l2"])
-hook = TornasoleHook(out_dir=out_dir, include_collections=['weights', 'biases','gradients',
+hook = SessionHook(out_dir=out_dir, include_collections=['weights', 'biases','gradients',
                                                     'default', 'ReluActivation', 'flatten'])
 ```
 
@@ -208,10 +208,10 @@ Users can also specify a certain block in the model to save the inputs and outpu
 This section will take you through these ways in more detail.
 
 #### Saving the tensors with _include\_regex_
-The TornasoleHook API supports _include\_regex_ parameter. The users can specify a regex pattern with this pattern. The TornasoleHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
+The SessionHook API supports _include\_regex_ parameter. The users can specify a regex pattern with this pattern. The SessionHook will store the tensors that match with the specified regex pattern. With this approach, users can store the tensors without explicitly creating a Collection object. The specified regex pattern will be associated with 'default' Collection and the SaveConfig object that is associated with the 'default' collection.
 
 #### Default Collections
-Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'biases' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with TornasoleHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the TornasoleHook initialization. The TornasoleHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect.
+Currently, the tornasole\_mxnet hook creates Collection objects for 'weights', 'gradients', 'biases' and 'default'. These collections contain the regex pattern that match with tensors of type weights, gradient and bias. The regex pattern for the 'default' collection is set when user specifies _include\_regex_ with SessionHook or sets the _SaveAll=True_.  These collections use the SaveConfig parameter provided with the SessionHook initialization. The SessionHook will store the related tensors, if user does not specify any special collection with _include\_collections_ parameter. If user specifies a collection with _include\_collections_ the above default collections will not be in effect.
 
 #### Custom Collections
 You can also create any other customized collection yourself.

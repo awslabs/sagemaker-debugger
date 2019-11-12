@@ -219,7 +219,7 @@ def helper_mirrored(
             CollectionKeys.LOSSES,
         ]
 
-    ts_hook = smd.TornasoleHook(
+    ts_hook = smd.SessionHook(
         out_dir=trial_dir,
         save_all=save_all,
         include_collections=include_collections,

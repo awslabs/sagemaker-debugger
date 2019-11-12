@@ -45,7 +45,7 @@ def test_estimator(script_mode: bool):
 
         # Train and evaluate
         if script_mode:
-            hook = smd.TornasoleEstimatorHook(out_dir=sim.out_dir)
+            hook = smd.EstimatorHook(out_dir=sim.out_dir)
             mnist_classifier.train(input_fn=train_input_fn, steps=50)
             mnist_classifier.evaluate(input_fn=eval_input_fn, steps=10)
         else:
@@ -72,7 +72,7 @@ def test_linear_classifier(script_mode: bool):
 
         # Train
         if script_mode:
-            hook = smd.TornasoleEstimatorHook(out_dir=sim.out_dir)
+            hook = smd.EstimatorHook(out_dir=sim.out_dir)
             estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
         else:
             # hook = smd.get_hook() ?
@@ -93,7 +93,7 @@ def test_monitored_session(script_mode: bool):
         mnist = get_data()
 
         if script_mode:
-            hook = smd.TornasoleKerasHook(out_dir=sim.out_dir)
+            hook = smd.KerasHook(out_dir=sim.out_dir)
             sess = tf.train.MonitoredSession(hooks=[hook])
         else:
             sess = tf.train.MonitoredSession()
@@ -128,7 +128,7 @@ def test_keras_v1(script_mode: bool):
             metrics=["accuracy"],
         )
         if script_mode:
-            hook = smd.TornasoleKerasHook(out_dir=sim.out_dir)
+            hook = smd.KerasHook(out_dir=sim.out_dir)
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
             )

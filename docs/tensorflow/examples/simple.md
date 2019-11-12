@@ -12,14 +12,14 @@ import smdebug.tensorflow as smd
 ```
 **Saving all tensors**
 ```
-smd.TornasoleHook(..., save_all=True, ...)
+smd.SessionHook(..., save_all=True, ...)
 ```
 **Saving gradients**
 
 We need to wrap our optimizer with wrap_optimizer, and use this optimizer to minimize loss.
 This will also enable us to access the gradients during analysis without having to identify which tensors out of the saved ones are the gradients.
 ```
-hook = smd.TornasoleHook(..., include_collections=[..,'gradients'], ...)
+hook = smd.SessionHook(..., include_collections=[..,'gradients'], ...)
 opt = hook.wrap_optimizer(opt)
 optimizer_op = opt.minimize(loss, global_step=increment_global_step_op)
 
@@ -33,12 +33,12 @@ smd.add_to_collection('losses', loss)
 ```
 In the code, you will see the following line to do so.
 ```
-smd.TornasoleHook(..., include_collections=[...,'losses'], ...)
+smd.SessionHook(..., include_collections=[...,'losses'], ...)
 ```
 
 **Setting save interval**
 ```
-smd.TornasoleHook(...,save_config=smd.SaveConfig(save_interval=args.tornasole_frequency)...)
+smd.SessionHook(...,save_config=smd.SaveConfig(save_interval=args.save_frequency)...)
 ```
 **Setting the right mode**
 
@@ -51,7 +51,7 @@ hook.set_mode(smd.modes.TRAIN)
 
 We need to pass this hook to a monitored session and use this session for running the job.
 ```
-hook = smd.TornasoleHook(...)
+hook = smd.SessionHook(...)
 sess = tf.train.MonitoredSession(hooks=[hook])
 ```
 
@@ -63,14 +63,14 @@ source activate tensorflow_p36
 ```
 ### Tornasole Path
 We recommend saving tornasole outputs on S3 by passing the
-flag `--tornasole_path` in the format `s3://bucket_name/prefix`.
+flag `--smdebug_path` in the format `s3://bucket_name/prefix`.
 The commands below will be shown with local path however so you can
 run them immediately without having to setup S3 permissions.
 ### Example commands
 
 #### Running a well behaved job
 ```
-python simple.py --tornasole_path ~/ts_outputs/ok --lr 0.001 --scale 1 --steps 100 --tornasole_frequency 13
+python simple.py --smdebug_path ~/ts_outputs/ok --lr 0.001 --scale 1 --steps 100 --save_frequency 13
 ```
 This will generate output like:
 ```
@@ -95,7 +95,7 @@ Tensors have been saved in `~/ts_outputs/ok/`.
 #### Running a job which produces nan
 Now run the same job, but this time injecting errors (large learning rate, incorrect scaling features):
 ```
-python simple.py --tornasole_path ~/ts_outputs/not_good --lr 100 --scale 100000000000 --tornasole_frequency 9 --steps 100
+python simple.py --smdebug_path ~/ts_outputs/not_good --lr 100 --scale 100000000000 --save_frequency 9 --steps 100
 ```
 This will generate:
 ```
