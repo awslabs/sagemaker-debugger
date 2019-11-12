@@ -313,6 +313,7 @@ def test_save_all(out_dir):
 
 
 @pytest.mark.slow
+@pytest.mark.skip("https://github.com/awslabs/tornasole_core/issues/377")
 def test_base_reductions(out_dir):
     train_model(
         out_dir,
