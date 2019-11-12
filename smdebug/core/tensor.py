@@ -308,17 +308,16 @@ class Tensor:
         elif rl is not None:
             return IndexReader.fetch_tensor_value(rl)
         else:
-            if s.value is None:
+            if s.value is None and s.location is None:
+                raise TensorUnavailableForStep(tname=reduction_name, step=step_num, mode=mode)
+            elif s.value is None and s.location is not None:
                 step_value = IndexReader.fetch_tensor_value(s.location)
                 if self.cache:
                     s.value = step_value  # save value if cache is set to True
             else:
                 step_value = s.value
 
-            if step_value is not None:
-                return get_numpy_reduction(reduction_name, step_value, abs)
-            else:
-                return None
+            return get_numpy_reduction(reduction_name, step_value, abs)
 
     def _create_mode_step(self, mode, mode_step):
         mode_step = int(mode_step)

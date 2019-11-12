@@ -334,7 +334,6 @@ def test_save_all():
 
 
 @pytest.mark.slow
-@pytest.mark.skip("https://github.com/awslabs/tornasole_core/issues/377")
 def test_base_reductions():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
@@ -349,14 +348,6 @@ def test_base_reductions():
     for tname in tr.tensors():
         for s in tr.tensor(tname).steps():
             print(tname, tr.tensor(tname).reduction_values(0))
-
-    f = open(
-        os.path.join(
-            trial_dir, "index", "000000000", "000000000000__replica-0_task-0_device-CPU-0.json"
-        )
-    )
-    print(f.readlines())
-    f.close()
 
     weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
     try:
