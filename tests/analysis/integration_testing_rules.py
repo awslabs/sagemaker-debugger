@@ -393,30 +393,20 @@ class TestRules:
         )
 
     def run_processes(self, process_list):
-        # execute all 'job's in parallel
+        """ Run all processes simultaneously, failing fast if any one fails. """
         for process in process_list:
             process.start()
-        ended_processes = set()
-        exit_code = 0
-        while True:
-            if len(ended_processes) == len(process_list):
-                break
-            for process in process_list:
-                if process not in ended_processes and not process.is_alive():
-                    ended_processes.add(process)
-                    exit_code += process.exitcode
-                    logger.info(
-                        "Process {} ended with exit code {}".format(process.name, process.exitcode)
-                    )
-                    assert process.exitcode == 0
-                    process.join()
-            sleep(2)
 
-        if exit_code > 0:
-            msg = "exit code of pytest run non zero. Please check logs in s3://{}{}".format(
-                INTEGRATION_TEST_S3_BUCKET, self.current_commit_path
-            )
-            assert False, msg
+        running_processes = set(process_list)
+        while len(running_processes) > 0:
+            for process in [proc for proc in running_processes]:
+                if not process.is_alive():
+                    assert (
+                        process.exit_code == 0
+                    ), f"Pytest failed, check logs at s3://{INTEGRATION_TEST_S3_BUCKET}{self.current_commit_path}"
+                    process.join()
+                    running_processes.remove(process)
+            sleep(2)
 
 
 # only for codebuilding test
