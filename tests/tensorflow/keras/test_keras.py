@@ -17,8 +17,6 @@ from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
 from smdebug.tensorflow.keras import TornasoleKerasHook
 
-TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
-
 
 class FetchTensorCallback(tf.keras.callbacks.Callback):
     def __init__(self, tensors):
@@ -137,13 +135,10 @@ def train_model(
     "needs to be set at startup, but pytest "
     "does not allow controlling order of tests"
 )
-def test_tf_keras_eager():
+def test_tf_keras_eager(out_dir):
     tf.enable_eager_execution()
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-    train_model(trial_dir, eager=True, steps=["train"])
+    train_model(out_dir, eager=True, steps=["train"])
     tf.disable_eager_execution()
-    shutil.rmtree(trial_dir, ignore_errors=True)
 
 
 @pytest.mark.skip(
@@ -151,20 +146,16 @@ def test_tf_keras_eager():
     "needs to be set at startup, but pytest "
     "does not allow controlling order of tests"
 )
-def test_tf_keras_eager_env():
+def test_tf_keras_eager_env(out_dir):
     tf.enable_eager_execution()
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-    train_model(trial_dir, eager=False, steps=["train"])
+    train_model(out_dir, eager=False, steps=["train"])
     tf.disable_eager_execution()
-    shutil.rmtree(trial_dir, ignore_errors=True)
 
 
-def exhaustive_check(use_tf_keras):
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def exhaustive_check(out_dir, use_tf_keras):
     include_collections = [
         CollectionKeys.WEIGHTS,
+        CollectionKeys.BIASES,
         CollectionKeys.GRADIENTS,
         CollectionKeys.LOSSES,
         CollectionKeys.OUTPUTS,
@@ -173,14 +164,14 @@ def exhaustive_check(use_tf_keras):
         CollectionKeys.OPTIMIZER_VARIABLES,
     ]
     train_model(
-        trial_dir,
+        out_dir,
         include_collections=include_collections,
         use_tf_keras=use_tf_keras,
         eager=False,
         steps=["train", "eval", "predict", "train"],
     )
 
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     if use_tf_keras:
         assert len(tr.tensors()) == 18
     else:
@@ -197,7 +188,8 @@ def exhaustive_check(use_tf_keras):
     assert len(tr.tensor(gradient_name).steps(ModeKeys.TRAIN)) == 7
     assert len(tr.tensor(gradient_name).steps(ModeKeys.EVAL)) == 0
 
-    assert len(tr.tensors_in_collection(CollectionKeys.WEIGHTS)) == 4
+    assert len(tr.tensors_in_collection(CollectionKeys.WEIGHTS)) == 2
+    assert len(tr.tensors_in_collection(CollectionKeys.BIASES)) == 2
     weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
     assert len(tr.tensor(weight_name).steps()) == 13
     assert len(tr.tensor(weight_name).steps(ModeKeys.TRAIN)) == 7
@@ -215,36 +207,32 @@ def exhaustive_check(use_tf_keras):
         assert tr.tensor(opt_var_name).value(0) is not None
         assert len(tr.tensor(opt_var_name).steps(ModeKeys.EVAL)) == 0
 
-    shutil.rmtree(trial_dir)
-
 
 @pytest.mark.slow  # 0:08 to run
-def test_keras():
-    exhaustive_check(False)
+def test_keras(out_dir):
+    exhaustive_check(out_dir, False)
 
 
 @pytest.mark.slow  # 0:07 to run
-def test_tf_keras():
-    exhaustive_check(True)
+def test_tf_keras(out_dir):
+    exhaustive_check(out_dir, True)
 
 
 @pytest.mark.slow  # 0:03 to run
-def test_tf_keras_non_keras_opt():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_tf_keras_non_keras_opt(out_dir):
     include_collections = [
         CollectionKeys.GRADIENTS,
         CollectionKeys.OPTIMIZER_VARIABLES,
         CollectionKeys.METRICS,
     ]
     train_model(
-        trial_dir,
+        out_dir,
         include_collections=include_collections,
         eager=False,
         use_keras_optimizer=False,
         steps=["train", "eval"],
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     assert len(tr.modes()) == 2
     assert len(tr.steps(ModeKeys.TRAIN)) == 4  # 0, 3, 6, 9
     assert len(tr.tensors_in_collection(CollectionKeys.GRADIENTS)) == 4
@@ -254,31 +242,25 @@ def test_tf_keras_non_keras_opt():
 
     # not supported for non keras optimizer with keras
     assert len(tr.tensors_in_collection(CollectionKeys.OPTIMIZER_VARIABLES)) == 0
-    shutil.rmtree(trial_dir)
 
 
 @pytest.mark.slow  # 0:09 to run
-def test_save_all():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-    train_model(trial_dir, include_collections=None, save_all=True, steps=["train"])
-    tr = create_trial_fast_refresh(trial_dir)
+def test_save_all(out_dir):
+    train_model(out_dir, include_collections=None, save_all=True, steps=["train"])
+    tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) == 21
     assert len(tr.steps()) == 4
-    shutil.rmtree(trial_dir)
 
 
 @pytest.mark.slow  # 0:03 to run
-def test_base_reductions():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_base_reductions(out_dir):
     train_model(
-        trial_dir,
+        out_dir,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
         steps=["train"],
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     print(tr.tensors())
     weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
     try:
@@ -296,25 +278,20 @@ def test_base_reductions():
     metric_name = tr.tensors_in_collection(CollectionKeys.METRICS)[0]
     assert tr.tensor(metric_name).value(0) is not None
 
-    shutil.rmtree(trial_dir)
-
 
 @pytest.mark.slow  # 0:03 to run
-def test_collection_reductions():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-
+def test_collection_reductions(out_dir):
     reset_collections()
     tf.reset_default_graph()
 
     get_collection(CollectionKeys.GRADIENTS).reduction_config = ReductionConfig(norms=["l1"])
     train_model(
-        trial_dir,
+        out_dir,
         reset=False,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.GRADIENTS],
         steps=["train"],
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
     grad_name = tr.tensors_in_collection(CollectionKeys.GRADIENTS)[0]
     assert tr.tensor(weight_name).value(0) is not None
@@ -324,84 +301,75 @@ def test_collection_reductions():
     except TensorUnavailableForStep:
         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
 
-    shutil.rmtree(trial_dir)
-
 
 @pytest.mark.slow  # 0:03 to run
-def test_training_end():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
-    train_model(trial_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"])
-
-    assert has_training_ended(trial_dir) is True
-    shutil.rmtree(trial_dir)
+def test_training_end(out_dir):
+    train_model(out_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"])
+    assert has_training_ended(out_dir) is True
 
 
 @pytest.mark.slow  # 0:06 to run
-def test_collection_add():
+def test_collection_add(out_dir):
     reset_collections()
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     train_model(
-        trial_dir,
+        out_dir,
         include_collections=["relu"],
         reset=False,
         save_config=SaveConfig(save_interval=9),
         create_relu_collection=True,
         steps=["train"],
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     relu_coll_tensor_names = tr.tensors_in_collection("relu")
     assert len(relu_coll_tensor_names) == 2
     assert tr.tensor(relu_coll_tensor_names[0]).value(0) is not None
     assert tr.tensor(relu_coll_tensor_names[1]).value(0) is not None
-    shutil.rmtree(trial_dir)
 
 
 @pytest.mark.slow  # 0:06 to run
-def test_include_regex():
+def test_include_regex(out_dir):
     reset_collections()
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
     get_collection("custom_coll").include("dense")
     train_model(
-        trial_dir,
+        out_dir,
         include_collections=["custom_coll"],
         save_config=SaveConfig(save_interval=9),
         reset=False,
         steps=["train"],
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensors_in_collection("custom_coll")
     assert len(tnames) == 8
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
-    shutil.rmtree(trial_dir)
 
 
 @pytest.mark.slow  # 0:03 to run
-def test_clash_with_tb_callback():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_clash_with_tb_callback(out_dir):
     train_model(
-        trial_dir,
+        out_dir,
         save_config=SaveConfig(save_interval=9),
         steps=["train"],
+        include_collections=[
+            CollectionKeys.WEIGHTS,
+            CollectionKeys.BIASES,
+            CollectionKeys.LOSSES,
+            CollectionKeys.METRICS,
+        ],
         add_callbacks=["tensorboard"],
     )
-    tr = create_trial_fast_refresh(trial_dir)
-    assert len(tr.tensors()) == 12
-    shutil.rmtree(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
+    assert len(tr.tensors()) == 8
+    shutil.rmtree(out_dir)
 
 
 @pytest.mark.slow  # 0:03 to run
-def test_clash_with_custom_callback():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_clash_with_custom_callback(out_dir):
     train_model(
-        trial_dir,
+        out_dir,
         include_collections=[
             CollectionKeys.WEIGHTS,
+            CollectionKeys.BIASES,
             CollectionKeys.OUTPUTS,
             CollectionKeys.GRADIENTS,
         ],
@@ -409,6 +377,6 @@ def test_clash_with_custom_callback():
         steps=["train"],
         add_callbacks=["fetch_tensor"],
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) == 11
-    shutil.rmtree(trial_dir)
+    shutil.rmtree(out_dir)

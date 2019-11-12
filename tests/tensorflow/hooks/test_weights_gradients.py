@@ -32,28 +32,19 @@ def helper_test_only_w_g(trial_dir, hook):
     )
     assert num_tensors_loaded_collection == 2
     assert len(steps) == 5
-    # for step in steps:
-    #   i = 0
-    #   filepath, size = get_event_file_path_length(join(rank_dir, step))
-    #   for (n, t) in get_tensors_from_event_file(filepath):
-    #     i += 1
-    #   assert i == 2
 
 
-def test_only_w_g():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_only_w_g(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(out_dir=trial_dir, save_all=False, save_config=SaveConfig(save_interval=2))
-    helper_test_only_w_g(trial_dir, hook)
+    hook = TornasoleHook(out_dir, save_all=False, save_config=SaveConfig(save_interval=2))
+    helper_test_only_w_g(out_dir, hook)
 
 
-def test_only_w_g_json():
-    trial_dir = "newlogsRunTest1/test_only_weights_and_gradients"
-    shutil.rmtree(trial_dir, ignore_errors=True)
+def test_only_w_g_json(out_dir, monkeypatch):
     pre_test_clean_up()
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_only_weights_and_gradients.json"
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_only_weights_and_gradients.json",
+    )
     hook = smd.TornasoleHook.hook_from_config()
-    helper_test_only_w_g(trial_dir, hook)
+    helper_test_only_w_g(out_dir, hook)

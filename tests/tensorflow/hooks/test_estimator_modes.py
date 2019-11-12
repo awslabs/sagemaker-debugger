@@ -28,12 +28,15 @@ from smdebug.tensorflow import reset_collections
 from smdebug.tensorflow.session import TornasoleHook
 from smdebug.trials import create_trial
 
-# Local
-from .utils import TORNASOLE_TF_HOOK_TESTS_DIR
-
 
 def help_test_mnist(
-    path, save_config=None, hook=None, set_modes=True, num_train_steps=20, num_eval_steps=10
+    path,
+    save_config=None,
+    hook=None,
+    set_modes=True,
+    num_train_steps=20,
+    num_eval_steps=10,
+    include_collections=None,
 ):
     trial_dir = path
     tf.reset_default_graph()
@@ -124,7 +127,11 @@ def help_test_mnist(
         x={"x": eval_data}, y=eval_labels, num_epochs=1, batch_size=1, shuffle=False
     )
     if hook is None:
-        hook = smd.TornasoleHook(out_dir=trial_dir, save_config=save_config)
+        if include_collections is None:
+            include_collections = ["weights", "gradients", "default", "losses"]
+        hook = smd.TornasoleHook(
+            out_dir=trial_dir, save_config=save_config, include_collections=include_collections
+        )
 
     if set_modes:
         hook.set_mode(smd.modes.TRAIN)
@@ -147,7 +154,7 @@ def helper_test_mnist_trial(trial_dir):
     assert len(tr.steps()) == 3
     assert len(tr.steps(mode=smd.modes.TRAIN)) == 2
     assert len(tr.steps(mode=smd.modes.EVAL)) == 1
-    assert len(tr.tensors()) == 17
+    assert len(tr.tensors()) == 13
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
         shutil.rmtree(trial_dir, ignore_errors=True)
@@ -156,37 +163,33 @@ def helper_test_mnist_trial(trial_dir):
 
 
 @pytest.mark.slow  # 0:02 to run
-def test_mnist(on_s3=False):
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
+def test_mnist(out_dir, on_s3=False):
     if on_s3:
+        run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         bucket = "tornasole-testing"
         prefix = "tornasole_tf/hooks/estimator_modes/" + run_id
-        trial_dir = f"s3://{bucket}/{prefix}"
-    else:
-        trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+        out_dir = f"s3://{bucket}/{prefix}"
     help_test_mnist(
-        trial_dir, save_config=smd.SaveConfig(save_interval=2), num_train_steps=4, num_eval_steps=2
+        out_dir, save_config=smd.SaveConfig(save_interval=2), num_train_steps=4, num_eval_steps=2
     )
-    helper_test_mnist_trial(trial_dir)
+    helper_test_mnist_trial(out_dir)
 
 
 @pytest.mark.slow  # 0:02 to run
-def test_mnist_local_json():
-    out_dir = "newlogsRunTest1/test_mnist_local_json_config"
-    shutil.rmtree(out_dir, ignore_errors=True)
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"
+def test_mnist_local_json(out_dir, monkeypatch):
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"
+    )
     hook = TornasoleHook.hook_from_config()
     help_test_mnist(path=out_dir, hook=hook, num_train_steps=4, num_eval_steps=2)
     helper_test_mnist_trial(out_dir)
 
 
 @pytest.mark.slow  # 1:04 to run
-def test_mnist_s3():
+def test_mnist_s3(out_dir):
     # Takes 1:04 to run, compared to 4 seconds above.
     # Speed improvements, or should we migrate integration tests to their own folder?
-    test_mnist(True)
+    test_mnist(out_dir, True)
 
 
 def helper_test_multi_save_configs_trial(trial_dir):
@@ -194,7 +197,7 @@ def helper_test_multi_save_configs_trial(trial_dir):
     assert len(tr.steps()) == 5, tr.steps()
     assert len(tr.steps(mode=smd.modes.TRAIN)) == 3
     assert len(tr.steps(mode=smd.modes.EVAL)) == 2
-    assert len(tr.tensors()) == 17
+    assert len(tr.tensors()) == 1
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
         shutil.rmtree(trial_dir)
@@ -203,42 +206,40 @@ def helper_test_multi_save_configs_trial(trial_dir):
 
 
 @pytest.mark.slow  # 0:04 to run
-def test_mnist_local_multi_save_configs(on_s3=False):
+def test_mnist_local_multi_save_configs(out_dir, on_s3=False):
     # Runs in 0:04
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     if on_s3:
+        run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         bucket = "tornasole-testing"
         prefix = "tornasole_tf/hooks/estimator_modes/" + run_id
-        trial_dir = f"s3://{bucket}/{prefix}"
-    else:
-        trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+        out_dir = f"s3://{bucket}/{prefix}"
     help_test_mnist(
-        trial_dir,
+        out_dir,
         smd.SaveConfig(
             {
                 smd.modes.TRAIN: smd.SaveConfigMode(save_interval=2),
                 smd.modes.EVAL: smd.SaveConfigMode(save_interval=3),
             }
         ),
+        include_collections=["losses"],
         num_train_steps=6,
         num_eval_steps=4,
     )
-    helper_test_multi_save_configs_trial(trial_dir)
+    helper_test_multi_save_configs_trial(out_dir)
 
 
 @pytest.mark.slow  # 0:52 to run
-def test_mnist_s3_multi_save_configs():
+def test_mnist_s3_multi_save_configs(out_dir):
     # Takes 0:52 to run, compared to 4 seconds above. Speed improvements?
-    test_mnist_local_multi_save_configs(True)
+    test_mnist_local_multi_save_configs(out_dir, True)
 
 
 @pytest.mark.slow  # 0:02 to run
-def test_mnist_local_multi_save_configs_json():
-    out_dir = "newlogsRunTest1/test_save_config_modes_hook_config"
-    shutil.rmtree(out_dir, ignore_errors=True)
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json"
+def test_mnist_local_multi_save_configs_json(out_dir, monkeypatch):
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json",
+    )
     hook = smd.TornasoleHook.hook_from_config()
     help_test_mnist(out_dir, hook=hook, num_train_steps=6, num_eval_steps=4)
     helper_test_multi_save_configs_trial(out_dir)

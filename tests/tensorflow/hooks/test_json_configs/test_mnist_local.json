@@ -1,7 +1,13 @@
 {
   "S3OutputPath": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest1/test_mnist_local_json_config",
+  "LocalPath": "/tmp/test/",
   "HookParameters": {
     "save_interval": 2
-  }
+  },
+  "CollectionConfiguration": [
+      { "CollectionName": "weights" },
+      { "CollectionName": "gradients" },
+      { "CollectionName": "losses" },
+      { "CollectionName": "default" }
+    ]
 }

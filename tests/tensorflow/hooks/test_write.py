@@ -96,25 +96,19 @@ def helper_tornasole_hook_write(data_dir, hook):
 
 
 @pytest.mark.slow  # 0:01 to run
-def test_tornasole_hook_write():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    data_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_tornasole_hook_write(out_dir):
     pre_test_clean_up()
     # set up tornasole hook
     hook = TornasoleHook(
-        data_dir, save_all=True, include_collections=None, save_config=SaveConfig(save_interval=999)
+        out_dir, save_all=True, include_collections=None, save_config=SaveConfig(save_interval=999)
     )
-    helper_tornasole_hook_write(data_dir, hook)
+    helper_tornasole_hook_write(out_dir, hook)
 
 
-def test_tornasole_hook_write_json():
-    data_dir = "newlogsRunTest1/test_tornasole_hook_write_json"
-    shutil.rmtree(data_dir, ignore_errors=True)
+def test_tornasole_hook_write_json(out_dir, monkeypatch):
     pre_test_clean_up()
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_write.json"
-
-    shutil.rmtree(data_dir, ignore_errors=True)
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_write.json"
+    )
     hook = smd.TornasoleHook.hook_from_config()
-    helper_tornasole_hook_write(data_dir, hook)
+    helper_tornasole_hook_write(out_dir, hook)

@@ -1,9 +1,13 @@
 {
   "S3OutputPath": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest1/test_simple_include_json",
+  "LocalPath": "/tmp/test",
   "HookParameters": {
     "save_all": false,
     "include_regex": "loss:0",
     "save_interval": 2
-  }
+  },
+  "CollectionConfiguration": [
+      { "CollectionName": "losses" },
+      { "CollectionName": "default" }
+    ]
 }

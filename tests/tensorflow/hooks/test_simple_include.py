@@ -35,29 +35,28 @@ def helper_test_simple_include(trial_dir, hook):
                 tensor_name, step, tensor_data, mode, mode_step = x
                 i += 1
                 size += tensor_data.nbytes if tensor_data is not None else 0
-        assert i == 3
-        assert size == 20
-
-    shutil.rmtree(trial_dir)
+        assert i == 1
+        assert size == 4
 
 
-def test_simple_include():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_simple_include(out_dir):
     pre_test_clean_up()
-    hook = TornasoleHook(out_dir=trial_dir, save_config=SaveConfig(save_interval=2))
-    helper_test_simple_include(trial_dir, hook)
+    hook = TornasoleHook(
+        out_dir=out_dir,
+        save_config=SaveConfig(save_interval=2),
+        include_collections=["default", "losses"],
+    )
+    helper_test_simple_include(out_dir, hook)
 
 
-def test_simple_include_json():
-    trial_dir = "newlogsRunTest1/test_simple_include_json"
-    shutil.rmtree(trial_dir, ignore_errors=True)
+def test_simple_include_json(out_dir, monkeypatch):
     pre_test_clean_up()
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_simple_include.json"
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_simple_include.json",
+    )
     hook = TornasoleHook.hook_from_config()
-    helper_test_simple_include(trial_dir, hook)
+    helper_test_simple_include(out_dir, hook)
 
 
 def helper_test_simple_include_regex(trial_dir, hook):
@@ -84,31 +83,26 @@ def helper_test_simple_include_regex(trial_dir, hook):
         assert i == 1
         assert size == 4
 
-    shutil.rmtree(trial_dir)
 
-
-def test_simple_include_regex():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_simple_include_regex(out_dir):
     pre_test_clean_up()
     hook = TornasoleHook(
-        out_dir=trial_dir,
+        out_dir=out_dir,
         include_regex=["loss:0"],
         include_collections=[],
         save_config=SaveConfig(save_interval=2),
     )
-    helper_test_simple_include_regex(trial_dir, hook)
+    helper_test_simple_include_regex(out_dir, hook)
 
 
-def test_simple_include_regex_json():
-    trial_dir = "newlogsRunTest1/test_simple_include_regex_json"
-    shutil.rmtree(trial_dir, ignore_errors=True)
+def test_simple_include_regex_json(out_dir, monkeypatch):
     pre_test_clean_up()
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_simple_include_regex.json"
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_simple_include_regex.json",
+    )
     hook = TornasoleHook.hook_from_config()
-    helper_test_simple_include_regex(trial_dir, hook)
+    helper_test_simple_include_regex(out_dir, hook)
 
 
 def helper_test_multi_collection_match(trial_dir, hook):
@@ -135,30 +129,26 @@ def helper_test_multi_collection_match(trial_dir, hook):
                 size += tensor_data.nbytes if tensor_data is not None else 0
         assert i == 1
         assert size == 4
-    shutil.rmtree(trial_dir)
 
 
-def test_multi_collection_match():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_multi_collection_match(out_dir):
     pre_test_clean_up()
     smd.get_collection("trial").include("loss:0")
     hook = TornasoleHook(
-        out_dir=trial_dir,
+        out_dir=out_dir,
         include_regex=["loss:0"],
         include_collections=["default", "trial"],
         save_config=SaveConfig(save_interval=2),
     )
-    helper_test_multi_collection_match(trial_dir, hook)
+    helper_test_multi_collection_match(out_dir, hook)
 
 
-def test_multi_collection_match_json():
-    trial_dir = "newlogsRunTest1/test_multi_collection_match_json"
-    shutil.rmtree(trial_dir, ignore_errors=True)
+def test_multi_collection_match_json(out_dir, monkeypatch):
     pre_test_clean_up()
     smd.get_collection("trial").include("loss:0")
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_multi_collection_match.json"
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_multi_collection_match.json",
+    )
     hook = TornasoleHook.hook_from_config()
-    helper_test_multi_collection_match(trial_dir, hook)
+    helper_test_multi_collection_match(out_dir, hook)

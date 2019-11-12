@@ -29,9 +29,6 @@ from .utils import (
 )
 
 DEFAULT_INCLUDE_COLLECTIONS = [
-    CollectionKeys.WEIGHTS,
-    CollectionKeys.GRADIENTS,
-    CollectionKeys.DEFAULT,
     CollectionKeys.METRICS,
     CollectionKeys.LOSSES,
     CollectionKeys.SCALARS,

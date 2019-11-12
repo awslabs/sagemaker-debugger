@@ -1,6 +1,6 @@
 {
   "S3OutputPath": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest1/test_tornasole_hook_write_json",
+  "LocalPath": "/tmp/test",
   "HookParameters": {
     "save_all": true,
     "save_interval": 999

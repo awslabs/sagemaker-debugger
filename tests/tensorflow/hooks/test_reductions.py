@@ -40,9 +40,7 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
                     assert t.reduction_value(0, reduction_name=r, abs=b, worker=None) is not None
 
 
-def test_reductions(save_raw_tensor=False):
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join("/tmp/tornasole_rules_tests/", run_id)
+def test_reductions(out_dir, save_raw_tensor=False):
     pre_test_clean_up()
     rdnc = ReductionConfig(
         reductions=ALLOWED_REDUCTIONS,
@@ -52,21 +50,22 @@ def test_reductions(save_raw_tensor=False):
         save_raw_tensor=save_raw_tensor,
     )
     hook = TornasoleHook(
-        out_dir=trial_dir, save_config=SaveConfig(save_interval=1), reduction_config=rdnc
+        out_dir=out_dir,
+        save_config=SaveConfig(save_interval=1),
+        reduction_config=rdnc,
+        include_collections=["weights", "gradients", "losses"],
     )
-    helper_test_reductions(trial_dir, hook, save_raw_tensor)
+    helper_test_reductions(out_dir, hook, save_raw_tensor)
 
 
-def test_reductions_with_raw_tensor():
-    test_reductions(save_raw_tensor=True)
+def test_reductions_with_raw_tensor(out_dir):
+    test_reductions(out_dir, save_raw_tensor=True)
 
 
-def test_reductions_json():
-    trial_dir = "newlogsRunTest1/test_reductions"
-    shutil.rmtree(trial_dir, ignore_errors=True)
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_reductions.json"
+def test_reductions_json(out_dir, monkeypatch):
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_reductions.json"
+    )
     pre_test_clean_up()
     hook = smd.TornasoleHook.hook_from_config()
-    helper_test_reductions(trial_dir, hook, False)
+    helper_test_reductions(out_dir, hook, False)

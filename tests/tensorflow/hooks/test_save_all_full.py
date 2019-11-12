@@ -13,22 +13,17 @@ from smdebug.tensorflow import Collection, CollectionManager, get_collections, r
 from .utils import *
 
 
-def test_save_all_full(hook=None, trial_dir=None):
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    if trial_dir is None:
-        trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_save_all_full(out_dir, hook=None):
     tf.reset_default_graph()
-    hook_created = False
     if hook is None:
         reset_collections()
         hook = TornasoleHook(
-            out_dir=trial_dir, save_all=True, save_config=SaveConfig(save_interval=2)
+            out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=2)
         )
-        hook_created = True
 
     simple_model(hook)
-    files = get_collection_files(trial_dir)
-    dirs, _ = get_dirs_files(os.path.join(trial_dir, "events"))
+    files = get_collection_files(out_dir)
+    dirs, _ = get_dirs_files(os.path.join(out_dir, "events"))
 
     coll = get_collections()
     assert all(
@@ -40,7 +35,7 @@ def test_save_all_full(hook=None, trial_dir=None):
 
     assert DEFAULT_COLLECTIONS_FILE_NAME in files
     cm = CollectionManager.load(
-        join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
+        join(get_path_to_collections(out_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
 
     assert len(cm.collections) == len(coll), (coll, cm.collections)
@@ -59,7 +54,7 @@ def test_save_all_full(hook=None, trial_dir=None):
     for step in dirs:
         i = 0
         size = 0
-        fs = glob.glob(join(trial_dir, "events", step, "**", "*.tfevents"), recursive=True)
+        fs = glob.glob(join(out_dir, "events", step, "**", "*.tfevents"), recursive=True)
         for f in fs:
             fr = FileReader(f)
             for x in fr.read_tensors():
@@ -68,17 +63,13 @@ def test_save_all_full(hook=None, trial_dir=None):
                 size += tensor_data.nbytes
         assert i == 84
         assert size == 1462
-    if hook_created:
-        shutil.rmtree(trial_dir)
 
 
-def test_hook_config_json():
-    out_dir = "newlogsRunTest1/test_hook_from_json_config"
-    shutil.rmtree(out_dir, ignore_errors=True)
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json"
+def test_hook_config_json(out_dir, monkeypatch):
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json",
+    )
     reset_collections()
     hook = TornasoleHook.hook_from_config()
-    test_save_all_full(hook, out_dir)
-    shutil.rmtree(out_dir, ignore_errors=True)
+    test_save_all_full(out_dir, hook)

@@ -19,8 +19,6 @@ from smdebug.tensorflow import (
     reset_collections,
 )
 
-TORNASOLE_TF_HOOK_TESTS_DIR = "/tmp/tornasole_tf/tests/"
-
 
 def simple_model(hook, steps=10, lr=0.4):
     # Network definition

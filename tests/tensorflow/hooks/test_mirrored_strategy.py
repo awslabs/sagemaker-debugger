@@ -16,10 +16,6 @@
 # Future
 from __future__ import absolute_import, division, print_function
 
-# Standard Library
-import os
-from datetime import datetime
-
 # Third Party
 import numpy as np
 import pytest
@@ -32,9 +28,6 @@ import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
 from smdebug.exceptions import TensorUnavailableForStep
-
-# Local
-from .utils import TORNASOLE_TF_HOOK_TESTS_DIR
 
 
 def cnn_model_fn(features, labels, mode):
@@ -221,6 +214,7 @@ def helper_mirrored(
     if include_collections is None:
         include_collections = [
             CollectionKeys.WEIGHTS,
+            CollectionKeys.BIASES,
             CollectionKeys.GRADIENTS,
             CollectionKeys.LOSSES,
         ]
@@ -264,20 +258,19 @@ def helper_mirrored(
 
 
 @pytest.mark.slow
-def test_basic():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_basic(out_dir):
     strategy = helper_mirrored(
-        trial_dir,
+        out_dir,
         steps=["train", "eval", "predict", "train"],
         include_collections=[
             CollectionKeys.WEIGHTS,
+            CollectionKeys.BIASES,
             CollectionKeys.GRADIENTS,
             CollectionKeys.LOSSES,
         ],
         eval_distributed=False,
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     # wts, grads, losses
     print(tr.tensors())
     assert len(tr.tensors()) == 8 + 8 + (1 * strategy.num_replicas_in_sync) + 1
@@ -325,16 +318,14 @@ def test_basic():
 
 
 @pytest.mark.slow
-def test_eval_distributed():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_eval_distributed(out_dir):
     strategy = helper_mirrored(
-        trial_dir,
+        out_dir,
         steps=["train", "eval"],
-        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.LOSSES],
+        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES, CollectionKeys.LOSSES],
         eval_distributed=True,
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) == 8 + 1 * strategy.num_replicas_in_sync + 1
     assert len(tr.steps()) == 4
     assert len(tr.steps(ModeKeys.TRAIN)) == 2
@@ -374,19 +365,17 @@ def test_eval_distributed():
 
 
 @pytest.mark.slow
-def test_reductions():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_reductions(out_dir):
     strategy = helper_mirrored(
-        trial_dir,
+        out_dir,
         steps=["train", "eval"],
         reduction_config=smd.ReductionConfig(
-            reductions=["sum", "max", "mean"], abs_reductions=["sum", "max"], norms=["l1"]
+            reductions=["sum", "max"], abs_reductions=["sum", "max"], norms=["l1"]
         ),
-        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.LOSSES],
+        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES, CollectionKeys.LOSSES],
         eval_distributed=True,
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) == 8 + 1 * strategy.num_replicas_in_sync + 1
     assert len(tr.steps()) == 4
     assert len(tr.steps(ModeKeys.TRAIN)) == 2
@@ -398,14 +387,14 @@ def test_reductions():
                 tr.tensor(tname).value(s, mode=ModeKeys.TRAIN)
                 assert False
             except TensorUnavailableForStep:
-                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.TRAIN)) == 6
+                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.TRAIN)) == 5
 
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
             try:
                 tr.tensor(tname).value(s, mode=ModeKeys.EVAL)
                 assert False
             except TensorUnavailableForStep:
-                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) == 6
+                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) == 5
 
     for tname in tr.tensors_in_collection("losses"):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
@@ -419,11 +408,9 @@ def test_reductions():
 
 
 @pytest.mark.slow
-def test_save_all():
-    run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = os.path.join(TORNASOLE_TF_HOOK_TESTS_DIR, run_id)
+def test_save_all(out_dir):
     strategy = helper_mirrored(
-        trial_dir, steps=["train"], num_steps=1, save_all=True, eval_distributed=True
+        out_dir, steps=["train"], num_steps=1, save_all=True, eval_distributed=True
     )
-    tr = create_trial_fast_refresh(trial_dir)
+    tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) > 100

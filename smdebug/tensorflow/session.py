@@ -129,23 +129,17 @@ class TornasoleSessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
     def _get_matching_collections(self, tensor):
         colls_with_tensor = set()
         for coll in self._get_all_collections_to_save():
-            if coll.name in SUMMARIES_COLLECTIONS:
-                # these summaries directly does not take any regex patterns
-                # or tensor names. it just takes them from tf.summaries
-                # or added when other collections have write_histograms True
-                # this also ensures that we don't look at reductions for
-                # these collections
-                # note that for scalars collection we do
-                # look at regex patterns
-                continue
-
-            if match_inc(tensor.name, coll.include_regex):
+            # some collections are added automatically, don't match regex for these
+            if coll.name not in [
+                CollectionKeys.WEIGHTS,
+                CollectionKeys.BIASES,
+                CollectionKeys.TENSORFLOW_SUMMARIES,
+            ] and match_inc(tensor.name, coll.include_regex):
                 coll.add(tensor)
 
             if coll.has_tensor(tensor.name):
                 # it must have been added when collection was added to
                 # from user(custom_coll)/library(losses, weights, grads)
-
                 tensor_ref = coll.get_tensor(tensor.name)
                 tensor_ref.tf_obj = tensor
                 colls_with_tensor.add(coll)
@@ -198,15 +192,22 @@ class TornasoleSessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 t.type = TensorType.SUMMARY
                 t.original_tensor = t.op.inputs[1]
 
+    def _add_weights_and_biases(self):
+        wts = tf.trainable_variables()
+        for w in wts:
+            if match_inc(w.name, self.collection_manager.get(CollectionKeys.BIASES).include_regex):
+                self.collection_manager.get(CollectionKeys.BIASES).add(w)
+            else:
+                self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
+
     def begin(self):
         # todo: should this be called first time a mode changes
         # todo: handle multiple graphs in the model
         self.worker = self.get_worker_name()
-        self.distribution_strategy = TornasoleHook.get_distribution_strategy()
+        self.distribution_strategy = self.get_distribution_strategy()
         self.graph = tf.get_default_graph()
 
-        wts = tf.trainable_variables()
-        self.collection_manager.get(CollectionKeys.WEIGHTS).add(wts)
+        self._add_weights_and_biases()
 
         losses = tf.losses.get_losses()
         self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
@@ -269,11 +270,8 @@ class TornasoleSessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                     filtered.append(tf_obj)
                 else:
                     skipped.append(tf_obj)
-        # if len(skipped) > 0:
-        #     self.logger.debug(f"Skipped {len(skipped)} unreachable tensors: {skipped} graphs are {set([x.graph for x in skipped])}")
-        #     self.logger.debug(
-        #         f"To save {len(filtered)} tensors: {filtered} graphs are {set([x.graph for x in filtered])}")
-        # todo(huilgolr) can we filter tensors with (0) size here. do we want to?
+        if len(skipped) > 0:
+            self.logger.debug(f"Skipped {len(skipped)} unreachable tensors: {skipped}")
         return filtered
 
     def before_run(self, run_context):

@@ -135,6 +135,7 @@ class CollectionManager(BaseCollectionManager):
             for n in [
                 CollectionKeys.DEFAULT,
                 CollectionKeys.WEIGHTS,
+                CollectionKeys.BIASES,
                 CollectionKeys.GRADIENTS,
                 CollectionKeys.LOSSES,
                 CollectionKeys.SCALARS,
@@ -144,6 +145,7 @@ class CollectionManager(BaseCollectionManager):
                 CollectionKeys.ALL,
             ]:
                 self.create_collection(n)
+            self.get(CollectionKeys.BIASES).include("bias")
         self._tensors = {}
 
     def create_collection(self, name):

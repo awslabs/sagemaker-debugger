@@ -11,9 +11,7 @@ from smdebug.tensorflow import Collection, CollectionManager, get_collection, re
 from smdebug.tensorflow.tensor_ref import get_tf_names
 
 
-def test_manager_export_load():
-    id = str(uuid.uuid4())
-    path = "/tmp/tests/" + id
+def test_manager_export_load(out_dir):
     cm = CollectionManager()
     cm.get("default").include("loss")
     c = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
@@ -23,8 +21,8 @@ def test_manager_export_load():
     cm.add(Collection("trial1"))
     cm.add("trial2")
     cm.get("trial2").include("total_loss")
-    cm.export(path, "cm.json")
-    cm2 = CollectionManager.load(os.path.join(get_path_to_collections(path), "cm.json"))
+    cm.export(out_dir, "cm.json")
+    cm2 = CollectionManager.load(os.path.join(get_path_to_collections(out_dir), "cm.json"))
     assert cm == cm2
 
 

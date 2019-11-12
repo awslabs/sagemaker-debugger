@@ -1,6 +1,6 @@
 {
   "S3OutputPath": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest1/test_save_config_skip_steps_json",
+  "LocalPath": "/tmp/test",
   "HookParameters": {
     "save_all": false,
     "save_interval": 2,

@@ -1,6 +1,6 @@
 {
   "S3OutputPath": "s3://bucket/prefix",
-  "LocalPath": "newlogsRunTest/test_collection_defaults_json",
+  "LocalPath": "/tmp/test",
   "HookParameters": {
     "save_interval": 1,
     "train.save_interval": 2,

@@ -11,13 +11,12 @@ from smdebug.tensorflow.session import TornasoleHook
 from .utils import pre_test_clean_up
 
 
-def test_collection_defaults_json():
-    trial_dir = "newlogsRunTest/test_collection_defaults_json"
-    shutil.rmtree(trial_dir, ignore_errors=True)
+def test_collection_defaults_json(out_dir, monkeypatch):
     pre_test_clean_up()
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json"
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
+    )
     hook = TornasoleHook.hook_from_config()
     # Check save_intervals for each mode
     assert hook.save_config.get_save_config(ModeKeys.TRAIN).save_interval == 2

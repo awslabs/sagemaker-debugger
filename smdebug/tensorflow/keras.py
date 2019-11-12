@@ -82,13 +82,23 @@ class TornasoleKerasHook(TensorflowBaseHook, keras.callbacks.Callback):
     ):
         colls_with_tensor = set()
         if tensor_type == "weight":
-            colls_with_tensor.add(self.collection_manager.get(CollectionKeys.WEIGHTS))
+            if match_inc(
+                tensor.name, self.collection_manager.get(CollectionKeys.BIASES).include_regex
+            ):
+                colls_with_tensor.add(self.collection_manager.get(CollectionKeys.BIASES))
+            else:
+                colls_with_tensor.add(self.collection_manager.get(CollectionKeys.WEIGHTS))
         elif is_input_to_model:
             colls_with_tensor.add(self.collection_manager.get(CollectionKeys.INPUTS))
         elif is_output_of_model:
             colls_with_tensor.add(self.collection_manager.get(CollectionKeys.OUTPUTS))
 
         for current_coll in self.collection_manager.get_collections().values():
+            if current_coll.name in [CollectionKeys.WEIGHTS, CollectionKeys.BIASES]:
+                # don't match regex for these as these are added specially above
+                # we also don't want users to make mistakes configuring these collections
+                continue
+
             if match_inc(ts_name, current_coll.include_regex):
                 if not current_coll.has_tensor(tensor):
                     # tensor will be added to this coll below
@@ -191,8 +201,18 @@ class TornasoleKerasHook(TensorflowBaseHook, keras.callbacks.Callback):
             for t in tensor_refs:
                 self.tensor_to_collections[t.name] = colls_with_tensor
         elif colls_with_tensor:
-            if any([c.name == CollectionKeys.WEIGHTS for c in colls_with_tensor]):
-                # set mode of the tensorref object for this tensor
+            # we should only readd tensors which were already added if these are variables
+            # other tensors are part of a different mode, and will cause a crash if fetched
+            # because their input placeholders will not be passed.
+            if any(
+                [
+                    c.name in [CollectionKeys.WEIGHTS, CollectionKeys.BIASES]
+                    for c in colls_with_tensor
+                ]
+            ):
+                # set mode of the tensorref object for these tensors
+                # these are special because they are tf.Variables which require no input
+                # they will be present in all modes
                 for tf_name in tf_names:
                     tensor_ref = self._get_tensor_ref(tf_name)
                     tensor_ref.add_mode(mode)

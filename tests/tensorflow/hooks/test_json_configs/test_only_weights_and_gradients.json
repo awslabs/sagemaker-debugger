@@ -1,6 +1,6 @@
 {
   "S3OutputPath": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest1/test_only_weights_and_gradients",
+  "LocalPath": "/tmp/test",
   "HookParameters": {
     "save_all": false,
     "save_interval": 2

@@ -1,6 +1,6 @@
 {
   "S3OutputPath": "s3://kjnd_jknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest1/test_simple_include_regex_json",
+  "LocalPath": "/tmp/test",
   "HookParameters": {
     "save_all": false,
     "include_regex": "loss:0",
