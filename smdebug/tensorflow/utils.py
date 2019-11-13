@@ -1,4 +1,5 @@
 # Standard Library
+import collections
 import json
 from enum import Enum
 
@@ -43,6 +44,52 @@ def extract_graph_summary(graph_def):
     return name_to_input_name, name_to_node, name_to_seq_num
 
 
+def tensor_can_be_saved(root_tensor, subgraph_nodes, unfilled_placeholders):
+    """
+    If a tensor x depends on an unfilled placeholder, then it can't be saved and should be skipped.
+    This 4th step is done by performing BFS from this tensor x, and going up
+    its inputs for any node which is not in the subgraph.
+
+    If a node reached through this BFS is not in the subgraph
+    and is an unfilled placeholder, then the tensor x can't be saved.
+
+    :param root_tensor: the tensor from which to start BFS
+    :param subgraph_nodes: the subgraph which can reach the current fetches
+    :param unfilled_placeholders: placeholders which were not assigned values
+    :return:
+    """
+    seen, queue = {root_tensor}, collections.deque([root_tensor])
+    while queue:
+        tensor = queue.popleft()
+        if tensor.op.name not in subgraph_nodes:
+            if len(tensor.op.inputs) == 0 and tensor in unfilled_placeholders:
+                # current tensor is not in the subgraph,
+                # but it also has no inputs which might be in the subgraph
+                # this means tf_tensor is not connected the fetches through the subgraph
+                return False
+            for ti in tensor.op.inputs:
+                if ti not in seen:
+                    seen.add(ti)
+                    queue.append(ti)
+    return True
+
+
+def build_fetches_tuple(fetches):
+    if (
+        not isinstance(fetches, list)
+        and not isinstance(fetches, tuple)
+        and not isinstance(fetches, dict)
+    ):
+        fetches = [fetches]
+    original_fetch_ops = get_original_fetch_ops(fetches)
+    # sorting to create a unique tuple for lists of all orders
+    original_fetch_ops.sort(key=lambda x: x.name)
+    # creating a tuple as we need a immutable var for it to server
+    # as key into a dictionary
+    original_fetch_ops_tuple = tuple(original_fetch_ops)
+    return original_fetch_ops_tuple
+
+
 def get_original_fetch_ops(fetches):
     if isinstance(fetches, tf.Tensor) or isinstance(fetches, tf.Variable):
         return [fetches.op]
@@ -60,6 +107,8 @@ def get_original_fetch_ops(fetches):
         for key in fetches:
             rval += get_original_fetch_ops(fetches[key])
         return rval
+    elif fetches is None:
+        return []
     else:
         raise RuntimeError("Invalid fetches")
 

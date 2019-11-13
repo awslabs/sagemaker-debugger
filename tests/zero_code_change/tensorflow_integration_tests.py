@@ -91,7 +91,7 @@ def test_monitored_session(script_mode: bool):
         mnist = get_data()
 
         if script_mode:
-            hook = smd.KerasHook(out_dir=sim.out_dir)
+            hook = smd.SessionHook(out_dir=sim.out_dir)
             sess = tf.train.MonitoredSession(hooks=[hook])
         else:
             sess = tf.train.MonitoredSession()

@@ -1,24 +1,16 @@
 # Standard Library
-import glob
+
+# Third Party
+from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from smdebug.core.reader import FileReader
 from smdebug.core.utils import get_path_to_collections
 from smdebug.tensorflow import CollectionManager, get_collections, reset_collections
 
 # Local
-from .utils import (
-    SaveConfig,
-    SessionHook,
-    get_collection_files,
-    get_dirs_files,
-    join,
-    os,
-    simple_model,
-    tf,
-)
+from .utils import SaveConfig, SessionHook, get_collection_files, join, simple_model, tf
 
 
 def test_save_all_full(out_dir, hook=None):
@@ -29,7 +21,6 @@ def test_save_all_full(out_dir, hook=None):
 
     simple_model(hook)
     files = get_collection_files(out_dir)
-    dirs, _ = get_dirs_files(os.path.join(out_dir, "events"))
 
     coll = get_collections()
     assert all(
@@ -56,19 +47,9 @@ def test_save_all_full(out_dir, hook=None):
     )
     num_tensors_collection = len(coll["weights"].tensor_names) + len(coll["gradients"].tensor_names)
     assert num_tensors_collection == num_tensors_loaded_collection
-    assert len(dirs) == 5
-    for step in dirs:
-        i = 0
-        size = 0
-        fs = glob.glob(join(out_dir, "events", step, "**", "*.tfevents"), recursive=True)
-        for f in fs:
-            fr = FileReader(f)
-            for x in fr.read_tensors():
-                tensor_name, step, tensor_data, mode, mode_step = x
-                i += 1
-                size += tensor_data.nbytes
-        assert i == 84
-        assert size == 1462
+
+    tr = create_trial_fast_refresh(out_dir)
+    assert len(tr.tensors()) == 101
 
 
 def test_hook_config_json(out_dir, monkeypatch):

@@ -3,6 +3,7 @@
 # Third Party
 import tensorflow as tf
 from tensorflow.python.distribute import values
+from tensorflow.python.keras.backend import is_placeholder
 
 # First Party
 from smdebug.core.collection import CollectionKeys
@@ -15,7 +16,7 @@ from smdebug.core.utils import match_inc
 from .base_hook import TensorflowBaseHook
 from .reductions import get_tensorflow_reduction
 from .tensor_ref import TensorType
-from .utils import extract_graph_summary, get_original_fetch_ops, node_name
+from .utils import build_fetches_tuple, extract_graph_summary, tensor_can_be_saved
 
 
 class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
@@ -81,7 +82,16 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             include_collections=include_collections,
             save_all=save_all,
         )
-        self.subgraph_nodes_cache = {}
+        # this holds the map from a fetches tuple to a dictionary of all
+        # nodes in the subgraph that can reach any of the fetches
+        self._subgraph_nodes = {}
+
+        # for (tf_obj, fetches, unfilledplaceholder) -> bool
+        # whether tensor depends on any unfilled placeholder
+        # such tensors can not be queried
+        self._tensor_placeholder_dependence = {}
+        self._placeholder_tensors = set()
+
         self.graph = None
         self.tensors_to_save_this_step = None
 
@@ -176,6 +186,8 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
         for op in self.graph.get_operations():
             for tensor in op.outputs:
+                if is_placeholder(tensor):
+                    self._placeholder_tensors.add(tensor)
                 self._check_and_add_tensor(tensor)
 
         # need to do this for mirrored strategy
@@ -200,7 +212,18 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
 
     def begin(self):
-        # todo: should this be called first time a mode changes
+        # clear all caches so we don't interfere with other modes
+        self._subgraph_nodes = {}
+        self._tensor_placeholder_dependence = {}
+        self._placeholder_tensors = set()
+        # assuming that graph changes when begin is called again (holds for estimator)
+        # so when graph changes we need to update tensors
+        # in gradients collection to have new graph tensors
+        # setting this to False means that on next apply_gradients/get_grads gradients will be set again
+        self._gradients_set = False
+
+        # todo: use global step from TF instead of tornasole steps
+
         # todo: handle multiple graphs in the model
         self.worker = self.get_worker_name()
         self.distribution_strategy = self.get_distribution_strategy()
@@ -211,66 +234,70 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         losses = tf.losses.get_losses()
         self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
 
-        # assuming that graph changes when begin is called again (holds for estimator)
-        # so when graph changes we need to update tensors
-        # in gradients collection to have new graph tensors
-        # setting this to False means that on next apply_gradients/get_grads gradients will be set again
-        self._gradients_set = False
-
         self._add_summaries_tensors()
         self._add_tensors()
 
         self._export_model()
         self.export_collections()
 
-    def _get_tensors_to_save_this_step(self):
+    def _get_tensors_to_save_this_step(self) -> set:
         tensors_to_save = set()
         for coll in self._get_collections_to_save_for_step():
             tensors_to_save.update(coll.get_tensors(graph=self.graph))
-        return list(tensors_to_save)
+        return tensors_to_save
 
-    def _filter_to_be_saved(self, tensors_to_save, fetches):
-        # todo: handle all types of complex fetches
-        if (
-            not isinstance(fetches, list)
-            and not isinstance(fetches, tuple)
-            and not isinstance(fetches, dict)
-        ):
-            fetches = [fetches]
-        fetches_tuple = tuple(fetches)
-        if fetches_tuple in self.subgraph_nodes_cache:
-            subgraph_nodes = self.subgraph_nodes_cache[fetches_tuple]
+    def _get_subgraph_which_reach_fetches(self, fetches_ops_tuple):
+        if fetches_ops_tuple in self._subgraph_nodes:
+            subgraph_nodes = self._subgraph_nodes[fetches_ops_tuple]
         else:
-            original_fetch_ops = get_original_fetch_ops(fetches)
-            dest_names = [n.name for n in original_fetch_ops]
+            dest_names = [n.name for n in fetches_ops_tuple]
             subgraph = tf.graph_util.extract_sub_graph(self.graph.as_graph_def(), dest_names)
             _, subgraph_nodes, _ = extract_graph_summary(subgraph)
-            self.subgraph_nodes_cache[fetches_tuple] = subgraph_nodes
+            self._subgraph_nodes[fetches_ops_tuple] = subgraph_nodes
+        return subgraph_nodes
 
-        # this also allows us to skip all the assign, read, initial_value,
-        # control_dependency nodes in the graph
-        # check that this run includes the ops whose tensors are to be saved
-        filtered = []
-        skipped = []
+    def _is_tensor_dependent_on_unfilled_placeholder(
+        self, tensor_ref, fetches_ops_tuple, unfilled_placeholders
+    ):
+        # making this a class method so we can cache this result
+        # making set a tuple so we can hash it
+        key = (
+            tensor_ref.tf_obj,
+            fetches_ops_tuple,
+            tuple(sorted(list(unfilled_placeholders), key=lambda x: x.name)),
+        )
+        if key not in self._tensor_placeholder_dependence:
+            subgraph_nodes = self._get_subgraph_which_reach_fetches(fetches_ops_tuple)
+            self._tensor_placeholder_dependence[key] = tensor_can_be_saved(
+                tensor_ref.tf_obj, subgraph_nodes, unfilled_placeholders
+            )
+        return self._tensor_placeholder_dependence[key]
+
+    def _filter_to_be_saved(self, tensors_to_save: set, feeds, fetches) -> set:
+        """
+        :param tensors_to_save:
+        :param feeds: a dictionary from tensor to value
+        :param fetches: a nested list/tuple/dict of tensors/ops
+        :return:
+        """
+        fetches_ops_tuple = build_fetches_tuple(fetches)
+        unfilled_placeholders = set()
+        for placeholder in self._placeholder_tensors:
+            if feeds is None or placeholder not in feeds:
+                unfilled_placeholders.add(placeholder)
+
+        filtered = set()
+        skipped = set()
         for tensor_ref in tensors_to_save:
-            if tensor_ref.type == TensorType.REGULAR:
-                if node_name(tensor_ref.tf_obj.name) in subgraph_nodes:
-                    filtered.append(tensor_ref.tf_obj)
-                else:
-                    skipped.append(tensor_ref.tf_obj)
+            if self._is_tensor_dependent_on_unfilled_placeholder(
+                tensor_ref, fetches_ops_tuple, unfilled_placeholders
+            ):
+                filtered.add(tensor_ref.tf_obj)
             else:
-                if tensor_ref.type == TensorType.VARIABLE:
-                    tf_obj = tensor_ref.tf_obj
-                    original_tensor_name = tensor_ref.original_tensor.name
-                else:
-                    tf_obj = tensor_ref.tf_obj
-                    original_tensor_name = tensor_ref.original_tensor.name
-                if node_name(original_tensor_name) in subgraph_nodes:
-                    filtered.append(tf_obj)
-                else:
-                    skipped.append(tf_obj)
+                skipped.add(tensor_ref.tf_obj)
         if len(skipped) > 0:
             self.logger.debug(f"Skipped {len(skipped)} unreachable tensors: {skipped}")
+        self.logger.debug(f"Saving {len(filtered)} tensors: {filtered}")
         return filtered
 
     def before_run(self, run_context):
@@ -278,12 +305,14 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         if tensors_to_save:
             if run_context:
                 tensors_to_save = self._filter_to_be_saved(
-                    tensors_to_save, run_context.original_args.fetches
+                    tensors_to_save,
+                    run_context.original_args.feed_dict,
+                    run_context.original_args.fetches,
                 )
-            self.tensors_to_save_this_step = tensors_to_save
-            return tf.train.SessionRunArgs(tensors_to_save)
+            self.tensors_to_save_this_step = list(tensors_to_save)
+            return tf.train.SessionRunArgs(self.tensors_to_save_this_step)
         else:
-            self.tensors_to_save_this_step = tensors_to_save
+            self.tensors_to_save_this_step = list(tensors_to_save)
             return None
 
     def _write_tf_summary(self, tensor, value):
