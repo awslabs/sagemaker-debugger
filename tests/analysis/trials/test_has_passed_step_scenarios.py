@@ -427,6 +427,7 @@ def test_override_if_too_many_steps_skipped():
     The subsequent trial.tensors() queries do not change the value of last_completed_step, because the
     window is smaller than the set threshold
     """
+
     os.environ["INCOMPLETE_STEP_WAIT_WINDOW"] = "10"
 
     path = "s3://tornasole-testing/has_step_scenarios/too-many-steps-skipped"

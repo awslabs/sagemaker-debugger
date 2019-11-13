@@ -19,7 +19,7 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
     assert len(tr.tensors()) == 3, tr.tensors()
     for tname in tr.tensors():
         t = tr.tensor(tname)
-        if tname in tr.tensors_in_collection("losses"):
+        if tname in tr.tensors(collection="losses"):
             # no reductions
             assert t.value(0) is not None
         else:

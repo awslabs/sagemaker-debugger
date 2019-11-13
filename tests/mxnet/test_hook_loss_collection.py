@@ -30,7 +30,7 @@ def test_loss_collection_default():
     assert len(tr.steps()) == 4
 
     print(tr.tensors())
-    tname = tr.tensors_matching_regex(".*loss")[0]
+    tname = tr.tensors(regex=".*loss")[0]
     loss_tensor = tr.tensor(tname)
     loss_val = loss_tensor.value(step_num=1)
     assert len(loss_val) > 0
@@ -55,7 +55,7 @@ def test_loss_collection_with_no_other_collections():
     assert len(tr.steps()) == 4
 
     print(tr.tensors())
-    tname = tr.tensors_matching_regex(".*loss")[0]
+    tname = tr.tensors(regex=".*loss")[0]
     loss_tensor = tr.tensor(tname)
     loss_val = loss_tensor.value(step_num=1)
     assert len(loss_val) > 0

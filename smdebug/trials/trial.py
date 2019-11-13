@@ -1,6 +1,5 @@
 # Standard Library
 import os
-import re
 import time
 from abc import ABC, abstractmethod
 from bisect import bisect_left
@@ -8,7 +7,10 @@ from bisect import bisect_left
 # First Party
 from smdebug.analysis.utils import refresh
 from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.core.collection import Collection
 from smdebug.core.config_constants import (
+    INCOMPLETE_STEP_WAIT_WINDOW_DEFAULT,
+    INCOMPLETE_STEP_WAIT_WINDOW_KEY,
     TRAINING_END_DELAY_REFRESH_DEFAULT,
     TRAINING_END_DELAY_REFRESH_KEY,
 )
@@ -17,7 +19,12 @@ from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from smdebug.core.tensor import StepState, Tensor
-from smdebug.core.utils import flatten, get_worker_name_from_collection_file, serialize_tf_device
+from smdebug.core.utils import (
+    flatten,
+    get_worker_name_from_collection_file,
+    match_inc,
+    serialize_tf_device,
+)
 from smdebug.exceptions import NoMoreData, StepUnavailable, TensorUnavailable
 
 
@@ -80,6 +87,7 @@ class Trial(ABC):
         self.training_end_delay_refresh = int(
             os.getenv(TRAINING_END_DELAY_REFRESH_KEY, TRAINING_END_DELAY_REFRESH_DEFAULT)
         )
+
         if self.range_steps is not None:
             assert self.range_steps[0] is None or (
                 isinstance(self.range_steps[0], int) and self.range_steps[0] >= 0
@@ -280,14 +288,53 @@ class Trial(ABC):
         else:
             t.add_step(to.mode, to.mode_step, worker, to)
 
-    def tensors(self, step=None, mode=ModeKeys.GLOBAL):
+    def _tensors_matching_regex(self, regex_list) -> set:
+        matched_tensornames = set()
+        if not isinstance(regex_list, list):
+            regex_list = [regex_list]
+        regex_list = flatten(regex_list)
+        for tensorname in self._tensors.keys():
+            if match_inc(tensorname, regex_list):
+                matched_tensornames.add(tensorname)
+        return matched_tensornames
+
+    def _tensors_in_collection(self, collection) -> set:
+        if isinstance(collection, Collection):
+            coll_name = collection.name
+        elif type(collection) is str:
+            coll_name = collection
+        else:
+            raise TypeError(f"Invalid argument type for collection {collection.__class__}")
+
+        rval = set(self.collection(coll_name).tensor_names)
+        regex = self.collection(coll_name).include_regex
+        if regex:
+            rval.update(self._tensors_matching_regex(regex))
+        return rval
+
+    def tensors(self, *, step=None, mode=ModeKeys.GLOBAL, regex=None, collection=None) -> list:
         self.maybe_refresh()
-        if step is not None:
-            return self._tensors_for_step(step, mode)
+        ts = set()
+        if step is None and mode == ModeKeys.GLOBAL:
+            ts.update(self._tensors.keys())
         if step is None and mode != ModeKeys.GLOBAL:
-            return list(self.mode_to_tensors_map[mode])
-        ts = list(self._tensors.keys())
-        return ts
+            ts.update(self.mode_to_tensors_map[mode])
+        else:
+            ts.update(self._tensors_for_step(step, mode))
+
+        if regex is None and collection is None:
+            return sorted(list(ts))
+        else:
+            xs = set()
+            if regex is not None:
+                xs.update(self._tensors_matching_regex(regex))
+            if collection is not None:
+                collection_tensors_saved = set(self._tensors.keys()).intersection(
+                    self._tensors_in_collection(collection)
+                )
+                xs.update(collection_tensors_saved)
+
+        return sorted(list(ts.intersection(xs)))
 
     def _tensors_for_step(self, step, mode=ModeKeys.GLOBAL) -> list:
         step = self._mode_to_global[mode][step] if mode != ModeKeys.GLOBAL else step
@@ -381,34 +428,11 @@ class Trial(ABC):
         # will not return global mode
         return self._mode_to_global.keys()
 
-    def tensors_matching_regex(self, regex_list):
-        self.maybe_refresh()
-        matched_tensornames = []
-        if not isinstance(regex_list, list):
-            regex_list = [regex_list]
-        regex_list = flatten(regex_list)
-        for tensorname in self._tensors.keys():
-            for regex_pattern in regex_list:
-                if re.match(regex_pattern, tensorname):
-                    matched_tensornames.append(tensorname)
-                    break
-        return matched_tensornames
-
     def collections(self):
         return self.collection_manager.collections
 
     def collection(self, coll_name):
         return self.collection_manager.get(coll_name)
-
-    def tensors_in_collection(self, coll_name):
-        rval = set()
-        for x in self.collection(coll_name).tensor_names:
-            rval.add(x)
-        regex = self.collection(coll_name).include_regex
-        if regex:
-            for x in self.tensors_matching_regex(regex):
-                rval.add(x)
-        return list(rval)
 
     def wait_for_steps(self, required_steps, mode=ModeKeys.GLOBAL):
         with refresh(self):

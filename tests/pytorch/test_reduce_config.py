@@ -57,7 +57,7 @@ def test_reduce_config(hook=None, out_dir=None):
     assert tr
     assert len(tr.steps()) == 7
     print(tr.tensors())
-    tname = tr.tensors_matching_regex("Net_conv[0-9]+.weight")[0]
+    tname = tr.tensors(regex="Net_conv[0-9]+.weight")[0]
     print(tr.tensors())
 
     # Global reduction with max and mean and variance
@@ -70,7 +70,7 @@ def test_reduce_config(hook=None, out_dir=None):
     assert variance_val != None
 
     # custom reduction at step 4 with reduction = 'min and abs reduction = 'max'
-    tname = tr.tensors_matching_regex("relu0_input_0")[0]
+    tname = tr.tensors(regex="relu0_input_0")[0]
     relu_input = tr.tensor(tname)
     min_val = relu_input.reduction_value(4, abs=False, reduction_name="min")
     assert min_val != None

@@ -57,7 +57,7 @@ def test_save_config(hook=None, out_dir=None):
     assert len(tr.steps()) == 7
 
     print(tr.tensors())
-    tname = tr.tensors_matching_regex("conv\d+_weight")[0]
+    tname = tr.tensors(regex="conv\d+_weight")[0]
     # Global reduction with max and mean
     weight_tensor = tr.tensor(tname)
     max_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name="max")
@@ -66,7 +66,7 @@ def test_save_config(hook=None, out_dir=None):
     assert mean_val != None
 
     # custom reduction at step 4 with reduction = 'min' and abs reduction = 'max'
-    tname = tr.tensors_matching_regex("conv\d+_relu_input_0")[0]
+    tname = tr.tensors(regex="conv\d+_relu_input_0")[0]
     relu_input = tr.tensor(tname)
     min_val = relu_input.reduction_value(step_num=4, abs=False, reduction_name="min")
     assert min_val != None
@@ -74,7 +74,7 @@ def test_save_config(hook=None, out_dir=None):
     assert abs_max_val != None
 
     # Custom reduction with normalization
-    tname = tr.tensors_matching_regex("flatten\d+_input_0")[0]
+    tname = tr.tensors(regex="flatten\d+_input_0")[0]
     flatten_input = tr.tensor(tname)
     l1_norm = flatten_input.reduction_value(step_num=4, abs=False, reduction_name="l1")
     assert l1_norm != None

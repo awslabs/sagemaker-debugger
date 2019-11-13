@@ -181,27 +181,28 @@ def exhaustive_check(out_dir, use_tf_keras):
     assert len(tr.steps(ModeKeys.EVAL)) == 4
     assert len(tr.steps(ModeKeys.PREDICT)) == 2  # ran 4 steps above
 
-    assert len(tr.tensors_in_collection(CollectionKeys.GRADIENTS)) == 4
-    gradient_name = tr.tensors_in_collection(CollectionKeys.GRADIENTS)[0]
+    assert len(tr.tensors(collection=CollectionKeys.GRADIENTS)) == 4
+    gradient_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
     assert len(tr.tensor(gradient_name).steps(ModeKeys.TRAIN)) == 7
     assert len(tr.tensor(gradient_name).steps(ModeKeys.EVAL)) == 0
 
-    assert len(tr.tensors_in_collection(CollectionKeys.WEIGHTS)) == 2
-    assert len(tr.tensors_in_collection(CollectionKeys.BIASES)) == 2
-    weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
+    assert len(tr.tensors(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(tr.tensors(collection=CollectionKeys.BIASES)) == 2
+    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
+
     assert len(tr.tensor(weight_name).steps()) == 13
     assert len(tr.tensor(weight_name).steps(ModeKeys.TRAIN)) == 7
     assert len(tr.tensor(weight_name).steps(ModeKeys.EVAL)) == 4
 
-    assert len(tr.tensors_in_collection(CollectionKeys.LOSSES)) == 1
-    loss_name = tr.tensors_in_collection(CollectionKeys.LOSSES)[0]
+    assert len(tr.tensors(collection=CollectionKeys.LOSSES)) == 1
+    loss_name = tr.tensors(collection=CollectionKeys.LOSSES)[0]
     assert len(tr.tensor(loss_name).steps()) == 12
 
-    assert len(tr.tensors_in_collection(CollectionKeys.METRICS)) == 3
+    assert len(tr.tensors(collection=CollectionKeys.METRICS)) == 3
 
     if use_tf_keras:
-        assert len(tr.tensors_in_collection(CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-        opt_var_name = tr.tensors_in_collection(CollectionKeys.OPTIMIZER_VARIABLES)[0]
+        assert len(tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+        opt_var_name = tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)[0]
         assert tr.tensor(opt_var_name).value(0) is not None
         assert len(tr.tensor(opt_var_name).steps(ModeKeys.EVAL)) == 0
 
@@ -233,13 +234,13 @@ def test_tf_keras_non_keras_opt(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.modes()) == 2
     assert len(tr.steps(ModeKeys.TRAIN)) == 4  # 0, 3, 6, 9
-    assert len(tr.tensors_in_collection(CollectionKeys.GRADIENTS)) == 4
-    gradient_name = tr.tensors_in_collection(CollectionKeys.GRADIENTS)[0]
+    assert len(tr.tensors(collection=CollectionKeys.GRADIENTS)) == 4
+    gradient_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
     assert len(tr.tensor(gradient_name).steps(ModeKeys.TRAIN)) == 4
     assert len(tr.tensor(gradient_name).steps(ModeKeys.EVAL)) == 0
 
     # not supported for non keras optimizer with keras
-    assert len(tr.tensors_in_collection(CollectionKeys.OPTIMIZER_VARIABLES)) == 0
+    assert len(tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
 
 
 @pytest.mark.slow  # 0:09 to run
@@ -260,7 +261,7 @@ def test_base_reductions(out_dir):
     )
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensors())
-    weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
+    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
     try:
         tr.tensor(weight_name).value(0)
         assert False
@@ -270,10 +271,10 @@ def test_base_reductions(out_dir):
             ALLOWED_NORMS
         )
 
-    loss_name = tr.tensors_in_collection(CollectionKeys.LOSSES)[0]
+    loss_name = tr.tensors(collection=CollectionKeys.LOSSES)[0]
     assert tr.tensor(loss_name).value(0) is not None
 
-    metric_name = tr.tensors_in_collection(CollectionKeys.METRICS)[0]
+    metric_name = tr.tensors(collection=CollectionKeys.METRICS)[0]
     assert tr.tensor(metric_name).value(0) is not None
 
 
@@ -289,9 +290,11 @@ def test_collection_reductions(out_dir):
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.GRADIENTS],
         steps=["train"],
     )
+
     tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
-    grad_name = tr.tensors_in_collection(CollectionKeys.GRADIENTS)[0]
+    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
+    grad_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
+
     assert tr.tensor(weight_name).value(0) is not None
     try:
         tr.tensor(grad_name).value(0)
@@ -317,8 +320,10 @@ def test_collection_add(out_dir):
         create_relu_collection=True,
         steps=["train"],
     )
+
     tr = create_trial_fast_refresh(out_dir)
-    relu_coll_tensor_names = tr.tensors_in_collection("relu")
+    relu_coll_tensor_names = tr.tensors(collection="relu")
+
     assert len(relu_coll_tensor_names) == 2
     assert tr.tensor(relu_coll_tensor_names[0]).value(0) is not None
     assert tr.tensor(relu_coll_tensor_names[1]).value(0) is not None
@@ -335,8 +340,10 @@ def test_include_regex(out_dir):
         reset=False,
         steps=["train"],
     )
+
     tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensors_in_collection("custom_coll")
+    tnames = tr.tensors(collection="custom_coll")
+
     assert len(tnames) == 8
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None

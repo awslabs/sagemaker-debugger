@@ -4,6 +4,7 @@ from datetime import datetime
 
 # Third Party
 import numpy as np
+from tests.analysis.utils import generate_data
 
 # First Party
 from smdebug import modes
@@ -11,6 +12,41 @@ from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.writer import FileWriter
 from smdebug.trials import create_trial
+
+
+def test_tensors(out_dir):
+    num_steps = 20
+    num_tensors = 10
+    for i in range(num_steps):
+        generate_data(
+            path=out_dir,
+            trial="test",
+            num_tensors=num_tensors,
+            step=i,
+            tname_prefix="foo",
+            worker="algo-1",
+            shape=(3, 3, 3),
+        )
+    for i in range(num_steps, num_steps * 2):
+        generate_data(
+            path=out_dir,
+            trial="test",
+            num_tensors=num_tensors,
+            step=i,
+            tname_prefix="boo",
+            worker="algo-1",
+            shape=(3, 3, 3),
+        )
+    tr = create_trial(out_dir + "/test")
+    tr.collection("test").include("foo")
+    tr.collection("test").add_tensor_name("boo_5")
+    tr.collection("test").add_tensor_name("boo_6")
+    tr.collection("test").add_tensor_name("boo_17")  # missing tensor
+    print(tr.tensors())
+    assert len(tr.tensors()) == num_tensors * 2
+    assert len(tr.tensors(regex="foo")) == num_tensors
+    assert len(tr.tensors(collection="test")) == num_tensors + 2
+    assert len(tr.tensors(collection=tr.collection("test"))) == num_tensors + 2
 
 
 def test_mode_data():
@@ -43,10 +79,10 @@ def test_mode_data():
         fw.close()
 
     assert trial.tensors() == ["arr_1", "arr_2"]
-    assert trial.tensors(0) == ["arr_1"]
-    assert trial.tensors(1) == ["arr_2"]
-    assert trial.tensors(0, mode=modes.TRAIN) == ["arr_1"]
-    assert trial.tensors(0, mode=modes.EVAL) == ["arr_2"]
+    assert trial.tensors(step=0) == ["arr_1"]
+    assert trial.tensors(step=1) == ["arr_2"]
+    assert trial.tensors(step=0, mode=modes.TRAIN) == ["arr_1"]
+    assert trial.tensors(step=0, mode=modes.EVAL) == ["arr_2"]
 
     assert trial.tensors(mode=modes.TRAIN) == ["arr_1"]
     assert trial.tensors(mode=modes.EVAL) == ["arr_2"]

@@ -279,7 +279,7 @@ def test_basic(out_dir):
     assert len(tr.steps(ModeKeys.EVAL)) == 2
     assert len(tr.steps(ModeKeys.PREDICT)) == 2
 
-    for tname in tr.tensors_in_collection("weights"):
+    for tname in tr.tensors(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
             for worker in tr.tensor(tname).workers(s, ModeKeys.TRAIN):
@@ -296,7 +296,7 @@ def test_basic(out_dir):
             == strategy.num_replicas_in_sync
         )
 
-    for tname in tr.tensors_in_collection("losses"):
+    for tname in tr.tensors(collection="losses"):
         if tname != "Identity_2:0":
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
                 assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1
@@ -322,7 +322,7 @@ def test_eval_distributed(out_dir):
     assert len(tr.steps(ModeKeys.TRAIN)) == 2
     assert len(tr.steps(ModeKeys.EVAL)) == 2
 
-    for tname in tr.tensors_in_collection("weights"):
+    for tname in tr.tensors(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
             for worker in tr.tensor(tname).workers(s, ModeKeys.TRAIN):
@@ -339,7 +339,7 @@ def test_eval_distributed(out_dir):
             == strategy.num_replicas_in_sync
         )
 
-    for tname in tr.tensors_in_collection("losses"):
+    for tname in tr.tensors(collection="losses"):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
@@ -366,7 +366,7 @@ def test_reductions(out_dir):
     assert len(tr.steps(ModeKeys.TRAIN)) == 2
     assert len(tr.steps(ModeKeys.EVAL)) == 2
 
-    for tname in tr.tensors_in_collection("weights"):
+    for tname in tr.tensors(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             try:
                 tr.tensor(tname).value(s, mode=ModeKeys.TRAIN)
@@ -381,12 +381,12 @@ def test_reductions(out_dir):
             except TensorUnavailableForStep:
                 assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) == 5
 
-    for tname in tr.tensors_in_collection("losses"):
+    for tname in tr.tensors(collection="losses"):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
             assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) == 0
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    for tname in tr.tensors_in_collection("losses"):
+    for tname in tr.tensors(collection="losses"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.TRAIN)) == 0
             assert tr.tensor(tname).value(s, mode=ModeKeys.TRAIN) is not None

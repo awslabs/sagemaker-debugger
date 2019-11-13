@@ -207,9 +207,10 @@ def exhaustive_check(trial_dir):
     assert len(tr.steps(ModeKeys.EVAL)) == 4
     assert len(tr.steps(ModeKeys.PREDICT)) == 2  # ran 4 steps above
 
-    assert len(tr.tensors_in_collection(CollectionKeys.BIASES)) == 3
-    wtnames = tr.tensors_in_collection(CollectionKeys.WEIGHTS)
+    assert len(tr.tensors(collection=CollectionKeys.BIASES)) == 3
+    wtnames = tr.tensors(collection=CollectionKeys.WEIGHTS)
     assert len(wtnames) == 3
+
     for wtname in wtnames:
         assert len(tr.tensor(wtname).steps()) == 13, wtname
         assert len(tr.tensor(wtname).steps(ModeKeys.TRAIN)) == 7
@@ -224,7 +225,7 @@ def exhaustive_check(trial_dir):
                 assert tr.tensor(wtname).value(s, mode=ModeKeys.EVAL, worker=worker) is not None
         assert len(tr.tensor(wtname).steps(ModeKeys.PREDICT)) == 2
 
-    gradnames = tr.tensors_in_collection(CollectionKeys.GRADIENTS)
+    gradnames = tr.tensors(collection=CollectionKeys.GRADIENTS)
     assert len(gradnames) == 6
     for gradname in gradnames:
         assert len(tr.tensor(gradname).steps(ModeKeys.TRAIN)) == 7
@@ -233,7 +234,7 @@ def exhaustive_check(trial_dir):
         assert len(tr.tensor(gradname).steps(ModeKeys.EVAL)) == 0
         assert len(tr.tensor(gradname).steps(ModeKeys.PREDICT)) == 0
 
-    optvarnames = tr.tensors_in_collection(CollectionKeys.OPTIMIZER_VARIABLES)
+    optvarnames = tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)
     assert len(optvarnames) == 5
     for optvarname in optvarnames:
         assert len(tr.tensor(optvarname).steps(ModeKeys.TRAIN)) == 7
@@ -242,8 +243,8 @@ def exhaustive_check(trial_dir):
         assert len(tr.tensor(optvarname).steps(ModeKeys.EVAL)) == 0
         assert len(tr.tensor(optvarname).steps(ModeKeys.PREDICT)) == 0
 
-    assert len(tr.tensors_in_collection(CollectionKeys.LOSSES)) == 1
-    loss_name = tr.tensors_in_collection(CollectionKeys.LOSSES)[0]
+    assert len(tr.tensors(collection=CollectionKeys.LOSSES)) == 1
+    loss_name = tr.tensors(collection=CollectionKeys.LOSSES)[0]
     # loss is not in predict mode (so less 2)
     # add one for end of epoch
     assert len(tr.tensor(loss_name).steps(ModeKeys.TRAIN)) == 8
@@ -251,7 +252,7 @@ def exhaustive_check(trial_dir):
     assert len(tr.tensor(loss_name).steps(ModeKeys.PREDICT)) == 0
     assert len(tr.tensor(loss_name).steps()) == 12
 
-    metricnames = tr.tensors_in_collection(CollectionKeys.METRICS)
+    metricnames = tr.tensors(collection=CollectionKeys.METRICS)
     assert len(metricnames) == 3
 
 
@@ -276,13 +277,13 @@ def test_tf_keras_non_keras_opt(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.modes()) == 2
     assert len(tr.steps(ModeKeys.TRAIN)) == 4  # 0, 3, 6, 9
-    assert len(tr.tensors_in_collection(CollectionKeys.GRADIENTS)) == 6
-    gradient_name = tr.tensors_in_collection(CollectionKeys.GRADIENTS)[0]
+    assert len(tr.tensors(collection=CollectionKeys.GRADIENTS)) == 6
+    gradient_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
     assert len(tr.tensor(gradient_name).steps(ModeKeys.TRAIN)) == 4
     assert len(tr.tensor(gradient_name).steps(ModeKeys.EVAL)) == 0
 
     # not supported for non keras optimizer with keras
-    assert len(tr.tensors_in_collection(CollectionKeys.OPTIMIZER_VARIABLES)) == 0
+    assert len(tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
 
 
 @pytest.mark.slow
@@ -317,18 +318,20 @@ def test_base_reductions(out_dir):
         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
         steps=["train"],
     )
+
     tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
+    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
+
     try:
         tr.tensor(weight_name).value(0)
         assert False
     except TensorUnavailableForStep:
         assert tr.tensor(weight_name).reduction_values(0)
 
-    loss_name = tr.tensors_in_collection(CollectionKeys.LOSSES)[0]
+    loss_name = tr.tensors(collection=CollectionKeys.LOSSES)[0]
     assert tr.tensor(loss_name).value(0) is not None
 
-    metric_name = tr.tensors_in_collection(CollectionKeys.METRICS)[0]
+    metric_name = tr.tensors(collection=CollectionKeys.METRICS)[0]
     assert tr.tensor(metric_name).value(0) is not None
 
 
@@ -348,9 +351,11 @@ def test_collection_reductions(out_dir):
         ],
         steps=["train"],
     )
+
     tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensors_in_collection(CollectionKeys.WEIGHTS)[0]
-    grad_name = tr.tensors_in_collection(CollectionKeys.GRADIENTS)[0]
+    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
+    grad_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
+
     assert tr.tensor(weight_name).value(0) is not None
     try:
         tr.tensor(grad_name).value(0)
@@ -384,8 +389,10 @@ def test_collection_add(out_dir):
         create_relu_collection=True,
         steps=["train"],
     )
+
     tr = create_trial_fast_refresh(out_dir)
-    relu_coll_tensor_names = tr.tensors_in_collection("relu")
+    relu_coll_tensor_names = tr.tensors(collection="relu")
+
     assert len(relu_coll_tensor_names) == strategy.num_replicas_in_sync * 2
     assert tr.tensor(relu_coll_tensor_names[0]).value(0) is not None
     assert tr.tensor(relu_coll_tensor_names[1]).value(0) is not None
@@ -402,8 +409,10 @@ def test_include_regex(out_dir):
         reset=False,
         steps=["train"],
     )
+
     tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensors_in_collection("custom_coll")
+    tnames = tr.tensors(collection="custom_coll")
+
     assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
