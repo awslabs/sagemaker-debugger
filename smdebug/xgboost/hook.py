@@ -150,9 +150,6 @@ class Hook(CallbackHook):
         self._collections_to_save_for_step = None
 
     def _callback(self, env: CallbackEnv) -> None:
-        # Write the tensors from the previous step if the write is still available.
-        self._close_writer()
-
         if not self.prepared_collections:
             # at this point we need all collections to be ready
             # this may not be the case at creation of hook
@@ -194,7 +191,8 @@ class Hook(CallbackHook):
             self.write_tree_model(env)
 
         self.last_saved_step = self.step
-        self.logger.info("Saved iteration {}.".format(self.step))
+
+        self._close_writers()
 
     def write_hyperparameters(self, env: CallbackEnv):
         if not self.hyperparameters:

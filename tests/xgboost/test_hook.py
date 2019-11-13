@@ -60,6 +60,16 @@ def test_default_hook(monkeypatch):
     assert hook.out_dir == DEFAULT_SAGEMAKER_OUTDIR
 
 
+def test_hook_save_every_step(tmpdir):
+    reset_collections()
+    save_config = SaveConfig(save_interval=1)
+    out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+    hook = Hook(out_dir=out_dir, save_config=save_config)
+    run_xgboost_model(hook=hook)
+    trial = create_trial(out_dir)
+    assert trial.steps() == list(range(10))
+
+
 def test_hook_save_all(tmpdir):
     reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
