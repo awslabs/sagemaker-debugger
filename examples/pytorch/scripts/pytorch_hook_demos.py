@@ -16,7 +16,7 @@ from torchvision import datasets, transforms
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.pytorch import *
+from smdebug.pytorch import Hook, SaveConfig, get_collection
 
 
 class Net(nn.Module):

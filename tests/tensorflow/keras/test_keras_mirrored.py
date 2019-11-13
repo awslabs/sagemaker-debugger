@@ -1,11 +1,6 @@
 # Future
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# Standard Library
-import os
-import shutil
-from datetime import datetime
-
 # Third Party
 import pytest
 import tensorflow as tf

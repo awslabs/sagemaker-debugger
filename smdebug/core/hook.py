@@ -1,9 +1,8 @@
 # Standard Library
 import atexit
-import os
 import re as _re
 from abc import ABCMeta, abstractmethod
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Union
 
 # Third Party
 import numpy as np
@@ -28,7 +27,6 @@ from smdebug.core.logger import get_logger
 from smdebug.core.modes import ALLOWED_MODES, ModeKeys
 from smdebug.core.reduction_config import ReductionConfig
 from smdebug.core.reductions import get_reduction_tensor_name
-from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
@@ -612,7 +610,6 @@ class BaseHook:
             whether to take absolute value of tensor before performing reduction
         :return:
         """
-        pass
 
     @staticmethod
     @abstractmethod
@@ -622,7 +619,6 @@ class BaseHook:
         :param tensor_value: mx.nd.NDArray, torch.Tensor, etc
         :return: numpy ndarray
         """
-        pass
 
 
 class CallbackHook(BaseHook):

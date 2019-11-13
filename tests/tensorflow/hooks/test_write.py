@@ -6,18 +6,16 @@ import shutil
 import numpy as np
 import pytest
 import tensorflow as tf
-from tensorflow.python.tools import inspect_checkpoint as chkp
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.locations import TensorFileLocation
 from smdebug.core.reader import FileReader
-from smdebug.tensorflow import reset_collections
 from smdebug.tensorflow.session import SessionHook
 
 # Local
-from .utils import *
+from .utils import SaveConfig, pre_test_clean_up
 
 
 def helper_hook_write(data_dir, hook):

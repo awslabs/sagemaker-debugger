@@ -14,7 +14,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 # First Party
-from smdebug.pytorch import *
+from smdebug.pytorch import Hook, SaveConfig, get_collection
 
 
 class Net(nn.Module):

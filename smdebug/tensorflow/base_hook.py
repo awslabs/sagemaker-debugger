@@ -1,7 +1,7 @@
 # Standard Library
 import os
 from abc import ABCMeta
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import List, Set
 
 # Third Party
 import tensorflow as tf

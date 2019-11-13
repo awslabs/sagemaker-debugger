@@ -1,12 +1,9 @@
 # Standard Library
 import argparse
-import random
 import time
-from datetime import datetime
 
 # Third Party
 import mxnet as mx
-import numpy as np
 from mxnet import autograd, gluon, init
 from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms

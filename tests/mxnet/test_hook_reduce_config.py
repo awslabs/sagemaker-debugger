@@ -4,7 +4,7 @@ from datetime import datetime
 
 # First Party
 import smdebug.mxnet as smd
-from smdebug.mxnet import Collection, ReductionConfig, SaveConfig, reset_collections
+from smdebug.mxnet import ReductionConfig, SaveConfig, reset_collections
 from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 

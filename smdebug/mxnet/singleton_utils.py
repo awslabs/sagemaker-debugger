@@ -10,7 +10,7 @@ hook = smd.hook()
 
 # First Party
 import smdebug.core.singleton_utils as sutils
-from smdebug.core.singleton_utils import del_hook, set_hook
+from smdebug.core.singleton_utils import del_hook, set_hook  # noqa
 
 
 def get_hook(json_config_path=None, create_if_not_exists: bool = False) -> "SessionHook":

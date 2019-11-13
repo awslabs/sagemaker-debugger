@@ -1,6 +1,4 @@
 # Standard Library
-import os
-import shutil
 import subprocess
 import sys
 
@@ -11,9 +9,6 @@ import tensorflow as tf
 # First Party
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.tensorflow import reset_collections
-
-# Local
-from .utils import *
 
 
 @pytest.mark.slow  # 0:03 to run

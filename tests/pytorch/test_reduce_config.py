@@ -9,7 +9,7 @@ import torch.optim as optim
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
+from smdebug.pytorch import ReductionConfig, SaveConfig, reset_collections
 from smdebug.pytorch.hook import Hook as t_hook
 from smdebug.trials import create_trial
 

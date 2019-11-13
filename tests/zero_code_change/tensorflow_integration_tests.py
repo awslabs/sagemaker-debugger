@@ -16,10 +16,8 @@ We check that certain tensors are saved.
 
 # Standard Library
 import argparse
-import random
 
 # Third Party
-import numpy as np
 import tensorflow as tf
 from tf_utils import (
     get_data,

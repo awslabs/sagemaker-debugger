@@ -5,7 +5,6 @@ import os
 class TrialCatalog(object):
     def __init__(self):
         self.trials = {}
-        pass
 
     def add_trial(self, trial_name, trial_object):
         self.trials[trial_name] = trial_object

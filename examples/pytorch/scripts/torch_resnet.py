@@ -9,10 +9,9 @@ import torch.nn.parallel
 import torch.optim as optim
 import torchvision.models as models
 from torch.autograd import Variable
-from torchvision import datasets, transforms
 
 # First Party
-from smdebug.pytorch import *
+from smdebug.pytorch import Hook, SaveConfig
 
 model_names = sorted(
     name

@@ -16,9 +16,6 @@
 # under the License.
 
 """APIs for logging data in the event file."""
-# Standard Library
-import socket
-
 # First Party
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter

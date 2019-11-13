@@ -86,7 +86,6 @@ class RecordReader:
 
     def flush(self):
         assert False
-        pass
 
     def close(self):
         """Closes the record reader."""

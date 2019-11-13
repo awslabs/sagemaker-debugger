@@ -24,7 +24,7 @@ def test_parse_tree_model():
     columns = ["Tree", "Node", "ID", "Feature", "Split", "Yes", "No", "Missing", "Gain", "Cover"]
 
     try:
-        from pandas import DataFrame
+        from pandas import DataFrame  # noqa
 
         pandas_installed = True
     except ImportError:

@@ -1,5 +1,4 @@
 # Standard Library
-import os
 import shutil
 import socket
 from datetime import datetime

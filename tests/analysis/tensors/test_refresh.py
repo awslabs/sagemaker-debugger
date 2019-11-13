@@ -6,7 +6,7 @@ import pytest
 from tests.analysis.utils import generate_data
 
 # First Party
-from smdebug.exceptions import *
+from smdebug.exceptions import StepNotYetAvailable, StepUnavailable, TensorUnavailable
 from smdebug.trials import create_trial
 
 

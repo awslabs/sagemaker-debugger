@@ -48,7 +48,6 @@ def training_has_ended(trial_prefix):
         another worker may have already moved the END_OF_JOB file
         from the /tmp directory.
         """
-        pass
 
 
 def has_training_ended(trial_prefix):

@@ -1,5 +1,4 @@
 # Standard Library
-import shutil
 
 # Third Party
 import pytest
@@ -11,7 +10,15 @@ from smdebug.tensorflow import SessionHook, get_collection, modes, reset_collect
 from smdebug.trials import create_trial
 
 # Local
-from .utils import *
+from .utils import (
+    SaveConfig,
+    SaveConfigMode,
+    get_collection_files,
+    get_dirs_files,
+    os,
+    pre_test_clean_up,
+    simple_model,
+)
 
 
 def helper_test_save_config(trial_dir, hook):

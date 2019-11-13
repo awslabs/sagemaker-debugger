@@ -1,5 +1,4 @@
 # Standard Library
-import os
 import shutil
 from datetime import datetime
 
@@ -8,8 +7,7 @@ import torch
 import torch.optim as optim
 
 # First Party
-import smdebug.pytorch as smd
-from smdebug.pytorch import Collection, ReductionConfig, SaveConfig, reset_collections
+from smdebug.pytorch import SaveConfig, reset_collections
 from smdebug.pytorch.hook import Hook as t_hook
 from smdebug.trials import create_trial
 

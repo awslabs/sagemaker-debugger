@@ -1,5 +1,4 @@
 # Standard Library
-import shutil
 
 # Third Party
 import pytest
@@ -10,7 +9,7 @@ import torch.optim as optim
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.trials import Trial, create_trial
+from smdebug.trials import create_trial
 
 
 class Net(nn.Module):

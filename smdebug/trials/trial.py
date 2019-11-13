@@ -18,7 +18,7 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import REDUCTIONS_PREFIX, reverse_reduction_tensor_name
 from smdebug.core.tensor import StepState, Tensor
 from smdebug.core.utils import flatten, get_worker_name_from_collection_file, serialize_tf_device
-from smdebug.exceptions import *
+from smdebug.exceptions import NoMoreData, StepUnavailable, TensorUnavailable
 
 
 class Trial(ABC):

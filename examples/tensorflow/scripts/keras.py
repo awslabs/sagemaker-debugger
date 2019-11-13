@@ -7,7 +7,7 @@ import tensorflow_datasets as tfds
 
 # First Party
 from smdebug.core.collection import CollectionKeys
-from smdebug.tensorflow import KerasHook, get_collection
+from smdebug.tensorflow import KerasHook
 
 tfds.disable_progress_bar()
 

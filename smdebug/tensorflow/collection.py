@@ -9,7 +9,7 @@ from smdebug.core.collection_manager import CollectionManager as BaseCollectionM
 from smdebug.core.logger import get_logger
 
 # Local
-from .tensor_ref import TensorRef, TensorType
+from .tensor_ref import TensorRef
 
 logger = get_logger()
 

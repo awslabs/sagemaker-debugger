@@ -10,7 +10,7 @@ import pytest
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.writer import FileWriter
-from smdebug.exceptions import *
+from smdebug.exceptions import RuleEvaluationConditionMet
 from smdebug.rules.generic import Confusion
 from smdebug.rules.rule_invoker import invoke_rule
 from smdebug.trials import create_trial

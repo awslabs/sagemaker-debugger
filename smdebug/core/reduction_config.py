@@ -1,6 +1,6 @@
 # Standard Library
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 # First Party
 from smdebug.core.utils import split

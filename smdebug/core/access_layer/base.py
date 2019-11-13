@@ -5,7 +5,6 @@ from smdebug.core.logger import get_logger
 class TSAccessBase:
     def __init__(self):
         self.logger = get_logger()
-        pass
 
     def open(self):
         raise NotImplementedError

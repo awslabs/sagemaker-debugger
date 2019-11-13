@@ -1,6 +1,4 @@
 # Standard Library
-import os
-import shutil
 
 # First Party
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR

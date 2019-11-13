@@ -38,7 +38,6 @@ import re
 import shutil
 import sys
 import time
-from glob import glob
 from operator import itemgetter
 
 # Third Party

@@ -1,6 +1,6 @@
 # Standard Library
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, Union
 
 # Local
 from .modes import ModeKeys

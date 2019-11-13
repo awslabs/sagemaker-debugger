@@ -1,12 +1,11 @@
 # Standard Library
-import os
 
 # Third Party
 import tensorflow as tf
 from tensorflow.python.distribute import values
 
 # First Party
-from smdebug.core.collection import SUMMARIES_COLLECTIONS, CollectionKeys
+from smdebug.core.collection import CollectionKeys
 from smdebug.core.reductions import get_reduction_tensor_name
 from smdebug.core.tfevent.proto.summary_pb2 import Summary
 from smdebug.core.tfevent.util import make_numpy_array
@@ -16,7 +15,7 @@ from smdebug.core.utils import match_inc
 from .base_hook import TensorflowBaseHook
 from .reductions import get_tensorflow_reduction
 from .tensor_ref import TensorType
-from .utils import TFDistributionStrategy, extract_graph_summary, get_original_fetch_ops, node_name
+from .utils import extract_graph_summary, get_original_fetch_ops, node_name
 
 
 class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):

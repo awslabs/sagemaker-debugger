@@ -3,7 +3,7 @@ import json
 import os
 from abc import ABC, abstractmethod
 from bisect import bisect_left
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 # Third Party
 import numpy as np
@@ -139,7 +139,6 @@ class IndexReader(ABC):
         self, start_after_key=None, range_steps=None
     ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
         """Return a triply nested dict referring to tensor data."""
-        pass
 
     @staticmethod
     def _validate(index_dict):

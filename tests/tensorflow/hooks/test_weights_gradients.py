@@ -1,18 +1,23 @@
 # Standard Library
-import shutil
-
-# Third Party
-import tensorflow as tf
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import get_path_to_collections
-from smdebug.tensorflow import reset_collections
 
 # Local
-from .utils import *
+from .utils import (
+    CollectionManager,
+    SaveConfig,
+    SessionHook,
+    get_collection_files,
+    get_dirs_files,
+    join,
+    os,
+    pre_test_clean_up,
+    simple_model,
+)
 
 
 def helper_test_only_w_g(trial_dir, hook):

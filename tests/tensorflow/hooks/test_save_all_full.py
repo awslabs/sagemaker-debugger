@@ -1,16 +1,24 @@
 # Standard Library
 import glob
-import shutil
 
 # First Party
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.reader import FileReader
 from smdebug.core.utils import get_path_to_collections
-from smdebug.tensorflow import Collection, CollectionManager, get_collections, reset_collections
+from smdebug.tensorflow import CollectionManager, get_collections, reset_collections
 
 # Local
-from .utils import *
+from .utils import (
+    SaveConfig,
+    SessionHook,
+    get_collection_files,
+    get_dirs_files,
+    join,
+    os,
+    simple_model,
+    tf,
+)
 
 
 def test_save_all_full(out_dir, hook=None):

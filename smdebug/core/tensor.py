@@ -7,7 +7,13 @@ from typing import Dict, Tuple
 import numpy as np
 
 # First Party
-from smdebug.exceptions import *
+from smdebug.exceptions import (
+    InvalidWorker,
+    NoMoreData,
+    StepNotYetAvailable,
+    StepUnavailable,
+    TensorUnavailableForStep,
+)
 
 # Local
 from .index_reader import IndexReader

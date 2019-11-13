@@ -28,7 +28,6 @@ def rw(path):
         """
         print(i, ts)
         assert np.all(ts[2] == i)
-    pass
 
 
 # @pytest.mark.skip(reason="Local")

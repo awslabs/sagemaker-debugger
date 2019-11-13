@@ -1,5 +1,4 @@
 # Standard Library
-import shutil
 
 # Third Party
 import pytest
@@ -10,7 +9,6 @@ from smdebug.trials import create_trial
 
 # Local
 from .test_estimator_modes import help_test_mnist
-from .utils import *
 
 
 @pytest.mark.slow  # 0:02 to run

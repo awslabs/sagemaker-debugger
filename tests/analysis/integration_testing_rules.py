@@ -6,7 +6,7 @@ import shutil
 import sys
 import time
 import uuid
-from multiprocessing import *
+from multiprocessing import Process
 from subprocess import PIPE, Popen
 from time import sleep
 

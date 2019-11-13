@@ -10,7 +10,6 @@ Integration tests with S3 take 95% of the time.
 """
 
 # Standard Library
-import os
 import shutil
 from datetime import datetime
 

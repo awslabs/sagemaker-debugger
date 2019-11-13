@@ -1,6 +1,5 @@
 # Standard Library
 import glob
-import shutil
 
 # First Party
 import smdebug.tensorflow as smd
@@ -11,7 +10,16 @@ from smdebug.core.utils import get_path_to_collections
 from smdebug.tensorflow import get_collection
 
 # Local
-from .utils import *
+from .utils import (
+    CollectionManager,
+    SaveConfig,
+    SessionHook,
+    get_dirs_files,
+    join,
+    os,
+    pre_test_clean_up,
+    simple_model,
+)
 
 
 def helper_test_simple_include(trial_dir, hook):

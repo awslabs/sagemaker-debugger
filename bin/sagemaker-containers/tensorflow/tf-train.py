@@ -1,6 +1,5 @@
 # Standard Library
 import argparse
-import sys
 import time
 import uuid
 

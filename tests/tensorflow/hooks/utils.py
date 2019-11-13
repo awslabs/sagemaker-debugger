@@ -1,6 +1,5 @@
 # Standard Library
 import os
-from datetime import datetime
 from os.path import isfile, join
 
 # Third Party

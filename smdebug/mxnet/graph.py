@@ -3,7 +3,6 @@ import json
 
 # Third Party
 from mxnet.gluon import HybridBlock
-from mxnet.ndarray import NDArray
 from mxnet.symbol import Symbol
 
 # First Party

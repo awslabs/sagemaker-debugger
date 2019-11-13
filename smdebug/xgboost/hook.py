@@ -9,8 +9,7 @@ from xgboost import DMatrix
 from xgboost.core import CallbackEnv
 
 # First Party
-from smdebug.core.access_layer.utils import training_has_ended
-from smdebug.core.collection import Collection, CollectionKeys
+from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig

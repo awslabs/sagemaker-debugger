@@ -11,7 +11,6 @@ Afterwards, we read from the directory and ensure that all the values are there.
 import argparse
 
 # Third Party
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -62,7 +61,6 @@ def test_pytorch(script_mode: bool):
         print("Finished Training")
 
         from smdebug.trials import create_trial
-        import tornasole_rules
 
         trial = create_trial(path=sim.out_dir)
         print(f"trial.steps() = {trial.steps()}")

@@ -20,11 +20,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch import multiprocessing
 from torch.multiprocessing import Process
-from torch.nn.parallel import DistributedDataParallel as DDP
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.trials import Trial, create_trial
+from smdebug.trials import create_trial
 
 out_dir = "/tmp/run"
 

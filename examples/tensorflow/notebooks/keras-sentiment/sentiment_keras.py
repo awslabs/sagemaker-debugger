@@ -5,8 +5,6 @@ import os
 # Third Party
 import keras
 import numpy as np
-from keras.layers import Activation, Conv1D, Dense, Dropout, Embedding, GlobalMaxPooling1D
-from keras.models import Sequential
 
 # First Party
 from smdebug import SaveConfig

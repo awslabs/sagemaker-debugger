@@ -1,6 +1,5 @@
 # Standard Library
 import os
-import uuid
 
 # Third Party
 import tensorflow as tf

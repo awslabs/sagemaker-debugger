@@ -10,7 +10,7 @@ from tensorflow.python.keras.distribute.distributed_training_utils import get_di
 # First Party
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction
-from smdebug.core.utils import match_inc, serialize_tf_device
+from smdebug.core.utils import match_inc
 
 # Local
 from .base_hook import TensorflowBaseHook

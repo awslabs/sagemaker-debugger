@@ -1,6 +1,5 @@
 # Standard Library
 import os
-import shutil
 import uuid
 
 # First Party

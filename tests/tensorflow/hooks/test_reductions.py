@@ -1,7 +1,4 @@
 # Standard Library
-import os
-import shutil
-from datetime import datetime
 
 # First Party
 import smdebug.tensorflow as smd

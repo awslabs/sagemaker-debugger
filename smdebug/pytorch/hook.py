@@ -1,7 +1,4 @@
 # Standard Library
-import types
-from copy import deepcopy
-from typing import Callable, Union
 
 # Third Party
 import torch
@@ -11,7 +8,6 @@ import torch.distributed as dist
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
-from smdebug.core.logger import get_logger
 from smdebug.pytorch.collection import get_collection_manager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array

@@ -1,5 +1,4 @@
 # Third Party
-import pytest
 
 # First Party
 from smdebug.core.save_config import SaveConfig

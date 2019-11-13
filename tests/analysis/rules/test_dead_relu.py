@@ -3,14 +3,12 @@ import argparse
 
 # Third Party
 import mxnet as mx
-import numpy as np
-from mxnet import autograd, gluon, init
+from mxnet import autograd, gluon
 from mxnet.gluon import nn
-from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
 import smdebug.mxnet as smd
-from smdebug.mxnet import Hook, SaveConfig, modes
+from smdebug.mxnet import Hook, SaveConfig
 
 
 def parse_args():
