@@ -12,6 +12,7 @@ Test with Keras.
 Test with AdamOptimizer and SGD.
 
 We check that certain tensors are saved.
+Here in the test suite we delete the hook after every script.
 """
 
 # Standard Library
@@ -34,8 +35,8 @@ from smdebug.core.utils import SagemakerSimulator
 
 
 def test_estimator(script_mode: bool):
-    """ Throws errors about tensors not saving to collection. Investigate after merging PR #304.
-    """
+    """ Works as intended. """
+    smd.del_hook()
     with SagemakerSimulator() as sim:
         # Setup
         mnist_classifier = get_estimator()
@@ -58,8 +59,8 @@ def test_estimator(script_mode: bool):
 
 
 def test_linear_classifier(script_mode: bool):
-    """ Throws errors about tensors not saving to collection. Investigate after merging PR #304.
-    """
+    """ Works as intended. """
+    smd.del_hook()
     with SagemakerSimulator() as sim:
         # Setup
         train_input_fn, eval_input_fn = get_input_fns()
@@ -73,8 +74,7 @@ def test_linear_classifier(script_mode: bool):
             hook = smd.EstimatorHook(out_dir=sim.out_dir)
             estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
         else:
-            # hook = smd.get_hook() ?
-            estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
+            estimator.train(input_fn=train_input_fn, steps=100)
 
         # Check that hook created and tensors saved
         trial = smd.create_trial(path=sim.out_dir)
@@ -85,6 +85,7 @@ def test_linear_classifier(script_mode: bool):
 
 def test_monitored_session(script_mode: bool):
     """ Works as intended. """
+    smd.del_hook()
     with SagemakerSimulator() as sim:
         train_op, X, Y = get_train_op_and_placeholders()
         init = tf.compat.v1.global_variables_initializer()
@@ -110,10 +111,7 @@ def test_monitored_session(script_mode: bool):
 
 
 def test_keras_v1(script_mode: bool):
-    """ Failing because we need TornasoleKerasHook from PR #304.
-
-    Taken from https://www.tensorflow.org/guide/keras/functional.
-    """
+    """ Works as intended. """
     with SagemakerSimulator() as sim:
         import tensorflow.compat.v1.keras as keras
 
@@ -150,7 +148,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     script_mode = args.script_mode
 
-    test_estimator(script_mode=script_mode)
     test_monitored_session(script_mode=script_mode)
+    test_estimator(script_mode=script_mode)
     test_linear_classifier(script_mode=script_mode)
     test_keras_v1(script_mode=script_mode)

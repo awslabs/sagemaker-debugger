@@ -17,8 +17,6 @@ _ts_hook = None
 def _create_hook(json_config_path, hook_class):
     from smdebug.core.hook import BaseHook  # prevent circular imports
 
-    if hook_class is None:
-        raise ValueError("hook_class can not be None.", hook_class)
     if not issubclass(hook_class, BaseHook):
         raise TypeError("hook_class needs to be a subclass of BaseHook", hook_class)
 
@@ -30,7 +28,7 @@ def _create_hook(json_config_path, hook_class):
         logger.info(f"smdebug is disabled, since hook not created in code and no json config file.")
 
 
-def get_hook(json_config_path, hook_class, create_if_not_exists) -> "SessionHook":
+def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -> "SessionHook":
     """Return a singleton SessionHook or None.
 
     If the singleton hook exists, we return it. No questions asked, `json_config_path` is a no-op.
@@ -38,21 +36,38 @@ def get_hook(json_config_path, hook_class, create_if_not_exists) -> "SessionHook
     """
     global _ts_hook
 
-    if create_if_not_exists:
-        # If global hook exists, return it
-        if _ts_hook:
-            logger.info(f"Tornasole will use the existing SessionHook.")
+    # Cannot create a hook if hook_class is not passed; invalid to call isinstance(obj, None).
+    if hook_class is None:
+        if create_if_not_exists:
+            raise ValueError("Cannot create hook because hook_class is None")
+        return _ts_hook
+
+    # If hooks exists, either return or reset it based on hook_class
+    if _ts_hook:
+        # Return the hook if it exists and is the right type
+        if isinstance(_ts_hook, hook_class):
+            logger.info(f"Using existing hook.")
+            return _ts_hook
+        # Reset the hook if it is the wrong type (user runs Session, then Estimator in same script).
         else:
-            _create_hook(json_config_path, hook_class)
+            logger.info(f"Current hook is not instance of {hook_class}, so clearing it.")
+            _ts_hook = None
+
+    # Create if the user desires
+    if create_if_not_exists and not _ts_hook:
+        _create_hook(json_config_path, hook_class)
+        if _ts_hook:
+            logger.info("Created new hook.")
+
     return _ts_hook
 
 
-def set_hook(custom_hook: "SessionHook") -> None:
+def set_hook(custom_hook: "BaseHook") -> None:
     """Overwrite the current hook with the passed hook."""
     from smdebug.core.hook import BaseHook  # prevent circular imports
 
     if not isinstance(custom_hook, BaseHook):
-        raise TypeError(f"custom_hook={custom_hook} must be type SessionHook")
+        raise TypeError(f"custom_hook={custom_hook} must be type BaseHook")
 
     global _ts_hook
     _ts_hook = custom_hook

@@ -106,7 +106,6 @@ def build_package(version):
         # pinning aioboto3 version as aiobot3 is pinning versions
         # https://github.com/aio-libs/aiobotocore/issues/718
         install_requires=[
-            "s3transfer",
             # aiboto3 explicitly depends on aiobotocore
             "aioboto3==6.4.1",  # no version deps
             "aiobotocore==0.10.4",  # pinned to a specific botocore & boto3
@@ -117,7 +116,6 @@ def build_package(version):
             "nest_asyncio",
             "protobuf>=3.6.0",
             "numpy",
-            "joblib",
         ],
         setup_requires=["pytest-runner"],
         tests_require=tests_packages,

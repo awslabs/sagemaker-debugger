@@ -234,6 +234,9 @@ class SagemakerSimulator(object):
     def __enter__(self):
         shutil.rmtree(self.out_dir, ignore_errors=True)
         shutil.rmtree(self.json_config_path, ignore_errors=True)
+        tb_parent_dir = str(Path(self.tb_json_config_path).parent)
+        shutil.rmtree(tb_parent_dir, ignore_errors=True)
+
         os.environ[CONFIG_FILE_PATH_ENV_STR] = self.json_config_path
         os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR] = self.tb_json_config_path
         os.environ["TRAINING_JOB_NAME"] = self.training_job_name
@@ -247,9 +250,7 @@ class SagemakerSimulator(object):
                 """
             )
 
-        parent_dir = str(Path(self.tb_json_config_path).parent)
-        shutil.rmtree(parent_dir, ignore_errors=True)
-        os.makedirs(parent_dir, exist_ok=True)
+        os.makedirs(tb_parent_dir, exist_ok=True)
         with open(self.tb_json_config_path, "w+") as my_file:
             my_file.write(
                 f"""
