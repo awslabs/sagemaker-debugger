@@ -46,7 +46,6 @@ def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -
     if _ts_hook:
         # Return the hook if it exists and is the right type
         if isinstance(_ts_hook, hook_class):
-            logger.info(f"Using existing hook.")
             return _ts_hook
         # Reset the hook if it is the wrong type (user runs Session, then Estimator in same script).
         else:
@@ -58,6 +57,8 @@ def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -
         _create_hook(json_config_path, hook_class)
         if _ts_hook:
             logger.info("Created new hook.")
+        else:
+            logger.info("No hook created.")
 
     return _ts_hook
 

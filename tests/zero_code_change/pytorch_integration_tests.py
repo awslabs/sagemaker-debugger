@@ -18,11 +18,15 @@ from pt_utils import Net, get_dataloaders
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.core.utils import SagemakerSimulator
+from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
-def test_pytorch(script_mode: bool):
-    with SagemakerSimulator() as sim:
+def test_pytorch(script_mode: bool, use_loss_module=False):
+    smd.del_hook()
+    smd.reset_collections()
+
+    sim_class = ScriptSimulator if script_mode else SagemakerSimulator
+    with sim_class() as sim:
         trainloader, testloader = get_dataloaders()
         net = Net()
         criterion = nn.CrossEntropyLoss()
@@ -33,32 +37,31 @@ def test_pytorch(script_mode: bool):
             hook.register_hook(net)
             hook.register_loss(criterion)
 
-        for epoch in range(1):  # loop over the dataset multiple times
-            running_loss = 0.0
-            for i, data in enumerate(trainloader, 0):
-                # get the inputs; data is a list of [inputs, labels]
-                inputs, labels = data
+        for i, data in enumerate(trainloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
 
-                # zero the parameter gradients
-                optimizer.zero_grad()
+            # zero the parameter gradients
+            optimizer.zero_grad()
 
-                # forward + backward + optimize
-                outputs = net(inputs)
-                if True:
-                    loss = criterion(outputs, labels)
-                else:
-                    loss = F.cross_entropy(outputs, labels)
-                loss.backward()
-                optimizer.step()
+            # forward + backward + optimize
+            outputs = net(inputs)
+            if use_loss_module:
+                loss = criterion(outputs, labels)
+            else:
+                loss = F.cross_entropy(outputs, labels)
+                if script_mode:
+                    hook.record_tensor_value(tensor_name="loss", tensor_value=loss)
+            loss.backward()
+            optimizer.step()
 
-                # print statistics
-                running_loss += loss.item()
-                if i % 2000 == 1999:  # print every 2000 mini-batches
-                    print("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 2000))
-                    running_loss = 0.0
-                    break
+            if i == 499:  # print every 2000 mini-batches
+                break
 
         print("Finished Training")
+
+        hook = smd.get_hook()
+        print(f"hook = {hook}")
 
         from smdebug.trials import create_trial
 
@@ -67,14 +70,6 @@ def test_pytorch(script_mode: bool):
         print(f"trial.tensors() = {trial.tensors()}")
 
         print(f"collection_manager = {hook.collection_manager}")
-
-        weights_tensors = hook.collection_manager.get("weights").tensor_names
-        print(f"'weights' collection tensors = {weights_tensors}")
-        assert len(weights_tensors) > 0
-
-        gradients_tensors = hook.collection_manager.get("gradients").tensor_names
-        print(f"'gradients' collection tensors = {gradients_tensors}")
-        assert len(gradients_tensors) > 0
 
         losses_tensors = hook.collection_manager.get("losses").tensor_names
         print(f"'losses' collection tensors = {losses_tensors}")
@@ -91,5 +86,7 @@ if __name__ == "__main__":
         "--script-mode", help="Manually create hooks instead of relying on ZCC", action="store_true"
     )
     args = parser.parse_args()
+    script_mode = args.script_mode
 
-    test_pytorch(script_mode=args.script_mode)
+    test_pytorch(script_mode=script_mode, use_loss_module=True)
+    test_pytorch(script_mode=script_mode, use_loss_module=False)

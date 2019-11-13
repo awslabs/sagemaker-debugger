@@ -1,3 +1,6 @@
+# Standard Library
+from typing import Tuple
+
 # Third Party
 import torch
 import torch.nn as nn
