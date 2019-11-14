@@ -28,7 +28,7 @@ def _create_hook(json_config_path, hook_class):
         logger.info(f"smdebug is disabled, since hook not created in code and no json config file.")
 
 
-def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -> "SessionHook":
+def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -> "Hook":
     """Return a singleton SessionHook or None.
 
     If the singleton hook exists, we return it. No questions asked, `json_config_path` is a no-op.

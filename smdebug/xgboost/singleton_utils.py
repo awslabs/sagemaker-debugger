@@ -13,11 +13,9 @@ import smdebug.core.singleton_utils as sutils
 from smdebug.core.singleton_utils import del_hook, set_hook  # noqa
 
 
-def get_hook(json_config_path=None, create_if_not_exists: bool = False) -> "SessionHook":
+def get_hook(json_config_path=None) -> "Hook":
     from smdebug.xgboost.hook import Hook
 
     return sutils.get_hook(
-        json_config_path=json_config_path,
-        hook_class=Hook,
-        create_if_not_exists=create_if_not_exists,
+        json_config_path=json_config_path, hook_class=Hook, create_if_not_exists=True
     )
