@@ -160,7 +160,7 @@ def main():
     opt = parse_args()
 
     # these random seeds are only intended for test purpose.
-    # for now, 128,12,2 could promise no assert failure with running tornasole_rules test_rules.py and config.yaml
+    # for now, 128,12,2 could promise no assert failure with running tests
     # if you wish to change the number, notice that certain steps' tensor value may be capable of variation
     if opt.random_seed:
         mx.random.seed(128)

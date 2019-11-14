@@ -1236,8 +1236,6 @@ def main():
     FLAGS, unknown_args = cmdline.parse_known_args()
 
     # these random seeds are only intended for test purpose.
-    # for now, such seed settings could promise no assert failure
-    # when running tornasole_rules test_rules.py with config.yaml
     # if you wish to change the seed settings, notice that certain
     # steps' tensor value may be capable of variation
     if FLAGS.random_seed:

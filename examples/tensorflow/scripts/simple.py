@@ -44,7 +44,7 @@ feature_parser.add_argument(
 args = parser.parse_args()
 
 # these random seeds are only intended for test purpose.
-# for now, 2,2,12 could promise no assert failure when running tornasole_rules test_rules.py with config.yaml
+# for now, 2,2,12 could promise no assert failure when running tests
 # if you wish to change the number, notice that certain steps' tensor value may be capable of variation
 if args.random_seed:
     tf.set_random_seed(2)
