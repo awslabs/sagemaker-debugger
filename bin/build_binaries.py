@@ -21,6 +21,7 @@ parser.add_argument(
     "replace the latest binary in the S3 location. Note that"
     "this also requires you to pass --upload",
 )
+parser.add_argument("--s3-prefix", default="s3://tornasole-bugbash-1113/binaries")
 args = parser.parse_args()
 exec(open("smdebug/_version.py").read())
 
@@ -30,8 +31,10 @@ BINARIES = ["mxnet", "tensorflow", "pytorch", "xgboost", "rules"]
 for b in BINARIES:
     if b == "rules":
         env_var = "ONLY_RULES"
+        path = "smdebug"
     else:
         env_var = "SMDEBUG_WITH_" + b.upper()
+        path = f"smdebug_{b}"
     env = dict(os.environ)
     env[env_var] = "1"
     subprocess.check_call([sys.executable, "setup.py", "bdist_wheel", "--universal"], env=env)
@@ -42,7 +45,7 @@ for b in BINARIES:
                 "s3",
                 "cp",
                 "dist/smdebug-{}-py2.py3-none-any.whl".format(VERSION),
-                "s3://tornasole-bugbash-1113/binaries/smdebug_{}/".format(b),
+                os.path.join(args.s3_prefix, path, ""),
             ]
         )
 
@@ -53,10 +56,8 @@ for b in BINARIES:
                     "aws",
                     "s3",
                     "cp",
-                    "s3://tornasole-bugbash-1113/binaries/smdebug_{}/smdebug-{}-py2.py3-none-any.whl".format(
-                        b, VERSION
-                    ),
-                    "s3://tornasole-bugbash-1113/binaries/smdebug_{}/latest/".format(b),
+                    os.path.join(args.s3_prefix, path, f"smdebug-{VERSION}-py2.py3-none-any.whl"),
+                    os.path.join(args.s3_prefix, path, "latest", ""),
                 ]
             )
             # remove other versions
@@ -67,8 +68,8 @@ for b in BINARIES:
                     "rm",
                     "--recursive",
                     "--exclude",
-                    "smdebug-{}*".format(VERSION),
-                    "s3://tornasole-bugbash-1113/binaries/smdebug_{}/latest/".format(b),
+                    f"smdebug-{VERSION}*",
+                    os.path.join(args.s3_prefix, path, "latest"),
                 ]
             )
     subprocess.check_call(["rm", "-rf", "dist", "build", "*.egg-info", ".eggs"])
