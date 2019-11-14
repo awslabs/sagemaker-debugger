@@ -151,7 +151,7 @@ def step_in_range(range_steps, step):
 def get_relative_event_file_path(path):
     p = Path(path)
     path_parts = p.parts
-    assert path_parts[-3] in ["events", "tensorboard"], print(path)
+    assert path_parts[-3] in ["events", "tensorboard"], str(path)
     return os.path.join(*path_parts[-3:])
 
 
