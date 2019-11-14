@@ -99,40 +99,9 @@ class IndexReader(ABC):
     def __init__(self):
         pass
 
-    @staticmethod
-    def fetch_tensor_value(tensor_location: TensorLocation) -> np.ndarray:
-        event_file_name = tensor_location.event_file_name
-        start = tensor_location.start_idx
-        length = tensor_location.length
-        s3, bucket_name, prefix_name = is_s3(event_file_name)
-        res = []
-        num_retries = 5
-        if s3:
-            while not bool(res) and num_retries > 0:
-                request = [ReadObjectRequest(event_file_name, int(start), int(length))]
-                s3_handler = S3Handler()
-                res = s3_handler.get_objects(request)
-                num_retries -= 1
-        else:
-            tensor_object = None
-            while not bool(tensor_object) and num_retries > 0:
-                try:
-                    with open(event_file_name, "rb") as event_file:
-                        event_file.seek(start)
-                        tensor_object = event_file.read(length)
-                except EnvironmentError:  # parent of IOError, OSError
-                    num_retries -= 1
-            res = [tensor_object]
-        if res[0] is None:
-            raise TensorUnavailableForStep(
-                tname=tensor_location.tensorname,
-                mode=tensor_location.mode,
-                step=tensor_location.mode_step,
-            )
-        tr = TensorReader(res[0])  # Access the only element in res
-        tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
-        tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
-        return tensor_data
+    @abstractmethod
+    def fetch_tensor_value(self, tensor_location: TensorLocation):
+        pass
 
     @abstractmethod
     def load_tensor_data_from_index_files(
@@ -206,6 +175,28 @@ class S3IndexReader(IndexReader):
 
         self.index_file_cache = ReadIndexFilesCache()
 
+    def fetch_tensor_value(self, tensor_location: TensorLocation) -> np.ndarray:
+        event_file_name = tensor_location.event_file_name
+        start = tensor_location.start_idx
+        length = tensor_location.length
+        res = []
+        num_retries = 5
+        while not bool(res) and num_retries > 0:
+            request = [ReadObjectRequest(event_file_name, int(start), int(length))]
+            s3_handler = S3Handler()
+            res = s3_handler.get_objects(request)
+            num_retries -= 1
+        if res[0] is None:
+            raise TensorUnavailableForStep(
+                tname=tensor_location.tensorname,
+                mode=tensor_location.mode,
+                step=tensor_location.mode_step,
+            )
+        tr = TensorReader(res[0])  # Access the only element in res
+        tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
+        tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
+        return tensor_data
+
     def load_tensor_data_from_index_files(
         self, start_after_key=None, range_steps=None
     ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
@@ -273,6 +264,30 @@ class LocalIndexReader(IndexReader):
         index_dirname = IndexFileLocationUtils.get_index_path(dirname)
         index_files = list_files_in_directory(index_dirname)
         return sorted(index_files)
+
+    def fetch_tensor_value(self, tensor_location: TensorLocation) -> np.ndarray:
+        event_file_name = tensor_location.event_file_name
+        start = tensor_location.start_idx
+        length = tensor_location.length
+        num_retries = 5
+        tensor_object = None
+        while not bool(tensor_object) and num_retries > 0:
+            try:
+                with open(event_file_name, "rb") as event_file:
+                    event_file.seek(start)
+                    tensor_object = event_file.read(length)
+            except EnvironmentError:  # parent of IOError, OSError
+                num_retries -= 1
+        if tensor_object is None:
+            raise TensorUnavailableForStep(
+                tname=tensor_location.tensorname,
+                mode=tensor_location.mode,
+                step=tensor_location.mode_step,
+            )
+        tr = TensorReader(tensor_object)
+        tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
+        tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
+        return tensor_data
 
     def load_tensor_data_from_index_files(
         self, start_after_key=None, range_steps=None

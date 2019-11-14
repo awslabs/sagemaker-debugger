@@ -128,3 +128,4 @@ newlogsRunTest*/
 logs/
 ts_outputs*/
 test_output*/
+MNIST-data/

@@ -16,7 +16,6 @@ from smdebug.exceptions import (
 )
 
 # Local
-from .index_reader import IndexReader
 from .locations import TensorLocation
 from .modes import ModeKeys
 from .reductions import get_numpy_reduction
@@ -255,7 +254,7 @@ class Tensor:
         if s.value is not None:
             return s.value
         elif s.location is not None:
-            value = IndexReader.fetch_tensor_value(s.location)
+            value = self.trial.index_reader.fetch_tensor_value(s.location)
             if self.cache:
                 s.value = value
             return value
@@ -312,12 +311,12 @@ class Tensor:
         if rv is not None:
             return rv
         elif rl is not None:
-            return IndexReader.fetch_tensor_value(rl)
+            return self.trial.index_reader.fetch_tensor_value(rl)
         else:
             if s.value is None and s.location is None:
                 raise TensorUnavailableForStep(tname=reduction_name, step=step_num, mode=mode)
             elif s.value is None and s.location is not None:
-                step_value = IndexReader.fetch_tensor_value(s.location)
+                step_value = self.trial.index_reader.fetch_tensor_value(s.location)
                 if self.cache:
                     s.value = step_value  # save value if cache is set to True
             else:
