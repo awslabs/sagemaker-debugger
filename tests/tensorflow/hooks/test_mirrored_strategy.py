@@ -372,14 +372,16 @@ def test_reductions(out_dir):
                 tr.tensor(tname).value(s, mode=ModeKeys.TRAIN)
                 assert False
             except TensorUnavailableForStep:
-                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.TRAIN)) == 5
+                # for some tensors l1 reduction can't be saved due to improper dimensions for the reduction
+                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.TRAIN)) >= 4
 
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
             try:
                 tr.tensor(tname).value(s, mode=ModeKeys.EVAL)
                 assert False
             except TensorUnavailableForStep:
-                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) == 5
+                # for some tensors l1 reduction can't be saved due to improper dimensions for the reduction
+                assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) >= 4
 
     for tname in tr.tensors(collection="losses"):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):

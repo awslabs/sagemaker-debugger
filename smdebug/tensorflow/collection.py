@@ -91,11 +91,6 @@ class Collection(BaseCollection):
                 "tf.MirroredVariable and list or set of any of the above."
             )
 
-    def add_reduction_tensor(self, tensor, original_tensor, export_name=None):
-        tensor_ref = TensorRef.create_reduction(tensor, original_tensor, export_name)
-        if tensor_ref:
-            self._tensors[tensor_ref.name] = tensor_ref
-
     def get_tensors_dict(self):
         return self._tensors
 

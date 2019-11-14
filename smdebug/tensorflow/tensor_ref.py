@@ -119,22 +119,3 @@ class TensorRef:
         # to create a tensor variable from non graph variables
         # such as losses, metrics in keras
         return TensorRef(None, type=TensorType.NON_GRAPH, export_name=export_name)
-
-    @classmethod
-    def create_reduction(cls, tensor, original_tensor, export_name=None):
-        # only used by TF session/estimator
-        try:
-            if export_name is None:
-                export_name = tensor.name
-            return TensorRef(
-                tf_obj=tensor,
-                export_name=export_name,
-                type=TensorType.REDUCTION,
-                original_tensor=original_tensor,
-            )
-        except AttributeError:
-            logger.debug(
-                f"Could not create reduction {tensor} of {original_tensor}."
-                "Perhaps eager mode is turned on"
-            )
-            return None

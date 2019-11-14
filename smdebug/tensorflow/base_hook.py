@@ -11,7 +11,7 @@ from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.modes import ModeKeys
-from smdebug.core.reductions import get_reduction_tensor_name
+from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
 from smdebug.core.tfevent.util import make_numpy_array
 from smdebug.core.utils import serialize_tf_device
 from smdebug.core.writer import FileWriter
@@ -19,7 +19,6 @@ from smdebug.core.writer import FileWriter
 # Local
 from .collection import CollectionKeys, get_collection_manager
 from .singleton_utils import set_hook
-from .tensor_ref import TensorType
 from .utils import (
     TFDistributionStrategy,
     get_num_workers_from_tf_config,
@@ -239,20 +238,14 @@ class TensorflowBaseHook(BaseHook):
     def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
         return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=False)
 
-    def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
+    def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         # this tensor_name is tf tensor name, need to convert to export_name
         tensor_ref = self._get_tensor_ref(tensor_name, save_collections=save_collections)
         if tensor_ref:
             name = tensor_ref.export_name
-            self._log_save(name, save_collections)
-            if tensor_ref.type == TensorType.REDUCTION:
-                # only for session/estimator hook
-                self._write_raw_tensor_simple(name, tensor_value, tensor_ref=tensor_ref)
-            else:
-                self._write_reductions(name, tensor_value, save_collections, tensor_ref=tensor_ref)
-                self._write_histogram_summary(name, tensor_value, save_collections)
-                self._write_raw_tensor(name, tensor_value, save_collections, tensor_ref=tensor_ref)
-                self._write_scalar_summary(name, tensor_value, save_collections)
+            super()._write_for_tensor(
+                name, tensor_value, save_collections=save_collections, tensor_ref=tensor_ref
+            )
 
     def _get_tensor_ref(self, tf_tensor_name, save_collections=None):
         if save_collections is None:
@@ -317,3 +310,7 @@ class TensorflowBaseHook(BaseHook):
         Here it's already numpy array
         """
         return make_numpy_array(tensor_value)
+
+    @staticmethod
+    def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        return get_numpy_reduction(reduction_name, tensor_value, abs)

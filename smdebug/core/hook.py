@@ -574,7 +574,7 @@ class BaseHook:
         base_str = f"Saving {tensor_name} from {'collections' if many_colls else 'collection'}"
         self.logger.debug(f"{base_str} {coll_str} {step_str}")
 
-    def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
+    def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         """
         Write all data that we might want to for this tensor
         :param tensor_name: name of tensor
@@ -583,14 +583,14 @@ class BaseHook:
         """
         self._log_save(tensor_name, save_collections)
         # write reductions defined for collections this tensor may be part of
-        self._write_reductions(tensor_name, tensor_value, save_collections)
+        self._write_reductions(tensor_name, tensor_value, save_collections, tensor_ref=tensor_ref)
 
         # write histogram for this tensor if any collection this tensor
         # is part of has save_histogram as True
         self._write_histogram_summary(tensor_name, tensor_value, save_collections)
 
         # write raw tensor if save_raw_tensor in reduction config is True
-        self._write_raw_tensor(tensor_name, tensor_value, save_collections)
+        self._write_raw_tensor(tensor_name, tensor_value, save_collections, tensor_ref=tensor_ref)
 
         # writes scalar summary if this value is a scalar (or 1x1 array)
         self._write_scalar_summary(tensor_name, tensor_value, save_collections)

@@ -74,18 +74,14 @@ hook = smd.SessionHook(
 with tf.name_scope("foobar"):
     x = tf.placeholder(shape=(None, 2), dtype=tf.float32)
     w = tf.Variable(initial_value=[[10.0], [10.0]], name="weight1")
-    tf.summary.histogram("weight1_summ", w)
 with tf.name_scope("foobaz"):
     w0 = [[1], [1.0]]
     y = tf.matmul(x, w0)
 loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
 smd.add_to_collection("losses", loss)
-tf.summary.scalar("loss_summ", loss)
 
 global_step = tf.Variable(17, name="global_step", trainable=False)
 increment_global_step_op = tf.assign(global_step, global_step + 1)
-
-summ = tf.summary.merge_all()
 
 optimizer = tf.train.AdamOptimizer(args.lr)
 

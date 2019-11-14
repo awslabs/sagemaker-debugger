@@ -9,7 +9,6 @@ from tensorflow.python.keras.distribute.distributed_training_utils import get_di
 
 # First Party
 from smdebug.core.modes import ModeKeys
-from smdebug.core.reductions import get_numpy_reduction
 from smdebug.core.utils import match_inc
 
 # Local
@@ -524,7 +523,3 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
         # Optimizer is being saved to support additional features in the future.
         self.optimizer = optimizer
         return optimizer
-
-    @staticmethod
-    def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
-        return get_numpy_reduction(reduction_name, tensor_value, abs)

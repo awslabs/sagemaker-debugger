@@ -7,14 +7,12 @@ from tensorflow.python.keras.backend import is_placeholder
 
 # First Party
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.reductions import get_reduction_tensor_name
 from smdebug.core.tfevent.proto.summary_pb2 import Summary
 from smdebug.core.tfevent.util import make_numpy_array
 from smdebug.core.utils import match_inc
 
 # Local
 from .base_hook import TensorflowBaseHook
-from .reductions import get_tensorflow_reduction
 from .tensor_ref import TensorType
 from .utils import build_fetches_tuple, extract_graph_summary, tensor_can_be_saved
 
@@ -95,34 +93,6 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         self.graph = None
         self.tensors_to_save_this_step = None
 
-    def _add_reduction(self, tensor_ref, reduction_name, collection, on_absolute_values=False):
-        if tensor_ref.tf_obj.dtype in [tf.bool, tf.string]:
-            return
-
-        tname = get_reduction_tensor_name(
-            tensor_ref.export_name, reduction_name, on_absolute_values, remove_colon_index=False
-        )
-        red_tensor = get_tensorflow_reduction(
-            reduction_name, tensor_ref.tf_obj, on_absolute_values=on_absolute_values
-        )
-        collection.add_reduction_tensor(
-            tensor=red_tensor, original_tensor=tensor_ref.tf_obj, export_name=tname
-        )
-        # since tensor_to_collections is a mapping from graph name
-        if red_tensor.name not in self.tensor_to_collections:
-            self.tensor_to_collections[red_tensor.name] = {collection}
-        else:
-            self.tensor_to_collections[red_tensor.name].add(collection)
-
-    def _add_reductions(self, tensor_ref, collection):
-        reduction_config = collection.reduction_config
-        for reduction_list in (reduction_config.reductions, reduction_config.norms):
-            for reduction in reduction_list:
-                self._add_reduction(tensor_ref, reduction, collection, False)
-        for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
-            for reduction in reduction_list:
-                self._add_reduction(tensor_ref, reduction, collection, True)
-
     def _merge_tensor_refs_across_collections(self, tensor):
         # merge tensor objects in all collections which has this tensor
         # this ensures that whichever collection you query for this tensorname
@@ -159,9 +129,6 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             # this is mapping from graph name
             self.tensor_to_collections[tensor.name] = colls_with_tensor
             tensor_ref = self._merge_tensor_refs_across_collections(tensor)
-            for coll in colls_with_tensor:
-                # this should be after we add tensor.name to tensor_to_collections
-                self._add_reductions(tensor_ref, coll)
 
     def _check_and_add_tensor(self, tensor):
         if tensor.dtype == tf.resource or tensor.dtype == tf.variant:
@@ -326,10 +293,6 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         except Exception as e:
             # can it not be a summary?
             self.logger.error(f"Ran into the exception when saving {tensor}: {e}")
-
-    def _write_reductions(self, tensor_name, tensor_value, save_collections, **kwargs):
-        # skip writing reductions as TF Session/Estimator handles them in the graph itself
-        pass
 
     def _get_all_tensors_values(self, results):
         for (item, value) in zip(self.tensors_to_save_this_step, results):

@@ -33,8 +33,9 @@ def help_test_mnist(
     save_config=None,
     hook=None,
     set_modes=True,
-    num_train_steps=20,
-    num_eval_steps=10,
+    num_steps=10,
+    num_eval_steps=None,
+    steps=None,
     include_collections=None,
 ):
     trial_dir = path
@@ -102,9 +103,6 @@ def help_test_mnist(
         }
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
-    def train(num_steps):
-        mnist_classifier.train(input_fn=train_input_fn, steps=num_steps, hooks=[hook])
-
     # Load training and eval data
     ((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data()
 
@@ -125,6 +123,7 @@ def help_test_mnist(
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": eval_data}, y=eval_labels, num_epochs=1, batch_size=1, shuffle=False
     )
+
     if hook is None:
         if include_collections is None:
             include_collections = ["weights", "gradients", "default", "losses"]
@@ -132,20 +131,39 @@ def help_test_mnist(
             out_dir=trial_dir, save_config=save_config, include_collections=include_collections
         )
 
-    if set_modes:
-        hook.set_mode(smd.modes.TRAIN)
-    # train one step and display the probabilties
-    train(num_train_steps / 2)
+    if num_eval_steps is None:
+        num_eval_steps = num_steps
 
-    if set_modes:
-        hook.set_mode(smd.modes.EVAL)
-    mnist_classifier.evaluate(input_fn=eval_input_fn, steps=num_eval_steps, hooks=[hook])
+    def train(num_steps):
+        if set_modes:
+            hook.set_mode(smd.modes.TRAIN)
+        mnist_classifier.train(input_fn=train_input_fn, steps=num_steps, hooks=[hook])
 
-    if set_modes:
-        hook.set_mode(smd.modes.TRAIN)
-    train(num_train_steps / 2)
+    def evaluate(num_eval_steps):
+        if set_modes:
+            hook.set_mode(smd.modes.EVAL)
+        mnist_classifier.evaluate(input_fn=eval_input_fn, steps=num_eval_steps, hooks=[hook])
 
-    return train
+    # def train_and_evaluate(num_steps, num_eval_steps):
+    #     tf.estimator.train_and_evaluate(
+    #         mnist_classifier,
+    #         train_spec=tf.estimator.TrainSpec(input_fn=train_input_fn, max_steps=num_steps),#, hooks=[hook]),
+    #         eval_spec=tf.estimator.EvalSpec(input_fn=eval_input_fn, steps=num_eval_steps)#, hooks=[hook]),
+    #     )
+
+    if steps is None:
+        steps = ["train", "eval", "train"]
+
+    for s in steps:
+        if s == "train":
+            # train one step and display the probabilties
+            train(num_steps)
+        elif s == "eval":
+            evaluate(num_eval_steps)
+        # elif s == "traineval":
+        #     train_and_evaluate(num_steps, num_eval_steps)
+
+    hook.close()
 
 
 def helper_test_mnist_trial(trial_dir):
@@ -168,9 +186,7 @@ def test_mnist(out_dir, on_s3=False):
         bucket = "tornasole-testing"
         prefix = "tornasole_tf/hooks/estimator_modes/" + run_id
         out_dir = f"s3://{bucket}/{prefix}"
-    help_test_mnist(
-        out_dir, save_config=smd.SaveConfig(save_interval=2), num_train_steps=4, num_eval_steps=2
-    )
+    help_test_mnist(out_dir, save_config=smd.SaveConfig(save_interval=2), num_steps=2, steps=None)
     helper_test_mnist_trial(out_dir)
 
 
@@ -180,7 +196,7 @@ def test_mnist_local_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"
     )
     hook = SessionHook.hook_from_config()
-    help_test_mnist(path=out_dir, hook=hook, num_train_steps=4, num_eval_steps=2)
+    help_test_mnist(path=out_dir, hook=hook, num_steps=2)
     helper_test_mnist_trial(out_dir)
 
 
@@ -193,9 +209,10 @@ def test_mnist_s3(out_dir):
 
 def helper_test_multi_save_configs_trial(trial_dir):
     tr = create_trial(trial_dir)
-    assert len(tr.steps()) == 5, tr.steps()
+    print(tr.steps(), tr.steps(mode=smd.modes.TRAIN), tr.steps(mode=smd.modes.EVAL))
+    assert len(tr.steps()) == 4
     assert len(tr.steps(mode=smd.modes.TRAIN)) == 3
-    assert len(tr.steps(mode=smd.modes.EVAL)) == 2
+    assert len(tr.steps(mode=smd.modes.EVAL)) == 1
     assert len(tr.tensors()) == 1
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
@@ -221,8 +238,7 @@ def test_mnist_local_multi_save_configs(out_dir, on_s3=False):
             }
         ),
         include_collections=["losses"],
-        num_train_steps=6,
-        num_eval_steps=4,
+        num_steps=3,
     )
     helper_test_multi_save_configs_trial(out_dir)
 
@@ -240,5 +256,20 @@ def test_mnist_local_multi_save_configs_json(out_dir, monkeypatch):
         "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json",
     )
     hook = smd.SessionHook.hook_from_config()
-    help_test_mnist(out_dir, hook=hook, num_train_steps=6, num_eval_steps=4)
+    help_test_mnist(out_dir, hook=hook, num_steps=3)
     helper_test_multi_save_configs_trial(out_dir)
+
+
+def test_mode_changes(out_dir):
+    help_test_mnist(
+        out_dir,
+        save_config=smd.SaveConfig(save_interval=2),
+        num_steps=2,
+        steps=["train", "eval", "train", "eval", "train", "train"],
+    )
+    tr = create_trial(out_dir)
+    print(tr.steps(), tr.steps(mode=smd.modes.TRAIN), tr.steps(mode=smd.modes.EVAL))
+    assert len(tr.steps()) == 6
+    assert len(tr.steps(mode=smd.modes.TRAIN)) == 4
+    assert len(tr.steps(mode=smd.modes.EVAL)) == 2
+    assert len(tr.tensors()) == 13
