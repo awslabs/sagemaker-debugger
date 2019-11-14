@@ -167,7 +167,7 @@ class Hook(CallbackHook):
             self.logger.debug("Skipping iteration {}".format(self.step))
             return
 
-        self._initialize_writer()
+        self._initialize_writers()
 
         if self._is_collection_being_saved_for_step(CollectionKeys.HYPERPARAMETERS):
             self.write_hyperparameters(env)

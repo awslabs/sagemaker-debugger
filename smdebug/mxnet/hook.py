@@ -17,6 +17,7 @@ COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = [
     CollectionKeys.BIASES,
     CollectionKeys.GRADIENTS,
     CollectionKeys.LOSSES,
+    CollectionKeys.SCALARS,
 ]
 
 
@@ -140,7 +141,7 @@ class Hook(CallbackHook):
         self._increment_step()
 
         if self._get_collections_to_save_for_step():
-            self._initialize_writer()
+            self._initialize_writers()
 
         if self.exported_model is False:
             self._export_model()

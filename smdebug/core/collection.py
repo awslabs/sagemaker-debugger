@@ -27,6 +27,7 @@ class CollectionKeys:
     LOSSES = "losses"
     BIASES = "biases"
     SCALARS = "scalars"
+    SEARCHABLE_SCALARS = "searchable_scalars"
 
     OPTIMIZER_VARIABLES = "optimizer_variables"
     TENSORFLOW_SUMMARIES = "tensorflow_summaries"
@@ -45,7 +46,12 @@ class CollectionKeys:
 # so we don't create summaries or reductions of these
 SUMMARIES_COLLECTIONS = {CollectionKeys.TENSORFLOW_SUMMARIES}
 
-SCALAR_COLLECTIONS = {CollectionKeys.LOSSES, CollectionKeys.METRICS, CollectionKeys.SCALARS}
+SCALAR_COLLECTIONS = {
+    CollectionKeys.LOSSES,
+    CollectionKeys.METRICS,
+    CollectionKeys.SCALARS,
+    CollectionKeys.SEARCHABLE_SCALARS,
+}
 
 # used by pt, mx, keras
 NON_REDUCTION_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)

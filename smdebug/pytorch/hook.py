@@ -12,7 +12,7 @@ from smdebug.pytorch.collection import get_collection_manager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
 
-DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES, CollectionKeys.SCALARS]
 
 
 class Hook(CallbackHook):
@@ -43,6 +43,10 @@ class Hook(CallbackHook):
             include_collections=include_collections,
             save_all=save_all,
         )
+        # We would like to collect loss collection
+        # even if user does not specify any collections
+        if CollectionKeys.LOSSES not in self.include_collections:
+            self.include_collections.append(CollectionKeys.LOSSES)
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()
@@ -143,7 +147,7 @@ class Hook(CallbackHook):
         self._increment_step()
 
         if self._get_collections_to_save_for_step():
-            self._initialize_writer()
+            self._initialize_writers()
             self.log_params(module)
 
         if self.last_saved_step is not None and not self.exported_collections:

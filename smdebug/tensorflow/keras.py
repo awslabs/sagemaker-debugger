@@ -316,7 +316,7 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
             return
 
         if force_save or self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
-            self._initialize_writer(only_initialize_if_missing=True)
+            self._initialize_writers(only_initialize_if_missing=True)
             logs["batch"] = batch
             for key in logs:
                 if key in ["loss", "val_loss", "outputs"]:
@@ -326,7 +326,7 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
                 self._save_for_tensor(key, logs[key], check_before_write=False)
 
         if force_save or self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
-            self._initialize_writer(only_initialize_if_missing=True)
+            self._initialize_writers(only_initialize_if_missing=True)
             for key in ["loss", "val_loss"]:
                 if key in logs:
                     self._add_metric(metric_name=key)
@@ -442,7 +442,7 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
 
         if self.tensor_refs_to_save_this_step:
             # if saving metric, writer may not be initialized as a result
-            self._initialize_writer()
+            self._initialize_writers()
 
         self._add_callbacks(mode)
 

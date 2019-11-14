@@ -306,7 +306,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
     def after_run(self, run_context, run_values):
         if self.tensors_to_save_this_step:
-            self._initialize_writer()
+            self._initialize_writers()
             for (tensor, value) in self._get_all_tensors_values(run_values.results):
                 if tensor.dtype == tf.string:
                     self._write_tf_summary(tensor, value)

@@ -32,6 +32,11 @@ from smdebug.core.state_store import StateStore
 from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
 from smdebug.core.writer import FileWriter
 
+try:
+    from smexperiments.metrics import SageMakerFileMetricsWriter
+except ImportError:
+    from smdebug.core.metrics_file_writer import SageMakerFileMetricsWriter
+
 logger = get_logger()
 
 
@@ -153,8 +158,15 @@ class BaseHook:
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
+
+        self.metrics_writer = None
+
         # Maps ModeKeys to FileWriter objects
         self.tb_writers = {}
+
+        # Cache scalars that are being saved through save_scalar() calls
+        self.scalar_cache = []
+
         self.logger.info("Saving to {}".format(self.out_dir))
         atexit.register(self._cleanup)
 
@@ -309,6 +321,12 @@ class BaseHook:
         if self.dry_run:
             return
 
+        # flush out searchable scalars to metrics file
+        if self.metrics_writer is not None:
+            self._write_scalars()
+            self.metrics_writer.close()
+            self.metrics_writer = None
+
         self._close_writer()
         to_delete_writers = []
 
@@ -321,10 +339,11 @@ class BaseHook:
         for mode in to_delete_writers:
             del self.tb_writers[mode]
 
-    def _initialize_writer(self) -> None:
+    def _initialize_writers(self) -> None:
         if self.dry_run:
             return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+        self.metrics_writer = SageMakerFileMetricsWriter()
 
     def get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
@@ -470,6 +489,16 @@ class BaseHook:
                             f"so scalar summary could not be created"
                         )
                     break
+        for s_col in save_colls:
+            if s_col.name in [
+                CollectionKeys.LOSSES,
+                CollectionKeys.SEARCHABLE_SCALARS,
+                CollectionKeys.METRICS,
+            ]:
+                np_val = self._make_numpy_array(tensor_value)
+                # Always log loss to Minerva
+                tensor_val = np.mean(np_val)
+                self.scalar_cache.append((tensor_name, tensor_val, True))
 
     def _write_histogram_summary(self, tensor_name, tensor_value, save_collections):
         """ Maybe write to TensorBoard. """
@@ -490,18 +519,45 @@ class BaseHook:
                     )
                     break
 
+    def _write_scalars(self):
+        """
+        This function writes all the scalar values saved in the scalar_cache to file.
+        If searchable is set to True for certain scalars, then that scalar is written to
+        Minerva as well. By default, loss values are searchable.
+        """
+        if self.writer is None:
+            self._initialize_writers()
+        tb_writer = self._maybe_get_tb_writer()
+        for scalar_name, scalar_val, searchable in self.scalar_cache:
+            save_collections = self._get_collections_with_tensor(scalar_name)
+            logger.debug(
+                f"Saving scalar {scalar_name} {scalar_val} for step {self.step} {self.mode} "
+                f"{self.mode_steps[self.mode]}"
+            )
+            if searchable:
+                self.metrics_writer.log_metric(scalar_name, scalar_val, self.mode_steps[self.mode])
+            if tb_writer:
+                self._write_raw_tensor(scalar_name, scalar_val, save_collections)
+            self.scalar_cache = []
+
     # Fix step number for saving scalar and tensor
-    # def save_scalar(self, name, value):
-    #     get_collection(CollectionKeys.SCALARS).add_tensor_name(name)
-    #     if self.writer is None:
-    #         self._init_writer()
-    #     val = make_numpy_array(value)
-    #     if val.size != 1:
-    #         raise TypeError(
-    #             f'{name} has non scalar value of type: {type(value)}')
-    #     self._save_scalar_summary(name, val)
-    #     logger.debug(f'Saving scalar {name} {val} for step {self.step} {self.mode} {self.mode_steps[self.mode]}')
-    #     self._save_raw_tensor(name, val)
+    def save_scalar(self, name, value, searchable=False):
+        """
+        Call save_scalar at any point in the training script to log a scalar value,
+        such as a metric or any other value.
+        :param name: Name of the scalar. A prefix 'scalar/' will be added to it
+        :param value: Scalar value
+        :param searchable: True/False. If set to True, the scalar value will be written to
+        SageMaker Minerva
+        """
+        name = CallbackHook.SCALAR_PREFIX + name
+        val = self._make_numpy_array(value)
+        if val.size != 1:
+            raise TypeError(f"{name} has non scalar value of type: {type(value)}")
+        self.collection_manager.get(CollectionKeys.SCALARS).add_tensor_name(name)
+        self.scalar_cache.append((name, val, searchable))
+        if self.prepared_collections:
+            self._write_scalars()
 
     # def save_tensor(self, name, value):
     #     # todo: support to add these tensors to any collection.
@@ -627,6 +683,7 @@ class CallbackHook(BaseHook):
     INPUT_TENSOR_SUFFIX = "_input_"
     OUTPUT_TENSOR_SUFFIX = "_output_"
     GRADIENT_PREFIX = "gradient/"
+    SCALAR_PREFIX = "scalar/"
 
     def __init__(
         self,

@@ -27,10 +27,17 @@ from .utils import (
     is_parameter_server_strategy,
 )
 
+try:
+    from smexperiments.metrics import SageMakerFileMetricsWriter
+except ImportError:
+    from smdebug.core.metrics_file_writer import SageMakerFileMetricsWriter
+
+
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRICS,
     CollectionKeys.LOSSES,
     CollectionKeys.SCALARS,
+    CollectionKeys.SEARCHABLE_SCALARS,
 ]
 
 
@@ -183,7 +190,7 @@ class TensorflowBaseHook(BaseHook):
         else:
             return [self.writer]
 
-    def _initialize_writer(self, only_initialize_if_missing=False) -> None:
+    def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # In keras, sometimes we are not sure if writer is initialized
         # (such as metrics at end of epoch), that's why it passes the flag only_init_if_missing
 
@@ -203,10 +210,18 @@ class TensorflowBaseHook(BaseHook):
         else:
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+            if self.metrics_writer is None or only_initialize_if_missing is False:
+                self.metrics_writer = SageMakerFileMetricsWriter()
 
     def _close_writer(self) -> None:
         if self.dry_run:
             return
+
+        # flush out searchable scalars to metrics file
+        if self.metrics_writer is not None:
+            self._write_scalars()
+            self.metrics_writer.close()
+            self.metrics_writer = None
 
         if self.writer is not None:
             self.writer.flush()
