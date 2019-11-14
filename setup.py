@@ -116,6 +116,7 @@ def build_package(version):
             "nest_asyncio",
             "protobuf>=3.6.0",
             "numpy",
+            "packaging",
         ],
         setup_requires=["pytest-runner"],
         tests_require=tests_packages,
