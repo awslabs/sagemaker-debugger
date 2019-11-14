@@ -5,7 +5,7 @@
     "train.save_interval": 2,
     "eval.save_interval": 3
   },
-  "CollectionConfiguration": [
+  "CollectionConfigurations": [
     { "CollectionName": "gradients" },
     { "CollectionName": "weights" }
   ]

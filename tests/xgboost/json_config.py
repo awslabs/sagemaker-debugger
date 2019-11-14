@@ -25,7 +25,7 @@ def get_json_config_full(local_path):
             "save_steps": "1,2,3,4",
             "start_step": 1,
         },
-        "CollectionConfiguration": [
+        "CollectionConfigurations": [
             {
                 "CollectionName": "collection_obj_name1",
                 "CollectionParameters": {

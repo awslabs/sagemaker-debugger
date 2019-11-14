@@ -1,6 +1,6 @@
 # Standard Library
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 # First Party
 from smdebug.core.modes import ModeKeys
@@ -16,10 +16,10 @@ ALLOWED_PARAMS = ["save_interval", "save_steps", "start_step", "end_step"]
 class SaveConfig:
     """Maps modes to SaveConfigMode.
 
-  This is the object to serialize, unserialize, and pass.
-  SaveConfigMode should be used when instantiating this class,
-  but use SaveConfig as the main unit.
-  """
+    This is the object to serialize, unserialize, and pass.
+    SaveConfigMode should be used when instantiating this class,
+    but use SaveConfig as the main unit.
+    """
 
     def __init__(
         self,
@@ -31,17 +31,17 @@ class SaveConfig:
     ):
         """Pass in a dictionary mapping modes to SaveConfigs. No parsing here.
 
-    If `mode_save_configs` is missing keys, these will be set as `None` and instantiated
-    by the SaveManager.
+        If `mode_save_configs` is missing keys, these will be set as `None` and instantiated
+        by the SaveManager.
 
-    Parameters:
-      mode_save_configs (dict, e.g. {
-        ModeKeys.TRAIN: SaveConfigMode,
-        ModeKeys.EVAL: SaveConfigMode,
-        ModeKeys.PREDICT: SaveConfigMode,
-        ModeKeys.GLOBAL: SaveConfigMode
-      }).
-    """
+        Parameters:
+        mode_save_configs (dict, e.g. {
+            ModeKeys.TRAIN: SaveConfigMode,
+            ModeKeys.EVAL: SaveConfigMode,
+            ModeKeys.PREDICT: SaveConfigMode,
+            ModeKeys.GLOBAL: SaveConfigMode
+        }).
+        """
         # Simple mode, pass in mode-less parameters directly
         if mode_save_configs is None:
             self.mode_save_configs = {
@@ -97,10 +97,10 @@ class SaveConfig:
 
     def merge_default_save_config(self, default_save_config):
         """
-    Merges save_config with default_save_config.
-    Config for any mode not in save_config will be populated
-    by copying the one from default_save_config
-    """
+        Merges save_config with default_save_config.
+        Config for any mode not in save_config will be populated
+        by copying the one from default_save_config
+        """
         for mode in ModeKeys:
             if self.mode_save_configs[mode] is None:
                 if default_save_config.mode_save_configs[mode] is not None:
@@ -116,12 +116,12 @@ class SaveConfig:
     ) -> "SaveConfig":
         """Parses a dict into a SaveConfig object.
 
-    Appropriate formats:
-      Dict[str, SaveConfigMode]
-      Dict[str, Dict[str, Any]]
-      Dict[ModeKeys, SaveConfigMode]
-      Dict[ModeKeys, Dict[str, Any]]
-    """
+        Appropriate formats:
+        Dict[str, SaveConfigMode]
+        Dict[str, Dict[str, Any]]
+        Dict[ModeKeys, SaveConfigMode]
+        Dict[ModeKeys, Dict[str, Any]]
+        """
         if params is None:
             return None
         if default_values is None:
@@ -150,13 +150,13 @@ class SaveConfig:
     def parse(cls, obj) -> "SaveConfig":
         """Does typechecking and creates a SaveConfig object.
 
-    Appropriate formats:
-      None
-      SaveConfig
-      SaveConfigMode
-      Dict[ModeKeys, SaveConfigMode]
-      Dict[ModeKeys, Dict[str, Any]]
-    """
+        Appropriate formats:
+        None
+        SaveConfig
+        SaveConfigMode
+        Dict[ModeKeys, SaveConfigMode]
+        Dict[ModeKeys, Dict[str, Any]]
+        """
         if obj is None:
             return cls()
         elif isinstance(obj, SaveConfig):
@@ -196,15 +196,17 @@ class SaveConfigMode:
 
     def __init__(
         self,
-        save_interval: int = None,
-        start_step: int = None,
-        end_step: int = None,
+        save_interval: Union[int, str] = None,
+        start_step: Union[int, str] = None,
+        end_step: Union[int, str] = None,
         save_steps: List[int] = None,
     ):
-        self.save_interval = save_interval or DEFAULT_SAVE_CONFIG_INTERVAL
+        self.save_interval = int(save_interval or DEFAULT_SAVE_CONFIG_INTERVAL)
         self.save_steps = save_steps or DEFAULT_SAVE_CONFIG_SAVE_STEPS
-        self.start_step = start_step or DEFAULT_SAVE_CONFIG_START_STEP
+        self.start_step = int(start_step or DEFAULT_SAVE_CONFIG_START_STEP)
         self.end_step = end_step or DEFAULT_SAVE_CONFIG_END_STEP
+        if self.end_step:  # can be None
+            self.end_step = int(self.end_step)
         ## DO NOT REMOVE; please make sure that _check & from_json is updated accordingly.
         self._check()
 

@@ -6,5 +6,5 @@
     "include_regex": "loss:0",
     "save_interval": 2
   },
-  "CollectionConfiguration": []
+  "CollectionConfigurations": []
 }

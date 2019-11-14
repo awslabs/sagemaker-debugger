@@ -6,7 +6,7 @@
     "reductions": "max, mean, variance",
     "save_steps": "0,1,2,3"
   },
-  "CollectionConfiguration": [
+  "CollectionConfigurations": [
     { "CollectionName": "weights" },
     { "CollectionName": "biases" },
     { "CollectionName": "gradients" },

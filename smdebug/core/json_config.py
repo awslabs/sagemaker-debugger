@@ -14,7 +14,7 @@ Example JSON config:
     "start_step": 1,
     "reductions": "min,max,mean,std,abs_variance,abs_sum,abs_l2_norm"
   },
-  "CollectionConfiguration": [
+  "CollectionConfigurations": [
     {
       "CollectionName": "collection_obj_name1",
       "CollectionParameters": {
@@ -123,6 +123,7 @@ def create_hook_from_json_config(
     else:
         include_collections = None
 
+    get_logger().info(f"Creating hook from json {json_config_path}")
     out_dir = tornasole_params.get("out_dir", DEFAULT_SAGEMAKER_OUTDIR)
     dry_run = tornasole_params.get("dry_run", False)
     reduction_config = tornasole_params.get(CONFIG_RDN_CFG_KEY)

@@ -224,12 +224,14 @@ class SagemakerSimulator(object):
         json_config_path="/tmp/zcc_config.json",
         tensorboard_dir="/tmp/tensorboard",
         training_job_name="sm_job",
+        json_file_contents="{}",
     ):
         self.out_dir = DEFAULT_SAGEMAKER_OUTDIR
         self.json_config_path = json_config_path
         self.tb_json_config_path = DEFAULT_SAGEMAKER_TENSORBOARD_PATH
         self.tensorboard_dir = tensorboard_dir
         self.training_job_name = training_job_name
+        self.json_file_contents = json_file_contents
 
     def __enter__(self):
         shutil.rmtree(self.out_dir, ignore_errors=True)
@@ -242,13 +244,7 @@ class SagemakerSimulator(object):
         os.environ["TRAINING_JOB_NAME"] = self.training_job_name
         with open(self.json_config_path, "w+") as my_file:
             # We'll just use the defaults, but the file is expected to exist
-            my_file.write(
-                f"""
-                {{
-
-                }}
-                """
-            )
+            my_file.write(self.json_file_contents)
 
         os.makedirs(tb_parent_dir, exist_ok=True)
         with open(self.tb_json_config_path, "w+") as my_file:

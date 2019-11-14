@@ -5,7 +5,7 @@
     "reductions": "min, max, mean, std, variance, sum, prod, abs_min, abs_max, abs_mean, abs_std, abs_variance, abs_sum, abs_prod, l1_norm, l2_norm, abs_l1_norm, abs_l2_norm",
     "train.save_interval": 1
   },
-  "CollectionConfiguration": [
+  "CollectionConfigurations": [
       { "CollectionName": "weights" },
       { "CollectionName": "gradients" },
       { "CollectionName": "losses" }

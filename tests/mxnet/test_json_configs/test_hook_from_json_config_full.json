@@ -4,12 +4,13 @@
   "HookParameters": {
     "save_all": false,
     "include_regex": "regexe1,regex2",
-    "save_interval": 100,
+    "save_interval": "100",
     "save_steps": "1,2,3,4",
-    "start_step": 1,
+    "start_step": "1",
+    "end_step": "1000000",
     "reductions": "min,max,mean,     std,abs_variance,abs_sum,abs_l2_norm"
   },
-  "CollectionConfiguration": [
+  "CollectionConfigurations": [
     {
       "CollectionName": "collection_obj_name1",
       "CollectionParameters": {

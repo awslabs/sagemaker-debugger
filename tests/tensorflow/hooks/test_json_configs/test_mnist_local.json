@@ -4,7 +4,7 @@
   "HookParameters": {
     "save_interval": 2
   },
-  "CollectionConfiguration": [
+  "CollectionConfigurations": [
       { "CollectionName": "weights" },
       { "CollectionName": "gradients" },
       { "CollectionName": "losses" },
