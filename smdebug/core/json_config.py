@@ -83,9 +83,9 @@ def get_json_config_as_dict(json_config_path) -> Dict:
         path = json_config_path
     else:
         path = os.getenv(CONFIG_FILE_PATH_ENV_STR, DEFAULT_CONFIG_FILE_PATH)
-    get_logger().info(f"Loaded Hook configuration from {path}")
     with open(path) as json_config_file:
         params_dict = json.load(json_config_file)
+    get_logger().info(f"Loaded Hook configuration from {path}")
     return params_dict
 
 
