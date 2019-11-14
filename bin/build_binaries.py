@@ -31,7 +31,7 @@ for b in BINARIES:
     if b == "rules":
         env_var = "ONLY_RULES"
     else:
-        env_var = "TORNASOLE_WITH_" + b.upper()
+        env_var = "SMDEBUG_WITH_" + b.upper()
     env = dict(os.environ)
     env[env_var] = "1"
     subprocess.check_call([sys.executable, "setup.py", "bdist_wheel", "--universal"], env=env)
@@ -41,8 +41,8 @@ for b in BINARIES:
                 "aws",
                 "s3",
                 "cp",
-                "dist/tornasole-{}-py2.py3-none-any.whl".format(VERSION),
-                "s3://tornasole-binaries-use1/tornasole_{}/py3/".format(b),
+                "dist/smdebug-{}-py2.py3-none-any.whl".format(VERSION),
+                "s3://tornasole-bugbash-1113/binaries/smdebug_{}/".format(b),
             ]
         )
 
@@ -53,10 +53,10 @@ for b in BINARIES:
                     "aws",
                     "s3",
                     "cp",
-                    "s3://tornasole-binaries-use1/tornasole_{}/py3/tornasole-{}-py2.py3-none-any.whl".format(
+                    "s3://tornasole-bugbash-1113/binaries/smdebug_{}/smdebug-{}-py2.py3-none-any.whl".format(
                         b, VERSION
                     ),
-                    "s3://tornasole-binaries-use1/tornasole_{}/py3/latest/".format(b),
+                    "s3://tornasole-bugbash-1113/binaries/smdebug_{}/latest/".format(b),
                 ]
             )
             # remove other versions
@@ -67,8 +67,8 @@ for b in BINARIES:
                     "rm",
                     "--recursive",
                     "--exclude",
-                    "tornasole-{}*".format(VERSION),
-                    "s3://tornasole-binaries-use1/tornasole_{}/py3/latest/".format(b),
+                    "smdebug-{}*".format(VERSION),
+                    "s3://tornasole-bugbash-1113/binaries/smdebug_{}/latest/".format(b),
                 ]
             )
     subprocess.check_call(["rm", "-rf", "dist", "build", "*.egg-info", ".eggs"])

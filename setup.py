@@ -35,7 +35,7 @@ def get_frameworks_to_build():
     with_frameworks = {}
     if not only_rules:
         for f in FRAMEWORKS:
-            with_frameworks[f] = os.environ.get("TORNASOLE_WITH_" + f.upper(), False)
+            with_frameworks[f] = os.environ.get("SMDEBUG_WITH_" + f.upper(), False)
             if with_frameworks[f] in ["1", "True", "true"]:
                 with_frameworks[f] = True
             else:
