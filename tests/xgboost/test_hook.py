@@ -235,3 +235,11 @@ def test_hook_params(tmpdir):
     assert trial.tensor("hyperparameters/objective").value(0) == "binary:logistic"
     assert trial.tensor("hyperparameters/num_round").value(0) == 20
     assert trial.tensor("hyperparameters/eta").value(0) == 0.1
+
+
+def test_hook_tensorboard_dir_created(tmpdir):
+    reset_collections()
+    out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+    hook = Hook(out_dir=out_dir, export_tensorboard=True)
+    run_xgboost_model(hook=hook)
+    assert "tensorboard" in os.listdir(out_dir)

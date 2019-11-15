@@ -289,9 +289,6 @@ class Hook(CallbackHook):
             tensor_name = "trees/{}".format(column_name)
             self._save_for_tensor(tensor_name, np.array(column_values))
 
-    def _write_for_tensor(self, tensor_name, tensor_value, save_collections):
-        self._write_raw_tensor(tensor_name, tensor_value, save_collections)
-
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
         raise NotImplementedError("Reductions are not supported by XGBoost hook")

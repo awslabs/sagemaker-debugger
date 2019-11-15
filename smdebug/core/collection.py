@@ -51,6 +51,8 @@ SCALAR_COLLECTIONS = {
     CollectionKeys.LOSSES,
     CollectionKeys.METRICS,
     CollectionKeys.SCALARS,
+    CollectionKeys.FEATURE_IMPORTANCE,
+    CollectionKeys.AVERAGE_SHAP,
     CollectionKeys.SEARCHABLE_SCALARS,
 }
 
