@@ -5,6 +5,15 @@ import time
 
 # Third Party
 import aioboto3
+from botocore.exceptions import (
+    ClientError,
+    CredentialRetrievalError,
+    NoCredentialsError,
+    NoRegionError,
+    PartialCredentialsError,
+    ServiceNotInRegionError,
+    UnknownSignatureVersionError,
+)
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -90,6 +99,25 @@ class S3Handler:
                     PaginationConfig={"PageSize": 1000},
                 )
                 success = True
+            except (
+                NoCredentialsError,  # No credentials could be found
+                PartialCredentialsError,  # Only partial credentials were found.
+                CredentialRetrievalError,  # Error attempting to retrieve credentials from a remote source.
+                UnknownSignatureVersionError,  # Requested Signature Version is not known.
+                ServiceNotInRegionError,  # The service is not available in requested region.
+                NoRegionError,  # No region was specified.
+                ClientError,  # Covers cases when the client has insufficient permissions
+            ) as botocore_error:
+                if isinstance(botocore_error, ClientError):
+                    if botocore_error.response["Error"]["Code"] != "AccessDenied":
+                        self.logger.warning(
+                            f"Unable to list files "
+                            f"from  {bucket}/{str(prefix)}: {str(botocore_error)}"
+                        )
+                    else:
+                        raise botocore_error
+                else:
+                    raise botocore_error
             except Exception as e:
                 self.logger.warning(str(e))
             count += 1
@@ -126,13 +154,33 @@ class S3Handler:
                 else:
                     resp = await self.client.get_object(Bucket=bucket, Key=key)
                 body = await resp["Body"].read()
+            except (
+                NoCredentialsError,  # No credentials could be found
+                PartialCredentialsError,  # Only partial credentials were found.
+                CredentialRetrievalError,  # Error attempting to retrieve credentials from a remote source.
+                UnknownSignatureVersionError,  # Requested Signature Version is not known.
+                ServiceNotInRegionError,  # The service is not available in requested region.
+                NoRegionError,  # No region was specified.
+                ClientError,  # Covers cases when the client has insufficient permissions
+            ) as botocore_error:
+                if isinstance(botocore_error, ClientError):
+                    if botocore_error.response["Error"]["Code"] != "AccessDenied":
+                        self.logger.warning(
+                            f"Unable to read tensor "
+                            f"from object {bucket}/{str(key)}: {str(botocore_error)}"
+                        )
+                        body = None
+                    else:
+                        raise botocore_error
+                else:
+                    raise botocore_error
             except Exception as e:
                 self.logger.warning(str(e))
+                body = None
                 msg = "Unable to read tensor from object " + str(bucket) + "/" + str(key)
                 if length is not None:
                     msg += " from bytes " + str(start) + "-" + str(start + length - 1)
-                self.logger.warn(msg)
-                body = None
+                self.logger.warning(msg)
             count += 1
         if body is None:
             self.logger.warning("Unable to find file " + str(key))
