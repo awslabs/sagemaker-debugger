@@ -39,6 +39,7 @@ class CollectionKeys:
     LABELS = "labels"
     FEATURE_IMPORTANCE = "feature_importance"
     AVERAGE_SHAP = "average_shap"
+    FULL_SHAP = "full_shap"
     TREES = "trees"
 
 

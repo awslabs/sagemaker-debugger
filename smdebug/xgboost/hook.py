@@ -51,8 +51,8 @@ class Hook(CallbackHook):
 
         Example
         -------
-        >>> from smdebug.xgboost import SessionHook
-        >>> hook = SessionHook()
+        >>> from smdebug.xgboost import Hook
+        >>> hook = Hook()
         >>> xgboost.train(prams, dtrain, callbacks=[hook])
 
         Parameters
@@ -104,6 +104,7 @@ class Hook(CallbackHook):
         self.train_data = self._validate_data(train_data)
         self.validation_data = self._validate_data(validation_data)
         self.worker = self.get_worker_name()
+        self._full_shap_values = None
         set_hook(self)
 
     def __call__(self, env: CallbackEnv) -> None:
@@ -184,18 +185,27 @@ class Hook(CallbackHook):
         if self._is_collection_being_saved_for_step(CollectionKeys.FEATURE_IMPORTANCE):
             self.write_feature_importances(env)
 
-        if self._is_collection_being_saved_for_step(CollectionKeys.AVERAGE_SHAP):
-            self.write_average_shap(env)
-
         if self._is_collection_being_saved_for_step(CollectionKeys.TREES):
             self.write_tree_model(env)
 
+        if self._is_collection_being_saved_for_step(CollectionKeys.FULL_SHAP):
+            self._maybe_compute_shap_values(env)
+            self.write_full_shap(env)
+
+        if self._is_collection_being_saved_for_step(CollectionKeys.AVERAGE_SHAP):
+            self._maybe_compute_shap_values(env)
+            self.write_average_shap(env)
+
+        self._clear_shap_values()
         self.last_saved_step = self.step
 
         self._close_writers()
 
     def write_hyperparameters(self, env: CallbackEnv):
         if not self.hyperparameters:
+            self.logger.warning(
+                "To log hyperparameters, 'hyperparameter' parameter must be provided."
+            )
             return
         for param_name, param_value in self.hyperparameters.items():
             self._save_for_tensor("hyperparameters/{}".format(param_name), param_value)
@@ -208,39 +218,65 @@ class Hook(CallbackHook):
     def write_predictions(self, env: CallbackEnv):
         # Write predictions y_hat from validation data
         if not self.validation_data:
+            self.logger.warning("To log predictions, 'validation_data' parameter must be provided.")
             return
         self._save_for_tensor("predictions", env.model.predict(self.validation_data))
 
     def write_labels(self, env: CallbackEnv):
         # Write labels y from validation data
         if not self.validation_data:
+            self.logger.warning("To log labels, 'validation_data' parameter must be provided.")
             return
         self._save_for_tensor("labels", self.validation_data.get_label())
 
     def write_feature_importances(self, env: CallbackEnv):
-        # Get normalized feature importances (fraction of splits made in each
-        # feature)
-        feature_importances = env.model.get_fscore()
-        total = sum(feature_importances.values())
+        # Get normalized feature importance of each feature
+        def _write_normalized_feature_importance(importance_type):
+            feature_importances = env.model.get_score(importance_type=importance_type)
+            total = sum(feature_importances.values())
+            for feature_name, score in feature_importances.items():
+                self._save_for_tensor(
+                    f"feature_importance/{importance_type}/{feature_name}", score / total
+                )
 
-        for feature_name in feature_importances:
-            feature_data = feature_importances[feature_name] / total
-            self._save_for_tensor("{}/feature_importance".format(feature_name), feature_data)
+        if getattr(env.model, "booster", None) is not None and env.model.booster not in {
+            "gbtree",
+            "dart",
+        }:
+            self.logger.warning(
+                "Feature importance is not defined for Booster type %s", env.model.booster
+            )
+            return
+        importance_types = ["weight", "gain", "cover", "total_gain", "total_cover"]
+        for importance_type in importance_types:
+            _write_normalized_feature_importance(importance_type)
 
-    def write_average_shap(self, env: CallbackEnv):
+    def write_full_shap(self, env: CallbackEnv):
         if not self.train_data:
+            self.logger.warning("To log SHAP values, 'train_data' parameter must be provided.")
             return
         # feature names will be in the format, 'f0', 'f1', 'f2', ..., numbered
         # according to the order of features in the data set.
         feature_names = env.model.feature_names + ["bias"]
-
-        shap_values = env.model.predict(self.train_data, pred_contribs=True)
-        dim = len(shap_values.shape)
-        shap_avg = np.mean(shap_values, axis=tuple(range(dim - 1)))
-
         for feature_id, feature_name in enumerate(feature_names):
-            if shap_avg[feature_id] > 0:
-                self._save_for_tensor("{}/average_shap".format(feature_name), shap_avg[feature_id])
+            self._save_for_tensor(f"full_shap/{feature_name}", self._full_shap_values)
+
+    def write_average_shap(self, env: CallbackEnv):
+        if not self.train_data:
+            self.logger.warning("To log SHAP values, 'train_data' parameter must be provided.")
+            return
+        dim = len(self._full_shap_values.shape)
+        average_shap = np.mean(self._full_shap_values, axis=tuple(range(dim - 1)))
+        feature_names = env.model.feature_names + ["bias"]
+        for feature_id, feature_name in enumerate(feature_names):
+            self._save_for_tensor(f"average_shap/{feature_name}", average_shap[feature_id])
+
+    def _maybe_compute_shap_values(self, env: CallbackEnv):
+        if self.train_data is not None and self._full_shap_values is None:
+            self._full_shap_values = env.model.predict(self.train_data, pred_contribs=True)
+
+    def _clear_shap_values(self):
+        self._full_shap_values = None
 
     def write_tree_model(self, env: CallbackEnv):
         if hasattr(env.model, "booster") and env.model.booster not in {"gbtree", "dart"}:
