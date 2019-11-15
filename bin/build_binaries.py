@@ -27,7 +27,7 @@ exec(open("smdebug/_version.py").read())
 
 VERSION = __version__
 
-subprocess.check_call([sys.executable, "setup.py", "bdist_wheel"])
+subprocess.check_call([sys.executable, "setup.py", "bdist_wheel", "--universal"])
 path = "smdebug"
 if args.upload:
     subprocess.check_call(
@@ -35,7 +35,7 @@ if args.upload:
             "aws",
             "s3",
             "cp",
-            "dist/smdebug-{}-py3-none-any.whl".format(VERSION),
+            "dist/smdebug-{}-py2.py3-none-any.whl".format(VERSION),
             os.path.join(args.s3_prefix, path, ""),
         ]
     )
@@ -47,7 +47,7 @@ if args.upload:
                 "aws",
                 "s3",
                 "cp",
-                os.path.join(args.s3_prefix, path, f"smdebug-{VERSION}-py3-none-any.whl"),
+                os.path.join(args.s3_prefix, path, f"smdebug-{VERSION}-py2.py3-none-any.whl"),
                 os.path.join(args.s3_prefix, path, "latest", ""),
             ]
         )
