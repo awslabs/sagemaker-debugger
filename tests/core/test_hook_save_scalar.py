@@ -6,6 +6,7 @@ from datetime import datetime
 
 # Third Party
 import mxnet as mx
+import pytest
 import tensorflow as tf
 import torch
 import torch.nn as nn
@@ -257,6 +258,7 @@ def tf_save_scalar(run_id, save_config, coll, save_steps):
     check_metrics_file(["loss"])
 
 
+@pytest.mark.slow  # 1:02 to run
 def test_save_scalar():
     saveconfigs = [
         SaveConfig(save_steps=[0, 2, 4, 6, 8]),

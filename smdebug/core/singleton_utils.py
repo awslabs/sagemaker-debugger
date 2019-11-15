@@ -25,7 +25,7 @@ def _create_hook(json_config_path, hook_class):
         hook = hook_class.hook_from_config(json_config_path=json_config_path)
         set_hook(custom_hook=hook)
     except FileNotFoundError:
-        logger.info(f"smdebug is disabled, since hook not created in code and no json config file.")
+        pass
 
 
 def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -> "Hook":
@@ -55,10 +55,6 @@ def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -
     # Create if the user desires
     if create_if_not_exists and not _ts_hook:
         _create_hook(json_config_path, hook_class)
-        if _ts_hook:
-            logger.info("Created new hook.")
-        else:
-            logger.info("No hook created.")
 
     return _ts_hook
 
