@@ -23,6 +23,7 @@ def test_sagemaker():
 }
 """
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        smd.del_hook()
         hook = smd.get_hook(hook_type="session", create_if_not_exists=True)
         print(hook)
         assert "weights" in hook.include_collections, hook
