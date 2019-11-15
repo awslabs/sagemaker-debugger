@@ -14,7 +14,7 @@ def get_estimator() -> tf.estimator.Estimator:
     return tf.estimator.Estimator(model_fn=_cnn_model_fn, model_dir="/tmp/mnist_model")
 
 
-def get_input_fns(n_examples=32) -> Tuple:
+def get_input_fns(batch_size=32) -> Tuple:
     # Load training and eval data
     ((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data()
 
@@ -24,15 +24,8 @@ def get_input_fns(n_examples=32) -> Tuple:
     eval_data = eval_data / np.float32(255)
     eval_labels = eval_labels.astype(np.int32)  # not required
 
-    train_data, train_labels, eval_data, eval_labels = (
-        train_data[:n_examples],
-        train_labels[:n_examples],
-        eval_data[:n_examples],
-        eval_labels[:n_examples],
-    )
-
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": train_data}, y=train_labels, batch_size=n_examples, num_epochs=5, shuffle=True
+        x={"x": train_data}, y=train_labels, batch_size=batch_size, num_epochs=5, shuffle=True
     )
 
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
