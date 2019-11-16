@@ -1,7 +1,6 @@
 # Standard Library
 
 # Third Party
-import tensorflow as tf
 from tensorflow.python.distribute import values
 from tensorflow.python.keras.backend import is_placeholder
 
@@ -14,7 +13,19 @@ from smdebug.core.utils import match_inc
 # Local
 from .base_hook import TensorflowBaseHook
 from .tensor_ref import TensorType
-from .utils import build_fetches_tuple, extract_graph_summary, tensor_can_be_saved
+from .utils import (
+    TFDistributionStrategy,
+    build_fetches_tuple,
+    extract_graph_summary,
+    tensor_can_be_saved,
+)
+
+try:
+    # as most of the v1 API is deprecated from the main tf namespace from 1.14
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    # For TF 1.13
+    import tensorflow as tf
 
 
 class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
@@ -178,7 +189,36 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             else:
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
 
+    def _is_not_supported(self):
+        if self._hook_supported is None:
+            self._hook_supported = True
+            if (
+                TensorflowBaseHook.get_distribution_strategy()
+                == TFDistributionStrategy.MIRRORED_STRATEGY
+            ):
+                from packaging import version
+
+                if version.parse(tf.__version__) < version.parse("1.14.0"):
+                    self._hook_supported = False
+                    # in tf 1.13, we can't support mirrored strategy as
+                    # MirroredVariable does not have _values attribute
+                    self.logger.info(
+                        "Disabling SMDebug as it does not support mirrored strategy"
+                        "with TensorFlow version <1.14"
+                    )
+            elif (
+                TensorflowBaseHook.get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED
+            ):
+                self.logger.info(
+                    f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
+                )
+                self._hook_supported = False
+        return not self._hook_supported
+
     def begin(self):
+        if self._is_not_supported():
+            return
+
         # clear all caches so we don't interfere with other modes
         self._subgraph_nodes = {}
         self._tensor_placeholder_dependence = {}
@@ -268,6 +308,8 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         return filtered
 
     def before_run(self, run_context):
+        if self._is_not_supported():
+            return
         tensors_to_save = self._get_tensors_to_save_this_step()
         if tensors_to_save:
             if run_context:
@@ -292,7 +334,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 tb_writer.write_summary(s, self.step)
         except Exception as e:
             # can it not be a summary?
-            self.logger.error(f"Ran into the exception when saving {tensor}: {e}")
+            self.logger.debug(f"Ran into the exception when saving {tensor}: {e}")
 
     def _get_all_tensors_values(self, results):
         for (item, value) in zip(self.tensors_to_save_this_step, results):
@@ -305,6 +347,8 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                     yield item[i], value[i]
 
     def after_run(self, run_context, run_values):
+        if self._is_not_supported():
+            return
         if self.tensors_to_save_this_step:
             self._initialize_writers()
             for (tensor, value) in self._get_all_tensors_values(run_values.results):

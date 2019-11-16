@@ -1,12 +1,13 @@
 # Future
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# Standard Library
+import os
+
 # Third Party
 import pytest
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from tensorflow.python.keras.distribute.distributed_training_utils import get_distributed_model
-from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
@@ -24,21 +25,39 @@ tfds.disable_progress_bar()
 class FetchTensorCallback(tf.keras.callbacks.Callback):
     def __init__(self, tensors):
         self.tensors = tensors
+        self.fetches_added = False
 
     def _callback_fn(self, tensor_val):
         assert tensor_val is not None
 
     def on_train_batch_begin(self, batch, logs):
-        for t in self.tensors:
-            x = get_distributed_model(self.model, KerasModeKeys.TRAIN)._distributed_function
-            x.fetches.append(t)
-            x.fetch_callbacks[t] = self._callback_fn
+        try:
+            from tensorflow.python.keras.distribute.distributed_training_utils import (
+                get_distributed_model,
+            )
+            from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
+
+            for t in self.tensors:
+                x = get_distributed_model(self.model, KerasModeKeys.TRAIN)._distributed_function
+                x.fetches.append(t)
+                x.fetch_callbacks[t] = self._callback_fn
+            self.fetches_added = True
+        except ImportError:
+            pass
 
     def on_train_batch_end(self, batch, logs):
-        for t in self.tensors:
-            x = get_distributed_model(self.model, KerasModeKeys.TRAIN)._distributed_function
-            x.fetches.remove(t)
-            del x.fetch_callbacks[t]
+        if self.fetches_added:
+            # these should only be added if these were available above
+            from tensorflow.python.keras.distribute.distributed_training_utils import (
+                get_distributed_model,
+            )
+            from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
+
+            for t in self.tensors:
+                x = get_distributed_model(self.model, KerasModeKeys.TRAIN)._distributed_function
+                x.fetches.remove(t)
+                del x.fetch_callbacks[t]
+            self.fetches_added = False
 
 
 def train_model(
@@ -51,6 +70,7 @@ def train_model(
     reset=True,
     eager=False,
     create_relu_collection=False,
+    strategy=None,
     steps=None,
     add_callbacks=None,
 ):
@@ -63,7 +83,8 @@ def train_model(
 
     mnist_train, mnist_test = datasets["train"], datasets["test"]
 
-    strategy = tf.distribute.MirroredStrategy()
+    if strategy is None:
+        strategy = tf.distribute.MirroredStrategy()
 
     # You can also do info.splits.total_num_examples to get the total
     # number of examples in the dataset.
@@ -453,3 +474,19 @@ def test_clash_with_custom_callback(out_dir):
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) == 6 + 6 + strategy.num_replicas_in_sync * 1 + 3
+
+
+def test_one_device(out_dir):
+    strategy = train_model(
+        out_dir,
+        include_collections=[
+            CollectionKeys.WEIGHTS,
+            CollectionKeys.BIASES,
+            CollectionKeys.OUTPUTS,
+            CollectionKeys.GRADIENTS,
+        ],
+        save_config=SaveConfig(save_interval=9),
+        strategy=tf.distribute.OneDeviceStrategy(device="/cpu:0"),
+        steps=["train"],
+    )
+    assert os.path.isdir(os.path.join(out_dir, "events")) is False

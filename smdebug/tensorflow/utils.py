@@ -4,12 +4,17 @@ import json
 from enum import Enum
 
 # Third Party
-import tensorflow as tf
+from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStrategy
 from tensorflow.python.distribute import values
-from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
 
 # First Party
 from smdebug.core.modes import ModeKeys
+
+try:
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    # For TF 1.13
+    import tensorflow as tf
 
 
 class TFDistributionStrategy(Enum):
@@ -17,6 +22,7 @@ class TFDistributionStrategy(Enum):
     HOROVOD = 1
     MIRRORED_STRATEGY = 2
     PARAMETER_SERVER_STRATEGY = 3
+    UNSUPPORTED = 100
 
 
 def node_name(n):
@@ -197,9 +203,7 @@ def is_parameter_server_strategy(tf_config: str) -> bool:
 
 
 def is_mirrored_strategy(strat):
-    return isinstance(
-        strat, (tf.distribute.MirroredStrategy, tf.contrib.distribute.MirroredStrategy)
-    )
+    return isinstance(strat, (tf.distribute.MirroredStrategy, ContribMirroredStrategy))
 
 
 def get_worker_id_from_tf_config(tf_config: str) -> str:
@@ -224,15 +228,6 @@ def is_keras_optimizer(obj):
         if ".".join([cls.__module__, cls.__name__]) == "keras.optimizers.Optimizer":
             return True
     return False
-
-
-def mode_to_keras_mode(mode):
-    if mode == ModeKeys.TRAIN:
-        return KerasModeKeys.TRAIN
-    elif mode == ModeKeys.EVAL:
-        return KerasModeKeys.TEST
-    elif mode == ModeKeys.PREDICT:
-        return KerasModeKeys.PREDICT
 
 
 def get_export_name_for_keras(layer, tensor_type, tensor):
@@ -277,6 +272,9 @@ def get_keras_layer_outputs(layer):
 
 
 def get_keras_mode(mode):
+    # Should never be called in TF 1.13 where this is not available
+    from tensorflow.python.keras.utils.mode_keys import ModeKeys as KerasModeKeys
+
     if mode == ModeKeys.TRAIN:
         return KerasModeKeys.TRAIN
     elif mode == ModeKeys.EVAL:

@@ -137,7 +137,7 @@ class BaseHook:
 
         if self.tensorboard_dir is None:
             self.logger.info(
-                f"`tensorboard_dir` has not been set. Disabling export of tensorboard summaries."
+                f"tensorboard_dir has not been set for the hook. SMDebug will not be exporting tensorboard summaries."
             )
 
         if include_regex is not None:

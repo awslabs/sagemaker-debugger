@@ -2,10 +2,7 @@
 import functools
 
 # Third Party
-import tensorflow as tf
-from tensorflow import keras
 from tensorflow.python.distribute import values
-from tensorflow.python.keras.distribute.distributed_training_utils import get_distributed_model
 
 # First Party
 from smdebug.core.modes import ModeKeys
@@ -22,11 +19,17 @@ from .utils import (
     get_keras_layer_outputs,
     get_keras_mode,
     is_keras_optimizer,
-    mode_to_keras_mode,
 )
 
+try:
+    # as most of the v1 API is deprecated from the main tf namespace from 1.14
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    # For TF 1.13
+    import tensorflow as tf
 
-class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
+
+class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def __init__(
         self,
         out_dir,
@@ -59,7 +62,6 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
         }
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
-        self._logged_lack_of_support = False
         self._prepared_tensors = {
             ModeKeys.TRAIN: False,
             ModeKeys.EVAL: False,
@@ -67,14 +69,36 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
         }
 
     def _is_not_supported(self):
-        if tf.executing_eagerly() or (
-            hasattr(self.model, "run_eagerly") and self.model.run_eagerly
-        ):
-            if self._logged_lack_of_support is False:
-                self.logger.error("Tornasole does not support eager mode")
-                self._logged_lack_of_support = True
-            return True
-        return False
+        if self._hook_supported is None:
+            self._hook_supported = True
+            if tf.executing_eagerly() or (
+                hasattr(self.model, "run_eagerly") and self.model.run_eagerly
+            ):
+                self.logger.info("Disabling SMDebug as it does not support eager mode")
+                self._hook_supported = False
+            elif (
+                TensorflowBaseHook.get_distribution_strategy()
+                == TFDistributionStrategy.MIRRORED_STRATEGY
+            ):
+                try:
+                    from tensorflow.python.keras.distribute.distributed_training_utils import (
+                        get_distributed_model,
+                    )
+                except ImportError:
+                    # for tf1.13 we can't import this, so we can't support mirrored strategy
+                    self.logger.info(
+                        "Disabling SMDebug as it does not support mirrored strategy"
+                        "with TensorFlow version <1.14"
+                    )
+                    self._hook_supported = False
+            elif (
+                TensorflowBaseHook.get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED
+            ):
+                self.logger.info(
+                    f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
+                )
+                self._hook_supported = False
+        return not self._hook_supported
 
     def _get_matching_collections(
         self, mode, tensor, tensor_type, ts_name, is_input_to_model=False, is_output_of_model=False
@@ -217,10 +241,19 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
                     tensor_ref.add_mode(mode)
         return
 
+    def _get_distributed_model(self, mode):
+        # not available in tf 1.13, code shouldn't reach here for 1.13
+        # because of _is_not_supported
+        from tensorflow.python.keras.distribute.distributed_training_utils import (
+            get_distributed_model,
+        )
+
+        return get_distributed_model(self.model, get_keras_mode(mode))
+
     def _is_input_layer(self, mode, layer_inputs):
         model_inputs = []
         if self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
-            model = get_distributed_model(self.model, get_keras_mode(mode))
+            model = self._get_distributed_model(mode)
         else:
             model = self.model
         # when in mirrored strategy
@@ -234,7 +267,7 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
     def _is_output_layer(self, mode, layer_outputs):
         model_outputs = []
         if self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
-            model = get_distributed_model(self.model, get_keras_mode(mode))
+            model = self._get_distributed_model(mode)
         else:
             model = self.model
         # when in mirrored strategy
@@ -247,7 +280,6 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
 
     def _prepare_layers(self, mode):
         # adds any layer tensor (input, output and weight) to appropriate collection
-        # model = get_distributed_model(self.model, mode_to_keras_mode(mode))
         for layer in self.model.layers:
             layer_inputs = get_keras_layer_inputs(layer)
             is_input_layer = self._is_input_layer(mode, layer_inputs)
@@ -354,7 +386,7 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
             else:
                 raise NotImplementedError
         else:
-            x = get_distributed_model(self.model, mode_to_keras_mode(mode))._distributed_function
+            x = self._get_distributed_model(mode)._distributed_function
         return x
 
     def _save_tensor_callback(self, value, name, check):
@@ -399,7 +431,6 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
         self._close_writers()
 
     def _on_any_mode_begin(self, mode):
-        assert self.model
         if self._is_not_supported():
             return
         self.distribution_strategy = TensorflowBaseHook.get_distribution_strategy()
@@ -510,14 +541,19 @@ class KerasHook(TensorflowBaseHook, keras.callbacks.Callback):
             optimizer.__class__.get_gradients = new_get_grads
 
             if isinstance(optimizer, tf.keras.optimizers.Optimizer):
-                original_add_weight = optimizer.__class__.add_weight
+                try:
+                    original_add_weight = optimizer.__class__.add_weight
 
-                def new_add_weight(opt, *args, **kwargs):
-                    var = original_add_weight(opt, *args, **kwargs)
-                    self.set_optimizer_variables(var)
-                    return var
+                    def new_add_weight(opt, *args, **kwargs):
+                        var = original_add_weight(opt, *args, **kwargs)
+                        self.set_optimizer_variables(var)
+                        return var
 
-                optimizer.__class__.add_weight = new_add_weight
+                    optimizer.__class__.add_weight = new_add_weight
+                except AttributeError:
+                    # TF 1.13 Keras Optimizers have no add_weight attribute,
+                    # so optimizer_variables is not supported
+                    pass
         else:
             self._log_unsupported_optimizer(optimizer)
         # Optimizer is being saved to support additional features in the future.

@@ -4,7 +4,7 @@ from abc import ABCMeta
 from typing import List, Set
 
 # Third Party
-import tensorflow as tf
+from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStrategy
 
 # First Party
 from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
@@ -26,6 +26,19 @@ from .utils import (
     is_mirrored_strategy,
     is_parameter_server_strategy,
 )
+
+try:
+    # as most of the v1 API is deprecated from the main tf namespace from 1.14
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    # For TF 1.13
+    import tensorflow as tf
+
+try:
+    pass
+except ImportError:
+    pass
+
 
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRICS,
@@ -73,6 +86,7 @@ class TensorflowBaseHook(BaseHook):
         self.device_map = {}
         self.writer_map = {}
         self.distribution_strategy = None
+        self._hook_supported = None
         set_hook(self)
 
     @classmethod
@@ -95,10 +109,15 @@ class TensorflowBaseHook(BaseHook):
         if tf_config and is_parameter_server_strategy(tf_config):
             return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
 
-        if is_mirrored_strategy(tf.distribute.get_strategy()):
+        strat = tf.distribute.get_strategy()
+        if is_mirrored_strategy(strat):
             return TFDistributionStrategy.MIRRORED_STRATEGY
 
-        return TFDistributionStrategy.NONE
+        if isinstance(strat, _DefaultDistributionStrategy):
+            # single device
+            return TFDistributionStrategy.NONE
+
+        return TFDistributionStrategy.UNSUPPORTED
 
     def get_worker_name(self) -> str:
         """

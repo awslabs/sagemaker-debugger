@@ -9,7 +9,7 @@ def get_tensorflow_reduction(reduction_name, tensor, on_absolute_values=False):
     if reduction_name in ALLOWED_REDUCTIONS:
         f = getattr(tf.math, "reduce_" + reduction_name)
         if on_absolute_values:
-            op = f(tf.abs(tensor))
+            op = f(tf.math.abs(tensor))
         else:
             op = f(tensor)
     elif reduction_name in ALLOWED_NORMS:
@@ -18,7 +18,7 @@ def get_tensorflow_reduction(reduction_name, tensor, on_absolute_values=False):
         else:
             ord = reduction_name
         if on_absolute_values:
-            op = tf.norm(tf.abs(tensor), ord=ord)
+            op = tf.norm(tf.math.abs(tensor), ord=ord)
         else:
             op = tf.norm(tensor, ord=ord)
     else:

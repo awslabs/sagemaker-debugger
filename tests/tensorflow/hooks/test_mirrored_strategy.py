@@ -257,6 +257,18 @@ def helper_mirrored(
     return distribution
 
 
+def skip_trial_check():
+    # Skip trial check as in this case SMDebug is disabled for mirrored strategy
+    # trial will not be loaded
+    import tensorflow as tf
+    from packaging import version
+
+    if version.parse(tf.__version__) < version.parse("1.14.0"):
+        return True
+    else:
+        return False
+
+
 @pytest.mark.slow
 def test_basic(out_dir):
     strategy = helper_mirrored(
@@ -270,6 +282,9 @@ def test_basic(out_dir):
         ],
         eval_distributed=False,
     )
+    if skip_trial_check():
+        return
+
     tr = create_trial_fast_refresh(out_dir)
     # wts, grads, losses
     print(tr.tensors())
@@ -288,16 +303,17 @@ def test_basic(out_dir):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    for s in tr.tensor("Identity_2:0").steps(ModeKeys.TRAIN):
-        for w in tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN):
-            assert tr.tensor("Identity_2:0").value(s, worker=w, mode=ModeKeys.TRAIN) is not None
+    tensornames = tr.tensors(regex="Identity_\d+:0")
+    for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
+        for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
+            assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None
         assert (
-            len(tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN))
+            len(tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN))
             == strategy.num_replicas_in_sync
         )
 
     for tname in tr.tensors(collection="losses"):
-        if tname != "Identity_2:0":
+        if tname != tensornames[0]:
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
                 assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1
                 assert tr.tensor(tname).value(s, mode=ModeKeys.TRAIN) is not None
@@ -316,6 +332,8 @@ def test_eval_distributed(out_dir):
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES, CollectionKeys.LOSSES],
         eval_distributed=True,
     )
+    if skip_trial_check():
+        return
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) == 8 + 1 * strategy.num_replicas_in_sync + 1
     assert len(tr.steps()) == 4
@@ -331,11 +349,12 @@ def test_eval_distributed(out_dir):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    for s in tr.tensor("Identity_2:0").steps(ModeKeys.TRAIN):
-        for w in tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN):
-            assert tr.tensor("Identity_2:0").value(s, worker=w, mode=ModeKeys.TRAIN) is not None
+    tensornames = tr.tensors(regex="Identity_\d+:0")
+    for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
+        for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
+            assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None
         assert (
-            len(tr.tensor("Identity_2:0").workers(s, ModeKeys.TRAIN))
+            len(tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN))
             == strategy.num_replicas_in_sync
         )
 
@@ -343,7 +362,7 @@ def test_eval_distributed(out_dir):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
-        if tname != "Identity_2:0":
+        if tname != tensornames[0]:
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
                 assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1
                 assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
@@ -360,6 +379,9 @@ def test_reductions(out_dir):
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES, CollectionKeys.LOSSES],
         eval_distributed=True,
     )
+    if skip_trial_check():
+        return
+
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) == 8 + 1 * strategy.num_replicas_in_sync + 1
     assert len(tr.steps()) == 4
@@ -399,5 +421,7 @@ def test_save_all(out_dir):
     strategy = helper_mirrored(
         out_dir, steps=["train"], num_steps=1, save_all=True, eval_distributed=True
     )
+    if skip_trial_check():
+        return
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) > 100
