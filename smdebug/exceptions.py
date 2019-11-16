@@ -96,3 +96,12 @@ class RuleEvaluationConditionMet(Exception):
         return "Evaluation of the rule {} at step {} resulted in the condition being met".format(
             self.rule_name, self.step
         )
+
+
+class InsufficientInformationForRuleInvocation(Exception):
+    def __init__(self, rule_name, message):
+        self.rule_name = rule_name
+        self.message = mesage
+
+    def __str__(self):
+        return "Insufficient information to invoke rule {}: {}".format(self.rule_name, self.message)
