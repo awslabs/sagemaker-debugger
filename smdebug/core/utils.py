@@ -155,6 +155,10 @@ def get_relative_event_file_path(path):
     return os.path.join(*path_parts[-3:])
 
 
+def get_path_to_events_directory(path):
+    return os.path.join(path, "events", "")
+
+
 def size_and_shape(t):
     if type(t) == bytes or type(t) == str:
         return (len(t), [len(t)])

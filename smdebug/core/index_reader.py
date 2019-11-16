@@ -1,6 +1,7 @@
 # Standard Library
 import json
 import os
+import time
 from abc import ABC, abstractmethod
 from bisect import bisect_left
 from typing import Dict, List, Tuple
@@ -10,12 +11,15 @@ import numpy as np
 
 # First Party
 from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
+from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.core.config_constants import DEFAULT_EVENT_FILE_RETRY_LIMIT
 from smdebug.core.locations import IndexFileLocationUtils, TensorLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
 from smdebug.core.s3_utils import list_s3_objects
 from smdebug.core.tfrecord.tensor_reader import TensorReader
 from smdebug.core.utils import (
+    get_path_to_events_directory,
     is_s3,
     list_files_in_directory,
     parse_worker_name_from_file,
@@ -96,11 +100,18 @@ class IndexReader(ABC):
 
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, path):
+        self.event_file_retry_limit = os.getenv(
+            "TORNASOLE_EVENT_FILE_RETRY_LIMIT", DEFAULT_EVENT_FILE_RETRY_LIMIT
+        )
+        self.path = path
 
     @abstractmethod
     def fetch_tensor_value(self, tensor_location: TensorLocation):
+        pass
+
+    @abstractmethod
+    def list_event_files(self, start_after_prefix):
         pass
 
     @abstractmethod
@@ -108,6 +119,77 @@ class IndexReader(ABC):
         self, start_after_key=None, range_steps=None
     ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
         """Return a triply nested dict referring to tensor data."""
+
+    @abstractmethod
+    def _is_event_file_present(self, file_name) -> bool:
+        pass
+
+    def event_file_present_loop(self, tensor_location: TensorLocation):
+        event_file_name = tensor_location.event_file_name
+        event_file_present = self._is_event_file_present(event_file_name)
+        num_retry = 0
+        while not event_file_present and num_retry < self.event_file_retry_limit:
+            if self._has_event_file_been_skipped(event_file_name):
+                raise TensorUnavailableForStep(
+                    tname=tensor_location.tensorname,
+                    mode=tensor_location.mode,
+                    step=tensor_location.mode_step,
+                )
+            elif has_training_ended(self.path) is True:
+                logger.warn(
+                    f"IndexReader: Training Has Ended"
+                    f"\nIndexReader: {event_file_name} was written but not found."
+                )
+                raise TensorUnavailableForStep(
+                    tname=tensor_location.tensorname,
+                    mode=tensor_location.mode,
+                    step=tensor_location.mode_step,
+                )
+            event_file_present = self._is_event_file_present(event_file_name)
+            num_retry += 1
+            time.sleep(2)
+        if num_retry >= self.event_file_retry_limit:
+            logger.warn(
+                f"IndexReader: {event_file_name} was written but not found. After {num_retry} retries."
+            )
+            raise TensorUnavailableForStep(
+                tname=tensor_location.tensorname,
+                mode=tensor_location.mode,
+                step=tensor_location.mode_step,
+            )
+        return
+
+    def _has_event_file_been_skipped(self, missing_event_file_name: str) -> bool:
+        """
+        Checks if an event file will ever be downloaded.
+        if event_file present --> return False
+        if the worker has written the next event file --> return True
+        if none of the above --> return False
+        :param missing_event_file_name:
+        :return:
+        """
+        logger.info(f" Index Reader: Event File {missing_event_file_name} not found.")
+        missing_worker = parse_worker_name_from_file(missing_event_file_name)
+        missing_step = IndexFileLocationUtils.parse_step_from_index_file_name(
+            missing_event_file_name
+        )
+        event_files = self.list_event_files(missing_event_file_name)
+        for event_file in event_files:
+            if missing_worker == parse_worker_name_from_file(event_file):
+                step = IndexFileLocationUtils.parse_step_from_index_file_name(event_file)
+                if missing_step == step:
+                    """
+                        The missing step file may have been written to disk before
+                        we perform the list operation.
+                    """
+                    return False
+                logger.warn(
+                    f" Index Reader: Event File {missing_event_file_name} was written but not found "
+                    f"\nHowever Event File {event_file} found."
+                )
+                logger.warn(f"IndexReader: Skipping {missing_event_file_name} ")
+                return True
+        return False
 
     @staticmethod
     def _validate(index_dict):
@@ -169,29 +251,28 @@ class IndexReader(ABC):
 
 class S3IndexReader(IndexReader):
     def __init__(self, path):
-        super().__init__()
+        super().__init__(path)
         self.path = path
         _, self.bucket_name, self.prefix_name = is_s3(path)
+        self.s3_handler = S3Handler()
 
         self.index_file_cache = ReadIndexFilesCache()
 
+    def _is_event_file_present(self, file):
+        event_files = self.list_event_files()
+        _, _, prefix = is_s3(file)
+        return prefix in set(event_files)
+
     def fetch_tensor_value(self, tensor_location: TensorLocation) -> np.ndarray:
         event_file_name = tensor_location.event_file_name
+
+        if not self._is_event_file_present(event_file_name):
+            self.event_file_present_loop(tensor_location)
+
         start = tensor_location.start_idx
         length = tensor_location.length
-        res = []
-        num_retries = 5
-        while not bool(res) and num_retries > 0:
-            request = [ReadObjectRequest(event_file_name, int(start), int(length))]
-            s3_handler = S3Handler()
-            res = s3_handler.get_objects(request)
-            num_retries -= 1
-        if res[0] is None:
-            raise TensorUnavailableForStep(
-                tname=tensor_location.tensorname,
-                mode=tensor_location.mode,
-                step=tensor_location.mode_step,
-            )
+        request = [ReadObjectRequest(event_file_name, int(start), int(length))]
+        res = self.s3_handler.get_objects(request)
         tr = TensorReader(res[0])  # Access the only element in res
         tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
@@ -252,38 +333,46 @@ class S3IndexReader(IndexReader):
 
         return index_files, last_index_token
 
+    def list_event_files(self, start_after_key=None):
+        event_files, last_index_token = list_s3_objects(
+            self.bucket_name, get_path_to_events_directory(self.prefix_name), start_after_key
+        )
+        return event_files
+
 
 class LocalIndexReader(IndexReader):
     def __init__(self, path):
-        super().__init__()
+        super().__init__(path)
         self.index_file_cache = ReadIndexFilesCache()
         self.path = path
 
-    @staticmethod
-    def list_index_files(dirname):
-        index_dirname = IndexFileLocationUtils.get_index_path(dirname)
+    def _is_event_file_present(self, file):
+        return os.path.exists(file)
+
+    def list_index_files(self):
+        index_dirname = IndexFileLocationUtils.get_index_path(self.path)
         index_files = list_files_in_directory(index_dirname)
         return sorted(index_files)
 
+    def list_event_files(self, start_after_key=None):
+        event_files = list_files_in_directory(get_path_to_events_directory(self.path))
+        event_files.sort()
+        start_after_index = bisect_left(event_files, start_after_key)
+        return event_files[start_after_index:]
+
     def fetch_tensor_value(self, tensor_location: TensorLocation) -> np.ndarray:
         event_file_name = tensor_location.event_file_name
+
+        if not self._is_event_file_present(event_file_name):
+            self.event_file_present_loop(tensor_location)
+
         start = tensor_location.start_idx
         length = tensor_location.length
-        num_retries = 5
-        tensor_object = None
-        while not bool(tensor_object) and num_retries > 0:
-            try:
-                with open(event_file_name, "rb") as event_file:
-                    event_file.seek(start)
-                    tensor_object = event_file.read(length)
-            except EnvironmentError:  # parent of IOError, OSError
-                num_retries -= 1
-        if tensor_object is None:
-            raise TensorUnavailableForStep(
-                tname=tensor_location.tensorname,
-                mode=tensor_location.mode,
-                step=tensor_location.mode_step,
-            )
+
+        with open(event_file_name, "rb") as event_file:
+            event_file.seek(start)
+            tensor_object = event_file.read(length)
+
         tr = TensorReader(tensor_object)
         tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
@@ -313,7 +402,7 @@ class LocalIndexReader(IndexReader):
         :param range_steps: str
         :return: Tuple( responses, steps, start_after_key, workers)
         """
-        index_files = self.list_index_files(self.path)
+        index_files = self.list_index_files()
         steps = []
         workers = []
         responses = []

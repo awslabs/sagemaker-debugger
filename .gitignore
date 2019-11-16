@@ -112,6 +112,7 @@ log
 
 .DS_Store
 .idea/
+*.json
 cm.json
 cm.ts
 collections.json
@@ -126,6 +127,7 @@ data/
 default/
 newlogsRunTest*/
 logs/
+savedParams/
 ts_outputs*/
 test_output*/
 MNIST-data/

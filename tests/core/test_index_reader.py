@@ -7,7 +7,14 @@ from smdebug.trials import create_trial
 
 
 @pytest.mark.slow  # 0:01 to run
-def test_fetch_tensor_with_missing_event_files():
+def test_fetch_tensor_with_present_event_files():
+    """
+        events files present: [0, 18, 27, 36, ...., 190]
+        index files present: [0, 9, 18, 27, 36, ...., 190, 199]
+
+        end_of_job file : present
+
+    """
     path = "s3://tornasole-testing/event-files-missing"
 
     trial = create_trial(path)
@@ -17,9 +24,81 @@ def test_fetch_tensor_with_missing_event_files():
     except TensorUnavailableForStep:
         assert False
 
+
+@pytest.mark.slow  # 0:01 to run
+def test_fetch_tensor_with_missing_event_file_but_next_event_file_present():
+    """
+        events files present: [0, 18, 27, 36, ...., 190]
+        index files present: [0, 9, 18, 27, 36, ...., 190, 199]
+
+        end_of_job file : present
+
+    """
+    path = "s3://tornasole-testing/event-files-missing"
+
+    trial = create_trial(path)
     try:
         # Get value from an event file that is absent
         trial.tensor("gradients/pow_grad/sub:0").value(9)
+        assert False
+    except TensorUnavailableForStep:
+        pass
+
+
+@pytest.mark.slow  # 0:01 to run
+def test_fetch_tensor_with_missing_event_file_but_next_event_file_absent():
+    """
+        events files present: [0, 18, 27, 36, ...., 190]
+        index files present: [0, 9, 18, 27, 36, ...., 190, 199]
+
+        end_of_job file : present
+
+    """
+    path = "s3://tornasole-testing/event-files-missing"
+
+    trial = create_trial(path)
+    try:
+        # Get value from an event file that is absent
+        trial.tensor("gradients/pow_grad/sub:0").value(199)
+        assert False
+    except TensorUnavailableForStep:
+        pass
+
+
+@pytest.mark.slow  # 0:01 to run
+def test_fetch_tensor_with_missing_event_file_but_next_event_file_present_incomplete_job():
+    """
+        events files present: [0, 18, 27, 36, ...., 190]
+        index files present: [0, 9, 18, 27, 36, ...., 190, 199]
+
+        end_of_job file : present
+
+    """
+    path = "s3://tornasole-testing/event-files-missing-incomplete"
+
+    trial = create_trial(path)
+    try:
+        # Get value from an event file that is absent
+        trial.tensor("gradients/pow_grad/sub:0").value(9)
+        assert False
+    except TensorUnavailableForStep:
+        pass
+
+
+@pytest.mark.slow  # 0:01 to run
+def test_fetch_tensor_with_missing_event_file_but_next_event_file_absent_incomplete_job():
+    """
+        events files present: [0, 18, 27, 36, ...., 190]
+        index files present: [0, 9, 18, 27, 36, ...., 190, 199]
+
+        end_of_job file : absent
+
+    """
+    path = "s3://tornasole-testing/event-files-missing-incomplete"
+    trial = create_trial(path)
+    try:
+        # Get value from an event file that is absent
+        trial.tensor("gradients/pow_grad/sub:0").value(199)
         assert False
     except TensorUnavailableForStep:
         pass
