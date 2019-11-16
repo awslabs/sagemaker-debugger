@@ -10,7 +10,7 @@ from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
 from smdebug.mxnet.utils import get_reduction_of_data, make_numpy_array
 
-DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES, CollectionKeys.SCALARS]
 
 COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = [
     CollectionKeys.WEIGHTS,
@@ -128,7 +128,7 @@ class Hook(CallbackHook):
             # Write the params and gradients of the
             # past step if the writer is still available.
             self.log_params(block)
-            self._close_writer()
+            self._close_writers()
         self._close_tb_writer()
 
         if not self.prepared_collections:

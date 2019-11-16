@@ -27,6 +27,10 @@ class CollectionKeys:
     LOSSES = "losses"
     BIASES = "biases"
     SCALARS = "scalars"
+
+    # Use this collection to log scalars other than losses/metrics to Minerva.
+    # Mainly for Tensorflow. For all other frameworks, call save_scalar() API
+    # with details of the scalar to be saved.
     SEARCHABLE_SCALARS = "searchable_scalars"
 
     OPTIMIZER_VARIABLES = "optimizer_variables"
@@ -53,6 +57,12 @@ SCALAR_COLLECTIONS = {
     CollectionKeys.SCALARS,
     CollectionKeys.FEATURE_IMPORTANCE,
     CollectionKeys.AVERAGE_SHAP,
+    CollectionKeys.SEARCHABLE_SCALARS,
+}
+
+SEARCHABLE_SCALAR_COLLECTIONS = {
+    CollectionKeys.LOSSES,
+    CollectionKeys.METRICS,
     CollectionKeys.SEARCHABLE_SCALARS,
 }
 

@@ -13,6 +13,7 @@ from smdebug.core.collection import (
     NON_HISTOGRAM_COLLECTIONS,
     NON_REDUCTION_COLLECTIONS,
     SCALAR_COLLECTIONS,
+    SEARCHABLE_SCALAR_COLLECTIONS,
     CollectionKeys,
 )
 from smdebug.core.collection_manager import CollectionManager
@@ -27,6 +28,7 @@ from smdebug.core.logger import get_logger
 from smdebug.core.modes import ALLOWED_MODES, ModeKeys
 from smdebug.core.reduction_config import ReductionConfig
 from smdebug.core.reductions import get_reduction_tensor_name
+from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
@@ -35,9 +37,19 @@ from smdebug.core.writer import FileWriter
 try:
     from smexperiments.metrics import SageMakerFileMetricsWriter
 except ImportError:
-    from smdebug.core.metrics_file_writer import SageMakerFileMetricsWriter
+    SageMakerFileMetricsWriter = None
+
 
 logger = get_logger()
+
+
+class ScalarCache(object):
+    def __init__(self, scalar_name, scalar_val, searchable, write_tb, write_event):
+        self.name = scalar_name
+        self.value = scalar_val
+        self.searchable = searchable
+        self.write_tb = write_tb
+        self.write_event = write_event
 
 
 class BaseHook:
@@ -159,7 +171,10 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        self.metrics_writer = None
+        if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
+            self.metrics_writer = SageMakerFileMetricsWriter()
+        else:
+            self.metrics_writer = None
 
         # Maps ModeKeys to FileWriter objects
         self.tb_writers = {}
@@ -308,15 +323,6 @@ class BaseHook:
 
     #### End of Save Manager methods ####
 
-    def _close_writer(self) -> None:
-        if self.dry_run:
-            return
-
-        if self.writer is not None:
-            self.writer.flush()
-            self.writer.close()
-            self.writer = None
-
     def _close_writers(self) -> None:
         if self.dry_run:
             return
@@ -324,10 +330,12 @@ class BaseHook:
         # flush out searchable scalars to metrics file
         if self.metrics_writer is not None:
             self._write_scalars()
-            self.metrics_writer.close()
-            self.metrics_writer = None
 
-        self._close_writer()
+        if self.writer is not None:
+            self.writer.flush()
+            self.writer.close()
+            self.writer = None
+
         to_delete_writers = []
 
         # Delete all the tb writers
@@ -343,7 +351,6 @@ class BaseHook:
         if self.dry_run:
             return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
-        self.metrics_writer = SageMakerFileMetricsWriter()
 
     def get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
@@ -391,6 +398,10 @@ class BaseHook:
 
     def _cleanup(self):
         self._close_writers()
+
+        if self.metrics_writer:
+            self.metrics_writer.close()
+
         training_has_ended(self.out_dir)
 
     def _increment_step(self):
@@ -489,16 +500,6 @@ class BaseHook:
                             f"so scalar summary could not be created"
                         )
                     break
-        for s_col in save_colls:
-            if s_col.name in [
-                CollectionKeys.LOSSES,
-                CollectionKeys.SEARCHABLE_SCALARS,
-                CollectionKeys.METRICS,
-            ]:
-                np_val = self._make_numpy_array(tensor_value)
-                # Always log loss to Minerva
-                tensor_val = np.mean(np_val)
-                self.scalar_cache.append((tensor_name, tensor_val, True))
 
     def _write_histogram_summary(self, tensor_name, tensor_value, save_collections):
         """ Maybe write to TensorBoard. """
@@ -525,20 +526,28 @@ class BaseHook:
         If searchable is set to True for certain scalars, then that scalar is written to
         Minerva as well. By default, loss values are searchable.
         """
-        if self.writer is None:
-            self._initialize_writers()
-        tb_writer = self._maybe_get_tb_writer()
-        for scalar_name, scalar_val, searchable in self.scalar_cache:
-            save_collections = self._get_collections_with_tensor(scalar_name)
+        for scalar_obj in self.scalar_cache:
+            scalar_name = scalar_obj.name
+            scalar_val = scalar_obj.value
+            searchable = scalar_obj.searchable
+            write_tb = scalar_obj.write_tb
+            write_event = scalar_obj.write_event
             logger.debug(
                 f"Saving scalar {scalar_name} {scalar_val} for step {self.step} {self.mode} "
                 f"{self.mode_steps[self.mode]}"
             )
-            if searchable:
+            if self.metrics_writer and searchable:
                 self.metrics_writer.log_metric(scalar_name, scalar_val, self.mode_steps[self.mode])
-            if tb_writer:
-                self._write_raw_tensor(scalar_name, scalar_val, save_collections)
-            self.scalar_cache = []
+            if write_tb:
+                tb_writer = self._maybe_get_tb_writer()
+                if tb_writer:
+                    tb_writer.write_scalar_summary(scalar_name, scalar_val, self.step)
+            if write_event:
+                if self.writer is None:
+                    self._initialize_writers()
+                self._write_raw_tensor_simple(scalar_name, scalar_val)
+
+        self.scalar_cache = []
 
     # Fix step number for saving scalar and tensor
     def save_scalar(self, name, value, searchable=False):
@@ -554,10 +563,8 @@ class BaseHook:
         val = self._make_numpy_array(value)
         if val.size != 1:
             raise TypeError(f"{name} has non scalar value of type: {type(value)}")
-        self.collection_manager.get(CollectionKeys.SCALARS).add_tensor_name(name)
-        self.scalar_cache.append((name, val, searchable))
-        if self.prepared_collections:
-            self._write_scalars()
+        scalar_obj = ScalarCache(name, val, searchable=True, write_tb=True, write_event=True)
+        self.scalar_cache.append(scalar_obj)
 
     # def save_tensor(self, name, value):
     #     # todo: support to add these tensors to any collection.
@@ -619,6 +626,15 @@ class BaseHook:
             save_collections_for_tensor = save_collections
 
         self._write_for_tensor(tensor_name, tensor_value, save_collections_for_tensor)
+        for s_col in save_collections_for_tensor:
+            if s_col.name in SEARCHABLE_SCALAR_COLLECTIONS:
+                np_val = self._make_numpy_array(tensor_value)
+                # Always log loss to Minerva
+                tensor_val = np.mean(np_val)
+                scalar_obj = ScalarCache(
+                    tensor_name, tensor_val, searchable=True, write_tb=False, write_event=False
+                )
+                self.scalar_cache.append(scalar_obj)
 
     def _log_save(self, tensor_name, save_collections):
         coll_str = ", ".join([x.name for x in save_collections])

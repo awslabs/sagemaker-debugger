@@ -1,5 +1,6 @@
 # Standard Library
 import json
+import logging
 import os
 import shutil
 from datetime import datetime
@@ -23,15 +24,16 @@ import smdebug.pytorch as tp
 import smdebug.tensorflow as tt
 from smdebug.core.config_constants import DEFAULT_SAGEMAKER_METRICS_PATH
 from smdebug.core.modes import ModeKeys
+from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.mxnet import Hook as MX_Hook
 from smdebug.pytorch import Hook as PT_Hook
 from smdebug.tensorflow import KerasHook as TF_Hook
 from smdebug.trials import create_trial
 
-SMDEBUG_PT_HOOK_TESTS_DIR = "test_output/smdebug_pt/tests/"
-SMDEBUG_MX_HOOK_TESTS_DIR = "test_output/smdebug_mx/tests/"
-SMDEBUG_TF_HOOK_TESTS_DIR = "test_output/smdebug_tf/tests/"
+SMDEBUG_PT_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_pt/tests/"
+SMDEBUG_MX_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_mx/tests/"
+SMDEBUG_TF_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_tf/tests/"
 
 
 def simple_pt_model(hook, steps=10, register_loss=False):
@@ -88,8 +90,6 @@ def simple_pt_model(hook, steps=10, register_loss=False):
         optimizer.step()
     hook.save_scalar("pt_after_train", 1, searchable=False)
 
-    return ["scalar/pt_before_train", "scalar/pt_train_loss", "scalar/pt_after_train"]
-
 
 def simple_mx_model(hook, steps=10, register_loss=False):
     """
@@ -132,8 +132,6 @@ def simple_mx_model(hook, steps=10, register_loss=False):
         train_loss += loss.mean().asscalar()
         hook.save_scalar("mx_train_loss", loss.mean().asscalar(), searchable=True)
     hook.save_scalar("mx_after_train", 1, searchable=False)
-
-    return ["scalar/mx_before_train", "scalar/mx_train_loss", "scalar/mx_after_train"]
 
 
 def simple_tf_model(hook, steps=10, lr=0.4):
@@ -198,69 +196,47 @@ def check_metrics_file(saved_scalars):
     Check the SageMaker metrics file to ensure that all the scalars saved using
     save_scalar(searchable=True) or mentioned through SEARCHABLE_SCALARS collections, have been saved.
     """
-    METRICS_DIR = os.environ.get(DEFAULT_SAGEMAKER_METRICS_PATH, ".")
-    file_name = "{}/{}.json".format(METRICS_DIR, str(os.getpid()))
-    scalarnames = set()
-    with open(file_name) as fp:
-        for line in fp:
-            data = json.loads(line)
-            scalarnames.add(data["MetricName"])
-    assert scalarnames
-    assert len(set(saved_scalars) & set(scalarnames)) > 0
+    if is_sagemaker_job():
+        METRICS_DIR = os.environ.get(DEFAULT_SAGEMAKER_METRICS_PATH)
+        if not METRICS_DIR:
+            logging.warning("SageMaker Metric Directory not specified")
+            return
+        file_name = "{}/{}.json".format(METRICS_DIR, str(os.getpid()))
+        scalarnames = set()
+        with open(file_name) as fp:
+            for line in fp:
+                data = json.loads(line)
+                scalarnames.add(data["MetricName"])
+        assert scalarnames
+        assert len(set(saved_scalars) & set(scalarnames)) > 0
 
 
-def pt_save_scalar(run_id, save_config, coll, save_steps, register_loss=False):
-    """
-    Test save_scalar() with a PyTorch model
-    """
+def helper_pytorch_tests(collection, register_loss, save_config):
+    coll_name, coll_regex = collection
+
+    run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_PT_HOOK_TESTS_DIR, run_id)
-    coll_name, coll_regex = coll
-    collection = tp.get_collection(coll_name)
-    collection.include([coll_regex])
-    collection.save_config = save_config
+
+    coll = tp.get_collection(coll_name)
+    coll.save_config = save_config
+    save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
+    if not save_steps:
+        save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
+        save_steps = [i for i in range(0, 10, save_interval)]
+
     hook = PT_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
-    saved_scalars = simple_pt_model(hook, register_loss=register_loss)
-    hook._cleanup()
+    simple_pt_model(hook, register_loss=register_loss)
+    hook.close()
+
+    saved_scalars = ["scalar/pt_before_train", "scalar/pt_train_loss", "scalar/pt_after_train"]
     check_trials(trial_dir, save_steps, coll_name, saved_scalars)
     check_metrics_file(saved_scalars)
 
 
-def mx_save_scalar(run_id, save_config, coll, save_steps, register_loss=False):
-    """
-        Test save_scalar() with an MXNet model
-    """
-    trial_dir = os.path.join(SMDEBUG_MX_HOOK_TESTS_DIR, run_id)
-    coll_name, coll_regex = coll
-    collection = tm.get_collection(coll_name)
-    collection.include([coll_regex])
-    collection.save_config = save_config
-    hook = MX_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
-    saved_scalars = simple_mx_model(hook, register_loss=register_loss)
-    hook._cleanup()
-    check_trials(trial_dir, save_steps, coll_name, saved_scalars)
-    check_metrics_file(saved_scalars)
-
-
-def tf_save_scalar(run_id, save_config, coll, save_steps):
-    """
-        Test searchable_scalars collection with a Tensorflow model
-    """
-    trial_dir = os.path.join(SMDEBUG_TF_HOOK_TESTS_DIR, run_id)
-    hook = TF_Hook(
-        out_dir=trial_dir,
-        save_config=save_config,
-        include_collections=[coll.name],
-        export_tensorboard=True,
-    )
-    simple_tf_model(hook)
-    hook._cleanup()
-    check_trials(trial_dir, save_steps, "searchable_scalars", ["loss"])
-    check_metrics_file(["loss"])
-
-
-@pytest.mark.slow  # 1:02 to run
-def test_save_scalar():
-    saveconfigs = [
+@pytest.mark.parametrize("collection", [("all", ".*"), ("scalars", "^scalar")])
+@pytest.mark.parametrize(
+    "save_config",
+    [
         SaveConfig(save_steps=[0, 2, 4, 6, 8]),
         SaveConfig(
             {
@@ -268,33 +244,80 @@ def test_save_scalar():
                 ModeKeys.GLOBAL: SaveConfigMode(save_interval=3),
             }
         ),
-    ]
-    collections = [("all", ".*"), ("scalars", "^scalar")]
-    register_loss = [True, False]
+    ],
+)
+@pytest.mark.parametrize("register_loss", [True, False])
+def test_pytorch_save_scalar(collection, save_config, register_loss):
+    helper_pytorch_tests(collection, register_loss, save_config)
+    delete_local_trials([SMDEBUG_PT_HOOK_TESTS_DIR])
 
-    # Test save_scalar() with PyTorch and MXNet models with different options
-    # for the collections saved, save configs, and whether loss is registered or not.
-    for save_config in saveconfigs:
-        save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
-        if not save_steps:
-            save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
-            save_steps = [i for i in range(0, 10, save_interval)]
-        for coll in collections:
-            for reg_loss in register_loss:
-                run_id = "trial_" + coll[0] + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-                pt_save_scalar(run_id, save_config, coll, save_steps, register_loss=reg_loss)
-                mx_save_scalar(run_id, save_config, coll, save_steps, register_loss=reg_loss)
 
-    # Tensorflow doesn't use save_scalar(). It uses a collection "SEARCHABLE_SCALARS" instead.
-    # Test this collection with a Tensorflow model
-    coll = tt.get_collection("searchable_scalars")
-    coll.include("loss")
-    run_id = "trial_" + coll.name + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    tf_save_scalar(
-        run_id, saveconfigs[0], coll, saveconfigs[0].get_save_config(ModeKeys.TRAIN).save_steps
-    )
+def helper_mxnet_tests(collection, register_loss, save_config):
+    coll_name, coll_regex = collection
 
-    # Delete the trial directories
-    delete_local_trials(
-        [SMDEBUG_PT_HOOK_TESTS_DIR, SMDEBUG_MX_HOOK_TESTS_DIR, SMDEBUG_TF_HOOK_TESTS_DIR]
-    )
+    run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
+    trial_dir = os.path.join(SMDEBUG_MX_HOOK_TESTS_DIR, run_id)
+
+    coll = tm.get_collection(coll_name)
+    coll.save_config = save_config
+    save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
+    if not save_steps:
+        save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
+        save_steps = [i for i in range(0, 10, save_interval)]
+
+    hook = MX_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
+    simple_mx_model(hook, register_loss=register_loss)
+    hook.close()
+
+    saved_scalars = ["scalar/mx_before_train", "scalar/mx_train_loss", "scalar/mx_after_train"]
+    check_trials(trial_dir, save_steps, coll_name, saved_scalars)
+    check_metrics_file(saved_scalars)
+
+
+@pytest.mark.parametrize("collection", [("all", ".*"), ("scalars", "^scalar")])
+@pytest.mark.parametrize(
+    "save_config",
+    [
+        SaveConfig(save_steps=[0, 2, 4, 6, 8]),
+        SaveConfig(
+            {
+                ModeKeys.TRAIN: SaveConfigMode(save_interval=2),
+                ModeKeys.GLOBAL: SaveConfigMode(save_interval=3),
+            }
+        ),
+    ],
+)
+@pytest.mark.parametrize("register_loss", [True, False])
+def test_mxnet_save_scalar(collection, save_config, register_loss):
+    helper_mxnet_tests(collection, register_loss, save_config)
+    delete_local_trials([SMDEBUG_MX_HOOK_TESTS_DIR])
+
+
+def helper_tensorflow_tests(collection, save_config):
+    coll_name, coll_regex = collection
+
+    run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
+    trial_dir = os.path.join(SMDEBUG_TF_HOOK_TESTS_DIR, run_id)
+
+    coll = tt.get_collection(coll_name)
+    coll.save_config = save_config
+    save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
+    if not save_steps:
+        save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
+        save_steps = [i for i in range(0, 10, save_interval)]
+
+    hook = TF_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
+    simple_tf_model(hook)
+    hook.close()
+
+    saved_scalars = ["loss"]
+    check_trials(trial_dir, save_steps, coll_name, saved_scalars)
+    check_metrics_file(saved_scalars)
+
+
+@pytest.mark.slow  # 1:30
+def test_tf_save_scalar():
+    save_config = SaveConfig(save_steps=[0, 2, 4, 6, 8])
+    collection = ("searchable_scalars", "loss")
+    helper_tensorflow_tests(collection, save_config)
+    delete_local_trials([SMDEBUG_TF_HOOK_TESTS_DIR])

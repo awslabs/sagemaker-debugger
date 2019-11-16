@@ -134,7 +134,8 @@ class Hook(CallbackHook):
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
         # Write the gradients of the past step if the writer is still available.
-        self._close_writer()
+        if self.writer is not None:
+            self._close_writers()
         self._close_tb_writer()
 
         if not self.prepared_collections:

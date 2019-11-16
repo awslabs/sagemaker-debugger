@@ -27,12 +27,6 @@ from .utils import (
     is_parameter_server_strategy,
 )
 
-try:
-    from smexperiments.metrics import SageMakerFileMetricsWriter
-except ImportError:
-    from smdebug.core.metrics_file_writer import SageMakerFileMetricsWriter
-
-
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRICS,
     CollectionKeys.LOSSES,
@@ -210,18 +204,14 @@ class TensorflowBaseHook(BaseHook):
         else:
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
-            if self.metrics_writer is None or only_initialize_if_missing is False:
-                self.metrics_writer = SageMakerFileMetricsWriter()
 
-    def _close_writer(self) -> None:
+    def _close_writers(self) -> None:
         if self.dry_run:
             return
 
         # flush out searchable scalars to metrics file
         if self.metrics_writer is not None:
             self._write_scalars()
-            self.metrics_writer.close()
-            self.metrics_writer = None
 
         if self.writer is not None:
             self.writer.flush()
@@ -317,6 +307,15 @@ class TensorflowBaseHook(BaseHook):
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
             optimizer_variables, ModeKeys.TRAIN
         )
+
+    def save_scalar(self, name, value, searchable=False):
+        """
+        save_scalar() not supported on Tensorflow
+        """
+        self.logger.warning(
+            "save_scalar not supported on Tensorflow. Add the scalar to searchable_scalars collection instead."
+        )
+        return
 
     @staticmethod
     def _make_numpy_array(tensor_value):
