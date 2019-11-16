@@ -126,6 +126,7 @@ bin/sagemaker-containers/**/*.tar.gz
 data/
 default/
 newlogsRunTest*/
+MNIST-data/
 logs/
 savedParams/
 ts_outputs*/

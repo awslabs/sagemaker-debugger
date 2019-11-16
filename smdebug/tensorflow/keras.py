@@ -41,6 +41,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         include_regex=None,
         include_collections=None,
         save_all=False,
+        include_workers="one",
     ):
         super().__init__(
             out_dir=out_dir,
@@ -53,6 +54,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             include_regex=include_regex,
             include_collections=include_collections,
             save_all=save_all,
+            include_workers=include_workers,
         )
         self._exported_collections = False
         self._exported_model = {
@@ -76,10 +78,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ):
                 self.logger.info("Disabling SMDebug as it does not support eager mode")
                 self._hook_supported = False
-            elif (
-                TensorflowBaseHook.get_distribution_strategy()
-                == TFDistributionStrategy.MIRRORED_STRATEGY
-            ):
+            elif self.get_distribution_strategy() == TFDistributionStrategy.MIRRORED_STRATEGY:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
                         get_distributed_model,
@@ -91,9 +90,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         "with TensorFlow version <1.14"
                     )
                     self._hook_supported = False
-            elif (
-                TensorflowBaseHook.get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED
-            ):
+            elif self.get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED:
                 self.logger.info(
                     f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
                 )
@@ -433,7 +430,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _on_any_mode_begin(self, mode):
         if self._is_not_supported():
             return
-        self.distribution_strategy = TensorflowBaseHook.get_distribution_strategy()
+        self.distribution_strategy = self.get_distribution_strategy()
         self.worker = self.get_worker_name()
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
@@ -498,6 +495,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # but rest of the project isn't yet capable of handling this
             # this means that collections like outputs, or other collections with intermediate tensors
             # will only have tensor names from first mode
+            if (
+                len(self.device_map)
+                and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
+                and self.save_all_workers is False
+            ):
+                self.chief_worker = sorted(self.device_map.keys())[0]
+
             self.export_collections()
             self._exported_collections = True
         if self._exported_model[self.mode] is False:

@@ -33,6 +33,7 @@ class Hook(CallbackHook):
         include_regex=None,
         include_collections=None,
         save_all=False,
+        include_workers="one",
     ):
         collection_manager = get_collection_manager()
         super().__init__(
@@ -48,6 +49,7 @@ class Hook(CallbackHook):
             include_regex=include_regex,
             include_collections=include_collections,
             save_all=save_all,
+            include_workers=include_workers,
         )
         # We would like to collect loss collection
         # even if user does not specify any collections

@@ -8,6 +8,7 @@ from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStr
 from tensorflow.python.distribute import values
 
 # First Party
+from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.core.modes import ModeKeys
 
 try:
@@ -197,7 +198,7 @@ See https://www.tensorflow.org/guide/distributed_training#setting_up_tf_config_e
 def is_parameter_server_strategy(tf_config: str) -> bool:
     try:
         tf_config = json.loads(tf_config)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         return False  # Do not break for incorrectly set tf_config
     return "cluster" in tf_config and "ps" in tf_config["cluster"]
 
@@ -281,3 +282,9 @@ def get_keras_mode(mode):
         return KerasModeKeys.TEST
     elif mode == ModeKeys.PREDICT:
         return KerasModeKeys.PREDICT
+
+
+def get_chief_worker_parameter_server(tf_config):
+    if "chief" in tf_config["cluster"]:
+        return "chief_0"
+    return CONFIG_DEFAULT_WORKER_NAME

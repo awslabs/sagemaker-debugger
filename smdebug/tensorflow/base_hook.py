@@ -63,6 +63,7 @@ class TensorflowBaseHook(BaseHook):
         include_regex=None,
         include_collections=None,
         save_all=False,
+        include_workers="one",
     ):
         collection_manager = get_collection_manager()
         super().__init__(
@@ -78,6 +79,7 @@ class TensorflowBaseHook(BaseHook):
             include_regex=include_regex,
             include_collections=include_collections,
             save_all=save_all,
+            include_workers=include_workers,
         )
         self.optimizer = None
         self._gradients_set = False
@@ -86,6 +88,9 @@ class TensorflowBaseHook(BaseHook):
         self.device_map = {}
         self.writer_map = {}
         self.distribution_strategy = None
+        self.tf_config = os.getenv(
+            "TF_CONFIG"
+        )  # caches the TF_CONFIG for the parameter server strategy
         self._hook_supported = None
         set_hook(self)
 
@@ -95,8 +100,7 @@ class TensorflowBaseHook(BaseHook):
             cls, get_collection_manager(), json_config_path=json_config_path
         )
 
-    @staticmethod
-    def get_distribution_strategy() -> TFDistributionStrategy:
+    def get_distribution_strategy(self) -> TFDistributionStrategy:
         try:
             import horovod.tensorflow as hvd
 
@@ -105,8 +109,7 @@ class TensorflowBaseHook(BaseHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
-        tf_config = os.getenv("TF_CONFIG")
-        if tf_config and is_parameter_server_strategy(tf_config):
+        if self.tf_config and is_parameter_server_strategy(self.tf_config):
             return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
 
         strat = tf.distribute.get_strategy()
@@ -145,9 +148,22 @@ class TensorflowBaseHook(BaseHook):
         return CONFIG_DEFAULT_WORKER_NAME
 
     def export_collections(self):
-        self.collection_manager.set_num_workers(self.get_num_workers())
+        num_workers = self.get_num_workers()
+        if self.save_all_workers is False:
+            num_workers = 1
+            if (
+                self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
+                or self.distribution_strategy == TFDistributionStrategy.HOROVOD
+            ):
+                if self.worker != self.chief_worker:
+                    return
+        self.collection_manager.set_num_workers(num_workers)
+
         if len(self.device_map):
+
             for device, serialized_device in self.device_map.items():
+                if self.save_all_workers is False and device != self.chief_worker:
+                    continue
                 collection_file_name = f"{serialized_device}_collections.json"
                 self.collection_manager.export(self.out_dir, collection_file_name)
         else:
@@ -186,10 +202,16 @@ class TensorflowBaseHook(BaseHook):
         with its device attribute.
         If the device attribute is CPU, we map it to all the writers.
         For all other frameworks and single worker jobs we return a list with a single worker.
+
+        If include workers is False, we return a writer only if the
+        chief device is attempting to write.
         :param tensor_name:
         :return: List[FileWriter]
         """
-        if len(self.device_map):
+        if (
+            len(self.device_map)
+            and self.distribution_strategy != TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
+        ):
             if tensor_ref.tf_obj is not None:
                 worker = tensor_ref.tf_obj.device
             else:
@@ -198,10 +220,16 @@ class TensorflowBaseHook(BaseHook):
 
             if not bool(worker) or "CPU" in worker:
                 return list(self.writer_map.values())
-            worker = self.device_map[worker]
+            if self.save_all_workers is False:
+                if worker == self.chief_worker:
+                    worker = self.device_map[worker]
+                else:
+                    return []
+            else:
+                worker = self.device_map[worker]
             return [self.writer_map[worker]]
         else:
-            return [self.writer]
+            return [self.writer] if self.writer else []
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # In keras, sometimes we are not sure if writer is initialized
@@ -210,16 +238,37 @@ class TensorflowBaseHook(BaseHook):
         if self.dry_run:
             return
 
-        if len(self.device_map):
+        if (
+            self.save_all_workers is False
+            and self.distribution_strategy != TFDistributionStrategy.MIRRORED_STRATEGY
+        ):
+            """
+            If include_workers is False, we assign we check if the hook has been created by
+            the chief worker. If not we do not initialize a writer.
+            """
+            if self.chief_worker != self.worker:
+                return
+
+        if (
+            len(self.device_map)
+            and self.distribution_strategy != TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
+        ):
             """
                 Initialize one writer per device string
+                If save_all_workers is False, we only initialize a writer
+                for the chief worker
             """
             for device, device_string in self.device_map.items():
                 if device_string in self.writer_map and only_initialize_if_missing is True:
                     continue
-                self.writer_map[device_string] = FileWriter(
-                    trial_dir=self.out_dir, step=self.step, worker=device_string
-                )
+                if self.save_all_workers is True:
+                    self.writer_map[device_string] = FileWriter(
+                        trial_dir=self.out_dir, step=self.step, worker=device_string
+                    )
+                elif self.save_all_workers is False and device == self.chief_worker:
+                    self.writer_map[device_string] = FileWriter(
+                        trial_dir=self.out_dir, step=self.step, worker=device_string
+                    )
         else:
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)

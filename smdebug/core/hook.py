@@ -18,6 +18,7 @@ from smdebug.core.collection import (
 )
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
+    CONFIG_DEFAULT_WORKER_NAME,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
@@ -69,6 +70,7 @@ class BaseHook:
         include_regex: Optional[List[str]] = None,
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
+        include_workers: str = "one",
     ):
         """
         A class used to represent the hook which gets attached to the
@@ -108,6 +110,8 @@ class BaseHook:
         save_all: bool
             a shortcut for saving all tensors in the model.
             they are all saved in the collection `all`
+        include_workers: str
+            makes the hook save data from all workers
         """
         self.out_dir = verify_and_get_out_dir(out_dir)
         self.tensorboard_dir = get_tensorboard_dir(
@@ -118,6 +122,8 @@ class BaseHook:
 
         self.dry_run = dry_run
         self.worker = None
+        self.save_all_workers = True if include_workers == "all" else False
+        self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
         if include_collections is None:
             include_collections = default_include_collections
         self.default_include_collections = default_include_collections
@@ -350,6 +356,9 @@ class BaseHook:
     def _initialize_writers(self) -> None:
         if self.dry_run:
             return
+        if self.save_all_workers is False:
+            if self.worker != self.chief_worker:
+                return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
     def get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
@@ -358,7 +367,10 @@ class BaseHook:
         :param tensor_ref: used by TF
         :return: List[FileWriter]
         """
-        return [self.writer]
+        if self.save_all_workers is False:
+            if self.worker != self.chief_worker:
+                return []
+        return [self.writer] if self.writer else []
 
     def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
         """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
@@ -439,7 +451,12 @@ class BaseHook:
         self._collections_to_save_for_step = None
 
     def export_collections(self):
-        self.collection_manager.set_num_workers(self.get_num_workers())
+        num_workers = self.get_num_workers()
+        if self.save_all_workers is False:
+            if self.chief_worker != self.worker:
+                return
+            num_workers = 1  # Override
+        self.collection_manager.set_num_workers(num_workers)
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
@@ -715,6 +732,7 @@ class CallbackHook(BaseHook):
         include_regex: Optional[List[str]] = None,
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
+        include_workers: str = "one",
     ):
         super().__init__(
             collection_manager=collection_manager,
@@ -729,6 +747,7 @@ class CallbackHook(BaseHook):
             include_regex=include_regex,
             include_collections=include_collections,
             save_all=save_all,
+            include_workers=include_workers,
         )
         self.exported_collections = False
         self.data_type_name = data_type_name

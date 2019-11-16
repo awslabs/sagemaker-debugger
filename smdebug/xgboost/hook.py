@@ -41,6 +41,7 @@ class Hook(CallbackHook):
         include_regex: Optional[List[str]] = None,
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
+        include_workers: str = "one",
         hyperparameters: Optional[Dict[str, Any]] = None,
         train_data: Union[None, Tuple[str, str], DMatrix] = None,
         validation_data: Union[None, Tuple[str, str], DMatrix] = None,
@@ -96,6 +97,7 @@ class Hook(CallbackHook):
             include_regex=include_regex,
             include_collections=include_collections,
             save_all=save_all,
+            include_workers=include_workers,
         )
         if reduction_config is not None:
             msg = "'reduction_config' is not supported and will be ignored."

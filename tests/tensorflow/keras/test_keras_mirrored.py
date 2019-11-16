@@ -8,6 +8,7 @@ import os
 import pytest
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from tensorflow.python.client import device_lib
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
@@ -60,6 +61,11 @@ class FetchTensorCallback(tf.keras.callbacks.Callback):
             self.fetches_added = False
 
 
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return len([x.name for x in local_device_protos if x.device_type == "GPU"])
+
+
 def train_model(
     trial_dir,
     save_all=False,
@@ -73,6 +79,7 @@ def train_model(
     strategy=None,
     steps=None,
     add_callbacks=None,
+    include_workers="all",
 ):
     print(tf.__version__)
     if reset:
@@ -115,6 +122,7 @@ def train_model(
         reduction_config=reduction_config,
         include_collections=include_collections,
         save_all=save_all,
+        include_workers=include_workers,
     )
 
     if use_keras_optimizer:
@@ -324,6 +332,37 @@ def test_save_all(out_dir):
     )
     # weights, grads, optimizer_variables, metrics, losses, outputs
     assert len(tr.steps()) == 3
+
+
+@pytest.mark.slow
+def test_save_one_worker(out_dir):
+    strategy = train_model(
+        out_dir,
+        include_collections=None,
+        save_all=True,
+        save_config=SaveConfig(save_steps=[5]),
+        steps=["train"],
+        include_workers="one",
+    )
+    tr = create_trial_fast_refresh(out_dir)
+    assert len(tr.workers()) == 1
+
+
+@pytest.mark.slow
+def test_save_all_workers(out_dir):
+    # Skip if no GPUS
+    if get_available_gpus() == 0:
+        return
+    strategy = train_model(
+        out_dir,
+        include_collections=None,
+        save_all=True,
+        save_config=SaveConfig(save_steps=[5]),
+        steps=["train"],
+        include_workers="all",
+    )
+    tr = create_trial_fast_refresh(out_dir)
+    assert len(tr.workers()) == get_available_gpus()
 
 
 @pytest.mark.slow

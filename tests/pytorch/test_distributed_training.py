@@ -63,7 +63,7 @@ def train(model, device, optimizer, num_steps=10):
         optimizer.step()
 
 
-def run(rank, size, num_epochs=10, batch_size=128, num_batches=10):
+def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_batches=10):
     """Distributed function to be implemented later."""
     torch.manual_seed(1234)
     device = torch.device("cpu")
@@ -71,9 +71,14 @@ def run(rank, size, num_epochs=10, batch_size=128, num_batches=10):
     optimizer = optim.SGD(model.parameters(), lr=1)
 
     shutil.rmtree(out_dir, ignore_errors=True)
+
     hook = smd.Hook(
-        out_dir=out_dir, save_config=smd.SaveConfig(save_steps=[0, 1, 5]), save_all=True
+        out_dir=out_dir,
+        save_config=smd.SaveConfig(save_steps=[0, 1, 5]),
+        save_all=True,
+        include_workers=include_workers,
     )
+
     hook.register_hook(model)
 
     for epoch in range(num_epochs):
@@ -106,12 +111,38 @@ def average_gradients(model):
         param.grad.data /= size
 
 
-def init_processes(rank, size, fn, backend="gloo"):
+def init_processes(rank, size, include_workers, fn, backend="gloo"):
     """Initialize the distributed environment."""
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
-    fn(rank, size)
+    fn(rank, size, include_workers)
+
+
+def _run_net_distributed(include_workers="one"):
+    """Runs a single linear layer on 2 processes."""
+    # torch.distributed is empty on Mac on Torch <= 1.2
+    if not hasattr(dist, "is_initialized"):
+        return
+    multiprocessing.set_start_method("spawn", force=True)
+    smd.reset_collections()
+    size = 2
+    processes = []
+    for rank in range(size):
+        p = Process(target=init_processes, args=(rank, size, include_workers, run))
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+
+    # WARNING: assert statements do not cause test failure inside subprocesses
+    # https://stackoverflow.com/questions/13400546/py-test-how-to-automatically-detect-an-exception-in-a-child-process
+    assert all([not p.exitcode for p in processes]), f"Some processes failed. processes={processes}"
+
+    out_dir = "/tmp/run"
+    trial = create_trial(path=out_dir)
+    return trial
 
 
 @pytest.mark.slow  # 0:05 to run
@@ -139,28 +170,14 @@ def test_run_net_single_process():
 
 
 @pytest.mark.slow  # 0:07 to run
-def test_run_net_distributed():
-    """Runs a single linear layer on 2 processes."""
-    # torch.distributed is empty on Mac on Torch <= 1.2
-    if not hasattr(dist, "is_initialized"):
-        return
-    multiprocessing.set_start_method("spawn", force=True)
-    smd.reset_collections()
-    size = 2
-    processes = []
-    for rank in range(size):
-        p = Process(target=init_processes, args=(rank, size, run))
-        p.start()
-        processes.append(p)
-
-    for p in processes:
-        p.join()
-
-    # WARNING: assert statements do not cause test failure inside subprocesses
-    # https://stackoverflow.com/questions/13400546/py-test-how-to-automatically-detect-an-exception-in-a-child-process
-    assert all([not p.exitcode for p in processes]), f"Some processes failed. processes={processes}"
-
-    out_dir = "/tmp/run"
-    trial = create_trial(path=out_dir)
+def test_run_net_distributed_save_all_workers():
+    trial = _run_net_distributed(include_workers="all")
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
+    assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+
+@pytest.mark.slow  # 0:07 to run
+def test_run_net_distributed_save_one_worker():
+    trial = _run_net_distributed(include_workers="one")
+    assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"

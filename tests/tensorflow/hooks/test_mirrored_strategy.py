@@ -184,6 +184,7 @@ def helper_mirrored(
     include_collections=None,
     steps=None,
     eval_distributed=False,
+    include_workers="all",
 ):
     num_gpus = get_available_gpus()
     num_devices = num_gpus if num_gpus > 0 else 1
@@ -225,6 +226,7 @@ def helper_mirrored(
         include_collections=include_collections,
         save_config=save_config,
         reduction_config=reduction_config,
+        include_workers=include_workers,
     )
 
     mnist_classifier = tf.estimator.Estimator(model_fn=cnn_model_fn, config=config)
@@ -425,3 +427,34 @@ def test_save_all(out_dir):
         return
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) > 100
+
+
+@pytest.mark.slow
+def test_save_all_worker(out_dir):
+    # skip test if no gpus available
+    if get_available_gpus() == 0:
+        return
+    strategy = helper_mirrored(
+        out_dir,
+        steps=["train"],
+        num_steps=1,
+        save_all=True,
+        eval_distributed=True,
+        include_workers="all",
+    )
+    tr = create_trial_fast_refresh(out_dir)
+    assert len(tr.workers()) == get_available_gpus()
+
+
+@pytest.mark.slow
+def test_save_one_worker(out_dir):
+    strategy = helper_mirrored(
+        out_dir,
+        steps=["train"],
+        num_steps=1,
+        save_all=True,
+        eval_distributed=True,
+        include_workers="one",
+    )
+    tr = create_trial_fast_refresh(out_dir)
+    assert len(tr.workers()) == 1

@@ -3,27 +3,26 @@ import json
 import os
 
 # First Party
-from smdebug.tensorflow.session import SessionHook
 from smdebug.tensorflow.utils import (
     TFDistributionStrategy,
     get_num_workers_from_tf_config,
     get_worker_id_from_tf_config,
+    is_parameter_server_strategy,
     tensor_can_be_saved,
 )
 
 
 def test_read_tf_config():
     # Case 1: No TF_CONFIG
-    distibution_strategy = SessionHook.get_distribution_strategy()
-    assert distibution_strategy == TFDistributionStrategy.NONE
+
+    assert is_parameter_server_strategy(os.getenv("TF_CONFIG")) is False
 
     # Case 2: TF_CONFIG present but empty
     os.environ["TF_CONFIG"] = json.dumps({})
 
-    distibution_strategy = SessionHook.get_distribution_strategy()
-    assert distibution_strategy == TFDistributionStrategy.NONE
+    assert is_parameter_server_strategy(os.getenv("TF_CONFIG")) is False
 
-    # Case 2: TF_CONFIG present but invalid because of missing ps field
+    # Case 3: TF_CONFIG present but invalid because of missing ps field
     os.environ["TF_CONFIG"] = json.dumps(
         {
             "cluster": {"worker": ["host1:port", "host2:port", "host3:port"]},
@@ -31,10 +30,9 @@ def test_read_tf_config():
         }
     )
 
-    distibution_strategy = SessionHook.get_distribution_strategy()
-    assert distibution_strategy == TFDistributionStrategy.NONE
+    assert is_parameter_server_strategy(os.getenv("TF_CONFIG")) is False
 
-    # Case 2: TF_CONFIG present and valid
+    # Case 4: TF_CONFIG present and valid
     os.environ["TF_CONFIG"] = json.dumps(
         {
             "cluster": {
@@ -45,8 +43,7 @@ def test_read_tf_config():
         }
     )
 
-    distibution_strategy = SessionHook.get_distribution_strategy()
-    assert distibution_strategy == TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
+    assert is_parameter_server_strategy(os.getenv("TF_CONFIG")) is True
 
     del os.environ["TF_CONFIG"]
 
