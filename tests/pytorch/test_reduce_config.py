@@ -8,8 +8,7 @@ import torch
 import torch.optim as optim
 
 # First Party
-import smdebug.pytorch as smd
-from smdebug.pytorch import ReductionConfig, SaveConfig, reset_collections
+from smdebug.pytorch import ReductionConfig, SaveConfig
 from smdebug.pytorch.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -20,15 +19,8 @@ from .utils import Net, train
 def test_reduce_config(hook=None, out_dir=None):
     hook_created = False
     if hook is None:
-        reset_collections()
         global_reduce_config = ReductionConfig(reductions=["max", "mean", "variance"])
         global_save_config = SaveConfig(save_steps=[0, 1, 2, 3])
-
-        smd.get_collection("ReluActivation").include(["relu*"])
-        smd.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
-        smd.get_collection("ReluActivation").reduction_config = ReductionConfig(
-            reductions=["min"], abs_reductions=["max"]
-        )
 
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         out_dir = "./newlogsRunTest/" + run_id
@@ -44,6 +36,11 @@ def test_reduce_config(hook=None, out_dir=None):
                 "flatten",
             ],
             reduction_config=global_reduce_config,
+        )
+        hook.get_collection("ReluActivation").include(["relu*"])
+        hook.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
+        hook.get_collection("ReluActivation").reduction_config = ReductionConfig(
+            reductions=["min"], abs_reductions=["max"]
         )
         hook_created = True
 
@@ -93,7 +90,6 @@ def test_reduce_config(hook=None, out_dir=None):
 def test_reduce_config_with_json():
     from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
-    reset_collections()
     out_dir = "test_output/test_hook_reduction_config/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[

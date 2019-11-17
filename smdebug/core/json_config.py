@@ -48,6 +48,7 @@ from typing import Dict, Optional
 
 # First Party
 from smdebug import ReductionConfig, SaveConfig, SaveConfigMode
+from smdebug.analysis.utils import parse_bool
 from smdebug.core.config_constants import (
     CONFIG_COLLECTION_CONFIG_KEY,
     CONFIG_COLLECTION_NAME_KEY,
@@ -56,6 +57,7 @@ from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
     CONFIG_HOOK_PARAMS_KEY,
     CONFIG_INCLUDE_REGEX_KEY,
+    CONFIG_INCLUDE_WORKERS_KEY,
     CONFIG_OUTDIR_KEY,
     CONFIG_RDN_CFG_KEY,
     CONFIG_REDUCTION_CONFIGS_KEY,
@@ -106,54 +108,7 @@ def get_tensorboard_dir_from_json_config() -> Optional[str]:
         return None
 
 
-def create_hook_from_json_config(
-    hook_cls, collection_manager, json_config_path, default_values=None
-):
-    """Returns a SessionHook object corresponding to either TF, PT, or MXNet.
-
-    If json_config_path is None, an environment variable must be set.
-    Here we compare HookParameters with CollectionConfiguration and set all the defaults.
-    """
-    tornasole_params = collect_config_params(collection_manager, json_config_path=json_config_path)
-    if "collections" in tornasole_params:
-        include_collections = []
-        for obj in tornasole_params["collections"].values():
-            include_collections.append(obj.name)
-            collection_manager.add(obj)
-    else:
-        include_collections = None
-
-    get_logger().info(f"Creating hook from json {json_config_path}")
-    out_dir = tornasole_params.get("out_dir", DEFAULT_SAGEMAKER_OUTDIR)
-    dry_run = tornasole_params.get("dry_run", False)
-    reduction_config = tornasole_params.get(CONFIG_RDN_CFG_KEY)
-    save_config = SaveConfig.from_dict(tornasole_params.get("save_config_modes"), default_values)
-    include_regex = tornasole_params.get(CONFIG_INCLUDE_REGEX_KEY)
-    save_all = tornasole_params.get(CONFIG_SAVE_ALL_KEY, False)
-
-    # If Sagemaker, emit TB only if JSON file exists
-    if is_sagemaker_job():
-        tensorboard_dir = get_tensorboard_dir_from_json_config()
-        export_tensorboard = bool(tensorboard_dir is not None)
-    # Otherwise, place TB artifacts in out_dir
-    else:
-        tensorboard_dir = tornasole_params[TENSORBOARD_DIR_KEY]
-        export_tensorboard = tornasole_params[EXPORT_TENSORBOARD_KEY]
-
-    return hook_cls(
-        out_dir=out_dir,
-        export_tensorboard=export_tensorboard,
-        tensorboard_dir=tensorboard_dir,
-        dry_run=dry_run,
-        reduction_config=reduction_config,
-        save_config=save_config,
-        include_regex=include_regex,
-        include_collections=include_collections,
-        save_all=save_all,
-    )
-
-
-def collect_config_params(collection_manager, json_config_path) -> Dict:
+def collect_hook_config_params(params_dict) -> Dict:
     """Read the config file from an environment variable and return a dictionary.
 
     Return a dictionary, example keys:
@@ -161,7 +116,7 @@ def collect_config_params(collection_manager, json_config_path) -> Dict:
     'include_regex', 'config_name', 's3_path'])
     """
     # Build params dictionary from the json file
-    params_dict = get_json_config_as_dict(json_config_path=json_config_path)
+
     # Declare defaults
     tornasole_params_dict = {
         CONFIG_RDN_CFG_KEY: None,
@@ -172,8 +127,6 @@ def collect_config_params(collection_manager, json_config_path) -> Dict:
     # Set top-level path parameters
     # SageMaker doesn't have any way to specify this for now, so default to using their path
     tornasole_params_dict["out_dir"] = params_dict.get(CONFIG_OUTDIR_KEY, DEFAULT_SAGEMAKER_OUTDIR)
-    tornasole_params_dict[EXPORT_TENSORBOARD_KEY] = params_dict.get(EXPORT_TENSORBOARD_KEY, False)
-    tornasole_params_dict[TENSORBOARD_DIR_KEY] = params_dict.get(TENSORBOARD_DIR_KEY, None)
 
     # Get the main HookParameters; pass these as defaults
     hook_params = params_dict.get(CONFIG_HOOK_PARAMS_KEY, {})
@@ -181,21 +134,50 @@ def collect_config_params(collection_manager, json_config_path) -> Dict:
     hook_params = {} if hook_params is None else hook_params
     base_config_modes = parse_save_config_modes_dict(params=hook_params)
     tornasole_params_dict["save_config_modes"] = base_config_modes
-
     # If we pass reduction=None, then the full tensor is saved by default
     if "reductions" in hook_params:
         tornasole_params_dict[CONFIG_RDN_CFG_KEY] = ReductionConfig.from_dict(hook_params)
     if "save_all" in hook_params:
-        tornasole_params_dict[CONFIG_SAVE_ALL_KEY] = hook_params["save_all"]
+        tornasole_params_dict[CONFIG_SAVE_ALL_KEY] = parse_bool(hook_params["save_all"], False)
     if "include_regex" in hook_params:
         tornasole_params_dict[CONFIG_INCLUDE_REGEX_KEY] = split(hook_params["include_regex"])
+    if CONFIG_INCLUDE_WORKERS_KEY in hook_params:
+        tornasole_params_dict[CONFIG_INCLUDE_WORKERS_KEY] = hook_params[CONFIG_INCLUDE_WORKERS_KEY]
+    tornasole_params_dict[EXPORT_TENSORBOARD_KEY] = parse_bool(
+        hook_params.get(EXPORT_TENSORBOARD_KEY, False), False
+    )
+    tornasole_params_dict[TENSORBOARD_DIR_KEY] = hook_params.get(TENSORBOARD_DIR_KEY, None)
+    return tornasole_params_dict
 
+
+def get_include_collections(params_dict):
+    if (
+        CONFIG_COLLECTION_CONFIG_KEY in params_dict
+        and params_dict[CONFIG_COLLECTION_CONFIG_KEY] is not None
+    ):
+        include_collections = []
+        for config in params_dict[CONFIG_COLLECTION_CONFIG_KEY]:
+            # Require name and parameters for each collection.
+            if CONFIG_COLLECTION_NAME_KEY not in config:
+                raise ValueError(f"Must specify '{CONFIG_COLLECTION_NAME_KEY}' in JSON config.")
+            include_collections.append(config[CONFIG_COLLECTION_NAME_KEY])
+    else:
+        include_collections = None
+    return include_collections
+
+
+def add_collections_to_manager(collection_manager, params_dict, hook_params):
+    """Read the config file from an environment variable and return a dictionary.
+
+    Return a dictionary, example keys:
+    dict_keys(['reduction_configs', 'save_configs', 'collections', 'out_dir', 'reduction_config', 'save_config',
+    'include_regex', 'config_name', 's3_path'])
+    """
     # For each collection configuration, also create the reduction config and save config.
     if (
         CONFIG_COLLECTION_CONFIG_KEY in params_dict
         and params_dict[CONFIG_COLLECTION_CONFIG_KEY] is not None
     ):
-        tornasole_params_dict["collections"] = {}
         for config in params_dict[CONFIG_COLLECTION_CONFIG_KEY]:
             # Require name and parameters for each collection.
             if CONFIG_COLLECTION_NAME_KEY not in config:
@@ -205,10 +187,9 @@ def collect_config_params(collection_manager, json_config_path) -> Dict:
             coll_params = config.get(CONFIG_COLLECTION_PARAMS_KEY, {})
             # If we have {"CollectionParameters": null}, replace null with {}.
             coll_params = {} if coll_params is None else coll_params
-            collection_manager.add(name)
             coll = collection_manager.get(name)
             coll_config_modes = parse_save_config_modes_dict(
-                params=coll_params, base_config_modes=base_config_modes
+                params=coll_params, base_config_modes=hook_params["save_config_modes"]
             )
             mode_save_configs = {
                 mode: SaveConfigMode.from_dict(val) for mode, val in coll_config_modes.items()
@@ -218,9 +199,51 @@ def collect_config_params(collection_manager, json_config_path) -> Dict:
                 coll.reduction_config = ReductionConfig.from_dict(coll_params)
             if "include_regex" in coll_params:
                 coll.include(split(coll_params["include_regex"]))
-            tornasole_params_dict["collections"][name] = coll
+            if "save_histogram" in coll_params:
+                coll.save_histogram = parse_bool(coll_params["save_histogram"], True)
 
-    return tornasole_params_dict
+
+def create_hook_from_json_config(hook_cls, json_config_path, default_values=None):
+    """Returns a SessionHook object corresponding to either TF, PT, or MXNet.
+
+    If json_config_path is None, an environment variable must be set.
+    Here we compare HookParameters with CollectionConfiguration and set all the defaults.
+    """
+    params_dict = get_json_config_as_dict(json_config_path=json_config_path)
+    hook_params = collect_hook_config_params(params_dict)
+
+    out_dir = hook_params.get("out_dir")
+    dry_run = hook_params.get("dry_run", False)
+    reduction_config = hook_params.get(CONFIG_RDN_CFG_KEY, None)
+    save_config = SaveConfig.from_dict(hook_params.get("save_config_modes"), default_values)
+    include_regex = hook_params.get(CONFIG_INCLUDE_REGEX_KEY)
+    include_collections = get_include_collections(params_dict)
+    save_all = hook_params.get(CONFIG_SAVE_ALL_KEY, False)
+    include_workers = hook_params.get(CONFIG_INCLUDE_WORKERS_KEY, "one")
+
+    # If Sagemaker, emit TB only if JSON file exists
+    if is_sagemaker_job():
+        tensorboard_dir = get_tensorboard_dir_from_json_config()
+        export_tensorboard = bool(tensorboard_dir is not None)
+    # Otherwise, place TB artifacts in out_dir
+    else:
+        tensorboard_dir = hook_params[TENSORBOARD_DIR_KEY]
+        export_tensorboard = hook_params[EXPORT_TENSORBOARD_KEY]
+
+    hook = hook_cls(
+        out_dir=out_dir,
+        export_tensorboard=export_tensorboard,
+        tensorboard_dir=tensorboard_dir,
+        dry_run=dry_run,
+        reduction_config=reduction_config,
+        save_config=save_config,
+        include_regex=include_regex,
+        include_collections=include_collections,
+        include_workers=include_workers,
+        save_all=save_all,
+    )
+    add_collections_to_manager(hook.collection_manager, params_dict, hook_params)
+    return hook
 
 
 def parse_save_config_modes_dict(params, base_config_modes=None) -> Dict:

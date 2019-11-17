@@ -6,9 +6,7 @@ from datetime import datetime
 import numpy as np
 
 # First Party
-import smdebug.mxnet as smd
 from smdebug import SaveConfig
-from smdebug.mxnet import reset_collections
 from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -20,8 +18,6 @@ def test_hook_all_zero(hook=None, out_dir=None):
     hook_created = False
     if hook is None:
         hook_created = True
-        reset_collections()
-        smd.get_collection("ReluActivation").include(["relu*", "input_*"])
         save_config = SaveConfig(save_steps=[0, 1, 2, 3])
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         out_dir = "./newlogsRunTest/" + run_id
@@ -31,6 +27,7 @@ def test_hook_all_zero(hook=None, out_dir=None):
             save_config=save_config,
             include_collections=["ReluActivation", "weights", "biases", "gradients"],
         )
+        hook.get_collection("ReluActivation").include(["relu*", "input_*"])
     run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10, make_input_zero=True)
 
     print("Created the trial with out_dir {0}".format(out_dir))
@@ -55,7 +52,6 @@ def test_hook_all_zero_hook_from_json():
     import shutil
     import os
 
-    reset_collections()
     out_dir = "newlogsRunTest2/test_hook_all_zero_hook_from_json"
     shutil.rmtree(out_dir, True)
     os.environ[

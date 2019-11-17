@@ -16,7 +16,7 @@ from torchvision import datasets, transforms
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.pytorch import Hook, SaveConfig, get_collection
+from smdebug.pytorch import Hook, SaveConfig
 
 
 class Net(nn.Module):
@@ -106,7 +106,6 @@ def create_hook(output_dir, module=None, hook_type="saveall"):
         # Output :  <module_name>_output
         # In order to log the inputs and output of a module, we will create a collection as follows:
         assert module is not None
-        get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model every 5 steps from steps 0-100 while training.
         hook = Hook(
@@ -114,6 +113,7 @@ def create_hook(output_dir, module=None, hook_type="saveall"):
             save_config=SaveConfig(save_steps=[i * 5 for i in range(20)]),
             include_collections=["weights", "gradients", "biases", "l_mod"],
         )
+        hook.get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
     elif hook_type == "weights-bias-gradients":
         save_config = SaveConfig(save_steps=[i * 5 for i in range(20)])
         # Create a hook that logs ONLY weights, biases, and gradients every 5 steps (from steps 0-100) while training the model.

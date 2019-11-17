@@ -4,10 +4,10 @@
 import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from smdebug.exceptions import *
+from smdebug.exceptions import TensorUnavailableForStep
 
 # Local
-from .utils import *
+from .utils import get_dirs_files, pre_test_clean_up, simple_model
 
 
 def helper_test_reductions(trial_dir, hook, save_raw_tensor):
@@ -39,16 +39,16 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
 
 def test_reductions(out_dir, save_raw_tensor=False):
     pre_test_clean_up()
-    rdnc = ReductionConfig(
+    rdnc = smd.ReductionConfig(
         reductions=ALLOWED_REDUCTIONS,
         abs_reductions=ALLOWED_REDUCTIONS,
         norms=ALLOWED_NORMS,
         abs_norms=ALLOWED_NORMS,
         save_raw_tensor=save_raw_tensor,
     )
-    hook = SessionHook(
+    hook = smd.SessionHook(
         out_dir=out_dir,
-        save_config=SaveConfig(save_interval=1),
+        save_config=smd.SaveConfig(save_interval=1),
         reduction_config=rdnc,
         include_collections=["weights", "gradients", "losses"],
     )

@@ -17,7 +17,6 @@ from torch.autograd import Variable
 # First Party
 from smdebug import SaveConfig
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from smdebug.pytorch import reset_collections
 from smdebug.pytorch.collection import *
 from smdebug.pytorch.hook import *
 from smdebug.trials import create_trial
@@ -92,7 +91,6 @@ class Net(nn.Module):
 # Following function shows the default initilization that enables logging of
 # weights, biases and gradients in the model.
 def create_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
-    reset_collections()
     # Create a hook that logs weights, biases, gradients and inputs/ouputs of model
     if hook_type == "saveall":
         hook = Hook(
@@ -104,7 +102,6 @@ def create_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
         # Output :  <module_name>_output
         # In order to log the inputs and output of a module, we will create a collection as follows:
         assert module is not None
-        get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model
         hook = Hook(
@@ -117,6 +114,7 @@ def create_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
                 "l_mod",
             ],
         )
+        hook.get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
     elif hook_type == "weights-bias-gradients":
         save_config = SaveConfig(save_steps=save_steps)
         # Create a hook that logs ONLY weights, biases, and gradients
@@ -217,8 +215,6 @@ def helper_test_weights_bias_gradients(hook=None):
 
 
 def saveall_test_helper(hook=None):
-    if hook is None:
-        reset_collections()
     prefix = str(uuid.uuid4())
     hook_type = "saveall"
     device = torch.device("cpu")
@@ -297,7 +293,6 @@ def helper_test_multi_collections(hook, out_dir):
 
 
 def test_weightsbiasgradients_json():
-    reset_collections()
     out_dir = "test_output/test_hook_save_weightsbiasgradients/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[
@@ -312,7 +307,6 @@ def test_weightsbiasgradients_call():
 
 
 def test_saveall_json():
-    reset_collections()
     out_dir = "test_output/test_hook_saveall/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_hook_saveall.json"
@@ -326,7 +320,6 @@ def test_saveall_params():
 
 # Test creating hook with multiple collections and save configs.
 def test_multi_collection_json():
-    reset_collections()
     out_dir = "test_output/test_hook_multi_collection/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[

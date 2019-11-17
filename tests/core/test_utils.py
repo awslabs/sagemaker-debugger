@@ -5,9 +5,15 @@ import pytest
 from smdebug.core.access_layer import check_dir_exists
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.index_reader import ReadIndexFilesCache
-from smdebug.core.json_config import DEFAULT_SAGEMAKER_OUTDIR, collect_config_params
+from smdebug.core.json_config import (
+    DEFAULT_SAGEMAKER_OUTDIR,
+    add_collections_to_manager,
+    collect_hook_config_params,
+    get_include_collections,
+    get_json_config_as_dict,
+)
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import is_s3
+from smdebug.core.utils import SagemakerSimulator, is_s3
 
 
 def test_normal():
@@ -113,5 +119,45 @@ def test_get_prefix_from_index_file():
 
 @pytest.mark.skip(reason="If no config file is found, then SM doesn't want a SessionHook")
 def test_collect_config_params():
-    params = collect_config_params(collection_manager=CollectionManager())
+    params_dict = get_json_config_as_dict(json_config_path=None)
+    params = collect_hook_config_params(params_dict)
     assert params["out_dir"] == DEFAULT_SAGEMAKER_OUTDIR
+
+
+def test_json_params():
+    params_dict = get_json_config_as_dict(
+        json_config_path="tests/core/json_configs/all_params.json"
+    )
+    hook_params = collect_hook_config_params(params_dict)
+    include_collections = get_include_collections(params_dict)
+    coll_manager = CollectionManager()
+    add_collections_to_manager(coll_manager, params_dict, hook_params)
+    assert hook_params["include_workers"] == "one"
+    assert hook_params["save_all"] is True
+    assert coll_manager.get("weights").save_histogram is False
+    assert coll_manager.get("gradients").save_histogram is False
+    assert "weights" in include_collections
+    assert "gradients" in include_collections
+    assert len(include_collections) == 2
+    assert hook_params["export_tensorboard"] == True
+    assert hook_params["tensorboard_dir"] == "/tmp/tensorboard"
+
+
+def test_json_params_sagemaker():
+    with SagemakerSimulator() as sim:
+        params_dict = get_json_config_as_dict(
+            json_config_path="tests/core/json_configs/all_params.json"
+        )
+        hook_params = collect_hook_config_params(params_dict)
+        include_collections = get_include_collections(params_dict)
+        coll_manager = CollectionManager()
+        add_collections_to_manager(coll_manager, params_dict, hook_params)
+        assert hook_params["include_workers"] == "one"
+        assert hook_params["save_all"] is True
+        assert coll_manager.get("weights").save_histogram is False
+        assert coll_manager.get("gradients").save_histogram is False
+        assert "weights" in include_collections
+        assert "gradients" in include_collections
+        assert len(include_collections) == 2
+        assert hook_params["export_tensorboard"] == True
+        assert hook_params["tensorboard_dir"] == sim.tensorboard_dir

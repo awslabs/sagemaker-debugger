@@ -17,7 +17,6 @@ from mxnet.gluon.data.vision import datasets, transforms
 from smdebug import SaveConfig, modes
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.config_constants import CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR
-from smdebug.mxnet import reset_collections
 from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -141,7 +140,6 @@ def run_mnist(
 
 @pytest.mark.slow  # 0:01 to run
 def test_spot_hook():
-    reset_collections()
     os.environ[
         CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR
     ] = "./tests/mxnet/test_json_configs/checkpointconfig.json"

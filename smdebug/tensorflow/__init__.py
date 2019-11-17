@@ -8,17 +8,6 @@ from smdebug.core.collection import CollectionKeys
 from smdebug.trials import create_trial
 
 # Local
-from .collection import (
-    Collection,
-    CollectionManager,
-    add_to_collection,
-    add_to_default_collection,
-    export_collections,
-    get_collection,
-    get_collections,
-    load_collections,
-    reset_collections,
-)
 from .keras import KerasHook
 from .session import EstimatorHook, SessionHook
 from .singleton_utils import del_hook, get_hook, set_hook

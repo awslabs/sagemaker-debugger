@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 
 # First Party
-from smdebug.pytorch import SaveConfig, reset_collections
+from smdebug.pytorch import SaveConfig
 from smdebug.pytorch.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -18,7 +18,6 @@ from .utils import Net, train
 def test_collection_add(hook=None, out_dir=None):
     hook_created = False
     if hook is None:
-        reset_collections()
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         out_dir = "./newlogsRunTest/" + run_id
         hook = t_hook(

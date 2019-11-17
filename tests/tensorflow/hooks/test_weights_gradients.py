@@ -5,19 +5,10 @@ import smdebug.tensorflow as smd
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import get_path_to_collections
+from smdebug.tensorflow.collection import CollectionManager
 
 # Local
-from .utils import (
-    CollectionManager,
-    SaveConfig,
-    SessionHook,
-    get_collection_files,
-    get_dirs_files,
-    join,
-    os,
-    pre_test_clean_up,
-    simple_model,
-)
+from .utils import get_collection_files, get_dirs_files, join, os, pre_test_clean_up, simple_model
 
 
 def helper_test_only_w_g(trial_dir, hook):
@@ -29,7 +20,7 @@ def helper_test_only_w_g(trial_dir, hook):
     cm = CollectionManager.load(
         join(get_path_to_collections(trial_dir), DEFAULT_COLLECTIONS_FILE_NAME)
     )
-    assert smd.get_collections() == cm.collections
+    assert hook.get_collections() == cm.collections
     num_tensors_loaded_collection = (
         len(cm.collections["weights"].tensor_names)
         + len(cm.collections["gradients"].tensor_names)
@@ -41,7 +32,7 @@ def helper_test_only_w_g(trial_dir, hook):
 
 def test_only_w_g(out_dir):
     pre_test_clean_up()
-    hook = SessionHook(out_dir, save_all=False, save_config=SaveConfig(save_interval=2))
+    hook = smd.SessionHook(out_dir, save_all=False, save_config=smd.SaveConfig(save_interval=2))
     helper_test_only_w_g(out_dir, hook)
 
 

@@ -3,8 +3,7 @@ import shutil
 from datetime import datetime
 
 # First Party
-import smdebug.mxnet as smd
-from smdebug.mxnet import ReductionConfig, SaveConfig, reset_collections
+from smdebug.mxnet import ReductionConfig, SaveConfig
 from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -16,21 +15,8 @@ def test_save_config(hook=None, out_dir=None):
     hook_created = False
     if hook is None:
         hook_created = True
-        reset_collections()
         global_reduce_config = ReductionConfig(reductions=["max", "mean"])
         global_save_config = SaveConfig(save_steps=[0, 1, 2, 3])
-
-        smd.get_collection("ReluActivation").include(["relu*"])
-        smd.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
-        smd.get_collection("ReluActivation").reduction_config = ReductionConfig(
-            reductions=["min"], abs_reductions=["max"]
-        )
-
-        smd.get_collection("flatten").include(["flatten*"])
-        smd.get_collection("flatten").save_config = SaveConfig(save_steps=[4, 5, 6])
-        smd.get_collection("flatten").reduction_config = ReductionConfig(
-            norms=["l1"], abs_norms=["l2"]
-        )
 
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         out_dir = "./newlogsRunTest/" + run_id
@@ -48,6 +34,18 @@ def test_save_config(hook=None, out_dir=None):
             ],
             reduction_config=global_reduce_config,
         )
+        hook.get_collection("ReluActivation").include(["relu*"])
+        hook.get_collection("ReluActivation").save_config = SaveConfig(save_steps=[4, 5, 6])
+        hook.get_collection("ReluActivation").reduction_config = ReductionConfig(
+            reductions=["min"], abs_reductions=["max"]
+        )
+
+        hook.get_collection("flatten").include(["flatten*"])
+        hook.get_collection("flatten").save_config = SaveConfig(save_steps=[4, 5, 6])
+        hook.get_collection("flatten").reduction_config = ReductionConfig(
+            norms=["l1"], abs_norms=["l2"]
+        )
+
     run_mnist_gluon_model(hook=hook, num_steps_train=10, num_steps_eval=10)
 
     # Testing

@@ -709,6 +709,20 @@ class BaseHook:
         :return: numpy ndarray
         """
 
+    def _set_collection_manager(self, coll_manager):
+        # used when creating hook from json config
+        # using this elsewhere may have unintended consequences
+        self.collection_manager = coll_manager
+
+    def add_to_collection(self, collection_name, variable):
+        self.collection_manager.get(collection_name).add(variable)
+
+    def get_collection(self, name, create=True):
+        return self.collection_manager.get(name, create=create)
+
+    def get_collections(self):
+        return self.collection_manager.get_collections()
+
 
 class CallbackHook(BaseHook):
     __metaclass__ = ABCMeta

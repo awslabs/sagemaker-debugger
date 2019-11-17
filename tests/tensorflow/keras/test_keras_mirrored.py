@@ -17,7 +17,7 @@ from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailable, TensorUnavailableForStep
-from smdebug.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
+from smdebug.tensorflow import ReductionConfig, SaveConfig
 from smdebug.tensorflow.keras import KerasHook
 
 tfds.disable_progress_bar()
@@ -69,11 +69,11 @@ def get_available_gpus():
 def train_model(
     trial_dir,
     save_all=False,
+    hook=None,
     include_collections=None,
     reduction_config=None,
     save_config=None,
     use_keras_optimizer=True,
-    reset=True,
     eager=False,
     create_relu_collection=False,
     strategy=None,
@@ -82,9 +82,6 @@ def train_model(
     include_workers="all",
 ):
     print(tf.__version__)
-    if reset:
-        reset_collections()
-        # tf.reset_default_graph()
 
     datasets, info = tfds.load(name="mnist", with_info=True, as_supervised=True)
 
@@ -113,17 +110,18 @@ def train_model(
     train_dataset = mnist_train.map(scale).cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
     eval_dataset = mnist_test.map(scale).batch(BATCH_SIZE)
 
-    if save_config is None:
-        save_config = SaveConfig(save_interval=3)
+    if hook is None:
+        if save_config is None:
+            save_config = SaveConfig(save_interval=3)
 
-    hook = KerasHook(
-        out_dir=trial_dir,
-        save_config=save_config,
-        reduction_config=reduction_config,
-        include_collections=include_collections,
-        save_all=save_all,
-        include_workers=include_workers,
-    )
+        hook = KerasHook(
+            out_dir=trial_dir,
+            save_config=save_config,
+            reduction_config=reduction_config,
+            include_collections=include_collections,
+            save_all=save_all,
+            include_workers=include_workers,
+        )
 
     if use_keras_optimizer:
         opt = tf.keras.optimizers.Adam()
@@ -151,7 +149,7 @@ def train_model(
         )
 
     if create_relu_collection:
-        get_collection("relu").add_keras_layer(relu_layer, inputs=True, outputs=True)
+        hook.get_collection("relu").add_keras_layer(relu_layer, inputs=True, outputs=True)
 
     # get_collection('default').include('Relu')
 
@@ -397,20 +395,19 @@ def test_base_reductions(out_dir):
 
 @pytest.mark.slow
 def test_collection_reductions(out_dir):
-    reset_collections()
     tf.reset_default_graph()
 
-    get_collection(CollectionKeys.GRADIENTS).reduction_config = ReductionConfig(norms=["l1"])
-    train_model(
-        out_dir,
-        reset=False,
+    hook = KerasHook(
+        out_dir=out_dir,
+        save_config=SaveConfig(save_interval=3),
         include_collections=[
             CollectionKeys.WEIGHTS,
             CollectionKeys.BIASES,
             CollectionKeys.GRADIENTS,
         ],
-        steps=["train"],
     )
+    hook.get_collection(CollectionKeys.GRADIENTS).reduction_config = ReductionConfig(norms=["l1"])
+    train_model(out_dir, hook=hook, steps=["train"])
 
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
@@ -440,11 +437,9 @@ def test_training_end(out_dir):
 
 @pytest.mark.slow
 def test_collection_add(out_dir):
-    reset_collections()
     strategy = train_model(
         out_dir,
         include_collections=["relu"],
-        reset=False,
         save_config=SaveConfig(save_interval=9),
         create_relu_collection=True,
         steps=["train"],
@@ -460,15 +455,13 @@ def test_collection_add(out_dir):
 
 @pytest.mark.slow
 def test_include_regex(out_dir):
-    reset_collections()
-    get_collection("custom_coll").include("dense")
-    strategy = train_model(
-        out_dir,
-        include_collections=["custom_coll"],
+    hook = KerasHook(
+        out_dir=out_dir,
         save_config=SaveConfig(save_interval=9),
-        reset=False,
-        steps=["train"],
+        include_collections=["custom_coll"],
     )
+    hook.get_collection("custom_coll").include("dense")
+    strategy = train_model(out_dir, hook=hook, steps=["train"])
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensors(collection="custom_coll")

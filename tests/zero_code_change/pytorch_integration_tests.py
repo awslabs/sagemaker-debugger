@@ -23,7 +23,6 @@ from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 def test_pytorch(script_mode: bool, use_loss_module=False):
     smd.del_hook()
-    smd.reset_collections()
 
     sim_class = ScriptSimulator if script_mode else SagemakerSimulator
     with sim_class() as sim:

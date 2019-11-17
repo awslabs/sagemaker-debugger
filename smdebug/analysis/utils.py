@@ -65,9 +65,9 @@ def parse_bool(arg, default):
         return default
     elif arg in [False, True]:
         return arg
-    elif arg == "False":
+    elif arg in ["False", "false"]:
         return False
-    elif arg == "True":
+    elif arg in ["True", "true"]:
         return True
     else:
         raise ValueError("boolean argument expected, " "but found {}".format(arg))

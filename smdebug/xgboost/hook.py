@@ -17,7 +17,7 @@ from smdebug.core.tfevent.util import make_numpy_array
 from smdebug.xgboost.singleton_utils import set_hook
 
 # Local
-from .collection import get_collection_manager
+from .collection import CollectionManager
 from .utils import get_content_type, get_dmatrix, parse_tree_model, validate_data_file_path
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.METRICS]
@@ -83,7 +83,7 @@ class Hook(CallbackHook):
         """  # noqa: E501
         if save_config is None:
             save_config = SaveConfig(save_interval=DEFAULT_SAVE_CONFIG_INTERVAL)
-        collection_manager = get_collection_manager()
+        collection_manager = CollectionManager()
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
@@ -137,10 +137,7 @@ class Hook(CallbackHook):
             save_steps=DEFAULT_SAVE_CONFIG_SAVE_STEPS,
         )
         return create_hook_from_json_config(
-            cls,
-            get_collection_manager(),
-            json_config_path=json_config_path,
-            default_values=default_values,
+            cls, json_config_path=json_config_path, default_values=default_values
         )
 
     def _is_last_step(self, env: CallbackEnv) -> bool:

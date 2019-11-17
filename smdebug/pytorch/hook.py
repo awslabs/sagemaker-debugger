@@ -8,7 +8,7 @@ import torch.distributed as dist
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
-from smdebug.pytorch.collection import get_collection_manager
+from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
 
@@ -29,7 +29,7 @@ class Hook(CallbackHook):
         save_all=False,
         include_workers="one",
     ):
-        collection_manager = get_collection_manager()
+        collection_manager = CollectionManager()
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
@@ -106,9 +106,7 @@ class Hook(CallbackHook):
         Otherwise,
             return None.
         """
-        return create_hook_from_json_config(
-            cls, get_collection_manager(), json_config_path=json_config_path
-        )
+        return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
     def log_params(self, module):
         module_name = module._get_name()

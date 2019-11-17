@@ -5,7 +5,6 @@ from datetime import datetime
 # First Party
 from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.mxnet import reset_collections
 from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -14,7 +13,6 @@ from .mnist_gluon_model import run_mnist_gluon_model
 
 
 def test_loss_collection_default():
-    reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     out_dir = "newlogsRunTest/" + run_id
@@ -39,7 +37,6 @@ def test_loss_collection_default():
 
 
 def test_loss_collection_with_no_other_collections():
-    reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     out_dir = "newlogsRunTest/" + run_id

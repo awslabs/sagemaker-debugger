@@ -2,28 +2,19 @@
 import glob
 
 # First Party
-import smdebug.tensorflow as smd
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.reader import FileReader
 from smdebug.core.utils import get_path_to_collections
-from smdebug.tensorflow import get_collection
+from smdebug.tensorflow import SaveConfig, SessionHook
+from smdebug.tensorflow.collection import CollectionManager
 
 # Local
-from .utils import (
-    CollectionManager,
-    SaveConfig,
-    SessionHook,
-    get_dirs_files,
-    join,
-    os,
-    pre_test_clean_up,
-    simple_model,
-)
+from .utils import get_dirs_files, join, os, pre_test_clean_up, simple_model
 
 
 def helper_test_simple_include(trial_dir, hook):
-    get_collection("default").include("loss:0")
+    hook.get_collection("default").include("loss:0")
     simple_model(hook, steps=10)
     _, files = get_dirs_files(trial_dir)
     steps, _ = get_dirs_files(os.path.join(trial_dir, "events"))
@@ -141,22 +132,22 @@ def helper_test_multi_collection_match(trial_dir, hook):
 
 def test_multi_collection_match(out_dir):
     pre_test_clean_up()
-    smd.get_collection("trial").include("loss:0")
     hook = SessionHook(
         out_dir=out_dir,
         include_regex=["loss:0"],
         include_collections=["default", "trial"],
         save_config=SaveConfig(save_interval=2),
     )
+    hook.get_collection("trial").include("loss:0")
     helper_test_multi_collection_match(out_dir, hook)
 
 
 def test_multi_collection_match_json(out_dir, monkeypatch):
     pre_test_clean_up()
-    smd.get_collection("trial").include("loss:0")
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_multi_collection_match.json",
     )
     hook = SessionHook.hook_from_config()
+    hook.get_collection("trial").include("loss:0")
     helper_test_multi_collection_match(out_dir, hook)

@@ -18,7 +18,6 @@ from torch.autograd import Variable
 import smdebug.pytorch as smd
 from smdebug import SaveConfig, SaveConfigMode, modes
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from smdebug.pytorch import reset_collections
 from smdebug.pytorch.collection import *
 from smdebug.pytorch.hook import *
 from smdebug.trials import create_trial
@@ -123,13 +122,11 @@ def helper_test_modes(hook=None, out_dir="./test_output/test_hook_modes/"):
 
 
 def test_training_mode():
-    reset_collections()
     helper_test_modes()
 
 
 # Test creating hook with multiple collections and save configs.
 def test_training_mode_json():
-    reset_collections()
     out_dir = "test_output/test_hook_modes/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_modes.json"

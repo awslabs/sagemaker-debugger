@@ -3,7 +3,7 @@ import shutil
 from datetime import datetime
 
 # First Party
-from smdebug.mxnet import SaveConfig, reset_collections
+from smdebug.mxnet import SaveConfig
 from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -15,7 +15,6 @@ def test_save_all(hook=None, out_dir=None):
     hook_created = False
     if hook is None:
         hook_created = True
-        reset_collections()
         save_config = SaveConfig(save_steps=[0, 1, 2, 3])
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         out_dir = "./newlogsRunTest/" + run_id
@@ -40,7 +39,6 @@ def test_save_all_hook_from_json():
     from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
     import os
 
-    reset_collections()
     out_dir = "newlogsRunTest2/test_hook_save_all_hook_from_json"
     shutil.rmtree(out_dir, True)
     os.environ[

@@ -8,15 +8,6 @@ import tensorflow as tf
 
 # First Party
 from smdebug.core.utils import get_path_to_collections
-from smdebug.tensorflow import (
-    CollectionManager,
-    ReductionConfig,
-    SaveConfig,
-    SaveConfigMode,
-    SessionHook,
-    get_collection,
-    reset_collections,
-)
 
 
 def simple_model(hook, steps=10, lr=0.4):
@@ -28,7 +19,7 @@ def simple_model(hook, steps=10, lr=0.4):
         w0 = [[1], [1.0]]
         y = tf.matmul(x, w0)
     loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
-    get_collection("losses").add(loss)
+    hook.get_collection("losses").add(loss)
     global_step = tf.Variable(17, name="global_step", trainable=False)
     increment_global_step_op = tf.assign(global_step, global_step + 1)
 
@@ -73,4 +64,3 @@ def pre_test_clean_up():
     tf.reset_default_graph()
     tf.set_random_seed(1)
     np.random.seed(1)
-    reset_collections()

@@ -35,8 +35,8 @@ class CollectionManager:
             if arg not in self.collections:
                 self.create_collection(arg)
         elif isinstance(arg, Collection):
-            if arg.name not in self.collections:
-                self.collections[arg.name] = arg
+            # overrides any existing collection with that name
+            self.collections[arg.name] = arg
 
     def get(self, name, create=True):
         if name not in self.collections:

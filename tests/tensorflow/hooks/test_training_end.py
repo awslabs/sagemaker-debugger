@@ -8,13 +8,11 @@ import tensorflow as tf
 
 # First Party
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.tensorflow import reset_collections
 
 
 @pytest.mark.slow  # 0:03 to run
 def test_training_job_has_ended(out_dir):
     tf.reset_default_graph()
-    reset_collections()
     subprocess.check_call(
         [
             sys.executable,

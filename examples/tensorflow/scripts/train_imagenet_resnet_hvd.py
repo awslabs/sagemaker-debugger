@@ -217,7 +217,7 @@ class LayerBuilder(object):
 
 
 def resnet_bottleneck_v1(builder, inputs, depth, depth_bottleneck, stride, basic=False):
-    num_inputs = inpusmd.get_shape().as_list()[1]
+    num_inputs = inputs.get_shape().as_list()[1]
     x = inputs
     with tf.name_scope("resnet_v1"):
         if depth == num_inputs:
@@ -237,7 +237,7 @@ def resnet_bottleneck_v1(builder, inputs, depth, depth_bottleneck, stride, basic
             # x = builder.conv2d_linear(x, depth,            1, 1,      'SAME')
             x = builder.conv2d_linear_last_bn(x, depth, 1, 1, "SAME")
         x = tf.nn.relu(x + shortcut)
-        smd.add_to_collection("relu_activations", x)
+        smd.get_hook().add_to_collection("relu_activations", x)
         return x
 
 
@@ -766,7 +766,7 @@ def cnn_model_function(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN:
         with tf.device("/cpu:0"):
             preload_op, (inputs, labels) = stage([inputs, labels])
-            smd.add_to_collection("inputs", inputs)
+            smd.get_hook().add_to_collection("inputs", inputs)
 
     with tf.device(device):
         if mode == tf.estimator.ModeKeys.TRAIN:
@@ -1182,7 +1182,7 @@ def add_cli_args():
     return cmdline
 
 
-def get_hook(FLAGS):
+def create_hook(FLAGS):
     abs_reductions = []
     reductions = []
     if FLAGS.tornasole_relu_reductions:
@@ -1198,6 +1198,13 @@ def get_hook(FLAGS):
 
     include_collections = ["losses"]
 
+    hook = smd.SessionHook(
+        out_dir=FLAGS.smdebug_path,
+        save_config=smd.SaveConfig(save_interval=FLAGS.step_interval),
+        reduction_config=rnc,
+        include_collections=include_collections,
+        save_all=FLAGS.tornasole_save_all,
+    )
     if FLAGS.save_weights is True:
         include_collections.append("weights")
     if FLAGS.save_gradients is True:
@@ -1207,15 +1214,9 @@ def get_hook(FLAGS):
     if FLAGS.tornasole_save_inputs is True:
         include_collections.append("inputs")
     if FLAGS.tornasole_include:
-        smd.get_collection("default").include(FLAGS.tornasole_include)
+        hook.get_collection("default").include(FLAGS.tornasole_include)
         include_collections.append("default")
-    return smd.SessionHook(
-        out_dir=FLAGS.smdebug_path,
-        save_config=smd.SaveConfig(save_interval=FLAGS.step_interval),
-        reduction_config=rnc,
-        include_collections=include_collections,
-        save_all=FLAGS.tornasole_save_all,
-    )
+    return hook
 
 
 def main():
@@ -1349,6 +1350,9 @@ def main():
     if FLAGS.model_dir is None:
         FLAGS.model_dir = FLAGS.log_dir
 
+    if FLAGS.enable_smdebug is True and hvd.rank() == 0:
+        hook = create_hook(FLAGS)
+
     classifier = tf.estimator.Estimator(
         model_fn=cnn_model_function,
         model_dir=FLAGS.model_dir,
@@ -1388,9 +1392,6 @@ def main():
             keep_checkpoint_max=None,
         ),
     )
-
-    if FLAGS.enable_smdebug is True and hvd.rank() == 0:
-        hook = get_hook(FLAGS)
 
     if not FLAGS.eval:
         num_preproc_threads = 5

@@ -5,7 +5,7 @@ import mxnet as mx
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
-from smdebug.mxnet.collection import get_collection_manager
+from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
 from smdebug.mxnet.utils import get_reduction_of_data, make_numpy_array
@@ -35,7 +35,7 @@ class Hook(CallbackHook):
         save_all=False,
         include_workers="one",
     ):
-        collection_manager = get_collection_manager()
+        collection_manager = CollectionManager()
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
@@ -86,9 +86,7 @@ class Hook(CallbackHook):
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):
-        return create_hook_from_json_config(
-            cls, get_collection_manager(), json_config_path=json_config_path
-        )
+        return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
     def _cleanup(self):
         # Write the gradients of the past step if the writer is still available.

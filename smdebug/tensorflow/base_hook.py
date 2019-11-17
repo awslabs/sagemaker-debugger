@@ -17,7 +17,7 @@ from smdebug.core.utils import serialize_tf_device
 from smdebug.core.writer import FileWriter
 
 # Local
-from .collection import CollectionKeys, get_collection_manager
+from .collection import CollectionKeys, CollectionManager
 from .singleton_utils import set_hook
 from .utils import (
     TFDistributionStrategy,
@@ -65,7 +65,7 @@ class TensorflowBaseHook(BaseHook):
         save_all=False,
         include_workers="one",
     ):
-        collection_manager = get_collection_manager()
+        collection_manager = CollectionManager()
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
@@ -96,9 +96,7 @@ class TensorflowBaseHook(BaseHook):
 
     @classmethod
     def hook_from_config(cls, json_config_path=None):
-        return create_hook_from_json_config(
-            cls, get_collection_manager(), json_config_path=json_config_path
-        )
+        return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
     def get_distribution_strategy(self) -> TFDistributionStrategy:
         try:

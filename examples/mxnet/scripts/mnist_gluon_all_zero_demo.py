@@ -11,7 +11,6 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-import smdebug.mxnet as smd
 from smdebug.mxnet import Hook, SaveConfig, modes
 
 
@@ -143,14 +142,13 @@ def create_hook(output_s3_uri):
     # With the following SaveConfig, we will save tensors for steps 0, 1, 2 and 3
     # (indexing starts with 0).
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
-    smd.get_collection("ReluActivation").include(["relu*", "input_*"])
-
     # Create a hook that logs weights, biases and gradients while training the model.
     hook = Hook(
         out_dir=output_s3_uri,
         save_config=save_config,
         include_collections=["ReluActivation", "weights", "biases", "gradients"],
     )
+    hook.get_collection("ReluActivation").include(["relu*", "input_*"])
     return hook
 
 

@@ -125,7 +125,6 @@ def _run_net_distributed(include_workers="one"):
     if not hasattr(dist, "is_initialized"):
         return
     multiprocessing.set_start_method("spawn", force=True)
-    smd.reset_collections()
     size = 2
     processes = []
     for rank in range(size):
@@ -148,7 +147,6 @@ def _run_net_distributed(include_workers="one"):
 @pytest.mark.slow  # 0:05 to run
 def test_run_net_single_process():
     """Runs a single linear layer."""
-    smd.reset_collections()
     device = torch.device("cpu")
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.01)

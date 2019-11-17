@@ -1,28 +1,29 @@
 # Standard Library
 
 # Third Party
+import tensorflow as tf
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import get_path_to_collections
-from smdebug.tensorflow import CollectionManager, get_collections, reset_collections
+from smdebug.tensorflow import SaveConfig, SessionHook
+from smdebug.tensorflow.collection import CollectionManager
 
 # Local
-from .utils import SaveConfig, SessionHook, get_collection_files, join, simple_model, tf
+from .utils import get_collection_files, join, simple_model
 
 
 def test_save_all_full(out_dir, hook=None):
     tf.reset_default_graph()
     if hook is None:
-        reset_collections()
         hook = SessionHook(out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=2))
 
     simple_model(hook)
     files = get_collection_files(out_dir)
 
-    coll = get_collections()
+    coll = hook.get_collections()
     assert all(
         [x in coll.keys() for x in ["all", "weights", "gradients", "losses", "optimizer_variables"]]
     )
@@ -57,6 +58,5 @@ def test_hook_config_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json",
     )
-    reset_collections()
     hook = SessionHook.hook_from_config()
     test_save_all_full(out_dir, hook)

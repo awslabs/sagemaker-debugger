@@ -6,19 +6,11 @@ from tests.tensorflow.hooks.test_estimator_modes import help_test_mnist
 
 # First Party
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from smdebug.tensorflow import SessionHook, get_collection, modes, reset_collections
+from smdebug.tensorflow import SaveConfig, SaveConfigMode, SessionHook, modes
 from smdebug.trials import create_trial
 
 # Local
-from .utils import (
-    SaveConfig,
-    SaveConfigMode,
-    get_collection_files,
-    get_dirs_files,
-    os,
-    pre_test_clean_up,
-    simple_model,
-)
+from .utils import get_collection_files, get_dirs_files, os, pre_test_clean_up, simple_model
 
 
 def helper_test_save_config(trial_dir, hook):
@@ -108,11 +100,11 @@ def helper_save_config_modes(trial_dir, hook):
 @pytest.mark.slow  # 0:03 to run
 def test_save_config_modes(out_dir):
     pre_test_clean_up()
-    get_collection("weights").save_config = {
+    hook = SessionHook(out_dir=out_dir, include_collections=["weights"])
+    hook.get_collection("weights").save_config = {
         modes.TRAIN: SaveConfigMode(save_interval=2),
         modes.EVAL: SaveConfigMode(save_interval=3),
     }
-    hook = SessionHook(out_dir=out_dir, include_collections=["weights"])
     helper_save_config_modes(out_dir, hook)
 
 
@@ -122,6 +114,5 @@ def test_save_config_modes_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_config_coll.json",
     )
-    reset_collections()
     hook = SessionHook.hook_from_config()
     helper_save_config_modes(out_dir, hook)

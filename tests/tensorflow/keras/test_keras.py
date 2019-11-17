@@ -12,7 +12,7 @@ from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
-from smdebug.tensorflow import ReductionConfig, SaveConfig, get_collection, reset_collections
+from smdebug.tensorflow import ReductionConfig, SaveConfig
 from smdebug.tensorflow.keras import KerasHook
 
 
@@ -41,9 +41,9 @@ def train_model(
     reduction_config=None,
     save_config=None,
     use_tf_keras=True,
+    hook=None,
     eager=False,
     use_keras_optimizer=True,
-    reset=True,
     create_relu_collection=False,
     steps=None,
     add_callbacks=None,
@@ -53,9 +53,8 @@ def train_model(
     else:
         import keras
 
-    if reset:
-        reset_collections()
-        tf.reset_default_graph()
+    # if reset:
+    #     tf.reset_default_graph()
 
     mnist = keras.datasets.mnist
 
@@ -63,8 +62,6 @@ def train_model(
     x_train, x_test = x_train / 255.0, x_test / 255.0
 
     relu_layer = keras.layers.Dense(128, activation="relu")
-    if create_relu_collection:
-        get_collection("relu").add_keras_layer(relu_layer, inputs=True, outputs=True)
 
     model = keras.models.Sequential(
         [
@@ -75,16 +72,20 @@ def train_model(
         ]
     )
 
-    if save_config is None:
-        save_config = SaveConfig(save_interval=3)
+    if hook is None:
+        if save_config is None:
+            save_config = SaveConfig(save_interval=3)
 
-    hook = KerasHook(
-        trial_dir,
-        save_config=save_config,
-        save_all=save_all,
-        include_collections=include_collections,
-        reduction_config=reduction_config,
-    )
+        hook = KerasHook(
+            trial_dir,
+            save_config=save_config,
+            save_all=save_all,
+            include_collections=include_collections,
+            reduction_config=reduction_config,
+        )
+
+    if create_relu_collection:
+        hook.get_collection("relu").add_keras_layer(relu_layer, inputs=True, outputs=True)
 
     if use_keras_optimizer:
         opt = keras.optimizers.RMSprop()
@@ -280,16 +281,13 @@ def test_base_reductions(out_dir):
 
 @pytest.mark.slow  # 0:03 to run
 def test_collection_reductions(out_dir):
-    reset_collections()
-    tf.reset_default_graph()
-
-    get_collection(CollectionKeys.GRADIENTS).reduction_config = ReductionConfig(norms=["l1"])
-    train_model(
+    hook = KerasHook(
         out_dir,
-        reset=False,
+        save_config=SaveConfig(save_interval=3),
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.GRADIENTS],
-        steps=["train"],
     )
+    hook.get_collection(CollectionKeys.GRADIENTS).reduction_config = ReductionConfig(norms=["l1"])
+    train_model(out_dir, hook=hook, steps=["train"])
 
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
@@ -311,11 +309,9 @@ def test_training_end(out_dir):
 
 @pytest.mark.slow  # 0:06 to run
 def test_collection_add(out_dir):
-    reset_collections()
     train_model(
         out_dir,
         include_collections=["relu"],
-        reset=False,
         save_config=SaveConfig(save_interval=9),
         create_relu_collection=True,
         steps=["train"],
@@ -331,15 +327,11 @@ def test_collection_add(out_dir):
 
 @pytest.mark.slow  # 0:06 to run
 def test_include_regex(out_dir):
-    reset_collections()
-    get_collection("custom_coll").include("dense")
-    train_model(
-        out_dir,
-        include_collections=["custom_coll"],
-        save_config=SaveConfig(save_interval=9),
-        reset=False,
-        steps=["train"],
+    hook = KerasHook(
+        out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
     )
+    hook.get_collection("custom_coll").include("dense")
+    train_model(out_dir, hook=hook, save_config=SaveConfig(save_interval=9), steps=["train"])
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensors(collection="custom_coll")

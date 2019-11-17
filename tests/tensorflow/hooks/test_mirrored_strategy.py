@@ -190,8 +190,6 @@ def helper_mirrored(
     num_devices = num_gpus if num_gpus > 0 else 1
     batch_size = 10 * num_devices
 
-    smd.reset_collections()
-
     # input_fn which serves Dataset
     input_fn_provider = InputFnProvider(per_device_batch_size(batch_size, num_devices))
 

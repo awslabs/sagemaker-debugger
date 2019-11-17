@@ -43,7 +43,6 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
     optimizer = optim.SGD(net.parameters(), lr=0.05, momentum=0.9)
     criterion = nn.CrossEntropyLoss()
 
-    smd.reset_collections()
     hook = smd.Hook(out_dir=out_dir, save_config=smd.SaveConfig(save_interval=1))
     hook.register_hook(net)
     if use_loss_module:

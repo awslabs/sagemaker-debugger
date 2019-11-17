@@ -6,7 +6,7 @@ import tensorflow as tf
 
 # First Party
 from smdebug.core.utils import get_path_to_collections
-from smdebug.tensorflow import Collection, CollectionManager, get_collection, reset_collections
+from smdebug.tensorflow.collection import Collection, CollectionManager
 from smdebug.tensorflow.tensor_ref import get_tf_names
 
 
@@ -25,20 +25,20 @@ def test_manager_export_load(out_dir):
 
 
 def test_add_variable():
-    reset_collections()
+    cm = CollectionManager()
     tf.reset_default_graph()
     var = tf.Variable(tf.zeros([1.0, 2.0, 3.0]))
-    get_collection("test").add(var)
-    assert get_tf_names(var)[0] in get_collection("test").get_tensors_dict()
-    assert var.name in get_collection("test").tensor_names
-    assert get_collection("test").get_tensor(get_tf_names(var)[0]).original_tensor == var
+    cm.get("test").add(var)
+    assert get_tf_names(var)[0] in cm.get("test").get_tensors_dict()
+    assert var.name in cm.get("test").tensor_names
+    assert cm.get("test").get_tensor(get_tf_names(var)[0]).original_tensor == var
 
 
 def test_add_variable_with_name():
-    reset_collections()
+    cm = CollectionManager()
     tf.reset_default_graph()
     var = tf.Variable(tf.zeros([1.0, 2.0, 3.0]))
-    get_collection("test").add_variable(var, export_name="zeros_var")
-    assert get_tf_names(var)[0] in get_collection("test").get_tensors_dict()
-    assert "zeros_var" in get_collection("test").tensor_names
-    assert get_collection("test").get_tensor(get_tf_names(var)[0]).original_tensor == var
+    cm.get("test").add_variable(var, export_name="zeros_var")
+    assert get_tf_names(var)[0] in cm.get("test").get_tensors_dict()
+    assert "zeros_var" in cm.get("test").tensor_names
+    assert cm.get("test").get_tensor(get_tf_names(var)[0]).original_tensor == var

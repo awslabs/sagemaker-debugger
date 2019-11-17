@@ -159,7 +159,7 @@ for different modes. You can configure this by passing a
 dictionary from mode to SaveConfigMode object.
 The hook's `save_config` parameter accepts such a dictionary, as well as collection's `save_config` property.
 ```
-from smdebug.tensorflow import SessionHook, get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import SessionHook, modes, SaveConfigMode
 scm = {modes.TRAIN: SaveConfigMode(save_interval=100),
         modes.EVAL: SaveConfigMode(save_interval=10)}
 
@@ -169,7 +169,7 @@ hook = SessionHook(...,
 ```
 
 ```
-from smdebug.tensorflow import get_collection, modes, SaveConfigMode
+from smdebug.tensorflow import modes, SaveConfigMode
 get_collection('weights').save_config = {modes.TRAIN: SaveConfigMode(save_interval=10), modes.EVAL: SaveConfigMode(save_interval=1000)}
 ```
 

@@ -16,6 +16,7 @@ def test_collection_defaults_json(out_dir, monkeypatch):
         "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
     )
     hook = SessionHook.hook_from_config()
+
     # Check save_intervals for each mode
     assert hook.save_config.get_save_config(ModeKeys.TRAIN).save_interval == 2
     assert hook.save_config.get_save_config(ModeKeys.EVAL).save_interval == 3

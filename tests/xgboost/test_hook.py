@@ -13,7 +13,7 @@ from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
 from smdebug.trials import create_trial
-from smdebug.xgboost import Hook, get_collection, reset_collections
+from smdebug.xgboost import Hook
 
 # Local
 from .json_config import get_json_config, get_json_config_full
@@ -21,7 +21,6 @@ from .run_xgboost_model import run_xgboost_model
 
 
 def test_hook(tmpdir):
-    reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(out_dir=out_dir, save_config=save_config)
@@ -30,7 +29,6 @@ def test_hook(tmpdir):
 
 
 def test_hook_from_json_config(tmpdir, monkeypatch):
-    reset_collections()
     out_dir = tmpdir.join("test_hook_from_json_config")
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config(str(out_dir)))
@@ -41,7 +39,6 @@ def test_hook_from_json_config(tmpdir, monkeypatch):
 
 
 def test_hook_from_json_config_full(tmpdir, monkeypatch):
-    reset_collections()
     out_dir = tmpdir.join("test_hook_from_json_config_full")
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config_full(str(out_dir)))
@@ -53,7 +50,6 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
 
 @pytest.mark.skip(reason="If no config file is found, then SM doesn't want a SessionHook")
 def test_default_hook(monkeypatch):
-    reset_collections()
     shutil.rmtree("/opt/ml/output/tensors", ignore_errors=True)
     monkeypatch.delenv(CONFIG_FILE_PATH_ENV_STR, raising=False)
     hook = Hook.hook_from_config()
@@ -61,7 +57,6 @@ def test_default_hook(monkeypatch):
 
 
 def test_hook_save_every_step(tmpdir):
-    reset_collections()
     save_config = SaveConfig(save_interval=1)
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(out_dir=out_dir, save_config=save_config)
@@ -71,7 +66,6 @@ def test_hook_save_every_step(tmpdir):
 
 
 def test_hook_save_all(tmpdir):
-    reset_collections()
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
 
@@ -93,12 +87,11 @@ def test_hook_save_all(tmpdir):
 
 
 def test_hook_save_config_collections(tmpdir):
-    reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(out_dir=out_dir, include_collections=["metrics", "feature_importance"])
 
-    get_collection("metrics").save_config = SaveConfig(save_interval=2)
-    get_collection("feature_importance").save_config = SaveConfig(save_interval=3)
+    hook.get_collection("metrics").save_config = SaveConfig(save_interval=2)
+    hook.get_collection("feature_importance").save_config = SaveConfig(save_interval=3)
 
     run_xgboost_model(hook=hook)
 
@@ -116,7 +109,6 @@ def test_hook_feature_importance(tmpdir):
     train_label = np.random.randint(2, size=10)
     dtrain = xgboost.DMatrix(train_data, label=train_label)
 
-    reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(out_dir=out_dir, include_collections=["feature_importance"])
     run_xgboost_model(hook=hook)
@@ -139,7 +131,6 @@ def test_hook_shap(tmpdir):
     train_label = np.random.randint(2, size=10)
     dtrain = xgboost.DMatrix(train_data, label=train_label)
 
-    reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(
         out_dir=out_dir, include_collections=["average_shap", "full_shap"], train_data=dtrain
@@ -172,7 +163,6 @@ def test_hook_validation(tmpdir):
     valid_label = np.random.randint(2, size=5)
     dvalid = xgboost.DMatrix(valid_data, label=valid_label)
 
-    reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(
         out_dir=out_dir,
@@ -200,7 +190,6 @@ def test_hook_tree_model(tmpdir):
     bst = xgboost.train(params, dtrain, num_boost_round=0)
     df = bst.trees_to_dataframe()
 
-    reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(out_dir=out_dir, include_collections=["trees"])
     run_xgboost_model(hook=hook)
@@ -223,7 +212,6 @@ def test_hook_params(tmpdir):
     dvalid = xgboost.DMatrix(valid_data, label=valid_label)
     params = {"objective": "binary:logistic", "num_round": 20, "eta": 0.1}
 
-    reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(out_dir=out_dir, include_collections=["hyperparameters"], hyperparameters=params)
     run_xgboost_model(hook=hook)
@@ -238,7 +226,6 @@ def test_hook_params(tmpdir):
 
 
 def test_hook_tensorboard_dir_created(tmpdir):
-    reset_collections()
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
     hook = Hook(out_dir=out_dir, export_tensorboard=True)
     run_xgboost_model(hook=hook)

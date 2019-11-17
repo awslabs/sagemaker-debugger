@@ -23,7 +23,6 @@ from tests.analysis.utils import delete_s3_prefix
 import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import is_s3
-from smdebug.tensorflow import reset_collections
 from smdebug.tensorflow.session import SessionHook
 from smdebug.trials import create_trial
 
@@ -40,8 +39,6 @@ def help_test_mnist(
 ):
     trial_dir = path
     tf.reset_default_graph()
-    if hook is None:
-        reset_collections()
 
     def cnn_model_fn(features, labels, mode):
         """Model function for CNN."""

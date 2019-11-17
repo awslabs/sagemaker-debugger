@@ -148,7 +148,6 @@ class CollectionManager(BaseCollectionManager):
             ]:
                 self.create_collection(n)
             self.get(CollectionKeys.BIASES).include("bias")
-        self._tensors = {}
 
     def create_collection(self, name):
         super().create_collection(name, cls=Collection)
@@ -160,42 +159,3 @@ class CollectionManager(BaseCollectionManager):
     @classmethod
     def load_from_string(cls, s, coll_class=Collection):
         return super().load_from_string(s, coll_class)
-
-
-_collection_manager = CollectionManager()
-
-
-def reset_collections():
-    global _collection_manager
-    del _collection_manager
-    _collection_manager = CollectionManager()
-
-
-def add_to_collection(collection_name, args):
-    get_collection(collection_name).add(args)
-
-
-def add_to_default_collection(args):
-    add_to_collection(CollectionKeys.DEFAULT, args)
-
-
-def get_collection(collection_name):
-    return _collection_manager.get(collection_name, create=True)
-
-
-def get_collections():
-    return _collection_manager.collections
-
-
-def export_collections(path):
-    if _collection_manager:
-        _collection_manager.export(path)
-
-
-def get_collection_manager():
-    return _collection_manager
-
-
-def load_collections(path):
-    global _collection_manager
-    _collection_manager = CollectionManager.load(path)

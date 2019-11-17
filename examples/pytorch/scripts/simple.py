@@ -14,7 +14,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 # First Party
-from smdebug.pytorch import Hook, SaveConfig, get_collection
+from smdebug.pytorch import Hook, SaveConfig
 
 
 class Net(nn.Module):
@@ -60,7 +60,6 @@ def create_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
         # Output :  <module_name>_output
         # In order to log the inputs and output of a module, we will create a collection as follows:
         assert module is not None
-        get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
 
         # Create a hook that logs weights, biases, gradients and inputs/outputs of model
         hook = Hook(
@@ -69,6 +68,7 @@ def create_hook(output_dir, module=None, hook_type="saveall", save_steps=None):
             include_collections=["weights", "gradients", "biases", "l_mod"],
             export_tensorboard=True,
         )
+        hook.get_collection("l_mod").add_module_tensors(module, inputs=True, outputs=True)
     elif hook_type == "weights-bias-gradients":
         save_config = SaveConfig(save_steps=save_steps)
         # Create a hook that logs ONLY weights, biases, and gradients

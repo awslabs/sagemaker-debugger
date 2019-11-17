@@ -147,7 +147,6 @@ def test_keras_to_estimator(script_mode: bool):
     """ Works as intended. """
     import tensorflow.compat.v1.keras as keras
 
-    smd.reset_collections()
     smd.del_hook()
     keras.backend.clear_session()
     with SagemakerSimulator() as sim:

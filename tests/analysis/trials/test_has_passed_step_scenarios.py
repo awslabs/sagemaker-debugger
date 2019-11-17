@@ -474,12 +474,12 @@ def test_partially_written_tensors():
     """
     The trial data accessed by this test was generated with the following hook configs:
 
-        smd.get_collection("gradients").save_config = {
+        hook.get_collection("gradients").save_config = {
             smd.modes.TRAIN: smd.SaveConfigMode(save_interval=1, start_step=5, end_step=10),
         }
 
 
-        smd.get_collection("losses").save_config = {
+        hook.get_collection("losses").save_config = {
             smd.modes.TRAIN: smd.SaveConfigMode(save_interval=1, end_step=5),
         }
 

@@ -3,7 +3,7 @@ from datetime import datetime
 
 # First Party
 from smdebug import modes
-from smdebug.mxnet import SaveConfig, SaveConfigMode, modes, reset_collections
+from smdebug.mxnet import SaveConfig, SaveConfigMode, modes
 from smdebug.mxnet.hook import Hook as t_hook
 from smdebug.trials import create_trial
 
@@ -13,7 +13,6 @@ from .mnist_gluon_model import run_mnist_gluon_model
 
 def test_modes(hook=None, path=None):
     if hook is None:
-        reset_collections()
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         path = "./newlogsRunTest/" + run_id
         hook = t_hook(
@@ -58,7 +57,6 @@ def test_modes_hook_from_json_config():
     import shutil
     import os
 
-    reset_collections()
     out_dir = "newlogsRunTest2/test_modes_hookjson"
     shutil.rmtree(out_dir, True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/mxnet/test_json_configs/test_modes_hook.json"

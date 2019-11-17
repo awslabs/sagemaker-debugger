@@ -19,9 +19,6 @@ from tensorflow import keras
 from torch.autograd import Variable
 
 # First Party
-import smdebug.mxnet as tm
-import smdebug.pytorch as tp
-import smdebug.tensorflow as tt
 from smdebug.core.config_constants import DEFAULT_SAGEMAKER_METRICS_PATH
 from smdebug.core.modes import ModeKeys
 from smdebug.core.sagemaker_utils import is_sagemaker_job
@@ -217,14 +214,15 @@ def helper_pytorch_tests(collection, register_loss, save_config):
     run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_PT_HOOK_TESTS_DIR, run_id)
 
-    coll = tp.get_collection(coll_name)
+    hook = PT_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
+
+    coll = hook.get_collection(coll_name)
     coll.save_config = save_config
     save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
     if not save_steps:
         save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
         save_steps = [i for i in range(0, 10, save_interval)]
 
-    hook = PT_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
     simple_pt_model(hook, register_loss=register_loss)
     hook.close()
 
@@ -258,14 +256,14 @@ def helper_mxnet_tests(collection, register_loss, save_config):
     run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_MX_HOOK_TESTS_DIR, run_id)
 
-    coll = tm.get_collection(coll_name)
+    hook = MX_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
+    coll = hook.get_collection(coll_name)
     coll.save_config = save_config
     save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
     if not save_steps:
         save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
         save_steps = [i for i in range(0, 10, save_interval)]
 
-    hook = MX_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
     simple_mx_model(hook, register_loss=register_loss)
     hook.close()
 
@@ -299,14 +297,14 @@ def helper_tensorflow_tests(collection, save_config):
     run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_TF_HOOK_TESTS_DIR, run_id)
 
-    coll = tt.get_collection(coll_name)
+    hook = TF_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
+    coll = hook.get_collection(coll_name)
     coll.save_config = save_config
     save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
     if not save_steps:
         save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
         save_steps = [i for i in range(0, 10, save_interval)]
 
-    hook = TF_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
     simple_tf_model(hook)
     hook.close()
 

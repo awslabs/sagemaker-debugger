@@ -12,10 +12,10 @@ import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.locations import TensorFileLocation
 from smdebug.core.reader import FileReader
-from smdebug.tensorflow.session import SessionHook
+from smdebug.tensorflow import SaveConfig, SessionHook
 
 # Local
-from .utils import SaveConfig, pre_test_clean_up
+from .utils import pre_test_clean_up
 
 
 def helper_hook_write(data_dir, hook):

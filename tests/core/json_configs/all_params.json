@@ -1,0 +1,24 @@
+{
+  "S3OutputPath": "s3://kjndkjnd_bucket/prefix",
+  "LocalPath": "/tmp/test",
+  "HookParameters": {
+    "save_interval": "2",
+    "save_all": "true",
+    "include_workers": "one",
+    "export_tensorboard": "true",
+    "tensorboard_dir": "/tmp/tensorboard"
+  },
+  "CollectionConfigurations": [
+    { "CollectionName": "weights" ,
+      "CollectionParameters": {
+        "save_histogram": "false"
+      }
+    },
+    {
+      "CollectionName": "gradients",
+      "CollectionParameters": {
+        "save_histogram": false
+      }
+    }
+  ]
+}

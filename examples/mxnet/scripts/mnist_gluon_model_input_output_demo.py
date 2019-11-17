@@ -9,7 +9,6 @@ from mxnet.gluon import nn
 from mxnet.gluon.data.vision import datasets, transforms
 
 # First Party
-import smdebug.mxnet as smd
 from smdebug.mxnet import Hook, SaveConfig, modes
 
 
@@ -132,18 +131,18 @@ def create_hook(output_s3_uri, block):
     # With the following SaveConfig, we will save tensors for steps 1, 2 and 3.
     save_config = SaveConfig(save_steps=[1, 2, 3])
 
-    # The names of input and output tensors of a block are in following format
-    # Inputs :  <block_name>_input_<input_index>, and
-    # Output :  <block_name>_output
-    # In order to log the inputs and output of a model, we will create a collection as follows:
-    smd.get_collection("TopBlock").add_block_tensors(block, inputs=True, outputs=True)
-
     # Create a hook that logs weights, biases, gradients and inputs outputs of model while training.
     hook = Hook(
         out_dir=output_s3_uri,
         save_config=save_config,
         include_collections=["weights", "gradients", "biases", "TopBlock"],
     )
+
+    # The names of input and output tensors of a block are in following format
+    # Inputs :  <block_name>_input_<input_index>, and
+    # Output :  <block_name>_output
+    # In order to log the inputs and output of a model, we will create a collection as follows:
+    hook.get_collection("TopBlock").add_block_tensors(block, inputs=True, outputs=True)
     return hook
 
 
