@@ -1,6 +1,7 @@
 # Third Party
 import numpy as np
 import tensorflow as tf
+from tests.zero_code_change.tf_utils import get_data, get_train_op_and_placeholders
 
 # First Party
 import smdebug.tensorflow as smd
@@ -40,3 +41,23 @@ def test_new_graph(out_dir):
         sess.close()
         tr = create_trial(out_dir)
         assert len(tr.tensors())
+
+
+def test_uninit_sess_run(out_dir):
+    train_op, X, Y = get_train_op_and_placeholders()
+    init = tf.compat.v1.global_variables_initializer()
+    mnist = get_data()
+    hook = smd.SessionHook(out_dir, include_collections=["weights"])
+    sess = tf.train.MonitoredSession(hooks=[hook])
+
+    with sess:
+        sess.run(init)
+        for step in range(1, 101):
+            batch_x, batch_y = mnist.train.next_batch(32)
+            sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
+
+    # Check that hook created and tensors saved
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.steps()) > 0, "Nothing saved at any step."
+    assert len(trial.tensors()) > 0, "Tensors were not saved."
+    assert len(trial.tensors(collection="weights")) > 0

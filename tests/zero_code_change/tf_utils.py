@@ -4,14 +4,86 @@ import typing as Tuple
 # Third Party
 import numpy as np
 import tensorflow as tf
+import tensorflow_datasets as tfds
 from tensorflow.examples.tutorials.mnist import input_data
 
-### Used for tf.estimator.Estimator ###
+tfds.disable_progress_bar()
 
 
-def get_estimator() -> tf.estimator.Estimator:
+class LarcOptimizer(tf.train.Optimizer):
+    """ LARC implementation
+        -------------------
+        Parameters:
+          - optimizer:     initial optimizer that you wanna apply
+                           example: tf.train.MomentumOptimizer
+          - learning_rate: initial learning_rate from initial optimizer
+          - clip:          if True apply LARC otherwise LARS
+          - epsilon:       default value is weights or grads are 0.
+          - name
+          - use_locking
+    """
+
+    def __init__(
+        self,
+        optimizer,
+        learning_rate,
+        eta,
+        clip=True,
+        epsilon=1.0,
+        name="LarcOptimizer",
+        use_locking=False,
+    ):
+        super(LarcOptimizer, self).__init__(name=name, use_locking=use_locking)
+        self._optimizer = optimizer
+        self._learning_rate = learning_rate
+        self._eta = float(eta)
+        self._clip = clip
+        self._epsilon = float(epsilon)
+
+    def compute_gradients(self, *args, **kwargs):
+        return self._optimizer.compute_gradients(*args, **kwargs)
+
+    def apply_gradients(self, gradvars, *args, **kwargs):
+        v_list = [tf.norm(tensor=v, ord=2) for _, v in gradvars]
+        g_list = [tf.norm(tensor=g, ord=2) if g is not None else 0.0 for g, _ in gradvars]
+        v_norms = tf.stack(v_list)
+        g_norms = tf.stack(g_list)
+        zeds = tf.zeros_like(v_norms)
+        # assign epsilon if weights or grads = 0, to avoid division by zero
+        # also prevent biases to get stuck at initialization (0.)
+        cond = tf.logical_and(tf.not_equal(v_norms, zeds), tf.not_equal(g_norms, zeds))
+        true_vals = tf.scalar_mul(self._eta, tf.div(v_norms, g_norms))
+        false_vals = tf.fill(tf.shape(v_norms), self._epsilon)
+        larc_local_lr = tf.where(cond, true_vals, false_vals)
+        if self._clip:
+            ones = tf.ones_like(v_norms)
+            lr = tf.fill(tf.shape(v_norms), self._learning_rate)
+            # We need gradients to compute local learning rate,
+            # so compute_gradients from initial optimizer have to called
+            # for which learning rate is already fixed
+            # We then have to scale the gradients instead of the learning rate.
+            larc_local_lr = tf.minimum(tf.div(larc_local_lr, lr), ones)
+        gradvars = [
+            (tf.multiply(larc_local_lr[i], g), v) if g is not None else (None, v)
+            for i, (g, v) in enumerate(gradvars)
+        ]
+        return self._optimizer.apply_gradients(gradvars, *args, **kwargs)
+
+
+def get_estimator(nested_optimizer=False, mirrored=False) -> tf.estimator.Estimator:
     """ Return an estimator object ready for testing. """
-    return tf.estimator.Estimator(model_fn=_cnn_model_fn, model_dir="/tmp/mnist_model")
+    if mirrored:
+        distribution = tf.distribute.MirroredStrategy()
+        config = tf.estimator.RunConfig(train_distribute=distribution, model_dir="/tmp/mnist_model")
+    else:
+        config = None
+
+    return tf.estimator.Estimator(
+        model_fn=_cnn_model_fn,
+        model_dir="/tmp/mnist_model",
+        config=config,
+        params={"nested_optimizer": nested_optimizer},
+    )
 
 
 def get_input_fns(batch_size=32) -> Tuple:
@@ -35,7 +107,7 @@ def get_input_fns(batch_size=32) -> Tuple:
     return train_input_fn, eval_input_fn
 
 
-def _cnn_model_fn(features, labels, mode):
+def _cnn_model_fn(features, labels, mode, params):
     """Model function for CNN."""
     # Input Layer
     input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
@@ -85,6 +157,9 @@ def _cnn_model_fn(features, labels, mode):
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+        if params["nested_optimizer"]:
+            optimizer = LarcOptimizer(optimizer, 0.01, 0.0005)
+
         # optimizer = smd.TornasoleOptimizer(optimizer)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)

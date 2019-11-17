@@ -28,6 +28,7 @@ import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
 from smdebug.exceptions import TensorUnavailableForStep
+from smdebug.tensorflow import get_hook
 
 
 def cnn_model_fn(features, labels, mode):
@@ -183,6 +184,7 @@ def helper_mirrored(
     reduction_config=None,
     include_collections=None,
     steps=None,
+    zcc=False,
     eval_distributed=False,
     include_workers="all",
 ):
@@ -218,14 +220,17 @@ def helper_mirrored(
             CollectionKeys.LOSSES,
         ]
 
-    ts_hook = smd.SessionHook(
-        out_dir=trial_dir,
-        save_all=save_all,
-        include_collections=include_collections,
-        save_config=save_config,
-        reduction_config=reduction_config,
-        include_workers=include_workers,
-    )
+    if not zcc:
+        ts_hook = smd.SessionHook(
+            out_dir=trial_dir,
+            save_all=save_all,
+            include_collections=include_collections,
+            save_config=save_config,
+            reduction_config=reduction_config,
+            include_workers=include_workers,
+        )
+    else:
+        print("zcc is passed. ignoring include_collections and save_config")
 
     mnist_classifier = tf.estimator.Estimator(model_fn=cnn_model_fn, config=config)
     if steps is None:
@@ -234,26 +239,38 @@ def helper_mirrored(
     for s in steps:
         if s == "train":
             print("Starting train")
-            ts_hook.set_mode(smd.modes.TRAIN)
-            # Train the model
-            mnist_classifier.train(
-                input_fn=input_fn_provider.train_input_fn, steps=num_steps, hooks=[ts_hook]
-            )
+            if not zcc:
+                ts_hook.set_mode(smd.modes.TRAIN)
+                # Train the model
+                mnist_classifier.train(
+                    input_fn=input_fn_provider.train_input_fn, steps=num_steps, hooks=[ts_hook]
+                )
+            else:
+                mnist_classifier.train(input_fn=input_fn_provider.train_input_fn, steps=num_steps)
         elif s == "eval":
             print("Starting eval")
-            ts_hook.set_mode(smd.modes.EVAL)
-            # Evaluate the model and print results
-            mnist_classifier.evaluate(
-                input_fn=input_fn_provider.eval_input_fn, steps=num_steps, hooks=[ts_hook]
-            )
+
+            if not zcc:
+                ts_hook.set_mode(smd.modes.EVAL)
+                # Evaluate the model and print results
+                mnist_classifier.evaluate(
+                    input_fn=input_fn_provider.eval_input_fn, steps=num_steps, hooks=[ts_hook]
+                )
+            else:
+                mnist_classifier.evaluate(input_fn=input_fn_provider.eval_input_fn, steps=num_steps)
         elif s == "predict":
-            ts_hook.set_mode(smd.modes.PREDICT)
-            # Evaluate the model and print results
             print("Starting predict")
-            p = mnist_classifier.predict(input_fn=input_fn_provider.eval_input_fn, hooks=[ts_hook])
+            if not zcc:
+                ts_hook.set_mode(smd.modes.PREDICT)
+                # Evaluate the model and print results
+                p = mnist_classifier.predict(
+                    input_fn=input_fn_provider.eval_input_fn, hooks=[ts_hook]
+                )
+            else:
+                p = mnist_classifier.predict(input_fn=input_fn_provider.eval_input_fn)
             for i in range(num_steps):
                 print(next(p))
-    ts_hook._cleanup()
+    get_hook()._cleanup()
     return distribution
 
 
@@ -270,7 +287,7 @@ def skip_trial_check():
 
 
 @pytest.mark.slow
-def test_basic(out_dir):
+def test_basic(out_dir, zcc=False):
     strategy = helper_mirrored(
         out_dir,
         steps=["train", "eval", "predict", "train"],
@@ -281,6 +298,7 @@ def test_basic(out_dir):
             CollectionKeys.LOSSES,
         ],
         eval_distributed=False,
+        zcc=zcc,
     )
     if skip_trial_check():
         return

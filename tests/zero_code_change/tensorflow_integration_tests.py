@@ -21,6 +21,8 @@ import argparse
 # Third Party
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from tests.tensorflow.hooks.test_mirrored_strategy import test_basic
+from tests.tensorflow.keras.test_keras_mirrored import test_tf_keras
 from tf_utils import (
     get_data,
     get_estimator,
@@ -38,6 +40,7 @@ from smdebug.core.utils import SagemakerSimulator
 def test_estimator(script_mode: bool):
     """ Works as intended. """
     smd.del_hook()
+    tf.reset_default_graph()
     with SagemakerSimulator() as sim:
         # Setup
         mnist_classifier = get_estimator()
@@ -47,7 +50,9 @@ def test_estimator(script_mode: bool):
         train_steps, eval_steps = 80, 20
         if script_mode:
             hook = smd.EstimatorHook(out_dir=sim.out_dir)
+            hook.set_mode(mode=smd.modes.TRAIN)
             mnist_classifier.train(input_fn=train_input_fn, steps=train_steps, hooks=[hook])
+            hook.set_mode(mode=smd.modes.EVAL)
             mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps, hooks=[hook])
         else:
             mnist_classifier.train(input_fn=train_input_fn, steps=train_steps)
@@ -62,9 +67,78 @@ def test_estimator(script_mode: bool):
         assert trial.steps() == [0, train_steps], "Wrong step count for trial."
 
 
+def test_estimator_gradients_zcc(nested=False, mirrored=False):
+    """ Works as intended. """
+    smd.del_hook()
+    tf.reset_default_graph()
+    json_file_contents = """
+        {
+            "S3OutputPath": "s3://sagemaker-test",
+            "LocalPath": "/opt/ml/output/tensors",
+            "HookParameters" : {
+                "save_interval": "2",
+                "include_workers": "all"
+            },
+            "CollectionConfigurations": [
+                {
+                    "CollectionName": "gradients"
+                },
+                {
+                    "CollectionName": "weights"
+                },
+                {
+                    "CollectionName": "losses"
+                },
+                {
+                    "CollectionName": "biases"
+                }
+            ]
+        }
+        """
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+
+        if mirrored:
+            test_basic("/opt/ml/output/tensors", zcc=True)
+        else:
+            # Setup
+            mnist_classifier = get_estimator(nested_optimizer=nested, mirrored=mirrored)
+            train_input_fn, eval_input_fn = get_input_fns()
+
+            # Train and evaluate
+            train_steps, eval_steps = 10, 10
+            mnist_classifier.train(input_fn=train_input_fn, steps=train_steps)
+            mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps)
+
+            # Check that hook created and tensors saved
+            trial = smd.create_trial(path=sim.out_dir)
+            print(trial)
+            assert smd.get_hook() is not None, "Hook was not created."
+            assert len(trial.steps()) > 0, "Nothing saved at any step."
+            assert len(trial.tensors()) > 0, "Tensors were not saved."
+            assert trial.steps() == [
+                0,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
+                14,
+                16,
+                18,
+            ], "Wrong step count for trial."
+            print(trial.tensors(collection="gradients"))
+            assert len(trial.tensors(collection="gradients")) > 0
+            assert len(trial.tensors(collection="weights")) > 0
+            assert len(trial.tensors(collection="losses")) > 0
+            assert len(trial.tensor(trial.tensors(collection="gradients")[0]).steps()) > 0
+            assert len(trial.modes()) == 2
+
+
 def test_linear_classifier(script_mode: bool):
     """ Works as intended. """
     smd.del_hook()
+    tf.reset_default_graph()
     with SagemakerSimulator() as sim:
         # Setup
         train_input_fn, eval_input_fn = get_input_fns()
@@ -90,6 +164,7 @@ def test_linear_classifier(script_mode: bool):
 def test_monitored_session(script_mode: bool):
     """ Works as intended. """
     smd.del_hook()
+    tf.reset_default_graph()
     with SagemakerSimulator() as sim:
         train_op, X, Y = get_train_op_and_placeholders()
         init = tf.compat.v1.global_variables_initializer()
@@ -114,9 +189,50 @@ def test_monitored_session(script_mode: bool):
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
 
+def test_monitored_session_gradients_zcc():
+    """ Works as intended. """
+    smd.del_hook()
+    json_file_contents = """
+    {
+        "S3OutputPath": "s3://sagemaker-test",
+        "LocalPath": "/opt/ml/output/tensors",
+        "CollectionConfigurations": [
+            {
+                "CollectionName": "gradients"
+            },
+            {
+                "CollectionName": "losses"
+            }
+        ]
+    }
+    """
+    tf.reset_default_graph()
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        train_op, X, Y = get_train_op_and_placeholders()
+        init = tf.compat.v1.global_variables_initializer()
+        mnist = get_data()
+
+        sess = tf.train.MonitoredSession()
+
+        with sess:
+            sess.run(init)
+            for step in range(1, 101):
+                batch_x, batch_y = mnist.train.next_batch(32)
+                sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
+
+        # Check that hook created and tensors saved
+        trial = smd.create_trial(path=sim.out_dir)
+        assert smd.get_hook() is not None, "Hook was not created."
+        assert len(trial.steps()) > 0, "Nothing saved at any step."
+        assert len(trial.tensors()) > 0, "Tensors were not saved."
+        assert len(trial.tensors(collection="gradients")) > 0
+
+
 def test_keras_v1(script_mode: bool):
     """ Works as intended. """
     smd.del_hook()
+    tf.reset_default_graph()
+    tf.keras.backend.clear_session()
     with SagemakerSimulator() as sim:
         model = get_keras_model_v1()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
@@ -143,10 +259,119 @@ def test_keras_v1(script_mode: bool):
         assert len(trial.tensors()) > 0, "Tensors were not saved."
 
 
+def test_keras_gradients(script_mode: bool, tf_optimizer: bool = False):
+    """ Works as intended. """
+    smd.del_hook()
+    tf.reset_default_graph()
+    tf.keras.backend.clear_session()
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/opt/ml/output/tensors",
+                "CollectionConfigurations": [
+                    {
+                        "CollectionName": "gradients"
+                    },
+                    {
+                        "CollectionName": "optimizer_variables"
+                    },
+                    {
+                        "CollectionName": "losses"
+                    }
+                ]
+            }
+            """
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        model = get_keras_model_v1()
+        (x_train, y_train), (x_test, y_test) = get_keras_data()
+
+        if tf_optimizer:
+            opt = tf.train.RMSPropOptimizer(0.1)
+        else:
+            opt = tf.keras.optimizers.RMSprop()
+
+        if script_mode:
+            hook = smd.KerasHook(
+                out_dir=sim.out_dir,
+                include_collections=["gradients", "optimizer_variables", "losses"],
+            )
+            opt = hook.wrap_optimizer(opt)
+            model.compile(
+                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+            )
+            history = model.fit(
+                x_train, y_train, batch_size=16, epochs=5, validation_split=0.2, callbacks=[hook]
+            )
+            test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
+        else:
+            model.compile(
+                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+            )
+            history = model.fit(x_train, y_train, batch_size=16, epochs=5, validation_split=0.2)
+            test_scores = model.evaluate(x_test, y_test, verbose=2)
+
+        # Check that hook created and tensors saved
+        trial = smd.create_trial(path=sim.out_dir)
+        assert smd.get_hook() is not None, "Hook was not created."
+        assert len(trial.steps()) > 0, "Nothing saved at any step."
+        assert len(trial.tensors()) > 0, "Tensors were not saved."
+        assert len(trial.tensors(collection="gradients")) > 0
+        if not tf_optimizer:
+            # as this is only supported for keras optimizers currently
+            assert len(trial.tensors(collection="optimizer_variables")) > 0
+
+
+def test_keras_gradients_mirrored(include_workers="one"):
+    """ Works as intended. """
+    smd.del_hook()
+    tf.reset_default_graph()
+    tf.keras.backend.clear_session()
+    json_file_contents_p1 = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/opt/ml/output/tensors",
+                "HookParameters" : {
+
+            """
+    json_file_contents_p2 = f'"include_workers": "{include_workers}",'
+    json_file_contents_p3 = """
+                    "save_interval": "3"
+                },
+                "CollectionConfigurations": [
+                    {
+                        "CollectionName": "gradients"
+                    },
+                    {
+                        "CollectionName": "optimizer_variables"
+                    },
+                    {
+                        "CollectionName": "losses"
+                    },
+                    {
+                        "CollectionName": "weights"
+                    },
+                    {
+                        "CollectionName": "biases"
+                    },
+                    {
+                        "CollectionName": "outputs"
+                    },
+                    {
+                        "CollectionName": "metrics"
+                    }
+                ]
+            }
+            """
+    json_file_contents = json_file_contents_p1 + json_file_contents_p2 + json_file_contents_p3
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        test_tf_keras("/opt/ml/output/tensors", zcc=True, include_workers=include_workers)
+
+
 def test_keras_to_estimator(script_mode: bool):
     """ Works as intended. """
     import tensorflow.compat.v1.keras as keras
 
+    tf.reset_default_graph()
     smd.del_hook()
     keras.backend.clear_session()
     with SagemakerSimulator() as sim:
@@ -198,7 +423,18 @@ if __name__ == "__main__":
     script_mode = args.script_mode
 
     test_monitored_session(script_mode=script_mode)
+    if not script_mode:
+        test_monitored_session_gradients_zcc()
     test_estimator(script_mode=script_mode)
+    if not script_mode:
+        test_estimator_gradients_zcc(nested=True)
+        test_estimator_gradients_zcc(nested=False)
+        test_estimator_gradients_zcc(nested=False, mirrored=True)
     test_linear_classifier(script_mode=script_mode)
     test_keras_v1(script_mode=script_mode)
+    test_keras_gradients(script_mode=script_mode)
+    test_keras_gradients(script_mode=script_mode, tf_optimizer=True)
     test_keras_to_estimator(script_mode=script_mode)
+    if not script_mode:
+        test_keras_gradients_mirrored(include_workers="all")
+        test_keras_gradients_mirrored()

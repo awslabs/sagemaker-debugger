@@ -12,6 +12,7 @@ from tensorflow.python.client import device_lib
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
+import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
@@ -79,6 +80,7 @@ def train_model(
     strategy=None,
     steps=None,
     add_callbacks=None,
+    zcc=False,
     include_workers="all",
 ):
     print(tf.__version__)
@@ -92,9 +94,6 @@ def train_model(
 
     # You can also do info.splits.total_num_examples to get the total
     # number of examples in the dataset.
-
-    num_train_examples = info.splits["train"].num_examples
-    num_test_examples = info.splits["test"].num_examples
 
     BUFFER_SIZE = 10000
 
@@ -110,7 +109,7 @@ def train_model(
     train_dataset = mnist_train.map(scale).cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
     eval_dataset = mnist_test.map(scale).batch(BATCH_SIZE)
 
-    if hook is None:
+    if hook is None and not zcc:
         if save_config is None:
             save_config = SaveConfig(save_interval=3)
 
@@ -128,7 +127,8 @@ def train_model(
     else:
         opt = tf.train.AdamOptimizer(0.1)
 
-    opt = hook.wrap_optimizer(opt)
+    if not zcc:
+        opt = hook.wrap_optimizer(opt)
 
     with strategy.scope():
         relu_layer = tf.keras.layers.Dense(64, activation="relu")
@@ -151,8 +151,6 @@ def train_model(
     if create_relu_collection:
         hook.get_collection("relu").add_keras_layer(relu_layer, inputs=True, outputs=True)
 
-    # get_collection('default').include('Relu')
-
     hooks = []
     if add_callbacks:
         if "tensorboard" in add_callbacks:
@@ -166,11 +164,8 @@ def train_model(
             )
         if "fetch_tensor" in add_callbacks:
             hooks.append(FetchTensorCallback(model.weights))
-    hooks.append(hook)
-
-    # model.fit(train_dataset, epochs=1, callbacks=callbacks)
-    # model.predict(eval_dataset, callbacks=callbacks)
-    # model.fit(train_dataset, epochs=1, callbacks=callbacks)
+    if not zcc:
+        hooks.append(hook)
 
     if steps is None:
         steps = ["train"]
@@ -182,7 +177,7 @@ def train_model(
         elif step == "predict":
             model.predict(train_dataset, steps=4, callbacks=hooks, verbose=0)
 
-    hook._cleanup()
+    smd.get_hook()._cleanup()
     return strategy
 
 
@@ -208,7 +203,7 @@ def test_tf_keras_eager_env(out_dir):
     tf.disable_eager_execution()
 
 
-def exhaustive_check(trial_dir):
+def exhaustive_check(trial_dir, zcc=False, include_workers="one"):
     include_collections = [
         CollectionKeys.WEIGHTS,
         CollectionKeys.BIASES,
@@ -222,11 +217,20 @@ def exhaustive_check(trial_dir):
         trial_dir,
         include_collections=include_collections,
         steps=["train", "eval", "predict", "train"],
+        include_workers=include_workers,
+        zcc=zcc,
     )
 
     tr = create_trial_fast_refresh(trial_dir)
     print(tr.tensors())
-    assert len(tr.tensors()) == (6 + 6 + 1 + 3 + strategy.num_replicas_in_sync * 3 + 5)
+
+    if include_workers == "all":
+        assert len(tr.workers()) == strategy.num_replicas_in_sync
+        assert len(tr.tensors()) == (6 + 6 + 1 + 3 + strategy.num_replicas_in_sync * 3 + 5)
+    else:
+        assert len(tr.workers()) == 1
+        assert len(tr.tensors()) == (6 + 6 + 1 + 3 + 1 * 3 + 5)
+
     # 6 weights, 6 gradients, 1 loss, 3 metrics, 24 outputs (8 for each mode), 5 optimizer variables
     assert len(tr.modes()) == 3
     assert len(tr.steps()) == 14
@@ -284,8 +288,8 @@ def exhaustive_check(trial_dir):
 
 
 @pytest.mark.slow
-def test_tf_keras(out_dir):
-    exhaustive_check(out_dir)
+def test_tf_keras(out_dir, zcc=False, include_workers="all"):
+    exhaustive_check(out_dir, zcc=zcc, include_workers=include_workers)
 
 
 @pytest.mark.slow
@@ -348,7 +352,7 @@ def test_save_one_worker(out_dir):
 
 
 @pytest.mark.slow
-def test_save_all_workers(out_dir):
+def test_save_all_workers(out_dir, zcc=False):
     # Skip if no GPUS
     if get_available_gpus() == 0:
         return
@@ -398,7 +402,7 @@ def test_base_reductions(out_dir):
 @pytest.mark.slow
 def test_collection_reductions(out_dir):
     tf.reset_default_graph()
-
+    tf.keras.backend.clear_session()
     hook = KerasHook(
         out_dir=out_dir,
         save_config=SaveConfig(save_interval=3),
@@ -415,8 +419,8 @@ def test_collection_reductions(out_dir):
     weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
     grad_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
 
-    assert tr.tensor(weight_name).value(0) is not None
     try:
+        tr.tensor(weight_name).value(0)
         tr.tensor(grad_name).value(0)
         assert False
     except TensorUnavailableForStep:
@@ -461,6 +465,7 @@ def test_include_regex(out_dir):
         out_dir=out_dir,
         save_config=SaveConfig(save_interval=9),
         include_collections=["custom_coll"],
+        include_workers="all",
     )
     hook.get_collection("custom_coll").include("dense")
     strategy = train_model(out_dir, hook=hook, steps=["train"])
