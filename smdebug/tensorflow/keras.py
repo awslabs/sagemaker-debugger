@@ -462,6 +462,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._prepared_tensors[mode] is False:
             self._prepare_layers(mode)
             self._prepare_non_layer_tensors()
+            # below should be after tensors are processed, so we know device map
+            if (
+                len(self.device_map)
+                and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
+                and self.save_all_workers is False
+            ):
+                self.chief_worker = sorted(self.device_map.keys())[0]
 
         self._close_writers()
         self._increment_step()
@@ -495,13 +502,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # but rest of the project isn't yet capable of handling this
             # this means that collections like outputs, or other collections with intermediate tensors
             # will only have tensor names from first mode
-            if (
-                len(self.device_map)
-                and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
-                and self.save_all_workers is False
-            ):
-                self.chief_worker = sorted(self.device_map.keys())[0]
-
             self.export_collections()
             self._exported_collections = True
         if self._exported_model[self.mode] is False:

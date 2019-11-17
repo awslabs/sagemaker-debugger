@@ -344,6 +344,7 @@ def test_save_one_worker(out_dir):
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.workers()) == 1
+    assert len(tr.steps())
 
 
 @pytest.mark.slow
@@ -361,6 +362,7 @@ def test_save_all_workers(out_dir):
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.workers()) == get_available_gpus()
+    assert len(tr.steps())
 
 
 @pytest.mark.slow
