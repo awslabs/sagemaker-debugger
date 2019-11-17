@@ -15,6 +15,7 @@ from smdebug.core.config_constants import (
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.exceptions import IndexReaderException
 
 
 def load_json_as_dict(s):
@@ -203,7 +204,10 @@ def parse_worker_name_from_file(filename: str) -> str:
     """
     # worker_2 = /tmp/ts-logs/index/000000001/000000001230_worker_2.json
     worker_name_regex = re.compile(".+\/\d+_(.+)\.(json|csv|tfevents)$")
-    worker_name = re.match(worker_name_regex, filename).group(1)
+    worker_name_regex_match = re.match(worker_name_regex, filename)
+    if worker_name_regex_match is None:
+        raise IndexReaderException(f"Invalid File Found: {filename}")
+    worker_name = worker_name_regex_match.group(1)
     if "__" in filename:
         # /replica:0/task:0/device:GPU:0 = replica-0_task-0_device-GPU-0.json
         worker_name = deserialize_tf_device(worker_name)

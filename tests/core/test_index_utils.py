@@ -11,6 +11,7 @@ from smdebug.core.utils import (
     parse_worker_name_from_file,
     serialize_tf_device,
 )
+from smdebug.exceptions import IndexReaderException
 
 
 def test_tf_device_name_serialize_and_deserialize():
@@ -47,6 +48,15 @@ def test_parse_worker_name_from_index_file():
     filename = index_files[0]
     worker_name = parse_worker_name_from_file(filename)
     assert worker_name == "/job:worker/replica:0/task:1/device:GPU:4"
+
+
+def test_invalid_file_found_exception():
+    filename = "/tmp/ts-logs/index/000000001/000000001230_worker_2.json.tmp"
+    try:
+        worker_name = parse_worker_name_from_file(filename)
+        assert False
+    except IndexReaderException:
+        assert True
 
 
 def test_parse_worker_name_from_collection_file():
