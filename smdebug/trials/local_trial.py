@@ -34,22 +34,18 @@ class LocalTrial(Trial):
         self.index_reader = LocalIndexReader(self.path)
         self.logger.info(f"Loading trial {name} at path {self.trial_dir}")
         self._load_collections()
-        self.load_tensors()
+        self._load_tensors()
 
-    def get_collection_files(self) -> list:
+    def _get_collection_files(self) -> list:
         return list_files_in_directory(get_path_to_collections(self.path))
 
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
         for tname in index_tensors_dict:
             for step, itds in index_tensors_dict[tname].items():
                 for worker in itds:
-                    self.add_tensor(int(step), worker, itds[worker]["tensor_location"])
+                    self._add_tensor(int(step), worker, itds[worker]["tensor_location"])
 
-    def read_collections(self, collection_files):
+    def _read_collections(self, collection_files):
         first_collection_file = collection_files[0]  # First Collection File
         self.collection_manager = CollectionManager.load(first_collection_file)
         self.num_workers = self.collection_manager.get_num_workers()
-
-    def get_tensors(self, tname_steps_dict, should_regex_match=False):
-        # now we do not need to do anything since we read the full event file
-        pass

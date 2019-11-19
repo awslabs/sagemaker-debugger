@@ -105,17 +105,17 @@ class Hook(CallbackHook):
         self.hyperparameters = hyperparameters
         self.train_data = self._validate_data(train_data)
         self.validation_data = self._validate_data(validation_data)
-        self.worker = self.get_worker_name()
+        self.worker = self._get_worker_name()
         self._full_shap_values = None
         set_hook(self)
 
     def __call__(self, env: CallbackEnv) -> None:
         self._callback(env)
 
-    def get_num_workers(self):
+    def _get_num_workers(self):
         return xgb.rabit.get_world_size()
 
-    def get_worker_name(self):
+    def _get_worker_name(self):
         return "worker_{}".format(xgb.rabit.get_rank())
 
     @classmethod
