@@ -64,7 +64,7 @@ def simple_pt_model(hook, steps=10, register_loss=False):
 
     model = Net().to(torch.device("cpu"))
     criterion = nn.NLLLoss()
-    hook.register_block(model)
+    hook.register_module(model)
     if register_loss:
         hook.register_loss(criterion)
     model.train()
