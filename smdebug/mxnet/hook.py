@@ -206,6 +206,7 @@ class Hook(CallbackHook):
         return len(extra_coll) != 0
 
     def register_hook(self, block):
+        # for compatibility with ZCC patches which call this
         self.register_block(block)
 
     def register_block(self, block):

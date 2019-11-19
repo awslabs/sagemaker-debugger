@@ -205,6 +205,7 @@ class Hook(CallbackHook):
         module.register_forward_hook(self.forward_hook)
 
     def register_hook(self, module):
+        # for compatibility with ZCC patches which call this
         self.register_module(module)
 
     def register_module(self, module):
