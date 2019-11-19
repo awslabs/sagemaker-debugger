@@ -105,7 +105,7 @@ def helper_test_modes(hook=None, out_dir="./test_output/test_hook_modes/"):
             ],
         )
 
-    hook.register_hook(model)
+    hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     hook.set_mode(mode=modes.TRAIN)
     train(model, device, optimizer, num_steps=10, save_steps=save_steps)

@@ -139,7 +139,7 @@ def main():
     save_steps = [(i + 1) * args.save_frequency for i in range(args.steps // args.save_frequency)]
     model = Net().to(device)
     hook = create_hook(args.smdebug_path, model, hook_type, save_steps=save_steps)
-    hook.register_hook(model)
+    hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     train(model, device, optimizer, hook, num_steps=args.steps, save_steps=save_steps)
 

@@ -164,7 +164,7 @@ for epoch in range(args.epochs):
 
     # Create Tornasole Hook
     hook = create_hook()
-    hook.register_hook(model)
+    hook.register_block(model)
 
     for nbatch, batch in enumerate(train_data, start=1):
         hook.set_mode(modes.TRAIN)

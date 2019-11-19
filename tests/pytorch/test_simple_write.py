@@ -174,7 +174,7 @@ def helper_test_weights_bias_gradients(hook=None):
             save_steps=save_steps,
         )
 
-    hook.register_hook(model)
+    hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
     if not json:
@@ -225,7 +225,7 @@ def saveall_test_helper(hook=None):
         hook = create_hook(
             "test_output/test_hook_saveall/" + prefix, model, hook_type, save_steps=save_steps
         )
-    hook.register_hook(model)
+    hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
     if not json:
@@ -268,7 +268,7 @@ def helper_test_multi_collections(hook, out_dir):
     hook_type = "saveall"
     save_steps = [i for i in range(10)]
     model = Net(mode=hook_type, to_save=save_steps).to(device)
-    hook.register_hook(model)
+    hook.register_block(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
     trial = create_trial(path=out_dir, name="test output")

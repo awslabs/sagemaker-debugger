@@ -74,7 +74,7 @@ def main():
 
     hook = create_hook("./output_resnet", net, save_interval=50)
 
-    hook.register_hook(net)
+    hook.register_module(net)
     loss_optim = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=1.0, momentum=0.9)
 

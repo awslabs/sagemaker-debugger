@@ -79,7 +79,7 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
         include_workers=include_workers,
     )
 
-    hook.register_hook(model)
+    hook.register_module(model)
 
     for epoch in range(num_epochs):
         epoch_loss = 0.0
@@ -94,7 +94,7 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
             optimizer.step()
         # print(f"Rank {dist.get_rank()}, epoch {epoch}: {epoch_loss / num_batches}")
 
-    assert hook.get_worker_name() == f"worker_{dist.get_rank()}"
+    assert hook._get_worker_name() == f"worker_{dist.get_rank()}"
     # Race condition here where both workers attempt to move
     # /tmp/{out_dir}/END_OF_JOB.ts to {out_dir}/END_OF_JOB.ts
     try:
@@ -155,11 +155,11 @@ def test_run_net_single_process():
     hook = smd.Hook(
         out_dir=out_dir, save_config=smd.SaveConfig(save_steps=[0, 1, 5]), save_all=True
     )
-    hook.register_hook(model)
+    hook.register_module(model)
     train(model=model, device=device, optimizer=optimizer)
     hook._cleanup()
 
-    assert hook.get_worker_name() == "worker_0"
+    assert hook._get_worker_name() == "worker_0"
 
     trial = create_trial(path=out_dir)
     assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"

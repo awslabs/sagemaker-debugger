@@ -33,7 +33,7 @@ def test_pytorch(script_mode: bool, use_loss_module=False):
 
         if script_mode:
             hook = smd.Hook(out_dir=sim.out_dir)
-            hook.register_hook(net)
+            hook.register_module(net)
             hook.register_loss(criterion)
 
         for i, data in enumerate(trainloader, 0):

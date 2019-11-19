@@ -173,7 +173,7 @@ def main():
     hook = create_hook(output_uri)
 
     # Register the hook to the top block.
-    hook.register_hook(net)
+    hook.register_block(net)
 
     # Start the training.
     batch_size = opt.batch_size
