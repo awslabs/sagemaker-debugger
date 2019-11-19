@@ -1,4 +1,5 @@
 # Standard Library
+import os
 import re
 
 # Third Party
@@ -6,6 +7,7 @@ import boto3
 
 # First Party
 from smdebug.core.access_layer.base import TSAccessBase
+from smdebug.core.logger import get_logger
 from smdebug.core.utils import get_region
 
 
@@ -20,6 +22,7 @@ class TSAccessS3(TSAccessBase):
         self.binary = binary
         self._init_data()
         self.flushed = False
+        self.logger = get_logger()
 
         self.current_len = 0
         self.s3 = boto3.resource("s3", region_name=get_region())
@@ -56,6 +59,7 @@ class TSAccessS3(TSAccessBase):
             return
         key = self.s3.Object(self.bucket_name, self.key_name)
         key.put(Body=self.data)
+        self.logger.info(f"Sagemaker-Debugger: Wrote {len(self.data)} bytes to file {os.path.join(self.bucket_name, self.key_name)}")
         self._init_data()
         self.flushed = True
 

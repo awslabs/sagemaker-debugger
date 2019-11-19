@@ -57,8 +57,7 @@ class TensorUnavailable(Exception):
 
     def __str__(self):
         return (
-            "Tensor {} can not be satisfied. Tornasole does "
-            "not know about this tensor.".format(self.tname)
+            "Tensor {} was not saved.".format(self.tname)
         )
 
 
