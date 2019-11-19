@@ -1,5 +1,4 @@
 # Third Party
-import pytest
 
 # First Party
 from smdebug.core.access_layer import check_dir_exists
@@ -115,13 +114,6 @@ def test_get_prefix_from_index_file():
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(s3_index_filepath)
 
     assert prefix == "s3://tornasole-testing/run_1"
-
-
-@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a SessionHook")
-def test_collect_config_params():
-    params_dict = get_json_config_as_dict(json_config_path=None)
-    params = collect_hook_config_params(params_dict)
-    assert params["out_dir"] == DEFAULT_SAGEMAKER_OUTDIR
 
 
 def test_json_params():
