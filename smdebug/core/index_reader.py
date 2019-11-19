@@ -421,7 +421,9 @@ class LocalIndexReader(IndexReader):
                 ) or range_steps is None:
                     steps.append(step)
                     workers.append(parse_worker_name_from_file(index_file))
-                    self.logger.info(f"Sagemaker-Debugger: Read {os.path.getsize(index_file)} bytes from file {index_file}")
+                    self.logger.info(
+                        f"Sagemaker-Debugger: Read {os.path.getsize(index_file)} bytes from file {index_file}"
+                    )
                     with open(index_file) as f:
                         responses.append(f.read().encode())
                 self.index_file_cache.add(index_file, start_after_key)

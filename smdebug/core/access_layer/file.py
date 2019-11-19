@@ -3,8 +3,8 @@ import os
 import shutil
 
 # First Party
-from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.logger import get_logger
+from smdebug.core.sagemaker_utils import is_sagemaker_job
 
 # Local
 from .base import TSAccessBase
@@ -67,7 +67,9 @@ class TSAccessFile(TSAccessBase):
         self._accessor.close()
         if self.mode in WRITE_MODES:
             shutil.move(self.temp_path, self.path)
-            self.logger.info(f"Sagemaker-Debugger: Wrote {os.path.getsize(self.path)} bytes to file {self.path}")
+            self.logger.info(
+                f"Sagemaker-Debugger: Wrote {os.path.getsize(self.path)} bytes to file {self.path}"
+            )
 
     def ingest_all(self):
         self._data = self._accessor.read()

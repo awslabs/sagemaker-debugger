@@ -56,9 +56,7 @@ class TensorUnavailable(Exception):
         self.tname = tname
 
     def __str__(self):
-        return (
-            "Tensor {} was not saved.".format(self.tname)
-        )
+        return "Tensor {} was not saved.".format(self.tname)
 
 
 class InvalidWorker(Exception):
