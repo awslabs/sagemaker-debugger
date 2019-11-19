@@ -64,7 +64,7 @@ def simple_pt_model(hook, steps=10, register_loss=False):
 
     model = Net().to(torch.device("cpu"))
     criterion = nn.NLLLoss()
-    hook.register_hook(model)
+    hook.register_block(model)
     if register_loss:
         hook.register_loss(criterion)
     model.train()
@@ -105,12 +105,12 @@ def simple_mx_model(hook, steps=10, register_loss=False):
         mxnn.Dense(10),
     )
     net.initialize(init=init.Xavier(), ctx=mx.cpu())
-    hook.register_hook(net)
+    hook.register_block(net)
 
     train_loss = 0.0
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
     if register_loss:
-        hook.register_hook(softmax_cross_entropy)
+        hook.register_block(softmax_cross_entropy)
     trainer = gluon.Trainer(net.collect_params(), "sgd", {"learning_rate": 0.1})
 
     hook.save_scalar("mx_before_train", 1, searchable=False)
