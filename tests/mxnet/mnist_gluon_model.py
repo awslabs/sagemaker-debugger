@@ -86,7 +86,7 @@ def run_mnist_gluon_model(
 
     if hook is not None:
         # Register the forward Hook
-        hook.register_block(net)
+        hook.register_hook(net)
 
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
     trainer = gluon.Trainer(net.collect_params(), "sgd", {"learning_rate": 0.1})
