@@ -95,3 +95,21 @@ def test_s3_path_that_exists_without_end_of_job():
         # should not raise as dir present but does not have the end of job file
     except RuntimeError as e:
         assert False
+
+
+def test_outdir_sagemaker(monkeypatch):
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/my/own/path/tensors",
+                "HookParameters" : {
+                    "save_interval": "2",
+                    "include_workers": "all"
+                }
+            }
+            """
+    from smdebug.tensorflow import get_hook
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        hook = get_hook('keras', create_if_not_exists=True)
+        assert hook.out_dir == '/my/own/path/tensors'
+
