@@ -1,10 +1,12 @@
+git clone https://github.com/awslabs/git-secrets.git && cd git-secrets && make install
+
 export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
 if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
   CODEBUILD_GIT_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }')";
   export CODEBUILD_GIT_BRANCH=${CODEBUILD_GIT_BRANCH#remotes/origin/};
 fi
 
-cd $CODEBUILD_SRC_DIR && git checkout $CODEBUILD_GIT_BRANCH
+cd $CODEBUILD_SRC_DIR && git secrets --install && git secrets --register-aws && git checkout $CODEBUILD_GIT_BRANCH
 export CURRENT_COMMIT_HASH=$(git log -1 --pretty=%h);
 #export CURRENT_COMMIT_DATE="$(git show -s --format=%ci | cut -d' ' -f 1)$(git show -s --format=%ci | cut -d' ' -f 2)";
 export CURRENT_DATETIME=$(date +'%Y%m%d_%H%M%S')

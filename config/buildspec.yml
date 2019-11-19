@@ -10,7 +10,7 @@ env:
 phases:
   install:
     commands:
-        -  . config/change_branch.sh
+        -  . config/clone_source.sh
         - su && apt-get update
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
