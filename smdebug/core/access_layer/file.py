@@ -67,7 +67,7 @@ class TSAccessFile(TSAccessBase):
         self._accessor.close()
         if self.mode in WRITE_MODES:
             shutil.move(self.temp_path, self.path)
-            self.logger.info(
+            self.logger.debug(
                 f"Sagemaker-Debugger: Wrote {os.path.getsize(self.path)} bytes to file {self.path}"
             )
 

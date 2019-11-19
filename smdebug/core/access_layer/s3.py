@@ -59,8 +59,8 @@ class TSAccessS3(TSAccessBase):
             return
         key = self.s3.Object(self.bucket_name, self.key_name)
         key.put(Body=self.data)
-        self.logger.info(
-            f"Sagemaker-Debugger: Wrote {len(self.data)} bytes to file {os.path.join(self.bucket_name, self.key_name)}"
+        self.logger.debug(
+            f"Sagemaker-Debugger: Wrote {len(self.data)} bytes to file s3://{os.path.join(self.bucket_name, self.key_name)}"
         )
         self._init_data()
         self.flushed = True
