@@ -788,6 +788,7 @@ class CallbackHook(BaseHook):
                 f"of {self.data_type_name}s, "
                 f"module_name:{module_name} {var.__class__.__name__}"
             )
+            return idx
 
     def _write_inputs(self, name, inputs):
         self._write(name, inputs, CallbackHook.INPUT_TENSOR_SUFFIX, idx=0)
