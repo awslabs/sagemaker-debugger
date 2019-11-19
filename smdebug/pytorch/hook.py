@@ -108,7 +108,7 @@ class Hook(CallbackHook):
         """
         return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
-    def log_params(self, module):
+    def _log_params(self, module):
         module_name = module._get_name()
         params = module.named_parameters()
         for name, param in params:
@@ -149,7 +149,7 @@ class Hook(CallbackHook):
 
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
-            self.log_params(module)
+            self._log_params(module)
 
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
