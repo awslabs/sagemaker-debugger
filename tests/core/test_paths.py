@@ -30,16 +30,6 @@ def test_outdir_non_sagemaker():
         pass
 
 
-def test_outdir_sagemaker():
-    os.environ["TRAINING_JOB_NAME"] = "a"
-    id = str(uuid.uuid4())
-    paths = ["/tmp/tests/" + id, "s3://tmp/tests/" + id]
-    for path in paths:
-        out_dir = verify_and_get_out_dir(path)
-        assert out_dir == DEFAULT_SAGEMAKER_OUTDIR
-    del os.environ["TRAINING_JOB_NAME"]
-
-
 def test_tensorboard_dir_sagemaker():
     """ In Sagemaker, we read the tensorboard_dir from a separate JSON config file. """
     with SagemakerSimulator() as sim:
