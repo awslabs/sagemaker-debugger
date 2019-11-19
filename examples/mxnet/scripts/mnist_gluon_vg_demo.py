@@ -169,7 +169,7 @@ def main():
     hook = create_hook(output_uri, opt.save_frequency)
 
     # Register the hook to the top block.
-    hook.register_block(net)
+    hook.register_hook(net)
 
     # Start the training.
     train_data, val_data = prepare_data()

@@ -147,7 +147,7 @@ def main():
     hook = create_hook(output_s3_uri)
 
     # Register the hook to the top block.
-    hook.register_block(net)
+    hook.register_hook(net)
 
     # Start the training.
     batch_size = opt.batch_size
