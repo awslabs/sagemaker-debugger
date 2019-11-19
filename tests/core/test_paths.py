@@ -11,7 +11,6 @@ from smdebug.core.access_layer.file import (
 )
 from smdebug.core.access_layer.utils import training_has_ended
 from smdebug.core.hook_utils import verify_and_get_out_dir
-from smdebug.core.json_config import DEFAULT_SAGEMAKER_OUTDIR
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
@@ -109,7 +108,7 @@ def test_outdir_sagemaker(monkeypatch):
             }
             """
     from smdebug.tensorflow import get_hook
-    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
-        hook = get_hook('keras', create_if_not_exists=True)
-        assert hook.out_dir == '/my/own/path/tensors'
 
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        hook = get_hook("keras", create_if_not_exists=True)
+        assert hook.out_dir == "/my/own/path/tensors"

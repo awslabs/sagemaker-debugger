@@ -11,9 +11,7 @@ logger = get_logger()
 
 def verify_and_get_out_dir(out_dir):
     if out_dir is None:
-        raise RuntimeError(
-            "out_dir is a required argument"
-        )
+        raise RuntimeError("out_dir is a required argument")
     is_s3_path, _, _ = is_s3(out_dir)
     if not is_s3_path:
         out_dir = os.path.expanduser(out_dir)
