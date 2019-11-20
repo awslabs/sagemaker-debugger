@@ -25,7 +25,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
 # Register the hook and the loss
-hook.register_hook(net)
+hook.register_module(net)
 hook.register_loss(criterion)
 
 # Training loop as usual
@@ -54,7 +54,7 @@ net = Model()
 optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
 # Register the hook
-hook.register_hook(net)
+hook.register_module(net)
 
 # Training loop, recording the loss at each iteration
 for (inputs, labels) in trainloader:
@@ -89,16 +89,26 @@ __init__(
 ```
 Initializes the hook. Pass this object as a callback to Keras' `model.fit(), model.evaluate(), model.evaluate()`.
 
-`out_dir` (str): Where to write the recorded tensors and metadata\
-`export_tensorboard` (bool): Whether to use TensorBoard logs\
-`tensorboard_dir` (str): Where to save TensorBoard logs\
-`dry_run` (bool): If true, don't write any files\
-`reduction_config` (ReductionConfig object): See the Common API page.\
-`save_config` (SaveConfig object): See the Common API page.\
-`include_regex` (list[str]): List of additional regexes to save\
-`include_collections` (list[str]): List of collections to save\
-`save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.\
-`include_workers` (str): Used for distributed training, can also be "all".
+* `out_dir` (str): Where to write the recorded tensors and metadata.
+* `export_tensorboard` (bool): Whether to use TensorBoard logs.
+* `tensorboard_dir` (str): Where to save TensorBoard logs.
+* `dry_run` (bool): If true, don't write any files.
+* `reduction_config` (ReductionConfig object): See the Common API page.
+* `save_config` (SaveConfig object): See the Common API page.
+* `include_regex` (list[str]): List of additional regexes to save.
+* `include_collections` (list[str]): List of collections to save.
+* `save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.
+* `include_workers` (str): Used for distributed training, can also be "all".
+
+```
+register_module(
+    self,
+    module,
+)
+```
+Adds callbacks to the module for recording tensors.
+
+* `module` (torch.nn.Module): The module to use.
 
 
 ```
@@ -110,5 +120,5 @@ record_tensor_value(
 ```
 Store a tensor which is outside a torch.nn.Module, for example a functional loss.
 
-`tensor_name` (str): The tensor name, used to access the tensor value in analysis.\
-`tensor_value` (torch.Tensor): The tensor itself.
+* `tensor_name` (str): The tensor name, used to access the tensor value in analysis.
+* `tensor_value` (torch.Tensor): The tensor itself.
