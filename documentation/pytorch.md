@@ -70,7 +70,8 @@ for (inputs, labels) in trainloader:
 ```
 
 ## Full API
-See the [Common API](https://link.com) page for details about Collection, SaveConfig, and ReductionConfig.
+See the [Common API](https://link.com) page for details about Collection, SaveConfig, and ReductionConfig.\
+See the [Analysis](https://link.com) page for details about analyzing a training job.
 
 ## Hook
 ```
