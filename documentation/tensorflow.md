@@ -1,7 +1,8 @@
 # Tensorflow
 
-Supported Tensorflow versions: 1.13, 1.14, and 1.15
+Supported Tensorflow versions: 1.13, 1.14, and 1.15.
 
+## Contents
 - [Keras Example](#keras-example)
 - [MonitoredSession Example](#monitored-session-example)
 - [Estimator Example](#estimator-example)
@@ -58,6 +59,8 @@ estimator.evaluate(input_fn=eval_input_fn, steps=args.steps, hooks=[hook])
 
 # Full API
 
+See the [Common API](https://link.com) page for details about Collection, SaveConfig, and ReductionConfig.
+
 ## KerasHook
 ```
 __init__(
@@ -78,11 +81,11 @@ Initializes the hook. Pass this object as a callback to Keras' `model.fit(), mod
 `export_tensorboard` (bool): Whether to use TensorBoard logs\
 `tensorboard_dir` (str): Where to save TensorBoard logs\
 `dry_run` (bool): If true, don't write any files\
-`reduction_config` (list[str]): See glossary\
-`save_config` (SaveConfig object): TODO\
+`reduction_config` (ReductionConfig object): See the Common API page.\
+`save_config` (SaveConfig object): See the Common API page.\
 `include_regex` (list[str]): List of additional regexes to save\
 `include_collections` (list[str]): List of collections to save\
-`save_all` (bool): Remove this???
+`save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.
 
 
 ```
@@ -101,14 +104,14 @@ These are aliases pointing to the same object.
 ```
 
 __init__(
-    out_dir: str,
-    export_tensorboard: bool = False,
-    tensorboard_dir: str = None,
-    dry_run: bool = False,
-    reduction_config: list[str] = None,
-    save_config: smdebug.tensorflow.save_config = None,
-    include_regex: list[str] = None,
-    include_collections: list[str] = None,
+    out_dir,
+    export_tensorboard = False,
+    tensorboard_dir = None,
+    dry_run = False,
+    reduction_config = None,
+    save_config = None,
+    include_regex = None,
+    include_collections= None,
     save_all = False,
     include_workers = "one"
 )

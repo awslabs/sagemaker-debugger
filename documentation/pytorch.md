@@ -2,6 +2,11 @@
 
 Supported PyTorch versions: 1.2+.
 
+## Contents
+- [Module Loss Example](#module-loss-example)
+- [Functional Loss Example](#functional-loss-example)
+- [Full API](#full-api)
+
 ## Module Loss Example
 ```
 import smdebug.pytorch as smd
@@ -63,3 +68,47 @@ for (inputs, labels) in trainloader:
     loss.backward()
     optimizer.step()
 ```
+
+## Full API
+See the [Common API](https://link.com) page for details about Collection, SaveConfig, and ReductionConfig.
+
+## Hook
+```
+__init__(
+    out_dir,
+    export_tensorboard = False,
+    tensorboard_dir = None,
+    dry_run = False,
+    reduction_config = None,
+    save_config = None,
+    include_regex = None,
+    include_collections= None,
+    save_all = False,
+    include_workers = "one",
+)
+```
+Initializes the hook. Pass this object as a callback to Keras' `model.fit(), model.evaluate(), model.evaluate()`.
+
+`out_dir` (str): Where to write the recorded tensors and metadata\
+`export_tensorboard` (bool): Whether to use TensorBoard logs\
+`tensorboard_dir` (str): Where to save TensorBoard logs\
+`dry_run` (bool): If true, don't write any files\
+`reduction_config` (ReductionConfig object): See the Common API page.\
+`save_config` (SaveConfig object): See the Common API page.\
+`include_regex` (list[str]): List of additional regexes to save\
+`include_collections` (list[str]): List of collections to save\
+`save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.\
+`include_workers` (str): Used for distributed training, can also be "all".
+
+
+```
+record_tensor_value(
+    self,
+    tensor_name,
+    tensor_value,
+)
+```
+Store a tensor which is outside a torch.nn.Module, for example a functional loss.
+
+`tensor_name` (str): The tensor name, used to access the tensor value in analysis.\
+`tensor_value` (torch.Tensor): The tensor itself.

@@ -111,6 +111,8 @@ def __init__(
 `norms` (list[str]): Takes names of norms to compute, choosing from "l1", "l2".\
 `abs_norms` (list[str]): Same as norms, except the norm will be computed on the absolute value of the tensor.
 
-For example,\
+For example,
+
 `ReductionConfig(reductions=['std', 'variance'], abs_reductions=['mean'], norms=['l1'])`
+
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.

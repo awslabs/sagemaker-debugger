@@ -1,4 +1,6 @@
-# Concepts & Glossary
+# Glossary
+
+The imports assume `import smdebug.{tensorflow,pytorch,mxnet,xgboost} as smd`.
 
 **Hook**: The main interface to use training. This object can be passed as a model hook/callback
 in Tensorflow and Keras. It keeps track of collections and writes output files at each step.
@@ -13,7 +15,7 @@ tensors to include/exclude.
 - `collection = hook.get_collection("losses")`
 
 **SaveConfig**: A Python dict specifying how often to save losses and tensors.
-- `save_config = SaveConfig(save_interval=10)`
+- `save_config = smd.SaveConfig(save_interval=10)`
 
 **ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor.
 - `reduction_config = ReductionConfig(reductions=['min', 'max', 'mean'], norms=['l1'])`
