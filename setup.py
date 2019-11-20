@@ -6,6 +6,7 @@ import sys
 import setuptools
 
 exec(open("smdebug/_version.py").read())
+
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
