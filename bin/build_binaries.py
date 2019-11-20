@@ -21,7 +21,7 @@ parser.add_argument(
     "replace the latest binary in the S3 location. Note that"
     "this also requires you to pass --upload",
 )
-parser.add_argument("--s3-prefix", default="s3://tornasole-bugbash-1113/binaries")
+parser.add_argument("--s3-prefix", default="s3://smdebug-binaries/")
 args = parser.parse_args()
 exec(open("smdebug/_version.py").read())
 

@@ -6,6 +6,7 @@ import sys
 import setuptools
 
 exec(open("smdebug/_version.py").read())
+
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
@@ -39,11 +40,8 @@ def build_package(version):
     setuptools.setup(
         name="smdebug",
         version=version,
-        # author="The Tornasole Team",
-        # author_email="tornasole@amazon.com",
+        author="AWS DeepLearning Team",
         description="Automated debugging for machine learning",
-        # long_description=long_description,
-        # long_description_content_type="text/markdown",
         url="https://github.com/awslabs/tornasole_core",
         packages=setuptools.find_packages(),
         classifiers=[

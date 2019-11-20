@@ -98,7 +98,7 @@ class TensorflowBaseHook(BaseHook):
     def hook_from_config(cls, json_config_path=None):
         return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
-    def get_distribution_strategy(self) -> TFDistributionStrategy:
+    def _get_distribution_strategy(self) -> TFDistributionStrategy:
         try:
             import horovod.tensorflow as hvd
 
@@ -120,7 +120,7 @@ class TensorflowBaseHook(BaseHook):
 
         return TFDistributionStrategy.UNSUPPORTED
 
-    def get_worker_name(self) -> str:
+    def _get_worker_name(self) -> str:
         """
         This function returns the name of the worker based on
         the distribution strategy.
@@ -146,7 +146,7 @@ class TensorflowBaseHook(BaseHook):
         return CONFIG_DEFAULT_WORKER_NAME
 
     def export_collections(self):
-        num_workers = self.get_num_workers()
+        num_workers = self._get_num_workers()
         if self.save_all_workers is False:
             num_workers = 1
             if (
@@ -168,7 +168,7 @@ class TensorflowBaseHook(BaseHook):
             collection_file_name = f"{self.worker}_collections.json"
             self.collection_manager.export(self.out_dir, collection_file_name)
 
-    def get_num_workers(self):
+    def _get_num_workers(self):
         try:
             import horovod.tensorflow as hvd
 
@@ -194,7 +194,7 @@ class TensorflowBaseHook(BaseHook):
         if tensor.device and "CPU" not in tensor.device and tensor.device not in self.device_map:
             self.device_map[tensor.device] = serialize_tf_device(tensor.device)
 
-    def get_writers(self, tensor_name, tensor_ref) -> List[FileWriter]:
+    def _get_writers(self, tensor_name, tensor_ref) -> List[FileWriter]:
         """
         For tensors generated during distributed tf jobs, we map the tensor to a writer
         with its device attribute.
@@ -379,7 +379,8 @@ class TensorflowBaseHook(BaseHook):
         save_scalar() not supported on Tensorflow
         """
         self.logger.warning(
-            "save_scalar not supported on Tensorflow. Add the scalar to searchable_scalars collection instead."
+            "save_scalar not supported on Tensorflow. "
+            "Add the scalar to scalars or searchable_scalars collection instead. "
         )
         return
 
