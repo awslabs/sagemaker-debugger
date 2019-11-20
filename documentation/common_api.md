@@ -39,9 +39,8 @@ These collections are then also available during analysis.
 
 ## SaveConfig
 The SaveConfig class customizes the frequency of saving tensors.
-The hook takes a SaveConfig object which is applied as
-default to all tensors included. A collection can also have its own SaveConfig object which is applied
-to the tensors belonging to that collection.
+The hook takes a SaveConfig object which is applied as default to all tensors included.
+A collection can also have a SaveConfig object which is applied to the collection's tensors.
 
 SaveConfig also allows you to save tensors when certain tensors become nan.
 This list of tensors to watch for is taken as a list of strings representing names of tensors.
@@ -90,6 +89,7 @@ of saving the full tensor. The motivation here is to reduce the amount of data
 saved, and increase the speed in cases where you don't need the full
 tensor.  The reduction operations which are computed in the training process
 and then saved.
+
 During analysis, these are available as reductions of the original tensor.
 Please note that using reduction config means that you will not have
 the full tensor available during analysis, so this can restrict what you can do with the tensor saved.
@@ -98,23 +98,19 @@ A collection can also have its own ReductionConfig object which is applied
 to the tensors belonging to that collection.
 
 ```
-  Attributes
-  ----------
+def __init__(
+    reductions = None,
+    abs_reductions = None,
+    norms = None,
+    abs_norms = None,
+    save_raw_tensor = False,
+)
+```
+`reductions` (list[str]): Takes names of reductions, choosing from "min", "max", "median", "mean", "std", "variance", "sum", "prod".\
+`abs_reductions` (list[str]): Same as reductions, except the reduction will be computed on the absolute value of the tensor.\
+`norms` (list[str]): Takes names of norms to compute, choosing from "l1", "l2".\
+`abs_norms` (list[str]): Same as norms, except the norm will be computed on the absolute value of the tensor.
 
-  reductions: list of str
-      takes list of names of reductions to be computed.
-      should be one of 'min', 'max', 'median', 'mean', 'std', 'variance', 'sum', 'prod'
-
-  abs_reductions: list of str
-      takes list of names of reductions to be computed after converting the tensor
-      to abs(tensor) i.e. reductions are applied on the absolute values of tensor.
-      should be one of 'min', 'max', 'median', 'mean', 'std', 'variance', 'sum', 'prod'
-
-  norms: list of str
-      takes names of norms to be computed of the tensor.
-      should be one of 'l1', 'l2'
-
-  abs_norms: list of str
-        takes names of norms to be computed of the tensor after taking absolute value
-        should be one of 'l1', 'l2'
-  """
+For example,\
+`ReductionConfig(reductions=['std', 'variance'], abs_reductions=['mean'], norms=['l1'])`
+will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
