@@ -5,7 +5,7 @@ from smdebug.core.reduction_config import ReductionConfig
 
 
 def test_export_load():
-    r1 = ReductionConfig(only_shape=True, reductions=["min"], norms=["l2"])
+    r1 = ReductionConfig(reductions=["min"], norms=["l2"])
     r2 = ReductionConfig.from_json(r1.to_json())
     assert r1 == r2
     assert r1.to_json() == r2.to_json()
