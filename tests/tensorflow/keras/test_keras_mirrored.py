@@ -122,9 +122,10 @@ def train_model(
             include_workers=include_workers,
         )
 
-    for cname in hook.include_collections:
-        if cname not in include_collections:
-            hook.get_collection(cname).save_config = SaveConfig(end_step=0)
+    if include_collections is not None:
+        for cname in hook.include_collections:
+            if cname not in include_collections:
+                hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
     if use_keras_optimizer:
         opt = tf.keras.optimizers.Adam()
