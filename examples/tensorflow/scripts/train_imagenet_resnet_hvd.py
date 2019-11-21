@@ -176,7 +176,7 @@ class LayerBuilder(object):
         )
 
     def spatial_average2d(self, inputs):
-        shape = inpusmd.get_shape().as_list()
+        shape = inputs.get_shape().as_list()
         if self.data_format == "channels_last":
             n, h, w, c = shape
         else:
