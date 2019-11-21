@@ -43,7 +43,6 @@ except ImportError:
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRICS,
     CollectionKeys.LOSSES,
-    CollectionKeys.SCALARS,
     CollectionKeys.SEARCHABLE_SCALARS,
 ]
 

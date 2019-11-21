@@ -1,0 +1,7 @@
+{
+  "S3OutputPath": "s3://kjndjknd_bucket/prefix",
+  "LocalPath": "/tmp/test",
+  "HookParameters": {
+    "end_step": 0
+  }
+}
