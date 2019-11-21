@@ -45,10 +45,6 @@ class Hook(CallbackHook):
             save_all=save_all,
             include_workers=include_workers,
         )
-        # We would like to collect loss collection
-        # even if user does not specify any collections
-        if CollectionKeys.LOSSES not in self.include_collections:
-            self.include_collections.append(CollectionKeys.LOSSES)
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()

@@ -124,10 +124,14 @@ class BaseHook:
         self.worker = None
         self.save_all_workers = True if include_workers == "all" else False
         self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
+
         if include_collections is None:
             include_collections = default_include_collections
-        self.default_include_collections = default_include_collections
-        self.include_collections = flatten(include_collections)
+        else:
+            include_collections = flatten(include_collections)
+        self.include_collections = list(
+            set(include_collections).union(set(default_include_collections))
+        )
 
         self.save_all = save_all
         self.save_config = SaveConfig.parse(save_config)
@@ -268,7 +272,7 @@ class BaseHook:
                     step_str = f"for step {self.step}"
                 else:
                     step_str = f"for step {self.mode_steps[self.mode]} of mode {self.mode.name}"
-                self.logger.info(
+                self.logger.debug(
                     f"Saving the collections "
                     f"{', '.join([x.name for x in self._collections_to_save_for_step])} {step_str}"
                 )
@@ -582,14 +586,6 @@ class BaseHook:
             raise TypeError(f"{name} has non scalar value of type: {type(value)}")
         scalar_obj = ScalarCache(name, val, searchable=True, write_tb=True, write_event=True)
         self.scalar_cache.append(scalar_obj)
-
-    # def save_tensor(self, name, value):
-    #     # todo: support to add these tensors to any collection.
-    #     #  complication here is that we need to export the file again
-    #     # todo: what happens if name is conflicting
-    #     if self.writer is None:
-    #         self._init_writer()
-    #     self._save_raw_tensor(name, value)
 
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         for s_col in save_collections:
