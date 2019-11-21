@@ -25,7 +25,7 @@ def test_collection_defaults_json(out_dir, monkeypatch):
     # Check include_collections
     assert "weights" in hook.include_collections and "losses" in hook.include_collections
 
-    assert len(hook.include_collections) == 3
+    assert len(hook.include_collections) == 4
     # Check collection configurations for losses
     assert (
         hook.collection_manager.collections["losses"]
