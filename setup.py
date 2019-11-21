@@ -69,4 +69,30 @@ if compile_summary_protobuf() != 0:
     )
     sys.exit(1)
 
+
+def scan_git_secrets():
+    import subprocess
+    import os
+    import shutil
+
+    def git(*args):
+        return subprocess.call(['git'] + list(args))
+
+    shutil.rmtree('/tmp/git-secrets')
+    a = git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    b = os.chdir("/tmp/git-secrets")
+    c = subprocess.check_call(['make'] + ['install'])
+    d = os.chdir(dir_path)
+    e = git("secrets", "--install")
+    f = git("secrets", "--register-aws")
+    g = git("secrets", "--scan")
+    return g
+
+
+if scan_git_secrets() != 0:
+    import sys
+
+    sys.exit(1)
+
 build_package(version=CURRENT_VERSION)
