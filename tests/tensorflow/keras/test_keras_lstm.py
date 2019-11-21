@@ -2,6 +2,7 @@
 
 # Third Party
 import numpy as np
+import pytest
 from tensorflow.keras.layers import LSTM, Activation, Dense, Dropout, Embedding, TimeDistributed
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
@@ -62,6 +63,7 @@ def train(num_epochs, batch_size, model, num_steps, hook):
     )
 
 
+@pytest.mark.slow
 def test_lstm_and_generator(out_dir):
     # init hook
     hook = KerasHook(
