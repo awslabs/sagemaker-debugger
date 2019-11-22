@@ -108,6 +108,9 @@ class Collection(BaseCollection):
             tensors = [t for t in tensors if graph == t.tf_obj.graph]
         return tensors
 
+    def get_export_names_of_tensors(self):
+        return self.tensor_names
+
     def get_tensor(self, name):
         return self._tensors[name]
 

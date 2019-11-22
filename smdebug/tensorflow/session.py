@@ -119,50 +119,89 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 coll.set_tensor_ref(tensor_ref)
         return tensor_ref
 
-    def _get_matching_collections(self, tensor):
+    def _add_tensor_to_matching_collections(self, tensor):
+        """
+        Finds which collections to add this tensor to, and adds tensor to them
+        """
         colls_with_tensor = set()
-        for coll in self._get_all_collections_to_save():
-            # some collections are added automatically, don't match regex for these
-            if coll.name not in [
-                CollectionKeys.WEIGHTS,
-                CollectionKeys.BIASES,
-                CollectionKeys.TENSORFLOW_SUMMARIES,
-            ] and match_inc(tensor.name, coll.include_regex):
-                coll.add(tensor)
+        for coll in sorted(self._get_all_collections_to_save(), key=lambda x: x.name):
+            variable_collections_with_tensor, processed = self._process_tensor_from_variable_read_op(
+                tensor
+            )
+            if processed:
+                colls_with_tensor.update(variable_collections_with_tensor)
+                # processed=True means this tensor was either a variable read tensor,
+                # or a tensor with same name as variable
+                # former will be added to collections such as weights, biases, opt_variables
+                # latter will be skipped as they refer to the same tensor
+            else:
+                # some collections are added automatically, don't match regex for these
+                if coll.name not in [
+                    CollectionKeys.WEIGHTS,
+                    CollectionKeys.BIASES,
+                    CollectionKeys.OPTIMIZER_VARIABLES,
+                    CollectionKeys.TENSORFLOW_SUMMARIES,
+                ] and match_inc(tensor.name, coll.include_regex):
+                    coll.add(tensor)
 
-            # If variable, don't readd
-            for coll_name in [
-                CollectionKeys.WEIGHTS,
-                CollectionKeys.BIASES,
-                CollectionKeys.OPTIMIZER_VARIABLES,
-            ]:
-                if tensor.name in self.collection_manager.get(coll_name).tensor_names:
-                    return
+                if coll.has_tensor(tensor.name):
+                    # it must have been added when collection was added to
+                    # from user(custom_coll)/library(losses, weights, grads)
+                    tensor_ref = coll.get_tensor(tensor.name)
+                    tensor_ref.tf_obj = tensor
+                    colls_with_tensor.add(coll)
 
-            if coll.has_tensor(tensor.name):
-                # it must have been added when collection was added to
-                # from user(custom_coll)/library(losses, weights, grads)
+        # create entry in hook's tensor_to_collections map for this tensor
+        self._create_tensors_for_matching_collections(tensor, colls_with_tensor)
+
+    def _process_tensor_from_variable_read_op(self, tensor):
+        """
+        Returns a tuple of (collections_tensor_belongs_to, whether_tensor_was_processed)
+        whether_tensor_was_processed is True if this tensor is from a variable
+        (either representing the variable, or its read op)
+
+        If tensor represents a variable (tensor.name == variable.name), such as w1:0
+        then returns an empty set
+        :param tensor:
+        :return:
+        """
+        colls_with_tensor = set()
+        processed = False
+        for cname in [
+            CollectionKeys.WEIGHTS,
+            CollectionKeys.BIASES,
+            CollectionKeys.OPTIMIZER_VARIABLES,
+        ]:
+            coll = self.collection_manager.get(cname)
+            # Will contain w1/read:0 and w1:0
+            read_op_names = coll.get_tensors_dict().keys()
+            # w1:0, these will be
+            export_names = coll.get_export_names_of_tensors()
+            if tensor.name in read_op_names:
                 tensor_ref = coll.get_tensor(tensor.name)
+                # reassign tf_obj with same name from current graph
                 tensor_ref.tf_obj = tensor
                 colls_with_tensor.add(coll)
-        return colls_with_tensor
+                processed = True
+            elif tensor.name in export_names:
+                processed = True
+        return colls_with_tensor, processed
 
     def _create_tensors_for_matching_collections(self, tensor, colls_with_tensor):
         if colls_with_tensor:
             # this is mapping from graph name
             self.tensor_to_collections[tensor.name] = colls_with_tensor
-            tensor_ref = self._merge_tensor_refs_across_collections(tensor)
+            self._merge_tensor_refs_across_collections(tensor)
 
     def _check_and_add_tensor(self, tensor):
         if tensor.dtype == tf.resource or tensor.dtype == tf.variant:
-            return False
+            return
 
         if not self.graph.is_fetchable(tensor.op):
-            return False
+            return
 
         self._add_to_device_map(tensor)
-        colls_with_tensor = self._get_matching_collections(tensor)
-        self._create_tensors_for_matching_collections(tensor, colls_with_tensor)
+        self._add_tensor_to_matching_collections(tensor)
 
     def _add_tensors(self):
         # so collections have save configs and reduction configs
@@ -185,10 +224,12 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
     def _add_weights_and_biases(self):
         wts = tf.trainable_variables()
+        # variable such as <tf.Var w1:0>
         for w in wts:
             if match_inc(w.name, self.collection_manager.get(CollectionKeys.BIASES).include_regex):
                 self.collection_manager.get(CollectionKeys.BIASES).add(w)
             else:
+                # adds a tensor_ref with name `w1/read:0` and export_name `w1:0`
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
 
     def _is_not_supported(self):
@@ -304,17 +345,12 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         filtered = set()
         skipped = set()
         for tensor_ref in tensors_to_save:
-            tf_obj = (
-                tensor_ref.variable_value
-                if tensor_ref.type == TensorType.VARIABLE
-                else tensor_ref.tf_obj
-            )
             if self._is_tensor_dependent_on_unfilled_placeholder(
-                tf_obj, fetches_ops_tuple, unfilled_placeholders
+                tensor_ref.tf_obj, fetches_ops_tuple, unfilled_placeholders
             ):
-                filtered.add(tf_obj)
+                filtered.add(tensor_ref.tf_obj)
             else:
-                skipped.add(tf_obj)
+                skipped.add(tensor_ref.tf_obj)
         if len(skipped) > 0:
             self.logger.debug(f"Skipped {len(skipped)} unreachable tensors: {skipped}")
         self.logger.debug(f"Saving {len(filtered)} tensors: {filtered}")
