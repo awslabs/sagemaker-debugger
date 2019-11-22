@@ -84,10 +84,10 @@ def train_model(
             reduction_config=reduction_config,
         )
 
-    if not save_all and include_collections is not None:
-        for cname in hook.include_collections:
-            if cname not in include_collections:
-                hook.get_collection(cname).save_config = SaveConfig(end_step=0)
+        if not save_all and include_collections is not None:
+            for cname in hook.include_collections:
+                if cname not in include_collections:
+                    hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
     if create_relu_collection:
         hook.get_collection("relu").add_keras_layer(relu_layer, inputs=True, outputs=True)
