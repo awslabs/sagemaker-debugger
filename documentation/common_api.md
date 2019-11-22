@@ -5,6 +5,8 @@ These objects exist across all frameworks.
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
+- [Hook from JSON](#hooks)
+
 
 
 ## Modes
@@ -24,7 +26,7 @@ This allows setting of different save and reduction configs for different tensor
 These collections are then also available during analysis.
 
 ```
-def __init__(
+coll = smd.Collection(
     name,
     include_regex = None,
     tensor_names = None,
@@ -73,7 +75,7 @@ SaveConfig also allows you to save tensors when certain tensors become nan.
 This list of tensors to watch for is taken as a list of strings representing names of tensors.
 
 ```
-def __init__(
+save_config = smd.SaveConfig(
     mode_save_configs = None,
     save_interval = 100,
     start_step = 0,
@@ -125,7 +127,7 @@ A collection can also have its own ReductionConfig object which is applied
 to the tensors belonging to that collection.
 
 ```
-def __init__(
+reduction_config = smd.ReductionConfig(
     reductions = None,
     abs_reductions = None,
     norms = None,
@@ -144,3 +146,24 @@ For example,
 `ReductionConfig(reductions=['std', 'variance'], abs_reductions=['mean'], norms=['l1'])`
 
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
+
+## Hook from JSON
+The simplest way to create a hook is by using the Python API, as described for each framework.
+* [TensorFlow](https://link.com)
+* [PyTorch](https://link.com)
+* [MXNet](https://link.com)
+* [XGBoost](https://link.com)
+
+However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
+```
+json_config_path = "/tmp/json_config.json"
+hook = smd.get_hook(
+    hook_type = None,
+    json_config_path = json_config_path,
+    create_if_not_exists = True,
+)
+```
+`hook_type` only needs to be specified for TensorFlow, in which case it is one of ["session", "estimator", "keras"].\
+`create_if_not_exists` argument exists for internal reasons; set it to true.
+
+The JSON file configuration is detailed further on [AWS Docs](https://link.com).
