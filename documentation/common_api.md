@@ -1,15 +1,24 @@
 
 # Common API
 These objects exist across all frameworks.
+- [Modes](#modes)
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
 
 
+## Modes
+Used to signify which part of training you're in, similar to Keras modes. Choose from
+```
+smd.modes.TRAIN
+smd.modes.EVAL
+smd.modes.PREDICT
+smd.modes.GLOBAL
+```
 
 ## Collection
 
-The Collection object joins tensors into groups such as "losses", "weights", "biases", or "gradients".
+The Collection object groups tensors into groups such as "losses", "weights", "biases", or "gradients".
 A collection has its own list of tensors, include/exclude regex patterns, reduction config and save config.
 This allows setting of different save and reduction configs for different tensors.
 These collections are then also available during analysis.
@@ -21,7 +30,7 @@ These collections are then also available during analysis.
 | ```hook.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection if it doesn't already exist. |
 | ```hook.get_collections()```  |  Returns all collections as a dictionary with the keys being names of the collections. |
 | ```hook.add_to_collection(collection_name, args)```  | Equivalent to calling `coll.add(args)` on the collection with name `collection_name`. |
-| ```hook.add_to_default_collection(args)```  | Equivalent to calling `coll.add(args)` on the collection with the name `default`. |
+
 
 ### Methods on a Collection
 

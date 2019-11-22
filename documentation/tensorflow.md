@@ -1,6 +1,7 @@
 # Tensorflow
 
 Supported Tensorflow versions: 1.13, 1.14, and 1.15.
+Supported standalone Keras version: 2.3.
 
 ## Contents
 - [Keras Example](#keras-example)
