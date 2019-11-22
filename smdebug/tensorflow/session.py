@@ -131,10 +131,15 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             ] and match_inc(tensor.name, coll.include_regex):
                 coll.add(tensor)
 
-            if coll.has_tensor(tensor.name):
+            if isinstance(tensor, tf.Variable):
+                name = tensor.value().name
+            else:
+                name = tensor.name
+
+            if coll.has_tensor(name):
                 # it must have been added when collection was added to
                 # from user(custom_coll)/library(losses, weights, grads)
-                tensor_ref = coll.get_tensor(tensor.name)
+                tensor_ref = coll.get_tensor(name)
                 tensor_ref.tf_obj = tensor
                 colls_with_tensor.add(coll)
         return colls_with_tensor
@@ -171,10 +176,6 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 if is_placeholder(tensor):
                     self._placeholder_tensors.add(tensor)
                 self._check_and_add_tensor(tensor)
-
-        # need to do this for mirrored strategy
-        for variable in tf.global_variables():
-            self._check_and_add_tensor(variable)
 
     def _add_summaries_tensors(self):
         if CollectionKeys.TENSORFLOW_SUMMARIES in self.include_collections:
@@ -274,19 +275,19 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         return subgraph_nodes
 
     def _is_tensor_dependent_on_unfilled_placeholder(
-        self, tensor_ref, fetches_ops_tuple, unfilled_placeholders
+        self, tensor_obj, fetches_ops_tuple, unfilled_placeholders
     ):
         # making this a class method so we can cache this result
         # making set a tuple so we can hash it
         key = (
-            tensor_ref.tf_obj,
+            tensor_obj,
             fetches_ops_tuple,
             tuple(sorted(list(unfilled_placeholders), key=lambda x: x.name)),
         )
         if key not in self._tensor_placeholder_dependence:
             subgraph_nodes = self._get_subgraph_which_reach_fetches(fetches_ops_tuple)
             self._tensor_placeholder_dependence[key] = tensor_can_be_saved(
-                tensor_ref.tf_obj, subgraph_nodes, unfilled_placeholders
+                tensor_obj, subgraph_nodes, unfilled_placeholders
             )
         return self._tensor_placeholder_dependence[key]
 
@@ -306,12 +307,17 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         filtered = set()
         skipped = set()
         for tensor_ref in tensors_to_save:
+            tf_obj = (
+                tensor_ref.variable_value
+                if tensor_ref.type == TensorType.VARIABLE
+                else tensor_ref.tf_obj
+            )
             if self._is_tensor_dependent_on_unfilled_placeholder(
-                tensor_ref, fetches_ops_tuple, unfilled_placeholders
+                tf_obj, fetches_ops_tuple, unfilled_placeholders
             ):
-                filtered.add(tensor_ref.tf_obj)
+                filtered.add(tf_obj)
             else:
-                skipped.add(tensor_ref.tf_obj)
+                skipped.add(tf_obj)
         if len(skipped) > 0:
             self.logger.debug(f"Skipped {len(skipped)} unreachable tensors: {skipped}")
         self.logger.debug(f"Saving {len(filtered)} tensors: {filtered}")

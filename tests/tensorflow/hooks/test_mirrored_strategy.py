@@ -312,6 +312,7 @@ def test_basic(out_dir, zcc=False):
     assert len(tr.steps(ModeKeys.EVAL)) == 2
     assert len(tr.steps(ModeKeys.PREDICT)) == 2
 
+    assert "dense_1/kernel:0" in tr.tensors(collection="weights")
     for tname in tr.tensors(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
