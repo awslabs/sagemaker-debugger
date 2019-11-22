@@ -1,7 +1,6 @@
 # Standard Library
 
 # Third Party
-from tensorflow.python.distribute import values
 from tensorflow.python.keras.backend import is_placeholder
 
 # First Party
@@ -131,16 +130,19 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             ] and match_inc(tensor.name, coll.include_regex):
                 coll.add(tensor)
 
-            if isinstance(tensor, tf.Variable):
-                assert False
-                name = tensor.value().name
-            else:
-                name = tensor.name
+            # If variable, don't readd
+            for coll_name in [
+                CollectionKeys.WEIGHTS,
+                CollectionKeys.BIASES,
+                CollectionKeys.OPTIMIZER_VARIABLES,
+            ]:
+                if tensor.name in self.collection_manager.get(coll_name).tensor_names:
+                    return
 
-            if coll.has_tensor(name):
+            if coll.has_tensor(tensor.name):
                 # it must have been added when collection was added to
                 # from user(custom_coll)/library(losses, weights, grads)
-                tensor_ref = coll.get_tensor(name)
+                tensor_ref = coll.get_tensor(tensor.name)
                 tensor_ref.tf_obj = tensor
                 colls_with_tensor.add(coll)
         return colls_with_tensor
@@ -158,16 +160,9 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         if not self.graph.is_fetchable(tensor.op):
             return False
 
-        if isinstance(tensor, values.MirroredVariable):
-            assert False
-            tensors = [t for t in tensor._values]
-        else:
-            tensors = [tensor]
-
-        for t in tensors:
-            self._add_to_device_map(t)
-            colls_with_tensor = self._get_matching_collections(t)
-            self._create_tensors_for_matching_collections(t, colls_with_tensor)
+        self._add_to_device_map(tensor)
+        colls_with_tensor = self._get_matching_collections(tensor)
+        self._create_tensors_for_matching_collections(tensor, colls_with_tensor)
 
     def _add_tensors(self):
         # so collections have save configs and reduction configs

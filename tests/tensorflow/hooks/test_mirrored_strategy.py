@@ -459,8 +459,7 @@ def test_save_all_worker(out_dir):
         out_dir,
         steps=["train"],
         num_steps=1,
-        include_collections=["weights", "biases"],
-        # save_all=True,
+        save_all=True,
         eval_distributed=True,
         include_workers="all",
     )
