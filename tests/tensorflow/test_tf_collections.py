@@ -7,7 +7,6 @@ import tensorflow as tf
 # First Party
 from smdebug.core.utils import get_path_to_collections
 from smdebug.tensorflow.collection import Collection, CollectionManager
-from smdebug.tensorflow.tensor_ref import get_tf_names
 
 
 def test_manager_export_load(out_dir):
@@ -29,9 +28,11 @@ def test_add_variable():
     tf.reset_default_graph()
     var = tf.Variable(tf.zeros([1.0, 2.0, 3.0]))
     cm.get("test").add(var)
-    # TF name will be variable.value().name now
+    # this works here, and works for tf session
+    # but in keras each time value is called, it increases readVariableOp counter
+    assert var.value().name in cm.get("test").get_tensors_dict()
     assert var.name in cm.get("test").tensor_names
-    assert cm.get("test").get_tensor(get_tf_names(var)[0]).original_tensor == var
+    assert cm.get("test").get_tensor(var.value().name).original_tensor == var
 
 
 def test_add_variable_with_name():
@@ -39,6 +40,8 @@ def test_add_variable_with_name():
     tf.reset_default_graph()
     var = tf.Variable(tf.zeros([1.0, 2.0, 3.0]))
     cm.get("test").add_variable(var, export_name="zeros_var")
-    # assert get_tf_names(var)[0] in cm.get("test").get_tensors_dict()
+    # this works here, and works for tf session
+    # but in keras each time value is called, it increases readVariableOp counter
+    assert var.value().name in cm.get("test").get_tensors_dict()
     assert "zeros_var" in cm.get("test").tensor_names
-    assert cm.get("test").get_tensor(get_tf_names(var)[0]).original_tensor == var
+    assert cm.get("test").get_tensor(var.value().name).original_tensor == var
