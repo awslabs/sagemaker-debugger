@@ -1,6 +1,6 @@
-# PyTorch
+# MXNet
 
-Supported PyTorch versions: 1.2+.
+Supported MXNet versions: ???
 
 ## Contents
 - [Example](#mxnet-example)
@@ -97,3 +97,17 @@ register_block(
 Adds callbacks to the module for recording tensors.
 
 * `block` (mx.gluon.Block): The block to use.
+
+```
+save_scalar(
+    self,
+    name,
+    value,
+    searchable = False,
+)
+```
+Call this method at any point in the training script to log a scalar value, such as accuracy.
+
+* `name` (str): Name of the scalar. A prefix 'scalar/' will be added to it.
+* `value` (float): Scalar value.
+* `searchable` (bool): If True, the scalar value will be written to SageMaker Minerva.

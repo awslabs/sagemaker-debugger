@@ -9,7 +9,7 @@ Supported standalone Keras version: 2.3.
 - [Estimator Example](#estimator-example)
 - [Full API](#full-api)
 
-## Keras Example
+## tf.keras Example
 ```
 import smdebug.tensorflow as smd
 hook = smd.KerasHook(out_dir=args.out_dir)

@@ -113,13 +113,15 @@ Adds callbacks to the module for recording tensors.
 
 
 ```
-record_tensor_value(
+save_scalar(
     self,
-    tensor_name,
-    tensor_value,
+    name,
+    value,
+    searchable = False,
 )
 ```
-Store a tensor which is outside a torch.nn.Module, for example a functional loss.
+Call this method at any point in the training script to log a scalar value, such as accuracy.
 
-* `tensor_name` (str): The tensor name, used to access the tensor value in analysis.
-* `tensor_value` (torch.Tensor): The tensor itself.
+* `name` (str): Name of the scalar. A prefix 'scalar/' will be added to it.
+* `value` (float): Scalar value.
+* `searchable` (bool): If True, the scalar value will be written to SageMaker Minerva.

@@ -4,6 +4,7 @@
 - [Install](#install)
 - [Example Usage](#example-usage)
 - [Concepts](#concepts)
+- [Glossary](#glossary)
 
 ## Overview
 Sagemaker Debugger is an AWS service to automatically debug your machine learning training process.

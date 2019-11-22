@@ -23,11 +23,28 @@ A collection has its own list of tensors, include/exclude regex patterns, reduct
 This allows setting of different save and reduction configs for different tensors.
 These collections are then also available during analysis.
 
-### Creating/Accessing a Collection
+```
+def __init__(
+    name,
+    include_regex = None,
+    tensor_names = None,
+    reduction_config = None,
+    save_config = None,
+    save_histogram = True,
+)
+```
+`name` (str): Used to identify the collection.\
+`include_regex` (list[str]): The regexes to match tensor names for the collection.\
+`tensor_names` (list[str]): A list of tensor names to include.\
+`reduction_config`: (ReductionConfig object): Which reductions to store in the collection.\
+`save_config` (SaveConfig object): Settings for how often to save the collection.\
+`save_histogram` (bool): Whether to save histogram data for the collection. Only used if tensorboard support is enabled. Not computed for scalar collections such as losses.
+
+### Accessing a Collection
 
 | Function |  Behavior |
 |---|---|
-| ```hook.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection if it doesn't already exist. |
+| ```hook.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection with default settings if it doesn't already exist. |
 | ```hook.get_collections()```  |  Returns all collections as a dictionary with the keys being names of the collections. |
 | ```hook.add_to_collection(collection_name, args)```  | Equivalent to calling `coll.add(args)` on the collection with name `collection_name`. |
 
@@ -37,10 +54,11 @@ These collections are then also available during analysis.
 | Method  |  Behavior |
 |---|---|
 | ```coll.include(regex)```  |  Takes a regex string or a list of regex strings to match tensors to include in the collection. |
-| ```coll.add(tensor)```  | Takes an instance or list or set of tf.Operation/tf.Variable/tf.Tensor to add to the collection.  |
 | ```coll.include_regex```  | Get or set include_regex for the collection.  |
 | ```coll.save_config```  | Get or set save_config for the collection.  |
 | ```coll.reduction_config```  | Get or set reduction config for the collection.  |
+| ```coll.add(tensor)```  | **(TensorFlow only)** Takes an instance or list or set of tf.Tensor/tf.Variable/tf.MirroredVariable/tf.Operation to add to the collection.  |
+| ```coll.add_keras_layer(layer, inputs=False, outputs=True)```  | **(tf.keras only)** Takes an instance of a tf.keras layer and logs input/output tensors for that module. By default, only outputs are saved. |
 | ```coll.add_module_tensors(module, inputs=False, outputs=True)```  | **(PyTorch only)** Takes an instance of a PyTorch module and logs input/output tensors for that module. By default, only outputs are saved. |
 | ```coll.add_block_tensors(block, inputs=False, outputs=True)``` | **(MXNet only)** Takes an instance of a Gluon block,and logs input/output tensors for that module. By default, only outputs are saved. |
 
@@ -118,7 +136,8 @@ def __init__(
 `reductions` (list[str]): Takes names of reductions, choosing from "min", "max", "median", "mean", "std", "variance", "sum", "prod".\
 `abs_reductions` (list[str]): Same as reductions, except the reduction will be computed on the absolute value of the tensor.\
 `norms` (list[str]): Takes names of norms to compute, choosing from "l1", "l2".\
-`abs_norms` (list[str]): Same as norms, except the norm will be computed on the absolute value of the tensor.
+`abs_norms` (list[str]): Same as norms, except the norm will be computed on the absolute value of the tensor.\
+`save_raw_tensor` (bool): Saves the tensor directly, in addition to other desired reductions.
 
 For example,
 
