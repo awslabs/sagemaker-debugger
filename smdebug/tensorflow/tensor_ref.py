@@ -70,10 +70,11 @@ class TensorRef:
         else:
             self.original_tensor = None
 
-        # if self.type == TensorType.VARIABLE:
-        #     self.variable_value = self.tf_obj.value()
-        # else:
-        #     self.variable_value = None
+        if self.type == TensorType.VARIABLE:
+            self.variable_value = self.tf_obj.value()
+            self.name = self.variable_value.name
+        else:
+            self.variable_value = None
 
     def add_mode(self, mode):
         self.modes.add(mode)

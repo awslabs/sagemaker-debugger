@@ -69,6 +69,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ModeKeys.EVAL: False,
             ModeKeys.PREDICT: False,
         }
+        self.callable_fn_cache = {}  # Maps fetches to callable_fn
 
     def _is_not_supported(self):
         if self._hook_supported is None:
@@ -318,7 +319,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if coll.name in [CollectionKeys.METRICS, CollectionKeys.LOSSES, CollectionKeys.INPUTS]:
                 # these should not be added to fetches, and can be retrieved after the step ends
                 continue
-
             # below fetches even tensors which users might have added manually through collection API
             non_input_tensors = set(coll.get_tensors(mode=mode)).difference(input_tensors_set)
             self.tensor_refs_to_save_this_step.update(non_input_tensors)
@@ -403,12 +403,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _add_callbacks(self, mode):
         # safest if tornasole callback is the last
         # self.original_fetches = self._get_exec_function(mode).fetches.copy()
-        x = self._get_exec_function(mode)
+
+        x = self._get_exec_function(mode)  # Returns GraphExecutionFunction
         if self._validate_exec_function(x):
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
                 if isinstance(tensor, tf.Variable):
-                    tensor = tensor.value()
+                    tensor = tensor_ref.variable_value
                 if tensor not in x.fetches and tensor not in x.fetch_callbacks:
                     x.fetches.append(tensor)
                     self._fetches_added.add(tensor)
@@ -422,8 +423,23 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         f"Please remove the existing callback for Tornasole to save this tensor."
                     )
 
+        x.fetches.sort(key=lambda x: x.name)
+        fetch_hash = tuple(x.fetches)
+        # Overwrite the previous _fetches to trick TensorFlow into not creating a new callable
+        if fetch_hash in self.callable_fn_cache:
+            # print(f"fetches has length {len(fetch_hash)}, is in the cache.")
+            x._fetches = list(x.fetches)
+            x._callable_fn = self.callable_fn_cache[fetch_hash]
+
     def _remove_fetches_and_callbacks(self, mode):
         x = self._get_exec_function(mode)
+
+        # Cache the fetches mapping to callable
+        x.fetches.sort(key=lambda x: x.name)
+        fetch_hash = tuple(x.fetches)
+        if fetch_hash not in self.callable_fn_cache:
+            self.callable_fn_cache[fetch_hash] = x._callable_fn
+
         for tf_obj in self._fetches_added:
             x.fetches.remove(tf_obj)
             x.fetch_callbacks.pop(tf_obj)
