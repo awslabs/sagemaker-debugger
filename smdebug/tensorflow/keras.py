@@ -7,6 +7,7 @@ from tensorflow.python.distribute import values
 # First Party
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
+from smdebug.tensorflow.callable_cache import CallableCache
 
 # Local
 from .base_hook import TensorflowBaseHook
@@ -69,7 +70,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ModeKeys.EVAL: False,
             ModeKeys.PREDICT: False,
         }
-        self.callable_fn_cache = {}  # Maps fetches to callable_fn
+        self.callable_cache = CallableCache()
 
     def _is_not_supported(self):
         if self._hook_supported is None:
@@ -400,6 +401,32 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this function changes the order of args so we can create a partial function for callback
         self._save_for_tensor(tensor_name=name, tensor_value=value, check_before_write=check)
 
+    # def _if_rebuild_callable(self, exec_fn):
+    #     feed_arrays = []
+    #     array_vals = []
+    #     feed_symbols = []
+    #     symbol_vals = []
+    #     for tensor, value in zip(exec_fn.inputs, inputs):
+    #         if value is None:
+    #             continue
+    #         if tensor_util.is_tensor(value):
+    #             # Case: feeding symbolic tensor.
+    #             feed_symbols.append(tensor)
+    #             symbol_vals.append(value)
+    #         else:
+    #             # Case: feeding Numpy array.
+    #             feed_arrays.append(tensor)
+    #             # We need to do array conversion and type casting at this level, since
+    #             # `callable_fn` only supports exact matches.
+    #             tensor_type = dtypes_module.as_dtype(tensor.dtype)
+    #             array_vals.append(np.asarray(value,
+    #                                          dtype=tensor_type.as_numpy_dtype))
+    #
+    #     if (exec_fn._callable_fn is None or feed_arrays != self._feed_arrays or
+    #             symbol_vals != self._symbol_vals or
+    #             feed_symbols != self._feed_symbols or self.fetches != self._fetches or
+    #             session != self._session):
+
     def _add_callbacks(self, mode):
         # safest if tornasole callback is the last
         # self.original_fetches = self._get_exec_function(mode).fetches.copy()
@@ -423,22 +450,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         f"Please remove the existing callback for Tornasole to save this tensor."
                     )
 
-        x.fetches.sort(key=lambda x: x.name)
-        fetch_hash = tuple(x.fetches)
-        # Overwrite the previous _fetches to trick TensorFlow into not creating a new callable
-        if fetch_hash in self.callable_fn_cache:
-            # print(f"fetches has length {len(fetch_hash)}, is in the cache.")
-            x._fetches = list(x.fetches)
-            x._callable_fn = self.callable_fn_cache[fetch_hash]
+            callable_fn = self.callable_cache.get_fn(mode, x.fetches)
+            if callable_fn is not None:
+                x._fetches = list(x.fetches)
+                x._callable_fn = callable_fn
 
     def _remove_fetches_and_callbacks(self, mode):
         x = self._get_exec_function(mode)
 
-        # Cache the fetches mapping to callable
-        x.fetches.sort(key=lambda x: x.name)
-        fetch_hash = tuple(x.fetches)
-        if fetch_hash not in self.callable_fn_cache:
-            self.callable_fn_cache[fetch_hash] = x._callable_fn
+        self.callable_cache.cache_fn(mode, fetches=x.fetches, callable_fn=x._callable_fn)
 
         for tf_obj in self._fetches_added:
             x.fetches.remove(tf_obj)
@@ -461,6 +481,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.worker = self._get_worker_name()
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
+        self.callable_cache.change_mode()
 
     def on_train_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.TRAIN)
