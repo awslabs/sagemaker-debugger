@@ -269,7 +269,7 @@ def helper_mirrored(
             else:
                 p = mnist_classifier.predict(input_fn=input_fn_provider.eval_input_fn)
             for i in range(num_steps):
-                print(next(p))
+                next(p)
     get_hook()._cleanup()
     return distribution
 
@@ -312,6 +312,7 @@ def test_basic(out_dir, zcc=False):
     assert len(tr.steps(ModeKeys.EVAL)) == 2
     assert len(tr.steps(ModeKeys.PREDICT)) == 2
 
+    assert "dense_1/kernel:0" in tr.tensors(collection="weights")
     for tname in tr.tensors(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
@@ -443,6 +444,10 @@ def test_save_all(out_dir):
         return
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensors()) > 100
+    assert len(tr.steps())
+    assert len(tr.tensors(collection="weights"))
+    assert len(tr.tensors(collection="biases"))
+    assert len(tr.tensors(collection="gradients"))
 
 
 @pytest.mark.slow
@@ -459,7 +464,14 @@ def test_save_all_worker(out_dir):
         include_workers="all",
     )
     tr = create_trial_fast_refresh(out_dir)
+    assert len(tr.steps())
     assert len(tr.workers()) == get_available_gpus()
+    assert len(tr.tensors(collection="weights"))
+    assert "conv2d/kernel:0" in tr.tensors(collection="weights")
+    assert len(tr.tensors(collection="biases"))
+    assert "conv2d/bias:0" in tr.tensors(collection="biases")
+    assert len(tr.tensor("conv2d/bias:0").workers(0)) == strategy.num_replicas_in_sync
+    assert len(tr.tensors(collection="gradients"))
 
 
 @pytest.mark.slow
@@ -474,3 +486,7 @@ def test_save_one_worker(out_dir):
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.workers()) == 1
+    assert len(tr.steps())
+    assert len(tr.tensors(collection="weights"))
+    assert len(tr.tensors(collection="biases"))
+    assert len(tr.tensors(collection="gradients"))
