@@ -12,7 +12,7 @@ from smdebug.tensorflow.callable_cache import CallableCache
 # Local
 from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
-from .tensor_ref import TensorRef, TensorType, get_tf_names
+from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
     TFDistributionStrategy,
     get_export_name_for_keras,
@@ -409,8 +409,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._validate_exec_function(x):
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
-                if tensor_ref.type == TensorType.VARIABLE:
-                    tensor = tensor_ref.variable_value
                 if tensor not in x.fetches and tensor not in x.fetch_callbacks:
                     x.fetches.append(tensor)
                     self._fetches_added.add(tensor)

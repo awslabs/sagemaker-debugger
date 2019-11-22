@@ -70,12 +70,6 @@ class TensorRef:
         else:
             self.original_tensor = None
 
-        if self.type == TensorType.VARIABLE:
-            self.variable_value = self.tf_obj.value()
-            self.name = self.variable_value.name
-        else:
-            self.variable_value = None
-
     def add_mode(self, mode):
         self.modes.add(mode)
 
@@ -103,7 +97,7 @@ class TensorRef:
                 original_tensor = variable
 
             return TensorRef(
-                variable,  # .value(),
+                variable.value(),
                 export_name=export_name,
                 type=TensorType.VARIABLE,
                 original_tensor=original_tensor,
