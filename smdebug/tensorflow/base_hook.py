@@ -294,7 +294,7 @@ class TensorflowBaseHook(BaseHook):
             del self.writer_map[device]
 
     def _log_unsupported_optimizer(self, optimizer):
-        self.logger.error(
+        self.logger.warning(
             f"Unsupported optimizer {optimizer} {optimizer.__class__}. "
             "Tornasole can not automatically find the gradients. "
             "Please specify the gradient tensors and optimizer variables "
@@ -323,7 +323,7 @@ class TensorflowBaseHook(BaseHook):
         if save_collections:
             return next(iter(save_collections)).get_tensor(tf_tensor_name)
         else:
-            self.logger.error(
+            self.logger.warning(
                 f"Hook attempted to save unknown tensor {tf_tensor_name}."
                 f"This does not belong to any collection"
             )

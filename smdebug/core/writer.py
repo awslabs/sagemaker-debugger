@@ -177,7 +177,7 @@ class FileWriter:
             s = histogram_summary(tname, tdata, bins)
             self._writer.write_summary(s, global_step)
         except ValueError as e:
-            logger.error(f"Unable to write histogram {tname} at {global_step}: {e}")
+            logger.warning(f"Unable to write histogram {tname} at {global_step}: {e}")
 
     def write_scalar_summary(self, name, value, global_step):
         s = scalar_summary(name, value)

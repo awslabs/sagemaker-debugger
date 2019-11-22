@@ -7,6 +7,7 @@ from tensorflow.python.distribute import values
 # First Party
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
+from smdebug.tensorflow.callable_cache import CallableCache
 
 # Local
 from .base_hook import TensorflowBaseHook
@@ -69,6 +70,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ModeKeys.EVAL: False,
             ModeKeys.PREDICT: False,
         }
+        self.callable_cache = CallableCache()
 
     def _is_not_supported(self):
         if self._hook_supported is None:
@@ -318,7 +320,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if coll.name in [CollectionKeys.METRICS, CollectionKeys.LOSSES, CollectionKeys.INPUTS]:
                 # these should not be added to fetches, and can be retrieved after the step ends
                 continue
-
             # below fetches even tensors which users might have added manually through collection API
             non_input_tensors = set(coll.get_tensors(mode=mode)).difference(input_tensors_set)
             self.tensor_refs_to_save_this_step.update(non_input_tensors)
@@ -403,12 +404,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _add_callbacks(self, mode):
         # safest if tornasole callback is the last
         # self.original_fetches = self._get_exec_function(mode).fetches.copy()
-        x = self._get_exec_function(mode)
+
+        x = self._get_exec_function(mode)  # Returns GraphExecutionFunction
         if self._validate_exec_function(x):
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
-                if isinstance(tensor, tf.Variable):
-                    tensor = tensor.value()
                 if tensor not in x.fetches and tensor not in x.fetch_callbacks:
                     x.fetches.append(tensor)
                     self._fetches_added.add(tensor)
@@ -416,14 +416,23 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         self._save_tensor_callback, name=tensor_ref.name, check=False
                     )
                 else:
-                    self.logger.error(
+                    self.logger.warning(
                         f"Can not save tensor {tensor.name} as there is already "
                         f"a callback registered for this tensor. "
                         f"Please remove the existing callback for Tornasole to save this tensor."
                     )
 
+            callable_fn = self.callable_cache.get_fn(mode, x.fetches)
+            if callable_fn is not None:
+                x._fetches = list(x.fetches)
+                x._callable_fn = callable_fn
+
     def _remove_fetches_and_callbacks(self, mode):
         x = self._get_exec_function(mode)
+
+        # cache the callable for given fetches
+        self.callable_cache.cache_fn(mode, fetches=x.fetches, callable_fn=x._callable_fn)
+
         for tf_obj in self._fetches_added:
             x.fetches.remove(tf_obj)
             x.fetch_callbacks.pop(tf_obj)
@@ -445,6 +454,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.worker = self._get_worker_name()
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
+
+        # have to clear callable cache if we are not caching per mode
+        self.callable_cache.change_mode()
 
     def on_train_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.TRAIN)
