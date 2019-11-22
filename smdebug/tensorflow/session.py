@@ -132,6 +132,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 coll.add(tensor)
 
             if isinstance(tensor, tf.Variable):
+                assert False
                 name = tensor.value().name
             else:
                 name = tensor.name
@@ -158,6 +159,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             return False
 
         if isinstance(tensor, values.MirroredVariable):
+            assert False
             tensors = [t for t in tensor._values]
         else:
             tensors = [tensor]
