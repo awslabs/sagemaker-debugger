@@ -84,6 +84,7 @@ def train_model(
     include_workers="all",
 ):
     print(tf.__version__)
+    tf.keras.backend.clear_session()
 
     datasets, info = tfds.load(name="mnist", with_info=True, as_supervised=True)
 
@@ -354,6 +355,12 @@ def test_save_one_worker(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.workers()) == 1
     assert len(tr.steps())
+    assert len(tr.tensors(collection="weights"))
+    assert len(tr.tensors(collection="weights"))
+    assert len(tr.tensor(tr.tensors(collection="weights")[0]).workers(0)) == 1
+    assert len(tr.tensors(collection="biases"))
+    assert len(tr.tensor(tr.tensors(collection="biases")[0]).workers(0)) == 1
+    assert len(tr.tensors(collection="gradients"))
 
 
 @pytest.mark.slow
@@ -371,7 +378,24 @@ def test_save_all_workers(out_dir, zcc=False):
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.workers()) == get_available_gpus()
-    assert len(tr.steps())
+    assert len(tr.tensors(collection="weights"))
+    assert (
+        len(tr.tensor(tr.tensors(collection="weights")[0]).workers(0))
+        == strategy.num_replicas_in_sync
+    )
+
+    assert "conv2d/weights/conv2d/kernel:0" in tr.tensors(collection="weights")
+    assert (
+        len(tr.tensor("conv2d/weights/conv2d/kernel:0").workers(0)) == strategy.num_replicas_in_sync
+    )
+
+    assert len(tr.tensors(collection="biases"))
+    assert "conv2d/weights/conv2d/bias:0" in tr.tensors(collection="biases")
+    assert (
+        len(tr.tensor(tr.tensors(collection="biases")[0]).workers(0))
+        == strategy.num_replicas_in_sync
+    )
+    assert len(tr.tensors(collection="gradients"))
 
 
 @pytest.mark.slow

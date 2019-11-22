@@ -468,6 +468,7 @@ def test_save_all_worker(out_dir):
     assert len(tr.workers()) == get_available_gpus()
     assert len(tr.tensors(collection="weights"))
     assert "conv2d/kernel:0" in tr.tensors(collection="weights")
+    assert len(tr.tensor("conv2d/kernel:0").workers(0)) == strategy.num_replicas_in_sync
     assert len(tr.tensors(collection="biases"))
     assert "conv2d/bias:0" in tr.tensors(collection="biases")
     assert len(tr.tensor("conv2d/bias:0").workers(0)) == strategy.num_replicas_in_sync
