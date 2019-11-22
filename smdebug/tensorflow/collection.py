@@ -91,7 +91,7 @@ class Collection(BaseCollection):
         elif isinstance(arg, values.AggregatingVariable):
             return self.add_aggregating_variable(arg, mode=mode)
         else:
-            logger.error(
+            logger.warning(
                 f"Could not add {arg} of type {arg.__class__} to collection {self.name}."
                 "Add can only take tf.Operation, tf.Variable, tf.Tensor, "
                 "tf.MirroredVariable and list or set of any of the above."
@@ -107,6 +107,9 @@ class Collection(BaseCollection):
         if graph is not None:
             tensors = [t for t in tensors if graph == t.tf_obj.graph]
         return tensors
+
+    def get_export_names_of_tensors(self):
+        return self.tensor_names
 
     def get_tensor(self, name):
         return self._tensors[name]

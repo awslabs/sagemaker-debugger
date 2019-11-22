@@ -6,6 +6,7 @@ import shutil
 import numpy as np
 import pytest
 import tensorflow as tf
+from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 import smdebug.tensorflow as smd
@@ -101,6 +102,9 @@ def test_hook_write(out_dir):
         out_dir, save_all=True, include_collections=None, save_config=SaveConfig(save_interval=999)
     )
     helper_hook_write(out_dir, hook)
+    tr = create_trial_fast_refresh(out_dir)
+    print(tr.tensors(collection="weights"))
+    assert len(tr.tensors(collection="weights"))
 
 
 def test_hook_write_json(out_dir, monkeypatch):

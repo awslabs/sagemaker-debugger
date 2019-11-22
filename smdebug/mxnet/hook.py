@@ -51,10 +51,6 @@ class Hook(CallbackHook):
             save_all=save_all,
             include_workers=include_workers,
         )
-        # We would like to collect loss collection
-        # even if user does not specify any collections
-        if CollectionKeys.LOSSES not in self.include_collections:
-            self.include_collections.append(CollectionKeys.LOSSES)
         self.last_block = None
 
         self.model = None
