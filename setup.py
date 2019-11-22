@@ -79,15 +79,14 @@ def scan_git_secrets():
         return subprocess.call(["git"] + list(args))
 
     shutil.rmtree("/tmp/git-secrets", ignore_errors=True)
-    a = git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
+    git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    b = os.chdir("/tmp/git-secrets")
-    c = subprocess.check_call(["make"] + ["install"])
-    d = os.chdir(dir_path)
-    e = git("secrets", "--install")
-    f = git("secrets", "--register-aws")
-    g = git("secrets", "--scan", "-r")
-    return g
+    os.chdir("/tmp/git-secrets")
+    subprocess.check_call(["make"] + ["install"])
+    os.chdir(dir_path)
+    git("secrets", "--install")
+    git("secrets", "--register-aws")
+    return git("secrets", "--scan", "-r")
 
 
 if scan_git_secrets() != 0:
