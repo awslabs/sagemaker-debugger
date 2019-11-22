@@ -8,14 +8,7 @@ from smdebug.core.utils import split
 ALLOWED_REDUCTIONS = ["min", "max", "mean", "std", "variance", "sum", "prod"]
 ALLOWED_NORMS = ["l1", "l2"]
 REDUCTION_CONFIG_VERSION_NUM = "v0"
-ALLOWED_PARAMS = [
-    "only_shape",
-    "reductions",
-    "abs_reductions",
-    "norms",
-    "abs_norms",
-    "save_raw_tensor",
-]
+ALLOWED_PARAMS = ["reductions", "abs_reductions", "norms", "abs_norms", "save_raw_tensor"]
 
 
 class ReductionConfig:
@@ -31,10 +24,6 @@ class ReductionConfig:
 
   Attributes
   ----------
-  only_shape: bool
-      If this is set, only the shape of tensor is saved.
-      Not yet supported.
-
   reductions: list of str
       takes list of names of reductions to be computed.
       should be one of 'min', 'max', 'median', 'mean', 'std', 'variance', 'sum', 'prod'
@@ -55,14 +44,12 @@ class ReductionConfig:
 
     def __init__(
         self,
-        only_shape=False,
         reductions=None,
         abs_reductions=None,
         norms=None,
         abs_norms=None,
         save_raw_tensor=False,
     ):
-        self.only_shape = only_shape
         self.reductions = reductions if reductions is not None else []
         self.abs_reductions = abs_reductions if abs_reductions is not None else []
         self.norms = norms if norms is not None else []
@@ -91,13 +78,12 @@ class ReductionConfig:
 
     @classmethod
     def from_dict(cls, params: Dict[str, Any]) -> "ReductionConfig":
-        """Parses a flattened dict with two keys: `only_shape` and `reductions`."""
+        """Parses a flattened dict with two keys: `save_raw_tensor` and `reductions`."""
         if params is None:
             return None
         if not isinstance(params, dict):
             raise ValueError(f"params={params} must be dict")
 
-        only_shape = params.get("only_shape", False)
         save_raw_tensor = params.get("save_raw_tensor", False)
         # Parse comma-separated string into array
         all_reductions = split(params.get("reductions", ""))
@@ -117,7 +103,6 @@ class ReductionConfig:
                         reductions.append(red)  # mean -> mean
 
         return cls(
-            only_shape=only_shape,
             reductions=reductions,
             abs_reductions=abs_reductions,
             norms=norms,
@@ -131,7 +116,6 @@ class ReductionConfig:
         return cls.from_dict(d)
 
     def to_json_dict(self) -> Dict[str, Any]:
-        only_shape = self.only_shape
         save_raw_tensor = self.save_raw_tensor
         # Convert reductions from various arrays into single comma-separated string
         all_reductions = []
@@ -145,11 +129,7 @@ class ReductionConfig:
             all_reductions.append(f"abs_{red}_norm")
         all_reductions_str = ",".join(all_reductions)
         # Return the dict
-        return {
-            "only_shape": only_shape,
-            "save_raw_tensor": save_raw_tensor,
-            "reductions": all_reductions_str,
-        }
+        return {"save_raw_tensor": save_raw_tensor, "reductions": all_reductions_str}
 
     def to_json(self) -> str:
         return json.dumps(self.to_json_dict())
@@ -159,8 +139,7 @@ class ReductionConfig:
             return NotImplemented
 
         return (
-            self.only_shape == other.only_shape
-            and self.reductions == other.reductions
+            self.reductions == other.reductions
             and self.abs_reductions == other.abs_reductions
             and self.norms == other.norms
             and self.abs_norms == other.abs_norms
@@ -169,6 +148,6 @@ class ReductionConfig:
 
     def __repr__(self):
         return (
-            f"<class ReductionConfig: only_shape={self.only_shape}, reductions={self.reductions}, "
+            f"<class ReductionConfig: reductions={self.reductions}, "
             f"abs_reductions={self.abs_reductions}, norms={self.norms}, abs_norms={self.abs_norms}>"
         )

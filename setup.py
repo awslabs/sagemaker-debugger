@@ -6,17 +6,18 @@ import sys
 import setuptools
 
 exec(open("smdebug/_version.py").read())
+
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = [
     # aiboto3 implicitly depends on aiobotocore
     "aioboto3==6.4.1",  # no version deps
-    "aiobotocore==0.10.4",  # pinned to a specific botocore & boto3
+    "aiobotocore==0.11.0",  # pinned to a specific botocore & boto3
     "aiohttp>=3.6.0,<4.0",  # aiobotocore breaks with 4.0
     # boto3 explicitly depends on botocore
-    "boto3==1.9.252",  # Sagemaker requires >= 1.9.213
-    "botocore==1.12.252",
+    "boto3==1.10.14",  # Sagemaker requires >= 1.9.213
+    "botocore==1.13.14",
     "nest_asyncio",
     "protobuf>=3.6.0",
     "numpy",
@@ -39,11 +40,8 @@ def build_package(version):
     setuptools.setup(
         name="smdebug",
         version=version,
-        # author="The Tornasole Team",
-        # author_email="tornasole@amazon.com",
+        author="AWS DeepLearning Team",
         description="Automated debugging for machine learning",
-        # long_description=long_description,
-        # long_description_content_type="text/markdown",
         url="https://github.com/awslabs/tornasole_core",
         packages=setuptools.find_packages(),
         classifiers=[

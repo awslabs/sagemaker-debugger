@@ -78,7 +78,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ):
                 self.logger.info("Disabling SMDebug as it does not support eager mode")
                 self._hook_supported = False
-            elif self.get_distribution_strategy() == TFDistributionStrategy.MIRRORED_STRATEGY:
+            elif self._get_distribution_strategy() == TFDistributionStrategy.MIRRORED_STRATEGY:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
                         get_distributed_model,
@@ -90,7 +90,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         "with TensorFlow version <1.14"
                     )
                     self._hook_supported = False
-            elif self.get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED:
+            elif self._get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED:
                 self.logger.info(
                     f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
                 )
@@ -386,6 +386,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             x = self._get_distributed_model(mode)._distributed_function
         return x
 
+    def _validate_exec_function(self, fn):
+        if fn is None:
+            self.logger.info(
+                f"Could not save tensors for {self.mode} step {self.mode_steps[self.mode]} "
+                f"as execution function has not yet been built."
+            )
+            return False
+        else:
+            return True
+
     def _save_tensor_callback(self, value, name, check):
         # this function changes the order of args so we can create a partial function for callback
         self._save_for_tensor(tensor_name=name, tensor_value=value, check_before_write=check)
@@ -394,22 +404,23 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # safest if tornasole callback is the last
         # self.original_fetches = self._get_exec_function(mode).fetches.copy()
         x = self._get_exec_function(mode)
-        for tensor_ref in self.tensor_refs_to_save_this_step:
-            tensor = tensor_ref.tf_obj
-            if isinstance(tensor, tf.Variable):
-                tensor = tensor.value()
-            if tensor not in x.fetches and tensor not in x.fetch_callbacks:
-                x.fetches.append(tensor)
-                self._fetches_added.add(tensor)
-                x.fetch_callbacks[tensor] = functools.partial(
-                    self._save_tensor_callback, name=tensor_ref.name, check=False
-                )
-            else:
-                self.logger.error(
-                    f"Can not save tensor {tensor.name} as there is already "
-                    f"a callback registered for this tensor. "
-                    f"Please remove the existing callback for Tornasole to save this tensor."
-                )
+        if self._validate_exec_function(x):
+            for tensor_ref in self.tensor_refs_to_save_this_step:
+                tensor = tensor_ref.tf_obj
+                if isinstance(tensor, tf.Variable):
+                    tensor = tensor.value()
+                if tensor not in x.fetches and tensor not in x.fetch_callbacks:
+                    x.fetches.append(tensor)
+                    self._fetches_added.add(tensor)
+                    x.fetch_callbacks[tensor] = functools.partial(
+                        self._save_tensor_callback, name=tensor_ref.name, check=False
+                    )
+                else:
+                    self.logger.error(
+                        f"Can not save tensor {tensor.name} as there is already "
+                        f"a callback registered for this tensor. "
+                        f"Please remove the existing callback for Tornasole to save this tensor."
+                    )
 
     def _remove_fetches_and_callbacks(self, mode):
         x = self._get_exec_function(mode)
@@ -430,8 +441,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _on_any_mode_begin(self, mode):
         if self._is_not_supported():
             return
-        self.distribution_strategy = self.get_distribution_strategy()
-        self.worker = self.get_worker_name()
+        self.distribution_strategy = self._get_distribution_strategy()
+        self.worker = self._get_worker_name()
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
@@ -456,30 +467,37 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
-        if self.prepared_collections is False:
-            # sets prepared_collections to True here
-            self._prepare_collections()
-        if self._prepared_tensors[mode] is False:
-            self._prepare_layers(mode)
-            self._prepare_non_layer_tensors()
-            # below should be after tensors are processed, so we know device map
-            if (
-                len(self.device_map)
-                and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
-                and self.save_all_workers is False
-            ):
-                self.chief_worker = sorted(self.device_map.keys())[0]
-
         self._close_writers()
         self._increment_step()
 
-        self._prepare_tensors_for_step(mode)
+        if self.prepared_collections is False:
+            # sets prepared_collections to True here
+            self._prepare_collections()
 
-        if self.tensor_refs_to_save_this_step:
-            # if saving metric, writer may not be initialized as a result
-            self._initialize_writers()
+        if self._prepared_tensors[mode] is False:
+            if self._validate_exec_function(self._get_exec_function(mode)):
+                self._prepare_layers(mode)
+                self._prepare_non_layer_tensors()
+                # below should be after tensors are processed,
+                # so we know that device map is populated
+                if (
+                    len(self.device_map)
+                    and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
+                    and self.save_all_workers is False
+                ):
+                    self.chief_worker = sorted(self.device_map.keys())[0]
+            # else:
+            # this will delay the preparation of tensors as the
+            # full graph is not built. Gradients are not available
+            # at this stage for example
 
-        self._add_callbacks(mode)
+        if self._prepared_tensors[mode]:
+            self._prepare_tensors_for_step(mode)
+            if self.tensor_refs_to_save_this_step:
+                # if saving metric, writer may not be initialized as a result
+                self._initialize_writers()
+
+            self._add_callbacks(mode)
 
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
@@ -497,19 +515,23 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._remove_fetches_and_callbacks(mode)
         self._save_tensors_post_step(batch, logs)
 
-        if self._exported_collections is False:
-            # in keras, these collections change when mode changes
-            # but rest of the project isn't yet capable of handling this
-            # this means that collections like outputs, or other collections with intermediate tensors
-            # will only have tensor names from first mode
-            self.export_collections()
-            self._exported_collections = True
-        if self._exported_model[self.mode] is False:
-            # confirmed that keras has same graph for all modes
-            # but we are writing it multiple times to keep behavior consistent with
-            # estimator and to make it easier when seeing tensorboard
-            self._export_model()
-            self._exported_model[self.mode] = True
+        if self._prepared_tensors[mode]:
+            if self._exported_collections is False:
+                # in keras, these collections change when mode changes
+                # but rest of the project isn't yet capable of handling this
+                # this means that collections like outputs, or other collections with intermediate tensors
+                # will only have tensor names from first mode
+
+                # this means sometimes collections will be exported after 1 step
+                self.export_collections()
+                self._exported_collections = True
+
+            if self._exported_model[self.mode] is False:
+                # confirmed that keras has same graph for all modes
+                # but we are writing it multiple times to keep behavior consistent with
+                # estimator and to make it easier when seeing tensorboard
+                self._export_model()
+                self._exported_model[self.mode] = True
 
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)

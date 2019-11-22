@@ -46,9 +46,9 @@ class S3Trial(Trial):
         self.index_reader = S3IndexReader(self.path)
         self.s3_handler = S3Handler()
         self._load_collections()
-        self.load_tensors()
+        self._load_tensors()
 
-    def get_collection_files(self) -> list:
+    def _get_collection_files(self) -> list:
         collection_files, _ = list_s3_objects(
             self.bucket_name,
             get_path_to_collections(self.prefix_name),
@@ -61,9 +61,9 @@ class S3Trial(Trial):
         for tname in index_tensors_dict:
             for step, itds in index_tensors_dict[tname].items():
                 for worker in itds:
-                    self.add_tensor(int(step), worker, itds[worker]["tensor_location"])
+                    self._add_tensor(int(step), worker, itds[worker]["tensor_location"])
 
-    def read_collections(self, collection_files):
+    def _read_collections(self, collection_files):
         first_collection_file = collection_files[0]  # First Collection File
         key = os.path.join(first_collection_file)
         collections_req = ReadObjectRequest(self._get_s3_location(key))
@@ -71,11 +71,6 @@ class S3Trial(Trial):
         obj_data = obj_data.decode("utf-8")
         self.collection_manager = CollectionManager.load_from_string(obj_data)
         self.num_workers = self.collection_manager.get_num_workers()
-
-    def get_tensors(self, tname_steps_dict, should_regex_match=False):
-        # to be used when getting selective tensors from S3
-        # now we do not need to do anything since we read the full event file from S3
-        pass
 
     def _get_s3_location(self, obj):
         return "s3://" + self.bucket_name + "/" + obj

@@ -201,12 +201,26 @@ class SaveConfigMode:
         end_step: Union[int, str] = None,
         save_steps: List[int] = None,
     ):
-        self.save_interval = int(save_interval or DEFAULT_SAVE_CONFIG_INTERVAL)
-        self.save_steps = save_steps or DEFAULT_SAVE_CONFIG_SAVE_STEPS
-        self.start_step = int(start_step or DEFAULT_SAVE_CONFIG_START_STEP)
-        self.end_step = end_step or DEFAULT_SAVE_CONFIG_END_STEP
-        if self.end_step:  # can be None
-            self.end_step = int(self.end_step)
+        if save_interval is None:
+            self.save_interval = DEFAULT_SAVE_CONFIG_INTERVAL
+        else:
+            self.save_interval = int(save_interval)
+
+        if save_steps is None:
+            self.save_steps = DEFAULT_SAVE_CONFIG_SAVE_STEPS
+        else:
+            self.save_steps = save_steps
+
+        if start_step is None:
+            self.start_step = DEFAULT_SAVE_CONFIG_START_STEP
+        else:
+            self.start_step = int(start_step)
+
+        if end_step is None:
+            self.end_step = DEFAULT_SAVE_CONFIG_END_STEP
+        else:
+            self.end_step = int(end_step)
+
         ## DO NOT REMOVE; please make sure that _check & from_json is updated accordingly.
         self._check()
 
