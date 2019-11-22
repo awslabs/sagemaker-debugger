@@ -475,7 +475,7 @@ class BaseHook:
             )
             self._write_raw_tensor_simple(reduction_tensor_name, tensor_data, tensor_ref=tensor_ref)
         except ValueError as e:
-            self.logger.error(
+            self.logger.warning(
                 f"Could not compute reduction {reduction_name} of {tensor_name} due to {e}"
             )
 

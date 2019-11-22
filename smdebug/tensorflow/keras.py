@@ -444,7 +444,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         self._save_tensor_callback, name=tensor_ref.name, check=False
                     )
                 else:
-                    self.logger.error(
+                    self.logger.warning(
                         f"Can not save tensor {tensor.name} as there is already "
                         f"a callback registered for this tensor. "
                         f"Please remove the existing callback for Tornasole to save this tensor."
