@@ -269,7 +269,7 @@ def helper_mirrored(
             else:
                 p = mnist_classifier.predict(input_fn=input_fn_provider.eval_input_fn)
             for i in range(num_steps):
-                print(next(p))
+                next(p)
     get_hook()._cleanup()
     return distribution
 

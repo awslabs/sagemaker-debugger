@@ -3,6 +3,7 @@ import os
 from enum import Enum
 
 # First Party
+from smdebug.core.config_constants import CALLABLE_CACHE_ENV_VAR, DEFAULT_CALLABLE_CACHE
 from smdebug.core.modes import ALLOWED_MODES
 
 
@@ -10,10 +11,6 @@ class CacheType(Enum):
     OFF = 0
     CACHE_PER_MODE = 1
     CLEAR_FOR_EACH_MODE = 2
-
-
-CALLABLE_CACHE_ENV_VAR = "SMDEBUG_KERAS_CALLABLE_CACHE_TYPE"
-DEFAULT_CALLABLE_CACHE = "CACHE_PER_MODE"
 
 
 class CallableCache:
