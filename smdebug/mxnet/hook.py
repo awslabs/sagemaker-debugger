@@ -51,20 +51,16 @@ class Hook(CallbackHook):
             save_all=save_all,
             include_workers=include_workers,
         )
-        # We would like to collect loss collection
-        # even if user does not specify any collections
-        if CollectionKeys.LOSSES not in self.include_collections:
-            self.include_collections.append(CollectionKeys.LOSSES)
         self.last_block = None
 
         self.model = None
         self.exported_model = False
         # Keep the set of blocks to which this hook is registered. The blocks include loss blocks as well.
         self.registered_blocks = set()
-        self.worker = self.get_worker_name()
+        self.worker = self._get_worker_name()
         set_hook(self)
 
-    def get_worker_name(self):
+    def _get_worker_name(self):
         try:
             import horovod.mxnet as hvd
 
@@ -74,7 +70,7 @@ class Hook(CallbackHook):
             pass
         return CONFIG_DEFAULT_WORKER_NAME
 
-    def get_num_workers(self):
+    def _get_num_workers(self):
         try:
             import horovod.mxnet as hvd
 
@@ -91,17 +87,17 @@ class Hook(CallbackHook):
     def _cleanup(self):
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None and self.last_block is not None:
-            self.log_params(self.last_block)
+            self._log_params(self.last_block)
         if self.exported_model is False:
             self._export_model()
         super()._cleanup()
 
-    def log_params(self, block):
+    def _log_params(self, block):
         params = block.collect_params().values()
         for param in params:
-            self.log_param(param)
+            self._log_param(param)
 
-    def log_param(self, param):
+    def _log_param(self, param):
         self._save_for_tensor(tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0]))
         # If Gradient for this param is available
         if param.grad_req != "null":
@@ -127,7 +123,7 @@ class Hook(CallbackHook):
         if self.writer is not None:
             # Write the params and gradients of the
             # past step if the writer is still available.
-            self.log_params(block)
+            self._log_params(block)
             self._close_writers()
         self._close_tb_writer()
 
@@ -206,6 +202,10 @@ class Hook(CallbackHook):
         return len(extra_coll) != 0
 
     def register_hook(self, block):
+        # for compatibility with ZCC patches which call this
+        self.register_block(block)
+
+    def register_block(self, block):
         """
         This function registers the forward hook. If user wants to register the hook
         for every child in the given block, then the function calls "apply" API for

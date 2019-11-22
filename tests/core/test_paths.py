@@ -11,7 +11,6 @@ from smdebug.core.access_layer.file import (
 )
 from smdebug.core.access_layer.utils import training_has_ended
 from smdebug.core.hook_utils import verify_and_get_out_dir
-from smdebug.core.json_config import DEFAULT_SAGEMAKER_OUTDIR
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
@@ -28,16 +27,6 @@ def test_outdir_non_sagemaker():
         assert False
     except RuntimeError as e:
         pass
-
-
-def test_outdir_sagemaker():
-    os.environ["TRAINING_JOB_NAME"] = "a"
-    id = str(uuid.uuid4())
-    paths = ["/tmp/tests/" + id, "s3://tmp/tests/" + id]
-    for path in paths:
-        out_dir = verify_and_get_out_dir(path)
-        assert out_dir == DEFAULT_SAGEMAKER_OUTDIR
-    del os.environ["TRAINING_JOB_NAME"]
 
 
 def test_tensorboard_dir_sagemaker():
@@ -105,3 +94,21 @@ def test_s3_path_that_exists_without_end_of_job():
         # should not raise as dir present but does not have the end of job file
     except RuntimeError as e:
         assert False
+
+
+def test_outdir_sagemaker(monkeypatch):
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/my/own/path/tensors",
+                "HookParameters" : {
+                    "save_interval": "2",
+                    "include_workers": "all"
+                }
+            }
+            """
+    from smdebug.tensorflow import get_hook
+
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        hook = get_hook("keras", create_if_not_exists=True)
+        assert hook.out_dir == "/my/own/path/tensors"

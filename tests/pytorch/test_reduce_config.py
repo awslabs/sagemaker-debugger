@@ -45,7 +45,7 @@ def test_reduce_config(hook=None, out_dir=None):
         hook_created = True
 
     model = Net().to(torch.device("cpu"))
-    hook.register_hook(model)
+    hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, hook, torch.device("cpu"), optimizer, num_steps=10)
 

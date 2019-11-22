@@ -79,7 +79,9 @@ class Trial(ABC):
         of incomplete steps that the trial will wait for before marking
         half of them as complete.
         """
-        self._incomplete_wait_for_step_window = int(os.getenv("INCOMPLETE_STEP_WAIT_WINDOW", 1000))
+        self._incomplete_wait_for_step_window = int(
+            os.getenv(INCOMPLETE_STEP_WAIT_WINDOW_KEY, INCOMPLETE_STEP_WAIT_WINDOW_DEFAULT)
+        )
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
@@ -119,11 +121,11 @@ class Trial(ABC):
         )
 
     @abstractmethod
-    def read_collections(self, collection_files):
+    def _read_collections(self, collection_files):
         pass
 
     @abstractmethod
-    def get_collection_files(self):
+    def _get_collection_files(self):
         pass
 
     def _load_collections(self):
@@ -133,7 +135,7 @@ class Trial(ABC):
         def _fetch():
             nonlocal collection_files
             nonlocal num_times_before_warning
-            collection_files = self.get_collection_files()
+            collection_files = self._get_collection_files()
 
             num_times_before_warning -= 1
             if num_times_before_warning < 0:
@@ -161,7 +163,7 @@ class Trial(ABC):
 
         _fetch()
         _wait_for_first_collection_file()
-        self.read_collections(collection_files)
+        self._read_collections(collection_files)
         _wait_for_all_collection_files()
 
     @abstractmethod
@@ -278,7 +280,7 @@ class Trial(ABC):
                 self.mode_to_tensors_map[tensor.mode] = set()
             self.mode_to_tensors_map[tensor.mode].add(tensor.tensorname)
 
-    def add_tensor(self, step_num, worker, tensor_object: TensorLocation):
+    def _add_tensor(self, step_num, worker, tensor_object: TensorLocation):
         to = tensor_object
         # self.worker_set.add(worker)
         if REDUCTIONS_PREFIX in to.tensorname:
@@ -522,7 +524,7 @@ class Trial(ABC):
             return StepState.UNAVAILABLE
         return StepState.NOT_YET_AVAILABLE
 
-    def load_tensors(self):
+    def _load_tensors(self):
         if self.index_mode:
             self._load_tensors_from_index_files()
 

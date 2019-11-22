@@ -27,8 +27,6 @@ from smdebug.core.utils import (
 )
 from smdebug.exceptions import IndexReaderException, TensorUnavailableForStep
 
-logger = get_logger()
-
 
 class ReadIndexFilesCache:
     """
@@ -105,6 +103,7 @@ class IndexReader(ABC):
             "TORNASOLE_EVENT_FILE_RETRY_LIMIT", DEFAULT_EVENT_FILE_RETRY_LIMIT
         )
         self.path = path
+        self.logger = get_logger()
 
     @abstractmethod
     def fetch_tensor_value(self, tensor_location: TensorLocation):
@@ -136,7 +135,7 @@ class IndexReader(ABC):
                     step=tensor_location.mode_step,
                 )
             elif has_training_ended(self.path) is True:
-                logger.warn(
+                self.logger.warn(
                     f"IndexReader: Training Has Ended"
                     f"\nIndexReader: {event_file_name} was written but not found."
                 )
@@ -149,7 +148,7 @@ class IndexReader(ABC):
             num_retry += 1
             time.sleep(2)
         if num_retry >= self.event_file_retry_limit:
-            logger.warn(
+            self.logger.warn(
                 f"IndexReader: {event_file_name} was written but not found. After {num_retry} retries."
             )
             raise TensorUnavailableForStep(
@@ -168,7 +167,7 @@ class IndexReader(ABC):
         :param missing_event_file_name:
         :return:
         """
-        logger.info(f" Index Reader: Event File {missing_event_file_name} not found.")
+        self.logger.info(f" Index Reader: Event File {missing_event_file_name} not found.")
         missing_worker = parse_worker_name_from_file(missing_event_file_name)
         missing_step = IndexFileLocationUtils.parse_step_from_index_file_name(
             missing_event_file_name
@@ -183,11 +182,11 @@ class IndexReader(ABC):
                         we perform the list operation.
                     """
                     return False
-                logger.warn(
+                self.logger.warn(
                     f" Index Reader: Event File {missing_event_file_name} was written but not found "
                     f"\nHowever Event File {event_file} found."
                 )
-                logger.warn(f"IndexReader: Skipping {missing_event_file_name} ")
+                self.logger.warn(f"IndexReader: Skipping {missing_event_file_name} ")
                 return True
         return False
 
@@ -218,7 +217,10 @@ class IndexReader(ABC):
             ...
         }
         """
-        index_dict = json.loads(response)
+        try:
+            index_dict = json.loads(response)
+        except ValueError:
+            raise IndexReaderException("Empty/Corrupt Index File")
         IndexReader._validate(index_dict)
         index_meta = index_dict["meta"]
         mode = index_meta["mode"]
@@ -307,7 +309,7 @@ class S3IndexReader(IndexReader):
         steps = []
         workers = []
         index_files, start_after_key = self.list_index_files(start_after_key)
-        logger.debug(f'Loaded Index Files: {",".join(index_files)}')
+        self.logger.debug(f'Loaded Index Files: {",".join(index_files)}')
         for index_file in index_files:
             if self.index_file_cache.has_not_read(index_file):
                 step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
@@ -321,7 +323,7 @@ class S3IndexReader(IndexReader):
                     )
                 self.index_file_cache.add(index_file, start_after_key)
 
-        responses = S3Handler().get_objects(object_requests)
+        responses = self.s3_handler.get_objects(object_requests)
         return responses, steps, start_after_key, workers
 
     def list_index_files(self, start_after_key=None):
@@ -419,6 +421,9 @@ class LocalIndexReader(IndexReader):
                 ) or range_steps is None:
                     steps.append(step)
                     workers.append(parse_worker_name_from_file(index_file))
+                    self.logger.debug(
+                        f"Sagemaker-Debugger: Read {os.path.getsize(index_file)} bytes from file {index_file}"
+                    )
                     with open(index_file) as f:
                         responses.append(f.read().encode())
                 self.index_file_cache.add(index_file, start_after_key)
