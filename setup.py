@@ -78,7 +78,7 @@ def scan_git_secrets():
     def git(*args):
         return subprocess.call(['git'] + list(args))
 
-    shutil.rmtree('/tmp/git-secrets')
+    shutil.rmtree('/tmp/git-secrets', ignore_errors=True)
     a = git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
     dir_path = os.path.dirname(os.path.realpath(__file__))
     b = os.chdir("/tmp/git-secrets")
