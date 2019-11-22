@@ -15,20 +15,15 @@ from .utils import simple_model
 def test_save_all_full(out_dir, hook=None):
     tf.reset_default_graph()
     if hook is None:
-        hook = SessionHook(
-            out_dir=out_dir,
-            save_all=True,
-            include_collections=["weights", "gradients"],
-            save_config=SaveConfig(save_interval=2),
-        )
+        hook = SessionHook(out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=2))
 
     simple_model(hook)
     tr = create_trial_fast_refresh(out_dir)
-    # assert len(tr.tensors()) > 50
+    assert len(tr.tensors()) > 50
     print(tr.tensors(collection="weights"))
     assert len(tr.tensors(collection="weights")) == 1
     assert len(tr.tensors(collection="gradients")) == 1
-    # assert len(tr.tensors(collection="losses")) == 1
+    assert len(tr.tensors(collection="losses")) == 1
 
 
 def test_hook_config_json(out_dir, monkeypatch):
