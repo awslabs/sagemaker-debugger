@@ -38,7 +38,6 @@ def compile_summary_protobuf():
 
 def build_package(version):
     packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
-    print(packages)
     setuptools.setup(
         name="smdebug",
         version=version,
