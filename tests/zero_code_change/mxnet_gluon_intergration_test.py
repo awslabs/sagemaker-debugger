@@ -17,14 +17,12 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=1, help="Number of Epochs")
     parser.add_argument("--learning_rate", type=float, default=0.1)
     parser.add_argument(
-        "--context",
-        type=str,
-        default='cpu',
-        help="Context can be either cpu or gpu",
+        "--context", type=str, default="cpu", help="Context can be either cpu or gpu"
     )
 
     opt = parser.parse_args()
     return opt
+
 
 def test(ctx, net, val_data):
     metric = mx.metric.Accuracy()
@@ -37,8 +35,7 @@ def test(ctx, net, val_data):
     return metric.get()
 
 
-def train_model(
-    net, epochs, ctx, learning_rate, momentum, train_data, val_data):
+def train_model(net, epochs, ctx, learning_rate, momentum, train_data, val_data):
     # Collect all parameters from net and its children, then initialize them.
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     # Trainer is for updating parameters with gradient.
@@ -111,6 +108,7 @@ def create_gluon_model():
 def validate():
     from smdebug.trials import create_trial
     from smdebug.mxnet import get_hook
+
     hook = get_hook()
     out_dir = hook.out_dir
     print("Created the trial with out_dir {0}".format(out_dir))
@@ -118,14 +116,16 @@ def validate():
     global_steps = tr.steps()
     print("Global steps: " + str(global_steps))
 
-
     loss_tensor_name = tr.tensors(regex="softmaxcrossentropyloss._output_.")[0]
     print("Obtained the loss tensor " + loss_tensor_name)
 
-    mean_loss_tensor_value = tr.tensor(loss_tensor_name).reduction_value(step_num=global_steps[0], reduction_name="mean", abs=False)
+    mean_loss_tensor_value = tr.tensor(loss_tensor_name).reduction_value(
+        step_num=global_steps[0], reduction_name="mean", abs=False
+    )
     print("Mean validation loss = " + str(mean_loss_tensor_value))
 
     print("Validation Complete")
+
 
 def main():
     opt = parse_args()
@@ -133,7 +133,7 @@ def main():
     random.seed(12)
     np.random.seed(2)
 
-    context = mx.cpu() if opt.context.lower() == 'cpu' else mx.gpu()
+    context = mx.cpu() if opt.context.lower() == "cpu" else mx.gpu()
     # Create a Gluon Model.
     net = create_gluon_model()
 
@@ -147,7 +147,7 @@ def main():
         learning_rate=opt.learning_rate,
         momentum=0.9,
         train_data=train_data,
-        val_data=val_data
+        val_data=val_data,
     )
     validate()
 
