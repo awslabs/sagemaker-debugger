@@ -535,7 +535,7 @@ class BaseHook:
                         return
 
                     hist_name = f"{s_col.name}/{tensor_name}"
-                    self.logger.debug(f"Saving {hist_name} for global step {self.step}")
+                    self.logger.debug(f"Saving histogram {hist_name} for step {self.step}")
                     tb_writer.write_histogram_summary(
                         tdata=np_value, tname=hist_name, global_step=self.step
                     )
