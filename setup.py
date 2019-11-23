@@ -43,7 +43,7 @@ def build_package(version):
         author="AWS DeepLearning Team",
         description="Automated debugging for machine learning",
         url="https://github.com/awslabs/tornasole_core",
-        packages=setuptools.find_packages(),
+        packages=setuptools.find_packages(include=["smdebug.*"]),
         classifiers=[
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
