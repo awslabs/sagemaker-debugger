@@ -37,13 +37,14 @@ def compile_summary_protobuf():
 
 
 def build_package(version):
+    packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
         version=version,
         author="AWS DeepLearning Team",
         description="Automated debugging for machine learning",
         url="https://github.com/awslabs/tornasole_core",
-        packages=setuptools.find_packages(),
+        packages=packages,
         classifiers=[
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
