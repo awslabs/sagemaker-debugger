@@ -475,7 +475,7 @@ class BaseHook:
             )
             self._write_raw_tensor_simple(reduction_tensor_name, tensor_data, tensor_ref=tensor_ref)
         except ValueError as e:
-            self.logger.error(
+            self.logger.warning(
                 f"Could not compute reduction {reduction_name} of {tensor_name} due to {e}"
             )
 
@@ -534,7 +534,7 @@ class BaseHook:
                     if self.dry_run or np_value.dtype == np.bool or np_value.nbytes == 0:
                         return
 
-                    hist_name = f"histograms/{s_col.name}/{tensor_name}"
+                    hist_name = f"{s_col.name}/{tensor_name}"
                     self.logger.debug(f"Saving {hist_name} for global step {self.step}")
                     tb_writer.write_histogram_summary(
                         tdata=np_value, tname=hist_name, global_step=self.step

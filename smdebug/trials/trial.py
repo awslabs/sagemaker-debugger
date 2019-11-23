@@ -79,7 +79,9 @@ class Trial(ABC):
         of incomplete steps that the trial will wait for before marking
         half of them as complete.
         """
-        self._incomplete_wait_for_step_window = int(os.getenv("INCOMPLETE_STEP_WAIT_WINDOW", 1000))
+        self._incomplete_wait_for_step_window = int(
+            os.getenv(INCOMPLETE_STEP_WAIT_WINDOW_KEY, INCOMPLETE_STEP_WAIT_WINDOW_DEFAULT)
+        )
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched

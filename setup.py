@@ -37,13 +37,14 @@ def compile_summary_protobuf():
 
 
 def build_package(version):
+    packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
         version=version,
         author="AWS DeepLearning Team",
         description="Automated debugging for machine learning",
         url="https://github.com/awslabs/tornasole_core",
-        packages=setuptools.find_packages(),
+        packages=packages,
         classifiers=[
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
@@ -65,6 +66,31 @@ if compile_summary_protobuf() != 0:
         "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
         "Please make sure that you have installed protobuf3 compiler and runtime correctly."
     )
+    sys.exit(1)
+
+
+def scan_git_secrets():
+    import subprocess
+    import os
+    import shutil
+
+    def git(*args):
+        return subprocess.call(["git"] + list(args))
+
+    shutil.rmtree("/tmp/git-secrets", ignore_errors=True)
+    git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir("/tmp/git-secrets")
+    subprocess.check_call(["make"] + ["install"])
+    os.chdir(dir_path)
+    git("secrets", "--install")
+    git("secrets", "--register-aws")
+    return git("secrets", "--scan", "-r")
+
+
+if scan_git_secrets() != 0:
+    import sys
+
     sys.exit(1)
 
 build_package(version=CURRENT_VERSION)
