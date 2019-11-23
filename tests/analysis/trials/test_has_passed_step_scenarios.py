@@ -110,16 +110,18 @@ def test_single_writer_not_all_steps_written_complete_job():
 
     try:
         trial.wait_for_steps([0, 1, 2, 3, 4, 5, 6])
+        assert False
     except StepUnavailable:
         # Step 4 is Unavailable
-        assert True
+        pass
 
     try:
         trial.wait_for_steps([0, 1, 2, 3, 5, 6, 7])
+        assert False
     except NoMoreData:
         # Step 7 is Unavailable
         # But since training job has ended, we should raise NoMoreData
-        assert True
+        pass
 
 
 @pytest.mark.slow
