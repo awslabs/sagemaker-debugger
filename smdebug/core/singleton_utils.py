@@ -7,6 +7,9 @@ import smdebug.(pytorch | tensorflow | mxnet) as smd
 hook = smd.hook()
 """
 
+# Standard Library
+import atexit
+
 # First Party
 from smdebug.core.logger import get_logger
 
@@ -68,6 +71,8 @@ def set_hook(custom_hook: "BaseHook") -> None:
 
     global _ts_hook
     _ts_hook = custom_hook
+
+    atexit.register(del_hook)
 
 
 def del_hook() -> None:
