@@ -14,7 +14,6 @@ Test with AdamOptimizer and SGD.
 We check that certain tensors are saved.
 Here in the test suite we delete the hook after every script.
 """
-
 # Standard Library
 import argparse
 
