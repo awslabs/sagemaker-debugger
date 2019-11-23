@@ -6,6 +6,7 @@ import pytest
 
 # First Party
 from smdebug.core.tensor import StepState
+from smdebug.exceptions import NoMoreData, StepUnavailable
 from smdebug.trials import create_trial
 
 
@@ -66,6 +67,12 @@ def test_single_writer_all_steps_written_incomplete_job():
     )
     assert trial.last_complete_step == 6
 
+    try:
+        trial.wait_for_steps([0, 1, 2, 3, 4, 5, 6])
+    except Exception:
+        # All the requested steps are available, do not raise an exception
+        assert False
+
 
 @pytest.mark.slow
 def test_single_writer_not_all_steps_written_complete_job():
@@ -94,6 +101,25 @@ def test_single_writer_not_all_steps_written_complete_job():
         == "has_step_scenarios/single-writer-not-all-steps-written-complete/index/000000000/000000000006_worker_0.json"
     )
     assert trial.last_complete_step == 6
+
+    try:
+        trial.wait_for_steps([0, 1, 2, 3, 5, 6])
+    except Exception:
+        # All the requested steps are available, do not raise an exception
+        assert False
+
+    try:
+        trial.wait_for_steps([0, 1, 2, 3, 4, 5, 6])
+    except StepUnavailable:
+        # Step 4 is Unavailable
+        assert True
+
+    try:
+        trial.wait_for_steps([0, 1, 2, 3, 5, 6, 7])
+    except NoMoreData:
+        # Step 7 is Unavailable
+        # But since training job has ended, we should raise NoMoreData
+        assert True
 
 
 @pytest.mark.slow
