@@ -23,6 +23,8 @@ def test_training_job_has_ended(out_dir):
             "10",
             "--save_frequency",
             "5",
+            "--script-mode",
+            "y",
         ],
         env={"CUDA_VISIBLE_DEVICES": "-1", "SMDEBUG_LOG_LEVEL": "debug"},
     )

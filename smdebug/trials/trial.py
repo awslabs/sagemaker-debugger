@@ -451,16 +451,19 @@ class Trial(ABC):
             for step in required_steps:
                 while True:
                     s = self.has_passed_step(step, mode)
-                    if s == StepState.UNAVAILABLE:
-                        raise StepUnavailable(step, mode)
-                    elif s == StepState.AVAILABLE:
+                    if s == StepState.AVAILABLE:
                         break
-                    elif self.loaded_all_steps is True:
-                        last_step = -1
-                        avail_steps = self._all_steps(mode=mode)
-                        if len(avail_steps) > 0:
-                            last_step = avail_steps[-1]
-                        raise NoMoreData(step, mode, last_step)
+                    elif s == StepState.UNAVAILABLE:
+                        if self.loaded_all_steps is False:
+                            raise StepUnavailable(step, mode)
+                        else:
+                            last_step = -1
+                            avail_steps = self._all_steps(mode=mode)
+                            if len(avail_steps) > 0:
+                                last_step = avail_steps[-1]
+                            if step < last_step:
+                                raise StepUnavailable(step, mode)
+                            raise NoMoreData(step, mode, last_step)
                     time.sleep(2)
 
     def has_passed_step(self, step, mode=ModeKeys.GLOBAL) -> StepState:

@@ -10,6 +10,7 @@ import tensorflow as tf
 import smdebug.tensorflow as smd
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--script-mode", type=bool, default=False)
 parser.add_argument("--smdebug_path", type=str)
 parser.add_argument("--train_frequency", type=int, help="How often to save TS data", default=50)
 parser.add_argument("--eval_frequency", type=int, help="How often to save TS data", default=10)
@@ -86,7 +87,8 @@ def cnn_model_fn(features, labels, mode):
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=args.lr)
-        optimizer = smd.get_hook().wrap_optimizer(optimizer)
+        if args.script_mode:
+            optimizer = smd.get_hook().wrap_optimizer(optimizer)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
@@ -116,19 +118,25 @@ eval_input_fn = tf.estimator.inputs.numpy_input_fn(
     x={"x": eval_data}, y=eval_labels, num_epochs=1, shuffle=False
 )
 
-hook = smd.SessionHook(
-    out_dir=args.smdebug_path,
-    save_config=smd.SaveConfig(
-        {
-            smd.modes.TRAIN: smd.SaveConfigMode(args.train_frequency),
-            smd.modes.EVAL: smd.SaveConfigMode(args.eval_frequency),
-        }
-    ),
-)
+if args.script_mode:
+    hook = smd.SessionHook(
+        out_dir=args.smdebug_path,
+        save_config=smd.SaveConfig(
+            {
+                smd.modes.TRAIN: smd.SaveConfigMode(args.train_frequency),
+                smd.modes.EVAL: smd.SaveConfigMode(args.eval_frequency),
+            }
+        ),
+    )
+    hooks = [hook]
+else:
+    hooks = []
 
-hook.set_mode(smd.modes.TRAIN)
+if args.script_mode:
+    hook.set_mode(smd.modes.TRAIN)
 # train one step and display the probabilties
-mnist_classifier.train(input_fn=train_input_fn, steps=args.num_steps, hooks=[hook])
+mnist_classifier.train(input_fn=train_input_fn, steps=args.num_steps, hooks=hooks)
 
-hook.set_mode(smd.modes.EVAL)
-mnist_classifier.evaluate(input_fn=eval_input_fn, steps=args.num_eval_steps, hooks=[hook])
+if args.script_mode:
+    hook.set_mode(smd.modes.EVAL)
+mnist_classifier.evaluate(input_fn=eval_input_fn, steps=args.num_eval_steps, hooks=hooks)
