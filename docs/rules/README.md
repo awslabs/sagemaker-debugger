@@ -1,43 +1,38 @@
-# Tornasole Analysis
-Tornasole is an upcoming AWS service designed to be a debugger for machine learning models.
-It lets you go beyond just looking at scalars like losses and accuracies during training and gives you
-full visibility into all tensors 'flowing through the graph' during training or inference.
+# Programming Model for Analysis
+SageMaker Debugger provides you different constructs to help with your analysis.
 
-Tornasole's analysis module helps you analyze tensors saved from machine learning jobs.
-It allows you to run Rules on these tensors as well as anything else you might want to do with
-access to raw tensors such as inspection or visualization. It provides access to the tensors in the form of numpy arrays.
+## Trial
+Trial is an object which lets you query for tensors for a given training job, specified by the path where smdebug's artifacts are saved.
+Trial is capable of loading new tensors as and when they become available at the given path, allowing you to do both offline as well as realtime analysis.
 
-## The Programming Model
-The library is organized using the following constructs.
+### Path of trial
+#### SageMaker training job
+When running a SageMaker job this path is on S3. SageMaker saves data from your training job locally on the training instance first and uploads them to an S3 location in your account. When you start a SageMaker training job with the python SDK, you can control this path using the parameter `s3_output_path` in the `DebuggerHookConfig` object. This is an optional parameter, if you do not pass this the python SDK will populate a default location for you. If you do pass this, make sure the bucket is in the same region as where the training job is running.  If you're not using the python SDK, set this path for the parameter `S3OutputPath` in the `DebugHookConfig` section of `CreateTrainingJob` API. SageMaker takes this path and appends training_job_name and debug-output to it to ensure we have a unique path for each training job.
 
-### Trial
-Trial the construct which lets you query for tensors for a given Tornasole run, specified by the path in which Tornasole artifacts are being saved or were saved.
-You can pass a path which holds data for a past run (which has ended) as well as a path for a current run (to which tensors are being written).
-Trial is capable of loading new tensors as and when they become available at the given location.
+#### Non SageMaker training jobs
+If you are not running a SageMaker training job, this is the path you pass as out_dir when you create a smdebug [`Hook`](hook.md). Just like when creating the hook, you can pass either a local path or an S3 path (as `s3://bucket/prefix`).
 
-There are two types of trials you can create: LocalTrial or S3Trial.
-We provide a wrapper method to create the appropriate trial.
+### Creating a trial object
+There are two types of trials you can create: LocalTrial or S3Trial depending on the path. We provide a wrapper method to create the appropriate trial.
 
 The parameters you have to provide are:
-- `name`: name can be any string. It is to help you manage different trials.
-Make sure to give it a unique name to prevent confusion.
-- `path`: path can be a local path or an S3  path of the form `s3://bucket/prefix`. This path should be where Tornasole hooks (TF or MXNet) save data to.
-You should see the directory `events` and the file `collections.json` in this path.
+- `path`: path can be a local path or an S3  path of the form `s3://bucket/prefix`. You should see directories such as `collections`, `events` and `index` at this path once the training job starts.
+- `name`: name can be any string. It is to help you manage different trials. This is an optional parameter, which defaults to the basename of the path if not passed. Please make sure to give it a unique name to prevent confusion.
 
-##### Creating local trial
-```
+#### Creating S3 trial
+```python
 from smdebug.trials import create_trial
-trial = create_trial(path='/home/ubuntu/tornasole_outputs/train',
-                     name='resnet_training_run')
+trial = create_trial(path='s3://smdebug-testing-bucket/outputs/resnet', name='resnet_training_run')
 ```
-##### Creating S3 trial
-```
+
+#### Creating local trial
+```python
 from smdebug.trials import create_trial
-trial = create_trial(path='s3://tornasole-testing-bucket/outputs/resnet',
-                     name='resnet_training_run')
+trial = create_trial(path='/home/ubuntu/smdebug_outputs/resnet', name='resnet_training_run')
 ```
-###### Restricting analysis to a range of steps
-To any of these methods you can optionally pass `range_steps` to restrict your analysis to a certain range of steps.
+
+### Restricting analysis to a range of steps
+You can optionally pass `range_steps` to restrict your analysis to a certain range of steps.
 Note that if you do so, Trial will not load data from other steps.
 
 *Examples*
@@ -46,119 +41,155 @@ Note that if you do so, Trial will not load data from other steps.
 - `range_steps=(100, 200)` : This will load steps between 100 and 200
 - `range_steps=None`: This will load all steps
 
-```
-lt = create_trial(path='ts_outputs/resnet', name='resnet_training',
+```python
+from smdebug.trials import create_trial
+tr = create_trial(path='s3://smdebug-testing-bucket/outputs/resnet', name='resnet_training',
                   range_steps=(100, 200))
 ```
 
+### Trial API
 
-### Mode
-A machine learning job can be executing steps in multiple modes, such as training, evaluating, or predicting.
-Tornasole provides you the construct of a `mode` to keep data from these modes separate
-and make it easy for analysis. To leverage this functionality you have to
-call the `set_mode` function of hook such as the following call `hook.set_mode(modes.TRAIN)`.
-The different modes available are `modes.TRAIN`, `modes.EVAL` and `modes.PREDICT`.
+Here's a list of methods that the Trial API provides which helps you load data for analysis. Please click on the method to see all the parameters it takes and a detailed description.
 
-When you set a mode, steps in that mode have a sequence. We refer to these numbers
-as `mode_step`. Each `mode_step` has a global step number associated with it, which represents the
-sequence of steps across all modes executed by the job.
+| Method        | Parameters           |
+| ------------- |-------------|
+| [trial.tensors()](#tensors)      | See names of all tensors available |
 
-For example, your job executes 10 steps, out of which the first 4 are training steps, 5th is evaluation step, 6-9 are training steps, and 10th is evaluation step.
-Please note that indexing starts from 0.
-In such a case, when you query for the global steps as below:
+| [trial.tensor(name)](#tensor)      | Retrieve smdebug Tensor object |
+| [trial.has_tensor(name)](#tensor)      | Query for whether tensor was saved |
+| [trial.steps()](#steps) | Query steps for which data was saved |
+| [trial.modes()](#modes) | Query modes for which data was saved |
+| [trial.mode(step)](#mode) | Query the mode for a given global step |
+| [trial.global_step(mode, step)](#global-step) | Query global step for a given step and mode |
+| [trial.mode_step(step)](#mode-step) | Query the mode step for a given global step |
+| [trial.workers()](#workers) | Query list of workers from the data saved |
+| [trial.collections()](#collections) | Query list of collections saved from the training job |
+| [trial.collection()](#collection) | Retrieve a single collection saved from the training job |
+
+
+
+
+#### tensors
+Retrieves names of tensors saved. The parameters help you filter tensors which were saved at a particular step, which match given regex pattern or belong to the given collection.
+```python
+trial.tensors(step= None,
+              mode=modes.GLOBAL,
+              regex=None,
+              collection=None) -> List[str]
 ```
-trial.steps()
+##### Arguments
+- `step`: `type: Int`
+If you want to retrieve the list of tensors saved at a particular step, pass the step number as an integer. This step number will be treated as step number corresponding to the mode passed below. By default it is treated as global step.
+- `mode`: `type: smdebug.modes enum value` If you want to retrieve the list of tensors saved for a particular mode, pass the mode here as `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT`, or `smd.modes.GLOBAL`.
+- `regex`: `type: str or List[str]` You can filter tensors matching regex expressions by passing a regex expressions as a string or list of strings.
+- `collection`: `type: Collection or str` You can filter tensors belonging to a collection by either passing a collection object or the name of collection as a string.
+##### Returns
+`List[str]` List of strings representing names of tensors matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
+
+#### tensor
+Retrieve the `smdebug.core.tensor.Tensor` object by the given name tname. You can review all the methods that this Tensor object provides [here](#Tensor).
+```python
+trial.tensor(tname)
 ```
-you will see `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`.
-
-If you query for training steps as below:
+##### Arguments
+- `tname`: `type: str` Takes the name of tensor
+##### Returns
+`smdebug.core.tensor.Tensor` object which has [this API](#Tensor)
+#### has_tensor
+Query whether the trial has a tensor by the given name
+```python
+trial.has_tensor(tname)
 ```
-from tornasole_rules import modes
-trial.steps(modes.TRAIN)
+##### Arguments
+- `tname`: `type: str` Takes the name of tensor
+##### Returns
+`bool` `True` if the tensor is seen by the trial so far, else `False`.
+#### steps
+Retrieve a list of steps seen by the trial
+```python
+trial.steps(mode=None)
 ```
- you will see `[0, 1, 2, 3, 4, 5, 6, 7, 8]` because there were 8 training step.
-The training step with mode_step 4 here refers to the global step number 5.
-You can query this as follows:
-```
-trial.global_step(mode=modes.TRAIN, mode_step=4)
-```
-
-If you did not explicitly set a mode during the running of the job,
-the steps are global steps, and are in the `modes.GLOBAL` mode.
-In such a case, `global_step` is the same as `mode_step` where mode is `modes.GLOBAL`.
-
-Below, we describe the above functions and others that the Trial API provides.
-
-#### Trial API
-Once you have a trial object you can do the following
-
-**See names of all tensors available**
-
-```
-trial.tensors()
-```
-This returns tensors seen for any mode if mode was set during the machine learning job.
-
-**See all steps seen by the Trial for a particular mode**
-
-The returned list is the step number within that mode.
-Each of these mode steps has a global step number associated with it.
-The global step represents the sequence of steps across all modes executed by the job.
-
-```
-from smdebug import modes
-trial.steps(mode=modes.TRAIN)
-```
-
-**See all global steps seen by the Trial**
-
-This is the list of steps across all modes.
-
-```
-trial.steps()
-```
-
-**Get the mode and step number within mode for a given global step**
-
-You can get the `mode` of `global_step` 100 as follows:
-
-```
-mode = trial.mode(global_step=100)
-```
-
-You can get the `mode_step` for `global_step` 100 as follows:
-
-```
-mode_step = trial.mode_step(global_step=100)
-```
-
-**Know the global step number for a given mode step**
-
-```
-from smdebug import modes
-global_step_num = trial.global_step(modes.TRAIN, mode_step=10)
-```
-
-**See all modes for which the trial has data**
-
-```
+##### Arguments
+- `mode` : `type: smdebug.modes enum value` Passing a mode here allows you want to retrieve the list of steps seen by a trial for that mode
+If this is not passed, returns steps for all modes.
+##### Returns
+`List[Int]` List of integers representing step numbers. If a mode was passed, this returns steps within that mode, i.e. mode steps.
+Each of these mode steps has a global step number associated with it. The global step represents
+the sequence of steps across all modes executed by the job.
+#### modes
+Retrieve a list of modes seen by the trial
+```python
 trial.modes()
 ```
-
-**Access a particular tensor**
-
-A tensor is identified by a string which represents its name.
-
+##### Returns
+`List[smdebug.modes enum value]` List of modes for which data was saved from the training job across all steps seen.
+#### mode
+Given a global step number you can identify the mode for that step using this method.
+```python
+trial.mode(global_step=100)
 ```
-trial.tensor('relu_activation:0')
+##### Arguments
+- `global_step` : `type: Int` Takes the global step as an integer
+##### Returns
+`smdebug.modes enum value` of the given global step
+#### mode_step
+Given a global step number you can identify the mode_step for that step using this method.
+```python
+trial.mode_step(global_step=100)
 ```
+##### Arguments
+- `global_step` : `type: Int` Takes the global step as an integer
+##### Returns
+`Int` An integer representing `mode_step` of the given global step. Typically used in conjunction with `mode` method.
 
+#### global_step
+Given a mode and a mode_step number you can retrieve its global step using this method.
+```python
+trial.global_step(mode=modes.GLOBAL, mode_step=100)
+```
+##### Arguments
+- `mode` : `type: smdebug.modes enum value` Takes the mode as enum value
+- `mode_step` : `type: Int` Takes the mode step as an integer
+##### Returns
+`Int` An integer representing `global_step` of the given mode and mode_step.
+
+#### workers
+Query for all the worker processes from which data was saved by smdebug during multi worker training.
+```python
+trial.workers()
+```
+##### Returns
+`List: str` A sorted list of names of worker processes from which data was saved. If using TensorFlow Mirrored Strategy for multi worker training, these represent names of different devices in the process. For Horovod, torch.distributed and similar distributed training approaches, these represent names of the form `worker_0` where 0 is the rank of the process.
+
+#### wait_for_steps
+This method allows you to wait for steps before proceeding. You might want to use this method if you want to wait for smdebug to see the required steps so you can then query and analyze the tensors saved by that step. This method blocks till all data from the steps are seen by smdebug.
+```python
+trial.wait_for_steps(required_steps, mode=modes.GLOBAL)
+```
+##### Arguments
+- `required_steps`: `type: List[Int]` Step numbers to wait for
+- `mode`: `type: smdebug.modes enum value` The mode to which given step numbers correspond to. This defaults to modes.GLOBAL.
+##### Returns
+None, but it only returns after we know definitely whether we have seen the steps.
+
+##### Exceptions raised
+`StepUnavailable` and `NoMoreData`. See [Exceptions](#exceptions) section for more details.
+#### has_passed_step
+### TODO
+
+### Tensor API
+An smdebug Tensor object can bee retrieved through the `trial.tensor(name)` API. It is uniquely identified by the string representing name.
+ It provides the following methods.
+
+#### steps
 **See the global steps for which tensor's value was saved**
 
 ```
 trial.tensor('relu_activation:0').steps()
 ```
+#### value
 
+#### reduction_value
 **See the steps for a given mode when tensor's value was saved**
 
 This returns the mode steps for those steps when this tensor's value was saved for this mode.
@@ -223,23 +254,6 @@ as a numpy array and compute any function you might be interested in.
 Please note that this can raise exceptions if the step is not available.
 Please see [this section](#when-a-tensor-is-not-available-during-rule-execution) for more details on the different exceptions that can be raised.
 
-**Get names of tensors matching regex**
-
-This method takes a regex pattern or a list of regex patterns.
-Each regex pattern is a python style regex pattern string.
-
-```
-trail.tensors_matching_regex(['relu_activation*'])
-```
-
-**List tensors in a collection**
-
-This returns names of all tensors saved in a given collection.
-`gradients` below is the name of the collection we are interested in.
-
-```
-trial.tensors_in_collection('gradients')
-```
 
 **List collections**
 
@@ -274,7 +288,7 @@ with refresh(trials):
     pass
 ```
 
-#### When a tensor is not available
+### Exceptions
 Tornasole is designed to be aware that tensors required to execute a rule may not be available at every step.
 Hence it raises a few exceptions which allow us to control what happens when a tensor is missing.
 These are available in the `smdebug.exceptions` module. You can import them as follows:
@@ -465,19 +479,39 @@ python -m smdebug.rules.rule_invoker --trial-dir ~/ts_outputs/vanishing_gradient
 python -m smdebug.rules.rule_invoker --trial-dir s3://tornasole-runes/trial0 --rule-name UnchangedTensor --tensor_regex .* --num_steps 10
 ```
 
-#### First party rules
-We provide a few rules which we built. These are supposed to be general purpose rules that you can use easily.
-We also hope these serve as examples for you to build your own rules. These are described in [FirstPartyRules](FirstPartyRules.md).
+### Mode
+A machine learning job can be executing steps in multiple modes, such as training, evaluating, or predicting.
+Tornasole provides you the construct of a `mode` to keep data from these modes separate
+and make it easy for analysis. To leverage this functionality you have to
+call the `set_mode` function of hook such as the following call `hook.set_mode(modes.TRAIN)`.
+The different modes available are `modes.TRAIN`, `modes.EVAL` and `modes.PREDICT`.
 
+When you set a mode, steps in that mode have a sequence. We refer to these numbers
+as `mode_step`. Each `mode_step` has a global step number associated with it, which represents the
+sequence of steps across all modes executed by the job.
 
-## Examples
+For example, your job executes 10 steps, out of which the first 4 are training steps, 5th is evaluation step, 6-9 are training steps, and 10th is evaluation step.
+Please note that indexing starts from 0.
+In such a case, when you query for the global steps as below:
+```
+trial.steps()
+```
+you will see `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`.
 
-We have end-to-end flow example from saving tensors to plotting using saved tensors for [MXNet](../../examples/mxnet/notebooks) and [PyTorch](../../examples/pytorch/notebooks).
+If you query for training steps as below:
+```
+from tornasole_rules import modes
+trial.steps(modes.TRAIN)
+```
+ you will see `[0, 1, 2, 3, 4, 5, 6, 7, 8]` because there were 8 training step.
+The training step with mode_step 4 here refers to the global step number 5.
+You can query this as follows:
+```
+trial.global_step(mode=modes.TRAIN, mode_step=4)
+```
 
+If you did not explicitly set a mode during the running of the job,
+the steps are global steps, and are in the `modes.GLOBAL` mode.
+In such a case, `global_step` is the same as `mode_step` where mode is `modes.GLOBAL`.
 
-## ContactUs
-We would like to hear from you. If you have any question or feedback,
-please reach out to us tornasole-users@amazon.com
-
-## License
-This library is licensed under the Apache 2.0 License.
+Below, we describe the above functions and others that the Trial API provides.

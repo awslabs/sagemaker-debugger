@@ -338,14 +338,13 @@ class Trial(ABC):
             return sorted(list(ts))
         else:
             xs = set()
-            if regex is not None:
-                xs.update(self._tensors_matching_regex(regex))
             if collection is not None:
                 collection_tensors_saved = set(self._tensors.keys()).intersection(
                     self._tensors_in_collection(collection)
                 )
                 xs.update(collection_tensors_saved)
-
+            if regex is not None:
+                xs.intersection_update(self._tensors_matching_regex(regex))
         return sorted(list(ts.intersection(xs)))
 
     def _tensors_for_step(self, step, mode=ModeKeys.GLOBAL) -> list:
