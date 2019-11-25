@@ -43,7 +43,7 @@ def build_package(version):
         version=version,
         author="AWS DeepLearning Team",
         description="Automated debugging for machine learning",
-        url="https://github.com/awslabs/tornasole_core",
+        url="https://github.com/awslabs/sagemaker-debugger",
         packages=packages,
         classifiers=[
             "Programming Language :: Python :: 3",
