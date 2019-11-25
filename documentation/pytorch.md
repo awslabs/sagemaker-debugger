@@ -1,6 +1,6 @@
 # PyTorch
 
-Supported PyTorch versions: 1.2+.
+Supported PyTorch versions: 1.2, 1.3.
 
 ## Contents
 - [Module Loss Example](#module-loss-example)

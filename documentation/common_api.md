@@ -84,10 +84,10 @@ save_config = smd.SaveConfig(
 )
 ```
 `mode_save_configs` (dict): Used for advanced cases; see details below.\
-`save_interval` (int): How often, in steps, to save tensors.\
+`save_interval` (int): How often, in steps, to save tensors. Defaults to 100. \
 `start_step` (int): When to start saving tensors.\
 `end_step` (int): When to stop saving tensors, exclusive.\
-`save_steps` (list[int]): Specific steps to save tensors at. Overrides all other parameters.
+`save_steps` (list[int]): Specific steps to save tensors at. Union with all other parameters.
 
 For example,
 
@@ -116,7 +116,7 @@ Any mode not specified will default to the default configuration.
 ReductionConfig allows the saving of certain reductions of tensors instead
 of saving the full tensor. The motivation here is to reduce the amount of data
 saved, and increase the speed in cases where you don't need the full
-tensor.  The reduction operations which are computed in the training process
+tensor. The reduction operations which are computed in the training process
 and then saved.
 
 During analysis, these are available as reductions of the original tensor.

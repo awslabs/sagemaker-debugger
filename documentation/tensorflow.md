@@ -96,15 +96,16 @@ wrap_optimizer(
     optimizer: Tuple[tf.train.Optimizer, tf.keras.Optimizer],
 )
 ```
-Adds callback methods to the optimizer object and returns it.
+Modify the optimizer object to log gradients, and return the optimizer. Must be used when saving gradients.
 
-`optimizer` (Tuple[tf.train.Optimizer, tf.keras.Optimizer]): The optimizer
+`optimizer` (Tuple[tf.train.Optimizer, tf.keras.Optimizer]): The optimizer.
 
 
 ## EstimatorHook / SessionHook
-These are aliases pointing to the same object.
+EstimatorHook is used for the tf.estimator.Estimator interface.\
+SessionHook is used for tf.train.MonitoredSession objects (tf.Session objects are not supported).\
+Because Estimator uses MonitoredSession under the hood, these names are aliases to the same class. They have two separate names for clarity.
 ```
-
 __init__(
     out_dir,
     export_tensorboard = False,
@@ -130,4 +131,4 @@ wrap_optimizer(
     optimizer: tf.train.Optimizer,
 )
 ```
-Adds callback methods to the optimizer object and returns it.
+Modify the optimizer object to log gradients, and return the optimizer. Must be used when saving gradients.

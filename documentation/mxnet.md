@@ -1,6 +1,6 @@
 # MXNet
 
-Supported MXNet versions: ???
+Supported MXNet versions: 1.4, 1.5, 1.6.
 
 ## Contents
 - [Example](#mxnet-example)
