@@ -5,6 +5,7 @@
 - [Example Usage](#example-usage)
 - [Concepts](#concepts)
 - [Glossary](#glossary)
+- [Detailed Links](#detailed-links)
 
 ## Overview
 Sagemaker Debugger is an AWS service to automatically debug your machine learning training process.
@@ -50,7 +51,6 @@ print(f"Saved tensor values for {trial.tensors()}")
 print(f"Loss values were {trial.get_collection("losses").values()}")
 ```
 
-
 ## Concepts
 The steps to use Tornasole in any framework are:
 
@@ -91,3 +91,7 @@ tensors to include/exclude.
 - `trial = smd.create_trial(out_dir="/tmp/mnist_job")`
 
 **Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient.
+
+## Detailed Links
+- [Distributed Training](https://link.com)
+- [TensorBoard](https://link.com)

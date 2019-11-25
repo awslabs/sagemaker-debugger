@@ -196,13 +196,8 @@ The simplest way to create a hook is by using the Python API, as described for e
 However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
 ```
 json_config_path = "/tmp/json_config.json"
-hook = smd.get_hook(
-    hook_type = None,
-    json_config_path = json_config_path,
-    create_if_not_exists = True,
-)
+smd.{hook_class}.hook_from_config(json_config_path = json_config_path)
 ```
-`hook_type` only needs to be specified for TensorFlow, in which case it is one of ["session", "estimator", "keras"].\
-`create_if_not_exists` argument exists for internal reasons; set it to true.
+`hook_class` will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow.
 
 The JSON file configuration is detailed further on [AWS Docs](https://link.com).
