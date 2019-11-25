@@ -143,7 +143,7 @@ def test_spot_hook():
     os.environ[
         CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR
     ] = "./tests/mxnet/test_json_configs/checkpointconfig.json"
-    checkpoint_path = "./savedParams"
+    checkpoint_path = "/tmp/savedParams"
     if not os.path.exists(checkpoint_path):
         os.mkdir(checkpoint_path)
     save_config = SaveConfig(save_steps=[10, 11, 12, 13, 14, 40, 50, 60, 70, 80])
@@ -154,7 +154,7 @@ def test_spot_hook():
     """
 
     run_id_1 = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    out_dir_1 = "newlogsRunTest/" + run_id_1
+    out_dir_1 = "/tmp/" + run_id_1
     hook = t_hook(
         out_dir=out_dir_1, save_config=save_config, include_collections=["weights", "gradients"]
     )
@@ -174,7 +174,7 @@ def test_spot_hook():
     We expect to read steps 40, 50, 60, 70 and 80
     """
     run_id_2 = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    out_dir_2 = "newlogsRunTest/" + run_id_2
+    out_dir_2 = "/tmp/" + run_id_2
     hook = t_hook(
         out_dir=out_dir_2, save_config=save_config, include_collections=["weights", "gradients"]
     )

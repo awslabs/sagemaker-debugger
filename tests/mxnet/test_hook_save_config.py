@@ -15,7 +15,7 @@ def test_save_config(hook=None):
     if hook is None:
         save_config_collection = SaveConfig(save_steps=[4, 5, 6])
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-        out_dir = "./newlogsRunTest/" + run_id
+        out_dir = "/tmp/" + run_id
         save_config = SaveConfig(save_steps=[0, 1, 2, 3])
         hook = t_hook(
             out_dir=out_dir,
@@ -34,7 +34,7 @@ def test_save_config(hook=None):
 def test_save_config_hookjson_config():
     from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
-    out_dir = "newlogsRunTest2/test_hook_from_json_config_full"
+    out_dir = "/tmp/test_hook_from_json_config_full"
     shutil.rmtree(out_dir, True)
     os.environ[
         CONFIG_FILE_PATH_ENV_STR

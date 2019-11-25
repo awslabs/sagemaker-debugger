@@ -168,7 +168,7 @@ def helper_test_weights_bias_gradients(hook=None):
     json = hook is not None
     if not json:
         hook = create_hook(
-            "test_output/test_hook_save_weightsbiasgradients/" + prefix,
+            "/tmp/test_output/test_hook_save_weightsbiasgradients/" + prefix,
             model,
             hook_type,
             save_steps=save_steps,
@@ -179,11 +179,13 @@ def helper_test_weights_bias_gradients(hook=None):
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
     if not json:
         trial = create_trial(
-            path="test_output/test_hook_save_weightsbiasgradients/" + prefix, name="test output"
+            path="/tmp/test_output/test_hook_save_weightsbiasgradients/" + prefix,
+            name="test output",
         )
     else:
         trial = create_trial(
-            path="test_output/test_hook_save_weightsbiasgradients/jsonloading", name="test output"
+            path="/tmp/test_output/test_hook_save_weightsbiasgradients/jsonloading",
+            name="test output",
         )
     grads = [
         "gradient/Net_fc1.weight",
@@ -211,7 +213,7 @@ def helper_test_weights_bias_gradients(hook=None):
     else:
         addendum = "jsonloading"
     hook._cleanup()
-    delete_local_trials(["test_output/test_hook_save_weightsbiasgradients/" + addendum])
+    delete_local_trials(["/tmp/test_output/test_hook_save_weightsbiasgradients/" + addendum])
 
 
 def saveall_test_helper(hook=None):
@@ -223,15 +225,19 @@ def saveall_test_helper(hook=None):
     json = hook is not None
     if not json:
         hook = create_hook(
-            "test_output/test_hook_saveall/" + prefix, model, hook_type, save_steps=save_steps
+            "/tmp/test_output/test_hook_saveall/" + prefix, model, hook_type, save_steps=save_steps
         )
     hook.register_hook(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, device, optimizer, num_steps=101, save_steps=save_steps)
     if not json:
-        trial = create_trial(path="test_output/test_hook_saveall/" + prefix, name="test output")
+        trial = create_trial(
+            path="/tmp/test_output/test_hook_saveall/" + prefix, name="test output"
+        )
     else:
-        trial = create_trial(path="test_output/test_hook_saveall/jsonloading", name="test output")
+        trial = create_trial(
+            path="/tmp/test_output/test_hook_saveall/jsonloading", name="test output"
+        )
     grads = [
         "gradient/Net_fc1.weight",
         "gradient/Net_fc2.weight",
@@ -260,7 +266,7 @@ def saveall_test_helper(hook=None):
     else:
         addendum = "jsonloading"
     hook._cleanup()
-    delete_local_trials(["test_output/test_hook_saveall/" + addendum])
+    delete_local_trials(["/tmp/test_output/test_hook_saveall/" + addendum])
 
 
 def helper_test_multi_collections(hook, out_dir):
@@ -293,7 +299,7 @@ def helper_test_multi_collections(hook, out_dir):
 
 
 def test_weightsbiasgradients_json():
-    out_dir = "test_output/test_hook_save_weightsbiasgradients/jsonloading"
+    out_dir = "/tmp/test_output/test_hook_save_weightsbiasgradients/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
@@ -307,7 +313,7 @@ def test_weightsbiasgradients_call():
 
 
 def test_saveall_json():
-    out_dir = "test_output/test_hook_saveall/jsonloading"
+    out_dir = "/tmp/test_output/test_hook_saveall/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_hook_saveall.json"
     hook = Hook.hook_from_config()
@@ -320,7 +326,7 @@ def test_saveall_params():
 
 # Test creating hook with multiple collections and save configs.
 def test_multi_collection_json():
-    out_dir = "test_output/test_hook_multi_collection/jsonloading"
+    out_dir = "/tmp/test_output/test_hook_multi_collection/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[
         CONFIG_FILE_PATH_ENV_STR

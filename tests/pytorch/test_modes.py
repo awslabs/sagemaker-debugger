@@ -85,7 +85,7 @@ def delete_local_trials(local_trials):
         shutil.rmtree(trial)
 
 
-def helper_test_modes(hook=None, out_dir="./test_output/test_hook_modes/"):
+def helper_test_modes(hook=None, out_dir="/tmp/test_output/test_hook_modes/"):
     prefix = str(uuid.uuid4())
     device = torch.device("cpu")
     save_steps = [i for i in range(5)]
@@ -127,7 +127,7 @@ def test_training_mode():
 
 # Test creating hook with multiple collections and save configs.
 def test_training_mode_json():
-    out_dir = "test_output/test_hook_modes/jsonloading"
+    out_dir = "/tmp/test_output/test_hook_modes/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_modes.json"
     hook = Hook.hook_from_config()
