@@ -390,7 +390,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _validate_exec_function(self, fn):
         if fn is None:
             self.logger.info(
-                f"Could not save tensors for {self.mode} step {self.mode_steps[self.mode]} "
+                f"Could not save tensors for mode {self.mode.name} step {self.mode_steps[self.mode]} "
                 f"as execution function has not yet been built."
             )
             return False
