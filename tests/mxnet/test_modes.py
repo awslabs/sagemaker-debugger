@@ -60,6 +60,6 @@ def test_modes_hook_from_json_config():
     out_dir = "newlogsRunTest2/test_modes_hookjson"
     shutil.rmtree(out_dir, True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/mxnet/test_json_configs/test_modes_hook.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     test_modes(hook, out_dir)
     shutil.rmtree(out_dir, True)

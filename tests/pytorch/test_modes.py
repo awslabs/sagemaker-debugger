@@ -130,6 +130,6 @@ def test_training_mode_json():
     out_dir = "test_output/test_hook_modes/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_modes.json"
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     helper_test_modes(hook, out_dir)
     shutil.rmtree(out_dir, True)

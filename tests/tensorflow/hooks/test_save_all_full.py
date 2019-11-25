@@ -31,5 +31,5 @@ def test_hook_config_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     test_save_all_full(out_dir, hook)
