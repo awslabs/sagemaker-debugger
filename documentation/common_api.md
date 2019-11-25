@@ -20,10 +20,49 @@ smd.modes.GLOBAL
 
 ## Collection
 
-The Collection object groups tensors into groups such as "losses", "weights", "biases", or "gradients".
+The Collection object groups tensors such as "losses", "weights", "biases", or "gradients".
 A collection has its own list of tensors, include/exclude regex patterns, reduction config and save config.
 This allows setting of different save and reduction configs for different tensors.
 These collections are then also available during analysis.
+
+You can choose which of these builtin collections (or define your own) to save in the hook's `include_collections` parameter. By default, only a few collections are saved.
+
+| Framework | include_collections (default) |
+|---|---|
+| `TensorFlow` | METRICS, LOSSES, SEARCHABLE_SCALARS |
+| `PyTorch` | LOSSES, SCALARS |
+| `MXNet` | LOSSES, SCALARS |
+| `XGBoost` | METRICS |
+
+Each framework has pre-defined settings for certain collections. For example, TensorFlow's KerasHook
+will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collection. PyTorch uses the regex
+`"^(?!gradient).*weight` to automatically place tensors in the weights collection.
+
+| CollectionKey | Frameworks | Description |
+|---|---|---|
+| `ALL` | all | Saves all tensors. |
+| `DEFAULT` | all | ??? |
+| `WEIGHTS` | TensorFlow, PyTorch, MXNet | Matches all weights tensors. |
+| `BIASES` | TensorFlow, PyTorch, MXNet | Matches all biases tensors. |
+| `GRADIENTS` | TensorFlow, PyTorch, MXNet | Matches all gradients tensors. In TensorFlow, must use `hook.wrap_optimizer()`.  |
+| `LOSSES` | TensorFlow, PyTorch, MXNet | Matches all loss tensors. |
+| `SCALARS` | TensorFlow, PyTorch, MXNet | Matches all scalar tensors, such as loss or accuracy. |
+| `METRICS` | TensorFlow, XGBoost | ??? |
+| `INPUTS` | TensorFlow | Matches all inputs to a layer (outputs of the previous layer). |
+| `OUTPUTS` | TensorFlow | Matches all outputs of a layer (inputs of the following layer). |
+| `SEARCHABLE_SCALARS` | TensorFlow | ??? |
+| `OPTIMIZER_VARIABLES` | TensorFlow | Matches all optimizer variables. |
+| `TENSORFLOW_SUMMARIES` | TensorFlow | ??? |
+| `HYPERPARAMETERS` | XGBoost | ... |
+| `PREDICTIONS` | XGBoost | ... |
+| `LABELS` | XGBoost | ... |
+| `FEATURE_IMPORTANCE` | XGBoost | ... |
+| `AVERAGE_SHAP` | XGBoost | ... |
+| `FULL_SHAP` | XGBoost | ... |
+| `TREES` | XGBoost | ... |
+
+
+
 
 ```
 coll = smd.Collection(
