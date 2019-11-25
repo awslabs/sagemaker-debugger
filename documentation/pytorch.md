@@ -124,4 +124,4 @@ Call this method at any point in the training script to log a scalar value, such
 
 * `name` (str): Name of the scalar. A prefix 'scalar/' will be added to it.
 * `value` (float): Scalar value.
-* `searchable` (bool): If True, the scalar value will be written to SageMaker Minerva.
+* `searchable` (bool): If True, the scalar value will be written to SageMaker Metrics.

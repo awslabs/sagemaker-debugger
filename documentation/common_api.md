@@ -6,6 +6,7 @@ These objects exist across all frameworks.
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
 - [Hook from JSON](#hooks)
+- [Hook from SageMaker](#hooks-sagemaker)
 
 
 
@@ -195,9 +196,17 @@ The simplest way to create a hook is by using the Python API, as described for e
 
 However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
 ```
-json_config_path = "/tmp/json_config.json"
-smd.{hook_class}.hook_from_config(json_config_path = json_config_path)
+hook = smd.{hook_class}.create_from_json_file(json_file_path="/tmp/json_config.json")
 ```
 `hook_class` will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow.
 
 The JSON file configuration is detailed further on [AWS Docs](https://link.com).
+
+
+## Hook from SageMaker
+If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API,
+the a JSON file will be automatically written. You can create a hook from this file by calling
+```
+hook = smd.{hook_class}.create_from_json_file()
+```
+with no arguments and then use the hook as usual in your script. `hook_class` is the same as detailed above.
