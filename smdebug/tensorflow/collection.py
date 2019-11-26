@@ -147,7 +147,7 @@ class CollectionManager(BaseCollectionManager):
                 CollectionKeys.INPUTS,
                 CollectionKeys.OUTPUTS,
                 CollectionKeys.ALL,
-                CollectionKeys.SEARCHABLE_SCALARS,
+                CollectionKeys.SM_METRICS,
             ]:
                 self.create_collection(n)
             self.get(CollectionKeys.BIASES).include("bias")
