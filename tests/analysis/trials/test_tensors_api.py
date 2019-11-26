@@ -48,6 +48,12 @@ def test_tensors(out_dir):
     assert len(tr.tensors(collection="test")) == num_tensors + 2
     assert len(tr.tensors(collection=tr.collection("test"))) == num_tensors + 2
 
+    try:
+        tr.tensors(collection=tr.collection("test"), regex="a")
+        assert False
+    except ValueError:
+        pass
+
 
 def test_mode_data():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
