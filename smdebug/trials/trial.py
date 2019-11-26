@@ -116,7 +116,7 @@ class Trial(ABC):
             f"    path={self.path},\n"
             f"    steps={self.steps()},\n"
             f"    collections={list(self.collections().keys())},\n"
-            f"    tensornames={self.tensornames()},\n"
+            f"    tensor_names={self.tensor_names()},\n"
             f")"
         )
 
@@ -324,7 +324,7 @@ class Trial(ABC):
             rval.update(self._tensors_matching_regex(regex))
         return rval
 
-    def tensornames(self, *, step=None, mode=ModeKeys.GLOBAL, regex=None, collection=None) -> list:
+    def tensor_names(self, *, step=None, mode=ModeKeys.GLOBAL, regex=None, collection=None) -> list:
         self.maybe_refresh()
         ts = set()
         if step is None and mode == ModeKeys.GLOBAL:

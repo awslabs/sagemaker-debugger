@@ -57,7 +57,7 @@ def test_mode_data():
         assert tr.has_passed_step(s + 1) == StepState.NOT_YET_AVAILABLE
         assert tr.has_passed_step(s + 1, mode=modes.TRAIN) == StepState.NOT_YET_AVAILABLE
 
-    assert len(tr.tensornames()) == 1
+    assert len(tr.tensor_names()) == 1
     assert len(tr.steps()) == 10
     assert len(tr.steps(mode=modes.TRAIN)) == 5
     assert len(tr.steps(mode=modes.EVAL)) == 5

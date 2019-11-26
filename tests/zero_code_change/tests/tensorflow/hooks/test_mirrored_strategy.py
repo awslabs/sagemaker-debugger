@@ -305,15 +305,15 @@ def test_basic(out_dir, zcc=False):
 
     tr = create_trial_fast_refresh(out_dir)
     # wts, grads, losses
-    print(tr.tensornames())
-    assert len(tr.tensornames()) == 8 + 8 + (1 * strategy.num_replicas_in_sync) + 1
+    print(tr.tensor_names())
+    assert len(tr.tensor_names()) == 8 + 8 + (1 * strategy.num_replicas_in_sync) + 1
     assert len(tr.steps()) == 7
     assert len(tr.steps(ModeKeys.TRAIN)) == 3
     assert len(tr.steps(ModeKeys.EVAL)) == 2
     assert len(tr.steps(ModeKeys.PREDICT)) == 2
 
-    assert "dense_1/kernel:0" in tr.tensornames(collection="weights")
-    for tname in tr.tensornames(collection="weights"):
+    assert "dense_1/kernel:0" in tr.tensor_names(collection="weights")
+    for tname in tr.tensor_names(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
             for worker in tr.tensor(tname).workers(s, ModeKeys.TRAIN):
@@ -322,7 +322,7 @@ def test_basic(out_dir, zcc=False):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    tensornames = tr.tensornames(regex="Identity_\d+:0")
+    tensornames = tr.tensor_names(regex="Identity_\d+:0")
     for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
         for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
             assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None
@@ -331,7 +331,7 @@ def test_basic(out_dir, zcc=False):
             == strategy.num_replicas_in_sync
         )
 
-    for tname in tr.tensornames(collection="losses"):
+    for tname in tr.tensor_names(collection="losses"):
         if tname != tensornames[0]:
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
                 assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1
@@ -354,12 +354,12 @@ def test_eval_distributed(out_dir):
     if skip_trial_check():
         return
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensornames()) == 8 + 1 * strategy.num_replicas_in_sync + 1
+    assert len(tr.tensor_names()) == 8 + 1 * strategy.num_replicas_in_sync + 1
     assert len(tr.steps()) == 4
     assert len(tr.steps(ModeKeys.TRAIN)) == 2
     assert len(tr.steps(ModeKeys.EVAL)) == 2
 
-    for tname in tr.tensornames(collection="weights"):
+    for tname in tr.tensor_names(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == strategy.num_replicas_in_sync
             for worker in tr.tensor(tname).workers(s, ModeKeys.TRAIN):
@@ -368,7 +368,7 @@ def test_eval_distributed(out_dir):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    tensornames = tr.tensornames(regex="Identity_\d+:0")
+    tensornames = tr.tensor_names(regex="Identity_\d+:0")
     for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
         for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
             assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None
@@ -377,7 +377,7 @@ def test_eval_distributed(out_dir):
             == strategy.num_replicas_in_sync
         )
 
-    for tname in tr.tensornames(collection="losses"):
+    for tname in tr.tensor_names(collection="losses"):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
@@ -402,12 +402,12 @@ def test_reductions(out_dir):
         return
 
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensornames()) == 8 + 1 * strategy.num_replicas_in_sync + 1
+    assert len(tr.tensor_names()) == 8 + 1 * strategy.num_replicas_in_sync + 1
     assert len(tr.steps()) == 4
     assert len(tr.steps(ModeKeys.TRAIN)) == 2
     assert len(tr.steps(ModeKeys.EVAL)) == 2
 
-    for tname in tr.tensornames(collection="weights"):
+    for tname in tr.tensor_names(collection="weights"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             try:
                 tr.tensor(tname).value(s, mode=ModeKeys.TRAIN)
@@ -424,12 +424,12 @@ def test_reductions(out_dir):
                 # for some tensors l1 reduction can't be saved due to improper dimensions for the reduction
                 assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) >= 4
 
-    for tname in tr.tensornames(collection="losses"):
+    for tname in tr.tensor_names(collection="losses"):
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
             assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.EVAL)) == 0
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    for tname in tr.tensornames(collection="losses"):
+    for tname in tr.tensor_names(collection="losses"):
         for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
             assert len(tr.tensor(tname).reduction_values(s, mode=ModeKeys.TRAIN)) == 0
             assert tr.tensor(tname).value(s, mode=ModeKeys.TRAIN) is not None
@@ -443,11 +443,11 @@ def test_save_all(out_dir):
     if skip_trial_check():
         return
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensornames()) > 100
+    assert len(tr.tensor_names()) > 100
     assert len(tr.steps())
-    assert len(tr.tensornames(collection="weights"))
-    assert len(tr.tensornames(collection="biases"))
-    assert len(tr.tensornames(collection="gradients"))
+    assert len(tr.tensor_names(collection="weights"))
+    assert len(tr.tensor_names(collection="biases"))
+    assert len(tr.tensor_names(collection="gradients"))
 
 
 @pytest.mark.slow
@@ -466,13 +466,13 @@ def test_save_all_worker(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.steps())
     assert len(tr.workers()) == get_available_gpus()
-    assert len(tr.tensornames(collection="weights"))
-    assert "conv2d/kernel:0" in tr.tensornames(collection="weights")
+    assert len(tr.tensor_names(collection="weights"))
+    assert "conv2d/kernel:0" in tr.tensor_names(collection="weights")
     assert len(tr.tensor("conv2d/kernel:0").workers(0)) == strategy.num_replicas_in_sync
-    assert len(tr.tensornames(collection="biases"))
-    assert "conv2d/bias:0" in tr.tensornames(collection="biases")
+    assert len(tr.tensor_names(collection="biases"))
+    assert "conv2d/bias:0" in tr.tensor_names(collection="biases")
     assert len(tr.tensor("conv2d/bias:0").workers(0)) == strategy.num_replicas_in_sync
-    assert len(tr.tensornames(collection="gradients"))
+    assert len(tr.tensor_names(collection="gradients"))
 
 
 @pytest.mark.slow
@@ -488,6 +488,6 @@ def test_save_one_worker(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.workers()) == 1
     assert len(tr.steps())
-    assert len(tr.tensornames(collection="weights"))
-    assert len(tr.tensornames(collection="biases"))
-    assert len(tr.tensornames(collection="gradients"))
+    assert len(tr.tensor_names(collection="weights"))
+    assert len(tr.tensor_names(collection="biases"))
+    assert len(tr.tensor_names(collection="gradients"))

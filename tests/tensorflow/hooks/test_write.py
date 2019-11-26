@@ -103,8 +103,8 @@ def test_hook_write(out_dir):
     )
     helper_hook_write(out_dir, hook)
     tr = create_trial_fast_refresh(out_dir)
-    print(tr.tensornames(collection="weights"))
-    assert len(tr.tensornames(collection="weights"))
+    print(tr.tensor_names(collection="weights"))
+    assert len(tr.tensor_names(collection="weights"))
 
 
 def test_hook_write_json(out_dir, monkeypatch):

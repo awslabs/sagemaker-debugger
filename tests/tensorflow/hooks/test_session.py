@@ -40,7 +40,7 @@ def test_new_graph(out_dir):
             sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
         sess.close()
         tr = create_trial(out_dir)
-        assert len(tr.tensornames())
+        assert len(tr.tensor_names())
 
 
 def test_uninit_sess_run(out_dir):
@@ -59,5 +59,5 @@ def test_uninit_sess_run(out_dir):
     # Check that hook created and tensors saved
     trial = smd.create_trial(path=out_dir)
     assert len(trial.steps()) > 0, "Nothing saved at any step."
-    assert len(trial.tensornames()) > 0, "Tensors were not saved."
-    assert len(trial.tensornames(collection="weights")) > 0
+    assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+    assert len(trial.tensor_names(collection="weights")) > 0

@@ -57,7 +57,7 @@ class RequiredTensorsForTrial:
 
     def add(self, name, steps, should_match_regex=False):
         if should_match_regex:
-            names = self.trial.tensornames(regex=[name])
+            names = self.trial.tensor_names(regex=[name])
             for name in names:
                 self._add_steps_for_tensor(name, steps)
         else:
