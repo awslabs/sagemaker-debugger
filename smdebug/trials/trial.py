@@ -311,7 +311,7 @@ class Trial(ABC):
         return matched_tensornames
 
     @staticmethod
-    def _parse_collection_name(self, collection):
+    def _parse_collection_name(collection):
         if isinstance(collection, Collection):
             coll_name = collection.name
         elif type(collection) is str:
