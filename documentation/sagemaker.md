@@ -9,7 +9,7 @@ available, but you can write custom rules and use those.
 
 ## Example Usage (Sagemaker Fully Managed)
 This setup will work for any script without code changes. This exa Tensorflow 1.15.
-See the AWS docs for greater details on the JSON configuration.
+See the [JSON specification](https://link.com) section of API.md for details on the JSON configuration.
 
 This example uses TensorFlow.
 To use PyTorch or MXNet, simply call `sagemaker.pytorch.PyTorch` or `sagemaker.mxnet.MXNet`.

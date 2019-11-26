@@ -1,19 +1,49 @@
 
 # Common API
 These objects exist across all frameworks.
+- [Creating a Hook](#creating-a-hook)
+    - [Hook from Python](#hook-from-python)
+    - [Hook from JSON](#hook-from-json)
+    - [Hook from SageMaker](#hook-from-sagemaker)
 - [Modes](#modes)
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
-- [Hook from JSON](#hooks)
-- [Hook from SageMaker](#hooks-sagemaker)
+- [JSON Specification](#json-specification)
 
+---
+
+## Creating a Hook
+
+### Hook from Python
 See the framework-specific pages for more details.
 * [TensorFlow](https://link.com)
 * [PyTorch](https://link.com)
 * [MXNet](https://link.com)
 * [XGBoost](https://link.com)
 
+### Hook from JSON
+The simplest way to create a hook is by using the Python API, as described on the framework-specific pages.
+
+
+However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
+```
+hook = smd.{hook_class}.create_from_json_file(json_file_path="/tmp/json_config.json")
+```
+`hook_class` will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow.
+
+The JSON file configuration is detailed further on [AWS Docs](https://link.com).
+
+
+### Hook from SageMaker
+If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API,
+the a JSON file will be automatically written. You can create a hook from this file by calling
+```
+hook = smd.{hook_class}.create_from_json_file()
+```
+with no arguments and then use the hook as usual in your script. `hook_class` is the same as detailed above.
+
+---
 
 ## Modes
 Used to signify which part of training you're in, similar to Keras modes. Choose from
@@ -23,6 +53,8 @@ smd.modes.EVAL
 smd.modes.PREDICT
 smd.modes.GLOBAL
 ```
+
+---
 
 ## Collection
 
@@ -109,7 +141,7 @@ coll = smd.Collection(
 | ```coll.add_module_tensors(module, inputs=False, outputs=True)```  | **(PyTorch only)** Takes an instance of a PyTorch module and logs input/output tensors for that module. By default, only outputs are saved. |
 | ```coll.add_block_tensors(block, inputs=False, outputs=True)``` | **(MXNet only)** Takes an instance of a Gluon block,and logs input/output tensors for that module. By default, only outputs are saved. |
 
-
+---
 
 ## SaveConfig
 The SaveConfig class customizes the frequency of saving tensors.
@@ -157,6 +189,8 @@ Essentially, create a dictionary mapping modes to SaveConfigMode objects. The Sa
 take the same four parameters (save_interval, start_step, end_step, save_steps) as the main object.
 Any mode not specified will default to the default configuration.
 
+---
+
 ## ReductionConfig
 ReductionConfig allows the saving of certain reductions of tensors instead
 of saving the full tensor. The motivation here is to reduce the amount of data
@@ -192,23 +226,48 @@ For example,
 
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
 
-## Hook from JSON
-The simplest way to create a hook is by using the Python API, as described on the framework-specific pages.
+---
 
-
-However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
+## JSON Specification
+See the framework pages for details on what each of these terms mean.
+`S3Path` is the S3 location to write output files to.
+`LocalPath` is the local location to write files to.
 ```
-hook = smd.{hook_class}.create_from_json_file(json_file_path="/tmp/json_config.json")
+{
+  "S3Path": "s3://bucket/prefix",
+  "LocalPath": "/tmp/smdebug/run1",
+  "HookParameters": {
+    "export_tensorboard": true,
+    "tensorboard_dir": "/tmp/tensorboard",
+    "save_all": false,
+    "include_regex": "regexe1,regex2",
+    "save_interval": 100,
+    "save_steps": "1,2,3,4",
+    "start_step": 1,
+    "reductions": "min,max,mean,std,abs_variance,abs_sum,abs_l2_norm"
+  },
+  "CollectionConfigurations": [
+    {
+      "CollectionName": "collection_obj_name1",
+      "CollectionParameters": {
+        "include_regex": "regexe5*",
+        "save_interval": 100,
+        "save_steps": "1,2,3",
+        "start_step": 1,
+        "reductions": "min,abs_max,l1_norm,abs_l2_norm",
+      }
+    },
+    {
+      "CollectionName": "collection_obj_name2",
+      "CollectionParameters": {
+        "include_regex": "regexe6*",
+        "train.save_interval": 100,
+        "eval.save_interval": 1,
+        "save_steps": "1,2,3",
+        "start_step": 1,
+        "reductions": "min,abs_max,l1_norm,abs_l2_norm"
+      }
+    }
+  ]
+}
 ```
-`hook_class` will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow.
-
-The JSON file configuration is detailed further on [AWS Docs](https://link.com).
-
-
-## Hook from SageMaker
-If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API,
-the a JSON file will be automatically written. You can create a hook from this file by calling
-```
-hook = smd.{hook_class}.create_from_json_file()
-```
-with no arguments and then use the hook as usual in your script. `hook_class` is the same as detailed above.
