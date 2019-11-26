@@ -62,7 +62,7 @@ def test_estimator(script_mode: bool):
         print(trial)
         assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
-        assert len(trial.tensors()) > 0, "Tensors were not saved."
+        assert len(trial.tensornames()) > 0, "Tensors were not saved."
         assert trial.steps() == [0, train_steps], "Wrong step count for trial."
 
 
@@ -113,7 +113,7 @@ def test_estimator_gradients_zcc(nested=False, mirrored=False):
             print(trial)
             assert smd.get_hook() is not None, "Hook was not created."
             assert len(trial.steps()) > 0, "Nothing saved at any step."
-            assert len(trial.tensors()) > 0, "Tensors were not saved."
+            assert len(trial.tensornames()) > 0, "Tensors were not saved."
             assert trial.steps() == [
                 0,
                 2,
@@ -126,11 +126,11 @@ def test_estimator_gradients_zcc(nested=False, mirrored=False):
                 16,
                 18,
             ], "Wrong step count for trial."
-            print(trial.tensors(collection="gradients"))
-            assert len(trial.tensors(collection="gradients")) > 0
-            assert len(trial.tensors(collection="weights")) > 0
-            assert len(trial.tensors(collection="losses")) > 0
-            assert len(trial.tensor(trial.tensors(collection="gradients")[0]).steps()) > 0
+            print(trial.tensornames(collection="gradients"))
+            assert len(trial.tensornames(collection="gradients")) > 0
+            assert len(trial.tensornames(collection="weights")) > 0
+            assert len(trial.tensornames(collection="losses")) > 0
+            assert len(trial.tensor(trial.tensornames(collection="gradients")[0]).steps()) > 0
             assert len(trial.modes()) == 2
 
 
@@ -157,7 +157,7 @@ def test_linear_classifier(script_mode: bool):
         trial = smd.create_trial(path=sim.out_dir)
         assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
-        assert len(trial.tensors()) > 0, "Tensors were not saved."
+        assert len(trial.tensornames()) > 0, "Tensors were not saved."
 
 
 def test_monitored_session(script_mode: bool):
@@ -185,7 +185,7 @@ def test_monitored_session(script_mode: bool):
         trial = smd.create_trial(path=sim.out_dir)
         assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
-        assert len(trial.tensors()) > 0, "Tensors were not saved."
+        assert len(trial.tensornames()) > 0, "Tensors were not saved."
 
 
 def test_monitored_session_gradients_zcc():
@@ -223,8 +223,8 @@ def test_monitored_session_gradients_zcc():
         trial = smd.create_trial(path=sim.out_dir)
         assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
-        assert len(trial.tensors()) > 0, "Tensors were not saved."
-        assert len(trial.tensors(collection="gradients")) > 0
+        assert len(trial.tensornames()) > 0, "Tensors were not saved."
+        assert len(trial.tensornames(collection="gradients")) > 0
 
 
 def test_keras_v1(script_mode: bool):
@@ -255,7 +255,7 @@ def test_keras_v1(script_mode: bool):
         trial = smd.create_trial(path=sim.out_dir)
         assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
-        assert len(trial.tensors()) > 0, "Tensors were not saved."
+        assert len(trial.tensornames()) > 0, "Tensors were not saved."
 
 
 def test_keras_gradients(script_mode: bool, tf_optimizer: bool = False):
@@ -313,11 +313,11 @@ def test_keras_gradients(script_mode: bool, tf_optimizer: bool = False):
         trial = smd.create_trial(path=sim.out_dir)
         assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
-        assert len(trial.tensors()) > 0, "Tensors were not saved."
-        assert len(trial.tensors(collection="gradients")) > 0
+        assert len(trial.tensornames()) > 0, "Tensors were not saved."
+        assert len(trial.tensornames(collection="gradients")) > 0
         if not tf_optimizer:
             # as this is only supported for keras optimizers currently
-            assert len(trial.tensors(collection="optimizer_variables")) > 0
+            assert len(trial.tensornames(collection="optimizer_variables")) > 0
 
 
 def test_keras_gradients_mirrored(include_workers="one"):
@@ -407,7 +407,7 @@ def test_keras_to_estimator(script_mode: bool):
             keras_estimator.evaluate(input_fn=input_fn, steps=10)
 
         tr = smd.create_trial(sim.out_dir)
-        assert len(tr.tensors()) == 1
+        assert len(tr.tensornames()) == 1
         assert tr.steps() == [0, 25]
         assert len(tr.steps(smd.modes.TRAIN)) == 1
         assert len(tr.steps(smd.modes.EVAL)) == 1

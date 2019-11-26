@@ -24,7 +24,7 @@ def test_save_all(hook=None, out_dir=None):
     # assert for steps and tensornames
     print("Created the trial with out_dir {}".format(out_dir))
     tr = create_trial(out_dir)
-    tensor_list = tr.tensors()
+    tensor_list = tr.tensornames()
     assert tr
     assert len(tr.steps()) == 4
     # some tensor names, like input and output, can't be retrieved from training session, so here we only assert for tensor numbers

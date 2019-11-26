@@ -19,11 +19,11 @@ def test_save_all_full(out_dir, hook=None):
 
     simple_model(hook)
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensors()) > 50
-    print(tr.tensors(collection="weights"))
-    assert len(tr.tensors(collection="weights")) == 1
-    assert len(tr.tensors(collection="gradients")) == 1
-    assert len(tr.tensors(collection="losses")) == 1
+    assert len(tr.tensornames()) > 50
+    print(tr.tensornames(collection="weights"))
+    assert len(tr.tensornames(collection="weights")) == 1
+    assert len(tr.tensornames(collection="gradients")) == 1
+    assert len(tr.tensornames(collection="losses")) == 1
 
 
 def test_hook_config_json(out_dir, monkeypatch):

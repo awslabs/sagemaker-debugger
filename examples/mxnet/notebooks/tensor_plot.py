@@ -63,7 +63,7 @@ class TensorPlot:
 
             # input image into the neural network
             if self.label is not None:
-                for tname in self.trial.tensors(regex=self.label):
+                for tname in self.trial.tensornames(regex=self.label):
                     tensor = self.trial.tensor(tname).value(step)
                     if self.color_channel == 1:
                         self.input[step] = tensor[0, 0, :, :]
@@ -71,7 +71,7 @@ class TensorPlot:
                         self.input[step] = tensor[0, :, :, 3]
 
             # iterate over tensors that match the regex
-            for tname in self.trial.tensors(regex=self.regex):
+            for tname in self.trial.tensornames(regex=self.regex):
                 tensor = self.trial.tensor(tname).value(step)
                 # get max value of tensors to set axis dimension accordingly
                 for dim in tensor.shape:
@@ -119,7 +119,7 @@ class TensorPlot:
 
             # model output
             if self.prediction is not None:
-                for tname in self.trial.tensors(regex=self.prediction):
+                for tname in self.trial.tensornames(regex=self.prediction):
                     tensor = self.trial.tensor(tname).value(step)
                     # predicted class (batch size, propabilities per clas)
                     if len(tensor.shape) == 2:

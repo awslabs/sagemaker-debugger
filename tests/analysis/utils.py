@@ -43,8 +43,8 @@ def generate_data(
 
 
 def check_trial(trial_obj, num_steps, num_tensors):
-    assert len(trial_obj.tensors()) == num_tensors
-    for t in trial_obj.tensors():
+    assert len(trial_obj.tensornames()) == num_tensors
+    for t in trial_obj.tensornames():
         assert len(trial_obj.tensor(t).steps()) == num_steps
         for s in trial_obj.tensor(t).steps():
             v = trial_obj.tensor(t).value(s)

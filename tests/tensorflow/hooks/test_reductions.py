@@ -16,10 +16,10 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
     from smdebug.trials import create_trial
 
     tr = create_trial(trial_dir)
-    assert len(tr.tensors()) == 3, tr.tensors()
-    for tname in tr.tensors():
+    assert len(tr.tensornames()) == 3, tr.tensornames()
+    for tname in tr.tensornames():
         t = tr.tensor(tname)
-        if tname in tr.tensors(collection="losses"):
+        if tname in tr.tensornames(collection="losses"):
             # no reductions
             assert t.value(0) is not None
         else:

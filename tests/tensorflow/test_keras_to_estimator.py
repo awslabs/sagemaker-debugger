@@ -38,7 +38,7 @@ def test_keras_to_estimator(out_dir):
     from smdebug.trials import create_trial
 
     tr = create_trial(out_dir)
-    assert len(tr.tensors()) == 1
+    assert len(tr.tensornames()) == 1
     assert len(tr.steps()) == 2
     assert len(tr.steps(modes.TRAIN)) == 1
     assert len(tr.steps(modes.EVAL)) == 1
