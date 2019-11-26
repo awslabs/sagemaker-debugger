@@ -9,6 +9,7 @@ These objects exist across all frameworks.
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
+- [Environment Variables](Environment Variables)
 
 ---
 ## SageMaker Zero-Code-Change vs. Python API
@@ -269,3 +270,109 @@ For example,
 `ReductionConfig(reductions=['std', 'variance'], abs_reductions=['mean'], norms=['l1'])`
 
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
+
+
+---
+
+## Environment Variables
+
+####`SMDEBUG_CONFIG_FILE_PATH`:
+
+Contains the path to the JSON file that describes the smdebug hook. SageMaker-Debugger is disabled
+if this environment variable is not set.
+
+At the minimum, the JSON config should contain the path where smdebug should output tensors.
+Example:
+
+`{ “LocalPath”: /my/smdebug_hook/path }`
+
+In SageMaker environment, this path is set to point to a pre-defined location.
+
+Sample JSON from which a hook can be created:
+```
+{
+  "LocalPath": "/my/smdebug_hook/path",
+  "HookParameters": {
+    "save_all": false,
+    "include_regex": "regex1,regex2",
+    "save_interval": "100",
+    "save_steps": "1,2,3,4",
+    "start_step": "1",
+    "end_step": "1000000",
+    "reductions": "min,max,mean"
+  },
+  "CollectionConfigurations": [
+    {
+      "CollectionName": "collection_obj_name1",
+      "CollectionParameters": {
+        "include_regex": "regexe5*",
+        "save_interval": 100,
+        "save_steps": "1,2,3",
+        "start_step": 1,
+        "reductions": "min"
+      }
+    },
+  ]
+}
+
+```
+
+####`TENSORBOARD_CONFIG_FILE_PATH`:
+
+Contains the path to the JSON file that specifies where TensorBoard artifacts need to
+be placed.
+
+Sample JSON file:
+
+`{ “LocalPath”: /my/tensorboard/path }`
+
+In SageMaker environment, the presence of this JSON is necessary to log any Tensorboard artifact.
+By default, this path is set to point to a pre-defined location in SageMaker.
+
+As an alternative to specifying this environment variable and JSON, tensorboard_dir
+can be passed while creating the hook [Creating a hook](###Hook from Python).
+
+
+####`CHECKPOINT_CONFIG_FILE_PATH`:
+
+Contains the path to the JSON file that specifies where training checkpoints need to
+be placed. This is used in the context of spot training.
+
+Sample JSON file:
+
+`{ “LocalPath”: /my/checkpoint/path }`
+
+In SageMaker environment, the presence of this JSON is necessary to save checkpoints.
+By default, this path is set to point to a pre-defined location in SageMaker.
+
+
+####`SAGEMAKER_METRICS_DIRECTORY`:
+
+Contains the path to the directory where metrics will be recorded for consumption by SageMaker Metrics.
+This is relevant only in SageMaker environment, where this variable points to a pre-defined location.
+
+
+####`SMDEBUG_EVENT_FILE_RETRY_LIMIT`:
+
+During analysis, a [trial](#Linkto analysis.md) is created to query for tensors from a specified directory. This
+directory contains collections, events, and index files. This environment variable
+specifies how many retries should be allowed while scanning for the presence of files in the events directory.
+By default, this value is set to 100. If the file is not available after the set
+number of retries, then a TensorUnavailableForStep exception is raised.
+
+
+####`TRAINING_END_DELAY_REFRESH`:
+
+During analysis, a [trial](#Linkto analysis.md) is created to query for tensors from a specified directory. This
+directory contains collections, events, and index files. This environment variable
+specifies how many seconds to wait before refreshing the index files to check if training has ended
+and the tensor is available. By default value, this value is set to 1.
+
+
+####`INCOMPLETE_STEP_WAIT_WINDOW`:
+
+During analysis, a [trial](#Linkto analysis.md) is created to query for tensors from a specified directory. This
+directory contains collections, events, and index files. A trial checks to see if a step
+specified in the smdebug hook has been completed. This environment variable
+specifies the maximum number of incomplete steps that the trial will wait for before marking
+half of them as complete. Default: 1000
