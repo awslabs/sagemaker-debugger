@@ -336,16 +336,14 @@ class Trial(ABC):
 
         if regex is None and collection is None:
             return sorted(list(ts))
+        elif regex is not None and collection is not None:
+            raise ValueError("Only one of `regex` or `collection` can be passed " "to this method")
         else:
-            xs = set()
             if collection is not None:
-                collection_tensors_saved = set(self._tensors.keys()).intersection(
-                    self._tensors_in_collection(collection)
-                )
-                xs.update(collection_tensors_saved)
-            if regex is not None:
-                xs.intersection_update(self._tensors_matching_regex(regex))
-        return sorted(list(ts.intersection(xs)))
+                xs = set(self._tensors.keys()).intersection(self._tensors_in_collection(collection))
+            else:
+                xs = self._tensors_matching_regex(regex)
+            return sorted(list(ts.intersection(xs)))
 
     def _tensors_for_step(self, step, mode=ModeKeys.GLOBAL) -> list:
         step = self._mode_to_global[mode][step] if mode != ModeKeys.GLOBAL else step
