@@ -31,7 +31,7 @@ def test_hook_from_json_config():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_from_json_config.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     assert has_training_ended(out_dir) == False
     run_mnist_gluon_model(
         hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True
@@ -45,7 +45,7 @@ def test_hook_from_json_config_full():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_from_json_config_full.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     assert has_training_ended(out_dir) == False
     run_mnist_gluon_model(
         hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True
