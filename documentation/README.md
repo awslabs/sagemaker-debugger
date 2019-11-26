@@ -17,7 +17,7 @@ It helps you develop better, faster, cheaper models by catching common errors qu
 - Distributed training and TensorBoard support.
 
 ## SageMaker Example
-This example uses a zero-code-change experience, where you can use your training script as-is.
+This example uses a zero-code-change experience, where you can use your training script as-is.\
 See the [sagemaker](https://link.com) page for more details.
 ```python
 import sagemaker
@@ -29,8 +29,8 @@ rule = Rule.sagemaker(
         "tensor_regex": ".*"
     },
     collections_to_save=[
-        CollectionConfig(name="weights", parameters={}),
-        CollectionConfig(name="losses", parameters={}),
+        CollectionConfig(name="weights"),
+        CollectionConfig(name="losses"),
     ],
 )
 
@@ -120,12 +120,12 @@ tensors to include/exclude.
 **ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor.
 - `reduction_config = smd.ReductionConfig(reductions=['min', 'max', 'mean'], norms=['l1'])`
 
-**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](https://link.com)
+**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](https://link.com).
 - `trial = smd.create_trial(out_dir="/tmp/mnist_job")`
 
-**Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient. See [rules documentation](https://link.com)
+**Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient. See [rules documentation](https://link.com).
 
 ## Detailed Links
-- [Rules Documentation](https://link.com)
+- [Rules and Trials](https://link.com)
 - [Distributed Training](https://link.com)
 - [TensorBoard](https://link.com)

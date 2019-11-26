@@ -8,7 +8,6 @@ These objects exist across all frameworks.
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
-- [JSON Specification](#json-specification)
 
 ---
 
@@ -218,49 +217,3 @@ For example,
 `ReductionConfig(reductions=['std', 'variance'], abs_reductions=['mean'], norms=['l1'])`
 
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
-
----
-
-## JSON Specification
-See the framework pages for details on what each of these terms mean.
-`S3Path` is the S3 location to write output files to.
-`LocalPath` is the local location to write files to.
-```json
-{
-  "S3Path": "s3://bucket/prefix",
-  "LocalPath": "/tmp/smdebug/run1",
-  "HookParameters": {
-    "export_tensorboard": true,
-    "tensorboard_dir": "/tmp/tensorboard",
-    "save_all": false,
-    "include_regex": "regexe1,regex2",
-    "save_interval": 100,
-    "save_steps": "1,2,3,4",
-    "start_step": 1,
-    "reductions": "min,max,mean,std,abs_variance,abs_sum,abs_l2_norm"
-  },
-  "CollectionConfigurations": [
-    {
-      "CollectionName": "collection_obj_name1",
-      "CollectionParameters": {
-        "include_regex": "regexe5*",
-        "save_interval": 100,
-        "save_steps": "1,2,3",
-        "start_step": 1,
-        "reductions": "min,abs_max,l1_norm,abs_l2_norm",
-      }
-    },
-    {
-      "CollectionName": "collection_obj_name2",
-      "CollectionParameters": {
-        "include_regex": "regexe6*",
-        "train.save_interval": 100,
-        "eval.save_interval": 1,
-        "save_steps": "1,2,3",
-        "start_step": 1,
-        "reductions": "min,abs_max,l1_norm,abs_l2_norm"
-      }
-    }
-  ]
-}
-```
