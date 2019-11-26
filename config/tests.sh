@@ -45,6 +45,7 @@ fi
 check_logs $REPORT_DIR/*
 
 if [ -n "$(git status --porcelain)" ]; then
-  echo "ERROR: Test artifacts were created. Please place these in /tmp.";
+  echo "ERROR: Test artifacts were created. Please place these in /tmp."
   echo "$(git status --porcelain)"
   exit 1
+fi
