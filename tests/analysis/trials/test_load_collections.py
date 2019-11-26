@@ -4,6 +4,7 @@
 import pytest
 
 # First Party
+from smdebug.exceptions import MissingCollectionFiles
 from smdebug.trials import create_trial
 
 
@@ -18,7 +19,10 @@ def test_load_collection_files_from_completed_job():
     :return:
     """
     path = "s3://tornasole-testing/collection-tests/all-collection-files-present/"
-    trial = create_trial(path)
+    try:
+        trial = create_trial(path)
+    except MissingCollectionFiles:
+        assert False
     assert len(trial.workers()) == 2001
 
 
@@ -34,8 +38,11 @@ def test_load_collection_files_from_completed_job_with_missing_files():
     :return:
     """
     path = "s3://tornasole-testing/collection-tests/collection-files-missing/"
-    trial = create_trial(path)
-    assert len(trial.workers()) == 1446
+    try:
+        trial = create_trial(path)
+        assert False
+    except MissingCollectionFiles:
+        assert True
 
 
 @pytest.mark.slow
@@ -51,5 +58,8 @@ def test_load_collection_files_from_incomplete_job():
     :return:
     """
     path = "s3://tornasole-testing/collection-tests/all-collection-files-present-job-incomplete/"
-    trial = create_trial(path)
+    try:
+        trial = create_trial(path)
+    except MissingCollectionFiles:
+        assert False
     assert len(trial.workers()) == 2001

@@ -25,7 +25,12 @@ from smdebug.core.utils import (
     match_inc,
     serialize_tf_device,
 )
-from smdebug.exceptions import NoMoreData, StepUnavailable, TensorUnavailable
+from smdebug.exceptions import (
+    MissingCollectionFiles,
+    NoMoreData,
+    StepUnavailable,
+    TensorUnavailable,
+)
 
 
 class Trial(ABC):
@@ -156,13 +161,10 @@ class Trial(ABC):
                 if has_training_ended(self.path):
                     """ _fetch should have returned all the collection files if the training job has ended """
                     if len(collection_files) < number_of_collection_file_to_wait_for:
-                        self.logger.warning(
-                            "Training job has ended. All the collection files could not be loaded"
-                        )
-                    break
+                        raise MissingCollectionFiles
 
         _fetch()
-        _wait_for_collection_files(0)  # wait for the first collection file
+        _wait_for_collection_files(1)  # wait for the first collection file
         self._read_collections(collection_files)
         _wait_for_collection_files(self.num_workers)  # wait for all the collection files
         for collection_file in collection_files:
