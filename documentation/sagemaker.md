@@ -10,6 +10,8 @@ available, but you can write custom rules and use those.
 ## Example Usage (Sagemaker Fully Managed)
 This setup will work for any script without code changes. Note that you must use Tensorflow 1.15.
 See the AWS docs for greater details on the JSON configuration.
+
+To use PyTorch or MXNet, simply call `sagemaker.pytorch.PyTorch` or `sagemaker.mxnet.MXNet`
 ```
 import sagemaker
 from sagemaker.debugger import Rule, rule_configs, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig

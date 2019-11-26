@@ -8,6 +8,11 @@ These objects exist across all frameworks.
 - [Hook from JSON](#hooks)
 - [Hook from SageMaker](#hooks-sagemaker)
 
+See the framework-specific pages for more details.
+* [TensorFlow](https://link.com)
+* [PyTorch](https://link.com)
+* [MXNet](https://link.com)
+* [XGBoost](https://link.com)
 
 
 ## Modes
@@ -188,11 +193,8 @@ For example,
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
 
 ## Hook from JSON
-The simplest way to create a hook is by using the Python API, as described for each framework.
-* [TensorFlow](https://link.com)
-* [PyTorch](https://link.com)
-* [MXNet](https://link.com)
-* [XGBoost](https://link.com)
+The simplest way to create a hook is by using the Python API, as described on the framework-specific pages.
+
 
 However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
 ```
