@@ -10,7 +10,7 @@ Supported standalone Keras version: 2.3.
 - [Full API](#full-api)
 
 ## tf.keras Example
-```
+```python
 import smdebug.tensorflow as smd
 hook = smd.KerasHook(out_dir=args.out_dir)
 
@@ -25,7 +25,7 @@ model.evaluate(x_test, y_test, callbacks=[hook])
 ```
 
 ## MonitoredSession Example
-```
+```python
 import smdebug.tensorflow as smd
 hook = smd.SessionHook(out_dir=args.out_dir)
 
@@ -42,7 +42,7 @@ sess.run([loss, ...])
 ```
 
 ## Estimator Example
-```
+```python
 import smdebug.tensorflow as smd
 hook = smd.EstimatorHook(out_dir=args.out_dir)
 
@@ -64,7 +64,7 @@ See the [Common API](https://link.com) page for details about Collection, SaveCo
 See the [Analysis](https://link.com) page for details about analyzing a training job.
 
 ## KerasHook
-```
+```python
 __init__(
     out_dir,
     export_tensorboard = False,
@@ -73,24 +73,24 @@ __init__(
     reduction_config = None,
     save_config = None,
     include_regex = None,
-    include_collections= None,
+    include_collections = None,
     save_all = False,
 )
 ```
 Initializes the hook. Pass this object as a callback to Keras' `model.fit(), model.evaluate(), model.evaluate()`.
 
-`out_dir` (str): Where to write the recorded tensors and metadata\
-`export_tensorboard` (bool): Whether to use TensorBoard logs\
-`tensorboard_dir` (str): Where to save TensorBoard logs\
-`dry_run` (bool): If true, don't write any files\
+`out_dir` (str): Where to write the recorded tensors and metadata.\
+`export_tensorboard` (bool): Whether to use TensorBoard logs.\
+`tensorboard_dir` (str): Where to save TensorBoard logs.\
+`dry_run` (bool): If true, don't write any files.\
 `reduction_config` (ReductionConfig object): See the Common API page.\
 `save_config` (SaveConfig object): See the Common API page.\
-`include_regex` (list[str]): List of additional regexes to save\
-`include_collections` (list[str]): List of collections to save\
+`include_regex` (list[str]): List of additional regexes to save.\
+`include_collections` (list[str]): List of collections to save.\
 `save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.
 
 
-```
+```python
 wrap_optimizer(
     self,
     optimizer: Tuple[tf.train.Optimizer, tf.keras.Optimizer],
@@ -105,7 +105,7 @@ Modify the optimizer object to log gradients, and return the optimizer. Must be 
 EstimatorHook is used for the tf.estimator.Estimator interface.\
 SessionHook is used for tf.train.MonitoredSession objects (tf.Session objects are not supported).\
 Because Estimator uses MonitoredSession under the hood, these names are aliases to the same class. They have two separate names for clarity.
-```
+```python
 __init__(
     out_dir,
     export_tensorboard = False,
@@ -120,12 +120,20 @@ __init__(
 )
 ```
 
-See all parameters from `KerasHook`. Pass this object as a hook to tf.train.MonitoredSession's `run()` method.
+Pass this object as a hook to tf.train.MonitoredSession's `run()` method.
 
+`out_dir` (str): Where to write the recorded tensors and metadata.\
+`export_tensorboard` (bool): Whether to use TensorBoard logs.\
+`tensorboard_dir` (str): Where to save TensorBoard logs.\
+`dry_run` (bool): If true, don't write any files.\
+`reduction_config` (ReductionConfig object): See the Common API page.\
+`save_config` (SaveConfig object): See the Common API page.\
+`include_regex` (list[str]): List of additional regexes to save.\
+`include_collections` (list[str]): List of collections to save.\
+`save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.\
 `include_workers` (str): Used for distributed training, can also be "all".
 
-```
-# Adds callback methods to the optimizer object and returns it.
+```python
 wrap_optimizer(
     self,
     optimizer: tf.train.Optimizer,

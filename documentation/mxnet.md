@@ -7,7 +7,7 @@ Supported MXNet versions: 1.4, 1.5, 1.6.
 - [Full API](#full-api)
 
 ## MXNet Example
-```
+```python
 import smdebug.mxnet as smd
 hook = smd.Hook(out_dir=args.out_dir)
 
@@ -61,7 +61,7 @@ See the [Common API](https://link.com) page for details about Collection, SaveCo
 See the [Analysis](https://link.com) page for details about analyzing a training job.
 
 ## Hook
-```
+```python
 __init__(
     out_dir,
     export_tensorboard = False,
@@ -88,7 +88,7 @@ Initializes the hook. Pass this object as a callback to Keras' `model.fit(), mod
 * `save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.
 * `include_workers` (str): Used for distributed training, can also be "all".
 
-```
+```python
 register_block(
     self,
     block,
@@ -98,7 +98,7 @@ Adds callbacks to the module for recording tensors.
 
 * `block` (mx.gluon.Block): The block to use.
 
-```
+```python
 save_scalar(
     self,
     name,
@@ -110,4 +110,4 @@ Call this method at any point in the training script to log a scalar value, such
 
 * `name` (str): Name of the scalar. A prefix 'scalar/' will be added to it.
 * `value` (float): Scalar value.
-* `searchable` (bool): If True, the scalar value will be written to SageMaker Minerva.
+* `searchable` (bool): If True, the scalar value will be written to SageMaker Metrics.

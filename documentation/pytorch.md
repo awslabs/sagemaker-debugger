@@ -8,7 +8,7 @@ Supported PyTorch versions: 1.2, 1.3.
 - [Full API](#full-api)
 
 ## Module Loss Example
-```
+```python
 import smdebug.pytorch as smd
 hook = smd.Hook(out_dir=args.out_dir)
 
@@ -38,7 +38,7 @@ for (inputs, labels) in trainloader:
 ```
 
 ## Functional Loss Example
-```
+```python
 import smdebug.pytorch as smd
 hook = smd.Hook(out_dir=args.out_dir)
 
@@ -74,7 +74,7 @@ See the [Common API](https://link.com) page for details about Collection, SaveCo
 See the [Analysis](https://link.com) page for details about analyzing a training job.
 
 ## Hook
-```
+```python
 __init__(
     out_dir,
     export_tensorboard = False,
@@ -101,7 +101,7 @@ Initializes the hook. Pass this object as a callback to Keras' `model.fit(), mod
 * `save_all` (bool): Saves all tensors and collections. May be memory-intensive and slow.
 * `include_workers` (str): Used for distributed training, can also be "all".
 
-```
+```python
 register_module(
     self,
     module,
@@ -112,7 +112,7 @@ Adds callbacks to the module for recording tensors.
 * `module` (torch.nn.Module): The module to use.
 
 
-```
+```python
 save_scalar(
     self,
     name,

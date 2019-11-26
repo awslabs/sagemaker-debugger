@@ -27,7 +27,7 @@ The simplest way to create a hook is by using the Python API, as described on th
 
 
 However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
-```
+```python
 hook = smd.{hook_class}.create_from_json_file(json_file_path="/tmp/json_config.json")
 ```
 `hook_class` will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow.
@@ -38,7 +38,7 @@ The JSON file configuration is detailed further on [AWS Docs](https://link.com).
 ### Hook from SageMaker
 If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API,
 the a JSON file will be automatically written. You can create a hook from this file by calling
-```
+```python
 hook = smd.{hook_class}.create_from_json_file()
 ```
 with no arguments and then use the hook as usual in your script. `hook_class` is the same as detailed above.
@@ -47,7 +47,7 @@ with no arguments and then use the hook as usual in your script. `hook_class` is
 
 ## Modes
 Used to signify which part of training you're in, similar to Keras modes. Choose from
-```
+```python
 smd.modes.TRAIN
 smd.modes.EVAL
 smd.modes.PREDICT
@@ -88,9 +88,8 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 | `METRICS` | TensorFlow, XGBoost | ??? |
 | `INPUTS` | TensorFlow | Matches all inputs to a layer (outputs of the previous layer). |
 | `OUTPUTS` | TensorFlow | Matches all outputs of a layer (inputs of the following layer). |
-| `SEARCHABLE_SCALARS` | TensorFlow | ??? |
+| `SEARCHABLE_SCALARS` | TensorFlow | Scalars that will go to SageMaker Metrics. |
 | `OPTIMIZER_VARIABLES` | TensorFlow | Matches all optimizer variables. |
-| `TENSORFLOW_SUMMARIES` | TensorFlow | ??? |
 | `HYPERPARAMETERS` | XGBoost | ... |
 | `PREDICTIONS` | XGBoost | ... |
 | `LABELS` | XGBoost | ... |
@@ -102,7 +101,7 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 
 
 
-```
+```python
 coll = smd.Collection(
     name,
     include_regex = None,
@@ -126,6 +125,14 @@ coll = smd.Collection(
 | ```hook.get_collection(collection_name)```  |  Returns the collection with the given name. Creates the collection with default settings if it doesn't already exist. |
 | ```hook.get_collections()```  |  Returns all collections as a dictionary with the keys being names of the collections. |
 | ```hook.add_to_collection(collection_name, args)```  | Equivalent to calling `coll.add(args)` on the collection with name `collection_name`. |
+
+### Properties of a Collection
+| Property | Description |
+|---|---|
+| `tensor_names` | Get or set list of tensor names as strings. |
+| `include_regex` | Get or set list of regexes to include. |
+| `reduction_config` | Get or set the ReductionConfig object. |
+| `save_config` | Get or set the SaveConfig object. |
 
 
 ### Methods on a Collection
@@ -151,7 +158,7 @@ A collection can also have a SaveConfig object which is applied to the collectio
 SaveConfig also allows you to save tensors when certain tensors become nan.
 This list of tensors to watch for is taken as a list of strings representing names of tensors.
 
-```
+```python
 save_config = smd.SaveConfig(
     mode_save_configs = None,
     save_interval = 100,
@@ -177,7 +184,7 @@ For example,
 
 There is also a more advanced use case, where you specify a different SaveConfig for each mode.
 It is best understood through an example:
-```
+```python
 SaveConfig(mode_save_configs={
     smd.modes.TRAIN: smd.SaveConfigMode(save_interval=1),
     smd.modes.EVAL: smd.SaveConfigMode(save_interval=2),
@@ -205,7 +212,7 @@ The hook takes a ReductionConfig object which is applied as default to all tenso
 A collection can also have its own ReductionConfig object which is applied
 to the tensors belonging to that collection.
 
-```
+```python
 reduction_config = smd.ReductionConfig(
     reductions = None,
     abs_reductions = None,
@@ -232,7 +239,7 @@ will return the standard deviation and variance, the mean of the absolute value,
 See the framework pages for details on what each of these terms mean.
 `S3Path` is the S3 location to write output files to.
 `LocalPath` is the local location to write files to.
-```
+```json
 {
   "S3Path": "s3://bucket/prefix",
   "LocalPath": "/tmp/smdebug/run1",

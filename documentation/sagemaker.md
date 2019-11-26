@@ -13,13 +13,12 @@ See the [JSON specification](https://link.com) section of API.md for details on 
 
 This example uses TensorFlow.
 To use PyTorch or MXNet, simply call `sagemaker.pytorch.PyTorch` or `sagemaker.mxnet.MXNet`.
-```
+```python
 import sagemaker
 from sagemaker.debugger import Rule, rule_configs, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig
 
 hook_config = DebuggerHookConfig(
-    s3_output_path = args.s3_path,
-    container_local_path = args.local_path,
+    s3_output_path = "s3://my-bucket/debugger-logs",
     hook_parameters = {
         "save_steps": "0,20,40,60,80"
     },

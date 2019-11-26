@@ -13,7 +13,7 @@ Sagemaker Debugger is an AWS service to automatically debug your machine learnin
 It helps you develop better, faster, cheaper models by catching common errors quickly.
 
 ## Install
-```
+```bash
 pip install smdebug
 ```
 
@@ -21,7 +21,7 @@ Requires Python 3.6+.
 
 ## Example Usage (Local)
 This example uses tf.keras. Say your training code looks like this:
-```
+```python
 model = tf.keras.models.Sequential([ ... ])
 model.compile(
     optimizer='adam',
@@ -32,7 +32,7 @@ model.evaluate(x_test, y_test)
 ```
 
 To use Sagemaker Debugger, simply add a callback hook:
-```
+```python
 import smdebug.tensorflow as smd
 hook = smd.KerasHook(out_dir=args.out_dir)
 
@@ -46,7 +46,7 @@ model.evaluate(x_test, y_test, callbacks=[hook])
 ```
 
 To analyze the result of the training run, create a trial and inspect the tensors.
-```
+```python
 trial = smd.create_trial(out_dir=args.out_dir)
 print(f"Saved tensor values for {trial.tensors()}")
 print(f"Loss values were {trial.get_collection("losses").values()}")
@@ -55,7 +55,7 @@ print(f"Loss values were {trial.get_collection("losses").values()}")
 ## Example Usage (SageMaker)
 This example uses a zero-code-change experience, where you can use your training script as-is.
 See the [sagemaker](https://link.com) page for more details.
-```
+```python
 import sagemaker
 from sagemaker.debugger import Rule, rule_configs, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig
 
