@@ -9,7 +9,8 @@
 
 ## Overview
 Sagemaker Debugger is an AWS service to automatically debug your machine learning training process.
-It helps you develop better, faster, cheaper models by catching common errors quickly.
+It helps you develop better, faster, cheaper models by catching common errors quickly. It supports
+TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 
 - Zero-code-change experience on SageMaker and AWS Deep Learning containers.
 - Automated anomaly detection and state assertions.
@@ -92,11 +93,7 @@ The steps to use Tornasole in any framework are:
 3. Specify the `rule` to be used.
 4. After training, create a `trial` to manually analyze the tensors.
 
-Framework-specific details are here:
-- [Tensorflow](https://link.com)
-- [PyTorch](https://link.com)
-- [MXNet](https://link.com)
-- [XGBoost](https://link.com)
+See the [API page](https://link.com) for more details.
 
 ## Glossary
 
@@ -126,6 +123,7 @@ tensors to include/exclude.
 **Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient. See [rules documentation](https://link.com).
 
 ## Detailed Links
+- [Full API](https://link.com)
 - [Rules and Trials](https://link.com)
 - [Distributed Training](https://link.com)
 - [TensorBoard](https://link.com)

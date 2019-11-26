@@ -8,7 +8,7 @@ In BYOC mode, you will need to instantiate the hook and use it yourself. Built-i
 available, but you can write custom rules and use those.
 
 ## Example Usage (Sagemaker Fully Managed)
-This setup will work for any script without code changes. This exa Tensorflow 1.15.
+This setup will work for any script without code changes. This example shows Tensorflow 1.15.
 See the [JSON specification](https://link.com) section of API.md for details on the JSON configuration.
 
 This example uses TensorFlow.
