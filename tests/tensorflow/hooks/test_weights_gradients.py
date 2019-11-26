@@ -42,5 +42,5 @@ def test_only_w_g_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_only_weights_and_gradients.json",
     )
-    hook = smd.SessionHook.hook_from_config()
+    hook = smd.SessionHook.create_from_json_file()
     helper_test_only_w_g(out_dir, hook)

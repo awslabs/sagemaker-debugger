@@ -105,21 +105,21 @@ class Hook(CallbackHook):
         self.hyperparameters = hyperparameters
         self.train_data = self._validate_data(train_data)
         self.validation_data = self._validate_data(validation_data)
-        self.worker = self.get_worker_name()
+        self.worker = self._get_worker_name()
         self._full_shap_values = None
         set_hook(self)
 
     def __call__(self, env: CallbackEnv) -> None:
         self._callback(env)
 
-    def get_num_workers(self):
+    def _get_num_workers(self):
         return xgb.rabit.get_world_size()
 
-    def get_worker_name(self):
+    def _get_worker_name(self):
         return "worker_{}".format(xgb.rabit.get_rank())
 
     @classmethod
-    def hook_from_config(cls, json_config_path=None):
+    def create_from_json_file(cls, json_file_path=None):
         """Relies on the existence of a JSON file.
 
         First, check json_config_path. If it's not None,
@@ -137,7 +137,7 @@ class Hook(CallbackHook):
             save_steps=DEFAULT_SAVE_CONFIG_SAVE_STEPS,
         )
         return create_hook_from_json_config(
-            cls, json_config_path=json_config_path, default_values=default_values
+            cls, json_config_path=json_file_path, default_values=default_values
         )
 
     def _is_last_step(self, env: CallbackEnv) -> bool:

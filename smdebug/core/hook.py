@@ -25,6 +25,7 @@ from smdebug.core.config_constants import (
     TRAINING_RUN,
 )
 from smdebug.core.hook_utils import get_tensorboard_dir, verify_and_get_out_dir
+from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ALLOWED_MODES, ModeKeys
 from smdebug.core.reduction_config import ReductionConfig
@@ -124,10 +125,14 @@ class BaseHook:
         self.worker = None
         self.save_all_workers = True if include_workers == "all" else False
         self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
+
         if include_collections is None:
             include_collections = default_include_collections
-        self.default_include_collections = default_include_collections
-        self.include_collections = flatten(include_collections)
+        else:
+            include_collections = flatten(include_collections)
+        self.include_collections = list(
+            set(include_collections).union(set(default_include_collections))
+        )
 
         self.save_all = save_all
         self.save_config = SaveConfig.parse(save_config)
@@ -136,7 +141,7 @@ class BaseHook:
         self.reduction_config = reduction_config
         self.include_regex = include_regex
         self.collection_manager = collection_manager
-        self.collection_manager.set_num_workers(self.get_num_workers())
+        self.collection_manager.set_num_workers(self._get_num_workers())
         self.init_step = init_step
 
         self.logger = logger
@@ -227,12 +232,31 @@ class BaseHook:
             f")"
         )
 
+    @classmethod
+    def create_from_json_file(cls, json_file_path=None):
+        """Relies on the existence of a JSON file.
+
+        First, check json_config_path. If it's not None,
+            If the file exists, use that.
+            If the file does not exist, throw an error.
+        Otherwise, check the filepath set by a SageMaker environment variable.
+            If the file exists, use that.
+        Otherwise,
+            return None.
+        """
+        return create_hook_from_json_config(cls, json_config_path=json_file_path)
+
+    # For compatibility purposes only; do not use
+    @classmethod
+    def hook_from_config(cls, json_config_path=None):
+        return cls.create_from_json_file(json_file_path=json_config_path)
+
     @abstractmethod
-    def get_worker_name(self):
+    def _get_worker_name(self):
         pass
 
     @abstractmethod
-    def get_num_workers(self):
+    def _get_num_workers(self):
         pass
 
     #### Save Manager methods ####
@@ -268,7 +292,7 @@ class BaseHook:
                     step_str = f"for step {self.step}"
                 else:
                     step_str = f"for step {self.mode_steps[self.mode]} of mode {self.mode.name}"
-                self.logger.info(
+                self.logger.debug(
                     f"Saving the collections "
                     f"{', '.join([x.name for x in self._collections_to_save_for_step])} {step_str}"
                 )
@@ -361,7 +385,7 @@ class BaseHook:
                 return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
-    def get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
+    def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
         :param tensor_name:
         :param tensor_ref: used by TF
@@ -451,7 +475,7 @@ class BaseHook:
         self._collections_to_save_for_step = None
 
     def export_collections(self):
-        num_workers = self.get_num_workers()
+        num_workers = self._get_num_workers()
         if self.save_all_workers is False:
             if self.chief_worker != self.worker:
                 return
@@ -471,7 +495,7 @@ class BaseHook:
             )
             self._write_raw_tensor_simple(reduction_tensor_name, tensor_data, tensor_ref=tensor_ref)
         except ValueError as e:
-            self.logger.error(
+            self.logger.warning(
                 f"Could not compute reduction {reduction_name} of {tensor_name} due to {e}"
             )
 
@@ -530,7 +554,7 @@ class BaseHook:
                     if self.dry_run or np_value.dtype == np.bool or np_value.nbytes == 0:
                         return
 
-                    hist_name = f"histograms/{s_col.name}/{tensor_name}"
+                    hist_name = f"{s_col.name}/{tensor_name}"
                     self.logger.debug(f"Saving {hist_name} for global step {self.step}")
                     tb_writer.write_histogram_summary(
                         tdata=np_value, tname=hist_name, global_step=self.step
@@ -549,10 +573,6 @@ class BaseHook:
             searchable = scalar_obj.searchable
             write_tb = scalar_obj.write_tb
             write_event = scalar_obj.write_event
-            logger.debug(
-                f"Saving scalar {scalar_name} {scalar_val} for step {self.step} {self.mode} "
-                f"{self.mode_steps[self.mode]}"
-            )
             if self.metrics_writer and searchable:
                 self.metrics_writer.log_metric(scalar_name, scalar_val, self.mode_steps[self.mode])
             if write_tb:
@@ -583,14 +603,6 @@ class BaseHook:
         scalar_obj = ScalarCache(name, val, searchable=True, write_tb=True, write_event=True)
         self.scalar_cache.append(scalar_obj)
 
-    # def save_tensor(self, name, value):
-    #     # todo: support to add these tensors to any collection.
-    #     #  complication here is that we need to export the file again
-    #     # todo: what happens if name is conflicting
-    #     if self.writer is None:
-    #         self._init_writer()
-    #     self._save_raw_tensor(name, value)
-
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         for s_col in save_collections:
             reduction_config = s_col.reduction_config
@@ -604,7 +616,7 @@ class BaseHook:
         numpy_tensor_value = self._make_numpy_array(tensor_value)
         this_size, this_shape = size_and_shape(numpy_tensor_value)
         if self.dry_run is False and this_size > 0:
-            writers = self.get_writers(tensor_name, tensor_ref=tensor_ref)
+            writers = self._get_writers(tensor_name, tensor_ref=tensor_ref)
             for writer in writers:
                 writer.write_tensor(
                     tdata=numpy_tensor_value,
@@ -709,11 +721,6 @@ class BaseHook:
         :return: numpy ndarray
         """
 
-    def _set_collection_manager(self, coll_manager):
-        # used when creating hook from json config
-        # using this elsewhere may have unintended consequences
-        self.collection_manager = coll_manager
-
     def add_to_collection(self, collection_name, variable):
         self.collection_manager.get(collection_name).add(variable)
 
@@ -788,6 +795,7 @@ class CallbackHook(BaseHook):
                 f"of {self.data_type_name}s, "
                 f"module_name:{module_name} {var.__class__.__name__}"
             )
+        return idx
 
     def _write_inputs(self, name, inputs):
         self._write(name, inputs, CallbackHook.INPUT_TENSOR_SUFFIX, idx=0)

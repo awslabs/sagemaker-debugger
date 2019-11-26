@@ -3,13 +3,10 @@ import os
 import shutil
 from datetime import datetime
 
-# Third Party
-import pytest
-
 # First Party
 from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.mxnet.hook import Hook as t_hook
 
 # Local
@@ -34,7 +31,7 @@ def test_hook_from_json_config():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_from_json_config.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     assert has_training_ended(out_dir) == False
     run_mnist_gluon_model(
         hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True
@@ -48,18 +45,9 @@ def test_hook_from_json_config_full():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_from_json_config_full.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     assert has_training_ended(out_dir) == False
     run_mnist_gluon_model(
         hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True
     )
     shutil.rmtree(out_dir, True)
-
-
-@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a SessionHook")
-def test_default_hook():
-    shutil.rmtree("/opt/ml/output/tensors", ignore_errors=True)
-    if CONFIG_FILE_PATH_ENV_STR in os.environ:
-        del os.environ[CONFIG_FILE_PATH_ENV_STR]
-    hook = t_hook.hook_from_config()
-    assert hook.out_dir == DEFAULT_SAGEMAKER_OUTDIR

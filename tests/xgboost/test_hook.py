@@ -1,17 +1,15 @@
 # Standard Library
 import os
-import shutil
 import uuid
 
 # Third Party
 import numpy as np
-import pytest
 import xgboost
 
 # First Party
 from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_OUTDIR
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.trials import create_trial
 from smdebug.xgboost import Hook
 
@@ -33,7 +31,7 @@ def test_hook_from_json_config(tmpdir, monkeypatch):
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config(str(out_dir)))
     monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
 
@@ -43,17 +41,9 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config_full(str(out_dir)))
     monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
-
-
-@pytest.mark.skip(reason="If no config file is found, then SM doesn't want a SessionHook")
-def test_default_hook(monkeypatch):
-    shutil.rmtree("/opt/ml/output/tensors", ignore_errors=True)
-    monkeypatch.delenv(CONFIG_FILE_PATH_ENV_STR, raising=False)
-    hook = Hook.hook_from_config()
-    assert hook.out_dir == DEFAULT_SAGEMAKER_OUTDIR
 
 
 def test_hook_save_every_step(tmpdir):

@@ -64,5 +64,5 @@ def test_reductions_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_reductions.json"
     )
     pre_test_clean_up()
-    hook = smd.SessionHook.hook_from_config()
+    hook = smd.SessionHook.create_from_json_file()
     helper_test_reductions(out_dir, hook, False)

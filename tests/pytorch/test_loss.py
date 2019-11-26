@@ -44,7 +44,7 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
     criterion = nn.CrossEntropyLoss()
 
     hook = smd.Hook(out_dir=out_dir, save_config=smd.SaveConfig(save_interval=1))
-    hook.register_hook(net)
+    hook.register_module(net)
     if use_loss_module:
         hook.register_loss(criterion)
 

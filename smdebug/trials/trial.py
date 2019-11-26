@@ -77,7 +77,9 @@ class Trial(ABC):
         of incomplete steps that the trial will wait for before marking
         half of them as complete.
         """
-        self._incomplete_wait_for_step_window = int(os.getenv("INCOMPLETE_STEP_WAIT_WINDOW", 1000))
+        self._incomplete_wait_for_step_window = int(
+            os.getenv(INCOMPLETE_STEP_WAIT_WINDOW_KEY, INCOMPLETE_STEP_WAIT_WINDOW_DEFAULT)
+        )
 
         # this is turned off during rule invocation for performance reasons since
         # required tensors are already fetched
@@ -117,11 +119,11 @@ class Trial(ABC):
         )
 
     @abstractmethod
-    def read_collections(self, collection_files):
+    def _read_collections(self, collection_files):
         pass
 
     @abstractmethod
-    def get_collection_files(self):
+    def _get_collection_files(self):
         pass
 
     def _load_collections(self):
@@ -131,7 +133,7 @@ class Trial(ABC):
         def _fetch():
             nonlocal collection_files
             nonlocal num_times_before_warning
-            collection_files = self.get_collection_files()
+            collection_files = self._get_collection_files()
 
             num_times_before_warning -= 1
             if num_times_before_warning < 0:
@@ -159,7 +161,7 @@ class Trial(ABC):
 
         _fetch()
         _wait_for_collection_files(0)  # wait for the first collection file
-        self.read_collections(collection_files)
+        self._read_collections(collection_files)
         _wait_for_collection_files(self.num_workers)  # wait for all the collection files
         for collection_file in collection_files:
             self.worker_set.add(get_worker_name_from_collection_file(collection_file))
@@ -278,7 +280,7 @@ class Trial(ABC):
                 self.mode_to_tensors_map[tensor.mode] = set()
             self.mode_to_tensors_map[tensor.mode].add(tensor.tensorname)
 
-    def add_tensor(self, step_num, worker, tensor_object: TensorLocation):
+    def _add_tensor(self, step_num, worker, tensor_object: TensorLocation):
         to = tensor_object
         # self.worker_set.add(worker)
         if REDUCTIONS_PREFIX in to.tensorname:
@@ -449,16 +451,19 @@ class Trial(ABC):
             for step in required_steps:
                 while True:
                     s = self.has_passed_step(step, mode)
-                    if s == StepState.UNAVAILABLE:
-                        raise StepUnavailable(step, mode)
-                    elif s == StepState.AVAILABLE:
+                    if s == StepState.AVAILABLE:
                         break
-                    elif self.loaded_all_steps is True:
-                        last_step = -1
-                        avail_steps = self._all_steps(mode=mode)
-                        if len(avail_steps) > 0:
-                            last_step = avail_steps[-1]
-                        raise NoMoreData(step, mode, last_step)
+                    elif s == StepState.UNAVAILABLE:
+                        if self.loaded_all_steps is False:
+                            raise StepUnavailable(step, mode)
+                        else:
+                            last_step = -1
+                            avail_steps = self._all_steps(mode=mode)
+                            if len(avail_steps) > 0:
+                                last_step = avail_steps[-1]
+                            if step < last_step:
+                                raise StepUnavailable(step, mode)
+                            raise NoMoreData(step, mode, last_step)
                     time.sleep(2)
 
     def has_passed_step(self, step, mode=ModeKeys.GLOBAL) -> StepState:
@@ -522,7 +527,7 @@ class Trial(ABC):
             return StepState.UNAVAILABLE
         return StepState.NOT_YET_AVAILABLE
 
-    def load_tensors(self):
+    def _load_tensors(self):
         if self.index_mode:
             self._load_tensors_from_index_files()
 

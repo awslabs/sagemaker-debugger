@@ -45,7 +45,7 @@ def test_reduce_config(hook=None, out_dir=None):
         hook_created = True
 
     model = Net().to(torch.device("cpu"))
-    hook.register_hook(model)
+    hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, hook, torch.device("cpu"), optimizer, num_steps=10)
 
@@ -95,6 +95,6 @@ def test_reduce_config_with_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_reduction_config.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     test_reduce_config(hook=hook, out_dir=out_dir)
     shutil.rmtree(out_dir, True)

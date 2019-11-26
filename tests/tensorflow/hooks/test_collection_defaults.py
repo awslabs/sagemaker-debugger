@@ -15,7 +15,7 @@ def test_collection_defaults_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
 
     # Check save_intervals for each mode
     assert hook.save_config.get_save_config(ModeKeys.TRAIN).save_interval == 2
@@ -24,7 +24,8 @@ def test_collection_defaults_json(out_dir, monkeypatch):
     assert hook.save_config.get_save_config(ModeKeys.GLOBAL).save_interval == 1
     # Check include_collections
     assert "weights" in hook.include_collections and "losses" in hook.include_collections
-    assert len(hook.include_collections) == 2
+
+    assert len(hook.include_collections) == 4
     # Check collection configurations for losses
     assert (
         hook.collection_manager.collections["losses"]

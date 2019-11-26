@@ -6,17 +6,18 @@ import sys
 import setuptools
 
 exec(open("smdebug/_version.py").read())
+
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = [
     # aiboto3 implicitly depends on aiobotocore
     "aioboto3==6.4.1",  # no version deps
-    "aiobotocore==0.10.4",  # pinned to a specific botocore & boto3
+    "aiobotocore==0.11.0",  # pinned to a specific botocore & boto3
     "aiohttp>=3.6.0,<4.0",  # aiobotocore breaks with 4.0
     # boto3 explicitly depends on botocore
-    "boto3==1.9.252",  # Sagemaker requires >= 1.9.213
-    "botocore==1.12.252",
+    "boto3==1.10.14",  # Sagemaker requires >= 1.9.213
+    "botocore==1.13.14",
     "nest_asyncio",
     "protobuf>=3.6.0",
     "numpy",
@@ -36,16 +37,14 @@ def compile_summary_protobuf():
 
 
 def build_package(version):
+    packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
         version=version,
-        # author="The Tornasole Team",
-        # author_email="tornasole@amazon.com",
+        author="AWS DeepLearning Team",
         description="Automated debugging for machine learning",
-        # long_description=long_description,
-        # long_description_content_type="text/markdown",
-        url="https://github.com/awslabs/tornasole_core",
-        packages=setuptools.find_packages(),
+        url="https://github.com/awslabs/sagemaker-debugger",
+        packages=packages,
         classifiers=[
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
@@ -67,6 +66,31 @@ if compile_summary_protobuf() != 0:
         "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
         "Please make sure that you have installed protobuf3 compiler and runtime correctly."
     )
+    sys.exit(1)
+
+
+def scan_git_secrets():
+    import subprocess
+    import os
+    import shutil
+
+    def git(*args):
+        return subprocess.call(["git"] + list(args))
+
+    shutil.rmtree("/tmp/git-secrets", ignore_errors=True)
+    git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir("/tmp/git-secrets")
+    subprocess.check_call(["make"] + ["install"])
+    os.chdir(dir_path)
+    git("secrets", "--install")
+    git("secrets", "--register-aws")
+    return git("secrets", "--scan", "-r")
+
+
+if scan_git_secrets() != 0:
+    import sys
+
     sys.exit(1)
 
 build_package(version=CURRENT_VERSION)

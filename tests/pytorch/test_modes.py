@@ -105,7 +105,7 @@ def helper_test_modes(hook=None, out_dir="./test_output/test_hook_modes/"):
             ],
         )
 
-    hook.register_hook(model)
+    hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     hook.set_mode(mode=modes.TRAIN)
     train(model, device, optimizer, num_steps=10, save_steps=save_steps)
@@ -130,6 +130,6 @@ def test_training_mode_json():
     out_dir = "test_output/test_hook_modes/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_modes.json"
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     helper_test_modes(hook, out_dir)
     shutil.rmtree(out_dir, True)

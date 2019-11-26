@@ -7,7 +7,7 @@ import torch.distributed as dist
 # First Party
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
-from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
+from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
@@ -45,20 +45,16 @@ class Hook(CallbackHook):
             save_all=save_all,
             include_workers=include_workers,
         )
-        # We would like to collect loss collection
-        # even if user does not specify any collections
-        if CollectionKeys.LOSSES not in self.include_collections:
-            self.include_collections.append(CollectionKeys.LOSSES)
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
         self.module_maps = dict()
 
         self.has_registered_module = False
         self.has_registered_loss_module = False
-        self.worker = self.get_worker_name()
+        self.worker = self._get_worker_name()
         set_hook(self)
 
-    def get_num_workers(self):
+    def _get_num_workers(self):
         """Check horovod and torch.distributed."""
         # Try torch.distributed
         # torch.distributed is empty on Mac on Torch <= 1.2
@@ -76,7 +72,7 @@ class Hook(CallbackHook):
         # Return default
         return 1
 
-    def get_worker_name(self):
+    def _get_worker_name(self):
         """Check horovod and torch.distributed."""
         # Try torch.distributed
         # torch.distributed is empty on Mac on Torch <= 1.2
@@ -94,21 +90,7 @@ class Hook(CallbackHook):
         # Return default
         return CONFIG_DEFAULT_WORKER_NAME
 
-    @classmethod
-    def hook_from_config(cls, json_config_path=None):
-        """Relies on the existence of a JSON file.
-
-        First, check json_config_path. If it's not None,
-            If the file exists, use that.
-            If the file does not exist, throw an error.
-        Otherwise, check the filepath set by a SageMaker environment variable.
-            If the file exists, use that.
-        Otherwise,
-            return None.
-        """
-        return create_hook_from_json_config(cls, json_config_path=json_config_path)
-
-    def log_params(self, module):
+    def _log_params(self, module):
         module_name = module._get_name()
         params = module.named_parameters()
         for name, param in params:
@@ -149,7 +131,7 @@ class Hook(CallbackHook):
 
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
-            self.log_params(module)
+            self._log_params(module)
 
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
@@ -200,11 +182,15 @@ class Hook(CallbackHook):
             pname = module._get_name() + "_" + name
             param.register_hook(self.backward_hook(pname))
 
-    def closure_for_registering_forward_hook(self, module):
+    def _closure_for_registering_forward_hook(self, module):
         """Lambda functions don't work here."""
         module.register_forward_hook(self.forward_hook)
 
     def register_hook(self, module):
+        # for compatibility with ZCC patches which call this
+        self.register_module(module)
+
+    def register_module(self, module):
         """
         This function registers the forward hook. If user wants to register the hook
         for every child in the given block, then the function calls "apply" API for
@@ -228,7 +214,7 @@ class Hook(CallbackHook):
 
         # Set `self.forward_hook` as a callback for each submodule/layer.
         # `module.apply(fn)` calls fn for each submodule in module.children()
-        module.apply(self.closure_for_registering_forward_hook)
+        module.apply(self._closure_for_registering_forward_hook)
 
         # Capture the gradient for each parameter in the net
         self._backward_apply(module)
