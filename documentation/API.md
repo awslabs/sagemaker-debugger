@@ -1,6 +1,7 @@
 
 # Common API
 These objects exist across all frameworks.
+- [SageMaker Zero-Code-Change vs. Python API](#sagemaker)
 - [Creating a Hook](#creating-a-hook)
     - [Hook from SageMaker](#hook-from-sagemaker)
     - [Hook from Python](#hook-from-python)
@@ -8,6 +9,57 @@ These objects exist across all frameworks.
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
+
+---
+## SageMaker Zero-Code-Change vs. Python API
+
+There are two ways to use sagemaker-debugger: SageMaker Zero-Code-Change or Python API.
+
+SageMaker Zero-Code-Change will use a custom framework fork to automatically instantiate the hook, register tensors, and create collections.
+All you need to do is decide which built-in rules to use. Further documentation is available on [AWS Docs](https://link.com).
+```python
+import sagemaker
+from sagemaker.debugger import rule_configs, Rule, CollectionConfig, DebuggerHookConfig, TensorBoardOutputConfig
+
+hook_config = DebuggerHookConfig(
+    s3_output_path = args.s3_path,
+    container_local_path = args.local_path,
+    hook_parameters = {
+        "save_steps": "0,20,40,60,80"
+    },
+    collection_configs = {
+        { "CollectionName": "weights" },
+        { "CollectionName": "biases" },
+    },
+)
+
+rule = Rule.sagemaker(
+    rule_configs.exploding_tensor(),
+    rule_parameters={
+        "tensor_regex": ".*"
+    },
+    collections_to_save=[
+        CollectionConfig(name="weights"),
+        CollectionConfig(name="losses"),
+    ],
+)
+
+sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
+    entry_point="script.py",
+    role=sagemaker.get_execution_role(),
+    framework_version="1.15",
+    py_version="py3",
+    rules=[rule],
+    debugger_hook_config=hook_config,
+)
+
+sagemaker_simple_estimator.fit()
+```
+
+The Python API requires more configuration but is also more flexible. You must write your own custom rules
+instead of using SageMaker's built-in rules, but you can use it with a custom container in SageMaker or in your own
+environment. It is described further below.
+
 
 ---
 
@@ -69,7 +121,7 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 | `DEFAULT` | all | ??? |
 | `WEIGHTS` | TensorFlow, PyTorch, MXNet | Matches all weights tensors. |
 | `BIASES` | TensorFlow, PyTorch, MXNet | Matches all biases tensors. |
-| `GRADIENTS` | TensorFlow, PyTorch, MXNet | Matches all gradients tensors. In TensorFlow, must use `hook.wrap_optimizer()`.  |
+| `GRADIENTS` | TensorFlow, PyTorch, MXNet | Matches all gradients tensors. In TensorFlow non-DLC, must use `hook.wrap_optimizer()`.  |
 | `LOSSES` | TensorFlow, PyTorch, MXNet | Matches all loss tensors. |
 | `SCALARS` | TensorFlow, PyTorch, MXNet | Matches all scalar tensors, such as loss or accuracy. |
 | `METRICS` | TensorFlow, XGBoost | ??? |
