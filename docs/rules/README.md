@@ -2,7 +2,7 @@
 
 This page describes the programming model that SageMaker Debugger provides for your analysis, and introduces you to the constructs of Trial, Tensor and Rule.
 
-# Table of Contents
+## Table of Contents
 * [Trial](#Trial)
 	* [Path of trial](#Path-of-trial)
 		* [SageMaker training job](#SageMaker-training-job)
