@@ -13,7 +13,7 @@ from smdebug.core.collection import (
     NON_HISTOGRAM_COLLECTIONS,
     NON_REDUCTION_COLLECTIONS,
     SCALAR_COLLECTIONS,
-    SM_METRICS_COLLECTIONS,
+    SM_METRIC_COLLECTIONS,
     CollectionKeys,
 )
 from smdebug.core.collection_manager import CollectionManager
@@ -656,7 +656,7 @@ class BaseHook:
 
         self._write_for_tensor(tensor_name, tensor_value, save_collections_for_tensor)
         for s_col in save_collections_for_tensor:
-            if s_col.name in SM_METRICS_COLLECTIONS:
+            if s_col.name in SM_METRIC_COLLECTIONS:
                 np_val = self._make_numpy_array(tensor_value)
                 # Always log loss to Minerva
                 tensor_val = np.mean(np_val)
