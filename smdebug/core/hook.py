@@ -246,6 +246,11 @@ class BaseHook:
         """
         return create_hook_from_json_config(cls, json_config_path=json_file_path)
 
+    # For compatibility purposes only; do not use
+    @classmethod
+    def hook_from_config(cls, json_config_path=None):
+        return cls.create_from_json_file(json_file_path=json_config_path)
+
     @abstractmethod
     def _get_worker_name(self):
         pass
