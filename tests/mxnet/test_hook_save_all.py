@@ -39,7 +39,7 @@ def test_save_all_hook_from_json():
     from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
     import os
 
-    out_dir = "/tmp/test_hook_save_all_hook_from_json"
+    out_dir = "/tmp/newlogsRunTest2/test_hook_save_all_hook_from_json"
     shutil.rmtree(out_dir, True)
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
