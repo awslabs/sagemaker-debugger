@@ -573,10 +573,6 @@ class BaseHook:
             searchable = scalar_obj.searchable
             write_tb = scalar_obj.write_tb
             write_event = scalar_obj.write_event
-            logger.debug(
-                f"Saving scalar {scalar_name} {scalar_val} for step {self.step} {self.mode} "
-                f"{self.mode_steps[self.mode]}"
-            )
             if self.metrics_writer and searchable:
                 self.metrics_writer.log_metric(scalar_name, scalar_val, self.mode_steps[self.mode])
             if write_tb:
