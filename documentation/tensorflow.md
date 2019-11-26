@@ -96,7 +96,7 @@ wrap_optimizer(
     optimizer: Tuple[tf.train.Optimizer, tf.keras.Optimizer],
 )
 ```
-Modify the optimizer object to log gradients, and return the optimizer. Must be used when saving gradients.
+Adds functionality to the optimizer object to log gradients. Returns the original optimizer and doesn't change the optimization process.
 
 `optimizer` (Tuple[tf.train.Optimizer, tf.keras.Optimizer]): The optimizer.
 
@@ -139,4 +139,4 @@ wrap_optimizer(
     optimizer: tf.train.Optimizer,
 )
 ```
-Modify the optimizer object to log gradients, and return the optimizer. Must be used when saving gradients.
+Adds functionality to the optimizer object to log gradients. Returns the original optimizer and doesn't change the optimization process.
