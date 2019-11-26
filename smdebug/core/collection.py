@@ -60,11 +60,7 @@ SCALAR_COLLECTIONS = {
     CollectionKeys.SM_METRICS,
 }
 
-SM_METRICS_COLLECTIONS = {
-    CollectionKeys.LOSSES,
-    CollectionKeys.METRICS,
-    CollectionKeys.SM_METRICS,
-}
+SM_METRICS_COLLECTIONS = {CollectionKeys.LOSSES, CollectionKeys.METRICS, CollectionKeys.SM_METRICS}
 
 # used by pt, mx, keras
 NON_REDUCTION_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)
