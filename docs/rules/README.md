@@ -113,22 +113,33 @@ Here's a list of methods that the Trial API provides which helps you load data f
 
 
 #### tensors
-Retrieves names of tensors saved. The parameters help you filter tensors which were saved at a particular step, which match given regex pattern or belong to the given collection.
+Retrieves names of tensors saved
 ```python
 trial.tensors(step= None,
               mode=modes.GLOBAL,
               regex=None,
-              collection=None) -> List[str]
+              collection=None)
 ```
+
 ###### Arguments
-- `step`: `type: Int`
-If you want to retrieve the list of tensors saved at a particular step, pass the step number as an integer. This step number will be treated as step number corresponding to the mode passed below. By default it is treated as global step.
+All arguments to this method are optional. You are required to pass any of these arguments as keyword arguments.
+
+- `step`: `type: Int` If you want to retrieve the list of tensors saved at a particular step, pass the step number as an integer. This step number will be treated as step number corresponding to the mode passed below. By default it is treated as global step.
 - `mode`: `type: smdebug.modes enum value` If you want to retrieve the list of tensors saved for a particular mode, pass the mode here as `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT`, or `smd.modes.GLOBAL`.
 - `regex`: `type: str or List[str]` You can filter tensors matching regex expressions by passing a regex expressions as a string or list of strings.
 - `collection`: `type: Collection or str` You can filter tensors belonging to a collection by either passing a collection object or the name of collection as a string.
 
 ###### Returns
-`List[str]` List of strings representing names of tensors matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
+`List[str]` List of strings representing names of tensors matching the given arguments. Arguments are processed as follows: get the list of tensor names for given step and mode. saved for given step matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
+
+###### Examples
+- `trial.tensors()` Returns all tensors saved for any step or mode.
+- `trial.tensors(step=10, mode=modes.TRAIN)` Returns tensors saved for training step 10
+- `trial.tensors(regex='relu')` Returns all tensors matching the regex pattern relu saved for any step or mode.
+- `trial.tensors(collection='gradients')` Returns tensors from gradients collection
+- `trial.tensors(regex='softmax', collection='losses')` Returns tensors which match either the regex `softmax` or belong to the collection `losses`
+- `trial.tensors(step=10, mode=modes.TRAIN, regex='softmax', collection='losses')` Returns tensor saved for 10th training step which match either the regex `softmax` or belong to the `losses` collection
+
 
 #### tensor
 Retrieve the `smdebug.core.tensor.Tensor` object by the given name tname. You can review all the methods that this Tensor object provides [here](#Tensor).
