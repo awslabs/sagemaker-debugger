@@ -27,12 +27,12 @@ This page describes the programming model that SageMaker Debugger provides for y
 		* [has\_passed\_step](#has\_passed\_step)
 * [Tensor](#Tensor)
 	* [Tensor API](#Tensor-API)
-		* [steps](#steps)
+		* [steps](#steps2)
 		* [value](#value)
 		* [reduction_value](#reduction_value)
 		* [reduction_values](#reduction_values)
 		* [values](#values)
-		* [workers](#workers)
+		* [workers](#workers2)
 		* [prev_steps](#prev_steps)
 * [Rules](#Rules)
 	* [Built In Rules](#Built-In-Rules)
@@ -99,17 +99,17 @@ Here's a list of methods that the Trial API provides which helps you load data f
 | ------------- |-------------|
 | [trial.tensors()](#tensors)      | See names of all tensors available |
 | [trial.tensor(name)](#tensor)      | Retrieve smdebug Tensor object |
-| [trial.has_tensor(name)](#tensor)      | Query for whether tensor was saved |
+| [trial.has_tensor(name)](#has_tensor)      | Query for whether tensor was saved |
 | [trial.steps()](#steps) | Query steps for which data was saved |
 | [trial.modes()](#modes) | Query modes for which data was saved |
 | [trial.mode(step)](#mode) | Query the mode for a given global step |
-| [trial.global_step(mode, step)](#global-step) | Query global step for a given step and mode |
-| [trial.mode_step(step)](#mode-step) | Query the mode step for a given global step |
+| [trial.global_step(mode, step)](#global_step) | Query global step for a given step and mode |
+| [trial.mode_step(step)](#mode_step) | Query the mode step for a given global step |
 | [trial.workers()](#workers) | Query list of workers from the data saved |
 | [trial.collections()](#collections) | Query list of collections saved from the training job |
 | [trial.collection(name)](#collection) | Retrieve a single collection saved from the training job |
-| [trial.wait\_for\_steps(steps)](#wait-for-steps) | Wait till the requested steps are available |
-| [trial.has\_passed\_step(step)](#has-passed-step) | Query whether the requested step is available |
+| [trial.wait\_for\_steps(steps)](#wait\_for\_steps) | Wait till the requested steps are available |
+| [trial.has\_passed\_step(step)](#has\_passed\_step) | Query whether the requested step is available |
 
 
 #### tensors
@@ -296,13 +296,13 @@ An smdebug Tensor object can bee retrieved through the `trial.tensor(name)` API.
 
 | Method | Description|
 | ---- | ----- |
-| [steps()](#steps) | Query steps for which tensor was saved |
+| [steps()](#steps2) | Query steps for which tensor was saved |
 | [value(step)](#value) | Get the value of the tensor at a given step as a numpy array |
-| [reduction_value(step)](#reduction-value) | Get the reduction value of the chosen tensor at a particular step |
-| [reduction_values(step)](#reduction-values) | Get all reduction values saved for the chosen tensor at a particular step |
+| [reduction_value(step)](#reduction_value) | Get the reduction value of the chosen tensor at a particular step |
+| [reduction_values(step)](#reduction_values) | Get all reduction values saved for the chosen tensor at a particular step |
 | [values(mode)](#values) | Get the values of the tensor for all steps of a given mode |
-| [workers(step)](#workers) | Get all the workers for which this tensor was saved at a given step |
-| [prev\_steps(step, n)](#prev-steps) | Get the last n step numbers of a given mode from a given step |
+| [workers(step)](#workers2) | Get all the workers for which this tensor was saved at a given step |
+| [prev\_steps(step, n)](#prev_steps) | Get the last n step numbers of a given mode from a given step |
 
 ### Tensor API
 #### steps
