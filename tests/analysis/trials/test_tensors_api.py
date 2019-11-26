@@ -4,6 +4,7 @@ from datetime import datetime
 
 # Third Party
 import numpy as np
+import pytest
 from tests.analysis.utils import generate_data
 
 # First Party
@@ -47,6 +48,9 @@ def test_tensors(out_dir):
     assert len(tr.tensor_names(regex="foo")) == num_tensors
     assert len(tr.tensor_names(collection="test")) == num_tensors + 2
     assert len(tr.tensor_names(collection=tr.collection("test"))) == num_tensors + 2
+
+    with pytest.raises(ValueError):
+        tr.tensors(collection=tr.collection("test"), regex="a")
 
 
 def test_mode_data():
