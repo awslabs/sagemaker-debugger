@@ -57,6 +57,6 @@ def test_hook_all_zero_hook_from_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_all_zero_hook.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     test_hook_all_zero(hook, out_dir)
     shutil.rmtree(out_dir, True)

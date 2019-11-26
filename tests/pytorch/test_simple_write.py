@@ -304,7 +304,7 @@ def test_weightsbiasgradients_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_weightsbiasgradients.json"
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     helper_test_weights_bias_gradients(hook)
 
 
@@ -316,7 +316,7 @@ def test_saveall_json():
     out_dir = "/tmp/test_output/test_hook_saveall/jsonloading"
     shutil.rmtree(out_dir, ignore_errors=True)
     os.environ[CONFIG_FILE_PATH_ENV_STR] = "tests/pytorch/test_json_configs/test_hook_saveall.json"
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     saveall_test_helper(hook)
 
 
@@ -331,5 +331,5 @@ def test_multi_collection_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_multi_collections.json"
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     helper_test_multi_collections(hook, out_dir)

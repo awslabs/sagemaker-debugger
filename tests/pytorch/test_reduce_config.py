@@ -95,6 +95,6 @@ def test_reduce_config_with_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_reduction_config.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     test_reduce_config(hook=hook, out_dir=out_dir)
     shutil.rmtree(out_dir, True)

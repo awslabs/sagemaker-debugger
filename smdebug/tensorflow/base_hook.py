@@ -9,7 +9,6 @@ from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStra
 # First Party
 from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
-from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
 from smdebug.core.tfevent.util import make_numpy_array
@@ -43,7 +42,7 @@ except ImportError:
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRICS,
     CollectionKeys.LOSSES,
-    CollectionKeys.SEARCHABLE_SCALARS,
+    CollectionKeys.SM_METRICS,
 ]
 
 
@@ -92,10 +91,6 @@ class TensorflowBaseHook(BaseHook):
         )  # caches the TF_CONFIG for the parameter server strategy
         self._hook_supported = None
         set_hook(self)
-
-    @classmethod
-    def hook_from_config(cls, json_config_path=None):
-        return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
     def _get_distribution_strategy(self) -> TFDistributionStrategy:
         try:
@@ -274,7 +269,7 @@ class TensorflowBaseHook(BaseHook):
         if self.dry_run:
             return
 
-        # flush out searchable scalars to metrics file
+        # flush out sm_metric scalars to metrics file
         if self.metrics_writer is not None:
             self._write_scalars()
 
@@ -373,13 +368,13 @@ class TensorflowBaseHook(BaseHook):
             optimizer_variables, ModeKeys.TRAIN
         )
 
-    def save_scalar(self, name, value, searchable=False):
+    def save_scalar(self, name, value, sm_metric=False):
         """
         save_scalar() not supported on Tensorflow
         """
         self.logger.warning(
             "save_scalar not supported on Tensorflow. "
-            "Add the scalar to scalars or searchable_scalars collection instead. "
+            "Add the scalar to scalars or sm_metrics collection instead. "
         )
         return
 

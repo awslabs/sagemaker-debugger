@@ -25,7 +25,7 @@ def _create_hook(json_config_path, hook_class):
 
     # Either returns a hook or None
     try:
-        hook = hook_class.hook_from_config(json_config_path=json_config_path)
+        hook = hook_class.create_from_json_file(json_file_path=json_config_path)
         set_hook(custom_hook=hook)
     except FileNotFoundError:
         pass
@@ -35,7 +35,7 @@ def get_hook(*, json_config_path: str, hook_class, create_if_not_exists: bool) -
     """Return a singleton SessionHook or None.
 
     If the singleton hook exists, we return it. No questions asked, `json_config_path` is a no-op.
-    Otherwise return hook_from_config().
+    Otherwise return create_from_json_file().
     """
     global _ts_hook
 

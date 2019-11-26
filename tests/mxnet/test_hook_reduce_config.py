@@ -91,7 +91,7 @@ def test_save_config_hook_from_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_reduce_config_hook.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     test_save_config(hook, out_dir)
     # delete output
     shutil.rmtree(out_dir, True)

@@ -54,7 +54,7 @@ def test_simple_include_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_simple_include.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     helper_test_simple_include(out_dir, hook)
 
 
@@ -100,7 +100,7 @@ def test_simple_include_regex_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_simple_include_regex.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     helper_test_simple_include_regex(out_dir, hook)
 
 
@@ -148,6 +148,6 @@ def test_multi_collection_match_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_multi_collection_match.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     hook.get_collection("trial").include("loss:0")
     helper_test_multi_collection_match(out_dir, hook)
