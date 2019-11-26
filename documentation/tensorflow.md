@@ -1,7 +1,7 @@
 # Tensorflow
 
-Supported Tensorflow versions: 1.13, 1.14, and 1.15.
-Supported standalone Keras version: 2.3.
+SageMaker Zero-Code-Change supported container: TensorFlow 1.15. See the [AWS Docs](https://link.com) for details.\
+Python API supported versions: Tensorflow 1.13, 1.14, 1.15. Keras 2.3.
 
 ## Contents
 - [Keras Example](#keras-example)

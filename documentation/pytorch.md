@@ -1,6 +1,7 @@
 # PyTorch
 
-Supported PyTorch versions: 1.2, 1.3.
+SageMaker Zero-Code-Change supported containers: PyTorch 1.3. See [AWS Docs](https://link.com) for more information.\
+Python API supported versions: 1.2, 1.3.
 
 ## Contents
 - [Module Loss Example](#module-loss-example)
