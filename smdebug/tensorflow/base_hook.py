@@ -42,7 +42,7 @@ except ImportError:
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRICS,
     CollectionKeys.LOSSES,
-    CollectionKeys.SEARCHABLE_SCALARS,
+    CollectionKeys.SM_METRICS,
 ]
 
 
@@ -269,7 +269,7 @@ class TensorflowBaseHook(BaseHook):
         if self.dry_run:
             return
 
-        # flush out searchable scalars to metrics file
+        # flush out sm_metric scalars to metrics file
         if self.metrics_writer is not None:
             self._write_scalars()
 
@@ -368,13 +368,13 @@ class TensorflowBaseHook(BaseHook):
             optimizer_variables, ModeKeys.TRAIN
         )
 
-    def save_scalar(self, name, value, searchable=False):
+    def save_scalar(self, name, value, sm_metric=False):
         """
         save_scalar() not supported on Tensorflow
         """
         self.logger.warning(
             "save_scalar not supported on Tensorflow. "
-            "Add the scalar to scalars or searchable_scalars collection instead. "
+            "Add the scalar to scalars or sm_metrics collection instead. "
         )
         return
 
