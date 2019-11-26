@@ -23,23 +23,23 @@ export SMDEBUG_LOG_LEVEL=info
 
 export OUT_DIR=upload/$CURRENT_COMMIT_PATH
 export REPORT_DIR=$OUT_DIR/pytest_reports
-python -m pytest -W=ignore --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
-python -m pytest -W=ignore --html=$REPORT_DIR/report_core.html --self-contained-html tests/core
-
-if [ "$run_pytest_xgboost" = "enable" ] ; then
-    run_for_framework xgboost
-fi
-
-if [ "$run_pytest_tensorflow" = "enable" ] ; then
-    run_for_framework tensorflow
-fi
-
-if [ "$run_pytest_mxnet" = "enable" ] ; then
-    run_for_framework mxnet
-fi
-
-if [ "$run_pytest_pytorch" = "enable" ] ; then
-    run_for_framework pytorch
-fi
+#python -m pytest -W=ignore --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
+#python -m pytest -W=ignore --html=$REPORT_DIR/report_core.html --self-contained-html tests/core
+#
+#if [ "$run_pytest_xgboost" = "enable" ] ; then
+#    run_for_framework xgboost
+#fi
+#
+#if [ "$run_pytest_tensorflow" = "enable" ] ; then
+#    run_for_framework tensorflow
+#fi
+#
+#if [ "$run_pytest_mxnet" = "enable" ] ; then
+#    run_for_framework mxnet
+#fi
+#
+#if [ "$run_pytest_pytorch" = "enable" ] ; then
+#    run_for_framework pytorch
+#fi
 
 check_logs $REPORT_DIR/*
