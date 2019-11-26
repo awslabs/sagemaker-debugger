@@ -15,7 +15,7 @@ from smdebug.core.access_layer.utils import has_training_ended
 @pytest.mark.slow  # 0:03 to run
 def test_end_local_training():
     run_id = str(uuid.uuid4())
-    out_dir = "/tmp/" + run_id
+    out_dir = "/tmp/newlogsRunTest/" + run_id
     assert has_training_ended(out_dir) == False
     subprocess.check_call(
         [
@@ -35,7 +35,7 @@ def test_end_local_training():
 def test_end_s3_training():
     run_id = str(uuid.uuid4())
     bucket = "tornasolecodebuildtest"
-    key = "/tmp/" + run_id
+    key = "newlogsRunTest/" + run_id
     out_dir = bucket + "/" + key
     assert has_training_ended(out_dir) == False
     subprocess.check_call(
