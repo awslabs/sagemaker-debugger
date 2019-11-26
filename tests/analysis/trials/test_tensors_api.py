@@ -50,7 +50,7 @@ def test_tensors(out_dir):
     assert len(tr.tensor_names(collection=tr.collection("test"))) == num_tensors + 2
 
     with pytest.raises(ValueError):
-        tr.tensors(collection=tr.collection("test"), regex="a")
+        tr.tensor_names(collection=tr.collection("test"), regex="a")
 
 
 def test_mode_data():
