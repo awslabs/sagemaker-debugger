@@ -337,7 +337,7 @@ class Trial(ABC):
         if regex is None and collection is None:
             return sorted(list(ts))
         elif regex is not None and collection is not None:
-            raise ValueError("Only one of `regex` or `collection` can be passed " "to this method")
+            raise ValueError("Only one of `regex` or `collection` can be passed to this method")
         else:
             if collection is not None:
                 xs = set(self._tensors.keys()).intersection(self._tensors_in_collection(collection))
