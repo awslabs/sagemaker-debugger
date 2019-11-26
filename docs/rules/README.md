@@ -296,12 +296,12 @@ An smdebug Tensor object can bee retrieved through the `trial.tensor(name)` API.
 
 | Method | Description|
 | ---- | ----- |
-| [steps()](#steps2) | Query steps for which tensor was saved |
+| [steps()](#steps-1) | Query steps for which tensor was saved |
 | [value(step)](#value) | Get the value of the tensor at a given step as a numpy array |
 | [reduction_value(step)](#reduction_value) | Get the reduction value of the chosen tensor at a particular step |
 | [reduction_values(step)](#reduction_values) | Get all reduction values saved for the chosen tensor at a particular step |
 | [values(mode)](#values) | Get the values of the tensor for all steps of a given mode |
-| [workers(step)](#workers2) | Get all the workers for which this tensor was saved at a given step |
+| [workers(step)](#workers-1) | Get all the workers for which this tensor was saved at a given step |
 | [prev\_steps(step, n)](#prev_steps) | Get the last n step numbers of a given mode from a given step |
 
 ### Tensor API
@@ -351,7 +351,7 @@ as a numpy array and compute any reduction you might be interested in. In such a
 
 ```python
 trial.tensor(name).reduction_value(step_num, reduction_name,
-mode=modes.GLOBAL, worker=None, abs=False)
+                                    mode=modes.GLOBAL, worker=None, abs=False)
 
 ```
 ###### Arguments
@@ -435,7 +435,7 @@ Writing a rule involves implementing the [Rule interface](../../smdebug/rules/ru
 Creating a rule involves first inheriting from the base Rule class SMDebug provides.
 For this rule here we do not need to look at any other trials, so we set `other_trials` to None.
 
-```
+```python
 from smdebug.rules import Rule
 
 class VanishingGradientRule(Rule):
@@ -454,7 +454,8 @@ In this function you can implement the core logic of what you want to do with th
 It should return a boolean value `True` or `False`, where `True` means the rule evaluation condition has been met. When you invoke these rules through SageMaker, the rule job ends when the rule evaluation condition is met. SageMaker creates a Cloudwatch event for every rule job, which can be used to define actions that you might want to take based on the state of the rule.
 
 A simplified version of the actual invoke function for `VanishingGradientRule` is below:
-```
+
+```python
     def invoke_at_step(self, step):
         for tensorname in self.base_trial.tensors(collection='gradients'):
             tensor = self.base_trial.tensor(tensorname)
@@ -473,7 +474,7 @@ Invoking the rule on SageMaker can be done in this way. (#todo add link here)
 #### invoke_rule
 You might want to invoke the rule locally during development. We provide a function to invoke rules easily. Refer [smdebug/rules/rule_invoker.py](../../smdebug/rules/rule_invoker.py). The invoke function has the following syntax. It takes a instance of a Rule and invokes it for a series of steps one after the other.
 
-```
+```python
 from smdebug.rules import invoke_rule
 from smdebug.trials import create_trial
 
@@ -492,7 +493,7 @@ invoke_rule(rule_obj, start_step=0, end_step=None)
 ## Exceptions
 SMDebug is designed to be aware that tensors required to execute a rule may not be available at every step. Hence it raises a few exceptions which allow us to control what happens when a tensor is missing. These are available in the `smdebug.exceptions` module. You can import them as follows:
 
-```
+```python
 from smdebug.exceptions import *
 ```
 
@@ -522,7 +523,7 @@ are not interested in the latest data, you can stop the refreshing of tensors as
 `no_refresh` takes a trial or a list of trials, which should not be refreshed.
 Anything executed inside the with `no_refresh` block will not be refreshed.
 
-```
+```python
 from smdebug.analysis.utils import no_refresh
 with no_refresh(trials):
     pass
@@ -530,7 +531,7 @@ with no_refresh(trials):
 
 Similarly if you want to refresh tensors only within a block, you can do:
 
-```
+```python
 from smdebug.analysis.utils import refresh
 with refresh(trials):
     pass
