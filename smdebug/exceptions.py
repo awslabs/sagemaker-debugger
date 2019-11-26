@@ -11,14 +11,6 @@ class StepNotYetAvailable(Exception):
         return "Step {} of mode {} not yet available".format(self.step, self.mode.name)
 
 
-class MissingCollectionFiles(Exception):
-    def __init__(self):
-        pass
-
-    def __str__(self):
-        return "Training job has ended. All the collection files could not be loaded"
-
-
 class IndexReaderException(Exception):
     def __init__(self, message):
         self.message = message
