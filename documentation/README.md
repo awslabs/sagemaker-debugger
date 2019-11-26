@@ -1,9 +1,8 @@
 # Sagemaker Debugger
 
 - [Overview](#overview)
-- [Install](#install)
-- [Example Usage (Local)](#example-usage-local)
-- [Example Usage (SageMaker)](#example-usage-sagemaker)
+- [SageMaker Example](#sagemaker-example)
+- [Python Example](#python-example)
 - [Concepts](#concepts)
 - [Glossary](#glossary)
 - [Detailed Links](#detailed-links)
@@ -17,15 +16,42 @@ It helps you develop better, faster, cheaper models by catching common errors qu
 - Realtime training job monitoring and visibility into any tensor value.
 - Distributed training and TensorBoard support.
 
+## SageMaker Example
+This example uses a zero-code-change experience, where you can use your training script as-is.
+See the [sagemaker](https://link.com) page for more details.
+```python
+import sagemaker
+from sagemaker.debugger import rule_configs, Rule, CollectionConfig
 
-## Install
-```bash
+rule = Rule.sagemaker(
+    rule_configs.exploding_tensor(),
+    rule_parameters={
+        "tensor_regex": ".*"
+    },
+    collections_to_save=[
+        CollectionConfig(name="weights", parameters={}),
+        CollectionConfig(name="losses", parameters={}),
+    ],
+)
+
+sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
+    entry_point="script.py",
+    role=sagemaker.get_execution_role(),
+    framework_version="1.15",
+    py_version="py3",
+    rules=[rule],
+)
+
+sagemaker_simple_estimator.fit()
+```
+
+
+## Python Example
+Requires Python 3.6+. Run
+```
 pip install smdebug
 ```
 
-Requires Python 3.6+.
-
-## Example Usage (Local)
 This example uses tf.keras. Say your training code looks like this:
 ```python
 model = tf.keras.models.Sequential([ ... ])
@@ -55,53 +81,7 @@ To analyze the result of the training run, create a trial and inspect the tensor
 ```python
 trial = smd.create_trial(out_dir=args.out_dir)
 print(f"Saved tensor values for {trial.tensors()}")
-print(f"Loss values were {trial.get_collection("losses").values()}")
-```
-
-## Example Usage (SageMaker)
-This example uses a zero-code-change experience, where you can use your training script as-is.
-See the [sagemaker](https://link.com) page for more details.
-```python
-import sagemaker
-from sagemaker.debugger import Rule, rule_configs, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig
-
-hook_config = DebuggerHookConfig(
-    s3_output_path = args.s3_path,
-    container_local_path = args.local_path,
-    hook_parameters = {
-        "save_steps": "0,20,40,60,80"
-    },
-    collection_configs = {
-        { "CollectionName": "weights" },
-        { "CollectionName": "biases" },
-    },
-)
-
-
-rule = Rule.sagemaker(
-    rule_configs.exploding_tensor(),
-    rule_parameters={
-        "tensor_regex": ".*"
-    },
-    collections_to_save=[
-        CollectionConfig(name="weights", parameters={}),
-        CollectionConfig(name="losses", parameters={}),
-    ],
-)
-
-sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
-    entry_point=simple_entry_point_script,
-    role=sagemaker.get_execution_role(),
-    base_job_name=args.job_name,
-    train_instance_count=1,
-    train_instance_type="ml.m4.xlarge",
-    framework_version="1.15",
-    py_version="py3",
-    debugger_hook_config=hook_config,
-    rules=[rule],
-)
-
-sagemaker_simple_estimator.fit()
+print(f"Loss values were {trial.tensor('CrossEntropyLoss:0')}")
 ```
 
 ## Concepts
