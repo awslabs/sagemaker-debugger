@@ -385,7 +385,7 @@ trial.tensor(name).values(mode=modes.GLOBAL, worker=None)
 - `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
 
 ###### Returns
-`Dict[int -> numpy.ndarray]` A dictionary with step numbers as keys and numpy arrays representing the value of the tensor as values.
+`dict[int -> numpy.ndarray]` A dictionary with step numbers as keys and numpy arrays representing the value of the tensor as values.
 
 #### workers
 Get all the workers for which this tensor was saved at a given step
