@@ -13,7 +13,7 @@ from smdebug.core.collection import (
     NON_HISTOGRAM_COLLECTIONS,
     NON_REDUCTION_COLLECTIONS,
     SCALAR_COLLECTIONS,
-    SEARCHABLE_SCALAR_COLLECTIONS,
+    SM_METRICS_COLLECTIONS,
     CollectionKeys,
 )
 from smdebug.core.collection_manager import CollectionManager
@@ -46,10 +46,10 @@ logger = get_logger()
 
 
 class ScalarCache(object):
-    def __init__(self, scalar_name, scalar_val, searchable, write_tb, write_event):
+    def __init__(self, scalar_name, scalar_val, sm_metric, write_tb, write_event):
         self.name = scalar_name
         self.value = scalar_val
-        self.searchable = searchable
+        self.sm_metric = sm_metric
         self.write_tb = write_tb
         self.write_event = write_event
 
@@ -357,7 +357,7 @@ class BaseHook:
         if self.dry_run:
             return
 
-        # flush out searchable scalars to metrics file
+        # flush out sm_metric scalars to metrics file
         if self.metrics_writer is not None:
             self._write_scalars()
 
@@ -564,16 +564,16 @@ class BaseHook:
     def _write_scalars(self):
         """
         This function writes all the scalar values saved in the scalar_cache to file.
-        If searchable is set to True for certain scalars, then that scalar is written to
-        Minerva as well. By default, loss values are searchable.
+        If sm_metric is set to True for certain scalars, then that scalar is written to
+        Minerva as well. By default, loss values are sm_metric.
         """
         for scalar_obj in self.scalar_cache:
             scalar_name = scalar_obj.name
             scalar_val = scalar_obj.value
-            searchable = scalar_obj.searchable
+            sm_metric = scalar_obj.sm_metric
             write_tb = scalar_obj.write_tb
             write_event = scalar_obj.write_event
-            if self.metrics_writer and searchable:
+            if self.metrics_writer and sm_metric:
                 self.metrics_writer.log_metric(scalar_name, scalar_val, self.mode_steps[self.mode])
             if write_tb:
                 tb_writer = self._maybe_get_tb_writer()
@@ -587,20 +587,20 @@ class BaseHook:
         self.scalar_cache = []
 
     # Fix step number for saving scalar and tensor
-    def save_scalar(self, name, value, searchable=False):
+    def save_scalar(self, name, value, sm_metric=False):
         """
         Call save_scalar at any point in the training script to log a scalar value,
         such as a metric or any other value.
         :param name: Name of the scalar. A prefix 'scalar/' will be added to it
         :param value: Scalar value
-        :param searchable: True/False. If set to True, the scalar value will be written to
+        :param sm_metric: True/False. If set to True, the scalar value will be written to
         SageMaker Minerva
         """
         name = CallbackHook.SCALAR_PREFIX + name
         val = self._make_numpy_array(value)
         if val.size != 1:
             raise TypeError(f"{name} has non scalar value of type: {type(value)}")
-        scalar_obj = ScalarCache(name, val, searchable=True, write_tb=True, write_event=True)
+        scalar_obj = ScalarCache(name, val, sm_metric=True, write_tb=True, write_event=True)
         self.scalar_cache.append(scalar_obj)
 
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
@@ -656,12 +656,12 @@ class BaseHook:
 
         self._write_for_tensor(tensor_name, tensor_value, save_collections_for_tensor)
         for s_col in save_collections_for_tensor:
-            if s_col.name in SEARCHABLE_SCALAR_COLLECTIONS:
+            if s_col.name in SM_METRICS_COLLECTIONS:
                 np_val = self._make_numpy_array(tensor_value)
                 # Always log loss to Minerva
                 tensor_val = np.mean(np_val)
                 scalar_obj = ScalarCache(
-                    tensor_name, tensor_val, searchable=True, write_tb=False, write_event=False
+                    tensor_name, tensor_val, sm_metric=True, write_tb=False, write_event=False
                 )
                 self.scalar_cache.append(scalar_obj)
 
