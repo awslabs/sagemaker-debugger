@@ -25,14 +25,14 @@ This page describes the programming model that SageMaker Debugger provides for y
 		* [collection](#collection)
 		* [wait\_for\_steps](#wait\_for\_steps)
 		* [has\_passed\_step](#has\_passed\_step)
-* [Tensor](#Tensor)
+* [Tensor](#Tensor-1)
 	* [Tensor API](#Tensor-API)
-		* [steps](#steps2)
+		* [steps](#steps-1)
 		* [value](#value)
 		* [reduction_value](#reduction_value)
 		* [reduction_values](#reduction_values)
 		* [values](#values)
-		* [workers](#workers2)
+		* [workers](#workers-1)
 		* [prev_steps](#prev_steps)
 * [Rules](#Rules)
 	* [Built In Rules](#Built-In-Rules)
@@ -400,6 +400,10 @@ trial.tensor(name).values(mode=modes.GLOBAL, worker=None)
 
 #### workers
 Get all the workers for which this tensor was saved at a given step
+
+```python
+trial.tensor(name).workers(step_num, mode=modes.GLOBAL)
+```
 
 ###### Arguments
 - `step_num`: `type: int` The step number whose value is to be returned for the mode passed through the next parameter.
