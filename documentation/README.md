@@ -2,7 +2,8 @@
 
 - [Overview](#overview)
 - [Install](#install)
-- [Example Usage](#example-usage)
+- [Example Usage (Local)](#example-usage-local)
+- [Example Usage (SageMaker)](#example-usage-sagemaker)
 - [Concepts](#concepts)
 - [Glossary](#glossary)
 - [Detailed Links](#detailed-links)
@@ -18,7 +19,7 @@ pip install smdebug
 
 Requires Python 3.6+.
 
-## Example Usage
+## Example Usage (Local)
 This example uses tf.keras. Say your training code looks like this:
 ```
 model = tf.keras.models.Sequential([ ... ])
@@ -49,6 +50,52 @@ To analyze the result of the training run, create a trial and inspect the tensor
 trial = smd.create_trial(out_dir=args.out_dir)
 print(f"Saved tensor values for {trial.tensors()}")
 print(f"Loss values were {trial.get_collection("losses").values()}")
+```
+
+## Example Usage (SageMaker)
+This example uses a zero-code-change experience, where you can use your training script as-is.
+See the [sagemaker](https://link.com) page for more details.
+```
+import sagemaker
+from sagemaker.debugger import Rule, rule_configs, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig
+
+hook_config = DebuggerHookConfig(
+    s3_output_path = args.s3_path,
+    container_local_path = args.local_path,
+    hook_parameters = {
+        "save_steps": "0,20,40,60,80"
+    },
+    collection_configs = {
+        { "CollectionName": "weights" },
+        { "CollectionName": "biases" },
+    },
+)
+
+
+rule = Rule.sagemaker(
+    rule_configs.exploding_tensor(),
+    rule_parameters={
+        "tensor_regex": ".*"
+    },
+    collections_to_save=[
+        CollectionConfig(name="weights", parameters={}),
+        CollectionConfig(name="losses", parameters={}),
+    ],
+)
+
+sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
+    entry_point=simple_entry_point_script,
+    role=sagemaker.get_execution_role(),
+    base_job_name=args.job_name,
+    train_instance_count=1,
+    train_instance_type="ml.m4.xlarge",
+    framework_version="1.15",
+    py_version="py3",
+    debugger_hook_config=hook_config,
+    rules=[rule],
+)
+
+sagemaker_simple_estimator.fit()
 ```
 
 ## Concepts
@@ -87,11 +134,12 @@ tensors to include/exclude.
 **ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor.
 - `reduction_config = smd.ReductionConfig(reductions=['min', 'max', 'mean'], norms=['l1'])`
 
-**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors.
+**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](https://link.com)
 - `trial = smd.create_trial(out_dir="/tmp/mnist_job")`
 
-**Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient.
+**Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient. See [rules documentation](https://link.com)
 
 ## Detailed Links
+- [Rules Documentation](https://link.com)
 - [Distributed Training](https://link.com)
 - [TensorBoard](https://link.com)
