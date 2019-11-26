@@ -9,6 +9,8 @@ from smdebug.analysis.utils import refresh
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.collection import Collection
 from smdebug.core.config_constants import (
+    INCOMPLETE_STEP_WAIT_WINDOW_DEFAULT,
+    INCOMPLETE_STEP_WAIT_WINDOW_KEY,
     TRAINING_END_DELAY_REFRESH_DEFAULT,
     TRAINING_END_DELAY_REFRESH_KEY,
 )
