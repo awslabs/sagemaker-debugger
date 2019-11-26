@@ -2,9 +2,8 @@
 # Common API
 These objects exist across all frameworks.
 - [Creating a Hook](#creating-a-hook)
-    - [Hook from Python](#hook-from-python)
-    - [Hook from JSON](#hook-from-json)
     - [Hook from SageMaker](#hook-from-sagemaker)
+    - [Hook from Python](#hook-from-python)
 - [Modes](#modes)
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
@@ -15,6 +14,15 @@ These objects exist across all frameworks.
 
 ## Creating a Hook
 
+### Hook from SageMaker
+If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API
+as described in [AWS Docs](https://link.com),
+the a JSON file will be automatically written. You can create a hook from this file by calling
+```python
+hook = smd.{hook_class}.create_from_json_file()
+```
+with no arguments and then use the hook Python API in your script. `hook_class` will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow.
+
 ### Hook from Python
 See the framework-specific pages for more details.
 * [TensorFlow](https://link.com)
@@ -22,31 +30,11 @@ See the framework-specific pages for more details.
 * [MXNet](https://link.com)
 * [XGBoost](https://link.com)
 
-### Hook from JSON
-The simplest way to create a hook is by using the Python API, as described on the framework-specific pages.
-
-
-However, you may want to setup your hook configuration in a JSON file. A basic setup is shown here.
-```python
-hook = smd.{hook_class}.create_from_json_file(json_file_path="/tmp/json_config.json")
-```
-`hook_class` will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow.
-
-The JSON file configuration is detailed further on [AWS Docs](https://link.com).
-
-
-### Hook from SageMaker
-If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API,
-the a JSON file will be automatically written. You can create a hook from this file by calling
-```python
-hook = smd.{hook_class}.create_from_json_file()
-```
-with no arguments and then use the hook as usual in your script. `hook_class` is the same as detailed above.
-
 ---
 
 ## Modes
-Used to signify which part of training you're in, similar to Keras modes. Choose from
+Used to signify which part of training you're in, similar to Keras modes. `GLOBAL` mode is used as
+a default. Choose from
 ```python
 smd.modes.TRAIN
 smd.modes.EVAL
@@ -140,9 +128,6 @@ coll = smd.Collection(
 | Method  |  Behavior |
 |---|---|
 | ```coll.include(regex)```  |  Takes a regex string or a list of regex strings to match tensors to include in the collection. |
-| ```coll.include_regex```  | Get or set include_regex for the collection.  |
-| ```coll.save_config```  | Get or set save_config for the collection.  |
-| ```coll.reduction_config```  | Get or set reduction config for the collection.  |
 | ```coll.add(tensor)```  | **(TensorFlow only)** Takes an instance or list or set of tf.Tensor/tf.Variable/tf.MirroredVariable/tf.Operation to add to the collection.  |
 | ```coll.add_keras_layer(layer, inputs=False, outputs=True)```  | **(tf.keras only)** Takes an instance of a tf.keras layer and logs input/output tensors for that module. By default, only outputs are saved. |
 | ```coll.add_module_tensors(module, inputs=False, outputs=True)```  | **(PyTorch only)** Takes an instance of a PyTorch module and logs input/output tensors for that module. By default, only outputs are saved. |
@@ -194,7 +179,8 @@ SaveConfig(mode_save_configs={
 ```
 Essentially, create a dictionary mapping modes to SaveConfigMode objects. The SaveConfigMode objects
 take the same four parameters (save_interval, start_step, end_step, save_steps) as the main object.
-Any mode not specified will default to the default configuration.
+Any mode not specified will default to the default configuration. If a mode is provided but not all
+params are specified, we use the default values for non-specified parameters.
 
 ---
 

@@ -12,6 +12,12 @@
 Sagemaker Debugger is an AWS service to automatically debug your machine learning training process.
 It helps you develop better, faster, cheaper models by catching common errors quickly.
 
+- Zero-code-change experience on SageMaker and AWS Deep Learning containers.
+- Automated anomaly detection and state assertions.
+- Realtime training job monitoring and visibility into any tensor value.
+- Distributed training and TensorBoard support.
+
+
 ## Install
 ```bash
 pip install smdebug
