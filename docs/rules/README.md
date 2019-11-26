@@ -350,12 +350,8 @@ as a numpy array and compute any reduction you might be interested in. In such a
 
 
 ```python
-trial.tensor(name).reduction_value(
-						step_num,
-						reduction_name,
-						mode=modes.GLOBAL,
-						worker=None,
-						abs=False)
+trial.tensor(name).reduction_value(step_num, reduction_name,
+mode=modes.GLOBAL, worker=None, abs=False)
 
 ```
 ###### Arguments
