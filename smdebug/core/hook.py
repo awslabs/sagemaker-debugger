@@ -25,6 +25,7 @@ from smdebug.core.config_constants import (
     TRAINING_RUN,
 )
 from smdebug.core.hook_utils import get_tensorboard_dir, verify_and_get_out_dir
+from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ALLOWED_MODES, ModeKeys
 from smdebug.core.reduction_config import ReductionConfig
@@ -230,6 +231,25 @@ class BaseHook:
             f"    dry_run={self.dry_run},\n"
             f")"
         )
+
+    @classmethod
+    def create_from_json_file(cls, json_file_path=None):
+        """Relies on the existence of a JSON file.
+
+        First, check json_config_path. If it's not None,
+            If the file exists, use that.
+            If the file does not exist, throw an error.
+        Otherwise, check the filepath set by a SageMaker environment variable.
+            If the file exists, use that.
+        Otherwise,
+            return None.
+        """
+        return create_hook_from_json_config(cls, json_config_path=json_file_path)
+
+    # For compatibility purposes only; do not use
+    @classmethod
+    def hook_from_config(cls, json_config_path=None):
+        return cls.create_from_json_file(json_file_path=json_config_path)
 
     @abstractmethod
     def _get_worker_name(self):

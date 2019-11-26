@@ -7,7 +7,7 @@ import torch.distributed as dist
 # First Party
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
-from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
+from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
@@ -89,20 +89,6 @@ class Hook(CallbackHook):
                 pass
         # Return default
         return CONFIG_DEFAULT_WORKER_NAME
-
-    @classmethod
-    def hook_from_config(cls, json_config_path=None):
-        """Relies on the existence of a JSON file.
-
-        First, check json_config_path. If it's not None,
-            If the file exists, use that.
-            If the file does not exist, throw an error.
-        Otherwise, check the filepath set by a SageMaker environment variable.
-            If the file exists, use that.
-        Otherwise,
-            return None.
-        """
-        return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
     def _log_params(self, module):
         module_name = module._get_name()

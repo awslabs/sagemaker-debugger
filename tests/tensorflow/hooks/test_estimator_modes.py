@@ -192,7 +192,7 @@ def test_mnist_local_json(out_dir, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     help_test_mnist(path=out_dir, hook=hook, num_steps=2)
     helper_test_mnist_trial(out_dir)
 
@@ -252,7 +252,7 @@ def test_mnist_local_multi_save_configs_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json",
     )
-    hook = smd.SessionHook.hook_from_config()
+    hook = smd.SessionHook.create_from_json_file()
     help_test_mnist(out_dir, hook=hook, num_steps=3)
     helper_test_multi_save_configs_trial(out_dir)
 

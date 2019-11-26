@@ -33,7 +33,7 @@ def test_save_config_disable(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_disable.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     simple_model(hook)
     tr = create_trial(out_dir)
     assert len(tr.steps()) == 0
@@ -45,7 +45,7 @@ def test_save_config_json(out_dir, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_save_config.json"
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     helper_test_save_config(out_dir, hook)
 
 
@@ -70,7 +70,7 @@ def test_save_config_skip_steps_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_skip_steps.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     helper_save_config_skip_steps(out_dir, hook)
 
 
@@ -97,7 +97,7 @@ def test_save_config_start_and_end_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_start_and_end.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     helper_save_config_start_and_end(out_dir, hook)
 
 
@@ -127,5 +127,5 @@ def test_save_config_modes_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_config_coll.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     helper_save_config_modes(out_dir, hook)

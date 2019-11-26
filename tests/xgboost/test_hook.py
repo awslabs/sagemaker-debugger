@@ -31,7 +31,7 @@ def test_hook_from_json_config(tmpdir, monkeypatch):
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config(str(out_dir)))
     monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
 
@@ -41,7 +41,7 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config_full(str(out_dir)))
     monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
 
