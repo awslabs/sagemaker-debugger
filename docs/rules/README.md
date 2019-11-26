@@ -124,13 +124,13 @@ trial.tensors(step= None,
 ###### Arguments
 All arguments to this method are optional. You are required to pass any of these arguments as keyword arguments.
 
-- `step`: `type: Int` If you want to retrieve the list of tensors saved at a particular step, pass the step number as an integer. This step number will be treated as step number corresponding to the mode passed below. By default it is treated as global step.
-- `mode`: `type: smdebug.modes enum value` If you want to retrieve the list of tensors saved for a particular mode, pass the mode here as `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT`, or `smd.modes.GLOBAL`.
-- `regex`: `type: str or List[str]` You can filter tensors matching regex expressions by passing a regex expressions as a string or list of strings.
-- `collection`: `type: Collection or str` You can filter tensors belonging to a collection by either passing a collection object or the name of collection as a string.
+- `step (int)` If you want to retrieve the list of tensors saved at a particular step, pass the step number as an integer. This step number will be treated as step number corresponding to the mode passed below. By default it is treated as global step.
+- `mode (smdebug.modes enum value)` If you want to retrieve the list of tensors saved for a particular mode, pass the mode here as `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT`, or `smd.modes.GLOBAL`.
+- `regex (str or list[str])` You can filter tensors matching regex expressions by passing a regex expressions as a string or list of strings.
+- `collection (Collection or str)` You can filter tensors belonging to a collection by either passing a collection object or the name of collection as a string.
 
 ###### Returns
-`List[str]` List of strings representing names of tensors matching the given arguments. Arguments are processed as follows: get the list of tensor names for given step and mode. saved for given step matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
+`list[str]`: List of strings representing names of tensors matching the given arguments. Arguments are processed as follows: get the list of tensor names for given step and mode. saved for given step matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
 
 ###### Examples
 - `trial.tensors()` Returns all tensors saved for any step or mode.
@@ -147,7 +147,7 @@ Retrieve the `smdebug.core.tensor.Tensor` object by the given name tname. You ca
 trial.tensor(tname)
 ```
 ###### Arguments
-- `tname`: `type: str` Takes the name of tensor
+- `tname (str)` Takes the name of tensor
 
 ###### Returns
 `smdebug.core.tensor.Tensor` object which has [this API](#Tensor)
@@ -159,10 +159,10 @@ trial.has_tensor(tname)
 ```
 
 ###### Arguments
-- `tname`: `type: str` Takes the name of tensor
+- `tname (str)` Takes the name of tensor
 
 ###### Returns
-`bool` `True` if the tensor is seen by the trial so far, else `False`.
+`bool`: `True` if the tensor is seen by the trial so far, else `False`.
 
 #### steps
 Retrieve a list of steps seen by the trial
@@ -171,11 +171,11 @@ trial.steps(mode=None)
 ```
 
 ###### Arguments
-- `mode` : `type: smdebug.modes enum value` Passing a mode here allows you want to retrieve the list of steps seen by a trial for that mode
+- `mode (smdebug.modes enum value)` Passing a mode here allows you want to retrieve the list of steps seen by a trial for that mode
 If this is not passed, returns steps for all modes.
 
 ###### Returns
-`List[Int]` List of integers representing step numbers. If a mode was passed, this returns steps within that mode, i.e. mode steps.
+`list[int]` List of integers representing step numbers. If a mode was passed, this returns steps within that mode, i.e. mode steps.
 Each of these mode steps has a global step number associated with it. The global step represents
 the sequence of steps across all modes executed by the job.
 
@@ -186,7 +186,7 @@ trial.modes()
 ```
 
 ###### Returns
-`List[smdebug.modes enum value]` List of modes for which data was saved from the training job across all steps seen.
+`list[smdebug.modes enum value]` List of modes for which data was saved from the training job across all steps seen.
 
 #### mode
 Given a global step number you can identify the mode for that step using this method.
@@ -195,7 +195,7 @@ trial.mode(global_step=100)
 ```
 
 ###### Arguments
-- `global_step` : `type: Int` Takes the global step as an integer
+- `global_step (int)` Takes the global step as an integer
 
 ###### Returns
 `smdebug.modes enum value` of the given global step
@@ -207,10 +207,10 @@ trial.mode_step(global_step=100)
 ```
 
 ###### Arguments
-- `global_step` : `type: Int` Takes the global step as an integer
+- `global_step (int)` Takes the global step as an integer
 
 ###### Returns
-`Int` An integer representing `mode_step` of the given global step. Typically used in conjunction with `mode` method.
+`int`: An integer representing `mode_step` of the given global step. Typically used in conjunction with `mode` method.
 
 #### global_step
 Given a mode and a mode_step number you can retrieve its global step using this method.
@@ -219,11 +219,11 @@ trial.global_step(mode=modes.GLOBAL, mode_step=100)
 ```
 
 ###### Arguments
-- `mode` : `type: smdebug.modes enum value` Takes the mode as enum value
-- `mode_step` : `type: Int` Takes the mode step as an integer
+- `mode (smdebug.modes enum value)` Takes the mode as enum value
+- `mode_step (int)` Takes the mode step as an integer
 
 ###### Returns
-`Int` An integer representing `global_step` of the given mode and mode_step.
+`int` An integer representing `global_step` of the given mode and mode_step.
 
 #### workers
 Query for all the worker processes from which data was saved by smdebug during multi worker training.
@@ -232,7 +232,7 @@ trial.workers()
 ```
 
 ###### Returns
-`List: str` A sorted list of names of worker processes from which data was saved. If using TensorFlow Mirrored Strategy for multi worker training, these represent names of different devices in the process. For Horovod, torch.distributed and similar distributed training approaches, these represent names of the form `worker_0` where 0 is the rank of the process.
+`list[str]` A sorted list of names of worker processes from which data was saved. If using TensorFlow Mirrored Strategy for multi worker training, these represent names of different devices in the process. For Horovod, torch.distributed and similar distributed training approaches, these represent names of the form `worker_0` where 0 is the rank of the process.
 
 
 #### collections
@@ -244,7 +244,7 @@ trial.collections()
 ```
 
 ###### Returns
-`Dict[str, Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](api.md) for more details. #TODO fix link
+`dict[str -> Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](api.md) for more details. #TODO fix link
 
 #### collection
 
@@ -254,7 +254,7 @@ Get a specific collection from the trial. Note that tensors part of this collect
 trial.collection(coll_name)
 ```
 ###### Arguments
-- `coll_name` : `type:str` Name of the collection
+- `coll_name (str)` Name of the collection
 
 ###### Returns
 `Collection` The requested Collection object. Please refer [Collection API](api.md) for more details. #TODO fix link
@@ -267,8 +267,8 @@ trial.wait_for_steps(required_steps, mode=modes.GLOBAL)
 ```
 
 ###### Arguments
-- `required_steps`: `type: List[Int]` Step numbers to wait for
-- `mode`: `type: smdebug.modes enum value` The mode to which given step numbers correspond to. This defaults to modes.GLOBAL.
+- `required_steps (list[int])` Step numbers to wait for
+- `mode (smdebug.modes enum value)` The mode to which given step numbers correspond to. This defaults to modes.GLOBAL.
 
 ###### Returns
 None, but it only returns after we know definitely whether we have seen the steps.
@@ -282,8 +282,8 @@ trial.has_passed_step(step, mode=modes.GLOBAL)
 ```
 
 ###### Arguments
-- `step`: `type: Int` The step number to check if the trial has passed it
-- `mode`: `type: smdebug.modes enum value` The mode to which given step number corresponds to. This defaults to modes.GLOBAL.
+- `step (int)` The step number to check if the trial has passed it
+- `mode (smdebug.modes enum value)` The mode to which given step number corresponds to. This defaults to modes.GLOBAL.
 
 ###### Returns
 `smdebug.core.tensor.StepState enum value` which can take one of three values `UNAVAILABLE`, `AVAILABLE` and `NOT_YET_AVAILABLE`.
@@ -312,11 +312,11 @@ trial.tensor(name).steps(mode=ModeKeys.GLOBAL, show_incomplete_steps=False)
 ```
 
 ###### Arguments
-- `mode`: `type: smdebug.modes enum value` The mode whose steps to return for the given tensor. Defaults to `modes.GLOBAL`
-- `show_incomplete_steps`: `type: bool` This parameter is relevant only for distributed training. By default this method only returns the steps which have been received from all workers. But if this parameter is set to True, this method will return steps received from at least one worker.
+- `mode (smdebug.modes enum value)` The mode whose steps to return for the given tensor. Defaults to `modes.GLOBAL`
+- `show_incomplete_steps (bool)` This parameter is relevant only for distributed training. By default this method only returns the steps which have been received from all workers. But if this parameter is set to True, this method will return steps received from at least one worker.
 
 ###### Returns
-`List[Int]` A list of steps at which the given tensor was saved
+`list[int]` A list of steps at which the given tensor was saved
 
 #### value
 Get the value of the tensor at a given step as a numpy array
@@ -325,9 +325,9 @@ trial.tensor(name).value(step_num, mode=ModeKeys.GLOBAL, worker=None)
 ```
 
 ###### Arguments
-- `step_num`: `type: int` The step number whose value is to be returned for the mode passed through the next parameter.
-- `mode`: `type: smdebug.modes enum value` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
-- `worker`: `type: str` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
+- `step_num (int)` The step number whose value is to be returned for the mode passed through the next parameter.
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
 
 ###### Returns
 `numpy.ndarray` The value of tensor at the given step and worker (if the training job saved data from multiple workers)
@@ -336,18 +336,11 @@ trial.tensor(name).value(step_num, mode=ModeKeys.GLOBAL, worker=None)
 Get the reduction value of the chosen tensor at a particular step. A reduction value is a tensor reduced to a single value through reduction or aggregation operations. The different reductions you can query for are the same as what are allowed in [ReductionConfig](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md) when saving tensors.
 This API thus allows you to access the reduction you might have saved instead of the full tensor. If you had saved the full tensor, it will calculate the requested reduction at the time of this call.
 
-Reductions allowed:
+Reduction names allowed are `min`, `max`, `mean`, `prod`, `std`, `sum`, `variance` and `l1`, `l2` representing the norms.
 
-- `min`, `max`, `mean`, `prod`, `std`, `sum`, `variance
-- `l1`, `l2` norms
+Each of these can be retrieved for the absolute value of the tensor or the original tensor. Above was an example to get the mean of the absolute value of the tensor. `abs` can be set to `False` if you want to see the `mean` of the actual tensor.
 
-Each of these can be retrieved for the absolute value of the tensor or the original tensor.
-Above was an example to get the mean of the absolute value of the tensor.
-`abs` can be set to `False` if you want to see the `mean` of the actual tensor.
-
-If you had saved the tensor without any reduction, then you can retrieve the actual tensor
-as a numpy array and compute any reduction you might be interested in. In such a case you do not need this method.
-
+If you had saved the tensor without any reduction, then you can retrieve the actual tensor as a numpy array and compute any reduction you might be interested in. In such a case you do not need this method.
 
 ```python
 trial.tensor(name).reduction_value(step_num, reduction_name,
@@ -355,11 +348,11 @@ trial.tensor(name).reduction_value(step_num, reduction_name,
 
 ```
 ###### Arguments
-- `step_num`: `type: int` The step number whose value is to be returned for the mode passed through the next parameter.
-- `reduction_name`: `type: str` The name of the reduction to query for. This can be one of `min`, `max`, `mean`, `std`, `variance`, `sum`, `prod` and the norms `l1`, `l2`.
-- `mode`: `type: smdebug.modes enum value` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
-- `worker`: `type: str` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
-- `abs`: `type: bool` If abs is True, this method tries to return the reduction passed through reduction_name after taking the absolute value of the tensor. It defaults to False.
+- `step_num (int)` The step number whose value is to be returned for the mode passed through the next parameter.
+- `reduction_name (str)` The name of the reduction to query for. This can be one of `min`, `max`, `mean`, `std`, `variance`, `sum`, `prod` and the norms `l1`, `l2`.
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
+- `abs (bool)` If abs is True, this method tries to return the reduction passed through reduction_name after taking the absolute value of the tensor. It defaults to False.
 
 ###### Returns
 `numpy.ndarray` The reduction value of tensor at the given step and worker (if the training job saved data from multiple workers) as a 1x1 numpy array. If this reduction was saved for the tensor during training as part of specification through reduction config, it will be loaded and returned. If the given reduction was not saved then, but the full tensor was saved, the reduction will be computed on the fly and returned. If both the chosen reduction and full tensor are not available, this method raises TensorUnavailableForStep exception.
@@ -373,12 +366,12 @@ trial.tensor(name).reduction_values(step_num, mode=modes.GLOBAL, worker=None)
 ```
 
 ###### Arguments
-- `step_num`: `type: int` The step number whose value is to be returned for the mode passed through the next parameter.
-- `mode`: `type: smdebug.modes enum value` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
-- `worker`: `type: str` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
+- `step_num (int)` The step number whose value is to be returned for the mode passed through the next parameter.
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
 
 ###### Returns
-`Dict[(str, bool), numpy.ndarray]` A dictionary with keys being tuples of the form `(reduction_name, abs)` to a 1x1 numpy ndarray value. `abs` here is a boolean that denotes whether the reduction was performed on the absolute value of the tensor or not. Note that this method only returns the reductions which were saved from the training job. It does not compute all known reductions and return them if only the raw tensor was saved.
+`dict[(str, bool) -> numpy.ndarray]` A dictionary with keys being tuples of the form `(reduction_name, abs)` to a 1x1 numpy ndarray value. `abs` here is a boolean that denotes whether the reduction was performed on the absolute value of the tensor or not. Note that this method only returns the reductions which were saved from the training job. It does not compute all known reductions and return them if only the raw tensor was saved.
 
 #### values
 Get the values of the tensor for all steps of a given mode.
@@ -388,11 +381,11 @@ trial.tensor(name).values(mode=modes.GLOBAL, worker=None)
 ```
 
 ###### Arguments
-- `mode`: `type: smdebug.modes enum value` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
-- `worker`: `type: str` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
 
 ###### Returns
-`Dict[int, numpy.ndarray]` A dictionary with step numbers as keys and numpy arrays representing the value of the tensor as values.
+`Dict[int -> numpy.ndarray]` A dictionary with step numbers as keys and numpy arrays representing the value of the tensor as values.
 
 #### workers
 Get all the workers for which this tensor was saved at a given step
@@ -402,11 +395,11 @@ trial.tensor(name).workers(step_num, mode=modes.GLOBAL)
 ```
 
 ###### Arguments
-- `step_num`: `type: int` The step number whose value is to be returned for the mode passed through the next parameter.
-- `mode`: `type: smdebug.modes enum value` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `step_num (int)` The step number whose value is to be returned for the mode passed through the next parameter.
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
 
 ###### Returns
-`List[str]` A list of worker names for which the tensor was saved at the given step.
+`list[str]` A list of worker names for which the tensor was saved at the given step.
 
 #### prev_steps
 Get the last n step numbers of a given mode from a given step.
@@ -415,12 +408,12 @@ Get the last n step numbers of a given mode from a given step.
 trial.tensor(name).prev_steps(step, n, mode=modes.GLOBAL)
 ```
 ###### Arguments
-- `step`: `type: int` The step number whose value is to be returned for the mode passed.
-- `n`: `type:int` Number of previous steps to return
-- `mode`: `type: smdebug.modes enum value` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `step (int)` The step number whose value is to be returned for the mode passed.
+- `n (int)` Number of previous steps to return
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
 
 ###### Returns
-`List:int` A list of size at most n representing the previous steps for the given step and mode. Note that this list can be of size less than n if there were only less than n steps saved before the given step in this trial.
+`list[int]` A list of size at most n representing the previous steps for the given step and mode. Note that this list can be of size less than n if there were only less than n steps saved before the given step in this trial.
 
 ## Rules
 Rules are the medium by which SageMaker Debugger executes a certain piece of code regularly on different steps of the jobs. A rule is assigned to a trial and can be invoked at each new step of the trial. It can also access other trials for its execution. You can evaluate a rule using tensors from the current step or any step before the current step. Please ensure your logic respects these semantics, else you will get a `TensorUnavailableForStep` exception as the data would not yet be available for future steps.
@@ -484,10 +477,10 @@ invoke_rule(rule_obj, start_step=0, end_step=None)
 ```
 
 ###### Arguments
-- `rule_obj`: `type: Rule` An instance of a subclass of `smdebug.rules.Rule` that you want to invoke.
-- `start_step`: `type: int` Global step number to start invoking the rule from. Note that this refers to a global step. This defaults to 0.
-- `end_step`: `type: int` or `None`: Global step number to end the invocation of rule before. To clarify, end_step is an exclusive bound. The rule is invoked at `end_step`. This defaults to `None` which means run till the end of the job.
-- `raise_eval_cond`: `type: bool` This parameter controls whether to raise the exception RuleEvaluationCondition when raised by the rule, or to catch it and log the Condition and move to the next step. Defaults to False, meaning it catches the exception and logs that the evaluation condition was met for a step and moves on to evaluate for the next step.
+- `rule_obj (Rule)` An instance of a subclass of `smdebug.rules.Rule` that you want to invoke.
+- `start_step (int)` Global step number to start invoking the rule from. Note that this refers to a global step. This defaults to 0.
+- `end_step (int or  None)`: Global step number to end the invocation of rule before. To clarify, end_step is an exclusive bound. The rule is invoked at `end_step`. This defaults to `None` which means run till the end of the job.
+- `raise_eval_cond (bool)` This parameter controls whether to raise the exception RuleEvaluationCondition when raised by the rule, or to catch it and log the Condition and move to the next step. Defaults to False, meaning it catches the exception and logs that the evaluation condition was met for a step and moves on to evaluate for the next step.
 
 
 ## Exceptions
