@@ -12,7 +12,7 @@ This page describes the programming model that SageMaker Debugger provides for y
 		* [Creating local trial](#Creating-local-trial)
 		* [Restricting analysis to a range of steps](#Restricting-analysis-to-a-range-of-steps)
 	* [Trial API](#Trial-API)
-		* [tensors](#tensors)
+		* [tensor_names](#tensor_names)
 		* [tensor](#tensor)
 		* [has_tensor](#has_tensor)
 		* [steps](#steps)
@@ -97,7 +97,7 @@ Here's a list of methods that the Trial API provides which helps you load data f
 
 | Method        | Description           |
 | ------------- |-------------|
-| [trial.tensors()](#tensors)      | See names of all tensors available |
+| [trial.tensor_names()](#tensor_names)      | See names of all tensors available |
 | [trial.tensor(name)](#tensor)      | Retrieve smdebug Tensor object |
 | [trial.has_tensor(name)](#has_tensor)      | Query for whether tensor was saved |
 | [trial.steps()](#steps) | Query steps for which data was saved |
@@ -115,7 +115,7 @@ Here's a list of methods that the Trial API provides which helps you load data f
 #### tensors
 Retrieves names of tensors saved
 ```python
-trial.tensors(step= None,
+trial.tensor_names(step= None,
               mode=modes.GLOBAL,
               regex=None,
               collection=None)
@@ -126,19 +126,18 @@ All arguments to this method are optional. You are required to pass any of these
 
 - `step (int)` If you want to retrieve the list of tensors saved at a particular step, pass the step number as an integer. This step number will be treated as step number corresponding to the mode passed below. By default it is treated as global step.
 - `mode (smdebug.modes enum value)` If you want to retrieve the list of tensors saved for a particular mode, pass the mode here as `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT`, or `smd.modes.GLOBAL`.
-- `regex (str or list[str])` You can filter tensors matching regex expressions by passing a regex expressions as a string or list of strings.
-- `collection (Collection or str)` You can filter tensors belonging to a collection by either passing a collection object or the name of collection as a string.
+- `regex (str or list[str])` You can filter tensors matching regex expressions by passing a regex expressions as a string or list of strings. You can only pass one of `regex` or `collection` parameters.
+- `collection (Collection or str)` You can filter tensors belonging to a collection by either passing a collection object or the name of collection as a string. You can only pass one of `regex` or `collection` parameters.
 
 ###### Returns
 `list[str]`: List of strings representing names of tensors matching the given arguments. Arguments are processed as follows: get the list of tensor names for given step and mode. saved for given step matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
 
 ###### Examples
-- `trial.tensors()` Returns all tensors saved for any step or mode.
-- `trial.tensors(step=10, mode=modes.TRAIN)` Returns tensors saved for training step 10
-- `trial.tensors(regex='relu')` Returns all tensors matching the regex pattern relu saved for any step or mode.
-- `trial.tensors(collection='gradients')` Returns tensors from gradients collection
-- `trial.tensors(regex='softmax', collection='losses')` Returns tensors which match either the regex `softmax` or belong to the collection `losses`
-- `trial.tensors(step=10, mode=modes.TRAIN, regex='softmax', collection='losses')` Returns tensor saved for 10th training step which match either the regex `softmax` or belong to the `losses` collection
+- `trial.tensor_names()` Returns all tensors saved for any step or mode.
+- `trial.tensor_names(step=10, mode=modes.TRAIN)` Returns tensors saved for training step 10
+- `trial.tensor_names(regex='relu')` Returns all tensors matching the regex pattern relu saved for any step or mode.
+- `trial.tensor_names(collection='gradients')` Returns tensors from gradients collection
+- `trial.tensor_names(step=10, mode=modes.TRAIN, regex='softmax')` Returns tensor saved for 10th training step which match the regex `softmax`
 
 
 #### tensor
