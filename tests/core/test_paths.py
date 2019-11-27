@@ -100,7 +100,7 @@ def test_outdir_sagemaker(monkeypatch):
     json_file_contents = """
             {
                 "S3OutputPath": "s3://sagemaker-test",
-                "LocalPath": "/my/own/path/tensors",
+                "LocalPath": "/tmp/my/own/path/tensors",
                 "HookParameters" : {
                     "save_interval": "2",
                     "include_workers": "all"
@@ -111,4 +111,4 @@ def test_outdir_sagemaker(monkeypatch):
 
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         hook = get_hook("keras", create_if_not_exists=True)
-        assert hook.out_dir == "/my/own/path/tensors"
+        assert hook.out_dir == "/tmp/my/own/path/tensors"
