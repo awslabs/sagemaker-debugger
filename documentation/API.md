@@ -276,6 +276,11 @@ will return the standard deviation and variance, the mean of the absolute value,
 
 ## Environment Variables
 
+####`USE_SMDEBUG`:
+
+Setting this variable to 0 turns off the hook that is created by default. This can be used
+if the user doesn't want to use SageMaker Debugger.
+
 ####`SMDEBUG_CONFIG_FILE_PATH`:
 
 Contains the path to the JSON file that describes the smdebug hook. SageMaker-Debugger is disabled
