@@ -177,38 +177,38 @@ def exhaustive_check(out_dir, use_tf_keras):
 
     tr = create_trial_fast_refresh(out_dir)
     if use_tf_keras:
-        assert len(tr.tensors()) == 18
+        assert len(tr.tensor_names()) == 18
     else:
         # can't save optimizer variables in this case
-        assert len(tr.tensors()) == 13
+        assert len(tr.tensor_names()) == 13
 
     assert len(tr.modes()) == 3
     assert len(tr.steps(ModeKeys.TRAIN)) == 8  # 0, 3, 6, 9, 12, 15, 18, 19(end of epoch)
     assert len(tr.steps(ModeKeys.EVAL)) == 4
     assert len(tr.steps(ModeKeys.PREDICT)) == 2  # ran 4 steps above
 
-    assert len(tr.tensors(collection=CollectionKeys.GRADIENTS)) == 4
-    gradient_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
+    assert len(tr.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
+    gradient_name = tr.tensor_names(collection=CollectionKeys.GRADIENTS)[0]
     assert len(tr.tensor(gradient_name).steps(ModeKeys.TRAIN)) == 7
     assert len(tr.tensor(gradient_name).steps(ModeKeys.EVAL)) == 0
 
-    assert len(tr.tensors(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(tr.tensors(collection=CollectionKeys.BIASES)) == 2
-    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
+    assert len(tr.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(tr.tensor_names(collection=CollectionKeys.BIASES)) == 2
+    weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
 
     assert len(tr.tensor(weight_name).steps()) == 13
     assert len(tr.tensor(weight_name).steps(ModeKeys.TRAIN)) == 7
     assert len(tr.tensor(weight_name).steps(ModeKeys.EVAL)) == 4
 
-    assert len(tr.tensors(collection=CollectionKeys.LOSSES)) == 1
-    loss_name = tr.tensors(collection=CollectionKeys.LOSSES)[0]
+    assert len(tr.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+    loss_name = tr.tensor_names(collection=CollectionKeys.LOSSES)[0]
     assert len(tr.tensor(loss_name).steps()) == 12
 
-    assert len(tr.tensors(collection=CollectionKeys.METRICS)) == 3
+    assert len(tr.tensor_names(collection=CollectionKeys.METRICS)) == 3
 
     if use_tf_keras:
-        assert len(tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-        opt_var_name = tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)[0]
+        assert len(tr.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+        opt_var_name = tr.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)[0]
         assert tr.tensor(opt_var_name).value(0) is not None
         assert len(tr.tensor(opt_var_name).steps(ModeKeys.EVAL)) == 0
 
@@ -240,20 +240,20 @@ def test_tf_keras_non_keras_opt(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.modes()) == 2
     assert len(tr.steps(ModeKeys.TRAIN)) == 4  # 0, 3, 6, 9
-    assert len(tr.tensors(collection=CollectionKeys.GRADIENTS)) == 4
-    gradient_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
+    assert len(tr.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
+    gradient_name = tr.tensor_names(collection=CollectionKeys.GRADIENTS)[0]
     assert len(tr.tensor(gradient_name).steps(ModeKeys.TRAIN)) == 4
     assert len(tr.tensor(gradient_name).steps(ModeKeys.EVAL)) == 0
 
     # not supported for non keras optimizer with keras
-    assert len(tr.tensors(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
+    assert len(tr.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
 
 
 @pytest.mark.slow  # 0:09 to run
 def test_save_all(out_dir):
     train_model(out_dir, include_collections=None, save_all=True, steps=["train"])
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensors()) == 21
+    assert len(tr.tensor_names()) == 21
     assert len(tr.steps()) == 4
 
 
@@ -266,8 +266,8 @@ def test_base_reductions(out_dir):
         steps=["train"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    print(tr.tensors())
-    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
+    print(tr.tensor_names())
+    weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
     try:
         tr.tensor(weight_name).value(0)
         assert False
@@ -277,10 +277,10 @@ def test_base_reductions(out_dir):
             ALLOWED_NORMS
         )
 
-    loss_name = tr.tensors(collection=CollectionKeys.LOSSES)[0]
+    loss_name = tr.tensor_names(collection=CollectionKeys.LOSSES)[0]
     assert tr.tensor(loss_name).value(0) is not None
 
-    metric_name = tr.tensors(collection=CollectionKeys.METRICS)[0]
+    metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
     assert tr.tensor(metric_name).value(0) is not None
 
 
@@ -295,8 +295,8 @@ def test_collection_reductions(out_dir):
     train_model(out_dir, hook=hook, steps=["train"])
 
     tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensors(collection=CollectionKeys.WEIGHTS)[0]
-    grad_name = tr.tensors(collection=CollectionKeys.GRADIENTS)[0]
+    weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
+    grad_name = tr.tensor_names(collection=CollectionKeys.GRADIENTS)[0]
 
     assert tr.tensor(weight_name).value(0) is not None
     try:
@@ -323,7 +323,7 @@ def test_collection_add(out_dir):
     )
 
     tr = create_trial_fast_refresh(out_dir)
-    relu_coll_tensor_names = tr.tensors(collection="relu")
+    relu_coll_tensor_names = tr.tensor_names(collection="relu")
 
     assert len(relu_coll_tensor_names) == 2
     assert tr.tensor(relu_coll_tensor_names[0]).value(0) is not None
@@ -339,7 +339,7 @@ def test_include_regex(out_dir):
     train_model(out_dir, hook=hook, save_config=SaveConfig(save_interval=9), steps=["train"])
 
     tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensors(collection="custom_coll")
+    tnames = tr.tensor_names(collection="custom_coll")
 
     assert len(tnames) == 8
     for tname in tnames:
@@ -361,7 +361,7 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensors()) == 8
+    assert len(tr.tensor_names()) == 8
     shutil.rmtree(out_dir)
 
 
@@ -380,5 +380,5 @@ def test_clash_with_custom_callback(out_dir):
         add_callbacks=["fetch_tensor"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensors()) == 11
+    assert len(tr.tensor_names()) == 11
     shutil.rmtree(out_dir)

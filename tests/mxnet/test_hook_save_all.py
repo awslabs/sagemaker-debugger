@@ -21,10 +21,10 @@ def test_save_all(hook=None, out_dir=None):
         print("Registering the hook with out_dir {}".format(out_dir))
         hook = t_hook(out_dir=out_dir, save_config=save_config, save_all=True)
     run_mnist_gluon_model(hook=hook, num_steps_train=7, num_steps_eval=5)
-    # assert for steps and tensornames
+    # assert for steps and tensor_names
     print("Created the trial with out_dir {}".format(out_dir))
     tr = create_trial(out_dir)
-    tensor_list = tr.tensors()
+    tensor_list = tr.tensor_names()
     assert tr
     assert len(tr.steps()) == 4
     # some tensor names, like input and output, can't be retrieved from training session, so here we only assert for tensor numbers

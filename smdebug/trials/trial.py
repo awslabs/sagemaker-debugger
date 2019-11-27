@@ -121,7 +121,7 @@ class Trial(ABC):
             f"    path={self.path},\n"
             f"    steps={self.steps()},\n"
             f"    collections={list(self.collections().keys())},\n"
-            f"    tensors={self.tensors()},\n"
+            f"    tensor_names={self.tensor_names()},\n"
             f")"
         )
 
@@ -314,21 +314,25 @@ class Trial(ABC):
                 matched_tensornames.add(tensorname)
         return matched_tensornames
 
-    def _tensors_in_collection(self, collection) -> set:
+    @staticmethod
+    def _parse_collection_name(collection):
         if isinstance(collection, Collection):
             coll_name = collection.name
         elif type(collection) is str:
             coll_name = collection
         else:
             raise TypeError(f"Invalid argument type for collection {collection.__class__}")
+        return coll_name
 
+    def _tensors_in_collection(self, collection) -> set:
+        coll_name = self._parse_collection_name(collection)
         rval = set(self.collection(coll_name).tensor_names)
         regex = self.collection(coll_name).include_regex
         if regex:
             rval.update(self._tensors_matching_regex(regex))
         return rval
 
-    def tensors(self, *, step=None, mode=ModeKeys.GLOBAL, regex=None, collection=None) -> list:
+    def tensor_names(self, *, step=None, mode=ModeKeys.GLOBAL, regex=None, collection=None) -> list:
         self.maybe_refresh()
         ts = set()
         if step is None and mode == ModeKeys.GLOBAL:
@@ -340,17 +344,21 @@ class Trial(ABC):
 
         if regex is None and collection is None:
             return sorted(list(ts))
+        elif regex is not None and collection is not None:
+            raise ValueError("Only one of `regex` or `collection` can be passed to this method")
         else:
-            xs = set()
-            if regex is not None:
-                xs.update(self._tensors_matching_regex(regex))
             if collection is not None:
-                collection_tensors_saved = set(self._tensors.keys()).intersection(
-                    self._tensors_in_collection(collection)
-                )
-                xs.update(collection_tensors_saved)
-
-        return sorted(list(ts.intersection(xs)))
+                xs = set(self._tensors.keys()).intersection(self._tensors_in_collection(collection))
+                matching_tensors_saved = ts.intersection(xs)
+                if len(matching_tensors_saved) == 0:
+                    coll_name = self._parse_collection_name(collection)
+                    self.logger.warning(f"No tensors from the collection {coll_name} were saved")
+            else:
+                xs = self._tensors_matching_regex(regex)
+                matching_tensors_saved = ts.intersection(xs)
+                if len(matching_tensors_saved) == 0:
+                    self.logger.warning(f"No tensors matching the regex pattern given were saved")
+            return sorted(list(matching_tensors_saved))
 
     def _tensors_for_step(self, step, mode=ModeKeys.GLOBAL) -> list:
         step = self._mode_to_global[mode][step] if mode != ModeKeys.GLOBAL else step

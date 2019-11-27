@@ -179,11 +179,11 @@ def check_trials(out_dir, save_steps, coll_name, saved_scalars=None):
     """
     trial = create_trial(path=out_dir, name="test output")
     assert trial
-    tensor_list = set(trial.tensors()) & set(trial.tensors(collection=coll_name))
+    tensor_list = set(trial.tensor_names()) & set(trial.tensor_names(collection=coll_name))
     for tname in tensor_list:
         if tname not in saved_scalars:
             assert len(trial.tensor(tname).steps()) == len(save_steps)
-    scalar_list = trial.tensors(regex="^scalar")
+    scalar_list = trial.tensor_names(regex="^scalar")
     if scalar_list:
         assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
 

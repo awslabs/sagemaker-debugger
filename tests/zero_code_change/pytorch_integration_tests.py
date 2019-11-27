@@ -66,16 +66,19 @@ def test_pytorch(script_mode: bool, use_loss_module=False):
 
         trial = create_trial(path=sim.out_dir)
         print(f"trial.steps() = {trial.steps()}")
-        print(f"trial.tensors() = {trial.tensors()}")
+        print(f"trial.tensor_names() = {trial.tensor_names()}")
 
         print(f"collection_manager = {hook.collection_manager}")
 
         losses_tensors = hook.collection_manager.get("losses").tensor_names
-        print(f"'losses' collection tensors = {losses_tensors}")
+        print(f"'losses' collection tensor_names = {losses_tensors}")
         assert len(losses_tensors) > 0
 
         assert all(
-            [name in trial.tensors() for name in hook.collection_manager.get("losses").tensor_names]
+            [
+                name in trial.tensor_names()
+                for name in hook.collection_manager.get("losses").tensor_names
+            ]
         )
 
 

@@ -36,7 +36,7 @@ def test_modes(hook=None, path=None):
     assert len(tr.steps(mode=modes.EVAL)) == 2, tr.steps()
 
     # Ensure that the gradients are available in TRAIN modes only.
-    grad_tns_name = tr.tensors(regex="^gradient.")[0]
+    grad_tns_name = tr.tensor_names(regex="^gradient.")[0]
     grad_tns = tr.tensor(grad_tns_name)
     grad_train_steps = grad_tns.steps(mode=modes.TRAIN)
     grad_eval_steps = grad_tns.steps(mode=modes.EVAL)
@@ -44,7 +44,7 @@ def test_modes(hook=None, path=None):
     assert grad_eval_steps == []
 
     # Ensure that the weights are available in TRAIN and EVAL  modes.
-    wt_tns_name = tr.tensors(regex="conv\d+_weight")[0]
+    wt_tns_name = tr.tensor_names(regex="conv\d+_weight")[0]
     wt_tns = tr.tensor(wt_tns_name)
     wt_train_steps = wt_tns.steps(mode=modes.TRAIN)
     wt_eval_steps = wt_tns.steps(mode=modes.EVAL)

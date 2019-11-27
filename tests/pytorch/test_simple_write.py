@@ -203,7 +203,7 @@ def helper_test_weights_bias_gradients(hook=None):
     assert len(trial.steps()) == len(save_steps)
     for step in trial.steps():
         for tname in tensors:
-            assert tname in trial.tensors()
+            assert tname in trial.tensor_names()
             assert step in trial.tensor(tname).steps()
             saved_tensor = trial.tensor(tname).value(step)
             in_memory = model.saved[tname][step]
@@ -256,7 +256,7 @@ def saveall_test_helper(hook=None):
 
     for step in trial.steps():
         for tname in tensors:
-            assert tname in trial.tensors()
+            assert tname in trial.tensor_names()
             assert step in trial.tensor(tname).steps()
             saved_tensor = trial.tensor(tname).value(step)
             in_memory = model.saved[tname][step]
@@ -295,7 +295,7 @@ def helper_test_multi_collections(hook, out_dir):
     assert len(trial.steps()) == len(save_steps)
 
     for tname in tensors:
-        assert tname in trial.tensors()
+        assert tname in trial.tensor_names()
 
 
 def test_weightsbiasgradients_json():
