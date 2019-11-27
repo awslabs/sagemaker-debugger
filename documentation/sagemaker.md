@@ -1,4 +1,4 @@
-# SageMaker Examples
+# SageMaker
 
 There are two cases for using SageMaker: fully managed or bring-your-own-container (BYOC).
 In fully managed mode, SageMaker will automatically inject hooks into your training script - no code

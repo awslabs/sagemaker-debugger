@@ -1,11 +1,8 @@
 # Sagemaker Debugger
 
 - [Overview](#overview)
-- [SageMaker Example](#sagemaker-example)
-- [Python Example](#python-example)
-- [Concepts](#concepts)
-- [Glossary](#glossary)
-- [Detailed Links](#detailed-links)
+- [Examples](#sagemaker-example)
+- [How It Works](#how-it-works)
 
 ## Overview
 Sagemaker Debugger is an AWS service to automatically debug your machine learning training process.
@@ -17,13 +14,20 @@ TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 - Realtime training job monitoring and visibility into any tensor value.
 - Distributed training and TensorBoard support.
 
-## SageMaker Example
-This example uses a zero-code-change experience, where you can use your training script as-is.\
-See the [sagemaker](https://link.com) page for more details.
+There are two ways to use it: Automatic mode and configurable mode.
+
+- Automatic mode: No changes to your training script. Specify the rules you want and launch a SageMaker Estimator job.
+- Configurable mode: More powerful, lets you specify exactly which tensors and collections to save. Use the Python API within your script.
+
+
+## Example: SageMaker Zero-Code-Change
+This example uses a zero-script-change experience, where you can use your training script as-is.
+See the [example notebooks](https://link.com) for more details.
 ```python
 import sagemaker
 from sagemaker.debugger import rule_configs, Rule, CollectionConfig
 
+# Choose a built-in rule to monitor your training job
 rule = Rule.sagemaker(
     rule_configs.exploding_tensor(),
     rule_parameters={
@@ -35,6 +39,7 @@ rule = Rule.sagemaker(
     ],
 )
 
+# Pass the rule to the estimator
 sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
     entry_point="script.py",
     role=sagemaker.get_execution_role(),
@@ -46,84 +51,57 @@ sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
 sagemaker_simple_estimator.fit()
 ```
 
+That's it! SageMaker will automatically monitor your training job for your and create a CloudWatch
+event if you run into exploding tensor values.
 
-## Python Example
-Requires Python 3.6+. Run
+If you want greater configuration and control, we offer that too. Simply
+
+
+## Example: Running Locally
+Requires Python 3.6+, and this example uses tf.keras. Run
 ```
 pip install smdebug
-```
-
-This example uses tf.keras. Say your training code looks like this:
-```python
-model = tf.keras.models.Sequential([ ... ])
-model.compile(
-    optimizer='adam',
-    loss='sparse_categorical_crossentropy',
-)
-model.fit(x_train, y_train, epochs=args.epochs)
-model.evaluate(x_test, y_test)
 ```
 
 To use Sagemaker Debugger, simply add a callback hook:
 ```python
 import smdebug.tensorflow as smd
-hook = smd.KerasHook(out_dir=args.out_dir)
+hook = smd.KerasHook.(out_dir=args.out_dir)
 
 model = tf.keras.models.Sequential([ ... ])
 model.compile(
     optimizer='adam',
     loss='sparse_categorical_crossentropy',
 )
+
+# Add the hook as a callback
 model.fit(x_train, y_train, epochs=args.epochs, callbacks=[hook])
 model.evaluate(x_test, y_test, callbacks=[hook])
-```
 
-To analyze the result of the training run, create a trial and inspect the tensors.
-```python
+# Create a trial to inspect the saved tensors
 trial = smd.create_trial(out_dir=args.out_dir)
 print(f"Saved tensor values for {trial.tensors()}")
 print(f"Loss values were {trial.tensor('CrossEntropyLoss:0')}")
 ```
 
-## Concepts
-The steps to use Tornasole in any framework are:
+## How It Works
+SageMaker Debugger uses a `hook` to store the values of tensors throughout the training process. Another process called a `rule` job
+simultaneously monitors and validates these outputs to ensure that training is progressing as expected.
+A rule might check for vanishing gradients, or exploding tensor values, or poor weight initialization.
+If a rule is triggered, it will raise a CloudWatch event and stop the training job, saving you time
+and money.
 
-1. Create a `hook`.
-2. Register your model and optimizer with the hook.
-3. Specify the `rule` to be used.
-4. After training, create a `trial` to manually analyze the tensors.
+SageMaker Debugger can be used inside or outside of SageMaker. There are three main use cases:
+- SageMaker Zero-Script-Change: Here you specify which rules to use when setting up the estimator and run your existing script, no changes needed. See the first example above.
+- SageMaker Bring-Your-Own-Container: Here you specify the rules to use, and modify your training script.
+- Non-SageMaker: Here you write custom rules (or manually analyze the tensors) and modify your training script. See the second example above.
 
-See the [API page](https://link.com) for more details.
+The reason for different setups is that SageMaker Zero-Script-Change uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
+These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
-## Glossary
-
-The imports assume `import smdebug.{tensorflow,pytorch,mxnet,xgboost} as smd`.
-
-**Hook**: The main interface to use training. This object can be passed as a model hook/callback
-in Tensorflow and Keras. It keeps track of collections and writes output files at each step.
-- `hook = smd.Hook(out_dir="/tmp/mnist_job")`
-
-**Mode**: One of "train", "eval", "predict", or "global". Helpful for segmenting data based on the phase
-you're in. Defaults to "global".
-- `train_mode = smd.modes.TRAIN`
-
-**Collection**: A group of tensors. Each collection contains its own save configuration and regexes for
-tensors to include/exclude.
-- `collection = hook.get_collection("losses")`
-
-**SaveConfig**: A Python dict specifying how often to save losses and tensors.
-- `save_config = smd.SaveConfig(save_interval=10)`
-
-**ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor.
-- `reduction_config = smd.ReductionConfig(reductions=['min', 'max', 'mean'], norms=['l1'])`
-
-**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](https://link.com).
-- `trial = smd.create_trial(out_dir="/tmp/mnist_job")`
-
-**Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient. See [rules documentation](https://link.com).
-
-## Detailed Links
-- [Full API](https://link.com)
-- [Rules and Trials](https://link.com)
-- [Distributed Training](https://link.com)
-- [TensorBoard](https://link.com)
+See the [SageMaker page](https://link.com) for details on SageMaker Zero-Script-Change experience.\
+See the frameworks pages for details on modifying the training script:
+- [TensorFlow](https://link.com)
+- [PyTorch](https://link.com)
+- [MXNet](https://link.com)
+- [XGBoost](https://link.com)
