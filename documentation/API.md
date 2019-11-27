@@ -283,15 +283,16 @@ if the user doesn't want to use SageMaker Debugger.
 
 ####`SMDEBUG_CONFIG_FILE_PATH`:
 
-Contains the path to the JSON file that describes the smdebug hook. SageMaker-Debugger is disabled
-if this environment variable is not set.
+Contains the path to the JSON file that describes the smdebug hook.
 
 At the minimum, the JSON config should contain the path where smdebug should output tensors.
 Example:
 
 `{ “LocalPath”: /my/smdebug_hook/path }`
 
-In SageMaker environment, this path is set to point to a pre-defined location.
+In SageMaker environment, this path is set to point to a pre-defined location containing a valid JSON.
+In non-SageMaker environment, SageMaker-Debugger is not used if this environment variable is not set and
+a hook is not created manually.
 
 Sample JSON from which a hook can be created:
 ```
