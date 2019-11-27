@@ -159,9 +159,9 @@ class Collection:
     def save_config(self, save_config: Union[SaveConfig, Dict[ModeKeys, SaveConfigMode]]):
         """Pass in either a fully-formed SaveConfig, or a dictionary with partial keys mapping to SaveConfigMode.
 
-    If partial keys are passed (for example, only ModeKeys.TRAIN), then the other mdoes are populated
-    from `base_save_config`.
-    """
+        If partial keys are passed (for example, only ModeKeys.TRAIN), then the other mdoes are populated
+        from `base_save_config`.
+        """
         if save_config is None:
             self._save_config = None
         elif isinstance(save_config, dict):
