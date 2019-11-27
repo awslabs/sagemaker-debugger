@@ -100,7 +100,7 @@ class IndexReader(ABC):
 
     def __init__(self, path):
         self.event_file_retry_limit = os.getenv(
-            "SMDEBUG_EVENT_FILE_RETRY_LIMIT", DEFAULT_EVENT_FILE_RETRY_LIMIT
+            "TORNASOLE_EVENT_FILE_RETRY_LIMIT", DEFAULT_EVENT_FILE_RETRY_LIMIT
         )
         self.path = path
         self.logger = get_logger()

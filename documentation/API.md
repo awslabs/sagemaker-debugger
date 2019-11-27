@@ -352,15 +352,6 @@ Contains the path to the directory where metrics will be recorded for consumptio
 This is relevant only in SageMaker environment, where this variable points to a pre-defined location.
 
 
-####`SMDEBUG_EVENT_FILE_RETRY_LIMIT`:
-
-During analysis, a [trial](#Linkto analysis.md) is created to query for tensors from a specified directory. This
-directory contains collections, events, and index files. This environment variable
-specifies how many retries should be allowed while scanning for the presence of files in the events directory.
-By default, this value is set to 100. If the file is not available after the set
-number of retries, then a TensorUnavailableForStep exception is raised.
-
-
 ####`TRAINING_END_DELAY_REFRESH`:
 
 During analysis, a [trial](#Linkto analysis.md) is created to query for tensors from a specified directory. This
