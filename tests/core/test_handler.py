@@ -29,7 +29,7 @@ class Index:
                 )
             ]
 
-    # input to get_index_for_tensors is a dict {path:{tensornames:[step_nums]}}
+    # input to get_index_for_tensors is a dict {path:{tensor_names:[step_nums]}}
     # output of that fn is dict {path:{tname:[(step_num, TensorLocation)]}}
     def get_index_for_tensors(self, t_dict):
         dict_to_return = dict()

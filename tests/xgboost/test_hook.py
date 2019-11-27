@@ -31,7 +31,7 @@ def test_hook_from_json_config(tmpdir, monkeypatch):
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config(str(out_dir)))
     monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
 
@@ -41,7 +41,7 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
     config_file = tmpdir.join("config.json")
     config_file.write(get_json_config_full(str(out_dir)))
     monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
-    hook = Hook.hook_from_config()
+    hook = Hook.create_from_json_file()
     assert has_training_ended(out_dir) is False
     run_xgboost_model(hook=hook)
 
@@ -64,7 +64,7 @@ def test_hook_save_all(tmpdir):
 
     trial = create_trial(out_dir)
     collections = trial.collections()
-    tensors = trial.tensors()
+    tensors = trial.tensor_names()
     assert len(tensors) > 0
     assert len(trial.steps()) == 4
     assert "all" in collections
@@ -88,7 +88,7 @@ def test_hook_save_config_collections(tmpdir):
     trial = create_trial(out_dir)
     metric_steps = trial.tensor("train-rmse").steps()
     assert all(step % 2 == 0 for step in metric_steps[:-1])
-    fimps = [t for t in trial.tensors() if t.startswith("feature_importance/")]
+    fimps = [t for t in trial.tensor_names() if t.startswith("feature_importance/")]
     fimp_steps = trial.tensor(fimps[0]).steps()
     assert all(step % 3 == 0 for step in fimp_steps[:-1])
 
@@ -104,7 +104,7 @@ def test_hook_feature_importance(tmpdir):
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
-    tensors = trial.tensors()
+    tensors = trial.tensor_names()
     assert len(tensors) > 0
     assert "feature_importance" in trial.collections()
     assert any(t.startswith("feature_importance/") for t in tensors)
@@ -128,7 +128,7 @@ def test_hook_shap(tmpdir):
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
-    tensors = trial.tensors()
+    tensors = trial.tensor_names()
     assert len(tensors) > 0
     assert "average_shap" in trial.collections()
     assert "full_shap" in trial.collections()
@@ -163,7 +163,7 @@ def test_hook_validation(tmpdir):
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
-    tensors = trial.tensors()
+    tensors = trial.tensor_names()
     assert len(tensors) > 0
     assert "labels" in trial.collections()
     assert "predictions" in trial.collections()
@@ -185,7 +185,7 @@ def test_hook_tree_model(tmpdir):
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
-    tensors = trial.tensors()
+    tensors = trial.tensor_names()
     assert len(tensors) > 0
     assert "trees" in trial.collections()
     for col in df.columns:
@@ -207,7 +207,7 @@ def test_hook_params(tmpdir):
     run_xgboost_model(hook=hook)
 
     trial = create_trial(out_dir)
-    tensors = trial.tensors()
+    tensors = trial.tensor_names()
     assert len(tensors) > 0
     assert "hyperparameters" in trial.collections()
     assert trial.tensor("hyperparameters/objective").value(0) == "binary:logistic"

@@ -103,8 +103,8 @@ def test_hook_write(out_dir):
     )
     helper_hook_write(out_dir, hook)
     tr = create_trial_fast_refresh(out_dir)
-    print(tr.tensors(collection="weights"))
-    assert len(tr.tensors(collection="weights"))
+    print(tr.tensor_names(collection="weights"))
+    assert len(tr.tensor_names(collection="weights"))
 
 
 def test_hook_write_json(out_dir, monkeypatch):
@@ -112,5 +112,5 @@ def test_hook_write_json(out_dir, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_write.json"
     )
-    hook = smd.SessionHook.hook_from_config()
+    hook = smd.SessionHook.create_from_json_file()
     helper_hook_write(out_dir, hook)

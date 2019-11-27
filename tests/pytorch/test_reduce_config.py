@@ -53,9 +53,9 @@ def test_reduce_config(hook=None, out_dir=None):
     tr = create_trial(out_dir)
     assert tr
     assert len(tr.steps()) == 7
-    print(tr.tensors())
-    tname = tr.tensors(regex="Net_conv[0-9]+.weight")[0]
-    print(tr.tensors())
+    print(tr.tensor_names())
+    tname = tr.tensor_names(regex="Net_conv[0-9]+.weight")[0]
+    print(tr.tensor_names())
 
     # Global reduction with max and mean and variance
     weight_tensor = tr.tensor(tname)
@@ -67,7 +67,7 @@ def test_reduce_config(hook=None, out_dir=None):
     assert variance_val != None
 
     # custom reduction at step 4 with reduction = 'min and abs reduction = 'max'
-    tname = tr.tensors(regex="relu0_input_0")[0]
+    tname = tr.tensor_names(regex="relu0_input_0")[0]
     relu_input = tr.tensor(tname)
     min_val = relu_input.reduction_value(4, abs=False, reduction_name="min")
     assert min_val != None
@@ -95,6 +95,6 @@ def test_reduce_config_with_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/pytorch/test_json_configs/test_hook_reduction_config.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     test_reduce_config(hook=hook, out_dir=out_dir)
     shutil.rmtree(out_dir, True)

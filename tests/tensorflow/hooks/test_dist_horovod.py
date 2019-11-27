@@ -9,7 +9,7 @@ from smdebug.trials import create_trial
 def test_s3_read():
     path = "s3://tornasole-testing/dist-logs-10/"
     trial = create_trial(path)
-    tensors = trial.tensors()
+    tensors = trial.tensor_names()
     assert len(tensors) == 17
     t = trial.tensor("gradients/dense_1/MatMul_grad/tuple/control_dependency_1:0")
     steps = t.steps()

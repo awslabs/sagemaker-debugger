@@ -8,7 +8,7 @@ class CustomGradientRule(Rule):
         self.threshold = float(threshold)
 
     def set_required_tensors(self, step):
-        for tname in self.base_trial.tensors(collection="gradients"):
+        for tname in self.base_trial.tensor_names(collection="gradients"):
             self.req_tensors.add(tname, steps=[step])
 
     def invoke_at_step(self, step):

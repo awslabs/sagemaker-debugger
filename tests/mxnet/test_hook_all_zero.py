@@ -35,9 +35,9 @@ def test_hook_all_zero(hook=None, out_dir=None):
     assert tr
     assert len(tr.steps()) == 4
 
-    tnames = tr.tensors(regex="conv._input")
+    tnames = tr.tensor_names(regex="conv._input")
     print(tnames)
-    tname = tr.tensors(regex="conv._input")[0]
+    tname = tr.tensor_names(regex="conv._input")[0]
     print(tname)
     print(tr.tensor(tname).steps())
     conv_tensor_value = tr.tensor(tname).value(step_num=0)
@@ -57,6 +57,6 @@ def test_hook_all_zero_hook_from_json():
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
     ] = "tests/mxnet/test_json_configs/test_hook_all_zero_hook.json"
-    hook = t_hook.hook_from_config()
+    hook = t_hook.create_from_json_file()
     test_hook_all_zero(hook, out_dir)
     shutil.rmtree(out_dir, True)

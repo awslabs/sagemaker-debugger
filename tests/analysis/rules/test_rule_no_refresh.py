@@ -17,7 +17,7 @@ def test_no_refresh_invocation():
             super().__init__(base_trial=base_trial)
 
         def set_required_tensors(self, step):
-            for t in self.base_trial.tensors():
+            for t in self.base_trial.tensor_names():
                 self.req_tensors.add(t, steps=[step])
 
         def invoke_at_step(self, step):

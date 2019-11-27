@@ -168,7 +168,7 @@ def helper_test_mnist_trial(trial_dir):
     assert len(tr.steps()) == 3
     assert len(tr.steps(mode=smd.modes.TRAIN)) == 2
     assert len(tr.steps(mode=smd.modes.EVAL)) == 1
-    assert len(tr.tensors()) == 13
+    assert len(tr.tensor_names()) == 13
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
         shutil.rmtree(trial_dir, ignore_errors=True)
@@ -192,7 +192,7 @@ def test_mnist_local_json(out_dir, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     help_test_mnist(path=out_dir, hook=hook, num_steps=2)
     helper_test_mnist_trial(out_dir)
 
@@ -210,7 +210,7 @@ def helper_test_multi_save_configs_trial(trial_dir):
     assert len(tr.steps()) == 4
     assert len(tr.steps(mode=smd.modes.TRAIN)) == 3
     assert len(tr.steps(mode=smd.modes.EVAL)) == 1
-    assert len(tr.tensors()) == 1
+    assert len(tr.tensor_names()) == 1
     on_s3, bucket, prefix = is_s3(trial_dir)
     if not on_s3:
         shutil.rmtree(trial_dir)
@@ -252,7 +252,7 @@ def test_mnist_local_multi_save_configs_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_save_config_modes_hook_config.json",
     )
-    hook = smd.SessionHook.hook_from_config()
+    hook = smd.SessionHook.create_from_json_file()
     help_test_mnist(out_dir, hook=hook, num_steps=3)
     helper_test_multi_save_configs_trial(out_dir)
 
@@ -269,4 +269,4 @@ def test_mode_changes(out_dir):
     assert len(tr.steps()) == 6
     assert len(tr.steps(mode=smd.modes.TRAIN)) == 4
     assert len(tr.steps(mode=smd.modes.EVAL)) == 2
-    assert len(tr.tensors()) == 13
+    assert len(tr.tensor_names()) == 13

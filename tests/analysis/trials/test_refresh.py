@@ -56,8 +56,8 @@ def help_test_refresh(path):
         )
     tr = create_trial(path + trial_name)
 
-    assert "foo_" + str(num_tensors + 1) not in tr.tensors()
-    assert "foo_1" in tr.tensors()
+    assert "foo_" + str(num_tensors + 1) not in tr.tensor_names()
+    assert "foo_1" in tr.tensor_names()
     assert len(tr.steps()) == num_steps
     assert len(tr.tensor("foo_1").steps()) == num_steps
 
@@ -117,8 +117,8 @@ def help_test_no_refresh(path):
         )
     tr = create_trial(path + trial_name)
 
-    assert "foo_" + str(num_tensors + 1) not in tr.tensors()
-    assert "foo_1" in tr.tensors()
+    assert "foo_" + str(num_tensors + 1) not in tr.tensor_names()
+    assert "foo_1" in tr.tensor_names()
     assert len(tr.steps()) == num_steps
     assert len(tr.tensor("foo_1").steps()) == num_steps
 
