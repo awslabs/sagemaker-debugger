@@ -2,7 +2,9 @@
 
 There are two cases for SageMaker:
 - Zero-Script-Change (ZSC): Here you specify which rules to use, and run your existing script.
+    - Supported in Deep Learning Containers: `TensorFlow==1.15, PyTorch==1.3, MXNet==1.6`
 - Bring-Your-Own-Container (BYOC): Here you specify the rules to use, and modify your training script.
+    - Supported with `TensorFlow==1.13/1.14/1.15, PyTorch==1.2/1.3, MXNet==1.4,1.5,1.6`
 
 Table of Contents
 - [Version Support](#version-support)
@@ -10,8 +12,7 @@ Table of Contents
 - [Bring-Your-Own-Container Example](#byoc-example)
 
 ## Configuration Details
-
-
+The DebuggerHookConfig is the main object.
 
 ```python
 rule = sagemaker.debugger.Rule.sagemaker(
@@ -49,45 +50,40 @@ collection_config = sagemaker.debugger.CollectionConfig(
 )
 ```
 
-
-
-## SageMaker Estimator Parameters
-There are three parameters to pass into SageMaker Estimator:
-
-
-## Example Usage (Sagemaker Fully Managed)
-This setup will work for any script without code changes. This example shows Tensorflow 1.15.
-See the [JSON specification](https://link.com) section of API.md for details on the JSON configuration.
-
-This example uses TensorFlow.
-To use PyTorch or MXNet, simply call `sagemaker.pytorch.PyTorch` or `sagemaker.mxnet.MXNet`.
+A full example script is below:
 ```python
 import sagemaker
-from sagemaker.debugger import Rule, rule_configs, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig
+from sagemaker.debugger import rule_configs, Rule, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig
+
+hook_parameters = {
+    "include_regex": "my_regex,another_regex", # comma-separated string of regexes
+    "save_interval": 100,
+    "save_steps": "1,2,3,4", # comma-separated string of steps to save
+    "start_step": 1,
+    "end_step": 2000,
+    "reductions": "min,max,mean,std,abs_variance,abs_sum,abs_l2_norm",
+}
+weights_config = CollectionConfiguration("weights")
+biases_config = CollectionConfiguration("biases")
+losses_config = CollectionConfiguration("losses")
+tb_config = TensorBoardOutputConfig(s3_output_path="s3://my-bucket/tensorboard")
 
 hook_config = DebuggerHookConfig(
-    s3_output_path = "s3://my-bucket/debugger-logs",
-    hook_parameters = {
-        "save_steps": "0,20,40,60,80"
-    },
-    collection_configs = [
-        CollectionConfig(name="weights"),
-        CollectionConfig(name="biases"),
-    ],
+    s3_output_path="s3://my-bucket/smdebug",
+    hook_parameters=hook_parameters,
+    collection_configs=[weights_config, biases_config, losses_config],
 )
 
-
-rule = Rule.sagemaker(
-    rule_configs.exploding_tensor(),
+exploding_tensor_rule = Rule.sagemaker(
+    base_config=rule_configs.exploding_tensor(),
     rule_parameters={
-        "tensor_regex": ".*"
+        "tensor_regex": ".*",
     },
-    collections_to_save=[
-        CollectionConfig(name="weights", parameters={}),
-        CollectionConfig(name="losses", parameters={}),
-    ],
+    collections_to_save=[weights_config, losses_config],
 )
+vanishing_gradient_rule = Rule.sagemaker(base_config=rule_configs.vanishing_gradient())
 
+# Or use sagemaker.pytorch.PyTorch or sagemaker.mxnet.MXNet
 sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
     entry_point=simple_entry_point_script,
     role=sagemaker.get_execution_role(),
@@ -96,38 +92,28 @@ sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
     train_instance_type="ml.m4.xlarge",
     framework_version="1.15",
     py_version="py3",
+    # smdebug-specific arguments below
+    rules=[exploding_tensor_rule, vanishing_gradient_rule],
     debugger_hook_config=hook_config,
-    rules=[rule],
+    tensorboard_output_config=tb_config,
 )
 
 sagemaker_simple_estimator.fit()
 ```
 
-When a rule triggers, it will create a CloudWatch event.
+## Using a Custom Container
+To use a custom container (without the framework forks), you should modify your script.
+Use the same sagemaker Estimator setup as shown below, and in your script, call
 
-## Example Usage (SageMaker BYOC)
-Define the
-Use the same script as fully managed. In the script, call
-`hook = smd.{hook_class}.create_from_json_file()`
-to get the hook and then use it as described in the rest of the API docs.
+```python
+hook = smd.{hook_class}.create_from_json_file()
+```
 
-
-## Version Support
-In ZSC mode, SageMaker will use custom framework forks to automatically save tensors. This is supported
-only for certain Deep Learning Containers.
-| DLC Framework | Version |
-|---|---|
-| TensorFlow | 1.15 |
-| PyTorch | 1.3 |
-| MXNet | 1.6 |
-
-In BYOC mode, custom framework forks are not available. You must modify your script to save tensors.
-This is supported for
-| Framework | Versions |
-|---|---|
-| TensorFlow | 1.13, 1.14, 1.15 |
-| PyTorch | 1.2, 1.3 |
-| MXNet | 1.4, 1.5, 1.6
+and modify the rest of your script as shown in the API docs. Click on your desired framework below.
+- [TensorFlow](https://link.com)
+- [PyTorch](https://link.com)
+- [MXNet](https://link.com)
+- [XGBoost](https://link.com)
 
 
 ## Comprehensive Rule List
