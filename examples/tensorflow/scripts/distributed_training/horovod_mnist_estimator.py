@@ -186,7 +186,7 @@ def main(unused_argv):
 
     # Download and load MNIST dataset.
     (train_data, train_labels), (eval_data, eval_labels) = keras.datasets.mnist.load_data(
-        "MNIST-data-%d" % hvd.rank()
+        "/tmp/MNIST-data-%d" % hvd.rank()
     )
 
     # The shape of downloaded data is (-1, 28, 28), hence we need to reshape it

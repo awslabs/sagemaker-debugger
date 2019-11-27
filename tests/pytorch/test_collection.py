@@ -19,7 +19,7 @@ def test_collection_add(hook=None, out_dir=None):
     hook_created = False
     if hook is None:
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-        out_dir = "./newlogsRunTest/" + run_id
+        out_dir = "/tmp/" + run_id
         hook = t_hook(
             out_dir=out_dir,
             save_config=SaveConfig(save_steps=[0, 1, 2, 3]),

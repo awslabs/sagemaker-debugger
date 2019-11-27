@@ -23,7 +23,7 @@ def test_reduce_config(hook=None, out_dir=None):
         global_save_config = SaveConfig(save_steps=[0, 1, 2, 3])
 
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-        out_dir = "./newlogsRunTest/" + run_id
+        out_dir = "/tmp/" + run_id
         hook = t_hook(
             out_dir=out_dir,
             save_config=global_save_config,
@@ -90,7 +90,7 @@ def test_reduce_config(hook=None, out_dir=None):
 def test_reduce_config_with_json():
     from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 
-    out_dir = "test_output/test_hook_reduction_config/jsonloading"
+    out_dir = "/tmp/test_output/test_hook_reduction_config/jsonloading"
     shutil.rmtree(out_dir, True)
     os.environ[
         CONFIG_FILE_PATH_ENV_STR

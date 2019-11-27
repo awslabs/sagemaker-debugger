@@ -56,9 +56,9 @@ def test_manager_export_load():
     cm.add(Collection("trial1"))
     cm.add("trial2")
     cm.get("trial2").include("total_loss")
-    cm.export("dummy_trial", DEFAULT_COLLECTIONS_FILE_NAME)
+    cm.export("/tmp/dummy_trial", DEFAULT_COLLECTIONS_FILE_NAME)
     cm2 = CollectionManager.load(
-        os.path.join(get_path_to_collections("dummy_trial"), DEFAULT_COLLECTIONS_FILE_NAME)
+        os.path.join(get_path_to_collections("/tmp/dummy_trial"), DEFAULT_COLLECTIONS_FILE_NAME)
     )
     assert cm == cm2
 

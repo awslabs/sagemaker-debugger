@@ -1,6 +1,6 @@
 {
   "S3Path": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "test_output/test_hook_modes/jsonloading",
+  "LocalPath": "/tmp/test_output/test_hook_modes/jsonloading",
   "HookParameters": {
     "save_all": true,
     "train.save_steps": "0,1,2,3,4"

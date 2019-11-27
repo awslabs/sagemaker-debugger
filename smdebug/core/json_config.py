@@ -3,7 +3,7 @@ Example JSON config:
 
 {
   "S3Path": "s3://bucket/prefix",
-  "LocalPath": "newlogsRunTest/test_hook_from_json_config_full",
+  "LocalPath": "/tmp/test_hook_from_json_config_full",
   "HookParameters": {
     "export_tensorboard": true,
     "tensorboard_dir": "/tmp/tensorboard",

@@ -1,6 +1,6 @@
 {
   "S3Path": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "test_output/test_hook_reduction_config/jsonloading",
+  "LocalPath": "/tmp/test_output/test_hook_reduction_config/jsonloading",
   "HookParameters": {
     "save_all": false,
     "reductions": "max, mean, variance",
