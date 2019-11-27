@@ -7,9 +7,8 @@ There are two cases for SageMaker:
     - Supported with `TensorFlow==1.13/1.14/1.15, PyTorch==1.2/1.3, MXNet==1.4,1.5,1.6`
 
 Table of Contents
-- [Version Support](#version-support)
-- [Zero-Script-Change Example](#byoc-example)
-- [Bring-Your-Own-Container Example](#byoc-example)
+- [Configuration Details](#version-support)
+- [Using a Custom Container](#byoc-example)
 
 ## Configuration Details
 The DebuggerHookConfig is the main object.
