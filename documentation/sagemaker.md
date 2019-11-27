@@ -1,11 +1,39 @@
 # SageMaker
 
-There are two cases for using SageMaker: fully managed or bring-your-own-container (BYOC).
-In fully managed mode, SageMaker will automatically inject hooks into your training script - no code
-change necessary! This is supported for TensorFlow 1.15, PyTorch 1.3, and MXNet 1.6.
+There are two cases for SageMaker:
+- Zero-Script-Change (ZSC): Here you specify which rules to use, and run your existing script.
+- Bring-Your-Own-Container (BYOC): Here you specify the rules to use, and modify your training script.
 
-In BYOC mode, you will need to instantiate the hook and use it yourself. Built-in rules will not be
-available, but you can write custom rules and use those.
+Table of Contents
+- [Version Support](#version-support)
+- [Zero-Script-Change Example](#byoc-example)
+- [Bring-Your-Own-Container Example](#byoc-example)
+
+## Version Support
+In ZSC mode, SageMaker will use custom framework forks to automatically save tensors. This is supported
+only for certain Deep Learning Containers.
+| DLC Framework | Version |
+|---|---|
+| TensorFlow | 1.15 |
+| PyTorch | 1.3 |
+| MXNet | 1.6 |
+
+In BYOC mode, custom framework forks are not available. You must modify your script to save tensors.
+This is supported for
+| Framework | Versions |
+|---|---|
+| TensorFlow | 1.13, 1.14, 1.15 |
+| PyTorch | 1.2, 1.3 |
+| MXNet | 1.4, 1.5, 1.6 |
+
+## SageMaker Estimator Parameters
+There are three parameters to pass into SageMaker Estimator:
+
+`rules` - list(sagemaker.debugger.Rule):
+
+`debugger_hook_config`- sagemaker.debugger.DebuggerHookConfig
+
+`tensorboard_hook_config` - sagemaker.debugger.TensorBoardOutputConfig
 
 ## Example Usage (Sagemaker Fully Managed)
 This setup will work for any script without code changes. This example shows Tensorflow 1.15.
@@ -22,10 +50,10 @@ hook_config = DebuggerHookConfig(
     hook_parameters = {
         "save_steps": "0,20,40,60,80"
     },
-    collection_configs = {
-        { "CollectionName": "weights" },
-        { "CollectionName": "biases" },
-    },
+    collection_configs = [
+        CollectionConfig(name="weights"),
+        CollectionConfig(name="biases"),
+    ],
 )
 
 
@@ -58,6 +86,7 @@ sagemaker_simple_estimator.fit()
 When a rule triggers, it will create a CloudWatch event.
 
 ## Example Usage (SageMaker BYOC)
+Define the
 Use the same script as fully managed. In the script, call
 `hook = smd.{hook_class}.create_from_json_file()`
 to get the hook and then use it as described in the rest of the API docs.
