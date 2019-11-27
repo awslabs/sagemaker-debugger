@@ -9,31 +9,51 @@ Table of Contents
 - [Zero-Script-Change Example](#byoc-example)
 - [Bring-Your-Own-Container Example](#byoc-example)
 
-## Version Support
-In ZSC mode, SageMaker will use custom framework forks to automatically save tensors. This is supported
-only for certain Deep Learning Containers.
-| DLC Framework | Version |
-|---|---|
-| TensorFlow | 1.15 |
-| PyTorch | 1.3 |
-| MXNet | 1.6 |
+## Configuration Details
 
-In BYOC mode, custom framework forks are not available. You must modify your script to save tensors.
-This is supported for
-| Framework | Versions |
-|---|---|
-| TensorFlow | 1.13, 1.14, 1.15 |
-| PyTorch | 1.2, 1.3 |
-| MXNet | 1.4, 1.5, 1.6 |
+
+
+```python
+rule = sagemaker.debugger.Rule.sagemaker(
+    base_config: dict, # Use an import, e.g. sagemaker.debugger.rule_configs.exploding_tensor()
+    name: str=None,
+    instance_type: str=None,
+    container_local_path: str=None,
+    volume_size_in_gb: int=None,
+    other_trials_s3_input_paths: str=None,
+    rule_parameters: dict=None,
+    collections_to_save: list[sagemaker.debugger.CollectionConfig]=None,
+)
+```
+
+```python
+hook_config = sagemaker.debugger.DebuggerHookConfig(
+    s3_output_path: str,
+    container_local_path: str=None,
+    hook_parameters: dict=None,
+    collection_configs: list[sagemaker.debugger.CollectionConfig]=None,
+)
+```
+
+```python
+tb_config = sagemaker.debugger.TensorBoardOutputConfig(
+    s3_output_path: str,
+    container_local_path: str=None,
+)
+```
+
+```python
+collection_config = sagemaker.debugger.CollectionConfig(
+    name: str,
+    parameters: dict,
+)
+```
+
+
 
 ## SageMaker Estimator Parameters
 There are three parameters to pass into SageMaker Estimator:
 
-`rules` - list(sagemaker.debugger.Rule):
-
-`debugger_hook_config`- sagemaker.debugger.DebuggerHookConfig
-
-`tensorboard_hook_config` - sagemaker.debugger.TensorBoardOutputConfig
 
 ## Example Usage (Sagemaker Fully Managed)
 This setup will work for any script without code changes. This example shows Tensorflow 1.15.
@@ -90,3 +110,44 @@ Define the
 Use the same script as fully managed. In the script, call
 `hook = smd.{hook_class}.create_from_json_file()`
 to get the hook and then use it as described in the rest of the API docs.
+
+
+## Version Support
+In ZSC mode, SageMaker will use custom framework forks to automatically save tensors. This is supported
+only for certain Deep Learning Containers.
+| DLC Framework | Version |
+|---|---|
+| TensorFlow | 1.15 |
+| PyTorch | 1.3 |
+| MXNet | 1.6 |
+
+In BYOC mode, custom framework forks are not available. You must modify your script to save tensors.
+This is supported for
+| Framework | Versions |
+|---|---|
+| TensorFlow | 1.13, 1.14, 1.15 |
+| PyTorch | 1.2, 1.3 |
+| MXNet | 1.4, 1.5, 1.6
+
+
+## Comprehensive Rule List
+Full list of rules is:
+| Rule Name | Behavior |
+| --- | --- |
+| `vanishing_gradient` | Detects a vanishing gradient. |
+| `all_zero` | ??? |
+| `check_input_images` | ??? |
+| `similar_across_runs` | ??? |
+| `weight_update_ratio` | ??? |
+| `exploding_tensor` | ??? |
+| `unchanged_tensor` | ??? |
+| `loss_not_decreasing` | ??? |
+| `dead_relu` | ??? |
+| `confusion` | ??? |
+| `overfit` | ??? |
+| `tree_depth` | ??? |
+| `tensor_variance` | ??? |
+| `overtraining` | ??? |
+| `poor_weight_initialization` | ??? |
+| `saturated_activation` | ??? |
+| `nlp_sequence_ratio` | ??? |
