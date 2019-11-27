@@ -97,6 +97,6 @@ def test_lstm_and_generator(out_dir):
     train(3, 32, model, num_steps, hook)
 
     tr = create_trial(out_dir)
-    assert len(tr.tensors(collection=CollectionKeys.LOSSES)) > 0
-    assert len(tr.tensors(collection=CollectionKeys.WEIGHTS)) > 0
-    assert len(tr.tensors(collection=CollectionKeys.GRADIENTS)) > 0
+    assert len(tr.tensor_names(collection=CollectionKeys.LOSSES)) > 0
+    assert len(tr.tensor_names(collection=CollectionKeys.WEIGHTS)) > 0
+    assert len(tr.tensor_names(collection=CollectionKeys.GRADIENTS)) > 0

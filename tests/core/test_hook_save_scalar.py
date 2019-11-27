@@ -36,7 +36,7 @@ SMDEBUG_TF_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_tf/tests/"
 def simple_pt_model(hook, steps=10, register_loss=False):
     """
     Create a PT model. save_scalar() calls are inserted before, during and after training.
-    Only the scalars with searchable=True will be written to a metrics file.
+    Only the scalars with sm_metric=True will be written to a metrics file.
     """
 
     class Net(nn.Module):
@@ -70,7 +70,7 @@ def simple_pt_model(hook, steps=10, register_loss=False):
     model.train()
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-    hook.save_scalar("pt_before_train", 1, searchable=False)
+    hook.save_scalar("pt_before_train", 1, sm_metric=False)
     hook.set_mode(ModeKeys.TRAIN)
     for i in range(steps):
         batch_size = 32
@@ -82,16 +82,16 @@ def simple_pt_model(hook, steps=10, register_loss=False):
             loss = criterion(output, target)
         else:
             loss = F.nll_loss(output, target)
-        hook.save_scalar("pt_train_loss", loss.item(), searchable=True)
+        hook.save_scalar("pt_train_loss", loss.item(), sm_metric=True)
         loss.backward()
         optimizer.step()
-    hook.save_scalar("pt_after_train", 1, searchable=False)
+    hook.save_scalar("pt_after_train", 1, sm_metric=False)
 
 
 def simple_mx_model(hook, steps=10, register_loss=False):
     """
     Create a MX model. save_scalar() calls are inserted before, during and after training.
-    Only the scalars with searchable=True will be written to a metrics file.
+    Only the scalars with sm_metric=True will be written to a metrics file.
     """
     net = mxnn.HybridSequential()
     net.add(
@@ -113,7 +113,7 @@ def simple_mx_model(hook, steps=10, register_loss=False):
         hook.register_block(softmax_cross_entropy)
     trainer = gluon.Trainer(net.collect_params(), "sgd", {"learning_rate": 0.1})
 
-    hook.save_scalar("mx_before_train", 1, searchable=False)
+    hook.save_scalar("mx_before_train", 1, sm_metric=False)
     hook.set_mode(ModeKeys.TRAIN)
     for i in range(steps):
         batch_size = 32
@@ -127,13 +127,13 @@ def simple_mx_model(hook, steps=10, register_loss=False):
         trainer.step(batch_size)
         # calculate training metrics
         train_loss += loss.mean().asscalar()
-        hook.save_scalar("mx_train_loss", loss.mean().asscalar(), searchable=True)
-    hook.save_scalar("mx_after_train", 1, searchable=False)
+        hook.save_scalar("mx_train_loss", loss.mean().asscalar(), sm_metric=True)
+    hook.save_scalar("mx_after_train", 1, sm_metric=False)
 
 
 def simple_tf_model(hook, steps=10, lr=0.4):
     """
-    Create a TF model. Tensors registered with the SEARCHABLE_SCALARS collection will be logged
+    Create a TF model. Tensors registered with the SM_METRICS collection will be logged
     to the metrics file.
     """
     mnist = keras.datasets.mnist
@@ -179,11 +179,11 @@ def check_trials(out_dir, save_steps, coll_name, saved_scalars=None):
     """
     trial = create_trial(path=out_dir, name="test output")
     assert trial
-    tensor_list = set(trial.tensors()) & set(trial.tensors(collection=coll_name))
+    tensor_list = set(trial.tensor_names()) & set(trial.tensor_names(collection=coll_name))
     for tname in tensor_list:
         if tname not in saved_scalars:
             assert len(trial.tensor(tname).steps()) == len(save_steps)
-    scalar_list = trial.tensors(regex="^scalar")
+    scalar_list = trial.tensor_names(regex="^scalar")
     if scalar_list:
         assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
 
@@ -191,7 +191,7 @@ def check_trials(out_dir, save_steps, coll_name, saved_scalars=None):
 def check_metrics_file(saved_scalars):
     """
     Check the SageMaker metrics file to ensure that all the scalars saved using
-    save_scalar(searchable=True) or mentioned through SEARCHABLE_SCALARS collections, have been saved.
+    save_scalar(sm_metrics=True) or mentioned through SM_METRICS collections, have been saved.
     """
     if is_sagemaker_job():
         METRICS_DIR = os.environ.get(DEFAULT_SAGEMAKER_METRICS_PATH)
@@ -316,6 +316,6 @@ def helper_tensorflow_tests(collection, save_config):
 @pytest.mark.slow  # 1:30
 def test_tf_save_scalar():
     save_config = SaveConfig(save_steps=[0, 2, 4, 6, 8])
-    collection = ("searchable_scalars", "loss")
+    collection = ("sm_metrics", "loss")
     helper_tensorflow_tests(collection, save_config)
     delete_local_trials([SMDEBUG_TF_HOOK_TESTS_DIR])

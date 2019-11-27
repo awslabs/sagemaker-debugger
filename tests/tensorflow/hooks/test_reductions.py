@@ -16,10 +16,10 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
     from smdebug.trials import create_trial
 
     tr = create_trial(trial_dir)
-    assert len(tr.tensors()) == 3, tr.tensors()
-    for tname in tr.tensors():
+    assert len(tr.tensor_names()) == 3, tr.tensor_names()
+    for tname in tr.tensor_names():
         t = tr.tensor(tname)
-        if tname in tr.tensors(collection="losses"):
+        if tname in tr.tensor_names(collection="losses"):
             # no reductions
             assert t.value(0) is not None
         else:
@@ -64,5 +64,5 @@ def test_reductions_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_reductions.json"
     )
     pre_test_clean_up()
-    hook = smd.SessionHook.hook_from_config()
+    hook = smd.SessionHook.create_from_json_file()
     helper_test_reductions(out_dir, hook, False)
