@@ -20,7 +20,7 @@ def test_hook_all_zero(hook=None, out_dir=None):
         hook_created = True
         save_config = SaveConfig(save_steps=[0, 1, 2, 3])
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-        out_dir = "./newlogsRunTest/" + run_id
+        out_dir = "/tmp/newlogsRunTest/" + run_id
         print("Registering the hook with out_dir {0}".format(out_dir))
         hook = t_hook(
             out_dir=out_dir,
@@ -52,7 +52,7 @@ def test_hook_all_zero_hook_from_json():
     import shutil
     import os
 
-    out_dir = "newlogsRunTest2/test_hook_all_zero_hook_from_json"
+    out_dir = "/tmp/newlogsRunTest2/test_hook_all_zero_hook_from_json"
     shutil.rmtree(out_dir, True)
     os.environ[
         CONFIG_FILE_PATH_ENV_STR

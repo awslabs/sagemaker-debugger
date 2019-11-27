@@ -21,7 +21,7 @@ def test_mode_writing():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     worker = socket.gethostname()
     for s in range(0, 10):
-        fw = FileWriter(trial_dir="ts_outputs/" + run_id, step=s, worker=worker)
+        fw = FileWriter(trial_dir="/tmp/ts_outputs/" + run_id, step=s, worker=worker)
         if s % 2 == 0:
             fw.write_tensor(
                 tdata=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
@@ -37,8 +37,8 @@ def test_mode_writing():
                 mode_step=s // 2,
             )
         fw.close()
-    write_dummy_collection_file("ts_outputs/" + run_id)
-    files = glob.glob("ts_outputs/" + run_id + "/**/*.tfevents", recursive=True)
+    write_dummy_collection_file("/tmp/ts_outputs/" + run_id)
+    files = glob.glob("/tmp/ts_outputs/" + run_id + "/**/*.tfevents", recursive=True)
 
     global_steps = []
     train_steps = []
@@ -56,8 +56,8 @@ def test_mode_writing():
             assert mode_step == step // 2
             global_steps.append(step)
 
-    trial = create_trial("ts_outputs/" + run_id)
+    trial = create_trial("/tmp/ts_outputs/" + run_id)
     assert trial.steps() == sorted(global_steps)
     assert trial.steps(ModeKeys.TRAIN) == sorted(train_steps)
     assert trial.steps(ModeKeys.EVAL) == sorted(eval_steps)
-    shutil.rmtree("ts_outputs/" + run_id)
+    shutil.rmtree("/tmp/ts_outputs/" + run_id)

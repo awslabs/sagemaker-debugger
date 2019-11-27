@@ -114,7 +114,7 @@ def train_model(
         if "tensorboard" in add_callbacks:
             hooks.append(
                 tf.keras.callbacks.TensorBoard(
-                    log_dir="./logs", histogram_freq=1, write_grads=True, write_images=True
+                    log_dir="/tmp/logs", histogram_freq=1, write_grads=True, write_images=True
                 )
             )
         if "fetch_tensor" in add_callbacks:
