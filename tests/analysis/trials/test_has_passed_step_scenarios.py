@@ -480,14 +480,14 @@ def test_override_if_too_many_steps_skipped():
         trial.last_index_token
         == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
-    trial.tensors()
+    trial.tensor_names()
     assert trial.last_complete_step == 9
     assert (
         trial.last_index_token
         == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
-    trial.tensors()
-    trial.tensors()
+    trial.tensor_names()
+    trial.tensor_names()
     assert trial.last_complete_step == 9
     assert (
         trial.last_index_token
