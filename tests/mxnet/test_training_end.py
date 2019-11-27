@@ -15,7 +15,7 @@ from smdebug.core.access_layer.utils import has_training_ended
 @pytest.mark.slow  # 0:03 to run
 def test_end_local_training():
     run_id = str(uuid.uuid4())
-    out_dir = "./newlogsRunTest/" + run_id
+    out_dir = "/tmp/newlogsRunTest/" + run_id
     assert has_training_ended(out_dir) == False
     subprocess.check_call(
         [

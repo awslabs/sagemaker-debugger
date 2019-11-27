@@ -42,7 +42,7 @@ def train_model():
     eval_dataset = mnist_test.map(scale).batch(BATCH_SIZE)
 
     hook = KerasHook(
-        out_dir="~/ts_outputs/",
+        out_dir="/tmp/ts_outputs/",
         include_collections=[
             # CollectionKeys.WEIGHTS,
             # CollectionKeys.GRADIENTS,
@@ -76,7 +76,7 @@ def train_model():
 
     callbacks = [
         hook
-        # tf.keras.callbacks.TensorBoard(log_dir='./logs'),
+        # tf.keras.callbacks.TensorBoard(log_dir='/tmp/logs'),
     ]
 
     model.fit(train_dataset, epochs=1, callbacks=callbacks)

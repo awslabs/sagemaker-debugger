@@ -21,7 +21,7 @@ def test_modes_on_global_data():
 
 def test_mode_data():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = "ts_outputs/" + run_id
+    trial_dir = "/tmp/ts_outputs/" + run_id
 
     c = CollectionManager()
     c.add("default")
@@ -84,4 +84,4 @@ def test_mode_data():
             assert tr.tensor("arr").value(i, mode=modes.TRAIN) is not None
             assert tr.tensor("arr").value(i, mode=modes.EVAL) is not None
 
-    shutil.rmtree("ts_outputs/" + run_id)
+    shutil.rmtree("/tmp/ts_outputs/" + run_id)
