@@ -10,55 +10,32 @@ These objects exist across all frameworks.
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
 
----
-## SageMaker Zero-Code-Change vs. Python API
+## Glossary
 
-There are two ways to use sagemaker-debugger: SageMaker Zero-Code-Change or Python API.
+The imports assume `import smdebug.{tensorflow,pytorch,mxnet,xgboost} as smd`.
 
-SageMaker Zero-Code-Change will use a custom framework fork to automatically instantiate the hook, register tensors, and create collections.
-All you need to do is decide which built-in rules to use. Further documentation is available on [AWS Docs](https://link.com).
-```python
-import sagemaker
-from sagemaker.debugger import rule_configs, Rule, CollectionConfig, DebuggerHookConfig, TensorBoardOutputConfig
+**Hook**: The main interface to use training. This object can be passed as a model hook/callback
+in Tensorflow and Keras. It keeps track of collections and writes output files at each step.
+- `hook = smd.Hook(out_dir="/tmp/mnist_job")`
 
-hook_config = DebuggerHookConfig(
-    s3_output_path = args.s3_path,
-    container_local_path = args.local_path,
-    hook_parameters = {
-        "save_steps": "0,20,40,60,80"
-    },
-    collection_configs = {
-        { "CollectionName": "weights" },
-        { "CollectionName": "biases" },
-    },
-)
+**Mode**: One of "train", "eval", "predict", or "global". Helpful for segmenting data based on the phase
+you're in. Defaults to "global".
+- `train_mode = smd.modes.TRAIN`
 
-rule = Rule.sagemaker(
-    rule_configs.exploding_tensor(),
-    rule_parameters={
-        "tensor_regex": ".*"
-    },
-    collections_to_save=[
-        CollectionConfig(name="weights"),
-        CollectionConfig(name="losses"),
-    ],
-)
+**Collection**: A group of tensors. Each collection contains its own save configuration and regexes for
+tensors to include/exclude.
+- `collection = hook.get_collection("losses")`
 
-sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
-    entry_point="script.py",
-    role=sagemaker.get_execution_role(),
-    framework_version="1.15",
-    py_version="py3",
-    rules=[rule],
-    debugger_hook_config=hook_config,
-)
+**SaveConfig**: A Python dict specifying how often to save losses and tensors.
+- `save_config = smd.SaveConfig(save_interval=10)`
 
-sagemaker_simple_estimator.fit()
-```
+**ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor.
+- `reduction_config = smd.ReductionConfig(reductions=['min', 'max', 'mean'], norms=['l1'])`
 
-The Python API requires more configuration but is also more flexible. You must write your own custom rules
-instead of using SageMaker's built-in rules, but you can use it with a custom container in SageMaker or in your own
-environment. It is described further below.
+**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](https://link.com).
+- `trial = smd.create_trial(out_dir="/tmp/mnist_job")`
+
+**Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient. See [rules documentation](https://link.com).
 
 
 ---

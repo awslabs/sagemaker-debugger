@@ -3,11 +3,22 @@
 SageMaker Zero-Code-Change supported container: TensorFlow 1.15. See the [AWS Docs](https://link.com) for details.\
 Python API supported versions: Tensorflow 1.13, 1.14, 1.15. Keras 2.3.
 
+
+
 ## Contents
+- [How to Use](#how-to-use)
 - [Keras Example](#keras-example)
 - [MonitoredSession Example](#monitored-session-example)
 - [Estimator Example](#estimator-example)
 - [Full API](#full-api)
+
+## How to Use
+1. `import smdebug.tensorflow as smd`
+2. Instantiate a hook. `smd.{hook_class}.create_from_json_file()` in a SageMaker environment or `smd.{hook_class}()` elsewhere.
+3. Pass the hook to the model as a callback.
+4. If using a custom container or outside of SageMaker, wrap the optimizer with `optimizer = hook.wrap_optimizer(optimizer)`.
+
+(Optional): Configure collections. See the [Common API](https://link.com) page for details on how to do this.
 
 ## tf.keras Example
 ```python
@@ -140,3 +151,19 @@ wrap_optimizer(
 )
 ```
 Adds functionality to the optimizer object to log gradients. Returns the original optimizer and doesn't change the optimization process.
+
+## Concepts
+The steps to use Tornasole in any framework are:
+
+1. Create a `hook`.
+2. Register your model and optimizer with the hook.
+3. Specify the `rule` to be used.
+4. After training, create a `trial` to manually analyze the tensors.
+
+See the [API page](https://link.com) for more details.
+
+## Detailed Links
+- [Full API](https://link.com)
+- [Rules and Trials](https://link.com)
+- [Distributed Training](https://link.com)
+- [TensorBoard](https://link.com)
