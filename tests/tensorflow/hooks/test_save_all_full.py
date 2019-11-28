@@ -19,11 +19,11 @@ def test_save_all_full(out_dir, hook=None):
 
     simple_model(hook)
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensors()) > 50
-    print(tr.tensors(collection="weights"))
-    assert len(tr.tensors(collection="weights")) == 1
-    assert len(tr.tensors(collection="gradients")) == 1
-    assert len(tr.tensors(collection="losses")) == 1
+    assert len(tr.tensor_names()) > 50
+    print(tr.tensor_names(collection="weights"))
+    assert len(tr.tensor_names(collection="weights")) == 1
+    assert len(tr.tensor_names(collection="gradients")) == 1
+    assert len(tr.tensor_names(collection="losses")) == 1
 
 
 def test_hook_config_json(out_dir, monkeypatch):
@@ -31,5 +31,5 @@ def test_hook_config_json(out_dir, monkeypatch):
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_hook_from_json_config.json",
     )
-    hook = SessionHook.hook_from_config()
+    hook = SessionHook.create_from_json_file()
     test_save_all_full(out_dir, hook)

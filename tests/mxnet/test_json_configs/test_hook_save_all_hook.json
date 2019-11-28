@@ -1,6 +1,6 @@
 {
   "S3Path": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "newlogsRunTest2/test_hook_save_all_hook_from_json",
+  "LocalPath": "/tmp/newlogsRunTest2/test_hook_save_all_hook_from_json",
   "HookParameters": {
     "save_all": true,
     "save_steps": "0,1,2,3"

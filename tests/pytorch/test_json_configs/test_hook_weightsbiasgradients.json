@@ -1,6 +1,6 @@
 {
   "S3Path": "s3://kjndjknd_bucket/prefix",
-  "LocalPath": "test_output/test_hook_save_weightsbiasgradients/jsonloading",
+  "LocalPath": "/tmp/test_output/test_hook_save_weightsbiasgradients/jsonloading",
   "HookParameters": {
     "save_all": false,
     "save_steps": "0,20,40,60,80"

@@ -4,6 +4,7 @@ from datetime import datetime
 
 # Third Party
 import numpy as np
+import pytest
 from tests.analysis.utils import generate_data
 
 # First Party
@@ -42,16 +43,19 @@ def test_tensors(out_dir):
     tr.collection("test").add_tensor_name("boo_5")
     tr.collection("test").add_tensor_name("boo_6")
     tr.collection("test").add_tensor_name("boo_17")  # missing tensor
-    print(tr.tensors())
-    assert len(tr.tensors()) == num_tensors * 2
-    assert len(tr.tensors(regex="foo")) == num_tensors
-    assert len(tr.tensors(collection="test")) == num_tensors + 2
-    assert len(tr.tensors(collection=tr.collection("test"))) == num_tensors + 2
+    print(tr.tensor_names())
+    assert len(tr.tensor_names()) == num_tensors * 2
+    assert len(tr.tensor_names(regex="foo")) == num_tensors
+    assert len(tr.tensor_names(collection="test")) == num_tensors + 2
+    assert len(tr.tensor_names(collection=tr.collection("test"))) == num_tensors + 2
+
+    with pytest.raises(ValueError):
+        tr.tensor_names(collection=tr.collection("test"), regex="a")
 
 
 def test_mode_data():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = "ts_outputs/" + run_id
+    trial_dir = "/tmp/ts_outputs/" + run_id
 
     c = CollectionManager()
     c.add("default")
@@ -78,11 +82,11 @@ def test_mode_data():
             )
         fw.close()
 
-    assert trial.tensors() == ["arr_1", "arr_2"]
-    assert trial.tensors(step=0) == ["arr_1"]
-    assert trial.tensors(step=1) == ["arr_2"]
-    assert trial.tensors(step=0, mode=modes.TRAIN) == ["arr_1"]
-    assert trial.tensors(step=0, mode=modes.EVAL) == ["arr_2"]
+    assert trial.tensor_names() == ["arr_1", "arr_2"]
+    assert trial.tensor_names(step=0) == ["arr_1"]
+    assert trial.tensor_names(step=1) == ["arr_2"]
+    assert trial.tensor_names(step=0, mode=modes.TRAIN) == ["arr_1"]
+    assert trial.tensor_names(step=0, mode=modes.EVAL) == ["arr_2"]
 
-    assert trial.tensors(mode=modes.TRAIN) == ["arr_1"]
-    assert trial.tensors(mode=modes.EVAL) == ["arr_2"]
+    assert trial.tensor_names(mode=modes.TRAIN) == ["arr_1"]
+    assert trial.tensor_names(mode=modes.EVAL) == ["arr_2"]

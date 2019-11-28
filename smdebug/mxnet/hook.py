@@ -4,7 +4,7 @@ import mxnet as mx
 # First Party
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
-from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME, create_hook_from_json_config
+from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
@@ -79,10 +79,6 @@ class Hook(CallbackHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
         return 1
-
-    @classmethod
-    def hook_from_config(cls, json_config_path=None):
-        return create_hook_from_json_config(cls, json_config_path=json_config_path)
 
     def _cleanup(self):
         # Write the gradients of the past step if the writer is still available.

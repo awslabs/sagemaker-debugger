@@ -21,7 +21,7 @@ def test_modes_on_global_data():
 
 def test_mode_data():
     run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    trial_dir = "ts_outputs/" + run_id
+    trial_dir = "/tmp/ts_outputs/" + run_id
 
     c = CollectionManager()
     c.add("default")
@@ -57,7 +57,7 @@ def test_mode_data():
         assert tr.has_passed_step(s + 1) == StepState.NOT_YET_AVAILABLE
         assert tr.has_passed_step(s + 1, mode=modes.TRAIN) == StepState.NOT_YET_AVAILABLE
 
-    assert len(tr.tensors()) == 1
+    assert len(tr.tensor_names()) == 1
     assert len(tr.steps()) == 10
     assert len(tr.steps(mode=modes.TRAIN)) == 5
     assert len(tr.steps(mode=modes.EVAL)) == 5
@@ -84,4 +84,4 @@ def test_mode_data():
             assert tr.tensor("arr").value(i, mode=modes.TRAIN) is not None
             assert tr.tensor("arr").value(i, mode=modes.EVAL) is not None
 
-    shutil.rmtree("ts_outputs/" + run_id)
+    shutil.rmtree("/tmp/ts_outputs/" + run_id)

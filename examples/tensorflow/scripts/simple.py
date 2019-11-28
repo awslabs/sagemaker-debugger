@@ -23,6 +23,7 @@ def str2bool(v):
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--script-mode", type=str2bool, default=False)
 parser.add_argument("--model_dir", type=str, help="S3 path for the model")
 parser.add_argument("--lr", type=float, help="Learning Rate", default=0.001)
 parser.add_argument("--steps", type=int, help="Number of steps to run", default=100)
@@ -52,22 +53,26 @@ if args.random_seed:
     random.seed(12)
 
 
-# save tensors as reductions if necessary
-rdnc = (
-    smd.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
-    if args.reductions
-    else None
-)
+if args.script_mode:
+    # save tensors as reductions if necessary
+    rdnc = (
+        smd.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
+        if args.reductions
+        else None
+    )
 
-# create the hook
-# Note that we are saving all tensors here by passing save_all=True
-hook = smd.SessionHook(
-    out_dir=args.smdebug_path,
-    save_all=args.save_all,
-    include_collections=["weights", "gradients", "losses"],
-    save_config=smd.SaveConfig(save_interval=args.save_frequency),
-    reduction_config=rdnc,
-)
+    # create the hook
+    # Note that we are saving all tensors here by passing save_all=True
+    hook = smd.SessionHook(
+        out_dir=args.smdebug_path,
+        save_all=args.save_all,
+        include_collections=["weights", "gradients", "losses"],
+        save_config=smd.SaveConfig(save_interval=args.save_frequency),
+        reduction_config=rdnc,
+    )
+    hooks = [hook]
+else:
+    hooks = []
 
 # Network definition
 # Note the use of name scopes
@@ -78,23 +83,26 @@ with tf.name_scope("foobaz"):
     w0 = [[1], [1.0]]
     y = tf.matmul(x, w0)
 loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
-hook.add_to_collection("losses", loss)
+
+smd.get_hook("session", create_if_not_exists=True).add_to_collection("losses", loss)
 
 global_step = tf.Variable(17, name="global_step", trainable=False)
 increment_global_step_op = tf.assign(global_step, global_step + 1)
 
 optimizer = tf.train.AdamOptimizer(args.lr)
 
-# Wrap the optimizer with wrap_optimizer so Tornasole can find gradients and optimizer_variables to save
-optimizer = hook.wrap_optimizer(optimizer)
+if args.script_mode:
+    # Wrap the optimizer with wrap_optimizer so Tornasole can find gradients and optimizer_variables to save
+    optimizer = hook.wrap_optimizer(optimizer)
 
 # use this wrapped optimizer to minimize loss
 optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 
-hook.set_mode(smd.modes.TRAIN)
+if args.script_mode:
+    hook.set_mode(smd.modes.TRAIN)
 
 # pass the hook to hooks parameter of monitored session
-sess = tf.train.MonitoredSession(hooks=[hook])
+sess = tf.train.MonitoredSession(hooks=hooks)
 
 # use this session for running the tensorflow model
 for i in range(args.steps):
@@ -102,7 +110,8 @@ for i in range(args.steps):
     _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
     print(f"Step={i}, Loss={_loss}")
 
-hook.set_mode(smd.modes.EVAL)
+if args.script_mode:
+    hook.set_mode(smd.modes.EVAL)
 for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale
     sess.run([loss, increment_global_step_op], {x: x_})
