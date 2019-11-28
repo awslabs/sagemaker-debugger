@@ -96,12 +96,12 @@ SageMaker Debugger can be used inside or outside of SageMaker. There are three m
 - SageMaker Bring-Your-Own-Container: Here you specify the rules to use, and modify your training script.
 - Non-SageMaker: Here you write custom rules (or manually analyze the tensors) and modify your training script. See the second example above.
 
-The reason for different setups is that SageMaker Zero-Script-Change uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
+The reason for different setups is that SageMaker Zero-Script-Change (via Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
 These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
-See the [SageMaker page](https://link.com) for details on SageMaker Zero-Script-Change and BYOC experience.\
+See the [SageMaker page](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md) for details on SageMaker Zero-Code-Change and BYOC experience.\
 See the frameworks pages for details on modifying the training script:
-- [TensorFlow](https://link.com)
-- [PyTorch](https://link.com)
-- [MXNet](https://link.com)
-- [XGBoost](https://link.com)
+- [TensorFlow](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/tensorflow.md)
+- [PyTorch](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/pytorch.md)
+- [MXNet](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/mxnet.md)
+- [XGBoost](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/xgboost.md)
