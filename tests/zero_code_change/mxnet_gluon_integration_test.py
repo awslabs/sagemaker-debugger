@@ -19,6 +19,9 @@ def parse_args():
     parser.add_argument(
         "--context", type=str, default="cpu", help="Context can be either cpu or gpu"
     )
+    parser.add_argument(
+        "--validate", type=bool, default=True, help="Run validation if running with smdebug"
+    )
 
     opt = parser.parse_args()
     return opt
@@ -80,14 +83,14 @@ def transformer(data, label):
 
 def prepare_data(batch_size):
     train_data = gluon.data.DataLoader(
-        gluon.data.vision.MNIST("./data", train=True, transform=transformer),
+        gluon.data.vision.MNIST("./tmp", train=True, transform=transformer),
         batch_size=batch_size,
         shuffle=True,
         last_batch="discard",
     )
 
     val_data = gluon.data.DataLoader(
-        gluon.data.vision.MNIST("./data", train=False, transform=transformer),
+        gluon.data.vision.MNIST("./tmp", train=False, transform=transformer),
         batch_size=batch_size,
         shuffle=False,
     )
@@ -106,23 +109,26 @@ def create_gluon_model():
 
 
 def validate():
-    from smdebug.trials import create_trial
-    from smdebug.mxnet import get_hook
+    try:
+        from smdebug.trials import create_trial
+        from smdebug.mxnet import get_hook
 
-    hook = get_hook()
-    out_dir = hook.out_dir
-    print("Created the trial with out_dir {0}".format(out_dir))
-    tr = create_trial(out_dir)
-    global_steps = tr.steps()
-    print("Global steps: " + str(global_steps))
+        hook = get_hook()
+        out_dir = hook.out_dir
+        print("Created the trial with out_dir {0}".format(out_dir))
+        tr = create_trial(out_dir)
+        global_steps = tr.steps()
+        print("Global steps: " + str(global_steps))
 
-    loss_tensor_name = tr.tensors(regex="softmaxcrossentropyloss._output_.")[0]
-    print("Obtained the loss tensor " + loss_tensor_name)
+        loss_tensor_name = tr.tensors(regex="softmaxcrossentropyloss._output_.")[0]
+        print("Obtained the loss tensor " + loss_tensor_name)
 
-    mean_loss_tensor_value = tr.tensor(loss_tensor_name).reduction_value(
-        step_num=global_steps[0], reduction_name="mean", abs=False
-    )
-    print("Mean validation loss = " + str(mean_loss_tensor_value))
+        mean_loss_tensor_value = tr.tensor(loss_tensor_name).reduction_value(
+            step_num=global_steps[0], reduction_name="mean", abs=False
+        )
+        print("Mean validation loss = " + str(mean_loss_tensor_value))
+    except ImportError:
+        print("smdebug libraries do not exist. Skipped Validation.")
 
     print("Validation Complete")
 
