@@ -122,11 +122,14 @@ def validate():
 
         loss_tensor_name = tr.tensors(regex="softmaxcrossentropyloss._output_.")[0]
         print("Obtained the loss tensor " + loss_tensor_name)
+        assert loss_tensor_name == "softmaxcrossentropyloss0_output_0"
 
         mean_loss_tensor_value = tr.tensor(loss_tensor_name).reduction_value(
             step_num=global_steps[0], reduction_name="mean", abs=False
         )
         print("Mean validation loss = " + str(mean_loss_tensor_value))
+        assert str(mean_loss_tensor_value) == "2.3076453"
+
     except ImportError:
         print("smdebug libraries do not exist. Skipped Validation.")
 
@@ -155,7 +158,8 @@ def main():
         train_data=train_data,
         val_data=val_data,
     )
-    validate()
+    if opt.validate:
+        validate()
 
 
 if __name__ == "__main__":
