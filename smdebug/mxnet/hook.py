@@ -154,8 +154,9 @@ class Hook(CallbackHook):
         # This overwhelms the logs; turn back on if you really need it
         # logger.debug("Processing the global step {0} for block {1}".format(self.step, block_name))
 
-        # Output input tensor
-        self._write_inputs(block_name, inputs)
+        # Output input tensor if it is not a loss block
+        if isinstance(block, mx.gluon.loss.Loss) is False:
+            self._write_inputs(block_name, inputs)
 
         # Output output tensors
         self._write_outputs(block_name, outputs)
