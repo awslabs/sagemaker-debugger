@@ -8,7 +8,7 @@ from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStr
 from tensorflow.python.distribute import values
 
 # First Party
-from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
+from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.modes import ModeKeys
 
 try:
@@ -21,8 +21,8 @@ except ImportError:
 class TFDistributionStrategy(Enum):
     NONE = 0
     HOROVOD = 1
-    MIRRORED_STRATEGY = 2
-    PARAMETER_SERVER_STRATEGY = 3
+    MIRRORED = 2
+    PARAMETER_SERVER = 3
     UNSUPPORTED = 100
 
 
@@ -196,11 +196,14 @@ See https://www.tensorflow.org/guide/distributed_training#setting_up_tf_config_e
 
 
 def is_parameter_server_strategy(tf_config: str) -> bool:
-    try:
-        tf_config = json.loads(tf_config)
-    except (json.JSONDecodeError, TypeError):
-        return False  # Do not break for incorrectly set tf_config
-    return "cluster" in tf_config and "ps" in tf_config["cluster"]
+    if tf_config:
+        try:
+            tf_config = json.loads(tf_config)
+        except (json.JSONDecodeError, TypeError):
+            return False  # Do not break for incorrectly set tf_config
+        return "cluster" in tf_config and "ps" in tf_config["cluster"]
+    else:
+        return False
 
 
 def is_mirrored_strategy(strat):
@@ -287,4 +290,4 @@ def get_keras_mode(mode):
 def get_chief_worker_parameter_server(tf_config):
     if "chief" in tf_config["cluster"]:
         return "chief_0"
-    return CONFIG_DEFAULT_WORKER_NAME
+    return DEFAULT_WORKER_NAME

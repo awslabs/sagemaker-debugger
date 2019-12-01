@@ -7,7 +7,7 @@ from typing import List, Set
 from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStrategy
 
 # First Party
-from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
+from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
@@ -20,6 +20,7 @@ from .collection import CollectionKeys, CollectionManager
 from .singleton_utils import set_hook
 from .utils import (
     TFDistributionStrategy,
+    get_chief_worker_parameter_server,
     get_num_workers_from_tf_config,
     get_worker_id_from_tf_config,
     is_mirrored_strategy,
@@ -102,11 +103,11 @@ class TensorflowBaseHook(BaseHook):
             pass
 
         if self.tf_config and is_parameter_server_strategy(self.tf_config):
-            return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
+            return TFDistributionStrategy.PARAMETER_SERVER
 
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
-            return TFDistributionStrategy.MIRRORED_STRATEGY
+            return TFDistributionStrategy.MIRRORED
 
         if isinstance(strat, _DefaultDistributionStrategy):
             # single device
@@ -137,30 +138,36 @@ class TensorflowBaseHook(BaseHook):
         tf_config = os.getenv("TF_CONFIG")
         if tf_config and is_parameter_server_strategy(tf_config):
             return get_worker_id_from_tf_config(tf_config)
-        return CONFIG_DEFAULT_WORKER_NAME
+        return DEFAULT_WORKER_NAME
 
     def export_collections(self):
-        num_workers = self._get_num_workers()
         if self.save_all_workers is False:
             num_workers = 1
-            if (
-                self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
-                or self.distribution_strategy == TFDistributionStrategy.HOROVOD
-            ):
-                if self.worker != self.chief_worker:
-                    return
+        else:
+            num_workers = self._get_num_workers()
         self.collection_manager.set_num_workers(num_workers)
 
-        if len(self.device_map):
+        if (
+            self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER
+            or self.distribution_strategy == TFDistributionStrategy.HOROVOD
+        ):
+            if self.save_all_workers is False:
+                if self.worker != self.chief_worker:
+                    return
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
+            if len(self.device_map):
+                for device, serialized_device in self.device_map.items():
+                    if self.save_all_workers is False and device != self.chief_worker:
+                        continue
+                    collection_file_name = f"{serialized_device}_collections.json"
+                    self.collection_manager.export(self.out_dir, collection_file_name)
+                return
 
-            for device, serialized_device in self.device_map.items():
-                if self.save_all_workers is False and device != self.chief_worker:
-                    continue
-                collection_file_name = f"{serialized_device}_collections.json"
-                self.collection_manager.export(self.out_dir, collection_file_name)
-        else:
-            collection_file_name = f"{self.worker}_collections.json"
-            self.collection_manager.export(self.out_dir, collection_file_name)
+        # below is used in these cases
+        # if mirrored and device_map is empty (CPU training)
+        # if horovod/param server and worker == chief worker
+        collection_file_name = f"{self.worker}_collections.json"
+        self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _get_num_workers(self):
         try:
@@ -170,11 +177,27 @@ class TensorflowBaseHook(BaseHook):
                 return hvd.size()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-        tf_config = os.getenv("TF_CONFIG")
-        if tf_config and is_parameter_server_strategy(tf_config):
-            return get_num_workers_from_tf_config(tf_config)
+
+        if is_parameter_server_strategy(self.tf_config):
+            return get_num_workers_from_tf_config(self.tf_config)
+
         strategy = tf.distribute.get_strategy()
-        return strategy.num_replicas_in_sync
+        if is_mirrored_strategy(strategy):
+            return strategy.num_replicas_in_sync
+
+        return 1
+
+    def _set_chief_worker(self):
+        # this won't be used if save_all_workers is True
+        if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
+            self.chief_worker = get_chief_worker_parameter_server(self.tf_config)
+        elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            self.chief_worker = DEFAULT_WORKER_NAME
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
+            if len(self.device_map):
+                self.chief_worker = sorted(self.device_map.keys())[0]
+            else:
+                self.chief_worker = DEFAULT_WORKER_NAME
 
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()
@@ -200,70 +223,52 @@ class TensorflowBaseHook(BaseHook):
         :param tensor_name:
         :return: List[FileWriter]
         """
-        if (
-            len(self.device_map)
-            and self.distribution_strategy != TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
-        ):
-            if tensor_ref.tf_obj is not None:
-                worker = tensor_ref.tf_obj.device
-            else:
-                # metrics in Keras
-                worker = "CPU"
-
-            if not bool(worker) or "CPU" in worker:
-                return list(self.writer_map.values())
-            if self.save_all_workers is False:
-                if worker == self.chief_worker:
-                    worker = self.device_map[worker]
-                else:
-                    return []
-            else:
-                worker = self.device_map[worker]
-            return [self.writer_map[worker]]
-        else:
+        if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
+            # copying existing logic here, but what happens if
+            # param strategy and save_all_workers is False
+            # this is broken but unsupported right now #TODO
             return [self.writer] if self.writer else []
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
+            # logic of whether this should be single writer or multiple will
+            # have been taken care of in initialize_writers method
+            return list(self.writer_map.values())
+        elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if self.save_all_workers is True or self.worker == self.chief_worker:
+                return [self.writer] if self.writer else []
+        elif self.distribution_strategy == TFDistributionStrategy.NONE:
+            return [self.writer] if self.writer else []
+        else:
+            raise NotImplementedError
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # In keras, sometimes we are not sure if writer is initialized
         # (such as metrics at end of epoch), that's why it passes the flag only_init_if_missing
-
         if self.dry_run:
             return
 
-        if (
-            self.save_all_workers is False
-            and self.distribution_strategy != TFDistributionStrategy.MIRRORED_STRATEGY
-        ):
-            """
-            If include_workers is False, we assign we check if the hook has been created by
-            the chief worker. If not we do not initialize a writer.
-            """
-            if self.chief_worker != self.worker:
-                return
-
-        if (
-            len(self.device_map)
-            and self.distribution_strategy != TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
-        ):
-            """
-                Initialize one writer per device string
-                If save_all_workers is False, we only initialize a writer
-                for the chief worker
-            """
+        if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
+            # this is broken but unsupported right now #TODO
+            if self.writer is None or only_initialize_if_missing is False:
+                self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             for device, device_string in self.device_map.items():
                 if device_string in self.writer_map and only_initialize_if_missing is True:
                     continue
-                if self.save_all_workers is True:
+                if self.save_all_workers is True or device == self.chief_worker:
                     self.writer_map[device_string] = FileWriter(
                         trial_dir=self.out_dir, step=self.step, worker=device_string
                     )
-                elif self.save_all_workers is False and device == self.chief_worker:
-                    self.writer_map[device_string] = FileWriter(
-                        trial_dir=self.out_dir, step=self.step, worker=device_string
+        elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if self.save_all_workers is True or self.worker == self.chief_worker:
+                if self.writer is None or only_initialize_if_missing is False:
+                    self.writer = FileWriter(
+                        trial_dir=self.out_dir, step=self.step, worker=self.worker
                     )
-        else:
+        elif self.distribution_strategy == TFDistributionStrategy.NONE:
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+        else:
+            raise NotImplementedError
 
     def _close_writers(self) -> None:
         if self.dry_run:

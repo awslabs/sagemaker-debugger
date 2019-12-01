@@ -5,7 +5,6 @@ from tensorflow.python.keras.backend import is_placeholder
 
 # First Party
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.core.tfevent.proto.summary_pb2 import Summary
 from smdebug.core.tfevent.util import make_numpy_array
 from smdebug.core.utils import match_inc
@@ -17,7 +16,6 @@ from .utils import (
     TFDistributionStrategy,
     build_fetches_tuple,
     extract_graph_summary,
-    get_chief_worker_parameter_server,
     tensor_can_be_saved,
 )
 
@@ -235,7 +233,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
     def _is_not_supported(self):
         if self._hook_supported is None:
             self._hook_supported = True
-            if self._get_distribution_strategy() == TFDistributionStrategy.MIRRORED_STRATEGY:
+            if self._get_distribution_strategy() == TFDistributionStrategy.MIRRORED:
                 from packaging import version
 
                 if version.parse(tf.__version__) < version.parse("1.14.0"):
@@ -281,18 +279,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
         self._add_summaries_tensors()
         self._add_tensors()
-
-        if self.save_all_workers is False:
-            if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER_STRATEGY:
-                self.chief_worker = get_chief_worker_parameter_server(self.tf_config)
-            elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
-                self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
-            elif (
-                len(self.device_map)
-                and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
-            ):
-                self.chief_worker = sorted(self.device_map.keys())[0]
-
+        self._set_chief_worker()
         self._export_model()
         self.export_collections()
 
