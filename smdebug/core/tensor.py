@@ -244,7 +244,7 @@ class Tensor:
 
     def values(self, mode=ModeKeys.GLOBAL, worker=None):
         res = {}
-        for step in self.steps():
+        for step in self.steps(mode=mode):
             res[step] = self.value(step_num=step, mode=mode, worker=worker)
         return res
 
