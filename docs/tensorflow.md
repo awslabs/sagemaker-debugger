@@ -16,23 +16,24 @@ Python API supported versions: Tensorflow 1.13, 1.14, 1.15. Keras 2.3.
 
 ## How to Use
 ```import smdebug.tensorflow as smd```
-### 1. Create a hook
+#### 1. Create a hook
 If using SageMaker, you will configure the hook in SageMaker Estimator. Instantiate it with
 `smd.{hook_class}.create_from_json_file()`.\
 Otherwise, call the hook class constructor, `smd.{hook_class}()`. Details are below for tf.keras, MonitoredSession, or Estimator.
 
-### 2. Pass the hook to the model as a callback
+#### 2. Pass the hook to the model as a callback
 The keyword is `callbacks=[hook]` for tf.keras. It is `hooks=[hook]` for MonitoredSession and Estimator.
 
-### 3. (Optional) Wrap the optimizer
+#### 3. (Optional) Wrap the optimizer
 If you are accessing the GRADIENTS collection, and you are in BYOC or non-SageMaker mode, call `optimizer = hook.wrap_optimizer(optimizer)`.
 
-### 4. (Optional) Configure collections, SaveConfig, ReductionConfig
+#### 4. (Optional) Configure collections, SaveConfig, ReductionConfig
 See the [Common API](https://link.com) page for details on how to do this.
 
 ---
 
-## tf.keras Example
+## tf.keras
+### Example
 ```python
 import smdebug.tensorflow as smd
 hook = smd.KerasHook(out_dir=args.out_dir)
@@ -47,7 +48,7 @@ model.fit(x_train, y_train, epochs=args.epochs, callbacks=[hook])
 model.evaluate(x_test, y_test, callbacks=[hook])
 ```
 
-## KerasHook
+### KerasHook
 
 Use this if in a non-SageMaker environment. In SageMaker, call `smd.KerasHook.create_from_json_file()`.
 ```python
@@ -88,7 +89,8 @@ Adds functionality to the optimizer object to log gradients. Returns the origina
 
 ---
 
-## MonitoredSession Example
+## MonitoredSession 
+### Example
 ```python
 import smdebug.tensorflow as smd
 hook = smd.SessionHook(out_dir=args.out_dir)
@@ -105,7 +107,7 @@ sess = tf.train.MonitoredSession(hooks=[hook])
 sess.run([loss, ...])
 ```
 
-## SessionHook
+### SessionHook
 Use this if in a non-SageMaker environment. In SageMaker, call `smd.SessionHook.create_from_json_file()`.
 
 ```python
@@ -146,7 +148,8 @@ Adds functionality to the optimizer object to log gradients. Returns the origina
 
 ---
 
-## Estimator Example
+## Estimator 
+### Example
 ```python
 import smdebug.tensorflow as smd
 hook = smd.EstimatorHook(out_dir=args.out_dir)
@@ -162,7 +165,7 @@ hook.set_mode(mode=smd.modes.EVAL)
 estimator.evaluate(input_fn=eval_input_fn, steps=args.steps, hooks=[hook])
 ```
 
-## EstimatorHook
+### EstimatorHook
 Use this if in a non-SageMaker environment. In SageMaker, call `smd.EstimatorHook.create_from_json_file()`.
 
 ```python
