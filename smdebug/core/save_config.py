@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Union
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import step_in_range
 
-DEFAULT_SAVE_CONFIG_INTERVAL = 100
+DEFAULT_SAVE_CONFIG_INTERVAL = 500
 DEFAULT_SAVE_CONFIG_START_STEP = 0
 DEFAULT_SAVE_CONFIG_END_STEP = None
 DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
