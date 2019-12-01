@@ -199,11 +199,10 @@ def is_parameter_server_strategy(tf_config: str) -> bool:
     if tf_config:
         try:
             tf_config = json.loads(tf_config)
+            return "cluster" in tf_config and "ps" in tf_config["cluster"]
         except (json.JSONDecodeError, TypeError):
-            return False  # Do not break for incorrectly set tf_config
-        return "cluster" in tf_config and "ps" in tf_config["cluster"]
-    else:
-        return False
+            pass  # Do not break for incorrectly set tf_config
+    return False
 
 
 def is_mirrored_strategy(strat):
