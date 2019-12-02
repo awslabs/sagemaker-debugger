@@ -1,17 +1,22 @@
 # SageMaker
 
 There are two cases for SageMaker:
-- Zero-Script-Change (ZSC): Here you specify which rules to use, and run your existing script.
+- Zero-Code-Change (ZCC): Here you specify which rules to use, and run your existing script.
     - Supported in Deep Learning Containers: `TensorFlow==1.15, PyTorch==1.3, MXNet==1.6`
 - Bring-Your-Own-Container (BYOC): Here you specify the rules to use, and modify your training script.
-    - Supported with `TensorFlow==1.13/1.14/1.15, PyTorch==1.2/1.3, MXNet==1.4,1.5,1.6`
+    - Supported with `TensorFlow==1.13/1.14/1.15, PyTorch==1.2/1.3, MXNet==1.4/1.5/1.6`
 
-Table of Contents
-- [Configuration Details](#version-support)
-- [Using a Custom Container](#byoc-example)
+The reason for different setups is that SageMaker Zero-Script-Change (via Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
+These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
 ## Configuration Details
-The DebuggerHookConfig is the main object.
+
+This configuration is used for both ZCC and BYOC. The only difference is that with a custom container, you modify your training script as well. See the framework pages below for details on how to modify your training script.
+
+- [TensorFlow](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/tensorflow.md)
+- [PyTorch](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/pytorch.md)
+- [MXNet](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/mxnet.md)
+- [XGBoost](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/xgboost.md)
 
 ```python
 rule = sagemaker.debugger.Rule.sagemaker(
@@ -100,25 +105,13 @@ sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
 sagemaker_simple_estimator.fit()
 ```
 
-## Using a Custom Container
-To use a custom container (without the framework forks), you should modify your script.
-Use the same sagemaker Estimator setup as shown below, and in your script, call
-
-```python
-hook = smd.{hook_class}.create_from_json_file()
-```
-
-and modify the rest of your script as shown in the API docs. Click on your desired framework below.
-- [TensorFlow](https://link.com)
-- [PyTorch](https://link.com)
-- [MXNet](https://link.com)
-- [XGBoost](https://link.com)
 
 
-## Comprehensive Rule List
+
+## List of Builtin Rules
 Full list of rules is:
 | Rule Name | Behavior |
-| --- | --- |
+|---|---|
 | `vanishing_gradient` | Detects a vanishing gradient. |
 | `all_zero` | ??? |
 | `check_input_images` | ??? |
