@@ -58,6 +58,7 @@ def build_package(version):
         setup_requires=["pytest-runner"],
         tests_require=TESTS_PACKAGES,
         python_requires=">=3.6",
+        license='Apache License Version 2.0'
     )
 
 
