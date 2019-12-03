@@ -5,6 +5,7 @@ import time
 
 # Third Party
 import aioboto3
+import boto3
 from botocore.exceptions import (
     ClientError,
     CredentialRetrievalError,
@@ -87,7 +88,8 @@ class S3Handler:
     async def _list_files(self, bucket, prefix="", delimiter="", start_after=""):
         count = 0
         success = False
-        # try num_retries times to establish a connection and download the file; if none can be established, log an error and exit
+        # try num_retries times to establish a connection and download the file
+        # if none can be established, log an error and exit
         while count < self.num_retries and not success:
             try:
                 paginator = self.client.get_paginator("list_objects_v2")
@@ -260,3 +262,151 @@ class S3Handler:
     # Destructor to close client upon deletion
     def __del__(self):
         self.close_client()
+
+
+class S3HandlerSync:
+    def __init__(self, num_retries=5):
+        self.client = boto3.client("s3", region_name=get_region())
+        self.num_retries = num_retries
+        self.logger = get_logger()
+
+    def list_prefixes(self, list_requests: list):
+        if type(list_requests) != list:
+            raise TypeError("list_requests accepts a list of ListRequest objects.")
+        rval = []
+        for lr in list_requests:
+            rval.append(self.list_prefix(lr))
+        return rval
+
+    def list_prefix(self, lr):
+        count = 0
+        while count < self.num_retries:
+            try:
+                paginator = self.client.get_paginator("list_objects_v2")
+                page_iterator = paginator.paginate(
+                    Bucket=lr.bucket,
+                    Prefix=lr.prefix,
+                    Delimiter=lr.delimiter,
+                    StartAfter=lr.start_after,
+                    PaginationConfig={"PageSize": 1000},
+                )
+                keys = []
+                for page in page_iterator:
+                    if lr.delimiter:
+                        if "CommonPrefixes" in page.keys():
+                            for pre in page["CommonPrefixes"]:
+                                if "Prefix" in pre.keys():
+                                    keys += [pre["Prefix"]]
+                        if "Contents" in page.keys():
+                            for obj in page["Contents"]:
+                                if "Key" in obj.keys():
+                                    keys += [obj["Key"]]
+                    else:
+                        if "Contents" in page.keys():
+                            for obj in page["Contents"]:
+                                if "Key" in obj.keys():
+                                    keys += [obj["Key"]]
+                return keys
+            except (
+                NoCredentialsError,  # No credentials could be found
+                PartialCredentialsError,
+                # Only partial credentials were found.
+                CredentialRetrievalError,
+                # Error attempting to retrieve credentials from a remote source.
+                UnknownSignatureVersionError,
+                # Requested Signature Version is not known.
+                ServiceNotInRegionError,
+                # The service is not available in requested region.
+                NoRegionError,  # No region was specified.
+                ClientError,
+                # Covers cases when the client has insufficient permissions
+            ) as botocore_error:
+                if isinstance(botocore_error, ClientError):
+                    if botocore_error.response["Error"]["Code"] != "AccessDenied":
+                        self.logger.warning(
+                            f"Unable to list files "
+                            f"from  {lr.bucket}/{str(lr.prefix)}: {str(botocore_error)}"
+                        )
+                    else:
+                        raise botocore_error
+                else:
+                    raise botocore_error
+            except Exception as e:
+                self.logger.warning(str(e))
+            count += 1
+
+        # if success, we wouldn't come here
+        self.logger.warning(f"Unable to list files for {lr.bucket} with prefix {lr.prefix}")
+        return []
+
+    def get_object(self, object_request):
+        count = 0
+        while count < self.num_retries:
+            try:
+                if object_request.length is not None:
+                    bytes_range = (
+                        "bytes="
+                        + str(object_request.start)
+                        + "-"
+                        + str(object_request.start + object_request.length - 1)
+                    )
+                    resp = self.client.get_object(
+                        Bucket=object_request.bucket, Key=object_request.key, Range=bytes_range
+                    )
+                else:
+                    resp = self.client.get_object(
+                        Bucket=object_request.bucket, Key=object_request.key
+                    )
+                return resp["Body"].read()
+            except (
+                NoCredentialsError,  # No credentials could be found
+                PartialCredentialsError,
+                # Only partial credentials were found.
+                CredentialRetrievalError,
+                # Error attempting to retrieve credentials from a remote source.
+                UnknownSignatureVersionError,
+                # Requested Signature Version is not known.
+                ServiceNotInRegionError,
+                # The service is not available in requested region.
+                NoRegionError,  # No region was specified.
+                ClientError,
+                # Covers cases when the client has insufficient permissions
+            ) as botocore_error:
+                if isinstance(botocore_error, ClientError):
+                    if botocore_error.response["Error"]["Code"] != "AccessDenied":
+                        self.logger.warning(
+                            f"Unable to read tensor "
+                            f"from object {object_request.bucket}/{str(object_request.key)}"
+                            f": {str(botocore_error)}"
+                        )
+                    else:
+                        raise botocore_error
+                else:
+                    raise botocore_error
+            except Exception as e:
+                self.logger.warning(str(e))
+                msg = (
+                    "Unable to read tensor from object "
+                    + str(object_request.bucket)
+                    + "/"
+                    + str(object_request.key)
+                )
+                if object_request.length is not None:
+                    msg += (
+                        " from bytes "
+                        + str(object_request.start)
+                        + "-"
+                        + str(object_request.start + object_request.length - 1)
+                    )
+                self.logger.warning(msg)
+            count += 1
+        self.logger.warning("Unable to fetch file " + str(object_request.key))
+        return None
+
+    def get_objects(self, object_requests):
+        if type(object_requests) != list:
+            raise TypeError("get_objects accepts a list of ReadObjectRequest objects.")
+        data = []
+        for object_request in object_requests:
+            data.append(self.get_object(object_request))
+        return data
