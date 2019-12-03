@@ -120,7 +120,7 @@ def validate():
         global_steps = tr.steps()
         print("Global steps: " + str(global_steps))
 
-        loss_tensor_name = tr.tensors(regex="softmaxcrossentropyloss._output_.")[0]
+        loss_tensor_name = tr.tensor_names(regex="softmaxcrossentropyloss._output_.")[0]
         print("Obtained the loss tensor " + loss_tensor_name)
         assert loss_tensor_name == "softmaxcrossentropyloss0_output_0"
 
