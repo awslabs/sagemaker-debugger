@@ -116,3 +116,6 @@ log
 # Wheel and tar files from running `python bin/build_containers.py`
 *.whl
 bin/sagemaker-containers/**/*.tar.gz
+
+# TODO: Figure out what is generating this and move it to /tmp/MNIST-data
+MNIST-data/
