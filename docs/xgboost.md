@@ -27,7 +27,7 @@ from smdebug.xgboost import Hook
 dtrain = xgb.DMatrix("train.libsvm")
 dtest = xgb.DMatrix("test.libsmv")
 
-hook = Hook.hook_from_config()
+hook = Hook.create_from_json_file()
 hook.train_data = dtrain  # required
 hook.validation_data = dtest  # optional
 hook.hyperparameters = params  # optional
@@ -78,7 +78,7 @@ def __init__(
     hyperparameters = None,
     train_data = None,
     validation_data = None,
-) -> None
+)
 ```
 Initializes the hook. Pass this object as a callback to `xgboost.train()`.
 * `out_dir` (str): A path into which tensors and metadata will be written.
