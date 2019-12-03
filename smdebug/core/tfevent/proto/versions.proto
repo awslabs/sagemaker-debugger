@@ -1,3 +1,4 @@
+/* This file was modified for Amazon Sagemaker Debugger from the original version in https://github.com/tensorflow/tensorboard. */
 syntax = "proto3";
 
 package smdebug;
