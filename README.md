@@ -5,22 +5,18 @@
 - [How It Works](#how-it-works)
 
 ## Overview
-Amazon SageMaker Debugger is an AWS service to automatically debug your machine learning training process.
-It helps you develop better, faster, cheaper models by catching common errors quickly. It supports
-TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
+Amazon SageMaker Debugger is an AWS service which help you automate the debugging of machine learning training jobs. It can assist in developing better, faster and cheaper models by catching common errors quickly. It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 
-- Zero-code-change experience on SageMaker and AWS Deep Learning containers.
-- Automated anomaly detection and state assertions.
-- Realtime training job monitoring and visibility into any tensor value.
-- Distributed training and TensorBoard support.
+- Zero Script Change experience on SageMaker when using supported versions of SageMaker Framework containers or AWS Deep Learning containers
+- Full visibility into any tensor part of the training process
+- Real-time training job monitoring through Rules
+- Automated anomaly detection and state assertions
+- Interactive exploration of saved tensors
+- Distributed training support
+- TensorBoard support
 
-There are two ways to use it: Automatic mode and configurable mode.
-
-- Automatic mode: No changes to your training script. Specify the rules you want and launch a SageMaker Estimator job.
-- Configurable mode: More powerful, lets you specify exactly which tensors and collections to save. Use the Python API within your script.
-
-
-## Example: Amazon SageMaker Zero-Code-Change
+## Examples
+### Amazon SageMaker Zero Script Change
 This example uses a zero-script-change experience, where you can use your training script as-is.
 See the [example notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger) for more details.
 ```python
@@ -57,7 +53,7 @@ event if you run into exploding tensor values.
 If you want greater configuration and control, we offer that too. Simply
 
 
-## Example: Running Locally
+### Running Locally
 Requires Python 3.6+, and this example uses tf.keras. Run
 ```
 pip install smdebug

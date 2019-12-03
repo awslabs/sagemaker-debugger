@@ -1,23 +1,66 @@
-# SageMaker
+## Running SageMaker jobs with Amazon SageMaker Debugger
 
-There are two cases for SageMaker:
-- Zero-Code-Change (ZCC): Here you specify which rules to use, and run your existing script.
-    - Supported in Deep Learning Containers: `TensorFlow==1.15, PyTorch==1.3, MXNet==1.6`
-- Bring-Your-Own-Container (BYOC): Here you specify the rules to use, and modify your training script.
-    - Supported with `TensorFlow==1.13/1.14/1.15, PyTorch==1.2/1.3, MXNet==1.4/1.5/1.6`
+## Outline
+- [Enabling SageMaker Debugger](#enabling-sagemaker-debugger)
+  - [Zero Script Change](#zero-script-change)
+  - [Bring your own training container](#bring-your-own-training-container)
+- [Configuring SageMaker Debugger](#configuring-sagemaker-debugger)
+  - [Examples](#examples)
+  - [Saving data](#saving-data)
+  - [Rules](#rules)
+    - [Built In Rules](#built-in-rules)
+    - [Custom Rules](#custom-rules)
 
-The reason for different setups is that SageMaker Zero-Script-Change (via Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
-These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
+## Enabling SageMaker Debugger
+There are two ways in which you can enable SageMaker Debugger while training on SageMaker.
 
-## Configuration Details
+### Zero Script Change
+We have equipped the official Framework containers on SageMaker with custom versions of supported frameworks TensorFlow, PyTorch, MXNet and XGBoost. These containers enable you to use SageMaker Debugger with no changes to your training script, by automatically adding [SageMaker Debugger's Hook](api.md#glossary).
 
-This configuration is used for both ZCC and BYOC. The only difference is that with a custom container, you modify your training script as well. See the framework pages below for details on how to modify your training script.
+Here's a list of frameworks and versions which support this experience.
 
-- [TensorFlow](tensorflow.md)
-- [PyTorch](pytorch.md)
-- [MXNet](mxnet.md)
-- [XGBoost](xgboost.md)
+| Framework | Version |
+| --- | --- |
+| [TensorFlow](tensorflow.md) | 1.15 |
+| [MXNet](mxnet.md) | 1.6 |
+| [PyTorch](pytorch.md) | 1.3 |
+| [XGBoost](xgboost.md) | |
 
+More details for the deep learning frameworks on which containers these are can be found here: [SageMaker Framework Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html) and [AWS Deep Learning Containers](https://aws.amazon.com/machine-learning/containers/). You do not have to specify any training container image if you want to use them on SageMaker. You only need to specify the version above to use these containers.
+
+### Bring your own training container
+
+This library `smdebug` itself supports versions other than the ones listed above. If you want to use SageMaker Debugger with a version different from the above, you will have to orchestrate your training script with a few lines. Before we discuss how these changes look like, let us take a look at the versions supported.
+
+| Framework | Versions |
+| --- | --- |
+| [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15 |
+| Keras (with TensorFlow backend) | 2.3 |
+| [MXNet](mxnet.md) | 1.4, 1.5, 1.6 |
+| [PyTorch](pytorch.md) | 1.2, 1.3 |
+| [XGBoost](xgboost.md) | |
+
+#### Setting up SageMaker Debugger with your script on your container
+
+- Ensure that you are using Python3 runtime as `smdebug` only supports Python3.
+- Install `smdebug` binary through `pip install smdebug`
+- Make some minimal modifications to your training script to add SageMaker Debugger's Hook. Please refer to the framework pages linked below for instructions on how to do that.
+    - [TensorFlow](tensorflow.md)
+    - [PyTorch](pytorch.md)
+    - [MXNet](mxnet.md)
+    - [XGBoost](xgboost.md)
+
+## Configuring SageMaker Debugger
+
+Regardless of which of the two above ways you have enabled SageMaker Debugger, you can configure it using the SageMaker python SDK. There are two aspects to this configuration.
+- You can specify which Rule you want to monitor your training job with. This can be either a built in rule that SageMaker provides, or a custom rule that you can write yourself.
+- You can specify what tensors to be saved, when they should be saved and in what form they should be saved.
+
+Let us start by reviewing examples for a few scenarios before going into them in detail.
+
+### Examples
+
+##### Running a built-in rule
 ```python
 rule = sagemaker.debugger.Rule.sagemaker(
     base_config: dict, # Use an import, e.g. sagemaker.debugger.rule_configs.exploding_tensor()
@@ -108,7 +151,7 @@ sagemaker_simple_estimator.fit()
 
 
 
-## List of Builtin Rules
+## Built-in Rules
 Full list of rules is:
 
 | Rule Name | Behavior |
