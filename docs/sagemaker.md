@@ -13,10 +13,10 @@ These framework forks are not available in custom containers or non-SM environme
 
 This configuration is used for both ZCC and BYOC. The only difference is that with a custom container, you modify your training script as well. See the framework pages below for details on how to modify your training script.
 
-- [TensorFlow](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/tensorflow.md)
-- [PyTorch](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/pytorch.md)
-- [MXNet](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/mxnet.md)
-- [XGBoost](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/xgboost.md)
+- [TensorFlow](tensorflow.md)
+- [PyTorch](pytorch.md)
+- [MXNet](mxnet.md)
+- [XGBoost](xgboost.md)
 
 ```python
 rule = sagemaker.debugger.Rule.sagemaker(
@@ -110,6 +110,7 @@ sagemaker_simple_estimator.fit()
 
 ## List of Builtin Rules
 Full list of rules is:
+
 | Rule Name | Behavior |
 |---|---|
 | `vanishing_gradient` | Detects a vanishing gradient. |

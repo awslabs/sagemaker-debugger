@@ -479,6 +479,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
+        # set mode for each batch as when users run model.fit() and pass validation data
+        # through the optional argument, then mode_begin is not called for the training steps
+        # after first evaluation during training
+        self.set_mode(mode)
+
         self._close_writers()
         self._increment_step()
 
