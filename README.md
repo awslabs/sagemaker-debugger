@@ -22,7 +22,7 @@ There are two ways to use it: Automatic mode and configurable mode.
 
 ## Example: Amazon SageMaker Zero-Code-Change
 This example uses a zero-script-change experience, where you can use your training script as-is.
-See the [example notebooks](https://link.com) for more details.
+See the [example notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger) for more details.
 ```python
 import sagemaker
 from sagemaker.debugger import rule_configs, Rule, CollectionConfig
@@ -88,7 +88,7 @@ print(f"Loss values were {trial.tensor('CrossEntropyLoss:0')}")
 Amazon SageMaker Debugger uses a `hook` to store the values of tensors throughout the training process. Another process called a `rule` job
 simultaneously monitors and validates these outputs to ensure that training is progressing as expected.
 A rule might check for vanishing gradients, or exploding tensor values, or poor weight initialization.
-If a rule is triggered, it will raise a CloudWatch event and stop the training job, saving you time
+If a rule is triggered, it will raise a CloudWatch event, saving you time
 and money.
 
 Amazon SageMaker Debugger can be used inside or outside of SageMaker. There are three main use cases:
@@ -99,9 +99,9 @@ Amazon SageMaker Debugger can be used inside or outside of SageMaker. There are 
 The reason for different setups is that SageMaker Zero-Script-Change (via Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
 These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
-See the [SageMaker page](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md) for details on SageMaker Zero-Code-Change and BYOC experience.\
+See the [SageMaker page](docs/sagemaker.md) for details on SageMaker Zero-Code-Change and BYOC experience.\
 See the frameworks pages for details on modifying the training script:
-- [TensorFlow](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/tensorflow.md)
-- [PyTorch](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/pytorch.md)
-- [MXNet](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/mxnet.md)
-- [XGBoost](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/xgboost.md)
+- [TensorFlow](docs/tensorflow.md)
+- [PyTorch](docs/pytorch.md)
+- [MXNet](docs/mxnet.md)
+- [XGBoost](docs/xgboost.md)
