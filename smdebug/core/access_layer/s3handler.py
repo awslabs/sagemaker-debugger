@@ -60,7 +60,7 @@ class ListRequest:
         self.start_after = StartAfter
 
 
-class S3Handler:
+class S3HandlerAsync:
     # For debug flag, first set PYTHONASYNCIODEBUG=1 in terminal.
     # This provides terminal output revealing details about the AsyncIO calls and timings that may be useful.
     # num_retries: the number of times to retry a download or connection before logging an exception.
@@ -264,7 +264,7 @@ class S3Handler:
         self.close_client()
 
 
-class S3HandlerSync:
+class S3Handler:
     def __init__(self, num_retries=5):
         self.client = boto3.client("s3", region_name=get_region())
         self.num_retries = num_retries
