@@ -1,13 +1,11 @@
 # Standard Library
-import asyncio
 import os
 
 # Third Party
-import aioboto3
 import numpy as np
 
 # First Party
-from smdebug.core.access_layer.s3handler import ListRequest, S3Handler
+from smdebug.core.access_layer.s3handler import DeleteRequest, S3Handler
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
 from smdebug.core.writer import FileWriter
@@ -51,18 +49,6 @@ def check_trial(trial_obj, num_steps, num_tensors):
             assert v is not None
 
 
-async def del_prefix_helper(bucket, keys):
-    loop = asyncio.get_event_loop()
-    client = aioboto3.client("s3", loop=loop)
-    await asyncio.gather(*[client.delete_object(Bucket=bucket, Key=key) for key in keys])
-    await client.close()
-
-
 def delete_s3_prefix(bucket, prefix):
     s3_handler = S3Handler()
-    list_req = [ListRequest(Bucket=bucket, Prefix=prefix)]
-    keys = s3_handler.list_prefixes(list_req)[0]
-
-    loop = asyncio.get_event_loop()
-    task = loop.create_task(del_prefix_helper(bucket, keys))
-    loop.run_until_complete(task)
+    s3_handler.delete_prefix(delete_request=DeleteRequest(Bucket=bucket, Prefix=prefix))

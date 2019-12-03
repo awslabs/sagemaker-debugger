@@ -4,7 +4,6 @@ import logging
 import time
 
 # Third Party
-import aioboto3
 import boto3
 from botocore.exceptions import (
     ClientError,
@@ -40,11 +39,11 @@ def check_notebook():
 # eg s3://ljain-tests/demos/ ....
 class ReadObjectRequest:
     def __init__(self, path, start=0, length=None):
-        self.is_s3, self.bucket, self.path = is_s3(path)
+        self.is_s3, self.bucket, self.key = is_s3(path)
         if not self.is_s3:
-            self.path = path
+            self.key = path
             self.bucket = None
-        assert start >= 0 and (start == 0 or length is not None)
+        # assert start >= 0 and (start == 0 or length is not None)
         self.start = start
         self.length = length
         self.download_entire_file = self.start == 0 and self.length is None
@@ -58,6 +57,12 @@ class ListRequest:
         self.prefix = Prefix
         self.delimiter = Delimiter
         self.start_after = StartAfter
+
+
+class DeleteRequest:
+    def __init__(self, Bucket, Prefix=""):
+        self.bucket = Bucket
+        self.prefix = Prefix
 
 
 class S3HandlerAsync:
@@ -343,13 +348,10 @@ class S3Handler:
         count = 0
         while count < self.num_retries:
             try:
-                if object_request.length is not None:
-                    bytes_range = (
-                        "bytes="
-                        + str(object_request.start)
-                        + "-"
-                        + str(object_request.start + object_request.length - 1)
-                    )
+                if object_request.start is not None:
+                    bytes_range = f"bytes={object_request.start}-"
+                    if object_request.length is not None:
+                        bytes_range += f"{object_request.start + object_request.length - 1}"
                     resp = self.client.get_object(
                         Bucket=object_request.bucket, Key=object_request.key, Range=bytes_range
                     )
@@ -410,3 +412,31 @@ class S3Handler:
         for object_request in object_requests:
             data.append(self.get_object(object_request))
         return data
+
+    def delete_prefix(self, path, delete_request=None):
+        if path is not None and delete_request is not None:
+            raise ValueError("Only one of path or delete_request can be passed")
+        elif path is not None:
+            on_s3, bucket, prefix = is_s3(path)
+            if on_s3 is False:
+                raise ValueError("Given path is not an S3 location")
+            delete_requests = [DeleteRequest(bucket, prefix)]
+            self.delete_prefixes(delete_requests)
+        elif delete_request is not None:
+            self.delete_prefixes([delete_request])
+
+    def delete_prefixes(self, delete_requests):
+        if delete_requests is not None and len(delete_requests) == 0:
+            return
+        for delete_request in delete_requests:
+            list_request = ListRequest(Bucket=delete_request.bucket, Prefix=delete_request.prefix)
+            keys = self.list_prefix(list_request)
+            if len(keys):
+                delete_dict = {}
+                delete_dict["Objects"] = []
+                for key in keys:
+                    delete_dict["Objects"].append({"Key": key})
+                self.client.delete_objects(Bucket=delete_request.bucket, Delete=delete_dict)
+
+    def close_client(self):
+        pass
