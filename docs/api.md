@@ -101,7 +101,7 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 | `GRADIENTS` | TensorFlow, PyTorch, MXNet | Matches all gradients tensors. In TensorFlow non-DLC, must use `hook.wrap_optimizer()`.  |
 | `LOSSES` | TensorFlow, PyTorch, MXNet | Matches all loss tensors. |
 | `SCALARS` | TensorFlow, PyTorch, MXNet | Matches all scalar tensors, such as loss or accuracy. |
-| `METRICS` | TensorFlow, XGBoost | Evaluation metrics coputed by the algorithm. |
+| `METRICS` | TensorFlow, XGBoost | Evaluation metrics computed by the algorithm. |
 | `INPUTS` | TensorFlow | Matches all inputs to a layer (outputs of the previous layer). |
 | `OUTPUTS` | TensorFlow | Matches all outputs of a layer (inputs of the following layer). |
 | `SEARCHABLE_SCALARS` | TensorFlow | Scalars that will go to SageMaker Metrics. |
