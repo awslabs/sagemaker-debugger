@@ -83,14 +83,14 @@ def transformer(data, label):
 
 def prepare_data(batch_size):
     train_data = gluon.data.DataLoader(
-        gluon.data.vision.MNIST("./tmp", train=True, transform=transformer),
+        gluon.data.vision.MNIST("/tmp", train=True, transform=transformer),
         batch_size=batch_size,
         shuffle=True,
         last_batch="discard",
     )
 
     val_data = gluon.data.DataLoader(
-        gluon.data.vision.MNIST("./tmp", train=False, transform=transformer),
+        gluon.data.vision.MNIST("/tmp", train=False, transform=transformer),
         batch_size=batch_size,
         shuffle=False,
     )
@@ -124,11 +124,17 @@ def validate():
         print("Obtained the loss tensor " + loss_tensor_name)
         assert loss_tensor_name == "softmaxcrossentropyloss0_output_0"
 
-        mean_loss_tensor_value = tr.tensor(loss_tensor_name).reduction_value(
+        mean_loss_tensor_value_first_step = tr.tensor(loss_tensor_name).reduction_value(
             step_num=global_steps[0], reduction_name="mean", abs=False
         )
-        print("Mean validation loss = " + str(mean_loss_tensor_value))
-        assert str(mean_loss_tensor_value) == "2.3076453"
+
+        mean_loss_tensor_value_last_step = tr.tensor(loss_tensor_name).reduction_value(
+            step_num=global_steps[-1], reduction_name="mean", abs=False
+        )
+
+        print("Mean validation loss first step = " + str(mean_loss_tensor_value_first_step))
+        print("Mean validation loss last step = " + str(mean_loss_tensor_value_last_step))
+        assert mean_loss_tensor_value_first_step >= mean_loss_tensor_value_last_step
 
     except ImportError:
         print("smdebug libraries do not exist. Skipped Validation.")
