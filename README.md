@@ -105,3 +105,7 @@ See the frameworks pages for details on modifying the training script:
 - [PyTorch](docs/pytorch.md)
 - [MXNet](docs/mxnet.md)
 - [XGBoost](docs/xgboost.md)
+
+## License
+
+This library is licensed under the Apache 2.0 License.
