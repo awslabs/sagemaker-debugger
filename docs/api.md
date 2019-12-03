@@ -106,7 +106,6 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 | `OUTPUTS` | TensorFlow | Matches all outputs of a layer (inputs of the following layer). |
 | `SEARCHABLE_SCALARS` | TensorFlow | Scalars that will go to SageMaker Metrics. |
 | `OPTIMIZER_VARIABLES` | TensorFlow | Matches all optimizer variables. |
-| `METRICS` | XGBoost | [Metrics computed by the XGBoost algorithm](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost-tuning.html) |
 | `HYPERPARAMETERS` | XGBoost | [Booster paramameters](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html) |
 | `PREDICTIONS` | XGBoost | Predictions on validation set (if provided) |
 | `LABELS` | XGBoost | Labels on validation set (if provided) |
