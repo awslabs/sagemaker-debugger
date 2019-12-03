@@ -9,7 +9,7 @@ These objects exist across all frameworks.
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
-- [Environment Variables](Environment Variables)
+- [Environment Variables](#environment-variables)
 
 ## Glossary
 
@@ -253,26 +253,26 @@ will return the standard deviation and variance, the mean of the absolute value,
 
 ## Environment Variables
 
-####`USE_SMDEBUG`:
+#### `USE_SMDEBUG`:
 
 Setting this variable to 0 turns off the hook that is created by default. This can be used
 if the user doesn't want to use SageMaker Debugger.
 
-####`SMDEBUG_CONFIG_FILE_PATH`:
+#### `SMDEBUG_CONFIG_FILE_PATH`:
 
 Contains the path to the JSON file that describes the smdebug hook.
 
 At the minimum, the JSON config should contain the path where smdebug should output tensors.
 Example:
 
-`{ “LocalPath”: /my/smdebug_hook/path }`
+`{ "LocalPath": "/my/smdebug_hook/path" }`
 
 In SageMaker environment, this path is set to point to a pre-defined location containing a valid JSON.
 In non-SageMaker environment, SageMaker-Debugger is not used if this environment variable is not set and
 a hook is not created manually.
 
 Sample JSON from which a hook can be created:
-```
+```json
 {
   "LocalPath": "/my/smdebug_hook/path",
   "HookParameters": {
@@ -300,14 +300,14 @@ Sample JSON from which a hook can be created:
 
 ```
 
-####`TENSORBOARD_CONFIG_FILE_PATH`:
+#### `TENSORBOARD_CONFIG_FILE_PATH`:
 
 Contains the path to the JSON file that specifies where TensorBoard artifacts need to
 be placed.
 
 Sample JSON file:
 
-`{ “LocalPath”: /my/tensorboard/path }`
+`{ "LocalPath": "/my/tensorboard/path" }`
 
 In SageMaker environment, the presence of this JSON is necessary to log any Tensorboard artifact.
 By default, this path is set to point to a pre-defined location in SageMaker.
@@ -317,36 +317,36 @@ in the JSON specified in SMDEBUG_CONFIG_FILE_PATH. For this, export_tensorboard 
 This option to set tensorboard_dir is available in both, SageMaker and non-SageMaker environments.
 
 
-####`CHECKPOINT_CONFIG_FILE_PATH`:
+#### `CHECKPOINT_CONFIG_FILE_PATH`:
 
 Contains the path to the JSON file that specifies where training checkpoints need to
 be placed. This is used in the context of spot training.
 
 Sample JSON file:
 
-`{ “LocalPath”: /my/checkpoint/path }`
+`{ "LocalPath": "/my/checkpoint/path" }`
 
 In SageMaker environment, the presence of this JSON is necessary to save checkpoints.
 By default, this path is set to point to a pre-defined location in SageMaker.
 
 
-####`SAGEMAKER_METRICS_DIRECTORY`:
+#### `SAGEMAKER_METRICS_DIRECTORY`:
 
 Contains the path to the directory where metrics will be recorded for consumption by SageMaker Metrics.
 This is relevant only in SageMaker environment, where this variable points to a pre-defined location.
 
 
-####`TRAINING_END_DELAY_REFRESH`:
+#### `TRAINING_END_DELAY_REFRESH`:
 
-During analysis, a [trial](#Linkto analysis.md) is created to query for tensors from a specified directory. This
+During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
 directory contains collections, events, and index files. This environment variable
 specifies how many seconds to wait before refreshing the index files to check if training has ended
 and the tensor is available. By default value, this value is set to 1.
 
 
-####`INCOMPLETE_STEP_WAIT_WINDOW`:
+#### `INCOMPLETE_STEP_WAIT_WINDOW`:
 
-During analysis, a [trial](#Linkto analysis.md) is created to query for tensors from a specified directory. This
+During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
 directory contains collections, events, and index files. A trial checks to see if a step
 specified in the smdebug hook has been completed. This environment variable
 specifies the maximum number of incomplete steps that the trial will wait for before marking
