@@ -1,6 +1,6 @@
 # MXNet
 
-SageMaker Zero-Code-Change supported container: MXNet 1.6. See [AWS Docs](https://link.com) for more information.\
+SageMaker Zero-Code-Change supported container: MXNet 1.6. See [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html) for more information.\
 Python API supported versions: MXNet 1.4, 1.5, 1.6.
 
 ## Contents

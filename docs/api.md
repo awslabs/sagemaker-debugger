@@ -1,7 +1,6 @@
 
 # Common API
 These objects exist across all frameworks.
-- [SageMaker Zero-Code-Change vs. Python API](#sagemaker)
 - [Creating a Hook](#creating-a-hook)
     - [Hook from SageMaker](#hook-from-sagemaker)
     - [Hook from Python](#hook-from-python)
@@ -14,8 +13,7 @@ These objects exist across all frameworks.
 
 The imports assume `import smdebug.{tensorflow,pytorch,mxnet,xgboost} as smd`.
 
-**Hook**: The main interface to use training. This object can be passed as a model hook/callback
-in Tensorflow and Keras. It keeps track of collections and writes output files at each step.
+**Hook**: The main class to pass as a callback object, or to create callback functions. It keeps track of collections and writes output files at each step.
 - `hook = smd.Hook(out_dir="/tmp/mnist_job")`
 
 **Mode**: One of "train", "eval", "predict", or "global". Helpful for segmenting data based on the phase
@@ -32,10 +30,10 @@ tensors to include/exclude.
 **ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor.
 - `reduction_config = smd.ReductionConfig(reductions=['min', 'max', 'mean'], norms=['l1'])`
 
-**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](https://link.com).
+**Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](analysis.md).
 - `trial = smd.create_trial(out_dir="/tmp/mnist_job")`
 
-**Rule**: A condition that will trigger an exception and terminate the training job early, for example a vanishing gradient. See [rules documentation](https://link.com).
+**Rule**: A condition that will trigger an exception, for example a vanishing gradient. See [rules documentation](analysis.md).
 
 
 ---
@@ -44,7 +42,7 @@ tensors to include/exclude.
 
 ### Hook from SageMaker
 If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API
-as described in [AWS Docs](https://link.com),
+as described in [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html),
 the a JSON file will be automatically written. You can create a hook from this file by calling
 ```python
 hook = smd.{hook_class}.create_from_json_file()
@@ -53,10 +51,10 @@ with no arguments and then use the hook Python API in your script. `hook_class` 
 
 ### Hook from Python
 See the framework-specific pages for more details.
-* [TensorFlow](https://link.com)
-* [PyTorch](https://link.com)
-* [MXNet](https://link.com)
-* [XGBoost](https://link.com)
+* [TensorFlow](tensorflow.md)
+* [PyTorch](pytorch.md)
+* [MXNet](mxnet.md)
+* [XGBoost](xgboost.md)
 
 ---
 
