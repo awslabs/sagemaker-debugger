@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Amazon SageMaker Debugger is an AWS service which help you automate the debugging of machine learning training jobs.
+""" Amazon SageMaker Debugger is an offering from AWS which help you automate the debugging of machine learning training jobs.
 
 It can assist in developing better, faster and cheaper models by catching common errors quickly.
 This library powers the service, and supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
