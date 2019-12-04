@@ -190,7 +190,7 @@ def add_cli_args():
     )
 
     cmdline.add_argument("--save_all", type=str2bool, default=True)
-    cmdline.add_argument("--smdebug_path", type=str, default="/opt/ml/output/tensors")
+    cmdline.add_argument("--out_dir", type=str)
     cmdline.add_argument("--save_frequency", type=int, help="How often to save TS data", default=10)
     cmdline.add_argument(
         "--reductions",
@@ -238,7 +238,7 @@ def main(unused_argv):
     )
 
     ts_hook = smd.SessionHook(
-        out_dir=FLAGS.smdebug_path,
+        out_dir=FLAGS.out_dir,
         save_all=FLAGS.save_all,
         include_collections=["weights", "gradients", "losses", "biases"],
         save_config=smd.SaveConfig(save_interval=FLAGS.save_frequency),
