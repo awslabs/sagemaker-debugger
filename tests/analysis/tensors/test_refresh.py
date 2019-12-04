@@ -13,7 +13,7 @@ from smdebug.trials import create_trial
 @pytest.mark.slow  # 0:38 to run
 def test_refresh_tensors():
     trial_name = str(uuid.uuid4())
-    path = "s3://smdebug-testing/outputs/rules_refresh_tensors/"
+    path = f"s3://smdebug-testing/outputs/rules_refresh_tensors-{uuid.uuid4()}/"
     num_steps = 8
     num_tensors = 10
     for i in range(num_steps):

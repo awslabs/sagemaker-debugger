@@ -105,11 +105,11 @@ def test_get_prefix_from_index_file():
     assert prefix == "/opt/ml/testing/run_1"
 
     s3_index_filepath = (
-        "s3://smdebug-testing/outputs/run_1/index/000000000/000000000000_worker_0.json"
+        "s3://bucket-that-does-not-exist/run_1/index/000000000/000000000000_worker_0.json"
     )
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(s3_index_filepath)
 
-    assert prefix == "s3://smdebug-testing/outputs/run_1"
+    assert prefix == "s3://bucket-that-does-not-exist/run_1"
 
 
 def test_json_params():
