@@ -1,4 +1,5 @@
 # Third Party
+import pytest
 
 # First Party
 from smdebug.core.access_layer import check_dir_exists
@@ -41,7 +42,7 @@ def test_s3_noprefix2():
     assert rval[2] == ""
 
 
-def test_check_dir_exists_no_local():
+def test_check_dir_not_exists_local():
     check_dir_exists("/home/ubuntu/asasdas")
 
 
@@ -53,24 +54,19 @@ def test_check_dir_exists():
         pass
 
 
-def test_check_dir_exists_no_s3():
+def test_check_dir_not_exists_s3():
     check_dir_exists("s3://smdebug-testing/pleasedontexist")
 
 
 def test_check_dir_exists_s3():
-    try:
-        check_dir_exists("s3://tornasole-binaries-use1/tornasole_tf/")
-        assert False
-    except Exception as e:
-        pass
+    with pytest.raises(Exception):
+        # This file should exist in the bucket for proper testing
+        check_dir_exists("s3://smdebug-testing/exists")
 
 
-def test_check_dir_exists_no():
-    try:
-        check_dir_exists("s3://tornasole-binaries-use1")
-        assert False
-    except Exception as e:
-        pass
+def test_check_dir_not_exists():
+    with pytest.raises(Exception):
+        check_dir_exists("s3://smdebug-testing")
 
 
 def test_index_files_cache():
