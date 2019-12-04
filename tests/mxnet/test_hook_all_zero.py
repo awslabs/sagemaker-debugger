@@ -22,6 +22,7 @@ def test_hook_all_zero(hook=None, out_dir=None):
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
         out_dir = "/tmp/newlogsRunTest/" + run_id
         print("Registering the hook with out_dir {0}".format(out_dir))
+        shutil.rmtree(out_dir, ignore_errors=True)
         hook = t_hook(
             out_dir=out_dir,
             save_config=save_config,
