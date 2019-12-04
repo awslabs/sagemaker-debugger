@@ -141,7 +141,6 @@ class BaseHook:
         self.reduction_config = reduction_config
         self.include_regex = include_regex
         self.collection_manager = collection_manager
-        self.collection_manager.set_num_workers(self._get_num_workers())
         self.init_step = init_step
 
         self.logger = logger
