@@ -16,7 +16,7 @@ def test_training_job_has_ended(out_dir):
     subprocess.check_call(
         [
             sys.executable,
-            "examples/tensorflow/scripts/local/simple.py",
+            "examples/tensorflow/local/simple.py",
             "--out_dir",
             out_dir,
             "--steps",
