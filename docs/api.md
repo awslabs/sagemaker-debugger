@@ -114,8 +114,6 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 | `TREES` | XGBoost | Boosted tree model given by [trees_to_dataframe()](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.trees_to_dataframe) |
 
 
-
-
 ```python
 coll = smd.Collection(
     name,
@@ -246,7 +244,6 @@ For example,
 
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
 
-
 ---
 
 ## Environment Variables
@@ -254,7 +251,7 @@ will return the standard deviation and variance, the mean of the absolute value,
 #### `USE_SMDEBUG`:
 
 Setting this variable to 0 turns off the hook that is created by default. This can be used
-if the user doesn't want to use SageMaker Debugger.
+if the user doesn't want to use SageMaker Debugger, only in the Zero Script Change containers provided by SageMaker or AWS Deep Learning Containers.
 
 #### `SMDEBUG_CONFIG_FILE_PATH`:
 
@@ -349,3 +346,4 @@ directory contains collections, events, and index files. A trial checks to see i
 specified in the smdebug hook has been completed. This environment variable
 specifies the maximum number of incomplete steps that the trial will wait for before marking
 half of them as complete. Default: 1000
+
