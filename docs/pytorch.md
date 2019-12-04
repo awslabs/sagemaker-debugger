@@ -1,6 +1,6 @@
 # PyTorch
 
-SageMaker Zero-Code-Change supported containers: PyTorch 1.3. See [AWS Docs](https://link.com) for more information.\
+SageMaker Zero-Code-Change supported containers: PyTorch 1.3. See [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html) for more information.\
 Python API supported versions: 1.2, 1.3.
 
 ## Contents
@@ -71,8 +71,8 @@ for (inputs, labels) in trainloader:
 ```
 
 ## Full API
-See the [Common API](https://link.com) page for details about Collection, SaveConfig, and ReductionConfig.\
-See the [Analysis](https://link.com) page for details about analyzing a training job.
+See the [Common API](api.md) page for details about Collection, SaveConfig, and ReductionConfig.\
+See the [Analysis](analysis.md) page for details about analyzing a training job.
 
 ## Hook
 ```python

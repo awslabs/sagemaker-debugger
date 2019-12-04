@@ -18,7 +18,7 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install -U pip
         - pip install -q pytest wheel pyYaml pytest-html keras==2.3.1 tensorflow==1.15.0 mxnet torch xgboost pre-commit tensorflow_datasets
-        - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
+        - pip uninstall -y boto3 awscli botocore
 
   pre_build:
     commands:
