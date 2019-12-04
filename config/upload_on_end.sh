@@ -4,20 +4,20 @@ cat $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH/pytest_reports/*.html >> $COD
 upload_dirs() {
 for var in "$@"
 do
-    aws s3 sync --quiet $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH/$var s3://tornasolecodebuildtest/$CURRENT_COMMIT_PATH/$var
+    aws s3 sync --quiet $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH/$var s3://smdebugcodebuildtest/$CURRENT_COMMIT_PATH/$var
 done
 }
 
 del_dirs() {
 for var in "$@"
 do
-    aws s3 rm --recursive --quiet s3://tornasolecodebuildtest/$CURRENT_COMMIT_PATH/$var
+    aws s3 rm --recursive --quiet s3://smdebugcodebuildtest/$CURRENT_COMMIT_PATH/$var
 done
 }
 
 PR_ID=$(echo $CODEBUILD_WEBHOOK_TRIGGER | cut -d '/' -f 2-)
 export GITHUB_PR_URL=https://github.com/awslabs/$CURRENT_REPO_NAME/pull/$PR_ID
-export S3_TEST_REPORT_URL=https://s3.console.aws.amazon.com/s3/object/tornasolecodebuildtest/$CURRENT_COMMIT_PATH/pytest_reports/all_tests.html?region=us-west-1
+export S3_TEST_REPORT_URL=https://s3.console.aws.amazon.com/s3/object/smdebugcodebuildtest/$CURRENT_COMMIT_PATH/pytest_reports/all_tests.html?region=us-west-1
 
 if [ $CODEBUILD_BUILD_SUCCEEDING -eq 0 ]
 then
