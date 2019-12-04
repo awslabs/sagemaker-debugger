@@ -99,7 +99,8 @@ Amazon SageMaker Debugger can be used inside or outside of SageMaker. There are 
 The reason for different setups is that SageMaker Zero-Script-Change (via Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
 These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
-See the [SageMaker page](docs/sagemaker.md) for details on SageMaker Zero-Code-Change and BYOC experience.\
+See the [SageMaker page](docs/sagemaker.md) for details on SageMaker Zero-Code-Change and Bring-Your-Own-Container (BYOC) experience.\
+
 See the frameworks pages for details on modifying the training script:
 - [TensorFlow](docs/tensorflow.md)
 - [PyTorch](docs/pytorch.md)

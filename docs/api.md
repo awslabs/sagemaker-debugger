@@ -8,6 +8,7 @@ These objects exist across all frameworks.
 - [Collection](#collection)
 - [SaveConfig](#saveconfig)
 - [ReductionConfig](#reductionconfig)
+- [Environment Variables](#environment-variables)
 
 ## Glossary
 
@@ -99,20 +100,18 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 | `GRADIENTS` | TensorFlow, PyTorch, MXNet | Matches all gradients tensors. In TensorFlow non-DLC, must use `hook.wrap_optimizer()`.  |
 | `LOSSES` | TensorFlow, PyTorch, MXNet | Matches all loss tensors. |
 | `SCALARS` | TensorFlow, PyTorch, MXNet | Matches all scalar tensors, such as loss or accuracy. |
-| `METRICS` | TensorFlow, XGBoost | ??? |
+| `METRICS` | TensorFlow, XGBoost | Evaluation metrics computed by the algorithm. |
 | `INPUTS` | TensorFlow | Matches all inputs to a layer (outputs of the previous layer). |
 | `OUTPUTS` | TensorFlow | Matches all outputs of a layer (inputs of the following layer). |
 | `SEARCHABLE_SCALARS` | TensorFlow | Scalars that will go to SageMaker Metrics. |
 | `OPTIMIZER_VARIABLES` | TensorFlow | Matches all optimizer variables. |
-| `HYPERPARAMETERS` | XGBoost | ... |
-| `PREDICTIONS` | XGBoost | ... |
-| `LABELS` | XGBoost | ... |
-| `FEATURE_IMPORTANCE` | XGBoost | ... |
-| `AVERAGE_SHAP` | XGBoost | ... |
-| `FULL_SHAP` | XGBoost | ... |
-| `TREES` | XGBoost | ... |
-
-
+| `HYPERPARAMETERS` | XGBoost | [Booster paramameters](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html) |
+| `PREDICTIONS` | XGBoost | Predictions on validation set (if provided) |
+| `LABELS` | XGBoost | Labels on validation set (if provided) |
+| `FEATURE_IMPORTANCE` | XGBoost | Feature importance given by [get_score()](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.get_score) |
+| `FULL_SHAP` | XGBoost | A matrix of (nsmaple, nfeatures + 1) with each record indicating the feature contributions ([SHAP values](https://github.com/slundberg/shap)) for that prediction. Computed on training data with [predict()](https://github.com/slundberg/shap) |
+| `AVERAGE_SHAP` | XGBoost | The sum of SHAP value magnitudes over all samples. Represents the impact each feature has on the model output. |
+| `TREES` | XGBoost | Boosted tree model given by [trees_to_dataframe()](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.trees_to_dataframe) |
 
 
 ```python
@@ -244,3 +243,106 @@ For example,
 `ReductionConfig(reductions=['std', 'variance'], abs_reductions=['mean'], norms=['l1'])`
 
 will return the standard deviation and variance, the mean of the absolute value, and the l1 norm.
+
+---
+
+## Environment Variables
+
+#### `USE_SMDEBUG`:
+
+Setting this variable to 0 turns off the hook that is created by default. This can be used
+if the user doesn't want to use SageMaker Debugger, only in the Zero Script Change containers provided by SageMaker or AWS Deep Learning Containers.
+
+#### `SMDEBUG_CONFIG_FILE_PATH`:
+
+Contains the path to the JSON file that describes the smdebug hook.
+
+At the minimum, the JSON config should contain the path where smdebug should output tensors.
+Example:
+
+`{ "LocalPath": "/my/smdebug_hook/path" }`
+
+In SageMaker environment, this path is set to point to a pre-defined location containing a valid JSON.
+In non-SageMaker environment, SageMaker-Debugger is not used if this environment variable is not set and
+a hook is not created manually.
+
+Sample JSON from which a hook can be created:
+```json
+{
+  "LocalPath": "/my/smdebug_hook/path",
+  "HookParameters": {
+    "save_all": false,
+    "include_regex": "regex1,regex2",
+    "save_interval": "100",
+    "save_steps": "1,2,3,4",
+    "start_step": "1",
+    "end_step": "1000000",
+    "reductions": "min,max,mean"
+  },
+  "CollectionConfigurations": [
+    {
+      "CollectionName": "collection_obj_name1",
+      "CollectionParameters": {
+        "include_regex": "regexe5*",
+        "save_interval": 100,
+        "save_steps": "1,2,3",
+        "start_step": 1,
+        "reductions": "min"
+      }
+    },
+  ]
+}
+
+```
+
+#### `TENSORBOARD_CONFIG_FILE_PATH`:
+
+Contains the path to the JSON file that specifies where TensorBoard artifacts need to
+be placed.
+
+Sample JSON file:
+
+`{ "LocalPath": "/my/tensorboard/path" }`
+
+In SageMaker environment, the presence of this JSON is necessary to log any Tensorboard artifact.
+By default, this path is set to point to a pre-defined location in SageMaker.
+
+tensorboard_dir can also be passed while creating the hook [Creating a hook](###Hook from Python) using the API or
+in the JSON specified in SMDEBUG_CONFIG_FILE_PATH. For this, export_tensorboard should be set to True.
+This option to set tensorboard_dir is available in both, SageMaker and non-SageMaker environments.
+
+
+#### `CHECKPOINT_CONFIG_FILE_PATH`:
+
+Contains the path to the JSON file that specifies where training checkpoints need to
+be placed. This is used in the context of spot training.
+
+Sample JSON file:
+
+`{ "LocalPath": "/my/checkpoint/path" }`
+
+In SageMaker environment, the presence of this JSON is necessary to save checkpoints.
+By default, this path is set to point to a pre-defined location in SageMaker.
+
+
+#### `SAGEMAKER_METRICS_DIRECTORY`:
+
+Contains the path to the directory where metrics will be recorded for consumption by SageMaker Metrics.
+This is relevant only in SageMaker environment, where this variable points to a pre-defined location.
+
+
+#### `TRAINING_END_DELAY_REFRESH`:
+
+During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
+directory contains collections, events, and index files. This environment variable
+specifies how many seconds to wait before refreshing the index files to check if training has ended
+and the tensor is available. By default value, this value is set to 1.
+
+
+#### `INCOMPLETE_STEP_WAIT_WINDOW`:
+
+During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
+directory contains collections, events, and index files. A trial checks to see if a step
+specified in the smdebug hook has been completed. This environment variable
+specifies the maximum number of incomplete steps that the trial will wait for before marking
+half of them as complete. Default: 1000

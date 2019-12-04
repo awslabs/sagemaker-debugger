@@ -1,3 +1,19 @@
+#!/usr/bin/env python
+""" Amazon SageMaker Debugger is an offering from AWS which help you automate the debugging of machine learning training jobs.
+
+This library powers Amazon SageMaker Debugger, and helps you develop better, faster and cheaper models by catching common errors quickly.
+It allows you to save tensors from training jobs and makes these tensors available for analysis, all through a flexible and powerful API.
+It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
+
+- Zero Script Change experience on SageMaker when using supported versions of SageMaker Framework containers or AWS Deep Learning containers
+- Full visibility into any tensor part of the training process
+- Real-time training job monitoring through Rules
+- Automated anomaly detection and state assertions
+- Interactive exploration of saved tensors
+- Distributed training support
+- TensorBoard support
+
+"""
 # Standard Library
 import os
 import sys
@@ -7,6 +23,7 @@ import setuptools
 
 exec(open("smdebug/_version.py").read())
 
+DOCLINES = (__doc__ or "").split("\n")
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
@@ -16,8 +33,8 @@ INSTALL_REQUIRES = [
     "aiobotocore==0.11.0",  # pinned to a specific botocore & boto3
     "aiohttp>=3.6.0,<4.0",  # aiobotocore breaks with 4.0
     # boto3 explicitly depends on botocore
-    "boto3==1.10.14",  # Sagemaker requires >= 1.9.213
-    "botocore==1.13.14",
+    "boto3==1.10.32",  # Sagemaker requires >= 1.9.213
+    "botocore==1.13.32",
     "nest_asyncio",
     "protobuf>=3.6.0",
     "numpy",
@@ -41,8 +58,10 @@ def build_package(version):
     setuptools.setup(
         name="smdebug",
         version=version,
+        long_description="\n".join(DOCLINES[2:]),
+        long_description_content_type="text/x-rst",
         author="AWS DeepLearning Team",
-        description="Automated debugging for machine learning",
+        description=DOCLINES[0],
         url="https://github.com/awslabs/sagemaker-debugger",
         packages=packages,
         classifiers=[
