@@ -13,7 +13,7 @@ TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = [
     # aiboto3 implicitly depends on aiobotocore
     "aioboto3==6.4.1",  # no version deps
-    "aiobotocore==0.10.2",  # pinned to a specific botocore & boto3
+    "aiobotocore==0.11.0",  # pinned to a specific botocore & boto3
     "aiohttp>=3.6.0,<4.0",  # aiobotocore breaks with 4.0
     # boto3 explicitly depends on botocore
     "boto3>=1.10.32",  # Sagemaker requires >= 1.9.213
