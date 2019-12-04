@@ -310,7 +310,7 @@ Sample JSON file:
 In SageMaker environment, the presence of this JSON is necessary to log any Tensorboard artifact.
 By default, this path is set to point to a pre-defined location in SageMaker.
 
-tensorboard_dir can also be passed while creating the hook [Creating a hook](### `Hook from Python`) using the API or
+tensorboard_dir can also be passed while creating the hook [Creating a hook](###Hook from Python) using the API or
 in the JSON specified in SMDEBUG_CONFIG_FILE_PATH. For this, export_tensorboard should be set to True.
 This option to set tensorboard_dir is available in both, SageMaker and non-SageMaker environments.
 
