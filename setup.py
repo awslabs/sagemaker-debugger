@@ -10,7 +10,7 @@ exec(open("smdebug/_version.py").read())
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
-INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging"]
+INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging", "boto3>=1.10.32"]
 
 
 def compile_summary_protobuf():
