@@ -231,8 +231,6 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
 
     def _is_not_supported(self):
-        if self.distribution_strategy is None:
-            self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
             if self.distribution_strategy == TFDistributionStrategy.MIRRORED:

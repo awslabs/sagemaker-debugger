@@ -135,7 +135,7 @@ class TensorflowBaseHook(BaseHook):
             return f"worker_{hvd.rank()}"
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             # unused for this strategy
-            raise NotImplementedError
+            return DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
@@ -229,9 +229,10 @@ class TensorflowBaseHook(BaseHook):
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 return [self.writer] if self.writer else []
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
-            # logic of whether this should be single writer or multiple will
-            # have been taken care of in initialize_writers method
-            return list(self.writer_map.values())
+            if len(self.device_map):
+                return list(self.writer_map.values())
+            else:
+                return [self.writer] if self.writer else []
         elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 return [self.writer] if self.writer else []
@@ -252,12 +253,19 @@ class TensorflowBaseHook(BaseHook):
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
-            for device, device_string in self.device_map.items():
-                if device_string in self.writer_map and only_initialize_if_missing is True:
-                    continue
-                if self.save_all_workers is True or device == self.chief_worker:
-                    self.writer_map[device_string] = FileWriter(
-                        trial_dir=self.out_dir, step=self.step, worker=device_string
+            if len(self.device_map):
+                for device, device_string in self.device_map.items():
+                    if device_string in self.writer_map and only_initialize_if_missing is True:
+                        continue
+                    if self.save_all_workers is True or device == self.chief_worker:
+                        self.writer_map[device_string] = FileWriter(
+                            trial_dir=self.out_dir, step=self.step, worker=device_string
+                        )
+            else:
+                # training on CPU when all device strings have cpu
+                if self.writer is None or only_initialize_if_missing is False:
+                    self.writer = FileWriter(
+                        trial_dir=self.out_dir, step=self.step, worker=self.worker
                     )
         elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             if self.save_all_workers is True or self.worker == self.chief_worker:
