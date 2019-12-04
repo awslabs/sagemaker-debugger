@@ -310,7 +310,7 @@ Sample JSON file:
 In SageMaker environment, the presence of this JSON is necessary to log any Tensorboard artifact.
 By default, this path is set to point to a pre-defined location in SageMaker.
 
-tensorboard_dir can also be passed while creating the hook [Creating a hook](###Hook from Python) using the API or
+tensorboard_dir can also be passed while creating the hook [Creating a hook](### `Hook from Python`) using the API or
 in the JSON specified in SMDEBUG_CONFIG_FILE_PATH. For this, export_tensorboard should be set to True.
 This option to set tensorboard_dir is available in both, SageMaker and non-SageMaker environments.
 
@@ -349,3 +349,11 @@ directory contains collections, events, and index files. A trial checks to see i
 specified in the smdebug hook has been completed. This environment variable
 specifies the maximum number of incomplete steps that the trial will wait for before marking
 half of them as complete. Default: 1000
+
+
+#### `MISSING_EVENT_FILE_RETRY_LIMIT`:
+
+During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
+directory contains collections, events, and index files. All the tensor data is stored in the event files.
+When tensor data contained in an event file that is not available has been requested, this variable specifcies
+the number of times we retry the request.
