@@ -16,15 +16,13 @@ def test_training_job_has_ended(out_dir):
     subprocess.check_call(
         [
             sys.executable,
-            "examples/tensorflow/scripts/simple.py",
-            "--smdebug_path",
+            "examples/tensorflow/local/simple.py",
+            "--out_dir",
             out_dir,
             "--steps",
             "10",
-            "--save_frequency",
+            "--save_interval",
             "5",
-            "--script-mode",
-            "y",
         ],
         env={"CUDA_VISIBLE_DEVICES": "-1", "SMDEBUG_LOG_LEVEL": "debug"},
     )

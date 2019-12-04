@@ -10,9 +10,9 @@
 ### Use XGBoost as a built-in algorithm
 
 The XGBoost algorithm can be used 1) as a built-in algorithm, or 2) as a framework such as MXNet, PyTorch, or Tensorflow.
-If SageMaker XGBoost is used as a built-in algorithm in container verision `0.90-2` or later, Amazon SageMaker Debugger will be available by default (i.e., zero code change experience).
+If SageMaker XGBoost is used as a built-in algorithm in container version `0.90-2` or later, Amazon SageMaker Debugger will be available by default (i.e., zero code change experience).
 See [XGBoost Algorithm AWS docmentation](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost.html) for more information on how to use XGBoost as a built-in algorithm.
-See [Amazon SageMaker Debugger examples](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger) for sample notebooks that demonstrate debugging and monitoring capabilities of Aamazon SageMaker Debugger.
+See [Amazon SageMaker Debugger examples](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger) for sample notebooks that demonstrate debugging and monitoring capabilities of Amazon SageMaker Debugger.
 See [SageMaker Python SDK](https://sagemaker.readthedocs.io/en/stable/) for more information on how to configure the Amazon SageMaker Debugger from the Python SDK.
 
 ### Use XGBoost as a framework
