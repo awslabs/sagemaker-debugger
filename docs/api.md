@@ -100,18 +100,18 @@ will automatically place weights into the `smd.CollectionKeys.WEIGHTS` collectio
 | `GRADIENTS` | TensorFlow, PyTorch, MXNet | Matches all gradients tensors. In TensorFlow non-DLC, must use `hook.wrap_optimizer()`.  |
 | `LOSSES` | TensorFlow, PyTorch, MXNet | Matches all loss tensors. |
 | `SCALARS` | TensorFlow, PyTorch, MXNet | Matches all scalar tensors, such as loss or accuracy. |
-| `METRICS` | TensorFlow, XGBoost | ??? |
+| `METRICS` | TensorFlow, XGBoost | Evaluation metrics computed by the algorithm. |
 | `INPUTS` | TensorFlow | Matches all inputs to a layer (outputs of the previous layer). |
 | `OUTPUTS` | TensorFlow | Matches all outputs of a layer (inputs of the following layer). |
 | `SEARCHABLE_SCALARS` | TensorFlow | Scalars that will go to SageMaker Metrics. |
 | `OPTIMIZER_VARIABLES` | TensorFlow | Matches all optimizer variables. |
-| `HYPERPARAMETERS` | XGBoost | ... |
-| `PREDICTIONS` | XGBoost | ... |
-| `LABELS` | XGBoost | ... |
-| `FEATURE_IMPORTANCE` | XGBoost | ... |
-| `AVERAGE_SHAP` | XGBoost | ... |
-| `FULL_SHAP` | XGBoost | ... |
-| `TREES` | XGBoost | ... |
+| `HYPERPARAMETERS` | XGBoost | [Booster paramameters](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html) |
+| `PREDICTIONS` | XGBoost | Predictions on validation set (if provided) |
+| `LABELS` | XGBoost | Labels on validation set (if provided) |
+| `FEATURE_IMPORTANCE` | XGBoost | Feature importance given by [get_score()](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.get_score) |
+| `FULL_SHAP` | XGBoost | A matrix of (nsmaple, nfeatures + 1) with each record indicating the feature contributions ([SHAP values](https://github.com/slundberg/shap)) for that prediction. Computed on training data with [predict()](https://github.com/slundberg/shap) |
+| `AVERAGE_SHAP` | XGBoost | The sum of SHAP value magnitudes over all samples. Represents the impact each feature has on the model output. |
+| `TREES` | XGBoost | Boosted tree model given by [trees_to_dataframe()](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.trees_to_dataframe) |
 
 
 

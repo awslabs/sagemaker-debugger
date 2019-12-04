@@ -5,7 +5,7 @@ set -ex
 check_logs() {
   if grep -e "AssertionError" $1;
    then
-    echo "Integration tests:FAILED."
+    echo "Integration tests: FAILED."
     exit 1
   else
         echo "Integration tests: SUCCESS."
@@ -43,3 +43,9 @@ if [ "$run_pytest_pytorch" = "enable" ] ; then
 fi
 
 check_logs $REPORT_DIR/*
+
+# Only look at newly added files
+if [ -n "$(git status --porcelain | grep ^?? | grep -v tornasolecodebuildtest | grep -v upload)" ]; then
+  echo "ERROR: Test artifacts were created. Please place these in /tmp."
+  exit 1
+fi
