@@ -83,7 +83,7 @@ class BaseHook:
         Attributes
         ----------
         out_dir : str
-            represents a path into which tornasole outputs will be written to
+            represents a path into which outputs will be written to
         dry_run : bool
             when dry run is set, behavior is only described in the log file.
             tensors are not actually saved.
@@ -196,7 +196,7 @@ class BaseHook:
         self.logger.info("Saving to {}".format(self.out_dir))
         atexit.register(self._cleanup)
 
-        # Check if there is any last saved tornasole state. Initialize the hook based last saved state.
+        # Check if there is any last saved state. Initialize the hook based last saved state.
         self.training_run = 0
         self._initialize_to_last_saved_state()
 
@@ -633,7 +633,7 @@ class BaseHook:
         called if tensor should not be saved for this step.
         :param tensor_name: str
         The name of tensor. In TensorFlow's case, this is graph name of tensor
-        and will be converted to Tornasole name in write_for_tensor.
+        and will be converted to internal name in write_for_tensor.
         :param tensor_value: dtype is tensor class of corresponding framework
             value of the tensor to be saved
         :param check_before_write: bool

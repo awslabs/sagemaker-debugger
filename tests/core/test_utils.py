@@ -103,12 +103,10 @@ def test_index_files_cache():
 
 
 def test_get_prefix_from_index_file():
-    local_index_filepath = (
-        "/opt/ml/tornasole-testing/run_1/index/000000000/000000000000_worker_0.json"
-    )
+    local_index_filepath = "/opt/ml/testing/run_1/index/000000000/000000000000_worker_0.json"
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(local_index_filepath)
 
-    assert prefix == "/opt/ml/tornasole-testing/run_1"
+    assert prefix == "/opt/ml/testing/run_1"
 
     s3_index_filepath = "s3://tornasole-testing/run_1/index/000000000/000000000000_worker_0.json"
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(s3_index_filepath)

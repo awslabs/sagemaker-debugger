@@ -163,7 +163,7 @@ def train_model(
             hooks.append(
                 # write_grads = True causes crash saying handle must be created in scope
                 # erorr like this https://stackoverflow.com/questions/56836895/custom-training-loop-using-tensorflow-gpu-1-14-and-tf-distribute-mirroredstrateg
-                # this crash is even if tornasole callback is off
+                # this crash is even if callback is off
                 tf.keras.callbacks.TensorBoard(
                     log_dir="/tmp/logs", histogram_freq=4, write_images=True
                 )

@@ -126,9 +126,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     # tensor will be added to this coll below
                     colls_with_tensor.add(current_coll)
                 # don't recommend adding tensors externally as
-                # they will have different tornasole name
+                # they will have different internal name
                 # but regardless, in such case we only use that tensor name to save data
-                # instead of the keras-style-tornasole-names
+                # instead of the keras-style-internal-names
         return colls_with_tensor
 
     def _check_and_add_layer_tensor(
@@ -402,7 +402,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_for_tensor(tensor_name=name, tensor_value=value, check_before_write=check)
 
     def _add_callbacks(self, mode):
-        # safest if tornasole callback is the last
+        # safest if hook callback is the last
         # self.original_fetches = self._get_exec_function(mode).fetches.copy()
 
         x = self._get_exec_function(mode)  # Returns GraphExecutionFunction
@@ -417,9 +417,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 else:
                     self.logger.warning(
-                        f"Can not save tensor {tensor.name} as there is already "
+                        f"Cannot save tensor {tensor.name} as there is already "
                         f"a callback registered for this tensor. "
-                        f"Please remove the existing callback for Tornasole to save this tensor."
+                        f"Please remove the existing callback to save this tensor."
                     )
 
             callable_fn = self.callable_cache.get_fn(mode, x.fetches)
@@ -561,12 +561,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def wrap_optimizer(self, optimizer):
         """
-        Wrapping your optimizer with this method allows Tornasole to
-        find gradient tensors and optimizer variables.
+        Wrapping your optimizer with this method enables finding gradient tensors and optimizer
+        variables.
 
         :param optimizer: tf.train.Optimizer or tf.keras.optimizers.Optimizer
             the optimizer object used for training
-        :return: Tornasole aware optimizer of same type as passed.
+        :return: Wrapped optimizer of same type as passed.
             This optimizer should be used for training
         """
         if isinstance(optimizer, tf.train.Optimizer):

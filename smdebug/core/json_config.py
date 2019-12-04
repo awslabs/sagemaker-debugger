@@ -118,7 +118,7 @@ def collect_hook_config_params(params_dict) -> Dict:
     # Build params dictionary from the json file
 
     # Declare defaults
-    tornasole_params_dict = {
+    parsed_params_dict = {
         CONFIG_RDN_CFG_KEY: None,
         CONFIG_REDUCTION_CONFIGS_KEY: {},
         CONFIG_SAVE_CONFIGS_KEY: {},
@@ -126,28 +126,28 @@ def collect_hook_config_params(params_dict) -> Dict:
     }
     # Set top-level path parameters
     # SageMaker doesn't have any way to specify this for now, so default to using their path
-    tornasole_params_dict["out_dir"] = params_dict.get(CONFIG_OUTDIR_KEY, DEFAULT_SAGEMAKER_OUTDIR)
+    parsed_params_dict["out_dir"] = params_dict.get(CONFIG_OUTDIR_KEY, DEFAULT_SAGEMAKER_OUTDIR)
 
     # Get the main HookParameters; pass these as defaults
     hook_params = params_dict.get(CONFIG_HOOK_PARAMS_KEY, {})
     # If we have {"HookParameters": null}, replace null with {}.
     hook_params = {} if hook_params is None else hook_params
     base_config_modes = parse_save_config_modes_dict(params=hook_params)
-    tornasole_params_dict["save_config_modes"] = base_config_modes
+    parsed_params_dict["save_config_modes"] = base_config_modes
     # If we pass reduction=None, then the full tensor is saved by default
     if "reductions" in hook_params:
-        tornasole_params_dict[CONFIG_RDN_CFG_KEY] = ReductionConfig.from_dict(hook_params)
+        parsed_params_dict[CONFIG_RDN_CFG_KEY] = ReductionConfig.from_dict(hook_params)
     if "save_all" in hook_params:
-        tornasole_params_dict[CONFIG_SAVE_ALL_KEY] = parse_bool(hook_params["save_all"], False)
+        parsed_params_dict[CONFIG_SAVE_ALL_KEY] = parse_bool(hook_params["save_all"], False)
     if "include_regex" in hook_params:
-        tornasole_params_dict[CONFIG_INCLUDE_REGEX_KEY] = split(hook_params["include_regex"])
+        parsed_params_dict[CONFIG_INCLUDE_REGEX_KEY] = split(hook_params["include_regex"])
     if CONFIG_INCLUDE_WORKERS_KEY in hook_params:
-        tornasole_params_dict[CONFIG_INCLUDE_WORKERS_KEY] = hook_params[CONFIG_INCLUDE_WORKERS_KEY]
-    tornasole_params_dict[EXPORT_TENSORBOARD_KEY] = parse_bool(
+        parsed_params_dict[CONFIG_INCLUDE_WORKERS_KEY] = hook_params[CONFIG_INCLUDE_WORKERS_KEY]
+    parsed_params_dict[EXPORT_TENSORBOARD_KEY] = parse_bool(
         hook_params.get(EXPORT_TENSORBOARD_KEY, False), False
     )
-    tornasole_params_dict[TENSORBOARD_DIR_KEY] = hook_params.get(TENSORBOARD_DIR_KEY, None)
-    return tornasole_params_dict
+    parsed_params_dict[TENSORBOARD_DIR_KEY] = hook_params.get(TENSORBOARD_DIR_KEY, None)
+    return parsed_params_dict
 
 
 def get_include_collections(params_dict):
