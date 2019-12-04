@@ -73,6 +73,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.callable_cache = CallableCache()
 
     def _is_not_supported(self):
+        if self.distribution_strategy is None:
+            self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
             if tf.executing_eagerly() or (
@@ -80,7 +82,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ):
                 self.logger.info("Disabling SMDebug as it does not support eager mode")
                 self._hook_supported = False
-            elif self._get_distribution_strategy() == TFDistributionStrategy.MIRRORED:
+            elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
                         get_distributed_model,
@@ -92,7 +94,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         "with TensorFlow version <1.14"
                     )
                     self._hook_supported = False
-            elif self._get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED:
+            elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
                 self.logger.info(
                     f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
                 )
@@ -445,9 +447,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._close_writers()
 
     def _on_any_mode_begin(self, mode):
+        self.distribution_strategy = self._get_distribution_strategy()
         if self._is_not_supported():
             return
-        self.distribution_strategy = self._get_distribution_strategy()
         self.worker = self._get_worker_name()
         self.graph = tf.get_default_graph()
         self.set_mode(mode)

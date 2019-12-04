@@ -112,7 +112,7 @@ class TensorflowBaseHook(BaseHook):
 
         # Disable PS till we verify proper support of PS on SM
         # if self.tf_config_json and is_parameter_server_strategy(self.tf_config):
-        #     return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
+        #     return TFDistributionStrategy.PARAMETER_SERVER
 
         return TFDistributionStrategy.UNSUPPORTED
 
@@ -133,7 +133,7 @@ class TensorflowBaseHook(BaseHook):
             import horovod.tensorflow as hvd
 
             return f"worker_{hvd.rank()}"
-        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             # unused for this strategy
             raise NotImplementedError
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
@@ -178,7 +178,7 @@ class TensorflowBaseHook(BaseHook):
             import horovod.tensorflow as hvd
 
             return hvd.size()
-        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             strategy = tf.distribute.get_strategy()
             return strategy.num_replicas_in_sync
         elif self.distribution_strategy == TFDistributionStrategy.NONE:

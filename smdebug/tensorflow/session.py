@@ -231,9 +231,11 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
 
     def _is_not_supported(self):
+        if self.distribution_strategy is None:
+            self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
-            if self._get_distribution_strategy() == TFDistributionStrategy.MIRRORED:
+            if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 from packaging import version
 
                 if version.parse(tf.__version__) < version.parse("1.14.0"):
@@ -244,7 +246,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                         "Disabling SMDebug as it does not support mirrored strategy"
                         "with TensorFlow version <1.14"
                     )
-            elif self._get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED:
+            elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
                 self.logger.info(
                     f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
                 )
@@ -252,6 +254,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         return not self._hook_supported
 
     def begin(self):
+        self.distribution_strategy = self._get_distribution_strategy()
         if self._is_not_supported():
             return
 
@@ -269,7 +272,6 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
         # todo: handle multiple graphs in the model
         self.worker = self._get_worker_name()
-        self.distribution_strategy = self._get_distribution_strategy()
         self.graph = tf.get_default_graph()
 
         self._add_weights_and_biases()
