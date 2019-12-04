@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument(
         "--output-s3-uri",
         type=str,
-        default="s3://tornasole-testing/block-io-mxnet-hook",
+        default="s3://smdebug-testing/block-io-mxnet-hook",
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument(

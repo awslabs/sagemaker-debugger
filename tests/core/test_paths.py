@@ -88,7 +88,7 @@ def test_temp_paths():
 
 
 def test_s3_path_that_exists_without_end_of_job():
-    path = "s3://tornasole-testing/s3-path-without-end-of-job"
+    path = "s3://smdebug-testing/s3-path-without-end-of-job"
     verify_and_get_out_dir(path)
     try:
         verify_and_get_out_dir(path)

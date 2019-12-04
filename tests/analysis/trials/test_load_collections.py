@@ -18,7 +18,7 @@ def test_load_collection_files_from_completed_job():
     and the training_has_ended file is present
     :return:
     """
-    path = "s3://tornasole-testing/collection-tests/all-collection-files-present/"
+    path = "s3://smdebug-testing/collection-tests/all-collection-files-present/"
     try:
         trial = create_trial(path)
     except MissingCollectionFiles:
@@ -37,7 +37,7 @@ def test_load_collection_files_from_completed_job_with_missing_files():
     but the training_has_ended file is present so we stop waiting
     :return:
     """
-    path = "s3://tornasole-testing/collection-tests/collection-files-missing/"
+    path = "s3://smdebug-testing/collection-tests/collection-files-missing/"
     try:
         trial = create_trial(path)
         assert False
@@ -57,7 +57,7 @@ def test_load_collection_files_from_incomplete_job():
 
     :return:
     """
-    path = "s3://tornasole-testing/collection-tests/all-collection-files-present-job-incomplete/"
+    path = "s3://smdebug-testing/collection-tests/all-collection-files-present-job-incomplete/"
     try:
         trial = create_trial(path)
     except MissingCollectionFiles:

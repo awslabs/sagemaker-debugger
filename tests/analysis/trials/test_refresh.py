@@ -153,7 +153,7 @@ def test_no_refresh_local():
 
 @pytest.mark.slow  # 0:37 to run
 def test_no_refresh_s3():
-    help_test_no_refresh("s3://tornasole-testing/rules/ts_output/train/")
+    help_test_no_refresh("s3://smdebug-testing/rules/ts_output/train/")
 
 
 def test_refresh_with_range_local():
@@ -162,7 +162,7 @@ def test_refresh_with_range_local():
 
 @pytest.mark.slow  # 0:36 to run
 def test_refresh_with_range_s3():
-    help_test_refresh_with_range("s3://tornasole-testing/rules/ts_output/train/")
+    help_test_refresh_with_range("s3://smdebug-testing/rules/ts_output/train/")
 
 
 def test_refresh_local():
@@ -171,4 +171,4 @@ def test_refresh_local():
 
 @pytest.mark.slow  # 0:47 to run
 def test_refresh_s3():
-    help_test_refresh("s3://tornasole-testing/rules/ts_output/train/")
+    help_test_refresh("s3://smdebug-testing/rules/ts_output/train/")

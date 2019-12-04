@@ -158,7 +158,7 @@ def main():
         "--output-uri",
         type=str,
         help="output directory to save data in",
-        default="./tornasole-testing/demo/",
+        default="/tmp/testing/demo/",
     )
     parser.add_argument(
         "--hook-type",

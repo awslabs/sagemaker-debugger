@@ -54,7 +54,7 @@ def test_check_dir_exists():
 
 
 def test_check_dir_exists_no_s3():
-    check_dir_exists("s3://tornasole-testing/pleasedontexist")
+    check_dir_exists("s3://smdebug-testing/pleasedontexist")
 
 
 def test_check_dir_exists_s3():
@@ -108,10 +108,10 @@ def test_get_prefix_from_index_file():
 
     assert prefix == "/opt/ml/testing/run_1"
 
-    s3_index_filepath = "s3://tornasole-testing/run_1/index/000000000/000000000000_worker_0.json"
+    s3_index_filepath = "s3://smdebug-testing/run_1/index/000000000/000000000000_worker_0.json"
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(s3_index_filepath)
 
-    assert prefix == "s3://tornasole-testing/run_1"
+    assert prefix == "s3://smdebug-testing/run_1"
 
 
 def test_json_params():

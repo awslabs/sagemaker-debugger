@@ -31,7 +31,7 @@ def test_creation_local():
 @pytest.mark.slow  # 0:20 to run
 def test_creation_s3():
     trial_name = str(uuid.uuid4())
-    path = "s3://tornasole-testing/rules/ts_output/train/"
+    path = "s3://smdebug-testing/rules/ts_output/train/"
     num_steps = 8
     num_tensors = 10
     for i in range(num_steps):

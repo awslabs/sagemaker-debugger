@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument(
         "--smdebug_path",
         type=str,
-        default="s3://tornasole-testing/all-zero-hook/trial-3",
+        default="s3://smdebug-testing/all-zero-hook/trial-3",
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument("--learning_rate", type=float, default=0.1)

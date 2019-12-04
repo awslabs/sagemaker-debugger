@@ -22,7 +22,7 @@ def check_s3_trial(path, num_steps=20, num_tensors=10):
 @pytest.mark.slow
 def test_s3():
     trial_name = str(uuid.uuid4())
-    bucket = "tornasole-testing"
+    bucket = "smdebug-testing"
     path = "s3://" + os.path.join(bucket, "tornasole_outputs/")
     num_steps = 20
     num_tensors = 10
@@ -38,12 +38,12 @@ def test_s3():
             rank=0,
         )
     check_s3_trial(os.path.join(path, trial_name), num_steps=num_steps, num_tensors=num_tensors)
-    delete_s3_prefix("tornasole-testing", "tornasole_outputs/" + trial_name)
+    delete_s3_prefix("smdebug-testing", "tornasole_outputs/" + trial_name)
 
 
 def help_test_multiple_trials(num_steps=20, num_tensors=10):
     trial_name = str(uuid.uuid4())
-    bucket = "tornasole-testing"
+    bucket = "smdebug-testing"
     path = "s3://" + os.path.join(bucket, "tornasole_outputs/")
 
     c = CollectionManager()
@@ -78,4 +78,4 @@ def test_multiple_s3_trials(num_trials=4, num_steps=5, num_tensors=5):
 
     # delete the folders after the test
     for name in names:
-        delete_s3_prefix("tornasole-testing", "tornasole_outputs/" + name)
+        delete_s3_prefix("smdebug-testing", "tornasole_outputs/" + name)

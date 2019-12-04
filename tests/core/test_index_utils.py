@@ -38,7 +38,7 @@ def test_parse_worker_name_from_index_file():
     worker_name = parse_worker_name_from_file(filename)
     assert worker_name == "/job:worker/replica:0/task:1/device:GPU:6"
 
-    path = "s3://tornasole-testing/one-index-file"
+    path = "s3://smdebug-testing/one-index-file"
 
     _, bucket, prefix = is_s3(path)
 
@@ -60,7 +60,7 @@ def test_invalid_file_found_exception():
 
 
 def test_parse_worker_name_from_collection_file():
-    path = "s3://tornasole-testing/one-index-file"
+    path = "s3://smdebug-testing/one-index-file"
     _, bucket_name, key_name = is_s3(path)
 
     collection_files, _ = list_s3_objects(bucket_name, get_path_to_collections(key_name))

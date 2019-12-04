@@ -180,8 +180,8 @@ def helper_test_mnist_trial(trial_dir):
 def test_mnist(out_dir, on_s3=False):
     if on_s3:
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-        bucket = "tornasole-testing"
-        prefix = "tornasole_tf/hooks/estimator_modes/" + run_id
+        bucket = "smdebug-testing"
+        prefix = "tf/hooks/estimator_modes/" + run_id
         out_dir = f"s3://{bucket}/{prefix}"
     help_test_mnist(out_dir, save_config=smd.SaveConfig(save_interval=2), num_steps=2, steps=None)
     helper_test_mnist_trial(out_dir)
@@ -223,7 +223,7 @@ def test_mnist_local_multi_save_configs(out_dir, on_s3=False):
     # Runs in 0:04
     if on_s3:
         run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
-        bucket = "tornasole-testing"
+        bucket = "smdebug-testing"
         prefix = "tornasole_tf/hooks/estimator_modes/" + run_id
         out_dir = f"s3://{bucket}/{prefix}"
     help_test_mnist(

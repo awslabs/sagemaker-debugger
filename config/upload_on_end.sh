@@ -22,9 +22,9 @@ export S3_TEST_REPORT_URL=https://s3.console.aws.amazon.com/s3/object/tornasolec
 if [ $CODEBUILD_BUILD_SUCCEEDING -eq 0 ]
 then
     upload_dirs local_trials integration_tests_logs pytest_reports
-    echo "ERROR BUILD FAILED , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK PR:$GITHUB_PR_URL . CODEBUILD:$CODEBUILD_BUILD_URL . Test logs are on S3 here:$S3_TEST_REPORT_URL"
+    echo "ERROR BUILD FAILED , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK PR: $GITHUB_PR_URL . CODEBUILD: $CODEBUILD_BUILD_URL . Test logs are on S3 here: $S3_TEST_REPORT_URL"
 else
     del_dirs s3_trials
     upload_dirs integration_tests_logs pytest_reports wheels
-    echo "INFO BUILD SUCCEEDED !!! , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK PR:$GITHUB_PR_URL . CODEBUILD:$CODEBUILD_BUILD_URL. Test logs are on S3 here:$S3_TEST_REPORT_URL"
+    echo "INFO BUILD SUCCEEDED!!! , ACCESS BUILD LOGS THROUGH GITHUB OR TROUGH THE LINK PR: $GITHUB_PR_URL . CODEBUILD: $CODEBUILD_BUILD_URL . Test logs are on S3 here:$ S3_TEST_REPORT_URL"
 fi

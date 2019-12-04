@@ -7,7 +7,7 @@ from smdebug.trials import create_trial
 
 @pytest.mark.slow  # 0:11 to run
 def test_s3_read():
-    path = "s3://tornasole-testing/dist-logs-10/"
+    path = "s3://smdebug-testing/dist-logs-10/"
     trial = create_trial(path)
     tensors = trial.tensor_names()
     assert len(tensors) == 17

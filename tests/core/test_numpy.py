@@ -43,7 +43,7 @@ def test_s3():
     my_session = boto3.session.Session()
     my_region = my_session.region_name
     my_account = boto3.client("sts").get_caller_identity().get("Account")
-    bucket_name = "tornasole-testing"
+    bucket_name = "smdebug-testing"
     key_name = "core-tests/smdebug/{}".format(str(uuid.uuid4()))
     # sagemaker-us-east-1-722321484884
     location = "s3://{}/{}".format(bucket_name, key_name)
