@@ -1,7 +1,7 @@
 # Amazon SageMaker Debugger
 
 - [Overview](#overview)
-- [Examples](#sagemaker-example)
+- [Examples](#examples)
 - [How It Works](#how-it-works)
 - [Docs](#docs)
 
@@ -111,12 +111,12 @@ These framework forks are not available in custom containers or non-SM environme
 
 ## Docs
 
-Section &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Description
---- | ---
-[SageMaker training jobs](docs/sagemaker.md) | SageMaker users, we recommend you start with this page on how to run SageMaker training jobs with SageMaker Debugger
-Framework Pages <ul><li>[TensorFlow](docs/tensorflow.md)</li><li>[PyTorch](docs/pytorch.md)</li><li>[MXNet](docs/mxnet.md)</li><li>[XGBoost](docs/xgboost.md)</li></ul> | See the frameworks pages for details on what's supported and how to modify your training script if applicable
-[Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by our APIs which allows you to perform interactive exploration of tensors saved as well as to write your own Rules monitoring your training jobs.
-[APIs](docs/api.md) | Full description of our APIs
+| Section | Description |
+| --- | --- |
+| [SageMaker Training](docs/sagemaker.md) | SageMaker users, we recommend you start with this page on how to run SageMaker training jobs with SageMaker Debugger |
+| Frameworks <ul><li>[TensorFlow](docs/tensorflow.md)</li><li>[PyTorch](docs/pytorch.md)</li><li>[MXNet](docs/mxnet.md)</li><li>[XGBoost](docs/xgboost.md)</li></ul> | See the frameworks pages for details on what's supported and how to modify your training script if applicable |
+| [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by our APIs which allows you to perform interactive exploration of tensors saved as well as to write your own Rules monitoring your training jobs. |
+| [APIs](docs/api.md) | Full description of our APIs |
 
 
 ## License
