@@ -15,6 +15,7 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 - Real-time training job monitoring through Rules
 - Automated anomaly detection and state assertions
 - Interactive exploration of saved tensors
+- Actions on your training jobs based on the status of Rules
 - Distributed training support
 - TensorBoard support
 
