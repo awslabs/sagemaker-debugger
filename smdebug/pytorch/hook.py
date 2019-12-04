@@ -155,8 +155,7 @@ class Hook(CallbackHook):
         # logger.debug("Processing the global step {0} for module {1}".format(self.step, module_name))
 
         # Output input tensor
-        if isinstance(module, torch.nn.modules.loss._Loss) is False:
-            self._write_inputs(module_name, inputs)
+        self._write_inputs(module_name, inputs)
 
         # Output output tensors
         self._write_outputs(module_name, outputs)
