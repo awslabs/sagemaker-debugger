@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument(
         "--output-uri",
         type=str,
-        default="s3://smdebug-testing/basic-mxnet-hook",
+        default="s3://smdebug-testing/outputs/basic-mxnet-hook",
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument(

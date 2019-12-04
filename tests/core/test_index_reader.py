@@ -15,7 +15,7 @@ def test_fetch_tensor_with_present_event_files():
         end_of_job file : present
 
     """
-    path = "s3://smdebug-testing/event-files-missing"
+    path = "s3://smdebug-testing/resources/event-files-missing"
 
     trial = create_trial(path)
     try:
@@ -34,7 +34,7 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_present():
         end_of_job file : present
 
     """
-    path = "s3://smdebug-testing/event-files-missing"
+    path = "s3://smdebug-testing/resources/event-files-missing"
 
     trial = create_trial(path)
     try:
@@ -54,7 +54,7 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_absent():
         end_of_job file : present
 
     """
-    path = "s3://smdebug-testing/event-files-missing"
+    path = "s3://smdebug-testing/resources/event-files-missing"
 
     trial = create_trial(path)
     try:
@@ -74,7 +74,7 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_present_incomp
         end_of_job file : present
 
     """
-    path = "s3://smdebug-testing/event-files-missing-incomplete"
+    path = "s3://smdebug-testing/resources/event-files-missing-incomplete"
 
     trial = create_trial(path)
     try:
@@ -94,7 +94,7 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_absent_incompl
         end_of_job file : absent
 
     """
-    path = "s3://smdebug-testing/event-files-missing-incomplete"
+    path = "s3://smdebug-testing/resources/event-files-missing-incomplete"
     trial = create_trial(path)
     try:
         # Get value from an event file that is absent

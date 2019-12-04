@@ -88,13 +88,10 @@ def test_temp_paths():
 
 
 def test_s3_path_that_exists_without_end_of_job():
-    path = "s3://smdebug-testing/s3-path-without-end-of-job"
+    path = "s3://smdebug-testing/resources/s3-path-without-end-of-job"
     verify_and_get_out_dir(path)
-    try:
-        verify_and_get_out_dir(path)
-        # should not raise as dir present but does not have the end of job file
-    except RuntimeError as e:
-        assert False
+    # should not raise error as dir present but does not have the end of job file
+    verify_and_get_out_dir(path)
 
 
 def test_outdir_sagemaker(monkeypatch):

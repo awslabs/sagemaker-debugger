@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument(
         "--output-uri",
         type=str,
-        default="s3://smdebug-testing/vg-demo",
+        default="s3://smdebug-testing/outputs/vg-demo",
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument(
