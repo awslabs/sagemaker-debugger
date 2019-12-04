@@ -9,7 +9,7 @@ export CURRENT_COMMIT_HASH=$(git log -1 --pretty=%h);
 #export CURRENT_COMMIT_DATE="$(git show -s --format=%ci | cut -d' ' -f 1)$(git show -s --format=%ci | cut -d' ' -f 2)";
 export CURRENT_DATETIME=$(date +'%Y%m%d_%H%M%S')
 export CURRENT_REPO_NAME=$(basename `git rev-parse --show-toplevel`) ;
-export CURRENT_COMMIT_PATH="$CURRENT_DATETIME/$CURRENT_COMMIT_HASH"
+export CURRENT_COMMIT_PATH="$CURRENT_DATETIME/$CURRENT_COMMIT_HASH/$RANDOM"
 cd ..
 
 cd $CODEBUILD_SRC_DIR_RULES
