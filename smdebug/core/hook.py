@@ -653,15 +653,16 @@ class BaseHook:
             save_collections_for_tensor = save_collections
 
         self._write_for_tensor(tensor_name, tensor_value, save_collections_for_tensor)
-        for s_col in save_collections_for_tensor:
-            if s_col.name in SM_METRIC_COLLECTIONS:
-                np_val = self._make_numpy_array(tensor_value)
-                # Always log loss to Minerva
-                tensor_val = np.mean(np_val)
-                scalar_obj = ScalarCache(
-                    tensor_name, tensor_val, sm_metric=True, write_tb=False, write_event=False
-                )
-                self.scalar_cache.append(scalar_obj)
+        if "_input" not in tensor_name:
+            for s_col in save_collections_for_tensor:
+                if s_col.name in SM_METRIC_COLLECTIONS:
+                    np_val = self._make_numpy_array(tensor_value)
+                    # Always log loss to Minerva
+                    tensor_val = np.mean(np_val)
+                    scalar_obj = ScalarCache(
+                        tensor_name, tensor_val, sm_metric=True, write_tb=False, write_event=False
+                    )
+                    self.scalar_cache.append(scalar_obj)
 
     def _log_save(self, tensor_name, save_collections):
         coll_str = ", ".join([x.name for x in save_collections])
