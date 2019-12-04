@@ -123,3 +123,15 @@ def performance_vs_async():
             timesrow.append((sync_end - sync_start, async_end - async_start))
         print(f"Finished testing for {size}")
         times.append(timesrow)
+
+
+"""
+# bash script to generate files for perf test
+kb = 1024
+mb = 1024 * 1024
+sizes = [10 * kb, 100 * kb, 500 * kb, mb, 5 * mb, 10 * mb]
+max_num_files = 100000
+
+echo $sizes
+
+"""
