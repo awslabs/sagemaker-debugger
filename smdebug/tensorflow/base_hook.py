@@ -86,9 +86,8 @@ class TensorflowBaseHook(BaseHook):
         self.device_map = {}
         self.writer_map = {}
         self.distribution_strategy = None
-        self.tf_config = os.getenv(
-            "TF_CONFIG"
-        )  # caches the TF_CONFIG for the parameter server strategy
+        # caches the TF_CONFIG for the parameter server strategy
+        self.tf_config = os.getenv("TF_CONFIG")
         self._hook_supported = None
         set_hook(self)
 
@@ -101,9 +100,6 @@ class TensorflowBaseHook(BaseHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
-        if self.tf_config and is_parameter_server_strategy(self.tf_config):
-            return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
-
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
             return TFDistributionStrategy.MIRRORED_STRATEGY
@@ -111,6 +107,10 @@ class TensorflowBaseHook(BaseHook):
         if isinstance(strat, _DefaultDistributionStrategy):
             # single device
             return TFDistributionStrategy.NONE
+
+        # Disable PS till we verify proper support of PS on SM
+        # if self.tf_config and is_parameter_server_strategy(self.tf_config):
+        #     return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
 
         return TFDistributionStrategy.UNSUPPORTED
 
@@ -126,18 +126,20 @@ class TensorflowBaseHook(BaseHook):
         It is safe to return the CONFIG_DEFAULT_WORKER_NAME in this case.
         :return: str
         """
-        try:
+        assert self.distribution_strategy is not None
+        if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             import horovod.tensorflow as hvd
 
-            if hvd.size():
-                return f"worker_{hvd.rank()}"
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
-
-        tf_config = os.getenv("TF_CONFIG")
-        if tf_config and is_parameter_server_strategy(tf_config):
-            return get_worker_id_from_tf_config(tf_config)
-        return CONFIG_DEFAULT_WORKER_NAME
+            return f"worker_{hvd.rank()}"
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+            # unused for this strategy
+            raise NotImplementedError
+        elif self.distribution_strategy == TFDistributionStrategy.NONE:
+            return CONFIG_DEFAULT_WORKER_NAME
+        elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
+            raise NotImplementedError
+        elif self.tf_config and is_parameter_server_strategy(self.tf_config):
+            return get_worker_id_from_tf_config(self.tf_config)
 
     def export_collections(self):
         num_workers = self._get_num_workers()
@@ -163,18 +165,20 @@ class TensorflowBaseHook(BaseHook):
             self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _get_num_workers(self):
-        try:
+        assert self.distribution_strategy is not None
+        if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             import horovod.tensorflow as hvd
 
-            if hvd.size():
-                return hvd.size()
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
-        tf_config = os.getenv("TF_CONFIG")
-        if tf_config and is_parameter_server_strategy(tf_config):
-            return get_num_workers_from_tf_config(tf_config)
-        strategy = tf.distribute.get_strategy()
-        return strategy.num_replicas_in_sync
+            return hvd.size()
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+            strategy = tf.distribute.get_strategy()
+            return strategy.num_replicas_in_sync
+        elif self.distribution_strategy == TFDistributionStrategy.NONE:
+            return 1
+        elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
+            raise NotImplementedError
+        elif self.tf_config and is_parameter_server_strategy(self.tf_config):
+            return get_num_workers_from_tf_config(self.tf_config)
 
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()

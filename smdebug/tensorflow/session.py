@@ -292,7 +292,8 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
             ):
                 self.chief_worker = sorted(self.device_map.keys())[0]
-
+            elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
+                raise NotImplementedError
         self._export_model()
         self.export_collections()
 

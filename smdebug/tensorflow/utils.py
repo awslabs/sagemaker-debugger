@@ -198,30 +198,46 @@ See https://www.tensorflow.org/guide/distributed_training#setting_up_tf_config_e
 def is_parameter_server_strategy(tf_config: str) -> bool:
     try:
         tf_config = json.loads(tf_config)
+        return "cluster" in tf_config and "ps" in tf_config["cluster"]
     except (json.JSONDecodeError, TypeError):
         return False  # Do not break for incorrectly set tf_config
-    return "cluster" in tf_config and "ps" in tf_config["cluster"]
-
-
-def is_mirrored_strategy(strat):
-    return isinstance(strat, (tf.distribute.MirroredStrategy, ContribMirroredStrategy))
 
 
 def get_worker_id_from_tf_config(tf_config: str) -> str:
     """Valid roles in a cluster is "chief", "worker", "ps" and "evaluator"."""
-    tf_config = json.loads(tf_config)
-    task = tf_config["task"]
-    worker_type = task["type"]
-    worker_index = task["index"]
-    return f"{worker_type}_{worker_index}"
+    try:
+        tf_config = json.loads(tf_config)
+        task = tf_config["task"]
+        worker_type = task["type"]
+        worker_index = task["index"]
+        return f"{worker_type}_{worker_index}"
+    except (json.JSONDecodeError, TypeError):
+        return CONFIG_DEFAULT_WORKER_NAME
 
 
 def get_num_workers_from_tf_config(tf_config: str) -> int:
-    tf_config = json.loads(tf_config)
-    workers = tf_config["cluster"]["worker"]
-    if "chief" in tf_config["cluster"]:
-        workers.extend(tf_config["cluster"]["chief"])
-    return len(workers)
+    try:
+        tf_config = json.loads(tf_config)
+        workers = tf_config["cluster"]["worker"]
+        if "chief" in tf_config["cluster"]:
+            workers.extend(tf_config["cluster"]["chief"])
+        return len(workers)
+    except (json.JSONDecodeError, TypeError):
+        return 1
+
+
+def get_chief_worker_parameter_server(tf_config):
+    try:
+        tf_config = json.loads(tf_config)
+        if "chief" in tf_config["cluster"]:
+            return "chief_0"
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return CONFIG_DEFAULT_WORKER_NAME
+
+
+def is_mirrored_strategy(strat):
+    return isinstance(strat, (tf.distribute.MirroredStrategy, ContribMirroredStrategy))
 
 
 def is_keras_optimizer(obj):
@@ -282,9 +298,3 @@ def get_keras_mode(mode):
         return KerasModeKeys.TEST
     elif mode == ModeKeys.PREDICT:
         return KerasModeKeys.PREDICT
-
-
-def get_chief_worker_parameter_server(tf_config):
-    if "chief" in tf_config["cluster"]:
-        return "chief_0"
-    return CONFIG_DEFAULT_WORKER_NAME
