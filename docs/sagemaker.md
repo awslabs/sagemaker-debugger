@@ -60,116 +60,105 @@ Let us start by reviewing examples for a few scenarios before going into them in
 
 ### Examples
 
-##### Running a built-in rule
+##### Running built-in SageMaker Rules
 ```python
-rule = sagemaker.debugger.Rule.sagemaker(
-    base_config: dict, # Use an import, e.g. sagemaker.debugger.rule_configs.exploding_tensor()
-    name: str=None,
-    instance_type: str=None,
-    container_local_path: str=None,
-    volume_size_in_gb: int=None,
-    other_trials_s3_input_paths: str=None,
-    rule_parameters: dict=None,
-    collections_to_save: list[sagemaker.debugger.CollectionConfig]=None,
-)
-```
+from sagemaker.debugger import Rule, rule_configs
 
-```python
-hook_config = sagemaker.debugger.DebuggerHookConfig(
-    s3_output_path: str,
-    container_local_path: str=None,
-    hook_parameters: dict=None,
-    collection_configs: list[sagemaker.debugger.CollectionConfig]=None,
-)
-```
-
-```python
-tb_config = sagemaker.debugger.TensorBoardOutputConfig(
-    s3_output_path: str,
-    container_local_path: str=None,
-)
-```
-
-```python
-collection_config = sagemaker.debugger.CollectionConfig(
-    name: str,
-    parameters: dict,
-)
-```
-
-A full example script is below:
-```python
-import sagemaker
-from sagemaker.debugger import rule_configs, Rule, DebuggerHookConfig, TensorBoardOutputConfig, CollectionConfig
-
-hook_parameters = {
-    "include_regex": "my_regex,another_regex", # comma-separated string of regexes
-    "save_interval": 100,
-    "save_steps": "1,2,3,4", # comma-separated string of steps to save
-    "start_step": 1,
-    "end_step": 2000,
-    "reductions": "min,max,mean,std,abs_variance,abs_sum,abs_l2_norm",
-}
-weights_config = CollectionConfiguration("weights")
-biases_config = CollectionConfiguration("biases")
-losses_config = CollectionConfiguration("losses")
-tb_config = TensorBoardOutputConfig(s3_output_path="s3://my-bucket/tensorboard")
-
-hook_config = DebuggerHookConfig(
-    s3_output_path="s3://my-bucket/smdebug",
-    hook_parameters=hook_parameters,
-    collection_configs=[weights_config, biases_config, losses_config],
-)
+weights_collection = rule_configs.get_collection('weights')
+losses_collection = rule_configs.get_collection('losses')
 
 exploding_tensor_rule = Rule.sagemaker(
     base_config=rule_configs.exploding_tensor(),
-    rule_parameters={
-        "tensor_regex": ".*",
-    },
-    collections_to_save=[weights_config, losses_config],
+    rule_parameters={"collection_names": "weights,losses"},
+    collections_to_save=[weights_collection, losses_collection]
 )
-vanishing_gradient_rule = Rule.sagemaker(base_config=rule_configs.vanishing_gradient())
 
-# Or use sagemaker.pytorch.PyTorch or sagemaker.mxnet.MXNet
-sagemaker_simple_estimator = sagemaker.tensorflow.TensorFlow(
-    entry_point=simple_entry_point_script,
-    role=sagemaker.get_execution_role(),
-    base_job_name=args.job_name,
+vanishing_gradient_rule = Rule.sagemaker(
+    base_config=rule_configs.vanishing_gradient()
+)
+
+import sagemaker as sm
+sagemaker_estimator = sm.tensorflow.TensorFlow(
+    entry_point='src/mnist.py',
+    role=sm.get_execution_role(),
+    base_job_name='smdebug-demo-job',
     train_instance_count=1,
     train_instance_type="ml.m4.xlarge",
     framework_version="1.15",
     py_version="py3",
     # smdebug-specific arguments below
     rules=[exploding_tensor_rule, vanishing_gradient_rule],
-    debugger_hook_config=hook_config,
-    tensorboard_output_config=tb_config,
 )
-
-sagemaker_simple_estimator.fit()
+sagemaker_estimator.fit()
 ```
 
+##### Running custom Rules
+```python
+from sagemaker.debugger import Rule, CollectionConfig
+
+custom_coll = CollectionConfig(
+    name="relu_activations",
+    parameters={
+        "include_regex": "relu",
+        "save_interval": 500,
+        "end_step": 5000
+    })
+saturated_activation_rule = Rule.sagemaker(
+    name='saturated_activation',
+    rule_parameters={"collection_names": "relu_activations"},
+    collections_to_save=[custom_coll]
+)
+
+import sagemaker as sm
+sagemaker_estimator = sm.tensorflow.TensorFlow(
+    entry_point='src/mnist.py',
+    role=sm.get_execution_role(),
+    base_job_name='smdebug-demo-job',
+    train_instance_count=1,
+    train_instance_type="ml.m4.xlarge",
+    framework_version="1.15",
+    py_version="py3",
+    # smdebug-specific arguments below
+    rules=[saturated_activation_rule],
+)
+sagemaker_estimator.fit()
+```
+
+Hopefully the above examples gave you an overview of how you can enable Rules when training on SageMaker. We'll cover this in more detail in the below sections.
+
+### Saving Data
+
+SageMaker Debugger gives you a powerful and flexible API to save the tensors you choose at the frequencies you want. These configurations are made available in the SageMaker Python SDK through the `DebuggerHookConfig` class. Which has the following signature:
+
+```
+DebuggerHookConfig(
+    s3_output_path=None,
+    container_local_output_path=None,
+    hook_parameters=None,
+    collection_configs=None,
+    ):
+```
+
+### Rules
+
+#### Built in Rules
+The Built-in Rules, or SageMaker Rules, are described in detail on [this page](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-built-in-rules.html)
 
 
-
-## Built-in Rules
-Full list of rules is:
-
-| Rule Name | Behavior |
+Scope of Validity | Rules |
 |---|---|
-| `vanishing_gradient` | Detects a vanishing gradient. |
-| `all_zero` | ??? |
-| `check_input_images` | ??? |
-| `similar_across_runs` | ??? |
-| `weight_update_ratio` | ??? |
-| `exploding_tensor` | ??? |
-| `unchanged_tensor` | ??? |
-| `loss_not_decreasing` | ??? |
-| `dead_relu` | ??? |
-| `confusion` | ??? |
-| `overfit` | ??? |
-| `tree_depth` | ??? |
-| `tensor_variance` | ??? |
-| `overtraining` | ??? |
-| `poor_weight_initialization` | ??? |
-| `saturated_activation` | ??? |
-| `nlp_sequence_ratio` | ??? |
+| Generic Deep Learning models (TensorFlow, Apache MXNet, and PyTorch) |<ul><li>[`dead_relu`](https://docs.aws.amazon.com/sagemaker/latest/dg/dead-relu.html)</li><li>[`exploding_tensor`](https://docs.aws.amazon.com/sagemaker/latest/dg/exploding-tensor.html)</li><li>[`poor_weight_initialization`](https://docs.aws.amazon.com/sagemaker/latest/dg/poor-weight-initialization.html)</li><li>[`saturated_activation`](https://docs.aws.amazon.com/sagemaker/latest/dg/saturated-activation.html)</li><li>[`vanishing_gradient`](https://docs.aws.amazon.com/sagemaker/latest/dg/vanishing-gradient.html)</li><li>[`weight_update_ratio`](https://docs.aws.amazon.com/sagemaker/latest/dg/weight-update-ratio.html)</li></ul> |
+| Generic Deep learning models (TensorFlow, MXNet, and PyTorch) and the XGBoost algorithm | <ul><li>[`all_zero`](https://docs.aws.amazon.com/sagemaker/latest/dg/all-zero.html)</li><li>[`class_imbalance`](https://docs.aws.amazon.com/sagemaker/latest/dg/class-imbalance.html)</li><li>[`confusion`](https://docs.aws.amazon.com/sagemaker/latest/dg/confusion.html)</li><li>[`loss_not_decreasing`](https://docs.aws.amazon.com/sagemaker/latest/dg/loss-not-decreasing.html)</li><li>[`overfit`](https://docs.aws.amazon.com/sagemaker/latest/dg/overfit.html)</li><li>[`overtraining`](https://docs.aws.amazon.com/sagemaker/latest/dg/overtraining.html)</li><li>[`similar_across_runs`](https://docs.aws.amazon.com/sagemaker/latest/dg/similar-across-runs.html)</li><li>[`tensor_variance`](https://docs.aws.amazon.com/sagemaker/latest/dg/tensor-variance.html)</li><li>[`unchanged_tensor`](https://docs.aws.amazon.com/sagemaker/latest/dg/unchanged-tensor.html)</li>/ul>|
+| Deep learning applications |<ul><li>[`check_input_images`](https://docs.aws.amazon.com/sagemaker/latest/dg/checkinput-mages.html)</li><li>[`nlp_sequence_ratio`](https://docs.aws.amazon.com/sagemaker/latest/dg/nlp-sequence-ratio.html)</li></ul> |
+| XGBoost algorithm | <ul><li>[`tree_depth`](https://docs.aws.amazon.com/sagemaker/latest/dg/tree-depth.html)</li></ul>|
+
+
+#### Custom Rules
+
+You can write your own rule custom made for your application and provide it, so SageMaker can monitor your training job using your rule. To do so, you need to understand the programming model that `smdebug` provides. Our page on [Programming Model for Analysis](analysis.md) describes the APIs that we provide to help you write your own rule.
+
+### Interactive Exploration
+
+### SageMaker Studio
+
+### TensorBoard Visualization
