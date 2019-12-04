@@ -102,9 +102,13 @@ def test_register_loss_module(out_dir):
     loss_coll = trial.collection("losses")
     loss_tensor = trial.tensor("CrossEntropyLoss_output_0")
 
-    # Capture ['CrossEntropyLoss_input_0', 'CrossEntropyLoss_input_1', 'CrossEntropyLoss_output_0']
-    assert len(trial.tensor_names()) == 3
-    assert len(loss_coll.tensor_names) == 3
+    # Assert that we are not logging the inputs to loss block.
+    input_loss_tensors = trial.tensor_names(regex=".*[Ll]oss_input*")
+    assert len(input_loss_tensors) == 0
+
+    # Capture ['CrossEntropyLoss_output_0']
+    assert len(trial.tensor_names()) == 1
+    assert len(loss_coll.tensor_names) == 1
 
     # Loss should be logged for all the steps since passed `available_steps = range(n_steps)`
     assert len(trial.steps()) == n_steps
