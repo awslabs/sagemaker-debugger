@@ -284,7 +284,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
         if self.save_all_workers is False:
             if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER_STRATEGY:
-                self.chief_worker = get_chief_worker_parameter_server(self.tf_config)
+                self.chief_worker = get_chief_worker_parameter_server(self.tf_config_json)
             elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
                 self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
             elif (

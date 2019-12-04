@@ -24,6 +24,7 @@ from .utils import (
     get_worker_id_from_tf_config,
     is_mirrored_strategy,
     is_parameter_server_strategy,
+    load_tf_config_json,
 )
 
 try:
@@ -87,7 +88,7 @@ class TensorflowBaseHook(BaseHook):
         self.writer_map = {}
         self.distribution_strategy = None
         # caches the TF_CONFIG for the parameter server strategy
-        self.tf_config = os.getenv("TF_CONFIG")
+        self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
         set_hook(self)
 
@@ -138,8 +139,8 @@ class TensorflowBaseHook(BaseHook):
             return CONFIG_DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
-        elif self.tf_config and is_parameter_server_strategy(self.tf_config):
-            return get_worker_id_from_tf_config(self.tf_config)
+        elif self.tf_config_json and is_parameter_server_strategy(self.tf_config_json):
+            return get_worker_id_from_tf_config(self.tf_config_json)
 
     def export_collections(self):
         num_workers = self._get_num_workers()
@@ -177,8 +178,8 @@ class TensorflowBaseHook(BaseHook):
             return 1
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
-        elif self.tf_config and is_parameter_server_strategy(self.tf_config):
-            return get_num_workers_from_tf_config(self.tf_config)
+        elif self.tf_config_json and is_parameter_server_strategy(self.tf_config_json):
+            return get_num_workers_from_tf_config(self.tf_config_json)
 
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()
