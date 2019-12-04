@@ -346,4 +346,3 @@ directory contains collections, events, and index files. A trial checks to see i
 specified in the smdebug hook has been completed. This environment variable
 specifies the maximum number of incomplete steps that the trial will wait for before marking
 half of them as complete. Default: 1000
-
