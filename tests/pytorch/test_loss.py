@@ -58,7 +58,7 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
             loss = criterion(outputs, labels)
         if use_loss_functional:
             loss = F.cross_entropy(outputs, labels)
-            hook.record_tensor_value("nll_loss", tensor_value=loss)
+            hook.record_tensor_value("nll_loss", tensor_value=loss, inputs=[outputs, labels])
         loss.backward()
         optimizer.step()
 
@@ -78,8 +78,8 @@ def test_register_loss_functional(out_dir):
     loss_tensor = trial.tensor("nll_loss_output_0")
 
     # Capture ['nll_loss_output_0']
-    assert len(trial.tensor_names()) == 1
-    assert len(loss_coll.tensor_names) == 1
+    assert len(trial.tensor_names()) == 3
+    assert len(loss_coll.tensor_names) == 3
 
     # Loss should be logged for all the steps since passed `available_steps = range(n_steps)`
     assert len(trial.steps()) == n_steps
