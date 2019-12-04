@@ -110,7 +110,7 @@ class TensorflowBaseHook(BaseHook):
             return TFDistributionStrategy.NONE
 
         # Disable PS till we verify proper support of PS on SM
-        # if self.tf_config and is_parameter_server_strategy(self.tf_config):
+        # if self.tf_config_json and is_parameter_server_strategy(self.tf_config):
         #     return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
 
         return TFDistributionStrategy.UNSUPPORTED
