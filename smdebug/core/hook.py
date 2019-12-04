@@ -27,7 +27,7 @@ from smdebug.core.config_constants import (
 from smdebug.core.hook_utils import get_tensorboard_dir, verify_and_get_out_dir
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.logger import get_logger
-from smdebug.core.modes import ALLOWED_MODES, ModeKeys
+from smdebug.core.modes import ALLOWED_MODE_NAMES, ALLOWED_MODES, ModeKeys
 from smdebug.core.reduction_config import ReductionConfig
 from smdebug.core.reductions import get_reduction_tensor_name
 from smdebug.core.sagemaker_utils import is_sagemaker_job
@@ -461,7 +461,7 @@ class BaseHook:
             self.mode = mode
         else:
             raise ValueError(
-                "Invalid mode {}. Valid modes are {}.".format(mode, ",".join(ALLOWED_MODES))
+                "Invalid mode {}. Valid modes are {}.".format(mode, ",".join(ALLOWED_MODE_NAMES))
             )
 
         if mode not in self.mode_steps:
