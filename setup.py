@@ -58,6 +58,7 @@ def build_package(version):
         name="smdebug",
         version=version,
         long_description="\n".join(DOCLINES[2:]),
+        long_description_content_type="text/x-rst",
         author="AWS DeepLearning Team",
         description=DOCLINES[0],
         url="https://github.com/awslabs/sagemaker-debugger",
