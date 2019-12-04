@@ -1,38 +1,59 @@
 # Tensorflow
 
-SageMaker Zero-Code-Change supported container: TensorFlow 1.15. See the [AWS Docs](https://link.com) for details.\
-Python API supported versions: Tensorflow 1.13, 1.14, 1.15. Keras 2.3.
-
-
-
 ## Contents
+- [Support](#support)
 - [How to Use](#how-to-use)
 - [Keras Example](#keras-example)
 - [MonitoredSession Example](#monitored-session-example)
 - [Estimator Example](#estimator-example)
 - [Full API](#full-api)
+---
+## Support
+
+### Versions
+- Zero Script Change experience where you need no modifications to your training script is supported in the official [SageMaker Framework Container for TensorFlow 1.15](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html), or the [AWS Deep Learning Container for TensorFlow 1.15](https://aws.amazon.com/machine-learning/containers/).
+
+- This library itself supports the following versions when you use our API which requires a few minimal changes to your training script: TensorFlow 1.13, 1.14, 1.15. Keras 2.3.
+
+### Interfaces
+- [Estimator](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/estimator)
+- [tf.keras](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/keras)
+- [MonitoredSession](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/train/MonitoredSession?hl=en)
+
+### Distributed training
+- [MirroredStrategy](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/distribute/MirroredStrategy) or [Contrib MirroredStrategy](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/contrib/distribute/MirroredStrategy)
+
+We will very quickly follow up with support for Horovod and Parameter Server based training.
 
 ---
 
 ## How to Use
-```import smdebug.tensorflow as smd```
-### 1. Create a hook
-If using SageMaker, you will configure the hook in SageMaker Estimator. Instantiate it with
-`smd.{hook_class}.create_from_json_file()`.\
-Otherwise, call the hook class constructor, `smd.{hook_class}()`. Details are below for tf.keras, MonitoredSession, or Estimator.
+### Using Zero Script Change containers
+In this case, you don't need to do anything to get the hook running. You are encouraged to configure the hook from the SageMaker python SDK so you can run different jobs with different configurations without having to modify your script. If you want access to the hook to configure certain things which can not be configured through the SageMaker SDK, you can retrieve the hook as follows.
+```
+import smdebug.tensorflow as smd
+hook = smd.{hook_class}.create_from_json_file()
+```
+Note that you can create the hook from smdebug's python API as is being done in the next section even in such containers.
 
-### 2. Pass the hook to the model as a callback
-The keyword is `callbacks=[hook]` for tf.keras. It is `hooks=[hook]` for MonitoredSession and Estimator.
+### Bring your own container experience
+#### 1. Create a hook
+If using SageMaker, you will configure the hook in SageMaker's python SDK using the Estimator class. Instantiate it with
+`smd.{hook_class}.create_from_json_file()`. Otherwise, call the hook class constructor, `smd.{hook_class}()`. Details are below for tf.keras, MonitoredSession, or Estimator.
 
-### 3. (Optional) Wrap the optimizer
-If you are accessing the GRADIENTS collection, and you are in BYOC or non-SageMaker mode, call `optimizer = hook.wrap_optimizer(optimizer)`.
+#### 2. Register the hook to your model
+The argument is `callbacks=[hook]` for tf.keras. It is `hooks=[hook]` for MonitoredSession and Estimator.
 
-### 4. (Optional) Configure collections, SaveConfig, ReductionConfig
-See the [Common API](https://link.com) page for details on how to do this.
+#### 3. Wrap the optimizer
+If you would like to save `gradients`, wrap your optimizer with the hook as follows `optimizer = hook.wrap_optimizer(optimizer)`. This does not modify your optimization logic, and returns the same optimizer instance passed to the method.
+
+#### 4. (Optional) Configure Collections, SaveConfig and ReductionConfig
+See the [Common API](api.md) page for details on how to do this.
 
 ---
 
-## tf.keras Example
+## tf.keras
+### Example
 ```python
 import smdebug.tensorflow as smd
 hook = smd.KerasHook(out_dir=args.out_dir)
@@ -47,9 +68,10 @@ model.fit(x_train, y_train, epochs=args.epochs, callbacks=[hook])
 model.evaluate(x_test, y_test, callbacks=[hook])
 ```
 
-## KerasHook
+### KerasHook
+In SageMaker, call `smd.KerasHook.create_from_json_file()`.
 
-Use this if in a non-SageMaker environment. In SageMaker, call `smd.KerasHook.create_from_json_file()`.
+In a non-SageMaker environment, use the following constructor.
 ```python
 __init__(
     out_dir,
@@ -79,7 +101,7 @@ Initializes the hook. Pass this object as a callback to Keras' `model.fit(), mod
 ```python
 wrap_optimizer(
     self,
-    optimizer: Union[tf.train.Optimizer, tf.keras.Optimizer],
+    optimizer: Union[tf.train.Optimizer, tf.keras.Optimizer]
 )
 ```
 Adds functionality to the optimizer object to log gradients. Returns the original optimizer and doesn't change the optimization process.
@@ -88,7 +110,8 @@ Adds functionality to the optimizer object to log gradients. Returns the origina
 
 ---
 
-## MonitoredSession Example
+## MonitoredSession
+### Example
 ```python
 import smdebug.tensorflow as smd
 hook = smd.SessionHook(out_dir=args.out_dir)
@@ -105,8 +128,10 @@ sess = tf.train.MonitoredSession(hooks=[hook])
 sess.run([loss, ...])
 ```
 
-## SessionHook
-Use this if in a non-SageMaker environment. In SageMaker, call `smd.SessionHook.create_from_json_file()`.
+### SessionHook
+In SageMaker, call `smd.SessionHook.create_from_json_file()`.
+
+If in a non-SageMaker environment, use the following constructor.
 
 ```python
 __init__(
@@ -139,14 +164,15 @@ Pass this object as a hook to tf.train.MonitoredSession's `run()` method.
 ```python
 wrap_optimizer(
     self,
-    optimizer: tf.train.Optimizer,
+    optimizer: tf.train.Optimizer
 )
 ```
 Adds functionality to the optimizer object to log gradients. Returns the original optimizer and doesn't change the optimization process.
 
 ---
 
-## Estimator Example
+## Estimator
+### Example
 ```python
 import smdebug.tensorflow as smd
 hook = smd.EstimatorHook(out_dir=args.out_dir)
@@ -162,8 +188,10 @@ hook.set_mode(mode=smd.modes.EVAL)
 estimator.evaluate(input_fn=eval_input_fn, steps=args.steps, hooks=[hook])
 ```
 
-## EstimatorHook
-Use this if in a non-SageMaker environment. In SageMaker, call `smd.EstimatorHook.create_from_json_file()`.
+### EstimatorHook
+In SageMaker, call `smd.EstimatorHook.create_from_json_file()`.
+
+If in a non-SageMaker environment, use the following constructor.
 
 ```python
 __init__(
@@ -196,11 +224,11 @@ Pass this object as a hook to tf.train.MonitoredSession's `run()` method.
 ```python
 wrap_optimizer(
     self,
-    optimizer: tf.train.Optimizer,
+    optimizer: tf.train.Optimizer
 )
 ```
 Adds functionality to the optimizer object to log gradients. Returns the original optimizer and doesn't change the optimization process.
 
 ---
-See the [Common API](https://link.com) page for details about Collection, SaveConfig, and ReductionConfig.\
-See the [Analysis](https://link.com) page for details about analyzing a training job.
+See the [Common API](api.md) page for details about Collection, SaveConfig, and ReductionConfig.\
+See the [Analysis](analysis.md) page for details about analyzing a training job.

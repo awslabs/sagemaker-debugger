@@ -1,6 +1,7 @@
 # Standard Library
 import os
 import uuid
+from tempfile import TemporaryDirectory
 
 # First Party
 import smdebug.pytorch as smd
@@ -97,18 +98,19 @@ def test_s3_path_that_exists_without_end_of_job():
 
 
 def test_outdir_sagemaker(monkeypatch):
-    json_file_contents = """
-            {
-                "S3OutputPath": "s3://sagemaker-test",
-                "LocalPath": "/my/own/path/tensors",
-                "HookParameters" : {
-                    "save_interval": "2",
-                    "include_workers": "all"
-                }
-            }
-            """
-    from smdebug.tensorflow import get_hook
+    with TemporaryDirectory() as dir_name:
+        json_file_contents = f"""
+                {{
+                    "S3OutputPath": "s3://sagemaker-test",
+                    "LocalPath": "{dir_name}",
+                    "HookParameters" : {{
+                        "save_interval": "2",
+                        "include_workers": "all"
+                    }}
+                }}
+                """
+        from smdebug.tensorflow import get_hook
 
-    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
-        hook = get_hook("keras", create_if_not_exists=True)
-        assert hook.out_dir == "/my/own/path/tensors"
+        with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+            hook = get_hook("keras", create_if_not_exists=True)
+            assert hook.out_dir == dir_name

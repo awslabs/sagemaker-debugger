@@ -25,6 +25,7 @@ from .utils import (
     get_worker_id_from_tf_config,
     is_mirrored_strategy,
     is_parameter_server_strategy,
+    load_tf_config_json,
 )
 
 try:
@@ -87,9 +88,8 @@ class TensorflowBaseHook(BaseHook):
         self.device_map = {}
         self.writer_map = {}
         self.distribution_strategy = None
-        self.tf_config = os.getenv(
-            "TF_CONFIG"
-        )  # caches the TF_CONFIG for the parameter server strategy
+        # caches the TF_CONFIG for the parameter server strategy
+        self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
         set_hook(self)
 
@@ -102,9 +102,6 @@ class TensorflowBaseHook(BaseHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
-        if self.tf_config and is_parameter_server_strategy(self.tf_config):
-            return TFDistributionStrategy.PARAMETER_SERVER
-
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
             return TFDistributionStrategy.MIRRORED
@@ -112,6 +109,10 @@ class TensorflowBaseHook(BaseHook):
         if isinstance(strat, _DefaultDistributionStrategy):
             # single device
             return TFDistributionStrategy.NONE
+
+        # Disable PS till we verify proper support of PS on SM
+        # if self.tf_config_json and is_parameter_server_strategy(self.tf_config):
+        #     return TFDistributionStrategy.PARAMETER_SERVER_STRATEGY
 
         return TFDistributionStrategy.UNSUPPORTED
 
@@ -127,18 +128,20 @@ class TensorflowBaseHook(BaseHook):
         It is safe to return the CONFIG_DEFAULT_WORKER_NAME in this case.
         :return: str
         """
-        try:
+        assert self.distribution_strategy is not None
+        if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             import horovod.tensorflow as hvd
 
-            if hvd.size():
-                return f"worker_{hvd.rank()}"
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
-
-        tf_config = os.getenv("TF_CONFIG")
-        if tf_config and is_parameter_server_strategy(tf_config):
-            return get_worker_id_from_tf_config(tf_config)
-        return DEFAULT_WORKER_NAME
+            return f"worker_{hvd.rank()}"
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+            # unused for this strategy
+            raise NotImplementedError
+        elif self.distribution_strategy == TFDistributionStrategy.NONE:
+            return DEFAULT_WORKER_NAME
+        elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
+            raise NotImplementedError
+        elif self.tf_config_json and is_parameter_server_strategy(self.tf_config_json):
+            return get_worker_id_from_tf_config(self.tf_config_json)
 
     def export_collections(self):
         if self.save_all_workers is False:
@@ -146,7 +149,7 @@ class TensorflowBaseHook(BaseHook):
         else:
             num_workers = self._get_num_workers()
         self.collection_manager.set_num_workers(num_workers)
-
+        assert self.distribution_strategy is not None
         if (
             self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER
             or self.distribution_strategy == TFDistributionStrategy.HOROVOD
@@ -170,27 +173,26 @@ class TensorflowBaseHook(BaseHook):
         self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _get_num_workers(self):
-        try:
+        assert self.distribution_strategy is not None
+        if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             import horovod.tensorflow as hvd
 
-            if hvd.size():
-                return hvd.size()
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
-
-        if is_parameter_server_strategy(self.tf_config):
-            return get_num_workers_from_tf_config(self.tf_config)
-
-        strategy = tf.distribute.get_strategy()
-        if is_mirrored_strategy(strategy):
+            return hvd.size()
+        elif self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+            strategy = tf.distribute.get_strategy()
             return strategy.num_replicas_in_sync
-
-        return 1
+        elif self.distribution_strategy == TFDistributionStrategy.NONE:
+            return 1
+        elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
+            raise NotImplementedError
+        elif self.tf_config_json and is_parameter_server_strategy(self.tf_config_json):
+            return get_num_workers_from_tf_config(self.tf_config_json)
 
     def _set_chief_worker(self):
+        assert self.distribution_strategy is not None
         # this won't be used if save_all_workers is True
         if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
-            self.chief_worker = get_chief_worker_parameter_server(self.tf_config)
+            self.chief_worker = get_chief_worker_parameter_server(self.tf_config_json)
         elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             self.chief_worker = DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
@@ -224,10 +226,8 @@ class TensorflowBaseHook(BaseHook):
         :return: List[FileWriter]
         """
         if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
-            # copying existing logic here, but what happens if
-            # param strategy and save_all_workers is False
-            # this is broken but unsupported right now #TODO
-            return [self.writer] if self.writer else []
+            if self.save_all_workers is True or self.worker == self.chief_worker:
+                return [self.writer] if self.writer else []
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             # logic of whether this should be single writer or multiple will
             # have been taken care of in initialize_writers method
@@ -239,6 +239,7 @@ class TensorflowBaseHook(BaseHook):
             return [self.writer] if self.writer else []
         else:
             raise NotImplementedError
+        return []
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # In keras, sometimes we are not sure if writer is initialized

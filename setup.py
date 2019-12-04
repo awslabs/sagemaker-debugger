@@ -16,8 +16,8 @@ INSTALL_REQUIRES = [
     "aiobotocore==0.11.0",  # pinned to a specific botocore & boto3
     "aiohttp>=3.6.0,<4.0",  # aiobotocore breaks with 4.0
     # boto3 explicitly depends on botocore
-    "boto3==1.10.14",  # Sagemaker requires >= 1.9.213
-    "botocore==1.13.14",
+    "boto3>=1.10.32",  # Sagemaker requires >= 1.9.213
+    "botocore>=1.13.32",
     "nest_asyncio",
     "protobuf>=3.6.0",
     "numpy",
@@ -58,6 +58,7 @@ def build_package(version):
         setup_requires=["pytest-runner"],
         tests_require=TESTS_PACKAGES,
         python_requires=">=3.6",
+        license="Apache License Version 2.0",
     )
 
 
