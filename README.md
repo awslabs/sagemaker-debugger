@@ -3,6 +3,7 @@
 - [Overview](#overview)
 - [Examples](#sagemaker-example)
 - [How It Works](#how-it-works)
+- [Docs](#docs)
 
 ## Overview
 Amazon SageMaker Debugger is an offering from AWS which help you automate the debugging of machine learning training jobs.
@@ -102,12 +103,23 @@ Amazon SageMaker Debugger can be used inside or outside of SageMaker. There are 
 The reason for different setups is that SageMaker Zero-Script-Change (via Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost to save tensors automatically.
 These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
-See the [SageMaker page](docs/sagemaker.md) for details on SageMaker Zero-Code-Change and Bring-Your-Own-Container (BYOC) experience.\
-See the frameworks pages for details on modifying the training script:
+## Docs
+
+#### [SageMaker](docs/sagemaker.md)
+SageMaker users, we recommend you start with [Running SageMaker jobs with Amazon SageMaker Debugger](docs/sagemaker.md).
+
+#### Framework pages
+See the frameworks pages for details on what's supported and how to modify your training script if applicable
 - [TensorFlow](docs/tensorflow.md)
 - [PyTorch](docs/pytorch.md)
 - [MXNet](docs/mxnet.md)
 - [XGBoost](docs/xgboost.md)
+
+#### [Analysis](docs/analysis.md)
+Refer [Programming Model for Analysis](docs/analysis.md) for description of the programming model provided by our APIs which allows you to perform interactive exploration of tensors saved as well as to write your own Rules monitoring your training jobs.
+
+#### [APIs](docs/api.md)
+Full description of our APIs are [here](docs/api.md).
 
 ## License
 This library is licensed under the Apache 2.0 License.
