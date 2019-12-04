@@ -29,7 +29,7 @@ Here's a list of frameworks and versions which support this experience.
 | [TensorFlow](tensorflow.md) | 1.15 |
 | [MXNet](mxnet.md) | 1.6 |
 | [PyTorch](pytorch.md) | 1.3 |
-| [XGBoost](xgboost.md) | |
+| [XGBoost](xgboost.md) | >=0.90-2 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|
 
 More details for the deep learning frameworks on which containers these are can be found here: [SageMaker Framework Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html) and [AWS Deep Learning Containers](https://aws.amazon.com/machine-learning/containers/). You do not have to specify any training container image if you want to use them on SageMaker. You only need to specify the version above to use these containers.
 
@@ -43,7 +43,7 @@ This library `smdebug` itself supports versions other than the ones listed above
 | Keras (with TensorFlow backend) | 2.3 |
 | [MXNet](mxnet.md) | 1.4, 1.5, 1.6 |
 | [PyTorch](pytorch.md) | 1.2, 1.3 |
-| [XGBoost](xgboost.md) | |
+| [XGBoost](xgboost.md) | [As Framework](xgboost.md#use-xgboost-as-a-framework) |
 
 #### Setting up SageMaker Debugger with your script on your container
 
@@ -189,7 +189,7 @@ The Built-in Rules, or SageMaker Rules, are described in detail on [this page](h
 Scope of Validity | Rules |
 |---|---|
 | Generic Deep Learning models (TensorFlow, Apache MXNet, and PyTorch) |<ul><li>[`dead_relu`](https://docs.aws.amazon.com/sagemaker/latest/dg/dead-relu.html)</li><li>[`exploding_tensor`](https://docs.aws.amazon.com/sagemaker/latest/dg/exploding-tensor.html)</li><li>[`poor_weight_initialization`](https://docs.aws.amazon.com/sagemaker/latest/dg/poor-weight-initialization.html)</li><li>[`saturated_activation`](https://docs.aws.amazon.com/sagemaker/latest/dg/saturated-activation.html)</li><li>[`vanishing_gradient`](https://docs.aws.amazon.com/sagemaker/latest/dg/vanishing-gradient.html)</li><li>[`weight_update_ratio`](https://docs.aws.amazon.com/sagemaker/latest/dg/weight-update-ratio.html)</li></ul> |
-| Generic Deep learning models (TensorFlow, MXNet, and PyTorch) and the XGBoost algorithm | <ul><li>[`all_zero`](https://docs.aws.amazon.com/sagemaker/latest/dg/all-zero.html)</li><li>[`class_imbalance`](https://docs.aws.amazon.com/sagemaker/latest/dg/class-imbalance.html)</li><li>[`confusion`](https://docs.aws.amazon.com/sagemaker/latest/dg/confusion.html)</li><li>[`loss_not_decreasing`](https://docs.aws.amazon.com/sagemaker/latest/dg/loss-not-decreasing.html)</li><li>[`overfit`](https://docs.aws.amazon.com/sagemaker/latest/dg/overfit.html)</li><li>[`overtraining`](https://docs.aws.amazon.com/sagemaker/latest/dg/overtraining.html)</li><li>[`similar_across_runs`](https://docs.aws.amazon.com/sagemaker/latest/dg/similar-across-runs.html)</li><li>[`tensor_variance`](https://docs.aws.amazon.com/sagemaker/latest/dg/tensor-variance.html)</li><li>[`unchanged_tensor`](https://docs.aws.amazon.com/sagemaker/latest/dg/unchanged-tensor.html)</li>/ul>|
+| Generic Deep learning models (TensorFlow, MXNet, and PyTorch) and the XGBoost algorithm | <ul><li>[`all_zero`](https://docs.aws.amazon.com/sagemaker/latest/dg/all-zero.html)</li><li>[`class_imbalance`](https://docs.aws.amazon.com/sagemaker/latest/dg/class-imbalance.html)</li><li>[`confusion`](https://docs.aws.amazon.com/sagemaker/latest/dg/confusion.html)</li><li>[`loss_not_decreasing`](https://docs.aws.amazon.com/sagemaker/latest/dg/loss-not-decreasing.html)</li><li>[`overfit`](https://docs.aws.amazon.com/sagemaker/latest/dg/overfit.html)</li><li>[`overtraining`](https://docs.aws.amazon.com/sagemaker/latest/dg/overtraining.html)</li><li>[`similar_across_runs`](https://docs.aws.amazon.com/sagemaker/latest/dg/similar-across-runs.html)</li><li>[`tensor_variance`](https://docs.aws.amazon.com/sagemaker/latest/dg/tensor-variance.html)</li><li>[`unchanged_tensor`](https://docs.aws.amazon.com/sagemaker/latest/dg/unchanged-tensor.html)</li></ul>|
 | Deep learning applications |<ul><li>[`check_input_images`](https://docs.aws.amazon.com/sagemaker/latest/dg/checkinput-mages.html)</li><li>[`nlp_sequence_ratio`](https://docs.aws.amazon.com/sagemaker/latest/dg/nlp-sequence-ratio.html)</li></ul> |
 | XGBoost algorithm | <ul><li>[`tree_depth`](https://docs.aws.amazon.com/sagemaker/latest/dg/tree-depth.html)</li></ul>|
 
