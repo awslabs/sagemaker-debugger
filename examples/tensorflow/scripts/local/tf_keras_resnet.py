@@ -20,7 +20,7 @@ from tensorflow.keras.utils import to_categorical
 import smdebug.tensorflow as smd
 
 
-def train(batch_size, epoch, model):
+def train(batch_size, epoch, model, hook):
     (X_train, y_train), (X_valid, y_valid) = cifar10.load_data()
 
     Y_train = to_categorical(y_train, 10)
@@ -63,13 +63,13 @@ def main():
         save_config=smd.SaveConfig(save_interval=opt.save_interval),
     )
 
-    opt = tf.keras.optimizers.Adam()
+    optimizer = tf.keras.optimizers.Adam()
     # wrap the optimizer so the hook can identify the gradients
-    opt = hook.wrap_optimizer(opt)
-    model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
+    optimizer = hook.wrap_optimizer(optimizer)
+    model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"])
 
     # start the training.
-    train(opt.batch_size, opt.epoch, model)
+    train(opt.batch_size, opt.epoch, model, hook)
 
 
 if __name__ == "__main__":
