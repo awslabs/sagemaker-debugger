@@ -1,5 +1,4 @@
 # Standard Library
-import uuid
 
 # Third Party
 import pytest
@@ -19,11 +18,8 @@ def test_load_collection_files_from_completed_job():
     and the training_has_ended file is present
     :return:
     """
-    path = f"s3://smdebug-testing/outputs/collection-tests/all-collection-files-present-{uuid.uuid4()}/"
-    try:
-        trial = create_trial(path)
-    except MissingCollectionFiles:
-        assert False
+    path = "s3://smdebug-testing/resources/collection-tests/all-collection-files-present/"
+    trial = create_trial(path)
     assert len(trial.workers()) == 2001
 
 
@@ -38,12 +34,9 @@ def test_load_collection_files_from_completed_job_with_missing_files():
     but the training_has_ended file is present so we stop waiting
     :return:
     """
-    path = f"s3://smdebug-testing/outputs/collection-tests/collection-files-missing-{uuid.uuid4()}/"
-    try:
-        trial = create_trial(path)
-        assert False
-    except MissingCollectionFiles:
-        assert True
+    path = "s3://smdebug-testing/resources/collection-tests/collection-files-missing/"
+    with pytest.raises(MissingCollectionFiles):
+        create_trial(path)
 
 
 @pytest.mark.slow
@@ -58,9 +51,6 @@ def test_load_collection_files_from_incomplete_job():
 
     :return:
     """
-    path = f"s3://smdebug-testing/outputs/collection-tests/all-collection-files-present-job-incomplete-{uuid.uuid4()}/"
-    try:
-        trial = create_trial(path)
-    except MissingCollectionFiles:
-        assert False
+    path = "s3://smdebug-testing/resources/collection-tests/all-collection-files-present-job-incomplete/"
+    trial = create_trial(path)
     assert len(trial.workers()) == 2001
