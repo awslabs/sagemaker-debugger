@@ -4,6 +4,7 @@ import logging
 import time
 
 # Third Party
+import aioboto3
 import boto3
 from botocore.exceptions import (
     ClientError,
@@ -43,7 +44,6 @@ class ReadObjectRequest:
         if not self.is_s3:
             self.key = path
             self.bucket = None
-        # assert start >= 0 and (start == 0 or length is not None)
         self.start = start
         self.length = length
         self.download_entire_file = self.start == 0 and self.length is None
@@ -155,8 +155,10 @@ class S3HandlerAsync:
         count, body = 0, None
         while count < self.num_retries and body is None:
             try:
-                if length is not None:
-                    bytes_range = "bytes=" + str(start) + "-" + str(start + length - 1)
+                if start is not None:
+                    bytes_range = f"bytes={start}-"
+                    if length is not None:
+                        bytes_range += f"{start + length - 1}"
                     resp = await self.client.get_object(Bucket=bucket, Key=key, Range=bytes_range)
                 else:
                     resp = await self.client.get_object(Bucket=bucket, Key=key)
@@ -198,7 +200,7 @@ class S3HandlerAsync:
     async def _get_objects(self, object_requests):
         request_params = []
         for obj in object_requests:
-            request_params += [(obj.bucket, obj.path, obj.start, obj.length)]
+            request_params += [(obj.bucket, obj.key, obj.start, obj.length)]
         data = await asyncio.gather(
             *[
                 self._get_object(bucket, key, start, length)
@@ -270,10 +272,11 @@ class S3HandlerAsync:
 
 
 class S3Handler:
-    def __init__(self, num_retries=5):
+    def __init__(self, num_retries=5, use_s3_transfer=False):
         self.client = boto3.client("s3", region_name=get_region())
         self.num_retries = num_retries
         self.logger = get_logger()
+        self.use_s3_transfer = use_s3_transfer
 
     def list_prefixes(self, list_requests: list):
         if type(list_requests) != list:
@@ -344,21 +347,23 @@ class S3Handler:
         self.logger.warning(f"Unable to list files for {lr.bucket} with prefix {lr.prefix}")
         return []
 
+    def _make_get_request(self, object_request):
+        if object_request.start is not None:
+            bytes_range = f"bytes={object_request.start}-"
+            if object_request.length is not None:
+                bytes_range += f"{object_request.start + object_request.length - 1}"
+            resp = self.client.get_object(
+                Bucket=object_request.bucket, Key=object_request.key, Range=bytes_range
+            )
+        else:
+            resp = self.client.get_object(Bucket=object_request.bucket, Key=object_request.key)
+        return resp
+
     def get_object(self, object_request):
         count = 0
         while count < self.num_retries:
             try:
-                if object_request.start is not None:
-                    bytes_range = f"bytes={object_request.start}-"
-                    if object_request.length is not None:
-                        bytes_range += f"{object_request.start + object_request.length - 1}"
-                    resp = self.client.get_object(
-                        Bucket=object_request.bucket, Key=object_request.key, Range=bytes_range
-                    )
-                else:
-                    resp = self.client.get_object(
-                        Bucket=object_request.bucket, Key=object_request.key
-                    )
+                resp = self._make_get_request(object_request)
                 return resp["Body"].read()
             except (
                 NoCredentialsError,  # No credentials could be found

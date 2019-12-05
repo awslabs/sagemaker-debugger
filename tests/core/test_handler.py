@@ -81,10 +81,9 @@ def test_delete_prefix():
 def performance_vs_async():
     kb = 1024
     mb = 1024 * 1024
-    sizes = [10 * kb, 100 * kb, 500 * kb, mb, 5 * mb, 10 * mb]
-    num_files = [100, 1000, 10000, 100000, 1000000]
-    s = uuid.uuid4()
-    prefix = "test_performance_prefix/" + str(s)
+    sizes = [10 * kb, 100 * kb, 500 * kb]  # , mb, 5 * mb, 10 * mb]
+    num_files = [100, 1000, 10000, 100000]  # , 1000000]
+    prefix = "test_performance_prefix"
     # gen files
     def gen_data():
         for size in sizes:
@@ -96,7 +95,7 @@ def performance_vs_async():
                 f.close()
             print(f"Generated data for {size}bytes")
 
-    gen_data()
+    # gen_data()
     handler = S3Handler()
     async_handler = S3HandlerAsync()
 
@@ -125,13 +124,11 @@ def performance_vs_async():
         times.append(timesrow)
 
 
+if __name__ == "__main__":
+    performance_vs_async()
+
 """
-# bash script to generate files for perf test
-kb = 1024
-mb = 1024 * 1024
-sizes = [10 * kb, 100 * kb, 500 * kb, mb, 5 * mb, 10 * mb]
-max_num_files = 100000
-
-echo $sizes
-
+# bash commands to generate files for perf test
+head -c 1048576 /dev/urandom > 0.dummy
+for i in `seq 1 100000`; do aws s3 cp 0.dummy s3://tornasolecodebuildtest/test_performance_prefix/1048576/$i.dummy ; done;
 """
