@@ -306,7 +306,9 @@ def test_basic(out_dir, zcc=False):
     tr = create_trial_fast_refresh(out_dir)
     # wts, grads, losses
     print(tr.tensor_names())
-    assert len(tr.tensor_names()) == 8 + 8 + 1 + 1  # 1 main loss, and 1 from chief worker
+    assert (
+        len(tr.tensor_names()) == 8 + 8 + (1 * strategy.num_replicas_in_sync) + 1
+    )  # 1 main loss, and 1 from each worker
     assert len(tr.steps()) == 7
     assert len(tr.steps(ModeKeys.TRAIN)) == 3
     assert len(tr.steps(ModeKeys.EVAL)) == 2

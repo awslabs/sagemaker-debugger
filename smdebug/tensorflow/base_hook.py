@@ -241,7 +241,7 @@ class TensorflowBaseHook(BaseHook):
                     else:
                         return [self.writer_map[self.device_map[self.chief_worker]]]
                 elif self.save_all_workers or worker == self.chief_worker:
-                    return [self.writer_map[self.device_map[self.chief_worker]]]
+                    return [self.writer_map[self.device_map[worker]]]
             else:
                 # training on CPU when all device strings have cpu
                 return [self.writer] if self.writer else []
