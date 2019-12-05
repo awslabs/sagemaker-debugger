@@ -59,11 +59,11 @@ def test_check_dir_not_exists_s3():
 
 
 def test_check_dir_exists_s3():
-    with pytest.raises(Exception):
-        # This file should exist in the bucket for proper testing
-        check_dir_exists("s3://smdebug-testing/resources/exists")
+    # This file should exist in the bucket for proper testing
+    check_dir_exists("s3://smdebug-testing/resources/exists")
 
 
+@pytest.mark.skip(reason="It's unclear what this is testing.")
 def test_check_dir_not_exists():
     with pytest.raises(Exception):
         check_dir_exists("s3://smdebug-testing")

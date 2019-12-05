@@ -18,11 +18,8 @@ def test_fetch_tensor_with_present_event_files():
     path = "s3://smdebug-testing/resources/event-files-missing"
 
     trial = create_trial(path)
-    try:
-        # Get value from an event file that is present
-        trial.tensor("gradients/pow_grad/sub:0").value(0)
-    except TensorUnavailableForStep:
-        assert False
+    # Get value from an event file that is present
+    trial.tensor("gradients/pow_grad/sub:0").value(0)
 
 
 @pytest.mark.slow  # 0:01 to run
@@ -37,12 +34,9 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_present():
     path = "s3://smdebug-testing/resources/event-files-missing"
 
     trial = create_trial(path)
-    try:
+    with pytest.raises(TensorUnavailableForStep):
         # Get value from an event file that is absent
         trial.tensor("gradients/pow_grad/sub:0").value(9)
-        assert False
-    except TensorUnavailableForStep:
-        pass
 
 
 @pytest.mark.slow  # 0:01 to run
@@ -57,12 +51,9 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_absent():
     path = "s3://smdebug-testing/resources/event-files-missing"
 
     trial = create_trial(path)
-    try:
+    with pytest.raises(TensorUnavailableForStep):
         # Get value from an event file that is absent
         trial.tensor("gradients/pow_grad/sub:0").value(199)
-        assert False
-    except TensorUnavailableForStep:
-        pass
 
 
 @pytest.mark.slow  # 0:01 to run
@@ -77,12 +68,9 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_present_incomp
     path = "s3://smdebug-testing/resources/event-files-missing-incomplete"
 
     trial = create_trial(path)
-    try:
+    with pytest.raises(TensorUnavailableForStep):
         # Get value from an event file that is absent
         trial.tensor("gradients/pow_grad/sub:0").value(9)
-        assert False
-    except TensorUnavailableForStep:
-        pass
 
 
 @pytest.mark.slow  # 0:01 to run
@@ -96,9 +84,6 @@ def test_fetch_tensor_with_missing_event_file_but_next_event_file_absent_incompl
     """
     path = "s3://smdebug-testing/resources/event-files-missing-incomplete"
     trial = create_trial(path)
-    try:
+    with pytest.raises(TensorUnavailableForStep):
         # Get value from an event file that is absent
         trial.tensor("gradients/pow_grad/sub:0").value(199)
-        assert False
-    except TensorUnavailableForStep:
-        pass
