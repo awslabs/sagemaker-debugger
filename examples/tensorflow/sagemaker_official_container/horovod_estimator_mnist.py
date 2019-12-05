@@ -22,12 +22,8 @@ The hook needed by SageMaker Debugger to save tensors during training will be au
 The hook will load configuration from json configuration that SageMaker will put in the training container from the configuration provided using the SageMaker python SDK when creating a job.
 For more information, please refer to https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md
 """
-
-
-# Future
-from __future__ import absolute_import, division, print_function
-
 # Standard Library
+import argparse
 import errno
 import os
 
@@ -38,6 +34,17 @@ import tensorflow as tf
 from tensorflow import keras
 
 tf.logging.set_verbosity(tf.logging.INFO)
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 def cnn_model_fn(features, labels, mode):
@@ -130,7 +137,7 @@ def cnn_model_fn(features, labels, mode):
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
-def main(unused_argv):
+def main(args):
     # Horovod: initialize Horovod.
     hvd.init()
 
@@ -161,9 +168,13 @@ def main(unused_argv):
     eval_data = np.reshape(eval_data, (-1, 784)) / 255.0
 
     # Horovod: pin GPU to be used to process local rank (one GPU per process)
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.gpu_options.visible_device_list = str(hvd.local_rank())
+    if not args.use_only_cpu:
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.visible_device_list = str(hvd.local_rank())
+        estimator_config = tf.estimator.RunConfig(session_config=config)
+    else:
+        estimator_config = None
 
     # Horovod: save checkpoints only on worker 0 to prevent other workers from
     # corrupting them.
@@ -171,9 +182,7 @@ def main(unused_argv):
 
     # Create the Estimator
     mnist_classifier = tf.estimator.Estimator(
-        model_fn=cnn_model_fn,
-        model_dir=model_dir,
-        config=tf.estimator.RunConfig(session_config=config),
+        model_fn=cnn_model_fn, model_dir=model_dir, config=estimator_config
     )
 
     # Set up logging for predictions
@@ -194,7 +203,9 @@ def main(unused_argv):
 
     # Horovod: adjust number of steps based on number of GPUs.
     mnist_classifier.train(
-        input_fn=train_input_fn, steps=20000 // hvd.size(), hooks=[logging_hook, bcast_hook]
+        input_fn=train_input_fn,
+        steps=args.num_steps // hvd.size(),
+        hooks=[logging_hook, bcast_hook],
     )
 
     # Evaluate the model and print results
@@ -206,4 +217,14 @@ def main(unused_argv):
 
 
 if __name__ == "__main__":
-    tf.app.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--use_only_cpu", type=str2bool, default=False)
+    parser.add_argument("--model_dir", type=str, default="/tmp/mnist_model")
+    parser.add_argument(
+        "--num_steps",
+        type=int,
+        help="Number of steps to train for. If this" "is passed, it overrides num_epochs",
+    )
+    args = parser.parse_args()
+
+    main(args)

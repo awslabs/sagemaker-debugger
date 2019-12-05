@@ -6,9 +6,6 @@ When you want to run this script in SageMaker, it is recommended to create the h
 Please see scripts in either 'sagemaker_byoc' or 'sagemaker_official_container' folder based on your use case.
 """
 
-# Future
-from __future__ import print_function
-
 # Standard Library
 import argparse
 import math
@@ -25,105 +22,127 @@ from tensorflow.keras.models import Sequential
 # First Party
 import smdebug.tensorflow as smd
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--out_dir", type=str)
-parser.add_argument("--save_interval", type=int, default=500)
-parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to train for")
-parser.add_argument("--model_dir", type=str, default="/tmp/mnist_model")
-parser.add_argument("--include_workers", type=str, default="one")
-args = parser.parse_args()
 
-# Horovod: initialize Horovod.
-hvd.init()
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
-# Horovod: pin GPU to be used to process local rank (one GPU per process)
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.gpu_options.visible_device_list = str(hvd.local_rank())
-K.set_session(tf.Session(config=config))
 
-batch_size = 128
-num_classes = 10
+def main(args):
+    # Horovod: initialize Horovod.
+    hvd.init()
 
-# Horovod: adjust number of epochs based on number of GPUs.
-epochs = int(math.ceil(12.0 / hvd.size()))
+    if not args.use_only_cpu:
+        # Horovod: pin GPU to be used to process local rank (one GPU per process)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.visible_device_list = str(hvd.local_rank())
+    else:
+        config = None
 
-# Input image dimensions
-img_rows, img_cols = 28, 28
+    K.set_session(tf.Session(config=config))
 
-# The data, shuffled and split between train and test sets
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+    batch_size = 128
+    num_classes = 10
 
-if K.image_data_format() == "channels_first":
-    x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
-    x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
-    input_shape = (1, img_rows, img_cols)
-else:
-    x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
-    x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
-    input_shape = (img_rows, img_cols, 1)
+    # Horovod: adjust number of epochs based on number of GPUs.
+    epochs = int(math.ceil(args.num_epochs / hvd.size()))
 
-x_train = x_train.astype("float32")
-x_test = x_test.astype("float32")
-x_train /= 255
-x_test /= 255
-print("x_train shape:", x_train.shape)
-print(x_train.shape[0], "train samples")
-print(x_test.shape[0], "test samples")
+    # Input image dimensions
+    img_rows, img_cols = 28, 28
 
-# Convert class vectors to binary class matrices
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
+    # The data, shuffled and split between train and test sets
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
-model = Sequential()
-model.add(Conv2D(32, kernel_size=(3, 3), activation="relu", input_shape=input_shape))
-model.add(Conv2D(64, (3, 3), activation="relu"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
-model.add(Flatten())
-model.add(Dense(128, activation="relu"))
-model.add(Dropout(0.5))
-model.add(Dense(num_classes, activation="softmax"))
+    if K.image_data_format() == "channels_first":
+        x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
+        x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
+        input_shape = (1, img_rows, img_cols)
+    else:
+        x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
+        x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
+        input_shape = (img_rows, img_cols, 1)
 
-# Horovod: adjust learning rate based on number of GPUs.
-opt = keras.optimizers.Adadelta(1.0 * hvd.size())
+    x_train = x_train.astype("float32")
+    x_test = x_test.astype("float32")
+    x_train /= 255
+    x_test /= 255
+    print("x_train shape:", x_train.shape)
+    print(x_train.shape[0], "train samples")
+    print(x_test.shape[0], "test samples")
 
-# Horovod: add Horovod Distributed Optimizer.
-opt = hvd.DistributedOptimizer(opt)
+    # Convert class vectors to binary class matrices
+    y_train = keras.utils.to_categorical(y_train, num_classes)
+    y_test = keras.utils.to_categorical(y_test, num_classes)
 
-smd_hook = smd.KerasHook(
-    out_dir=args.out_dir,
-    save_config=smd.SaveConfig(save_interval=args.save_interval),
-    include_collections=["weights", "gradients"],
-    include_workers=args.include_workers,
-)
+    model = Sequential()
+    model.add(Conv2D(32, kernel_size=(3, 3), activation="relu", input_shape=input_shape))
+    model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+    model.add(Flatten())
+    model.add(Dense(128, activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation="softmax"))
 
-opt = smd_hook.wrap_optimizer(opt)
+    # Horovod: adjust learning rate based on number of GPUs.
+    opt = keras.optimizers.Adadelta(1.0 * hvd.size())
 
-model.compile(loss=keras.losses.categorical_crossentropy, optimizer=opt, metrics=["accuracy"])
+    # Horovod: add Horovod Distributed Optimizer.
+    opt = hvd.DistributedOptimizer(opt)
 
-callbacks = [
-    # Horovod: broadcast initial variable states from rank 0 to all other processes.
-    # This is necessary to ensure consistent initialization of all workers when
-    # training is started with random weights or restored from a checkpoint.
-    hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-    # smd hook
-    smd_hook,
-]
+    smd_hook = smd.KerasHook(
+        out_dir=args.out_dir,
+        save_config=smd.SaveConfig(save_interval=args.save_interval),
+        include_collections=["weights", "gradients"],
+        include_workers=args.include_workers,
+    )
 
-# Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
-if hvd.rank() == 0:
-    callbacks.append(keras.callbacks.ModelCheckpoint("./checkpoint-{epoch}.h5"))
+    opt = smd_hook.wrap_optimizer(opt)
 
-model.fit(
-    x_train,
-    y_train,
-    batch_size=batch_size,
-    callbacks=callbacks,
-    epochs=epochs,
-    verbose=1 if hvd.rank() == 0 else 0,
-    validation_data=(x_test, y_test),
-)
-score = model.evaluate(x_test, y_test, verbose=0)
-print("Test loss:", score[0])
-print("Test accuracy:", score[1])
+    model.compile(loss=keras.losses.categorical_crossentropy, optimizer=opt, metrics=["accuracy"])
+
+    callbacks = [
+        # Horovod: broadcast initial variable states from rank 0 to all other processes.
+        # This is necessary to ensure consistent initialization of all workers when
+        # training is started with random weights or restored from a checkpoint.
+        hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+        # smd_hook
+        smd_hook,
+    ]
+
+    # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
+    if hvd.rank() == 0:
+        callbacks.append(keras.callbacks.ModelCheckpoint("./checkpoint-{epoch}.h5"))
+
+    model.fit(
+        x_train,
+        y_train,
+        batch_size=batch_size,
+        callbacks=callbacks,
+        epochs=epochs,
+        verbose=1 if hvd.rank() == 0 else 0,
+        validation_data=(x_test, y_test),
+    )
+    score = model.evaluate(x_test, y_test, verbose=0)
+    print("Test loss:", score[0])
+    print("Test accuracy:", score[1])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--use_only_cpu", type=str2bool, default=False)
+    parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to train for")
+    parser.add_argument("--out_dir", type=str)
+    parser.add_argument("--save_interval", type=int, default=500)
+    parser.add_argument("--include_workers", type=str, default="one")
+    parser.add_argument("--model_dir", type=str, default="/tmp/mnist_model")
+    args = parser.parse_args()
+
+    main(args)
