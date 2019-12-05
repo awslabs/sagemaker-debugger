@@ -211,10 +211,7 @@ class Hook(CallbackHook):
         """
 
         if not isinstance(block, mx.gluon.Block):
-            self.logger.error(
-                f"The given block type {block.__class__.__name__} is not "
-                f"currently supported by Tornasole Hook"
-            )
+            self.logger.error(f"The given block type {block.__class__.__name__} is unsupported.")
             return
 
         # Check if the hook is already registered for this block.

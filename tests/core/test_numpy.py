@@ -43,17 +43,16 @@ def test_s3():
     my_session = boto3.session.Session()
     my_region = my_session.region_name
     my_account = boto3.client("sts").get_caller_identity().get("Account")
-    bucket_name = "tornasole-testing"
-    key_name = "core-tests/smdebug/{}".format(str(uuid.uuid4()))
+    bucket_name = "smdebug-testing"
+    key_name = f"outputs/core-tests-{uuid.uuid4()}"
     # sagemaker-us-east-1-722321484884
     location = "s3://{}/{}".format(bucket_name, key_name)
     print("Saving to Location")
     rw(location)
 
 
-# @pytest.mark.skip(reason="No string support")
 def test_string():
-    with FileWriter(trial_dir="./ts_output/my_trial", step=20, worker="algo-1") as fw:
+    with FileWriter(trial_dir="/tmp/ts_output/my_trial", step=20, worker="algo-1") as fw:
         fname = fw.name()
         print(f"Saving string data in {fname}")
         s_written = np.array(["foo", "barz"])

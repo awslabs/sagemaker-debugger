@@ -290,10 +290,9 @@ class TensorflowBaseHook(BaseHook):
 
     def _log_unsupported_optimizer(self, optimizer):
         self.logger.warning(
-            f"Unsupported optimizer {optimizer} {optimizer.__class__}. "
-            "Tornasole can not automatically find the gradients. "
-            "Please specify the gradient tensors and optimizer variables "
-            "using the methods hook.set_gradients and hook.set_optimizer_variables"
+            f"Unsupported optimizer {optimizer} {optimizer.__class__}, cannot automatically find "
+            "gradients. Please specify the gradient tensors and optimizer variables "
+            "using the methods hook.set_gradients() and hook.set_optimizer_variables()."
         )
 
     def _get_collections_with_tensor(self, tf_tensor_name) -> Set["Collection"]:
@@ -338,7 +337,7 @@ class TensorflowBaseHook(BaseHook):
 
     def set_gradients(self, gradients=None, gradients_and_variables=None):
         """
-        This method allows Tornasole to find the gradient tensors.
+        This method helps find the gradient tensors.
         When this method is used for tf.train.Optimizer, gradients_and_variables is passed.
         When this method is used for tf.keras.Optimizer, gradients is passed.
 
@@ -360,7 +359,7 @@ class TensorflowBaseHook(BaseHook):
 
     def set_optimizer_variables(self, optimizer_variables):
         """
-        This method allows Tornasole to find the optimizer variables (such as momentum)
+        This method helps find the optimizer variables (such as momentum)
         :param optimizer_variables: list of tf.Variables/tf.Tensors/tf.MirroredVariables
         """
         # since this is done for each variable at a time for keras, not checking if set already

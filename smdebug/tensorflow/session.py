@@ -53,7 +53,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         Attributes
         ----------
         out_dir : str
-            represents a path into which tornasole outputs will be written to
+            represents a path into which outputs will be written to
         dry_run : bool
             when dry run is set, behavior is only described in the log file.
             tensors are not actually saved.
@@ -110,7 +110,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
     def _merge_tensor_refs_across_collections(self, tensor):
         # merge tensor objects in all collections which has this tensor
         # this ensures that whichever collection you query for this tensorname
-        # it returns the same Tornasole Tensor object
+        # it returns the same internal Tensor object
         tensor_ref = None
         for coll in self.tensor_to_collections[tensor.name]:
             if tensor_ref is None:
@@ -267,7 +267,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         # setting this to False means that on next apply_gradients/get_grads gradients will be set again
         self._gradients_set = False
 
-        # todo: use global step from TF instead of tornasole steps
+        # todo: use global step from TF instead of internal steps
 
         # todo: handle multiple graphs in the model
         self.worker = self._get_worker_name()
@@ -422,12 +422,12 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
     def wrap_optimizer(self, optimizer):
         """
-        Wrapping your optimizer with this method allows Tornasole to
-        find gradient tensors and optimizer variables.
+        Wrapping your optimizer with this method enables finding gradient tensors and optimizer
+        variables.
 
         :param optimizer: tf.train.Optimizer or tf.keras.optimizers.Optimizer
             the optimizer object used for training
-        :return: Tornasole aware optimizer of same type as passed.
+        :return: Wrapped optimizer of same type as passed.
             This optimizer should be used for training
         """
         if isinstance(optimizer, tf.train.Optimizer):

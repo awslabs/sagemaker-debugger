@@ -36,13 +36,12 @@ class StateStore:
                 os.path.getmtime(child) for child, _, _ in os.walk(self._checkpoint_dir)
             )
 
-    """
-    Retrieve the folder/path where users will store the checkpoints. This path will be stored as a value for key
-    'CHECKPOINT_DIR_KEY' in the checkpoint config file.
-    We will monitor this folder and write the current state if this folder is recently modified.
-    """
-
     def _retrieve_path_to_checkpoint(self):
+        """
+        Retrieve the folder/path where users will store the checkpoints. This path will be stored as a value for key
+        'CHECKPOINT_DIR_KEY' in the checkpoint config file.
+        We will monitor this folder and write the current state if this folder is recently modified.
+        """
         if self._checkpoint_dir is not None:
             return self._checkpoint_dir
         checkpoint_config_file = os.getenv(
@@ -56,12 +55,11 @@ class StateStore:
         else:
             logger.debug(f"The checkpoint config file {checkpoint_config_file} does not exist.")
 
-    """
-    Read the tornasole states from the file and create a sorted list of tornasole states.
-    The states are sorted based on the last seen step.
-    """
-
     def _read_states_file(self):
+        """
+        Read the states from the file and create a sorted list of states.
+        The states are sorted based on the last seen step.
+        """
         if os.path.exists(self._states_file):
             with open(self._states_file) as json_data:
                 parameters = json.load(json_data)
@@ -74,12 +72,11 @@ class StateStore:
                 self._saved_states.append(ts_state)
         self._saved_states.sort(key=_rule_for_sorting)
 
-    """
-    Check whether the folder in which checkpoints are stored got updated.
-    Update to that folder indicates, user attempted to store the new checkpoint in that directory.
-    """
-
     def is_checkpoint_updated(self):
+        """
+        Check whether the folder in which checkpoints are stored got updated.
+        Update to that folder indicates, user attempted to store the new checkpoint in that directory.
+        """
         if self._checkpoint_dir is not None:
             checkpoint_timestamp = max(
                 os.path.getmtime(child) for child, _, _ in os.walk(self._checkpoint_dir)
@@ -88,22 +85,20 @@ class StateStore:
                 return True
         return False
 
-    """
-    Retreive the last save tornasole state from the tornasole state file if exists.
-    The file can contain multiple states. The function will return only the last saves state.
-    """
-
     def get_last_saved_state(self):
+        """
+        Retrieve the last save state from the state file if exists.
+        The file can contain multiple states. The function will return only the last saves state.
+        """
         if len(self._saved_states) > 0:
             return self._saved_states[-1]
         return None
 
-    """
-    Write the passed tornasole state to tornasole state file. Since the tornasole state file is stored
-    in the same folder as that of checkpoints, we update the checkpoint update timestamp after state is written to the file.
-    """
-
     def update_state(self, ts_state):
+        """
+        Write the passed state to state file. Since the state file is stored in the same folder as
+        that of checkpoints, we update the checkpoint update timestamp after state is written to the file.
+        """
         self._saved_states.append(ts_state)
         with open(self._states_file, "w") as out_file:
             json.dump(self._saved_states, out_file)

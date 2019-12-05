@@ -34,7 +34,7 @@ class SageMakerTrialCatalog(TrialCatalog):
         self.endpoint = endpoint
         self.port = port
         self.client = InfluxDBClient(host=self.endpoint, port=self.port)
-        self.client.switch_database('tornasole_deb')
+        self.client.switch_database('deb')
 
 
     def list_candidates(self):

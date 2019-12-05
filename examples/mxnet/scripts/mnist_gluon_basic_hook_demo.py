@@ -2,6 +2,7 @@
 import argparse
 import random
 import time
+import uuid
 
 # Third Party
 import mxnet as mx
@@ -22,7 +23,7 @@ def parse_args():
     parser.add_argument(
         "--output-uri",
         type=str,
-        default="s3://tornasole-testing/basic-mxnet-hook",
+        default=f"s3://smdebug-testing/outputs/basic-mxnet-hook-{uuid.uuid4()}",
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument(
