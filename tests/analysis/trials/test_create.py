@@ -31,7 +31,7 @@ def test_creation_local():
 @pytest.mark.slow  # 0:20 to run
 def test_creation_s3():
     trial_name = str(uuid.uuid4())
-    path = f"s3://smdebug-testing/outputs/rules-{uuid.uuid4()}"
+    path = f"s3://smdebug-testing/outputs/rules-{uuid.uuid4()}/"
     num_steps = 8
     num_tensors = 10
     for i in range(num_steps):
