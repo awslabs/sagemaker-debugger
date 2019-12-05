@@ -165,7 +165,7 @@ def test_get_chief():
             "task": {"type": "worker", "index": 1},
         }
     )
-    assert get_chief_worker_from_tf_config(json.loads(conf)) == "host0:port"
+    assert get_chief_worker_from_tf_config(json.loads(conf)) == "chief_0"
 
 
 class TFOpMock:

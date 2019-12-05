@@ -203,7 +203,11 @@ def load_tf_config_json(tf_config: str):
 
 
 def is_parameter_server_strategy(tf_config_json) -> bool:
-    return "cluster" in tf_config_json and "ps" in tf_config_json["cluster"]
+    try:
+        return "cluster" in tf_config_json and "ps" in tf_config_json["cluster"]
+    except TypeError:
+        # when json is None
+        return False
 
 
 def get_worker_id_from_tf_config(tf_config_json) -> str:

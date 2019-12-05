@@ -230,8 +230,21 @@ class TensorflowBaseHook(BaseHook):
                 return [self.writer] if self.writer else []
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
-                return list(self.writer_map.values())
+                if tensor_ref.tf_obj is not None:
+                    worker = tensor_ref.tf_obj.device
+                else:
+                    # metrics in keras
+                    worker = "CPU"
+                # if device str is empty or cpu in worker
+                if not bool(worker) or "CPU" in worker:
+                    if self.save_all_workers:
+                        return list(self.writer_map.values())
+                    else:
+                        return [self.writer_map[self.device_map[self.chief_worker]]]
+                elif worker == self.chief_worker:
+                    return [self.writer_map[self.device_map[self.chief_worker]]]
             else:
+                # training on CPU when all device strings have cpu
                 return [self.writer] if self.writer else []
         elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             if self.save_all_workers is True or self.worker == self.chief_worker:
