@@ -261,10 +261,15 @@ class TensorflowBaseHook(BaseHook):
         if self.dry_run:
             return
 
-        if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
-            # this is broken but unsupported right now #TODO
-            if self.writer is None or only_initialize_if_missing is False:
-                self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+        if self.distribution_strategy in [
+            TFDistributionStrategy.PARAMETER_SERVER,
+            TFDistributionStrategy.HOROVOD,
+        ]:
+            if self.save_all_workers is True or self.worker == self.chief_worker:
+                if self.writer is None or only_initialize_if_missing is False:
+                    self.writer = FileWriter(
+                        trial_dir=self.out_dir, step=self.step, worker=self.worker
+                    )
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 for device, device_string in self.device_map.items():
@@ -276,12 +281,6 @@ class TensorflowBaseHook(BaseHook):
                         )
             else:
                 # training on CPU when all device strings have cpu
-                if self.writer is None or only_initialize_if_missing is False:
-                    self.writer = FileWriter(
-                        trial_dir=self.out_dir, step=self.step, worker=self.worker
-                    )
-        elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
-            if self.save_all_workers is True or self.worker == self.chief_worker:
                 if self.writer is None or only_initialize_if_missing is False:
                     self.writer = FileWriter(
                         trial_dir=self.out_dir, step=self.step, worker=self.worker
