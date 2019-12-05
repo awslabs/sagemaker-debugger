@@ -249,6 +249,7 @@ class TensorflowBaseHook(BaseHook):
             return [self.writer] if self.writer else []
         else:
             raise NotImplementedError
+        return []
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # In keras, sometimes we are not sure if writer is initialized
