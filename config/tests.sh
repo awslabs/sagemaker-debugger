@@ -23,8 +23,8 @@ export SMDEBUG_LOG_LEVEL=info
 
 export OUT_DIR=upload/$CURRENT_COMMIT_PATH
 export REPORT_DIR=$OUT_DIR/pytest_reports
-python -m pytest -W=ignore --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
-python -m pytest -W=ignore --html=$REPORT_DIR/report_core.html --self-contained-html tests/core
+python -m pytest -v -W=ignore --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
+python -m pytest -v -W=ignore --html=$REPORT_DIR/report_core.html --self-contained-html tests/core
 
 if [ "$run_pytest_xgboost" = "enable" ] ; then
     run_for_framework xgboost
