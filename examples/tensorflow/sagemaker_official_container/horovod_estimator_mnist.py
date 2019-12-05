@@ -178,17 +178,12 @@ def main(args):
 
     # Horovod: save checkpoints only on worker 0 to prevent other workers from
     # corrupting them.
-    model_dir = "./mnist_convnet_model" if hvd.rank() == 0 else None
+    model_dir = args.model_dir if hvd.rank() == 0 else None
 
     # Create the Estimator
     mnist_classifier = tf.estimator.Estimator(
         model_fn=cnn_model_fn, model_dir=model_dir, config=estimator_config
     )
-
-    # Set up logging for predictions
-    # Log the values in the "Softmax" tensor with label "probabilities"
-    tensors_to_log = {"probabilities": "softmax_tensor"}
-    logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=500)
 
     # Horovod: BroadcastGlobalVariablesHook broadcasts initial variable states from
     # rank 0 to all other processes. This is necessary to ensure consistent
@@ -203,9 +198,7 @@ def main(args):
 
     # Horovod: adjust number of steps based on number of GPUs.
     mnist_classifier.train(
-        input_fn=train_input_fn,
-        steps=args.num_steps // hvd.size(),
-        hooks=[logging_hook, bcast_hook],
+        input_fn=train_input_fn, steps=args.num_steps // hvd.size(), hooks=[bcast_hook]
     )
 
     # Evaluate the model and print results
@@ -223,7 +216,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_steps",
         type=int,
-        help="Number of steps to train for. If this" "is passed, it overrides num_epochs",
+        help="Number of steps to train for. If this is passed, it overrides num_epochs",
     )
     args = parser.parse_args()
 

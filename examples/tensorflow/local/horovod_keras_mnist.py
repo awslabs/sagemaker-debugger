@@ -9,6 +9,7 @@ Please see scripts in either 'sagemaker_byoc' or 'sagemaker_official_container' 
 # Standard Library
 import argparse
 import math
+import os
 
 # Third Party
 import horovod.tensorflow.keras as hvd
@@ -119,7 +120,9 @@ def main(args):
 
     # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
     if hvd.rank() == 0:
-        callbacks.append(keras.callbacks.ModelCheckpoint("./checkpoint-{epoch}.h5"))
+        callbacks.append(
+            keras.callbacks.ModelCheckpoint(os.path.join(args.model_dir, "checkpoint-{epoch}.h5"))
+        )
 
     model.fit(
         x_train,

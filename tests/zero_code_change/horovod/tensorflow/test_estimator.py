@@ -1,4 +1,5 @@
 # Standard Library
+import os
 
 # First Party
 from smdebug.trials import create_trial
@@ -7,7 +8,7 @@ from smdebug.trials import create_trial
 from .utils import build_json, get_available_gpus, launch_horovod_job
 
 """
-Tested on current DLAMI p3.8xlarge
+Tested on current DLAMI p3.8xlarge when run from the main directory
 """
 
 HOROVOD_MNIST_SCRIPT_NAME = "horovod_estimator_mnist.py"
@@ -17,7 +18,7 @@ HOROVOD_MNIST_ARGS = ["--num_steps", "1000"]
 def basic_test(out_dir, mode):
     path = build_json(out_dir, include_workers="one", include_collections=["weights", "gradients"])
     num_workers = len(get_available_gpus())
-    mode_args = HOROVOD_MNIST_ARGS
+    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", os.path.join(out_dir, "checkpoint")]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
@@ -31,7 +32,7 @@ def basic_test(out_dir, mode):
     tr = create_trial(out_dir)
     print(tr.tensor_names())
     assert len(tr.workers()) == 1
-    assert len(tr.tensor_names()) == 18
+    assert len(tr.tensor_names()) == 13
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
 
 
@@ -46,7 +47,7 @@ def test_gpu(out_dir):
 def mode_allworkers(out_dir, mode):
     path = build_json(out_dir, include_workers="all", include_collections=["weights", "gradients"])
     num_workers = len(get_available_gpus())
-    mode_args = HOROVOD_MNIST_ARGS
+    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", os.path.join(out_dir, "checkpoint")]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
@@ -58,7 +59,7 @@ def mode_allworkers(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) == 18
+    assert len(tr.tensor_names()) == 13
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
 
 
@@ -75,7 +76,7 @@ def mode_allworkers_saveall(out_dir, mode):
         out_dir, include_workers="all", save_all=True, include_collections=["weights", "gradients"]
     )
     num_workers = len(get_available_gpus())
-    mode_args = HOROVOD_MNIST_ARGS
+    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", os.path.join(out_dir, "checkpoint")]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
@@ -86,11 +87,10 @@ def mode_allworkers_saveall(out_dir, mode):
         mode=mode,
     )
     tr = create_trial(out_dir)
-    print(tr.tensor_names())
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) == 34
+    assert len(tr.tensor_names()) == 465
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
-    assert len(tr.tensor("loss").workers(0)) == num_workers
+    assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == num_workers
 
 
 def test_gpu_allworkers_saveall(out_dir):

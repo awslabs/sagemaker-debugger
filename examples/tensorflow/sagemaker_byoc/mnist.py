@@ -30,7 +30,7 @@ parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs 
 parser.add_argument(
     "--num_steps",
     type=int,
-    help="Number of steps to train for. If this" "is passed, it overrides num_epochs",
+    help="Number of steps to train for. If this is passed, it overrides num_epochs",
 )
 parser.add_argument(
     "--num_eval_steps",
