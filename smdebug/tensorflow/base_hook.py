@@ -204,7 +204,6 @@ class TensorflowBaseHook(BaseHook):
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()
         if tb_writer:
-            self.logger.info("Writing graph")
             tb_writer.write_graph(self.graph.as_graph_def(add_shapes=True))
         # don't close writer as it might be needed in the step that follows
         # else we will have to open the file again
@@ -225,35 +224,31 @@ class TensorflowBaseHook(BaseHook):
         :param tensor_name:
         :return: List[FileWriter]
         """
-        if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
+        if self.distribution_strategy in [
+            TFDistributionStrategy.PARAMETER_SERVER,
+            TFDistributionStrategy.HOROVOD,
+        ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 return [self.writer] if self.writer else []
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
-                if tensor_ref.tf_obj is not None:
-                    worker = tensor_ref.tf_obj.device
-                else:
-                    # metrics in keras
-                    worker = "CPU"
+                # else is for metrics in Keras
+                worker = tensor_ref.tf_obj.device if tensor_ref.tf_obj is not None else "CPU"
                 # if device str is empty or cpu in worker
                 if not bool(worker) or "CPU" in worker:
                     if self.save_all_workers:
                         return list(self.writer_map.values())
                     else:
                         return [self.writer_map[self.device_map[self.chief_worker]]]
-                elif worker == self.chief_worker:
+                elif self.save_all_workers or worker == self.chief_worker:
                     return [self.writer_map[self.device_map[self.chief_worker]]]
             else:
                 # training on CPU when all device strings have cpu
-                return [self.writer] if self.writer else []
-        elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
-            if self.save_all_workers is True or self.worker == self.chief_worker:
                 return [self.writer] if self.writer else []
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return [self.writer] if self.writer else []
         else:
             raise NotImplementedError
-        return []
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # In keras, sometimes we are not sure if writer is initialized
