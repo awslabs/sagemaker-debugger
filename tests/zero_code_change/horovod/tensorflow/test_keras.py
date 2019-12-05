@@ -1,5 +1,3 @@
-# Standard Library
-
 # First Party
 from smdebug.trials import create_trial
 
@@ -17,7 +15,7 @@ HOROVOD_MNIST_ARGS = ["--num_epochs", "2"]
 def basic_test(out_dir, mode):
     path = build_json(out_dir, include_workers="one", include_collections=["weights", "gradients"])
     num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS)
+    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
@@ -46,7 +44,7 @@ def test_gpu(out_dir):
 def mode_allworkers(out_dir, mode):
     path = build_json(out_dir, include_workers="all", include_collections=["weights", "gradients"])
     num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS)
+    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
@@ -75,7 +73,7 @@ def mode_allworkers_saveall(out_dir, mode):
         out_dir, include_workers="all", save_all=True, include_collections=["weights", "gradients"]
     )
     num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS)
+    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
