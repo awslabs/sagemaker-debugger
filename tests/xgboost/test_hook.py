@@ -4,10 +4,11 @@ import uuid
 
 # Third Party
 import numpy as np
+import pytest
 import xgboost
 
 # First Party
-from smdebug import SaveConfig
+from smdebug import SaveConfig, modes
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.trials import create_trial
@@ -220,3 +221,11 @@ def test_hook_tensorboard_dir_created(tmpdir):
     hook = Hook(out_dir=out_dir, export_tensorboard=True)
     run_xgboost_model(hook=hook)
     assert "tensorboard" in os.listdir(out_dir)
+
+
+def test_setting_mode(tmpdir):
+    out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
+    hook = Hook(out_dir=out_dir, export_tensorboard=True)
+    hook.set_mode(modes.GLOBAL)
+    with pytest.raises(ValueError):
+        hook.set_mode("a")

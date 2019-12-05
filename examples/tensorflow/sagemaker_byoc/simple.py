@@ -1,3 +1,14 @@
+"""
+This script is a simple training script which uses Tensorflow's MonitoredSession interface.
+It has been orchestrated with SageMaker Debugger hooks to allow saving tensors during training.
+These hooks have been instrumented to read from json configuration that SageMaker will put in the training container.
+Configuration provided to the SageMaker python SDK when creating a job will be passed on to the hook.
+This allows you to use the same script with differing configurations across different runs.
+If you use an official SageMaker Framework container (i.e. AWS Deep Learning Container), then
+you do not have to orchestrate your script as below. Hooks will automatically be added in those environments.
+For more information, please refer to https://github.com/awslabs/sagemaker-debugger/blob/master/docs/
+"""
+
 # Standard Library
 import argparse
 import random
@@ -13,7 +24,6 @@ import smdebug.tensorflow as smd
 def str2bool(v):
     if isinstance(v, bool):
         return v
-
     if v.lower() in ("yes", "true", "t", "y", "1"):
         return True
     elif v.lower() in ("no", "false", "f", "n", "0"):
@@ -23,25 +33,11 @@ def str2bool(v):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--script-mode", type=str2bool, default=False)
 parser.add_argument("--model_dir", type=str, help="S3 path for the model")
 parser.add_argument("--lr", type=float, help="Learning Rate", default=0.001)
 parser.add_argument("--steps", type=int, help="Number of steps to run", default=100)
 parser.add_argument("--scale", type=float, help="Scaling factor for inputs", default=1.0)
-parser.add_argument("--save_all", type=str2bool, default=True)
-parser.add_argument("--smdebug_path", type=str, default="/opt/ml/output/tensors")
-parser.add_argument("--save_frequency", type=int, help="How often to save TS data", default=10)
 parser.add_argument("--random_seed", type=bool, default=False)
-feature_parser = parser.add_mutually_exclusive_group(required=False)
-feature_parser.add_argument(
-    "--reductions",
-    dest="reductions",
-    action="store_true",
-    help="save reductions of tensors instead of saving full tensors",
-)
-feature_parser.add_argument(
-    "--no_reductions", dest="reductions", action="store_false", help="save full tensors"
-)
 args = parser.parse_args()
 
 # these random seeds are only intended for test purpose.
@@ -52,27 +48,7 @@ if args.random_seed:
     np.random.seed(2)
     random.seed(12)
 
-
-if args.script_mode:
-    # save tensors as reductions if necessary
-    rdnc = (
-        smd.ReductionConfig(reductions=["mean"], abs_reductions=["max"], norms=["l1"])
-        if args.reductions
-        else None
-    )
-
-    # create the hook
-    # Note that we are saving all tensors here by passing save_all=True
-    hook = smd.SessionHook(
-        out_dir=args.smdebug_path,
-        save_all=args.save_all,
-        include_collections=["weights", "gradients", "losses"],
-        save_config=smd.SaveConfig(save_interval=args.save_frequency),
-        reduction_config=rdnc,
-    )
-    hooks = [hook]
-else:
-    hooks = []
+hook = smd.SessionHook.create_from_json_file()
 
 # Network definition
 # Note the use of name scopes
@@ -84,34 +60,30 @@ with tf.name_scope("foobaz"):
     y = tf.matmul(x, w0)
 loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
 
-smd.get_hook("session", create_if_not_exists=True).add_to_collection("losses", loss)
+hook.add_to_collection("losses", loss)
 
 global_step = tf.Variable(17, name="global_step", trainable=False)
 increment_global_step_op = tf.assign(global_step, global_step + 1)
 
 optimizer = tf.train.AdamOptimizer(args.lr)
 
-if args.script_mode:
-    # Wrap the optimizer with wrap_optimizer so Tornasole can find gradients and optimizer_variables to save
-    optimizer = hook.wrap_optimizer(optimizer)
+# Wrap the optimizer with wrap_optimizer so smdebug can find gradients to save
+optimizer = hook.wrap_optimizer(optimizer)
 
 # use this wrapped optimizer to minimize loss
 optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 
-if args.script_mode:
-    hook.set_mode(smd.modes.TRAIN)
-
 # pass the hook to hooks parameter of monitored session
-sess = tf.train.MonitoredSession(hooks=hooks)
+sess = tf.train.MonitoredSession(hooks=[hook])
 
 # use this session for running the tensorflow model
+hook.set_mode(smd.modes.TRAIN)
 for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale
     _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
     print(f"Step={i}, Loss={_loss}")
 
-if args.script_mode:
-    hook.set_mode(smd.modes.EVAL)
+hook.set_mode(smd.modes.EVAL)
 for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale
     sess.run([loss, increment_global_step_op], {x: x_})

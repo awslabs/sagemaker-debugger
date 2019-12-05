@@ -18,13 +18,13 @@ class TensorLocation:
 class Index:
     def __init__(self):
         self.dummy = dict()
-        self.dummy["s3://tornasolecodebuildtest/tfevents"] = dict()
+        self.dummy["s3://smdebugcodebuildtest/tfevents"] = dict()
         for i in range(5000):
-            self.dummy["s3://tornasolecodebuildtest/tfevents"]["demo_" + str(i)] = [
+            self.dummy["s3://smdebugcodebuildtest/tfevents"]["demo_" + str(i)] = [
                 (
                     0,
                     TensorLocation(
-                        "s3://tornasolecodebuildtest/tfevents/demo_" + str(i) + ".out.tfevents"
+                        "s3://smdebugcodebuildtest/tfevents/demo_" + str(i) + ".out.tfevents"
                     ),
                 )
             ]
@@ -82,7 +82,7 @@ def read_record(data, check=True):
 # If the corresponding tensor is not fetchable, then None is stored for its dictionary entry.
 def get_tensors(index, s3_handler, tlist, num_async_calls=500, timer=False):
     object_requests = []
-    bucket = "tornasolecodebuildtest"
+    bucket = "smdebugcodebuildtest"
     prefix = "tfevents"
     index_dict = dict()
     parent_path = "s3://" + bucket + "/" + prefix
@@ -140,12 +140,12 @@ def test_download_objects(compare_speeds=False):
 def test_list_objects():
     # s3trial = S3Trial('test', 'ljain-tests', 'demo')
     s3_handler = S3Handler()
-    req1 = ListRequest("tornasolecodebuildtest", "tfevents", "", "")
-    req2 = ListRequest("tornasolecodebuildtest", "rand_4mb_1000", "", "")
-    req3 = ListRequest("tornasolecodebuildtest", "rand_8mb_1000", "", "")
-    req4 = ListRequest("tornasolecodebuildtest", "demo_dir_structure/attempts/", "/")
+    req1 = ListRequest("smdebugcodebuildtest", "tfevents", "", "")
+    req2 = ListRequest("smdebugcodebuildtest", "rand_4mb_1000", "", "")
+    req3 = ListRequest("smdebugcodebuildtest", "rand_8mb_1000", "", "")
+    req4 = ListRequest("smdebugcodebuildtest", "demo_dir_structure/attempts/", "/")
     req5 = ListRequest(
-        "tornasolecodebuildtest",
+        "smdebugcodebuildtest",
         "demo_dir_structure/attempts/",
         "/",
         "demo_dir_structure/attempts/help",

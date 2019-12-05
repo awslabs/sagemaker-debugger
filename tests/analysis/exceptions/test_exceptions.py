@@ -21,7 +21,7 @@ def del_s3(bucket, file_path):
 @pytest.mark.slow  # 0:40 to run
 def test_refresh_tensors():
     trial_name = str(uuid.uuid4())
-    path = "/tmp/tornasole_analysis_tests/test_refresh_tensors/"
+    path = "/tmp/analysis_tests/test_refresh_tensors/"
     num_steps = 8
     num_tensors = 10
     for i in range(num_steps):
