@@ -305,7 +305,6 @@ def test_basic(out_dir, zcc=False):
 
     tr = create_trial_fast_refresh(out_dir)
     # wts, grads, losses
-    print(tr.tensor_names())
     assert (
         len(tr.tensor_names()) == 8 + 8 + (1 * strategy.num_replicas_in_sync) + 1
     )  # 1 main loss, and 1 from each worker
@@ -333,8 +332,6 @@ def test_basic(out_dir, zcc=False):
             == strategy.num_replicas_in_sync
         )
 
-    print(tr.tensor_names(collection="losses"))
-    print(tensornames)
     for tname in tr.tensor_names(collection="losses"):
         if tname != tensornames[0]:
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):

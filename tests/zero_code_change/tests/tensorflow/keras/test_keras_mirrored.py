@@ -228,7 +228,6 @@ def exhaustive_check(trial_dir, zcc=False, include_workers="one"):
     )
 
     tr = create_trial_fast_refresh(trial_dir)
-    print(tr.tensor_names())
 
     if include_workers == "all":
         assert len(tr.workers()) == strategy.num_replicas_in_sync
@@ -333,7 +332,7 @@ def test_save_all(out_dir):
         steps=["train"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    print(tr.tensor_names())
+
     assert (
         len(tr.tensor_names())
         == 6 + 6 + 5 + 3 + 1 + 3 * strategy.num_replicas_in_sync + 2 * strategy.num_replicas_in_sync
