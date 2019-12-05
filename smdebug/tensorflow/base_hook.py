@@ -20,7 +20,7 @@ from .collection import CollectionKeys, CollectionManager
 from .singleton_utils import set_hook
 from .utils import (
     TFDistributionStrategy,
-    get_chief_worker_parameter_server,
+    get_chief_worker_from_tf_config,
     get_num_workers_from_tf_config,
     get_worker_id_from_tf_config,
     is_mirrored_strategy,
@@ -192,7 +192,7 @@ class TensorflowBaseHook(BaseHook):
         assert self.distribution_strategy is not None
         # this won't be used if save_all_workers is True
         if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
-            self.chief_worker = get_chief_worker_parameter_server(self.tf_config_json)
+            self.chief_worker = get_chief_worker_from_tf_config(self.tf_config_json)
         elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             self.chief_worker = DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:

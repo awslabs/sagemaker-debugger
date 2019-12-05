@@ -331,10 +331,12 @@ def test_basic(out_dir, zcc=False):
             == strategy.num_replicas_in_sync
         )
 
+    print(tr.tensor_names(collection="losses"))
+    print(tensornames)
     for tname in tr.tensor_names(collection="losses"):
         if tname != tensornames[0]:
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
-                assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1
+                assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1, tname
                 assert tr.tensor(tname).value(s, mode=ModeKeys.TRAIN) is not None
 
     tname = "sparse_softmax_cross_entropy_loss/value:0"

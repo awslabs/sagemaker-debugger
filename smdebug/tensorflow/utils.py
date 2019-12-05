@@ -221,9 +221,12 @@ def get_num_workers_from_tf_config(tf_config_json) -> int:
     return len(workers)
 
 
-def get_chief_worker_parameter_server(tf_config_json):
+def get_chief_worker_from_tf_config(tf_config_json):
     if "chief" in tf_config_json["cluster"]:
         return "chief_0"
+    else:
+        raise NotImplementedError
+        # todo
 
 
 def is_mirrored_strategy(strat):
