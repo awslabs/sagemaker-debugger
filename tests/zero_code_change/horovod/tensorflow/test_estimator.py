@@ -88,7 +88,7 @@ def mode_allworkers_saveall(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) == 465
+    assert len(tr.tensor_names()) > 99
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
     assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == num_workers
 
