@@ -23,7 +23,7 @@ def basic_test(out_dir, mode):
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
         script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
-        args=mode_args,
+        script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
         mode=mode,
@@ -52,7 +52,7 @@ def mode_allworkers(out_dir, mode):
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
         script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
-        args=mode_args,
+        script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
         mode=mode,
@@ -81,7 +81,7 @@ def mode_allworkers_saveall(out_dir, mode):
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
         script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
-        args=mode_args,
+        script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
         mode=mode,

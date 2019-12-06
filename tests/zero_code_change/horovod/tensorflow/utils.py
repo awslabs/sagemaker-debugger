@@ -37,35 +37,14 @@ def build_json(
     return path.absolute()
 
 
-def launch_horovod_job(script_file_path, args, num_workers, config_file_path, mode):
+def launch_horovod_job(script_file_path, script_args, num_workers, config_file_path, mode):
     subprocess.check_call(
-        [
-            "mpirun",
-            "-np",
-            str(num_workers),
-            "-bind-to",
-            "none",
-            "-map-by",
-            "slot",
-            "-x",
-            "NCCL_DEBUG=INFO",
-            "-x",
-            "LD_LIBRARY_PATH",
-            "-x",
-            "PATH",
-            "-mca",
-            "pml",
-            "ob1",
-            "-mca",
-            "btl",
-            "^openib",
-            "-x",
-            "PYTHONPATH=/home/ubuntu/sagemaker-debugger/",
-            "-x",
-            f"SMDEBUG_CONFIG_FILE_PATH={config_file_path}",
-        ]
+        ["horovodrun", "-np", str(num_workers)]
         + ([] if mode == "gpu" else ["-x", "CUDA_VISIBLE_DEVICES=-1"])
         + [sys.executable, script_file_path]
-        + args
-        + ([] if mode == "gpu" else ["--use_only_cpu", "true"])
+        + script_args,
+        env={
+            "SMDEBUG_CONFIG_FILE_PATH": config_file_path,
+            "PYTHONPATH": "/home/ubuntu/sagemaker-debugger/",
+        },
     )
