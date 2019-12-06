@@ -67,3 +67,37 @@ def test_delete_prefix():
     S3Handler.delete_prefix(path="s3://smdebugcodebuildtest/" + prefix)
     entries = S3Handler.list_prefix(ListRequest("smdebugcodebuildtest", "test_delete_prefix"))
     assert len(entries) == 0
+
+
+def performance_vs_async():
+    import time
+
+    kb = 1024
+    mb = 1024 * 1024
+    sizes = [10 * kb, 100 * kb, 500 * kb]  # , mb, 5 * mb, 10 * mb]
+    sizes = [10 * kb]
+    num_files = [1, 10, 20, 30, 50, 70, 100, 1000, 3000]  # , 10000]  # , 100000]  # , 1000000]
+    prefix = "test_performance_prefix"
+
+    times = []
+    print("Size\tNumFiles\tSync with multiprocessing\tSync without multiprocessing")
+    for size in sizes:
+        timesrow = []
+        for nf in num_files:
+            reqs = []
+            for i in range(nf):
+                reqs.append(
+                    ReadObjectRequest(f"s3://tornasolecodebuildtest/{prefix}/{size}/{i}.dummy")
+                )
+            sync_start = time.time()
+            data1 = S3Handler.get_objects(reqs, use_multiprocessing=True)
+            sync_end = time.time()
+
+            timesrow.append((round(sync_end - sync_start, 2), 0))
+            print(f"{size} {nf} {timesrow[-1][0]} {timesrow[-1][1]}")
+        times.append(timesrow)
+        print(f"Finished testing for {size}", times[-1])
+
+
+if __name__ == "__main__":
+    performance_vs_async()
