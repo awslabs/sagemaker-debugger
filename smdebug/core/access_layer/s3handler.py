@@ -2,7 +2,6 @@
 import asyncio
 import logging
 import multiprocessing
-import tempfile
 import time
 from functools import lru_cache
 
@@ -10,6 +9,7 @@ from functools import lru_cache
 import aioboto3
 import boto3
 from botocore.exceptions import (
+    BotoCoreError,
     ClientError,
     CredentialRetrievalError,
     NoCredentialsError,
@@ -22,6 +22,8 @@ from botocore.exceptions import (
 # First Party
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import get_region, is_s3
+
+logger = get_logger()
 
 
 def check_notebook():
@@ -278,38 +280,31 @@ class S3HandlerAsync:
 
 
 class S3Handler:
-    def __init__(self, num_retries=5, use_s3_transfer=True, use_multiprocessing=True):
-        self.num_retries = num_retries
-        self.logger = get_logger()
-        self.use_s3_transfer = use_s3_transfer
-        self.use_multiprocessing = use_multiprocessing
+    NUM_RETRIES = 5
 
     # A boto3 session is not pickleable, and an object must be pickleable to be accessed within a
     # multiprocessing thread. We get around this by defining a function to create the session - the
     # function is pickleable - and caching the results so it is only called once.
-    @property
+    @staticmethod
     @lru_cache()
-    def client(self):
+    def client():
         return boto3.client("s3", region_name=get_region())
 
-    @property
-    @lru_cache()
-    def resource(self):
-        return boto3.resource("s3", region_name=get_region())
-
-    def list_prefixes(self, list_requests: list):
+    @staticmethod
+    def list_prefixes(list_requests: list):
         if type(list_requests) != list:
             raise TypeError("list_requests accepts a list of ListRequest objects.")
         rval = []
         for lr in list_requests:
-            rval.append(self.list_prefix(lr))
+            rval.append(S3Handler.list_prefix(lr))
         return rval
 
-    def list_prefix(self, lr):
+    @staticmethod
+    def list_prefix(lr):
         count = 0
-        while count < self.num_retries:
+        while count < S3Handler.NUM_RETRIES:
             try:
-                paginator = self.client.get_paginator("list_objects_v2")
+                paginator = S3Handler.client().get_paginator("list_objects_v2")
                 page_iterator = paginator.paginate(
                     Bucket=lr.bucket,
                     Prefix=lr.prefix,
@@ -350,7 +345,7 @@ class S3Handler:
             ) as botocore_error:
                 if isinstance(botocore_error, ClientError):
                     if botocore_error.response["Error"]["Code"] != "AccessDenied":
-                        self.logger.warning(
+                        logger.warning(
                             f"Unable to list files "
                             f"from  {lr.bucket}/{str(lr.prefix)}: {str(botocore_error)}"
                         )
@@ -359,110 +354,93 @@ class S3Handler:
                 else:
                     raise botocore_error
             except Exception as e:
-                self.logger.warning(str(e))
+                logger.warning(str(e))
             count += 1
 
         # if success, we wouldn't come here
-        self.logger.warning(f"Unable to list files for {lr.bucket} with prefix {lr.prefix}")
+        logger.warning(f"Unable to list files for {lr.bucket} with prefix {lr.prefix}")
         return []
 
-    def _make_get_request(self, object_request):
-        if self.use_s3_transfer:
-            if not object_request.download_entire_file:
-                obj = self.resource.Object(object_request.bucket, object_request.key)
-                bytes_range = f"bytes={object_request.start}-"
-                if object_request.length is not None:
-                    bytes_range += f"{object_request.start + object_request.length - 1}"
-                body = obj.get(Range=bytes_range)["Body"].read()
-            else:
-                with tempfile.TemporaryFile() as tf:
-                    self.client.download_fileobj(
-                        object_request.bucket,
-                        object_request.key,
-                        tf,
-                        Config=boto3.s3.transfer.TransferConfig(
-                            multipart_threshold=500, max_concurrency=100
-                        ),
-                    )
-                    tf.seek(0)
-                    body = tf.read()
-        else:
-            if not object_request.download_entire_file:
-                bytes_range = f"bytes={object_request.start}-"
-                if object_request.length is not None:
-                    bytes_range += f"{object_request.start + object_request.length - 1}"
-                body = self.client.get_object(
+    @staticmethod
+    def _make_get_request(object_request):
+        if not object_request.download_entire_file:
+            bytes_range = f"bytes={object_request.start}-"
+            if object_request.length is not None:
+                bytes_range += f"{object_request.start + object_request.length - 1}"
+            body = (
+                S3Handler.client()
+                .get_object(
                     Bucket=object_request.bucket, Key=object_request.key, Range=bytes_range
-                )["Body"].read()
-            else:
-                body = self.client.get_object(Bucket=object_request.bucket, Key=object_request.key)[
-                    "Body"
-                ].read()
+                )["Body"]
+                .read()
+            )
+        else:
+            body = (
+                S3Handler.client()
+                .get_object(Bucket=object_request.bucket, Key=object_request.key)["Body"]
+                .read()
+            )
         return body
 
-    def get_object(self, object_request):
+    @staticmethod
+    def _log_error(object_request, exception=None, as_warning=True):
+        if exception:
+            msg = f"Encountered the exception {exception} while reading "
+        else:
+            msg = f"Failed to read "
+        msg += f"s3://{object_request.bucket}/{object_request.key} "
+        if not object_request.download_entire_file:
+            msg += f"from bytes {object_request.start}"
+            if object_request.length is not None:
+                msg += f"-{object_request.start + object_request.length - 1}"
+        if as_warning:
+            msg += ". Will retry now"
+            logger.warning(msg)
+        else:
+            logger.error(msg)
+
+    @staticmethod
+    def get_object(object_request):
         count = 0
-        while count < self.num_retries:
+        while count < S3Handler.NUM_RETRIES:
             try:
-                body = self._make_get_request(object_request)
-                return body
+                return S3Handler._make_get_request(object_request)
             except (
                 NoCredentialsError,  # No credentials could be found
-                PartialCredentialsError,
-                # Only partial credentials were found.
-                CredentialRetrievalError,
-                # Error attempting to retrieve credentials from a remote source.
-                UnknownSignatureVersionError,
-                # Requested Signature Version is not known.
-                ServiceNotInRegionError,
-                # The service is not available in requested region.
+                PartialCredentialsError,  # Only partial credentials were found
+                CredentialRetrievalError,  # Error attempting to retrieve credentials
+                UnknownSignatureVersionError,  # Requested Signature Version is not known
+                ServiceNotInRegionError,  # Service not available in requested region
                 NoRegionError,  # No region was specified.
-                ClientError,
-                # Covers cases when the client has insufficient permissions
+                ClientError,  # Covers cases when the client has insufficient permissions
             ) as botocore_error:
-                if isinstance(botocore_error, ClientError):
-                    if botocore_error.response["Error"]["Code"] != "AccessDenied":
-                        self.logger.warning(
-                            f"Unable to read tensor "
-                            f"from object {object_request.bucket}/{str(object_request.key)}"
-                            f": {str(botocore_error)}"
-                        )
-                    else:
-                        raise botocore_error
-                else:
+                if (
+                    not isinstance(botocore_error, ClientError)
+                    or botocore_error.response["Error"]["Code"] == "AccessDenied"
+                ):
                     raise botocore_error
+                else:
+                    S3Handler._log_error(object_request, exception=botocore_error)
             except Exception as e:
-                raise e
-                self.logger.warning(str(e))
-                msg = (
-                    "Unable to read tensor from object "
-                    + str(object_request.bucket)
-                    + "/"
-                    + str(object_request.key)
-                )
-                if object_request.length is not None:
-                    msg += (
-                        " from bytes "
-                        + str(object_request.start)
-                        + "-"
-                        + str(object_request.start + object_request.length - 1)
-                    )
-                self.logger.warning(msg)
+                S3Handler._log_error(object_request, exception=e)
             count += 1
-        self.logger.warning("Unable to fetch file " + str(object_request.key))
+            time.sleep(0.1)
+        S3Handler._log_error(object_request, as_warning=False)
         return None
 
-    def get_objects(self, object_requests):
+    @staticmethod
+    def get_objects(object_requests, use_multiprocessing=True):
         if type(object_requests) != list:
-            raise TypeError("get_objects accepts a list of ReadObjectRequest objects.")
-        if self.use_multiprocessing:
+            raise TypeError("get_objects accepts a list of ReadObjectRequest objects")
+        if use_multiprocessing:
             with multiprocessing.Pool(8 * multiprocessing.cpu_count()) as pool:
-                data = pool.map(self.get_object, object_requests)
+                data = pool.map(S3Handler.get_object, object_requests)
         else:
-            data = [self.get_object(object_request) for object_request in object_requests]
+            data = [S3Handler.get_object(object_request) for object_request in object_requests]
         return data
 
-    def delete_prefix(self, path, delete_request=None):
+    @staticmethod
+    def delete_prefix(path, delete_request=None):
         if path is not None and delete_request is not None:
             raise ValueError("Only one of path or delete_request can be passed")
         elif path is not None:
@@ -470,22 +448,20 @@ class S3Handler:
             if on_s3 is False:
                 raise ValueError("Given path is not an S3 location")
             delete_requests = [DeleteRequest(bucket, prefix)]
-            self.delete_prefixes(delete_requests)
+            S3Handler.delete_prefixes(delete_requests)
         elif delete_request is not None:
-            self.delete_prefixes([delete_request])
+            S3Handler.delete_prefixes([delete_request])
 
-    def delete_prefixes(self, delete_requests):
+    @staticmethod
+    def delete_prefixes(delete_requests):
         if delete_requests is not None and len(delete_requests) == 0:
             return
         for delete_request in delete_requests:
             list_request = ListRequest(Bucket=delete_request.bucket, Prefix=delete_request.prefix)
-            keys = self.list_prefix(list_request)
+            keys = S3Handler.list_prefix(list_request)
             if len(keys):
                 delete_dict = {}
                 delete_dict["Objects"] = []
                 for key in keys:
                     delete_dict["Objects"].append({"Key": key})
-                self.client.delete_objects(Bucket=delete_request.bucket, Delete=delete_dict)
-
-    def close_client(self):
-        pass
+                S3Handler.client().delete_objects(Bucket=delete_request.bucket, Delete=delete_dict)

@@ -82,15 +82,13 @@ def performance_vs_async():
     kb = 1024
     mb = 1024 * 1024
     sizes = [10 * kb, 100 * kb, 500 * kb]  # , mb, 5 * mb, 10 * mb]
-    num_files = [1, 10, 100, 1000, 3000, 10000, 100000]  # , 1000000]
+    num_files = [1, 10, 20, 30, 50, 70, 100, 1000, 3000, 10000]  # , 100000]  # , 1000000]
     prefix = "test_performance_prefix"
 
-    handler = S3Handler(use_multiprocessing=True)
-    handler2 = S3Handler(use_multiprocessing=False)
     async_handler = S3HandlerAsync()
 
     times = []
-
+    print("Size\tNumFiles\tSync with multiprocessing\tSync without multiprocessing")
     for size in sizes:
         timesrow = []
         for nf in num_files:
@@ -100,18 +98,22 @@ def performance_vs_async():
                     ReadObjectRequest(f"s3://tornasolecodebuildtest/{prefix}/{size}/{i}.dummy")
                 )
             sync_start = time.time()
-            data1 = handler.get_objects(reqs)
+            data1 = S3Handler.get_objects(reqs, use_multiprocessing=True)
             sync_end = time.time()
 
-            sync2_start = time.time()
-            data2 = handler2.get_objects(reqs)
-            sync2_end = time.time()
+            if nf <= 3000:
+                sync2_start = time.time()
+                data2 = S3Handler.get_objects(reqs, use_multiprocessing=False)
+                sync2_end = time.time()
+            else:
+                sync2_end = 0
+                sync2_start = 0
 
             async_start = time.time()
             data3 = async_handler.get_objects(reqs)
             async_end = time.time()
 
-            assert data1 == data3
+            assert data1 == data3  # == data2
             timesrow.append(
                 (
                     round(sync_end - sync_start, 2),
@@ -119,7 +121,7 @@ def performance_vs_async():
                     round(async_end - async_start, 2),
                 )
             )
-            print(f"Finished testing for {size} {nf}", timesrow[-1])
+            print(f"{size} {nf} {timesrow[-1][0]} {timesrow[-1][1]}")
         times.append(timesrow)
         print(f"Finished testing for {size}", times[-1])
 
