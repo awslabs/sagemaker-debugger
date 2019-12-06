@@ -30,7 +30,7 @@ def test_negative_local_training_end():
 
 @pytest.mark.slow  # 0:04 to run
 def test_s3_training_end():
-    s3dir = "s3://tornasolecodebuildtest/training_end_test_dir"
+    s3dir = "s3://smdebugcodebuildtest/training_end_test_dir"
     _, bucket, key = is_s3(s3dir)
     f = TSAccessS3(bucket_name=bucket, key_name=key)
     f.close()
@@ -41,5 +41,5 @@ def test_s3_training_end():
 
 @pytest.mark.slow  # 0:05 to run
 def test_negative_s3_training_end():
-    s3dir = "s3://tornasolecodebuildtest/training_end_test_dir_negative"
+    s3dir = "s3://smdebugcodebuildtest/training_end_test_dir_negative"
     assert has_training_ended(s3dir) is False

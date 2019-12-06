@@ -13,12 +13,10 @@ from smdebug.trials import create_trial
 @pytest.mark.slow  # 0:38 to run
 def test_refresh_tensors():
     trial_name = str(uuid.uuid4())
-    path = "s3://tornasole-testing/rules/tensors/ts_output/train/"
+    path = f"s3://smdebug-testing/outputs/rules_refresh_tensors-{uuid.uuid4()}/"
     num_steps = 8
     num_tensors = 10
-    for i in range(num_steps):
-        if i % 2 == 0:
-            continue
+    for i in range(1, num_steps, 2):
         generate_data(
             path=path,
             trial=trial_name,
@@ -31,21 +29,15 @@ def test_refresh_tensors():
     tr = create_trial(path + trial_name)
     assert len(tr.steps()) == 4
 
-    try:
+    with pytest.raises(TensorUnavailable):
         tr.tensor("bar")
-        assert False
-    except TensorUnavailable:
-        pass
 
     assert tr.tensor("foo_1") is not None
     # available
     assert tr.tensor("foo_1").value(num_steps - 1) is not None
     # not saved
-    try:
+    with pytest.raises(StepUnavailable):
         tr.tensor("foo_1").value(num_steps - 2)
-        assert False
-    except StepUnavailable:
-        pass
 
     for i in range(num_steps, num_steps * 2):
         if i % 2 == 0:
@@ -62,14 +54,8 @@ def test_refresh_tensors():
 
     # refreshed
     assert tr.tensor("foo_1").value(num_steps + 1) is not None
-    try:
+    with pytest.raises(StepUnavailable):
         tr.tensor("foo_1").value(num_steps)
-        assert False
-    except StepUnavailable:
-        pass
 
-    try:
+    with pytest.raises(StepNotYetAvailable):
         tr.tensor("foo_1").value(num_steps * 3)
-        assert False
-    except StepNotYetAvailable:
-        pass

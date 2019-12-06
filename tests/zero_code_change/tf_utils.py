@@ -139,8 +139,7 @@ def _cnn_model_fn(features, labels, mode, params):
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
         "classes": tf.argmax(input=logits, axis=1),
-        # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-        # `logging_hook`.
+        # Add `softmax_tensor` to the graph. It is used for PREDICT and by the`logging_hook`.
         "probabilities": tf.nn.softmax(logits, name="softmax_tensor"),
     }
 
@@ -160,7 +159,6 @@ def _cnn_model_fn(features, labels, mode, params):
         if params["nested_optimizer"]:
             optimizer = LarcOptimizer(optimizer, 0.01, 0.0005)
 
-        # optimizer = smd.TornasoleOptimizer(optimizer)
         train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
