@@ -103,17 +103,21 @@ def performance_vs_async():
             data1 = handler.get_objects(reqs)
             sync_end = time.time()
 
-            sync2_start = time.time()
-            data2 = handler2.get_objects(reqs)
-            sync2_end = time.time()
+            # sync2_start = time.time()
+            # data2 = handler2.get_objects(reqs)
+            # sync2_end = time.time()
 
             async_start = time.time()
             data3 = async_handler.get_objects(reqs)
             async_end = time.time()
 
-            assert data1 == data2 == data3
+            assert data1 == data3
             timesrow.append(
-                (sync_end - sync_start, sync2_end - sync2_start, async_end - async_start)
+                (
+                    sync_end - sync_start,
+                    # sync2_end - sync2_start,
+                    async_end - async_start,
+                )
             )
             print(f"Finished testing for {size} {nf}", timesrow[-1])
         times.append(timesrow)
@@ -126,4 +130,21 @@ if __name__ == "__main__":
 # bash commands to generate files for perf test
 head -c 1048576 /dev/urandom > 0.dummy
 for i in `seq 1 100000`; do aws s3 cp 0.dummy s3://smdebugcodebuildtest/test_performance_prefix/1048576/$i.dummy ; done;
+"""
+"""
+sync, async
+Finished testing for 10240 100  (5.466304063796997, 0.6316347122192383)
+Finished testing for 10240 1000  (46.079941511154175, 4.562414169311523)
+Finished testing for 10240 10000  (457.6105201244354, 59.778473138809204)
+
+Finished testing for 10240 1 (0.0649409294128418, 0.09938454627990723)
+Finished testing for 10240 10 (0.2014918327331543, 1.1134459972381592)
+Finished testing for 10240 100 (2.155343532562256, 0.3696606159210205)
+Finished testing for 10240 1000 (24.51427435874939, 3.7332723140716553)
+---
+without_s3_transfer, with_s3_transfer, async
+Finished testing for 10240 1 (0.17870569229125977, 0.07202434539794922, 0.10649681091308594)
+Finished testing for 10240 10 (0.1648552417755127, 0.29348111152648926, 0.07737946510314941)
+Finished testing for 10240 100 (2.131474018096924, 3.889939308166504, 1.1508255004882812)
+Finished testing for 10240 1000 (25.461544036865234, 49.814311027526855, 4.341756343841553)
 """
