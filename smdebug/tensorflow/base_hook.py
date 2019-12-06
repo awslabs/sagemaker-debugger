@@ -88,7 +88,7 @@ class TensorflowBaseHook(BaseHook):
         self.device_map = {}
         self.writer_map = {}
         self.distribution_strategy = None
-        # caches the TF_CONFIG for the parameter server strategy
+        # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
         set_hook(self)
@@ -116,6 +116,16 @@ class TensorflowBaseHook(BaseHook):
 
         return TFDistributionStrategy.UNSUPPORTED
 
+    def _assert_distribution_strategy(self):
+        """
+        The distribution strategy is initialized to None,
+        as it's not available during hook construction.
+        Later when the graph is ready, that's when correct distribution strategy is returned.
+        """
+        assert (
+            self.distribution_strategy is not None
+        ), "_get_distribution_strategy should be called before this method"
+
     def _get_worker_name(self) -> str:
         """
         This function returns the name of the worker based on
@@ -128,7 +138,7 @@ class TensorflowBaseHook(BaseHook):
         It is safe to return the CONFIG_DEFAULT_WORKER_NAME in this case.
         :return: str
         """
-        assert self.distribution_strategy is not None
+        self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             import horovod.tensorflow as hvd
 
@@ -136,12 +146,12 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             # unused for this strategy
             return DEFAULT_WORKER_NAME
+        elif self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
+            return get_worker_id_from_tf_config(self.tf_config_json)
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
-        elif self.tf_config_json and is_parameter_server_strategy(self.tf_config_json):
-            return get_worker_id_from_tf_config(self.tf_config_json)
 
     def export_collections(self):
         if self.save_all_workers is False:
@@ -149,21 +159,19 @@ class TensorflowBaseHook(BaseHook):
         else:
             num_workers = self._get_num_workers()
         self.collection_manager.set_num_workers(num_workers)
-        assert self.distribution_strategy is not None
-        if (
-            self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER
-            or self.distribution_strategy == TFDistributionStrategy.HOROVOD
-        ):
-            if self.save_all_workers is False:
-                if self.worker != self.chief_worker:
-                    return
+
+        if self.distribution_strategy in [
+            TFDistributionStrategy.PARAMETER_SERVER,
+            TFDistributionStrategy.HOROVOD,
+        ]:
+            if self.save_all_workers is False and self.worker != self.chief_worker:
+                return
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 for device, serialized_device in self.device_map.items():
-                    if self.save_all_workers is False and device != self.chief_worker:
-                        continue
-                    collection_file_name = f"{serialized_device}_collections.json"
-                    self.collection_manager.export(self.out_dir, collection_file_name)
+                    if self.save_all_workers is True or device == self.chief_worker:
+                        collection_file_name = f"{serialized_device}_collections.json"
+                        self.collection_manager.export(self.out_dir, collection_file_name)
                 return
 
         # below is used in these cases
@@ -173,7 +181,7 @@ class TensorflowBaseHook(BaseHook):
         self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _get_num_workers(self):
-        assert self.distribution_strategy is not None
+        self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             import horovod.tensorflow as hvd
 
@@ -181,36 +189,27 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             strategy = tf.distribute.get_strategy()
             return strategy.num_replicas_in_sync
+        elif self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
+            return get_num_workers_from_tf_config(self.tf_config_json)
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return 1
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
-        elif self.tf_config_json and is_parameter_server_strategy(self.tf_config_json):
-            return get_num_workers_from_tf_config(self.tf_config_json)
 
     def _set_chief_worker(self):
-        assert self.distribution_strategy is not None
+        self._assert_distribution_strategy()
         # this won't be used if save_all_workers is True
-        if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
-            self.chief_worker = get_chief_worker_from_tf_config(self.tf_config_json)
-        elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+        if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             self.chief_worker = DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 self.chief_worker = sorted(self.device_map.keys())[0]
             else:
                 self.chief_worker = DEFAULT_WORKER_NAME
-
-    def _export_model(self):
-        tb_writer = self._maybe_get_tb_writer()
-        if tb_writer:
-            tb_writer.write_graph(self.graph.as_graph_def(add_shapes=True))
-        # don't close writer as it might be needed in the step that follows
-        # else we will have to open the file again
-
-    def _add_to_device_map(self, tensor):
-        if tensor.device and "CPU" not in tensor.device and tensor.device not in self.device_map:
-            self.device_map[tensor.device] = serialize_tf_device(tensor.device)
+        elif self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
+            self.chief_worker = get_chief_worker_from_tf_config(self.tf_config_json)
+        elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
+            raise NotImplementedError
 
     def _get_writers(self, tensor_name, tensor_ref) -> List[FileWriter]:
         """
@@ -228,8 +227,8 @@ class TensorflowBaseHook(BaseHook):
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
         ]:
-            if self.save_all_workers is True or self.worker == self.chief_worker:
-                return [self.writer] if self.writer else []
+            if (self.save_all_workers is True or self.worker == self.chief_worker) and self.writer:
+                return [self.writer]
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 # else is for metrics in Keras
@@ -242,13 +241,15 @@ class TensorflowBaseHook(BaseHook):
                         return [self.writer_map[self.device_map[self.chief_worker]]]
                 elif self.save_all_workers or worker == self.chief_worker:
                     return [self.writer_map[self.device_map[worker]]]
-            else:
+            elif self.writer:
                 # training on CPU when all device strings have cpu
-                return [self.writer] if self.writer else []
+                return [self.writer]
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
-            return [self.writer] if self.writer else []
+            if self.writer:
+                return [self.writer]
         else:
             raise NotImplementedError
+        # when self.writer is None, returns empty list
         return []
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
@@ -309,6 +310,17 @@ class TensorflowBaseHook(BaseHook):
 
         for device in to_delete_writers:
             del self.writer_map[device]
+
+    def _export_model(self):
+        tb_writer = self._maybe_get_tb_writer()
+        if tb_writer:
+            tb_writer.write_graph(self.graph.as_graph_def(add_shapes=True))
+        # don't close writer as it might be needed in the step that follows
+        # else we will have to open the file again
+
+    def _add_to_device_map(self, tensor):
+        if tensor.device and "CPU" not in tensor.device and tensor.device not in self.device_map:
+            self.device_map[tensor.device] = serialize_tf_device(tensor.device)
 
     def _log_unsupported_optimizer(self, optimizer):
         self.logger.warning(
