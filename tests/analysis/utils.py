@@ -50,5 +50,4 @@ def check_trial(trial_obj, num_steps, num_tensors):
 
 
 def delete_s3_prefix(bucket, prefix):
-    s3_handler = S3Handler()
-    s3_handler.delete_prefix(delete_request=DeleteRequest(Bucket=bucket, Prefix=prefix))
+    S3Handler.delete_prefix(delete_request=DeleteRequest(Bucket=bucket, Prefix=prefix))

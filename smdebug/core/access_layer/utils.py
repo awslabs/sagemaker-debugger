@@ -53,9 +53,8 @@ def has_training_ended(trial_prefix):
     s3, bucket_name, key_name = is_s3(file_path)
     if s3:
         try:
-            s3_handler = S3Handler()
             request = ListRequest(bucket_name, key_name)
-            file_available = s3_handler.list_prefixes([request])[0]
+            file_available = S3Handler.list_prefixes([request])[0]
             if len(file_available) > 0:
                 return True
             else:
@@ -72,14 +71,12 @@ def has_training_ended(trial_prefix):
 
 
 def delete_s3_prefixes(bucket, keys):
-    s3_handler = S3Handler()
     if not isinstance(keys, list):
         keys = [keys]
     delreqs = []
     for key in keys:
         delreqs.append(DeleteRequest(bucket, key))
-
-    s3_handler.delete_prefixes(delreqs)
+    S3Handler.delete_prefixes(delreqs)
 
 
 def check_dir_exists(path):
@@ -88,9 +85,8 @@ def check_dir_exists(path):
     s3, bucket_name, key_name = is_s3(path)
     if s3:
         try:
-            s3_handler = S3Handler()
             request = ListRequest(bucket_name, key_name)
-            folder = s3_handler.list_prefixes([request])[0]
+            folder = S3Handler.list_prefixes([request])[0]
             if len(folder) > 0 and has_training_ended(folder[-1]):
                 raise RuntimeError(
                     "The path:{} already exists on s3. "

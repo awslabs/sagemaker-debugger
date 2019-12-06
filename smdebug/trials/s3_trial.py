@@ -44,7 +44,6 @@ class S3Trial(Trial):
         self.prefix_name = os.path.join(prefix_name, "")
         self.path = "s3://" + os.path.join(self.bucket_name, self.prefix_name)
         self.index_reader = S3IndexReader(self.path)
-        self.s3_handler = S3Handler()
         self._load_collections()
         self._load_tensors()
 
@@ -67,7 +66,7 @@ class S3Trial(Trial):
         first_collection_file = collection_files[0]  # First Collection File
         key = os.path.join(first_collection_file)
         collections_req = ReadObjectRequest(self._get_s3_location(key))
-        obj_data = self.s3_handler.get_objects([collections_req])[0]
+        obj_data = S3Handler.get_objects([collections_req])[0]
         obj_data = obj_data.decode("utf-8")
         self.collection_manager = CollectionManager.load_from_string(obj_data)
         self.num_workers = self.collection_manager.get_num_workers()
