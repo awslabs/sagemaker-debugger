@@ -1,6 +1,7 @@
 # Standard Library
 import asyncio
 import logging
+import tempfile
 import time
 
 # Third Party
@@ -39,14 +40,17 @@ def check_notebook():
 # Full S3 path is required if you wish to download file from s3
 # eg s3://ljain-tests/demos/ ....
 class ReadObjectRequest:
-    def __init__(self, path, start=0, length=None):
+    def __init__(self, path, start=None, length=None):
         self.is_s3, self.bucket, self.key = is_s3(path)
         if not self.is_s3:
             self.key = path
             self.bucket = None
-        self.start = start
+        if start is None:
+            self.start = 0
+        else:
+            self.start = start
         self.length = length
-        self.download_entire_file = self.start == 0 and self.length is None
+        self.download_entire_file = start is None
 
 
 # Only to list files in S3. Accepts strings Bucket, Prefix, Delimiter, and StartAfter
@@ -74,7 +78,7 @@ class S3HandlerAsync:
         # if you are creating an s3handler object in jupyter, ensure the nest_asyncio is applied
         check_notebook()
         self.loop = asyncio.get_event_loop()
-        self.client = aioboto3.client("s3", loop=self.loop, region_name=get_region())
+        self.client = aioboto3.client("s3", region_name=get_region())
         self.num_retries = num_retries
         self.logger = get_logger()
         if debug:
@@ -272,8 +276,9 @@ class S3HandlerAsync:
 
 
 class S3Handler:
-    def __init__(self, num_retries=5, use_s3_transfer=False):
+    def __init__(self, num_retries=5, use_s3_transfer=True):
         self.client = boto3.client("s3", region_name=get_region())
+        self.resource = boto3.resource("s3", region_name=get_region())
         self.num_retries = num_retries
         self.logger = get_logger()
         self.use_s3_transfer = use_s3_transfer
@@ -348,23 +353,45 @@ class S3Handler:
         return []
 
     def _make_get_request(self, object_request):
-        if object_request.start is not None:
-            bytes_range = f"bytes={object_request.start}-"
-            if object_request.length is not None:
-                bytes_range += f"{object_request.start + object_request.length - 1}"
-            resp = self.client.get_object(
-                Bucket=object_request.bucket, Key=object_request.key, Range=bytes_range
-            )
+        if self.use_s3_transfer:
+            if not object_request.download_entire_file:
+                obj = self.resource.Object(object_request.bucket, object_request.key)
+                bytes_range = f"bytes={object_request.start}-"
+                if object_request.length is not None:
+                    bytes_range += f"{object_request.start + object_request.length - 1}"
+                body = obj.get(Range=bytes_range)["Body"].read()
+            else:
+                with tempfile.TemporaryFile() as tf:
+                    self.client.download_fileobj(
+                        object_request.bucket,
+                        object_request.key,
+                        tf,
+                        Config=boto3.s3.transfer.TransferConfig(
+                            multipart_threshold=500, max_concurrency=100
+                        ),
+                    )
+                    tf.seek(0)
+                    body = tf.read()
         else:
-            resp = self.client.get_object(Bucket=object_request.bucket, Key=object_request.key)
-        return resp
+            if not object_request.download_entire_file:
+                bytes_range = f"bytes={object_request.start}-"
+                if object_request.length is not None:
+                    bytes_range += f"{object_request.start + object_request.length - 1}"
+                body = self.client.get_object(
+                    Bucket=object_request.bucket, Key=object_request.key, Range=bytes_range
+                )["Body"].read()
+            else:
+                body = self.client.get_object(Bucket=object_request.bucket, Key=object_request.key)[
+                    "Body"
+                ].read()
+        return body
 
     def get_object(self, object_request):
         count = 0
         while count < self.num_retries:
             try:
-                resp = self._make_get_request(object_request)
-                return resp["Body"].read()
+                body = self._make_get_request(object_request)
+                return body
             except (
                 NoCredentialsError,  # No credentials could be found
                 PartialCredentialsError,
@@ -391,6 +418,7 @@ class S3Handler:
                 else:
                     raise botocore_error
             except Exception as e:
+                raise e
                 self.logger.warning(str(e))
                 msg = (
                     "Unable to read tensor from object "

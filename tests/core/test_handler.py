@@ -82,10 +82,11 @@ def performance_vs_async():
     kb = 1024
     mb = 1024 * 1024
     sizes = [10 * kb, 100 * kb, 500 * kb]  # , mb, 5 * mb, 10 * mb]
-    num_files = [100, 1000, 10000, 100000]  # , 1000000]
+    num_files = [1, 10, 100, 1000, 3000, 10000, 100000]  # , 1000000]
     prefix = "test_performance_prefix"
 
-    handler = S3Handler()
+    handler = S3Handler(use_s3_transfer=False)
+    handler2 = S3Handler(use_s3_transfer=True)
     async_handler = S3HandlerAsync()
 
     times = []
@@ -102,20 +103,25 @@ def performance_vs_async():
             data1 = handler.get_objects(reqs)
             sync_end = time.time()
 
+            sync2_start = time.time()
+            data2 = handler2.get_objects(reqs)
+            sync2_end = time.time()
+
             async_start = time.time()
-            data2 = async_handler.get_objects(reqs)
+            data3 = async_handler.get_objects(reqs)
             async_end = time.time()
 
-            assert data1 == data2
-            print(f"Finished testing for {size} {nf}")
-            timesrow.append((sync_end - sync_start, async_end - async_start))
-        print(f"Finished testing for {size}")
+            assert data1 == data2 == data3
+            timesrow.append(
+                (sync_end - sync_start, sync2_end - sync2_start, async_end - async_start)
+            )
+            print(f"Finished testing for {size} {nf}", timesrow[-1])
         times.append(timesrow)
+        print(f"Finished testing for {size}", times[-1])
 
 
 if __name__ == "__main__":
     performance_vs_async()
-
 """
 # bash commands to generate files for perf test
 head -c 1048576 /dev/urandom > 0.dummy
