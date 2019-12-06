@@ -1,8 +1,10 @@
 # Standard Library
 import asyncio
 import logging
+import multiprocessing
 import tempfile
 import time
+from functools import lru_cache
 
 # Third Party
 import aioboto3
@@ -277,11 +279,22 @@ class S3HandlerAsync:
 
 class S3Handler:
     def __init__(self, num_retries=5, use_s3_transfer=True):
-        self.client = boto3.client("s3", region_name=get_region())
-        self.resource = boto3.resource("s3", region_name=get_region())
         self.num_retries = num_retries
         self.logger = get_logger()
         self.use_s3_transfer = use_s3_transfer
+
+    # A boto3 session is not pickleable, and an object must be pickleable to be accessed within a
+    # multiprocessing thread. We get around this by defining a function to create the session - the
+    # function is pickleable - and caching the results so it is only called once.
+    @property
+    @lru_cache()
+    def client(self):
+        return boto3.client("s3", region_name=get_region())
+
+    @property
+    @lru_cache()
+    def resource(self):
+        return boto3.resource("s3", region_name=get_region())
 
     def list_prefixes(self, list_requests: list):
         if type(list_requests) != list:
@@ -441,9 +454,8 @@ class S3Handler:
     def get_objects(self, object_requests):
         if type(object_requests) != list:
             raise TypeError("get_objects accepts a list of ReadObjectRequest objects.")
-        data = []
-        for object_request in object_requests:
-            data.append(self.get_object(object_request))
+        with multiprocessing.Pool(8 * multiprocessing.cpu_count()) as pool:
+            data = pool.map(self.get_object, object_requests)
         return data
 
     def delete_prefix(self, path, delete_request=None):
