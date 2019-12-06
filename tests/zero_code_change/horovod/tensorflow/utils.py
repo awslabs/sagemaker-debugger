@@ -36,7 +36,7 @@ def launch_horovod_job(script_file_path, script_args, num_workers, config_file_p
     command = (
         ["horovodrun", "-np", str(num_workers)] + [sys.executable, script_file_path] + script_args
     )
-    env_dict = os.environ
+    env_dict = os.environ.copy()
     env_dict["SMDEBUG_CONFIG_FILE_PATH"] = f"{config_file_path}"
     env_dict["PYTHONPATH"] = "/home/ubuntu/sagemaker-debugger/"
     if mode == "cpu":
