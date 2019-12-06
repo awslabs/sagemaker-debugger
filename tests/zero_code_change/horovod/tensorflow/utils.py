@@ -13,18 +13,11 @@ def get_available_gpus():
     return [x.name for x in local_device_protos if x.device_type == "GPU"]
 
 
-def build_json(
-    out_dir="/home/ubuntu/smdtensors",
-    include_workers="all",
-    include_collections=None,
-    path=None,
-    save_all=False,
-):
+def build_json(out_dir, include_workers="all", include_collections=None, path=None, save_all=False):
     if include_collections is None:
         include_collections = ["weights", "gradients"]
     if path is None:
-        path = Path(__file__).parent
-        path = path.joinpath("config.json")
+        path = Path(out_dir).joinpath("config.json")
 
     config_dict = {}
     config_dict["LocalPath"] = out_dir
