@@ -570,7 +570,7 @@ class BaseHook:
             write_event = scalar_obj.write_event
             if self.metrics_writer and sm_metric:
                 self.metrics_writer.log_metric(
-                    scalar_name, scalar_val, iteration_number=self.mode_steps[self.mode]
+                    scalar_name + "_" + self.mode.name, scalar_val, iteration_number=self.mode_steps[self.mode]
                 )
             if write_tb:
                 tb_writer = self._maybe_get_tb_writer()
