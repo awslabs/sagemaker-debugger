@@ -604,7 +604,7 @@ class BaseHook:
         val = self._make_numpy_array(value)
         if val.size != 1:
             raise TypeError(f"{name} has non scalar value of type: {type(value)}")
-        scalar_obj = ScalarCache(name, val, sm_metric=True, write_tb=True, write_event=True)
+        scalar_obj = ScalarCache(name, val, sm_metric, write_tb=True, write_event=True)
         self.scalar_cache.append(scalar_obj)
 
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
