@@ -278,10 +278,11 @@ class S3HandlerAsync:
 
 
 class S3Handler:
-    def __init__(self, num_retries=5, use_s3_transfer=True):
+    def __init__(self, num_retries=5, use_s3_transfer=True, use_multiprocessing=True):
         self.num_retries = num_retries
         self.logger = get_logger()
         self.use_s3_transfer = use_s3_transfer
+        self.use_multiprocessing = use_multiprocessing
 
     # A boto3 session is not pickleable, and an object must be pickleable to be accessed within a
     # multiprocessing thread. We get around this by defining a function to create the session - the
@@ -454,8 +455,11 @@ class S3Handler:
     def get_objects(self, object_requests):
         if type(object_requests) != list:
             raise TypeError("get_objects accepts a list of ReadObjectRequest objects.")
-        with multiprocessing.Pool(8 * multiprocessing.cpu_count()) as pool:
-            data = pool.map(self.get_object, object_requests)
+        if self.use_multiprocessing:
+            with multiprocessing.Pool(8 * multiprocessing.cpu_count()) as pool:
+                data = pool.map(self.get_object, object_requests)
+        else:
+            data = [self.get_object(object_request) for object_request in object_requests]
         return data
 
     def delete_prefix(self, path, delete_request=None):
