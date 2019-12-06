@@ -58,7 +58,7 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
             loss = criterion(outputs, labels)
         if use_loss_functional:
             loss = F.cross_entropy(outputs, labels)
-            hook.record_tensor_value("nll_loss", tensor_value=loss, inputs=[outputs, labels])
+            hook.record_tensor_value("nll_loss", tensor_value=loss)
         loss.backward()
         optimizer.step()
 
