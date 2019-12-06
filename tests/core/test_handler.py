@@ -1,8 +1,8 @@
-# Third Party
 # Standard Library
 import time
 import uuid
 
+# Third Party
 import pytest
 
 # First Party
@@ -85,8 +85,8 @@ def performance_vs_async():
     num_files = [1, 10, 100, 1000, 3000, 10000, 100000]  # , 1000000]
     prefix = "test_performance_prefix"
 
-    handler = S3Handler(use_s3_transfer=False)
-    handler2 = S3Handler(use_s3_transfer=True)
+    handler = S3Handler(use_multiprocessing=True)
+    handler2 = S3Handler(use_multiprocessing=False)
     async_handler = S3HandlerAsync()
 
     times = []
@@ -103,9 +103,9 @@ def performance_vs_async():
             data1 = handler.get_objects(reqs)
             sync_end = time.time()
 
-            # sync2_start = time.time()
-            # data2 = handler2.get_objects(reqs)
-            # sync2_end = time.time()
+            sync2_start = time.time()
+            data2 = handler2.get_objects(reqs)
+            sync2_end = time.time()
 
             async_start = time.time()
             data3 = async_handler.get_objects(reqs)
@@ -114,9 +114,9 @@ def performance_vs_async():
             assert data1 == data3
             timesrow.append(
                 (
-                    sync_end - sync_start,
-                    # sync2_end - sync2_start,
-                    async_end - async_start,
+                    round(sync_end - sync_start, 2),
+                    round(sync2_end - sync2_start, 2),
+                    round(async_end - async_start, 2),
                 )
             )
             print(f"Finished testing for {size} {nf}", timesrow[-1])
