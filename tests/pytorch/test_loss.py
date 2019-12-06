@@ -102,7 +102,7 @@ def test_register_loss_module(out_dir):
     loss_coll = trial.collection("losses")
     loss_tensor = trial.tensor("CrossEntropyLoss_output_0")
 
-    # Capture ['CrossEntropyLoss_input_0', 'CrossEntropyLoss_input_1', 'CrossEntropyLoss_output_0']
+    # Capture ['CrossEntropyLoss_output_0']
     assert len(trial.tensor_names()) == 1
     assert len(loss_coll.tensor_names) == 1
 
