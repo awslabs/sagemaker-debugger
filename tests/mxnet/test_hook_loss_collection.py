@@ -33,6 +33,9 @@ def test_loss_collection_default():
     loss_val = loss_tensor.value(step_num=1)
     assert len(loss_val) > 0
 
+    # Assert that we are not logging the inputs to loss block.
+    input_loss_tensors = tr.tensor_names(regex=".*loss._input*")
+    assert len(input_loss_tensors) == 0
     shutil.rmtree(out_dir)
 
 
