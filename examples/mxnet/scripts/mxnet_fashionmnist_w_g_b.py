@@ -3,13 +3,12 @@ This script is a simple FashionMNIST training script which uses MXNet's.
 It has been orchestrated with SageMaker Debugger hook to allow saving tensors during training.
 Here, the hook has been created using its constructor to allow running this locally for your experimentation.
 When you want to run this script in SageMaker, it is recommended to create the hook from json file.
-Please see scripts in either /examples/tensorflow/sagemaker_byoc or /examples/tensorflow/sagemaker_official_container 
+Please see scripts in either /examples/tensorflow/sagemaker_byoc or /examples/tensorflow/sagemaker_official_container
 folder based on your use case.
 """
 # Standard Library
 import argparse
 import random
-import uuid
 
 # Third Party
 import mxnet as mx
@@ -25,11 +24,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train a mxnet gluon model for FashionMNIST dataset"
     )
-    parser.add_argument(
-        "--output-uri",
-        type=str,
-        help="Folder where tensor data will be stored.",
-    )
+    parser.add_argument("--output-uri", type=str, help="Folder where tensor data will be stored.")
     parser.add_argument("--random_seed", type=bool, default=False)
     parser.add_argument(
         "--num_steps",
