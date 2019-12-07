@@ -7,6 +7,8 @@ This allows you to use the same script with differing configurations across diff
 If you use an official SageMaker Framework container (i.e. AWS Deep Learning Container), then
 you do not have to orchestrate your script as below. Hooks will automatically be added in those environments.
 For more information, please refer to https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md
+
+This script has been adapted from an example in Horovod repository https://github.com/uber/horovod
 """
 # Standard Library
 import argparse
@@ -100,8 +102,12 @@ def main(args):
     # Horovod: add Horovod Distributed Optimizer.
     opt = hvd.DistributedOptimizer(opt)
 
+    ##### Enabling SageMaker Debugger ###########
+    # Create hook from the configuration provided through sagemaker python sdk
     smd_hook = smd.KerasHook.create_from_json_file()
 
+    ##### Enabling SageMaker Debugger ###########
+    # wrap the optimizer so the hook can identify the gradients
     opt = smd_hook.wrap_optimizer(opt)
 
     model.compile(loss=keras.losses.categorical_crossentropy, optimizer=opt, metrics=["accuracy"])
@@ -111,7 +117,8 @@ def main(args):
         # This is necessary to ensure consistent initialization of all workers when
         # training is started with random weights or restored from a checkpoint.
         hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-        # smd hook
+        ##### Enabling SageMaker Debugger ###########
+        # pass smd_hook as a callback
         smd_hook,
     ]
 

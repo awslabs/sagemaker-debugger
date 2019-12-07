@@ -4,6 +4,8 @@ It has been orchestrated with SageMaker Debugger hook to allow saving tensors du
 Here, the hook has been created using its constructor to allow running this locally for your experimentation.
 When you want to run this script in SageMaker, it is recommended to create the hook from json file.
 Please see scripts in either 'sagemaker_byoc' or 'sagemaker_official_container' folder based on your use case.
+
+This script has been adapted from an example in Horovod repository https://github.com/uber/horovod
 """
 
 # Standard Library
@@ -98,6 +100,8 @@ def main(args):
     # Horovod: add Horovod Distributed Optimizer.
     opt = hvd.DistributedOptimizer(opt)
 
+    ##### Enabling SageMaker Debugger ###########
+    # creating hook
     smd_hook = smd.KerasHook(
         out_dir=args.out_dir,
         save_config=smd.SaveConfig(save_interval=args.save_interval),
@@ -105,6 +109,8 @@ def main(args):
         include_workers=args.include_workers,
     )
 
+    ##### Enabling SageMaker Debugger ###########
+    # wrapping optimizer so hook can identify gradients
     opt = smd_hook.wrap_optimizer(opt)
 
     model.compile(loss=keras.losses.categorical_crossentropy, optimizer=opt, metrics=["accuracy"])
@@ -114,7 +120,8 @@ def main(args):
         # This is necessary to ensure consistent initialization of all workers when
         # training is started with random weights or restored from a checkpoint.
         hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-        # smd_hook
+        ##### Enabling SageMaker Debugger ###########
+        # adding smd hook as a callback
         smd_hook,
     ]
 

@@ -5,6 +5,8 @@ You will notice that this script looks exactly like a normal TensorFlow training
 The hook needed by SageMaker Debugger to save tensors during training will be automatically added in those environments.
 The hook will load configuration from json configuration that SageMaker will put in the training container from the configuration provided using the SageMaker python SDK when creating a job.
 For more information, please refer to https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md
+
+This script has been adapted from an example in Horovod repository https://github.com/uber/horovod
 """
 # Standard Library
 import argparse
