@@ -65,7 +65,7 @@ def test_delete_prefix():
         f.write(b"a")
         f.close()
     S3Handler.delete_prefix(path="s3://smdebugcodebuildtest/" + prefix)
-    entries = S3Handler.list_prefix(ListRequest("smdebugcodebuildtest", "test_delete_prefix"))
+    entries = S3Handler.list_prefix(ListRequest("smdebugcodebuildtest", prefix))
     assert len(entries) == 0
 
 
