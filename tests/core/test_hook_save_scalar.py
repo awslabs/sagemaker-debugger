@@ -221,9 +221,13 @@ def check_trials(out_dir, save_config, saved_scalars=None):
         if tname not in saved_scalars:
             train_steps = trial.tensor(tname).steps(mode=ModeKeys.TRAIN)
             eval_steps = trial.tensor(tname).steps(mode=ModeKeys.EVAL)
-            assert len(set(save_config_train_steps) & set(train_steps)) == len(save_config_train_steps)
+            assert len(set(save_config_train_steps) & set(train_steps)) == len(
+                save_config_train_steps
+            )
             if eval_steps:  # need this check for bias and gradients
-                assert len(set(save_config_eval_steps) & set(eval_steps)) == len(save_config_eval_steps)
+                assert len(set(save_config_eval_steps) & set(eval_steps)) == len(
+                    save_config_eval_steps
+                )
     scalar_list = trial.tensor_names(regex="^scalar")
     if scalar_list:
         assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
@@ -266,9 +270,7 @@ def helper_pytorch_tests(collection, register_loss, save_config):
     hook.close()
 
     saved_scalars = ["scalar/pt_num_steps", "scalar/pt_before_train", "scalar/pt_after_train"]
-    check_trials(
-        trial_dir, save_config, saved_scalars
-    )
+    check_trials(trial_dir, save_config, saved_scalars)
     check_metrics_file(saved_scalars)
 
 
@@ -309,9 +311,7 @@ def helper_mxnet_tests(collection, register_loss, save_config):
     hook.close()
 
     saved_scalars = ["scalar/mx_num_steps", "scalar/mx_before_train", "scalar/mx_after_train"]
-    check_trials(
-        trial_dir, save_config, saved_scalars
-    )
+    check_trials(trial_dir, save_config, saved_scalars)
     check_metrics_file(saved_scalars)
 
 
@@ -352,9 +352,7 @@ def helper_tensorflow_tests(collection, save_config):
     hook.close()
 
     saved_scalars = ["loss"]
-    check_trials(
-        trial_dir, save_config, saved_scalars
-    )
+    check_trials(trial_dir, save_config, saved_scalars)
     check_metrics_file(saved_scalars)
 
 
