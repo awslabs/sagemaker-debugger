@@ -1,5 +1,6 @@
 # Standard Library
 import multiprocessing
+import sys
 import time
 from functools import lru_cache
 
@@ -218,8 +219,14 @@ class S3Handler:
         if (
             use_multiprocessing
             and len(object_requests) >= S3Handler.GET_OBJECTS_MULTIPROCESSING_THRESHOLD
+            and sys.platform != "win32"  # Windows Jupyter has trouble with multiprocessing
         ):
-            with multiprocessing.Pool(8 * multiprocessing.cpu_count()) as pool:
+            if sys.platform == "darwin":
+                # Mac will crash if we use fork(), which is the default until Python 3.8+
+                ctx = multiprocessing.get_context("spawn")
+            else:
+                ctx = multiprocessing.get_context()
+            with ctx.Pool(8 * multiprocessing.cpu_count()) as pool:
                 data = pool.map(S3Handler.get_object, object_requests)
         else:
             data = [S3Handler.get_object(object_request) for object_request in object_requests]
