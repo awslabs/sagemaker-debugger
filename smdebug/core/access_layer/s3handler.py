@@ -233,7 +233,7 @@ class S3Handler:
         return data
 
     @staticmethod
-    def delete_prefix(path, delete_request=None):
+    def delete_prefix(path=None, delete_request=None):
         if path is not None and delete_request is not None:
             raise ValueError("Only one of path or delete_request can be passed")
         elif path is not None:
