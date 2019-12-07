@@ -200,11 +200,94 @@ def delete_local_trials(local_trials):
         shutil.rmtree(trial)
 
 
-def check_trials(out_dir, save_config, saved_scalars=None):
+# need this to seek to the right file offset for test output verification
+metrics_file_position = 0
+
+
+def check_metrics_file(save_steps, saved_scalars=None):
+    """
+    Check the SageMaker metrics file to ensure that all the scalars saved using
+    save_scalar(sm_metrics=True) or mentioned through SM_METRICS collections, have been saved.
+    """
+    global metrics_file_position
+    if is_sagemaker_job():
+        METRICS_DIR = os.environ.get(DEFAULT_SAGEMAKER_METRICS_PATH)
+        if not METRICS_DIR:
+            logging.warning("SageMaker Metric Directory not specified")
+            return
+        file_name = "{}/{}.json".format(METRICS_DIR, str(os.getpid()))
+        scalarnames = set()
+
+        import collections
+
+        train_metric = collections.defaultdict(list)
+        eval_metric = collections.defaultdict(list)
+
+        with open(file_name) as fp:
+            # since SM metrics expects all metrics to be written in 1 file, seeking to
+            # the right offset for the purpose of this test - so that the metrics logged in
+            # the corresponding test are verified
+            fp.seek(metrics_file_position)
+            for line in fp:
+                data = json.loads(line)
+                assert data["IterationNumber"] != -1  # iteration number should not be -1
+                metric_name = data["MetricName"]
+                if "TRAIN" in metric_name:
+                    train_metric[metric_name].append(data["IterationNumber"])
+                    scalarnames.add(metric_name.rstrip("_TRAIN"))
+                elif "EVAL" in metric_name:
+                    eval_metric[metric_name].append(data["IterationNumber"])
+                    scalarnames.add(metric_name.rstrip("_EVAL"))
+                else:
+                    scalarnames.add(
+                        metric_name.rstrip("_GLOBAL")
+                    )  # check the scalar saved using save_scalar()
+            metrics_file_position = fp.tell()
+        assert scalarnames
+
+        if saved_scalars:
+            assert len(set(saved_scalars) & set(scalarnames)) > 0
+
+        # check if all metrics have been written at the expected step number
+        for train_data in train_metric:
+            assert len(set(save_steps["TRAIN"]) & set(train_metric[train_data])) == len(
+                save_steps["TRAIN"]
+            )
+        for eval_data in eval_metric:
+            assert len(set(save_steps["EVAL"]) & set(eval_metric[eval_data])) == len(
+                save_steps["EVAL"]
+            )
+
+
+def check_trials(out_dir, save_steps, saved_scalars=None):
     """
     Create trial to check if non-scalar data is written as per save config and
     check whether all the scalars written through save_scalar have been saved.
     """
+    trial = create_trial(path=out_dir, name="test output")
+    assert trial
+    tensor_list = trial.tensor_names()
+    for tname in tensor_list:
+        if tname not in saved_scalars:
+            train_steps = trial.tensor(tname).steps(mode=ModeKeys.TRAIN)
+            eval_steps = trial.tensor(tname).steps(mode=ModeKeys.EVAL)
+
+            # check if all tensors have been saved according to save steps
+            assert len(set(save_steps["TRAIN"]) & set(train_steps)) == len(save_steps["TRAIN"])
+            if eval_steps:  # need this check for bias and gradients
+                assert len(set(save_steps["EVAL"]) & set(eval_steps)) == len(save_steps["EVAL"])
+    scalar_list = trial.tensor_names(regex="^scalar")
+    if scalar_list:
+        assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
+
+
+def verify_files(out_dir, save_config, saved_scalars=None):
+    """
+    Analyze the tensors saved and verify that metrics are stored correctly in the
+    SM metrics json file
+    """
+
+    # Retrieve save_step for verification in the trial and the JSON file
     save_config_train_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
     if not save_config_train_steps:
         save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
@@ -214,43 +297,10 @@ def check_trials(out_dir, save_config, saved_scalars=None):
         save_interval = save_config.get_save_config(ModeKeys.EVAL).save_interval
         save_config_eval_steps = [i for i in range(0, 10, save_interval)]
 
-    trial = create_trial(path=out_dir, name="test output")
-    assert trial
-    tensor_list = trial.tensor_names()
-    for tname in tensor_list:
-        if tname not in saved_scalars:
-            train_steps = trial.tensor(tname).steps(mode=ModeKeys.TRAIN)
-            eval_steps = trial.tensor(tname).steps(mode=ModeKeys.EVAL)
-            assert len(set(save_config_train_steps) & set(train_steps)) == len(
-                save_config_train_steps
-            )
-            if eval_steps:  # need this check for bias and gradients
-                assert len(set(save_config_eval_steps) & set(eval_steps)) == len(
-                    save_config_eval_steps
-                )
-    scalar_list = trial.tensor_names(regex="^scalar")
-    if scalar_list:
-        assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
+    save_steps = {"TRAIN": save_config_train_steps, "EVAL": save_config_eval_steps}
 
-
-def check_metrics_file(saved_scalars):
-    """
-    Check the SageMaker metrics file to ensure that all the scalars saved using
-    save_scalar(sm_metrics=True) or mentioned through SM_METRICS collections, have been saved.
-    """
-    if is_sagemaker_job():
-        METRICS_DIR = os.environ.get(DEFAULT_SAGEMAKER_METRICS_PATH)
-        if not METRICS_DIR:
-            logging.warning("SageMaker Metric Directory not specified")
-            return
-        file_name = "{}/{}.json".format(METRICS_DIR, str(os.getpid()))
-        scalarnames = set()
-        with open(file_name) as fp:
-            for line in fp:
-                data = json.loads(line)
-                scalarnames.add(data["MetricName"])
-        assert scalarnames
-        # assert len(set(saved_scalars) & set(scalarnames)) > 0
+    check_trials(out_dir, save_steps, saved_scalars)
+    check_metrics_file(save_steps, saved_scalars)
 
 
 def helper_pytorch_tests(collection, register_loss, save_config):
@@ -270,8 +320,7 @@ def helper_pytorch_tests(collection, register_loss, save_config):
     hook.close()
 
     saved_scalars = ["scalar/pt_num_steps", "scalar/pt_before_train", "scalar/pt_after_train"]
-    check_trials(trial_dir, save_config, saved_scalars)
-    check_metrics_file(saved_scalars)
+    verify_files(trial_dir, save_config, saved_scalars)
 
 
 @pytest.mark.parametrize("collection", [("all", ".*"), ("scalars", "^scalar")])
@@ -311,8 +360,7 @@ def helper_mxnet_tests(collection, register_loss, save_config):
     hook.close()
 
     saved_scalars = ["scalar/mx_num_steps", "scalar/mx_before_train", "scalar/mx_after_train"]
-    check_trials(trial_dir, save_config, saved_scalars)
-    check_metrics_file(saved_scalars)
+    verify_files(trial_dir, save_config, saved_scalars)
 
 
 @pytest.mark.parametrize("collection", [("all", ".*"), ("scalars", "^scalar")])
@@ -352,8 +400,7 @@ def helper_tensorflow_tests(collection, save_config):
     hook.close()
 
     saved_scalars = ["loss"]
-    check_trials(trial_dir, save_config, saved_scalars)
-    check_metrics_file(saved_scalars)
+    verify_files(trial_dir, save_config, saved_scalars)
 
 
 @pytest.mark.parametrize("collection", [("all", ".*"), ("sm_metrics", "loss")])
