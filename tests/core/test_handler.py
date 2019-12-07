@@ -77,7 +77,7 @@ def check_performance():
     mb = 1024 * 1024
     sizes = [10 * kb, 100 * kb, 500 * kb]  # , mb, 5 * mb, 10 * mb]
     num_files = [100, 1000, 10000]  # , 10000]  # , 100000]  # , 1000000]
-    files_path = "tornasolecodebuildtest/test_performance_prefix"
+    files_path = "smdebug-testing/resources/test_performance"
     times = []
     print("Size\tNumFiles\tPool size\tSync with multiprocessing")
     pool_sizes = [
