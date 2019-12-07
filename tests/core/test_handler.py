@@ -71,29 +71,40 @@ def test_delete_prefix():
 
 def check_performance():
     import time
+    import multiprocessing
 
     kb = 1024
     mb = 1024 * 1024
     sizes = [10 * kb, 100 * kb, 500 * kb]  # , mb, 5 * mb, 10 * mb]
-    num_files = [1, 10, 20, 30, 50, 70, 100, 1000, 3000]  # , 10000]  # , 100000]  # , 1000000]
-    prefix = "test_performance"
-
+    num_files = [100, 1000, 10000]  # , 10000]  # , 100000]  # , 1000000]
+    files_path = "tornasolecodebuildtest/test_performance_prefix"
     times = []
-    print("Size\tNumFiles\tSync with multiprocessing\tSync without multiprocessing")
+    print("Size\tNumFiles\tPool size\tSync with multiprocessing")
+    pool_sizes = [
+        2 * multiprocessing.cpu_count(),
+        4 * multiprocessing.cpu_count(),
+        8 * multiprocessing.cpu_count(),
+    ]
     for size in sizes:
         timesrow = []
         for nf in num_files:
-            reqs = []
-            for i in range(nf):
-                reqs.append(
-                    ReadObjectRequest(f"s3://smdebug-testing/resources/{prefix}/{size}/{i}.dummy")
+            timesrow_for_pools = []
+            for pool_size in pool_sizes:
+                j = 0
+                S3Handler.MULTIPROCESSING_POOL_SIZE = pool_size
+                times_to_be_averaged = []
+                reqs = [ReadObjectRequest(f"s3://{files_path}/{size}/{i}.dummy") for i in range(nf)]
+                while j < 10:
+                    sync_start = time.time()
+                    S3Handler.get_objects(reqs, use_multiprocessing=True)
+                    sync_end = time.time()
+                    times_to_be_averaged.append(sync_end - sync_start)
+                    j += 1
+                timesrow_for_pools.append(
+                    round(sum(times_to_be_averaged) / len(times_to_be_averaged), 2)
                 )
-            sync_start = time.time()
-            data = S3Handler.get_objects(reqs, use_multiprocessing=True)
-            sync_end = time.time()
-
-            timesrow.append((round(sync_end - sync_start, 2), 0))
-            print(f"{size} {nf} {timesrow[-1][0]} {timesrow[-1][1]}")
+            timesrow.append(timesrow_for_pools)
+            print(f"{size} {nf} {pool_sizes} {timesrow_for_pools}")
         times.append(timesrow)
         print(f"Finished testing for {size}", times[-1])
 
