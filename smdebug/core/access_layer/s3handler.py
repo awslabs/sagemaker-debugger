@@ -63,6 +63,7 @@ class DeleteRequest:
 
 class S3Handler:
     NUM_RETRIES = 5
+    GET_OBJECTS_MULTIPROCESSING_THRESHOLD = 100
 
     # A boto3 session is not pickleable, and an object must be pickleable to be accessed within a
     # multiprocessing thread. We get around this by defining a function to create the session - the
@@ -214,7 +215,10 @@ class S3Handler:
     def get_objects(object_requests, use_multiprocessing=True):
         if type(object_requests) != list:
             raise TypeError("get_objects accepts a list of ReadObjectRequest objects")
-        if use_multiprocessing:
+        if (
+            use_multiprocessing
+            and len(object_requests) >= S3Handler.GET_OBJECTS_MULTIPROCESSING_THRESHOLD
+        ):
             with multiprocessing.Pool(8 * multiprocessing.cpu_count()) as pool:
                 data = pool.map(S3Handler.get_object, object_requests)
         else:

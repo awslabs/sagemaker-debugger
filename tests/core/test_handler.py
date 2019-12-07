@@ -67,3 +67,29 @@ def test_delete_prefix():
     S3Handler.delete_prefix(path="s3://smdebugcodebuildtest/" + prefix)
     entries = S3Handler.list_prefix(ListRequest("smdebugcodebuildtest", "test_delete_prefix"))
     assert len(entries) == 0
+
+
+def performance_vs_async():
+    kb = 1024
+    mb = 1024 * 1024
+    sizes = [10 * kb, 100 * kb, 500 * kb]  # , mb, 5 * mb, 10 * mb]
+    # 1, 10, 20, 30, 50, 70, 100,
+    num_files = [1, 10, 50, 100, 500, 1000, 3000, 10000, 100000]
+    prefix = "test_performance"
+    i = 0
+    import time
+
+    start = time.time()
+    for size in sizes:
+        for nf in num_files:
+            reqs = [
+                ReadObjectRequest(f"s3://smdebug-testing/resources/{prefix}/{size}/{i}.dummy")
+                for i in range(nf)
+            ]
+            S3Handler.get_objects(reqs, use_multiprocessing=True)
+            i += nf
+            print(f"Count {i}, speed {i/(time.time() - start)}")
+
+
+if __name__ == "__main__":
+    performance_vs_async()
