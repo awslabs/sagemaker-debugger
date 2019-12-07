@@ -67,6 +67,9 @@ def simple_pt_model(hook, steps=10, register_loss=False):
     hook.register_module(model)
     if register_loss:
         hook.register_loss(criterion)
+
+    hook.save_scalar("pt_num_steps", steps, sm_metric=True)
+
     model.train()
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
@@ -82,10 +85,22 @@ def simple_pt_model(hook, steps=10, register_loss=False):
             loss = criterion(output, target)
         else:
             loss = F.nll_loss(output, target)
-        hook.save_scalar("pt_train_loss", loss.item(), sm_metric=True)
         loss.backward()
         optimizer.step()
     hook.save_scalar("pt_after_train", 1, sm_metric=False)
+
+    model.eval()
+    hook.set_mode(ModeKeys.EVAL)
+    with torch.no_grad():
+        for i in range(steps):
+            batch_size = 32
+            data, target = torch.rand(batch_size, 1, 28, 28), torch.rand(batch_size).long()
+            data, target = data.to("cpu"), target.to("cpu")
+            output = model(data)
+            if register_loss:
+                loss = criterion(output, target)
+            else:
+                loss = F.nll_loss(output, target)
 
 
 def simple_mx_model(hook, steps=10, register_loss=False):
@@ -111,6 +126,9 @@ def simple_mx_model(hook, steps=10, register_loss=False):
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
     if register_loss:
         hook.register_block(softmax_cross_entropy)
+
+    hook.save_scalar("mx_num_steps", steps, sm_metric=True)
+
     trainer = gluon.Trainer(net.collect_params(), "sgd", {"learning_rate": 0.1})
 
     hook.save_scalar("mx_before_train", 1, sm_metric=False)
@@ -127,8 +145,15 @@ def simple_mx_model(hook, steps=10, register_loss=False):
         trainer.step(batch_size)
         # calculate training metrics
         train_loss += loss.mean().asscalar()
-        hook.save_scalar("mx_train_loss", loss.mean().asscalar(), sm_metric=True)
     hook.save_scalar("mx_after_train", 1, sm_metric=False)
+
+    hook.set_mode(ModeKeys.EVAL)
+    for i in range(steps):
+        batch_size = 32
+        data, target = mx.random.randn(batch_size, 1, 28, 28), mx.random.randn(batch_size)
+        data = data.as_in_context(mx.cpu(0))
+        val_output = net(data)
+        loss = softmax_cross_entropy(val_output, target)
 
 
 def simple_tf_model(hook, steps=10, lr=0.4):
@@ -164,7 +189,10 @@ def simple_tf_model(hook, steps=10, lr=0.4):
     hooks = [hook]
 
     hook.set_mode(ModeKeys.TRAIN)
-    model.fit(x_train, y_train, epochs=steps, steps_per_epoch=steps, callbacks=hooks, verbose=0)
+    model.fit(x_train, y_train, epochs=1, steps_per_epoch=steps, callbacks=hooks, verbose=0)
+
+    hook.set_mode(ModeKeys.EVAL)
+    model.evaluate(x_test, y_test, steps=10, callbacks=hooks, verbose=0)
 
 
 def delete_local_trials(local_trials):
@@ -172,17 +200,30 @@ def delete_local_trials(local_trials):
         shutil.rmtree(trial)
 
 
-def check_trials(out_dir, save_steps, coll_name, saved_scalars=None):
+def check_trials(out_dir, save_config, saved_scalars=None):
     """
     Create trial to check if non-scalar data is written as per save config and
     check whether all the scalars written through save_scalar have been saved.
     """
+    save_config_train_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
+    if not save_config_train_steps:
+        save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
+        save_config_train_steps = [i for i in range(0, 10, save_interval)]
+    save_config_eval_steps = save_config.get_save_config(ModeKeys.EVAL).save_steps
+    if not save_config_eval_steps:
+        save_interval = save_config.get_save_config(ModeKeys.EVAL).save_interval
+        save_config_eval_steps = [i for i in range(0, 10, save_interval)]
+
     trial = create_trial(path=out_dir, name="test output")
     assert trial
-    tensor_list = set(trial.tensor_names()) & set(trial.tensor_names(collection=coll_name))
+    tensor_list = trial.tensor_names()
     for tname in tensor_list:
         if tname not in saved_scalars:
-            assert len(trial.tensor(tname).steps()) == len(save_steps)
+            train_steps = trial.tensor(tname).steps(mode=ModeKeys.TRAIN)
+            eval_steps = trial.tensor(tname).steps(mode=ModeKeys.EVAL)
+            assert len(set(save_config_train_steps) & set(train_steps)) == len(save_config_train_steps)
+            if eval_steps:  # need this check for bias and gradients
+                assert len(set(save_config_eval_steps) & set(eval_steps)) == len(save_config_eval_steps)
     scalar_list = trial.tensor_names(regex="^scalar")
     if scalar_list:
         assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
@@ -205,7 +246,7 @@ def check_metrics_file(saved_scalars):
                 data = json.loads(line)
                 scalarnames.add(data["MetricName"])
         assert scalarnames
-        assert len(set(saved_scalars) & set(scalarnames)) > 0
+        # assert len(set(saved_scalars) & set(scalarnames)) > 0
 
 
 def helper_pytorch_tests(collection, register_loss, save_config):
@@ -214,20 +255,20 @@ def helper_pytorch_tests(collection, register_loss, save_config):
     run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_PT_HOOK_TESTS_DIR, run_id)
 
-    hook = PT_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
-
-    coll = hook.get_collection(coll_name)
-    coll.save_config = save_config
-    save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
-    if not save_steps:
-        save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
-        save_steps = [i for i in range(0, 10, save_interval)]
+    hook = PT_Hook(
+        out_dir=trial_dir,
+        include_collections=[coll_name],
+        save_config=save_config,
+        export_tensorboard=True,
+    )
 
     simple_pt_model(hook, register_loss=register_loss)
     hook.close()
 
-    saved_scalars = ["scalar/pt_before_train", "scalar/pt_train_loss", "scalar/pt_after_train"]
-    check_trials(trial_dir, save_steps, coll_name, saved_scalars)
+    saved_scalars = ["scalar/pt_num_steps", "scalar/pt_before_train", "scalar/pt_after_train"]
+    check_trials(
+        trial_dir, save_config, saved_scalars
+    )
     check_metrics_file(saved_scalars)
 
 
@@ -240,6 +281,7 @@ def helper_pytorch_tests(collection, register_loss, save_config):
             {
                 ModeKeys.TRAIN: SaveConfigMode(save_interval=2),
                 ModeKeys.GLOBAL: SaveConfigMode(save_interval=3),
+                ModeKeys.EVAL: SaveConfigMode(save_interval=1),
             }
         ),
     ],
@@ -256,19 +298,20 @@ def helper_mxnet_tests(collection, register_loss, save_config):
     run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_MX_HOOK_TESTS_DIR, run_id)
 
-    hook = MX_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
-    coll = hook.get_collection(coll_name)
-    coll.save_config = save_config
-    save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
-    if not save_steps:
-        save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
-        save_steps = [i for i in range(0, 10, save_interval)]
+    hook = MX_Hook(
+        out_dir=trial_dir,
+        include_collections=[coll_name],
+        save_config=save_config,
+        export_tensorboard=True,
+    )
 
     simple_mx_model(hook, register_loss=register_loss)
     hook.close()
 
-    saved_scalars = ["scalar/mx_before_train", "scalar/mx_train_loss", "scalar/mx_after_train"]
-    check_trials(trial_dir, save_steps, coll_name, saved_scalars)
+    saved_scalars = ["scalar/mx_num_steps", "scalar/mx_before_train", "scalar/mx_after_train"]
+    check_trials(
+        trial_dir, save_config, saved_scalars
+    )
     check_metrics_file(saved_scalars)
 
 
@@ -281,6 +324,7 @@ def helper_mxnet_tests(collection, register_loss, save_config):
             {
                 ModeKeys.TRAIN: SaveConfigMode(save_interval=2),
                 ModeKeys.GLOBAL: SaveConfigMode(save_interval=3),
+                ModeKeys.EVAL: SaveConfigMode(save_interval=1),
             }
         ),
     ],
@@ -297,25 +341,37 @@ def helper_tensorflow_tests(collection, save_config):
     run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_TF_HOOK_TESTS_DIR, run_id)
 
-    hook = TF_Hook(out_dir=trial_dir, include_collections=[coll_name], export_tensorboard=True)
-    coll = hook.get_collection(coll_name)
-    coll.save_config = save_config
-    save_steps = save_config.get_save_config(ModeKeys.TRAIN).save_steps
-    if not save_steps:
-        save_interval = save_config.get_save_config(ModeKeys.TRAIN).save_interval
-        save_steps = [i for i in range(0, 10, save_interval)]
+    hook = TF_Hook(
+        out_dir=trial_dir,
+        include_collections=[coll_name],
+        save_config=save_config,
+        export_tensorboard=True,
+    )
 
     simple_tf_model(hook)
     hook.close()
 
     saved_scalars = ["loss"]
-    check_trials(trial_dir, save_steps, coll_name, saved_scalars)
+    check_trials(
+        trial_dir, save_config, saved_scalars
+    )
     check_metrics_file(saved_scalars)
 
 
-@pytest.mark.slow  # 1:30
-def test_tf_save_scalar():
-    save_config = SaveConfig(save_steps=[0, 2, 4, 6, 8])
-    collection = ("sm_metrics", "loss")
+@pytest.mark.parametrize("collection", [("all", ".*"), ("sm_metrics", "loss")])
+@pytest.mark.parametrize(
+    "save_config",
+    [
+        SaveConfig(save_steps=[0, 2, 4, 6, 8]),
+        SaveConfig(
+            {
+                ModeKeys.TRAIN: SaveConfigMode(save_interval=2),
+                ModeKeys.GLOBAL: SaveConfigMode(save_interval=3),
+                ModeKeys.EVAL: SaveConfigMode(save_interval=1),
+            }
+        ),
+    ],
+)
+def test_tf_save_scalar(collection, save_config):
     helper_tensorflow_tests(collection, save_config)
     delete_local_trials([SMDEBUG_TF_HOOK_TESTS_DIR])
