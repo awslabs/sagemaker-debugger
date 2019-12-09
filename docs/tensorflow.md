@@ -3,9 +3,9 @@
 ## Contents
 - [Support](#support)
 - [How to Use](#how-to-use)
-- [Keras Example](#keras-example)
-- [MonitoredSession Example](#monitored-session-example)
-- [Estimator Example](#estimator-example)
+- [tf.keras](#tf.keras)
+- [MonitoredSession](#monitoredsession)
+- [Estimator](#estimator)
 - [Full API](#full-api)
 ---
 ## Support
