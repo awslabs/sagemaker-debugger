@@ -1,10 +1,10 @@
 # Standard Library
-import os
 
 # Third Party
 import pytest
 
 # First Party
+from smdebug.core.config_constants import INCOMPLETE_STEP_WAIT_WINDOW_KEY
 from smdebug.core.tensor import StepState
 from smdebug.exceptions import NoMoreData, StepUnavailable
 from smdebug.trials import create_trial
@@ -419,7 +419,7 @@ def test_three_writers_not_all_steps_written_but_later_step_written_complete_job
 
 
 @pytest.mark.slow
-def test_override_if_too_many_steps_skipped():
+def test_override_if_too_many_steps_skipped(monkeypatch):
     """Test Scenario Description"
      workers : [a,b,c]
      steps :{
@@ -449,7 +449,7 @@ def test_override_if_too_many_steps_skipped():
     window is smaller than the set threshold
     """
 
-    os.environ["INCOMPLETE_STEP_WAIT_WINDOW"] = "10"
+    monkeypatch.setenv(INCOMPLETE_STEP_WAIT_WINDOW_KEY, "10")
 
     path = "s3://smdebug-testing/resources/has_step_scenarios/too-many-steps-skipped"
     trial = create_trial(path)
@@ -486,8 +486,6 @@ def test_override_if_too_many_steps_skipped():
         trial.last_index_token
         == "resources/has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
-
-    del os.environ["INCOMPLETE_STEP_WAIT_WINDOW"]
 
 
 @pytest.mark.slow
