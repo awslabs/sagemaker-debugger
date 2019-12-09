@@ -2,7 +2,7 @@
 ## Example notebooks
 Please refer to the example notebooks in [Amazon SageMaker Examples repository](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger)
 
-## Example scripts
+## Example scripts 
 The above notebooks come with example scripts which can be used through SageMaker. Some more example scripts are here in [scripts/](scripts/)
 
 ## Example configurations for saving tensors through [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk)
