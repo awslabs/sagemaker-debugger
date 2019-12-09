@@ -12,7 +12,10 @@ import numpy as np
 # First Party
 from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.core.config_constants import MISSING_EVENT_FILE_RETRY_LIMIT
+from smdebug.core.config_constants import (
+    MISSING_EVENT_FILE_RETRY_LIMIT,
+    MISSING_EVENT_FILE_RETRY_LIMIT_KEY,
+)
 from smdebug.core.locations import IndexFileLocationUtils, TensorLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
@@ -100,7 +103,7 @@ class IndexReader(ABC):
 
     def __init__(self, path):
         self.event_file_retry_limit = os.getenv(
-            "MISSING_EVENT_FILE_RETRY_LIMIT", MISSING_EVENT_FILE_RETRY_LIMIT
+            MISSING_EVENT_FILE_RETRY_LIMIT_KEY, MISSING_EVENT_FILE_RETRY_LIMIT
         )
         self.path = path
         self.logger = get_logger()
