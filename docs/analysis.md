@@ -503,7 +503,7 @@ Here are the exceptions and their meanings:
 
 - `RuleEvaluationConditionMet`: This is raised when the rule invocation returns True for some step.
 
-- `MissingCollectionFiles`: This is raised when the training job has ended but all the collection files could not be loaded by the trial.
+- `MissingCollectionFiles`: This is raised when no data was saved by the training job. Check that the Hook was configured correctly before starting the training job.
 
 ## Utils
 
