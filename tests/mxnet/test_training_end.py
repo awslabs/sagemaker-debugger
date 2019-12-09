@@ -20,7 +20,7 @@ def test_end_local_training():
     subprocess.check_call(
         [
             sys.executable,
-            "examples/mxnet/scripts/mnist_gluon_basic_hook_demo.py",
+            "tests/resources/mxnet/mnist_gluon_basic_hook_demo.py",
             "--output-uri",
             out_dir,
             "--num_steps",
@@ -41,7 +41,7 @@ def test_end_s3_training():
     subprocess.check_call(
         [
             sys.executable,
-            "examples/mxnet/scripts/mnist_gluon_basic_hook_demo.py",
+            "tests/resources/mxnet/mnist_gluon_basic_hook_demo.py",
             "--output-uri",
             out_dir,
             "--num_steps",
