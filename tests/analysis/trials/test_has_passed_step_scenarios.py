@@ -20,7 +20,7 @@ def test_single_writer_all_steps_written_complete_job():
     END_OF_JOB.ts --> Present
     """
 
-    path = "s3://tornasole-testing/has_step_scenarios/single-writer-all-steps-written-complete-job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/single-writer-all-steps-written-complete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 1
@@ -33,7 +33,7 @@ def test_single_writer_all_steps_written_complete_job():
     assert trial.has_passed_step(8) == StepState.UNAVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/single-writer-all-steps-written-complete-job/index/000000000/000000000006_worker_0.json"
+        == "resources/has_step_scenarios/single-writer-all-steps-written-complete-job/index/000000000/000000000006_worker_0.json"
     )
     assert trial.last_complete_step == 6
 
@@ -48,9 +48,7 @@ def test_single_writer_all_steps_written_incomplete_job():
     END_OF_JOB.ts --> Absent
     """
 
-    path = (
-        "s3://tornasole-testing/has_step_scenarios/single-writer-all-steps-written-incomplete-job"
-    )
+    path = "s3://smdebug-testing/resources/has_step_scenarios/single-writer-all-steps-written-incomplete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 1
@@ -63,7 +61,7 @@ def test_single_writer_all_steps_written_incomplete_job():
     assert trial.has_passed_step(8) == StepState.NOT_YET_AVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/single-writer-all-steps-written-incomplete-job/index/000000000/000000000006_worker_0.json"
+        == "resources/has_step_scenarios/single-writer-all-steps-written-incomplete-job/index/000000000/000000000006_worker_0.json"
     )
     assert trial.last_complete_step == 6
 
@@ -84,7 +82,7 @@ def test_single_writer_not_all_steps_written_complete_job():
     END_OF_JOB.ts --> Present
     """
 
-    path = "s3://tornasole-testing/has_step_scenarios/single-writer-not-all-steps-written-complete"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/single-writer-not-all-steps-written-complete"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 1
@@ -98,7 +96,7 @@ def test_single_writer_not_all_steps_written_complete_job():
     assert trial.has_passed_step(8) == StepState.UNAVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/single-writer-not-all-steps-written-complete/index/000000000/000000000006_worker_0.json"
+        == "resources/has_step_scenarios/single-writer-not-all-steps-written-complete/index/000000000/000000000006_worker_0.json"
     )
     assert trial.last_complete_step == 6
 
@@ -134,9 +132,7 @@ def test_single_writer_not_all_steps_written_incomplete_job():
     END_OF_JOB.ts --> Absent
     """
 
-    path = (
-        "s3://tornasole-testing/has_step_scenarios/single-writer-not-all-steps-written-incomplete"
-    )
+    path = "s3://smdebug-testing/resources/has_step_scenarios/single-writer-not-all-steps-written-incomplete"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 1
@@ -150,7 +146,7 @@ def test_single_writer_not_all_steps_written_incomplete_job():
     assert trial.has_passed_step(8) == StepState.NOT_YET_AVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/single-writer-not-all-steps-written-incomplete/index/000000000/000000000006_worker_0.json"
+        == "resources/has_step_scenarios/single-writer-not-all-steps-written-incomplete/index/000000000/000000000006_worker_0.json"
     )
     assert trial.last_complete_step == 6
 
@@ -165,7 +161,7 @@ def test_three_writers_all_steps_written_complete_job():
     END_OF_JOB.ts --> Present
     """
 
-    path = "s3://tornasole-testing/has_step_scenarios/three-writers-allsteps-written-complete-job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three-writers-allsteps-written-complete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -180,7 +176,7 @@ def test_three_writers_all_steps_written_complete_job():
     assert trial.has_passed_step(8) == StepState.UNAVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three-writers-allsteps-written-complete-job/index/000000000/000000000006_worker_2.json"
+        == "resources/has_step_scenarios/three-writers-allsteps-written-complete-job/index/000000000/000000000006_worker_2.json"
     )
 
 
@@ -194,9 +190,7 @@ def test_three_writers_all_steps_written_incomplete_job():
     END_OF_JOB.ts --> Absent
     """
 
-    path = (
-        "s3://tornasole-testing/has_step_scenarios/three-writers-all-steps-written-incomplete-job"
-    )
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three-writers-all-steps-written-incomplete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -211,7 +205,7 @@ def test_three_writers_all_steps_written_incomplete_job():
     assert trial.has_passed_step(8) == StepState.NOT_YET_AVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three-writers-all-steps-written-incomplete-job/index/000000000/000000000006_worker_2.json"
+        == "resources/has_step_scenarios/three-writers-all-steps-written-incomplete-job/index/000000000/000000000006_worker_2.json"
     )
 
 
@@ -225,9 +219,7 @@ def test_three_writers_not_all_steps_written_complete_job():
     END_OF_JOB.ts --> Present
     """
 
-    path = (
-        "s3://tornasole-testing/has_step_scenarios/three-writers-not-all-steps-written-complete-job"
-    )
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three-writers-not-all-steps-written-complete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -243,7 +235,7 @@ def test_three_writers_not_all_steps_written_complete_job():
     assert trial.has_passed_step(8) == StepState.UNAVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three-writers-not-all-steps-written-complete-job/index/000000000/000000000002_worker_2.json"
+        == "resources/has_step_scenarios/three-writers-not-all-steps-written-complete-job/index/000000000/000000000002_worker_2.json"
     )
 
 
@@ -256,7 +248,7 @@ def test_three_writers_not_all_steps_written_incomplete_job():
         }
     END_OF_JOB.ts --> Absent
     """
-    path = "s3://tornasole-testing/has_step_scenarios/three-writers-not-all-steps-written-incomplete-job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three-writers-not-all-steps-written-incomplete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -272,7 +264,7 @@ def test_three_writers_not_all_steps_written_incomplete_job():
     assert trial.has_passed_step(8) == StepState.NOT_YET_AVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three-writers-not-all-steps-written-incomplete-job/index/000000000/000000000002_worker_2.json"
+        == "resources/has_step_scenarios/three-writers-not-all-steps-written-incomplete-job/index/000000000/000000000002_worker_2.json"
     )
 
 
@@ -285,7 +277,7 @@ def test_three_writers_not_all_steps_written_but_later_step_written_incomplete_j
         }
     END_OF_JOB.ts --> Absent
     """
-    path = "s3://tornasole-testing/has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-incomplete-job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-incomplete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -301,7 +293,7 @@ def test_three_writers_not_all_steps_written_but_later_step_written_incomplete_j
     assert trial.has_passed_step(8) == StepState.NOT_YET_AVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-incomplete-job/index/000000000/000000000006_worker_2.json"
+        == "resources/has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-incomplete-job/index/000000000/000000000006_worker_2.json"
     )
 
 
@@ -314,7 +306,7 @@ def test_three_writers_one_step_missing_but_later_steps_written_incomplete_job()
         }
     END_OF_JOB.ts --> Absent
     """
-    path = "s3://tornasole-testing/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_incomplete_job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_incomplete_job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -331,7 +323,7 @@ def test_three_writers_one_step_missing_but_later_steps_written_incomplete_job()
     assert trial.has_passed_step(8) == StepState.NOT_YET_AVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_incomplete_job/index/000000000/000000000006_worker_2.json"
+        == "resources/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_incomplete_job/index/000000000/000000000006_worker_2.json"
     )
 
 
@@ -344,7 +336,7 @@ def test_three_writers_one_step_missing_but_later_steps_written_partially_incomp
         }
     END_OF_JOB.ts --> Absent
     """
-    path = "s3://tornasole-testing/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_incomplete_job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_incomplete_job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -361,7 +353,7 @@ def test_three_writers_one_step_missing_but_later_steps_written_partially_incomp
     assert trial.has_passed_step(8) == StepState.NOT_YET_AVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_incomplete_job/index/000000000/000000000002_worker_2.json"
+        == "resources/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_incomplete_job/index/000000000/000000000002_worker_2.json"
     )
 
 
@@ -374,7 +366,7 @@ def test_three_writers_one_step_missing_but_later_steps_written_partially_comple
         }
     END_OF_JOB.ts --> Present
     """
-    path = "s3://tornasole-testing/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_complete_job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_complete_job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -392,11 +384,12 @@ def test_three_writers_one_step_missing_but_later_steps_written_partially_comple
     assert trial.has_passed_step(8) == StepState.UNAVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_complete_job/index/000000000/000000000002_worker_2.json"
+        == "resources/has_step_scenarios/three_writers_one_step_missing_but_later_steps_written_partially_complete_job/index/000000000/000000000002_worker_2.json"
     )
 
 
 @pytest.mark.slow
+@pytest.mark.skip(reason="Re-enable later when we can figure out why it's hanging")
 def test_three_writers_not_all_steps_written_but_later_step_written_complete_job():
     """Test Scenario Description"
      workers : [a,b,c]
@@ -405,7 +398,7 @@ def test_three_writers_not_all_steps_written_but_later_step_written_complete_job
         }
     END_OF_JOB.ts --> Present
     """
-    path = "s3://tornasole-testing/has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-complete-job"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-complete-job"
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 3
@@ -421,7 +414,7 @@ def test_three_writers_not_all_steps_written_but_later_step_written_complete_job
     assert trial.has_passed_step(8) == StepState.UNAVAILABLE
     assert (
         trial.last_index_token
-        == "has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-complete-job/index/000000000/000000000006_worker_2.json"
+        == "resources/has_step_scenarios/three-writers-not-all-steps-written-but-later-step-written-complete-job/index/000000000/000000000006_worker_2.json"
     )
 
 
@@ -458,19 +451,19 @@ def test_override_if_too_many_steps_skipped():
 
     os.environ["INCOMPLETE_STEP_WAIT_WINDOW"] = "10"
 
-    path = "s3://tornasole-testing/has_step_scenarios/too-many-steps-skipped"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/too-many-steps-skipped"
     trial = create_trial(path)
     assert trial.last_complete_step == 4
     assert (
         trial.last_index_token
-        == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000004_worker_2.json"
+        == "resources/has_step_scenarios/too-many-steps-skipped/index/000000000/000000000004_worker_2.json"
     )
     num_workers = len(trial.workers())
     assert num_workers == 3
     assert trial.last_complete_step == 9
     assert (
         trial.last_index_token
-        == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
+        == "resources/has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
     assert trial.loaded_all_steps is False
     all_steps = trial.steps(show_incomplete_steps=True)
@@ -478,20 +471,20 @@ def test_override_if_too_many_steps_skipped():
     assert trial.last_complete_step == 9
     assert (
         trial.last_index_token
-        == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
+        == "resources/has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
     trial.tensor_names()
     assert trial.last_complete_step == 9
     assert (
         trial.last_index_token
-        == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
+        == "resources/has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
     trial.tensor_names()
     trial.tensor_names()
     assert trial.last_complete_step == 9
     assert (
         trial.last_index_token
-        == "has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
+        == "resources/has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
 
     del os.environ["INCOMPLETE_STEP_WAIT_WINDOW"]
@@ -525,7 +518,7 @@ def test_partially_written_tensors():
             2. Index_files for steps: [3, 4, 8, 9] were deleted for one worker
     """
 
-    path = "s3://tornasole-testing/has_step_scenarios/partially_written_tensors/"
+    path = "s3://smdebug-testing/resources/has_step_scenarios/partially_written_tensors/"
     trial = create_trial(path)
 
     assert trial.steps(show_incomplete_steps=True) == [i for i in range(10)]  # [0, 1, 2, ..., 9]

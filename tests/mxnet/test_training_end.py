@@ -34,9 +34,9 @@ def test_end_local_training():
 @pytest.mark.slow  # 0:04 to run
 def test_end_s3_training():
     run_id = str(uuid.uuid4())
-    bucket = "tornasolecodebuildtest"
-    key = "newlogsRunTest/" + run_id
-    out_dir = bucket + "/" + key
+    bucket = "smdebug-testing"
+    key = f"outputs/{uuid.uuid4()}"
+    out_dir = "s3://" + bucket + "/" + key
     assert has_training_ended(out_dir) == False
     subprocess.check_call(
         [

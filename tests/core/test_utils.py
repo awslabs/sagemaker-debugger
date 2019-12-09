@@ -1,4 +1,5 @@
 # Third Party
+import pytest
 
 # First Party
 from smdebug.core.access_layer import check_dir_exists
@@ -41,7 +42,7 @@ def test_s3_noprefix2():
     assert rval[2] == ""
 
 
-def test_check_dir_exists_no_local():
+def test_check_dir_not_exists_local():
     check_dir_exists("/home/ubuntu/asasdas")
 
 
@@ -53,24 +54,19 @@ def test_check_dir_exists():
         pass
 
 
-def test_check_dir_exists_no_s3():
-    check_dir_exists("s3://tornasole-testing/pleasedontexist")
+def test_check_dir_not_exists_s3():
+    check_dir_exists("s3://smdebug-testing/resources/doesnotexist")
 
 
 def test_check_dir_exists_s3():
-    try:
-        check_dir_exists("s3://tornasole-binaries-use1/tornasole_tf/")
-        assert False
-    except Exception as e:
-        pass
+    # This file should exist in the bucket for proper testing
+    check_dir_exists("s3://smdebug-testing/resources/exists")
 
 
-def test_check_dir_exists_no():
-    try:
-        check_dir_exists("s3://tornasole-binaries-use1")
-        assert False
-    except Exception as e:
-        pass
+@pytest.mark.skip(reason="It's unclear what this is testing.")
+def test_check_dir_not_exists():
+    with pytest.raises(Exception):
+        check_dir_exists("s3://smdebug-testing")
 
 
 def test_index_files_cache():
@@ -103,17 +99,17 @@ def test_index_files_cache():
 
 
 def test_get_prefix_from_index_file():
-    local_index_filepath = (
-        "/opt/ml/tornasole-testing/run_1/index/000000000/000000000000_worker_0.json"
-    )
+    local_index_filepath = "/opt/ml/testing/run_1/index/000000000/000000000000_worker_0.json"
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(local_index_filepath)
 
-    assert prefix == "/opt/ml/tornasole-testing/run_1"
+    assert prefix == "/opt/ml/testing/run_1"
 
-    s3_index_filepath = "s3://tornasole-testing/run_1/index/000000000/000000000000_worker_0.json"
+    s3_index_filepath = (
+        "s3://bucket-that-does-not-exist/run_1/index/000000000/000000000000_worker_0.json"
+    )
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(s3_index_filepath)
 
-    assert prefix == "s3://tornasole-testing/run_1"
+    assert prefix == "s3://bucket-that-does-not-exist/run_1"
 
 
 def test_json_params():

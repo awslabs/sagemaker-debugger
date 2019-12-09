@@ -28,7 +28,7 @@ DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 
 
 class Hook(CallbackHook):
-    """Tornasole hook that represents a callback function in XGBoost."""
+    """Hook that represents a callback function in XGBoost."""
 
     def __init__(
         self,
@@ -58,13 +58,12 @@ class Hook(CallbackHook):
 
         Parameters
         ----------
-        out_dir: A path into which tornasole outputs will be written.
+        out_dir: A path into which outputs will be written.
         dry_run: When dry_run is True, behavior is only described in the log
             file, and evaluations are not actually saved.
         reduction_config: This parameter is not used.
             Placeholder to keep the API consistent with other hooks.
-        save_config: A tornasole_core.SaveConfig object.
-            See an example at https://github.com/awslabs/tornasole_core/blob/master/tests/test_save_config.py
+        save_config: A SaveConfig object.
         include_regex: Tensors matching these regular expressions will be
             available as part of the 'default' collection.
         include_collections: Tensors that should be saved.

@@ -22,7 +22,6 @@ class Rule(ABC):
 
         self.req_tensors = RequiredTensors(self.base_trial, self.other_trials)
 
-        self.actions = None
         self.logger = get_logger()
         self.rule_name = self.__class__.__name__
 
@@ -56,13 +55,4 @@ class Rule(ABC):
             val = self.invoke_at_step(step)
 
         if val:
-            self.run_actions()
             raise RuleEvaluationConditionMet(self.rule_name, step)
-
-    def register_action(self, actions):
-        self.actions = actions
-
-    def run_actions(self):
-        if self.actions is not None:
-            for action in self.actions:
-                action.run(rule_name=self.__class__.__name__)

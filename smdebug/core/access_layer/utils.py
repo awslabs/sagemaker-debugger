@@ -1,16 +1,14 @@
 # Standard Library
-import asyncio
 import os
 
 # Third Party
-import aioboto3
 from botocore.exceptions import ClientError
 
 # First Party
-from smdebug.core.access_layer.s3handler import ListRequest, S3Handler
+from smdebug.core.access_layer.s3handler import DeleteRequest, ListRequest, S3Handler
 from smdebug.core.logger import get_logger
 from smdebug.core.sagemaker_utils import is_sagemaker_job
-from smdebug.core.utils import get_region, is_s3
+from smdebug.core.utils import is_s3
 
 # Local
 from .file import TSAccessFile
@@ -55,9 +53,8 @@ def has_training_ended(trial_prefix):
     s3, bucket_name, key_name = is_s3(file_path)
     if s3:
         try:
-            s3_handler = S3Handler()
             request = ListRequest(bucket_name, key_name)
-            file_available = s3_handler.list_prefixes([request])[0]
+            file_available = S3Handler.list_prefixes([request])[0]
             if len(file_available) > 0:
                 return True
             else:
@@ -74,23 +71,12 @@ def has_training_ended(trial_prefix):
 
 
 def delete_s3_prefixes(bucket, keys):
-    s3_handler = S3Handler()
     if not isinstance(keys, list):
         keys = [keys]
-    list_prefixes = s3_handler.list_prefixes(
-        [ListRequest(Bucket=bucket, Prefix=key) for key in keys]
-    )
-    prefixes = [item for sublist in list_prefixes for item in sublist]
-    loop = asyncio.get_event_loop()
-
-    async def del_folder(bucket, keys):
-        loop = asyncio.get_event_loop()
-        client = aioboto3.client("s3", loop=loop, region_name=get_region())
-        await asyncio.gather(*[client.delete_object(Bucket=bucket, Key=key) for key in keys])
-        await client.close()
-
-    task = loop.create_task(del_folder(bucket, prefixes))
-    loop.run_until_complete(task)
+    delreqs = []
+    for key in keys:
+        delreqs.append(DeleteRequest(bucket, key))
+    S3Handler.delete_prefixes(delreqs)
 
 
 def check_dir_exists(path):
@@ -99,9 +85,8 @@ def check_dir_exists(path):
     s3, bucket_name, key_name = is_s3(path)
     if s3:
         try:
-            s3_handler = S3Handler()
             request = ListRequest(bucket_name, key_name)
-            folder = s3_handler.list_prefixes([request])[0]
+            folder = S3Handler.list_prefixes([request])[0]
             if len(folder) > 0 and has_training_ended(folder[-1]):
                 raise RuntimeError(
                     "The path:{} already exists on s3. "

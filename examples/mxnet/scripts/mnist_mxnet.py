@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument(
         "--output-uri",
         type=str,
-        default="/opt/ml/output/tensors/tornasole",
+        default="/opt/ml/output/tensors/smdebug",
         help="S3 URI of the bucket where tensor data will be stored.",
     )
     parser.add_argument("--learning_rate", type=float, default=0.1)

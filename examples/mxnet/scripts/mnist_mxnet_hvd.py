@@ -162,7 +162,7 @@ for epoch in range(args.epochs):
     train_data.reset()
     metric.reset()
 
-    # Create Tornasole Hook
+    # Create Hook
     hook = create_hook()
     hook.register_hook(model)
 

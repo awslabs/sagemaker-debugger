@@ -154,9 +154,8 @@ class Hook(CallbackHook):
         # This overwhelms the logs; turn back on if you really need it
         # logger.debug("Processing the global step {0} for block {1}".format(self.step, block_name))
 
-        # Output input tensor if it is not a loss block
-        if isinstance(block, mx.gluon.loss.Loss) is False:
-            self._write_inputs(block_name, inputs)
+        # Output input tensor
+        self._write_inputs(block_name, inputs)
 
         # Output output tensors
         self._write_outputs(block_name, outputs)
@@ -212,10 +211,7 @@ class Hook(CallbackHook):
         """
 
         if not isinstance(block, mx.gluon.Block):
-            self.logger.error(
-                f"The given block type {block.__class__.__name__} is not "
-                f"currently supported by Tornasole Hook"
-            )
+            self.logger.error(f"The given block type {block.__class__.__name__} is unsupported.")
             return
 
         # Check if the hook is already registered for this block.
