@@ -4,7 +4,7 @@ from smdebug.core.access_layer.s3handler import ListRequest, S3Handler
 
 # list_info will be a list of ListRequest objects. Returns list of lists of files for each request
 def _list_s3_prefixes(list_info):
-    files = S3Handler().list_prefixes(list_info)
+    files = S3Handler.list_prefixes(list_info)
     if len(files) == 1:
         files = files[0]
     return files
