@@ -6,7 +6,7 @@
   - [Bring your own training container](#bring-your-own-training-container)
 - [Configuring SageMaker Debugger](#configuring-sagemaker-debugger)
   - [Saving data](#saving-data)
-    - [Saving first party collections](#saving-first-party-collections)
+    - [Saving built-in collections that we manage](#saving-built-in-collections-that-we-manage)
     - [Saving reductions for a custom collection](#saving-reductions-for-a-custom-collection)
     - [Enabling TensorBoard summaries](#enabling-tensorboard-summaries)
   - [Rules](#rules)
@@ -66,8 +66,8 @@ Regardless of which of the two above ways you have enabled SageMaker Debugger, y
 
 SageMaker Debugger gives you a powerful and flexible API to save the tensors you choose at the frequencies you want. These configurations are made available in the SageMaker Python SDK through the `DebuggerHookConfig` class.
 
-#### Saving first party collections that we manage
-Learn more about these first party collections [here](api.md).
+#### Saving built-in collections that we manage
+Learn more about these built in collections [here](api.md).
 
 ```python
 from sagemaker.debugger import DebuggerHookConfig, CollectionConfig
@@ -305,7 +305,7 @@ You can retrieve these tensors as numpy arrays allowing you to use your favorite
 
 SageMaker Debugger is on by default for supported training jobs on the official SageMaker Framework containers (or AWS Deep Learning Containers) during SageMaker training jobs.
 In this default scenario, SageMaker Debugger takes the losses and metrics from your training job and publishes them to SageMaker Metrics, allowing you to track these metrics in SageMaker Studio.
-You can also see the status of Rules you have enabled for your training job right in the Studio.
+You can also see the status of Rules you have enabled for your training job right in the Studio. [Here](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-visualization.html) are screenshots of that experience.
 
 ## TensorBoard Visualization
 
