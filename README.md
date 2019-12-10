@@ -4,6 +4,8 @@
 - [Examples](#examples)
 - [How It Works](#how-it-works)
 - [Docs](#docs)
+- [SageMaker Debugger in action](#sagemaker-debugger-in-action)
+
 
 ## Overview
 Amazon SageMaker Debugger is an offering from AWS which help you automate the debugging of machine learning training jobs.
@@ -117,9 +119,9 @@ These framework forks are not available in custom containers or non-SM environme
 | [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by our APIs which allows you to perform interactive exploration of tensors saved as well as to write your own Rules monitoring your training jobs. |
 
 
-## SageMaker Debugger in SageMaker Studio
-- Using SageMaker Debugger with XGBoost to save feature importance values and plot them in a notebook during training. ![](docs/resources/xgboost_feature_importance.png?raw=true)
-- Using SageMaker Debugger with TensorFlow to run built-in rules and visualize the loss. ![](docs/resources/tensorflow_rules_loss.png?raw=true)
+## SageMaker Debugger in action
+- Using SageMaker Debugger with XGBoost in SageMaker Studio to save feature importance values and plot them in a notebook during training. ![](docs/resources/xgboost_feature_importance.png?raw=true)
+- Using SageMaker Debugger with TensorFlow in SageMaker Studio to run built-in rules and visualize the loss. ![](docs/resources/tensorflow_rules_loss.png?raw=true)
 
 
 
