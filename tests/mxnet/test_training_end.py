@@ -20,7 +20,7 @@ def test_end_local_training():
     subprocess.check_call(
         [
             sys.executable,
-            "examples/mxnet/scripts/mnist_gluon_basic_hook_demo.py",
+            "tests/resources/mxnet/mnist_gluon_basic_hook_demo.py",
             "--output-uri",
             out_dir,
             "--num_steps",
@@ -34,14 +34,14 @@ def test_end_local_training():
 @pytest.mark.slow  # 0:04 to run
 def test_end_s3_training():
     run_id = str(uuid.uuid4())
-    bucket = "smdebugcodebuildtest"
-    key = "newlogsRunTest/" + run_id
-    out_dir = bucket + "/" + key
+    bucket = "smdebug-testing"
+    key = f"outputs/{uuid.uuid4()}"
+    out_dir = "s3://" + bucket + "/" + key
     assert has_training_ended(out_dir) == False
     subprocess.check_call(
         [
             sys.executable,
-            "examples/mxnet/scripts/mnist_gluon_basic_hook_demo.py",
+            "tests/resources/mxnet/mnist_gluon_basic_hook_demo.py",
             "--output-uri",
             out_dir,
             "--num_steps",

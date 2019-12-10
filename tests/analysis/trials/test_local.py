@@ -7,17 +7,11 @@ from tests.analysis.utils import check_trial, generate_data
 
 # First Party
 from smdebug.trials import LocalTrial
-from smdebug.trials.trial_catalog import LocalTrialCatalog
 
 
 def check_local(localdir, trial_name, num_steps, num_tensors):
-    tc = LocalTrialCatalog(localdir=localdir)
-    assert trial_name in tc.list_candidates()
     path = os.path.join(localdir, trial_name)
     trial_obj = LocalTrial(name=trial_name, dirname=path)
-    tc.add_trial(trial_name, trial_obj)
-    trial_obj2 = tc.get_trial(trial_name)
-    assert trial_obj == trial_obj2
     check_trial(trial_obj, num_tensors=num_tensors, num_steps=num_steps)
 
 
