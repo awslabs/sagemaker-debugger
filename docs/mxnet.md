@@ -7,7 +7,7 @@
 
 ## Support
 
-- SageMaker Zero-Code-Change supported container: MXNet 1.6. See [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html) for more information.\
+- SageMaker Zero-Code-Change supported container: MXNet 1.6. See [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html) for more information.
 - Python API supported versions: MXNet 1.4, 1.5, 1.6.
 - Only Gluon models are supported
 - When the Gluon model is hybridized, inputs and outputs of intermediate layers can not be saved
@@ -16,8 +16,11 @@
 
 ## Example
 ```python
+#######################################
+# Creating a hook. Refer `API for Saving Tensors` page for more on this
 import smdebug.mxnet as smd
 hook = smd.Hook(out_dir=args.out_dir)
+#######################################
 
 import mxnet as mx
 from mxnet import gluon
@@ -37,7 +40,7 @@ trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': args.lr})
 #######################################
 # Here we register the block to smdebug
 hook.register_block(net)
-
+#######################################
 
 batch_size = 100
 mnist = mx.test_utils.get_mnist()
