@@ -1,11 +1,17 @@
 # MXNet
 
-SageMaker Zero-Code-Change supported container: MXNet 1.6. See [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html) for more information.\
-Python API supported versions: MXNet 1.4, 1.5, 1.6.
-
 ## Contents
 - [Example](#mxnet-example)
 - [Full API](#full-api)
+
+## Support
+
+- SageMaker Zero-Code-Change supported container: MXNet 1.6. See [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html) for more information.\
+- Python API supported versions: MXNet 1.4, 1.5, 1.6.
+- Only Gluon models are supported
+- When the Gluon model is hybridized, inputs and outputs of intermediate layers can not be saved
+- Parameter server based distributed training is not yet supported
+
 
 ## MXNet Example
 ```python
