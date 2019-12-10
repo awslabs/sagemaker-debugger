@@ -1,5 +1,6 @@
 # First Party
 from smdebug import SaveConfig, SaveConfigMode, modes
+from smdebug.core.collection import Collection, CollectionKeys
 from smdebug.trials import create_trial
 
 # Local

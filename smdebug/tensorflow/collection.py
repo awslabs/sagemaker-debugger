@@ -142,7 +142,6 @@ class CollectionManager(BaseCollectionManager):
                 CollectionKeys.BIASES,
                 CollectionKeys.GRADIENTS,
                 CollectionKeys.LOSSES,
-                CollectionKeys.SCALARS,
                 CollectionKeys.METRICS,
                 CollectionKeys.INPUTS,
                 CollectionKeys.OUTPUTS,
