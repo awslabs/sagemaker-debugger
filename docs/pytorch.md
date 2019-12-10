@@ -107,12 +107,12 @@ for (inputs, labels) in trainloader:
     optimizer.zero_grad()
     outputs = net(inputs)
     loss = F.cross_entropy(outputs, labels)
-    
+
     #######################################
     # Manually record the loss
     hook.record_tensor_value(tensor_name="loss", tensor_value=loss)
     #######################################
-    
+
     loss.backward()
     optimizer.step()
 ```
