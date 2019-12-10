@@ -3,11 +3,13 @@
 ## Contents
 - [Support](#support)
 - [How to Use](#how-to-use)
-- [tf.keras](#tf.keras)
+- [tf.keras](#tfkeras)
 - [MonitoredSession](#monitoredsession)
 - [Estimator](#estimator)
 - [Full API](#full-api)
+
 ---
+
 ## Support
 
 ### Versions
@@ -52,9 +54,9 @@ See the [Common API](api.md) page for details on how to do this.
 
 ---
 
-## Hook API
+## Examples
 
-We have three Hooks for different aspects of
+We have three Hooks for different interfaces of TensorFlow. The following is needed to enable SageMaker Debugger on non Zero Script Change supported containers. Refer [SageMaker training](sagemaker.md) on how to use the Zero Script Change experience.
 
 ## tf.keras
 ### Example
@@ -114,5 +116,5 @@ estimator.evaluate(input_fn=eval_input_fn, steps=args.steps, hooks=[hook])
 ---
 
 ## Full API
-See the [Common API](api.md) page for details about the Hooks, Collection, SaveConfig, and ReductionConfig. \
+See the [API for saving tensors](api.md) page for details about the Hooks, Collection, SaveConfig, and ReductionConfig.
 See the [Analysis](analysis.md) page for details about analyzing a training job.
