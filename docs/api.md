@@ -6,7 +6,7 @@
   - [Creating a Hook](#creating-a-hook)
     - [Hook when using SageMaker Python SDK](#hook-when-using-sagemaker-python-sdk)
     - [Configuring Hook using SageMaker Python SDK](#configuring-hook-using-sagemaker-python-sdk)
-    - [Hook from Python](#hook-from-python)
+    - [Hook from Python constructor](#hook-from-python-constructor)
   - [Common Hook API](#common-hook-api)
   - [TensorFlow specific Hook API](#tensorflow-specific-hook-api)
   - [MXNet specific Hook API](#mxnet-specific-hook-api)
@@ -20,7 +20,7 @@
 
 The imports assume `import smdebug.{tensorflow,pytorch,mxnet,xgboost} as smd`.
 
-**Step**: Step means one step taken by the training job. It translates to the forward and backward calls for a single batch.
+**Step**: Step means one the work done by the training job for one batch (i.e. forward and backward pass). (An exception is with TensorFlow's Session interface, where a step also includes the initialization session run calls). SageMaker Debugger is designed in terms of steps. When to save data is specified using steps as well as the invocation of Rules is on a step-by-step basis.
 
 **Hook**: The main class to pass as a callback object, or to create callback functions. It keeps track of collections and writes output files at each step.
 - `hook = smd.Hook(out_dir="/tmp/mnist_job")`
@@ -35,13 +35,13 @@ you're in. Defaults to "global".
 **SaveConfig**: A Python dict specifying how often to save losses and tensors.
 - `save_config = smd.SaveConfig(save_interval=10)`
 
-**ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor.
+**ReductionConfig**: Allows you to save a reduction, such as 'mean' or 'l1 norm', instead of the full tensor. Reductions are simple floats.
 - `reduction_config = smd.ReductionConfig(reductions=['min', 'max', 'mean'], norms=['l1'])`
 
 **Trial**: The main interface to use when analyzing a completed training job. Access collections and tensors. See [trials documentation](analysis.md).
 - `trial = smd.create_trial(out_dir="/tmp/mnist_job")`
 
-**Rule**: A condition that will trigger an exception, for example a vanishing gradient. See [rules documentation](analysis.md).
+**Rule**: A condition to monitor the saved data for. It can trigger an exception when the condition is met, for example a vanishing gradient. See [rules documentation](analysis.md).
 
 ---
 
@@ -73,13 +73,14 @@ hook_config = DebuggerHookConfig(
         "parameter": "value"
     })
 ```
-The parameters can be one of the following. The meaning of these parameters will be clear as you review the sections of documentation below. Note that all parameters below have to be strings. So any parameter which accepts a list (such as save_steps, reductions, include_regex), needs to be given as strings separated by a comma between them.
+The parameters can be one of the following. The meaning of these parameters will be clear as you review the sections of documentation below. Note that all parameters below have to be strings. So for any parameter which accepts a list (such as save_steps, reductions, include_regex), the value needs to be given as strings separated by a comma between them.
 ```
 dry_run
 save_all
 include_workers
 include_regex
 reductions
+save_raw_tensor
 save_interval
 save_steps
 start_step
@@ -102,7 +103,7 @@ global.start_step
 global.end_step
 ```
 
-#### Hook from Python
+#### Hook from Python constructor
 See the framework-specific pages for more details.
 
 HookClass below can be one of `KerasHook`, `SessionHook`, `EstimatorHook` for TensorFlow, or is just `Hook` for MXNet, Pytorch and XGBoost.
@@ -287,6 +288,7 @@ The parameters can be one of the following. The meaning of these parameters will
 include_regex
 save_histogram
 reductions
+save_raw_tensor
 save_interval
 save_steps
 start_step
@@ -411,7 +413,7 @@ will save the standard deviation and variance, the mean of the absolute value, a
 The reductions are passed as part of the "reductions" parameter to HookParameters or Collection Parameters.
 Refer [Configuring Hook using SageMaker Python SDK](#configuring-hook-using-sagemaker-python-sdk) and [Configuring Collection using SageMaker Python SDK](#configuring-collection-using-sagemaker-python-sdk) for more on that.
 
-The parameter "reductions" can take the following values:
+The parameter "reductions" can take a comma separated string consisting of the following values:
 ```
 min
 max
