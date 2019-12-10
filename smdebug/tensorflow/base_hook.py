@@ -87,34 +87,63 @@ class TensorflowBaseHook(BaseHook):
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
         self.device_map = {}
         self.writer_map = {}
-        self.distribution_strategy = None
         # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
+        self._exported_collections = False
+        self._distribution_strategy = {
+            ModeKeys.TRAIN: None,
+            ModeKeys.EVAL: None,
+            ModeKeys.PREDICT: None,
+            ModeKeys.GLOBAL: None,
+        }
+        self._prepared_tensors = {
+            ModeKeys.TRAIN: False,
+            ModeKeys.EVAL: False,
+            ModeKeys.PREDICT: False,
+            ModeKeys.GLOBAL: False,
+        }
+        self._exported_model = {
+            ModeKeys.TRAIN: False,
+            ModeKeys.EVAL: False,
+            ModeKeys.PREDICT: False,
+            ModeKeys.GLOBAL: False,
+        }
         set_hook(self)
 
-    def _get_distribution_strategy(self) -> TFDistributionStrategy:
+    @property
+    def distribution_strategy(self):
+        return self._distribution_strategy[self.mode]
+
+    @distribution_strategy.setter
+    def distribution_strategy(self, distribution_strategy):
+        self._distribution_strategy[self.mode] = distribution_strategy
+
+    def _load_distribution_strategy(self) -> TFDistributionStrategy:
+        strategy = None
         try:
             import horovod.tensorflow as hvd
 
             if hvd.size():
-                return TFDistributionStrategy.HOROVOD
+                strategy = TFDistributionStrategy.HOROVOD
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
-            return TFDistributionStrategy.MIRRORED
+            strategy = TFDistributionStrategy.MIRRORED
 
         if isinstance(strat, _DefaultDistributionStrategy):
             # single device
-            return TFDistributionStrategy.NONE
+            strategy = TFDistributionStrategy.NONE
 
         # Disable PS till we verify proper support of PS on SM
         # if self.tf_config_json and is_parameter_server_strategy(self.tf_config):
         #     return TFDistributionStrategy.PARAMETER_SERVER
 
-        return TFDistributionStrategy.UNSUPPORTED
+        if strategy is None:
+            strategy = TFDistributionStrategy.UNSUPPORTED
+        self.distribution_strategy = strategy
 
     def _assert_distribution_strategy(self):
         """
@@ -124,7 +153,7 @@ class TensorflowBaseHook(BaseHook):
         """
         assert (
             self.distribution_strategy is not None
-        ), "_get_distribution_strategy should be called before this method"
+        ), "_load_distribution_strategy should be called before this method"
 
     def _get_worker_name(self) -> str:
         """
@@ -154,6 +183,8 @@ class TensorflowBaseHook(BaseHook):
             raise NotImplementedError
 
     def export_collections(self):
+        assert self._prepared_tensors[self.mode]
+
         if self.save_all_workers is False:
             num_workers = 1
         else:
@@ -202,6 +233,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
             self.chief_worker = DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
+            assert self._prepared_tensors[self.mode]
             if len(self.device_map):
                 self.chief_worker = sorted(self.device_map.keys())[0]
             else:
@@ -402,14 +434,11 @@ class TensorflowBaseHook(BaseHook):
         )
 
     def save_scalar(self, name, value, sm_metric=False):
-        """
-        save_scalar() not supported on Tensorflow
-        """
-        self.logger.warning(
-            "save_scalar not supported on Tensorflow. "
-            "Add the scalar to scalars or sm_metrics collection instead. "
+        raise NotImplementedError(
+            "save_scalar not supported for Tensorflow. "
+            "Add the scalar to scalars or sm_metrics collection instead depending "
+            "on whether you want the scalar to show up as a SageMaker Metric. "
         )
-        return
 
     @staticmethod
     def _make_numpy_array(tensor_value):

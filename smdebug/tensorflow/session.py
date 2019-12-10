@@ -205,11 +205,17 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         # so collections have save configs and reduction configs
         self._prepare_collections()
 
+        self._add_losses()
+        self._add_weights_and_biases()
+        self._add_summaries_tensors()
+
         for op in self.graph.get_operations():
             for tensor in op.outputs:
                 if is_placeholder(tensor):
                     self._placeholder_tensors.add(tensor)
                 self._check_and_add_tensor(tensor)
+
+        self._prepared_tensors[self.mode] = True
 
     def _add_summaries_tensors(self):
         if CollectionKeys.TENSORFLOW_SUMMARIES in self.include_collections:
@@ -230,9 +236,15 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 # adds a tensor_ref with name `w1/read:0` and export_name `w1:0`
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
 
+    def _add_losses(self):
+        losses = tf.losses.get_losses()
+        self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
+
     def _is_not_supported(self):
         if self._hook_supported is None:
             self._hook_supported = True
+            if self.distribution_strategy is None:
+                self._load_distribution_strategy()
             if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 from packaging import version
 
@@ -251,12 +263,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 self._hook_supported = False
         return not self._hook_supported
 
-    def begin(self):
-        self.distribution_strategy = self._get_distribution_strategy()
-        if self._is_not_supported():
-            return
-
-        # clear all caches so we don't interfere with other modes
+    def _clear_cached_state(self):
         self._subgraph_nodes = {}
         self._tensor_placeholder_dependence = {}
         self._placeholder_tensors = set()
@@ -266,22 +273,28 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         # setting this to False means that on next apply_gradients/get_grads gradients will be set again
         self._gradients_set = False
 
-        # todo: use global step from TF instead of internal steps
+    def begin(self):
+        if self._is_not_supported():
+            return
 
+        # clear all caches so we don't interfere with other modes
+        self._clear_cached_state()
+
+        # todo: use global step from TF instead of internal steps
         # todo: handle multiple graphs in the model
         self.worker = self._get_worker_name()
         self.graph = tf.get_default_graph()
 
-        self._add_weights_and_biases()
-
-        losses = tf.losses.get_losses()
-        self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
-
-        self._add_summaries_tensors()
         self._add_tensors()
         self._set_chief_worker()
-        self._export_model()
-        self.export_collections()
+
+        if self._exported_model[self.mode] is False:
+            self._export_model()
+            self._exported_model[self.mode] = True
+
+        if self._exported_collections is False:
+            self.export_collections()
+            self._exported_collections = True
 
     def _get_tensors_to_save_this_step(self) -> set:
         tensors_to_save = set()

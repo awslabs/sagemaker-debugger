@@ -57,24 +57,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             save_all=save_all,
             include_workers=include_workers,
         )
-        self._exported_collections = False
-        self._exported_model = {
-            ModeKeys.TRAIN: False,
-            ModeKeys.EVAL: False,
-            ModeKeys.PREDICT: False,
-        }
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
-        self._prepared_tensors = {
-            ModeKeys.TRAIN: False,
-            ModeKeys.EVAL: False,
-            ModeKeys.PREDICT: False,
-        }
         self.callable_cache = CallableCache()
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
-            self.distribution_strategy = self._get_distribution_strategy()
+            self._load_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
             if tf.executing_eagerly() or (
@@ -298,8 +287,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
-        self._prepared_tensors[mode] = True
-
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
         for coll in self.collection_manager.get_collections().values():
@@ -447,7 +434,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._close_writers()
 
     def _on_any_mode_begin(self, mode):
-        self.distribution_strategy = self._get_distribution_strategy()
         if self._is_not_supported():
             return
         self.worker = self._get_worker_name()
@@ -494,6 +480,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self._validate_exec_function(self._get_exec_function(mode)):
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
+                self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
                 # so we know that device map is populated
                 self._set_chief_worker()
