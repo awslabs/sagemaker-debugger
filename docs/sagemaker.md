@@ -176,6 +176,8 @@ sagemaker_estimator = sm.tensorflow.TensorFlow(
 sagemaker_estimator.fit()
 ```
 
+For more details, refer our [API page](api.md).
+
 ### Rules
 Here are some examples on how to run Rules with your training jobs.
 
@@ -289,6 +291,8 @@ sagemaker_estimator = sm.tensorflow.TensorFlow(
 )
 sagemaker_estimator.fit()
 ```
+
+For more details, refer our [Analysis page](analysis.md).
 
 ## Interactive Exploration
 
