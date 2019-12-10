@@ -1,7 +1,8 @@
 # MXNet
 
 ## Contents
-- [Example](#mxnet-example)
+- [Support](#support)
+- [Example](#example)
 - [Full API](#full-api)
 
 ## Support
@@ -13,7 +14,7 @@
 - Parameter server based distributed training is not yet supported
 
 
-## MXNet Example
+## Example
 ```python
 import smdebug.mxnet as smd
 hook = smd.Hook(out_dir=args.out_dir)
@@ -66,6 +67,6 @@ for i in range(args.epochs):
 ---
 
 ## Full API
-See the [API](api.md) page for details about Hook, Collection, SaveConfig, and ReductionConfig
+See the [API for Saving Tensors](api.md) page for details about Hook, Collection, SaveConfig, and ReductionConfig
 
 See the [Analysis](analysis) page for details about analyzing a training job.
