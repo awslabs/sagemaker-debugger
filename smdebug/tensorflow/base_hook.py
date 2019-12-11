@@ -119,31 +119,28 @@ class TensorflowBaseHook(BaseHook):
     def distribution_strategy(self, distribution_strategy):
         self._distribution_strategy[self.mode] = distribution_strategy
 
-    def _load_distribution_strategy(self) -> TFDistributionStrategy:
-        strategy = None
+    def _get_distribution_strategy(self) -> TFDistributionStrategy:
         try:
             import horovod.tensorflow as hvd
 
             if hvd.size():
-                strategy = TFDistributionStrategy.HOROVOD
+                return TFDistributionStrategy.HOROVOD
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
-            strategy = TFDistributionStrategy.MIRRORED
+            return TFDistributionStrategy.MIRRORED
 
         if isinstance(strat, _DefaultDistributionStrategy):
             # single device
-            strategy = TFDistributionStrategy.NONE
+            return TFDistributionStrategy.NONE
 
         # Disable PS till we verify proper support of PS on SM
         # if self.tf_config_json and is_parameter_server_strategy(self.tf_config):
         #     return TFDistributionStrategy.PARAMETER_SERVER
 
-        if strategy is None:
-            strategy = TFDistributionStrategy.UNSUPPORTED
-        self.distribution_strategy = strategy
+        return TFDistributionStrategy.UNSUPPORTED
 
     def _assert_distribution_strategy(self):
         """
@@ -153,7 +150,7 @@ class TensorflowBaseHook(BaseHook):
         """
         assert (
             self.distribution_strategy is not None
-        ), "_load_distribution_strategy should be called before this method"
+        ), "_get_distribution_strategy should be called before this method"
 
     def _get_worker_name(self) -> str:
         """
