@@ -174,7 +174,16 @@ def test_monitored_session(script_mode: bool = False):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
-    with SagemakerSimulator() as sim:
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/opt/ml/output/tensors",
+                "HookParameters" : {
+                    "save_interval": "100"
+                }
+            }
+            """
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         train_op, X, Y = get_train_op_and_placeholders()
         init = tf.compat.v1.global_variables_initializer()
         mnist = get_data()
@@ -205,6 +214,9 @@ def test_monitored_session_gradients_zcc():
     {
         "S3OutputPath": "s3://sagemaker-test",
         "LocalPath": "/opt/ml/output/tensors",
+        "HookParameters" : {
+            "save_interval": "100"
+        },
         "CollectionConfigurations": [
             {
                 "CollectionName": "gradients"
