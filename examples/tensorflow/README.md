@@ -5,10 +5,10 @@ Please refer to the example notebooks in [Amazon SageMaker Examples repository](
 ## Example scripts
 The above notebooks come with example scripts which can be used through SageMaker. Some more example scripts are here in [scripts/](scripts/)
 
-## Example configurations for saving tensors through SageMaker pySDK
+## Example configurations for saving tensors through [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk)
 Example configurations for saving tensors through the hook are available at [docs/sagemaker.md](../docs/sagemaker.md)
 
-## Example configurations for running rules through SageMaker pySDK
+## Example configurations for running rules through [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk)
 Example configurations for saving tensors through the hook are available at [docs/sagemaker.md](../docs/sagemaker.md)
 
 ## Example for running rule locally
