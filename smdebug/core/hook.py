@@ -14,6 +14,7 @@ from smdebug.core.collection import (
     NON_REDUCTION_COLLECTIONS,
     SCALAR_COLLECTIONS,
     SM_METRIC_COLLECTIONS,
+    Collection,
     CollectionKeys,
 )
 from smdebug.core.collection_manager import CollectionManager
@@ -718,14 +719,19 @@ class BaseHook:
         :return: numpy ndarray
         """
 
-    def add_to_collection(self, collection_name, variable):
-        self.collection_manager.get(collection_name).add(variable)
-
     def get_collection(self, name, create=True):
         return self.collection_manager.get(name, create=create)
 
     def get_collections(self):
         return self.collection_manager.get_collections()
+
+    def add_collection(self, collection):
+        if not isinstance(collection, Collection):
+            raise TypeError(
+                f"collection must be an instance of Collection class. "
+                f"value of type {collection.__class__} is not supported"
+            )
+        self.collection_manager.add(collection)
 
 
 class CallbackHook(BaseHook):
