@@ -334,6 +334,8 @@ Contains the path to the directory where metrics will be recorded for consumptio
 This is relevant only in SageMaker environment, where this variable points to a pre-defined location.
 
 
+**Note**: The environment variables below are applicable for versions > 0.4.14
+
 #### `SMDEBUG_TRAINING_END_DELAY_REFRESH`:
 
 During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
