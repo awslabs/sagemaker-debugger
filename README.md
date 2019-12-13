@@ -57,8 +57,8 @@ sagemaker_simple_estimator = sm.tensorflow.TensorFlow(
 sagemaker_simple_estimator.fit()
 tensors_path = sagemaker_simple_estimator.latest_job_debugger_artifacts_path()
 
-import smdebug as smd
-trial = smd.trials.create_trial(out_dir=tensors_path)
+import smdebug.trials as smd
+trial = smd.create_trial(out_dir=tensors_path)
 print(f"Saved these tensors: {trial.tensor_names()}")
 print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').values(mode=smd.modes.EVAL)}")
 ```
