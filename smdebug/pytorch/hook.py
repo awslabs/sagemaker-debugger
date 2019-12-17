@@ -12,7 +12,7 @@ from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
 
-DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES, CollectionKeys.SCALARS]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
 class Hook(CallbackHook):

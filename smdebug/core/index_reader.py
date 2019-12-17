@@ -256,8 +256,6 @@ class S3IndexReader(IndexReader):
         super().__init__(path)
         self.path = path
         _, self.bucket_name, self.prefix_name = is_s3(path)
-        self.s3_handler = S3Handler()
-
         self.index_file_cache = ReadIndexFilesCache()
 
     def _is_event_file_present(self, file):
@@ -274,7 +272,7 @@ class S3IndexReader(IndexReader):
         start = tensor_location.start_idx
         length = tensor_location.length
         request = [ReadObjectRequest(event_file_name, int(start), int(length))]
-        res = self.s3_handler.get_objects(request)
+        res = S3Handler.get_objects(request)
         tr = TensorReader(res[0])  # Access the only element in res
         tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
@@ -323,7 +321,7 @@ class S3IndexReader(IndexReader):
                     )
                 self.index_file_cache.add(index_file, start_after_key)
 
-        responses = self.s3_handler.get_objects(object_requests)
+        responses = S3Handler.get_objects(object_requests)
         return responses, steps, start_after_key, workers
 
     def list_index_files(self, start_after_key=None):

@@ -448,3 +448,6 @@ class TensorflowBaseHook(BaseHook):
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
         return get_numpy_reduction(reduction_name, tensor_value, abs)
+
+    def add_to_collection(self, collection_name, variable):
+        self.collection_manager.get(collection_name).add(variable)

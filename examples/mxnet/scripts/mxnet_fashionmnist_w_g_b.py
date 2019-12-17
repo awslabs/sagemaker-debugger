@@ -1,7 +1,14 @@
+"""
+This script is a simple FashionMNIST training script which uses MXNet's.
+It has been orchestrated with SageMaker Debugger hook to allow saving tensors during training.
+Here, the hook has been created using its constructor to allow running this locally for your experimentation.
+When you want to run this script in SageMaker, it is recommended to create the hook from json file.
+Please see scripts in either /examples/tensorflow/sagemaker_byoc or /examples/tensorflow/sagemaker_official_container
+folder based on your use case.
+"""
 # Standard Library
 import argparse
 import random
-import uuid
 
 # Third Party
 import mxnet as mx
@@ -17,18 +24,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train a mxnet gluon model for FashionMNIST dataset"
     )
-    parser.add_argument(
-        "--output-uri",
-        type=str,
-        default=f"s3://smdebug-testing/outputs/vg-demo-{uuid.uuid4()}",
-        help="S3 URI of the bucket where tensor data will be stored.",
-    )
-    parser.add_argument(
-        "--smdebug_path",
-        type=str,
-        default=None,
-        help="S3 URI of the bucket where tensor data will be stored.",
-    )
+    parser.add_argument("--output-uri", type=str, help="Folder where tensor data will be stored.")
     parser.add_argument("--random_seed", type=bool, default=False)
     parser.add_argument(
         "--num_steps",
@@ -135,7 +131,7 @@ def create_gluon_model():
 
 # Create a hook. The initialization of hook determines which tensors
 # are logged while training is in progress.
-# Following function shows the default initialization that enables logging of
+# Following function shows the initialization that enables logging of
 # weights, biases and gradients in the model.
 def create_hook(output_uri, save_frequency):
     # With the following SaveConfig, we will save tensors with the save_interval 100.
@@ -166,7 +162,7 @@ def main():
 
     # Create a hook for logging the desired tensors.
     # The output_uri is a the URI where the tensors will be saved. It can be local or s3://bucket/prefix
-    output_uri = opt.smdebug_path if opt.smdebug_path is not None else opt.output_uri
+    output_uri = opt.output_uri
     hook = create_hook(output_uri, opt.save_frequency)
 
     # Register the hook to the top block.

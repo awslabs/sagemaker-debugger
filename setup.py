@@ -10,19 +10,7 @@ exec(open("smdebug/_version.py").read())
 CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
-INSTALL_REQUIRES = [
-    # aiboto3 implicitly depends on aiobotocore
-    "aioboto3==6.4.1",  # no version deps
-    "aiobotocore==0.11.0",  # pinned to a specific botocore & boto3
-    "aiohttp>=3.6.0,<4.0",  # aiobotocore breaks with 4.0
-    # boto3 explicitly depends on botocore
-    "boto3>=1.10.32",  # Sagemaker requires >= 1.9.213
-    "botocore>=1.13.32",
-    "nest_asyncio",
-    "protobuf>=3.6.0",
-    "numpy",
-    "packaging",
-]
+INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging", "boto3>=1.10.32"]
 
 
 def compile_summary_protobuf():
