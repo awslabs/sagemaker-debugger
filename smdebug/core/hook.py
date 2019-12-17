@@ -462,10 +462,6 @@ class BaseHook:
             self.state_store.update_state(current_state)
 
     def set_mode(self, mode):
-        # flush out any writes before switching modes
-        if self.writer is not None:
-            self._close_writers()
-
         # train
         if mode in ALLOWED_MODES:
             self.mode = mode
