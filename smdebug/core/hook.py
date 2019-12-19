@@ -19,7 +19,7 @@ from smdebug.core.collection import (
 )
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
-    CONFIG_DEFAULT_WORKER_NAME,
+    DEFAULT_WORKER_NAME,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
@@ -125,7 +125,7 @@ class BaseHook:
         self.dry_run = dry_run
         self.worker = None
         self.save_all_workers = True if include_workers == "all" else False
-        self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
+        self.chief_worker = DEFAULT_WORKER_NAME
 
         if include_collections is None:
             include_collections = default_include_collections
@@ -142,7 +142,6 @@ class BaseHook:
         self.reduction_config = reduction_config
         self.include_regex = include_regex
         self.collection_manager = collection_manager
-        self.collection_manager.set_num_workers(self._get_num_workers())
         self.init_step = init_step
 
         self.logger = logger
@@ -387,9 +386,8 @@ class BaseHook:
         :param tensor_ref: used by TF
         :return: List[FileWriter]
         """
-        if self.save_all_workers is False:
-            if self.worker != self.chief_worker:
-                return []
+        if self.save_all_workers is False and self.worker != self.chief_worker:
+            return []
         return [self.writer] if self.writer else []
 
     def _maybe_get_tb_writer(self) -> Optional[FileWriter]:

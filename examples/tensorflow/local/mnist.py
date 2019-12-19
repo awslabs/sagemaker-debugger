@@ -31,7 +31,7 @@ def main():
     parser.add_argument(
         "--num_steps",
         type=int,
-        help="Number of steps to train for. If this" "is passed, it overrides num_epochs",
+        help="Number of steps to train for. If this is passed, it overrides num_epochs",
     )
     parser.add_argument(
         "--num_eval_steps",
@@ -47,6 +47,8 @@ def main():
         np.random.seed(2)
         random.seed(12)
 
+    ##### Enabling SageMaker Debugger ###########
+    # creating hook
     hook = smd.EstimatorHook(
         out_dir=args.out_dir,
         include_collections=["weights", "gradients"],
@@ -104,7 +106,8 @@ def main():
         if mode == tf.estimator.ModeKeys.TRAIN:
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=args.lr)
 
-            # SMD: Wrap your optimizer as follows to help SageMaker Debugger identify gradients
+            ##### Enabling SageMaker Debugger ###########
+            # Wrap your optimizer as follows to help SageMaker Debugger identify gradients
             # This does not change your optimization logic, it returns back the same optimizer
             optimizer = hook.wrap_optimizer(optimizer)
 
@@ -140,12 +143,20 @@ def main():
         x={"x": eval_data}, y=eval_labels, num_epochs=1, shuffle=False
     )
 
+    ##### Enabling SageMaker Debugger ###########
     # Set training mode so SMDebug can classify the steps into training mode
     hook.set_mode(smd.modes.TRAIN)
+
+    ##### Enabling SageMaker Debugger ###########
+    # pass hook to hooks parameter of train method
     mnist_classifier.train(input_fn=train_input_fn, steps=args.num_steps, hooks=[hook])
 
+    ##### Enabling SageMaker Debugger ###########
     # Set eval mode so SMDebug can classify the steps into eval mode
     hook.set_mode(smd.modes.EVAL)
+
+    ##### Enabling SageMaker Debugger ###########
+    # pass hook to hooks parameter of evaluate method
     mnist_classifier.evaluate(input_fn=eval_input_fn, steps=args.num_eval_steps, hooks=[hook])
 
 

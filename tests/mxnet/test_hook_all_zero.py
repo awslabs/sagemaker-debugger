@@ -37,10 +37,7 @@ def test_hook_all_zero(hook=None, out_dir=None):
     assert len(tr.steps()) == 4
 
     tnames = tr.tensor_names(regex="conv._input")
-    print(tnames)
     tname = tr.tensor_names(regex="conv._input")[0]
-    print(tname)
-    print(tr.tensor(tname).steps())
     conv_tensor_value = tr.tensor(tname).value(step_num=0)
     is_zero = np.all(conv_tensor_value == 0)
     assert is_zero == True
