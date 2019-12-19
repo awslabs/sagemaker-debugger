@@ -1,13 +1,14 @@
 # Standard Library
 import os
 import sys
+from datetime import date
 
 # Third Party
 import setuptools
 
-exec(open("smdebug/_version.py").read())
+# First Party
+import smdebug
 
-CURRENT_VERSION = __version__
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging", "boto3>=1.10.32"]
@@ -82,4 +83,15 @@ if scan_git_secrets() != 0:
 
     sys.exit(1)
 
-build_package(version=CURRENT_VERSION)
+
+def detect_smdebug_version():
+    sys.path.append(os.path.abspath("smdebug"))
+    if "--release" in sys.argv:
+        sys.argv.remove("--release")
+        return smdebug.__version__.strip()
+
+    return smdebug.__version__.strip() + "b" + str(date.today()).replace("-", "")
+
+
+version = detect_smdebug_version()
+build_package(version=version)
