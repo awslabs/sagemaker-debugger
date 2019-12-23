@@ -46,7 +46,7 @@ def build_package(version):
     setuptools.setup(
         name="smdebug",
         version=version,
-        long_description="\n".join(DOCLINES[2:]),
+        long_description="\n".join(DOCLINES[1:]),
         long_description_content_type="text/x-rst",
         author="AWS DeepLearning Team",
         description=DOCLINES[0],
@@ -103,7 +103,6 @@ if scan_git_secrets() != 0:
 
 
 def detect_smdebug_version():
-    sys.path.append(os.path.abspath("smdebug"))
     if "--release" in sys.argv:
         sys.argv.remove("--release")
         return smdebug.__version__.strip()
