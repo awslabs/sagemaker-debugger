@@ -8,6 +8,9 @@ import numpy as np
 from mxnet import autograd, gluon
 from mxnet.gluon import nn
 
+# First Party
+from smdebug.core.utils import SagemakerSimulator
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -155,17 +158,32 @@ def main():
     # Start the training.
     train_data, val_data = prepare_data(opt.batch_size)
 
-    train_model(
-        net=net,
-        epochs=opt.epochs,
-        ctx=context,
-        learning_rate=opt.learning_rate,
-        momentum=0.9,
-        train_data=train_data,
-        val_data=val_data,
-    )
-    if opt.validate:
-        validate()
+    json_file_contents = """
+        {
+            "S3OutputPath": "s3://sagemaker-test",
+            "LocalPath": "/tmp/mxnet_integ_test",
+            "CollectionConfigurations": [
+                {
+                    "CollectionName": "losses",
+                    "CollectionParameters": {
+                        "save_interval": 100
+                    }
+                }
+            ]
+        }
+        """
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        train_model(
+            net=net,
+            epochs=opt.epochs,
+            ctx=context,
+            learning_rate=opt.learning_rate,
+            momentum=0.9,
+            train_data=train_data,
+            val_data=val_data,
+        )
+        if opt.validate:
+            validate()
 
 
 if __name__ == "__main__":
