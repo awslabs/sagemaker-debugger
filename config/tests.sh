@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
+set -e
 set -ex
+set -o pipefail
 
 check_logs() {
   if grep -e "AssertionError" $1;
