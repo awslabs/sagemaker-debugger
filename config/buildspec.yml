@@ -36,3 +36,5 @@ phases:
       - . $CODEBUILD_SRC_DIR/config/upload_on_end.sh
       - rm -rf $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
       - rm -rf $RULES_CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
