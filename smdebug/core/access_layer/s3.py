@@ -43,7 +43,6 @@ class TSAccessS3(TSAccessBase):
     def _init_data(self):
         if self.binary:
             self.data = bytearray()
-            print("binaryyyyyyy\n")
         else:
             self.data = ""
 
@@ -61,13 +60,17 @@ class TSAccessS3(TSAccessBase):
         if self.flushed:
             return
         if self.binary:
-            print(type(self.data))
+            self.logger.debug(
+                f"Sagemaker-Debugger: Writing binary data to s3://{os.path.join(self.bucket_name, self.key_name)}"
+            )
             self.s3_client.upload_fileobj(
                 io.BytesIO(self.data), self.bucket_name, self.key_name, Config=self.transfer_config
             )
         else:
             f = tempfile.NamedTemporaryFile(mode="w+")
-            print(type(self.data))
+            self.logger.debug(
+                f"Sagemaker-Debugger: Writing string data to s3://{os.path.join(self.bucket_name, self.key_name)}"
+            )
 
             f.write(self.data)
             f.flush()
