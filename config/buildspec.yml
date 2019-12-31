@@ -6,7 +6,7 @@ env:
     run_pytest_pytorch: "enable"
     run_pytest_mxnet: "enable"
     run_pytest_tensorflow: "enable"
-    run_pytest_xgboost: "enable"
+    run_pytest_xgboost: "disable"
 phases:
   install:
     commands:
