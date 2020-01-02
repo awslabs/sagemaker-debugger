@@ -5,7 +5,6 @@ from tensorflow.python.keras.backend import is_placeholder
 
 # First Party
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.config_constants import CONFIG_DEFAULT_WORKER_NAME
 from smdebug.core.tfevent.proto.summary_pb2 import Summary
 from smdebug.core.tfevent.util import make_numpy_array
 from smdebug.core.utils import match_inc
@@ -17,7 +16,6 @@ from .utils import (
     TFDistributionStrategy,
     build_fetches_tuple,
     extract_graph_summary,
-    get_chief_worker_parameter_server,
     tensor_can_be_saved,
 )
 
@@ -207,11 +205,17 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         # so collections have save configs and reduction configs
         self._prepare_collections()
 
+        self._add_losses()
+        self._add_weights_and_biases()
+        self._add_summaries_tensors()
+
         for op in self.graph.get_operations():
             for tensor in op.outputs:
                 if is_placeholder(tensor):
                     self._placeholder_tensors.add(tensor)
                 self._check_and_add_tensor(tensor)
+
+        self._prepared_tensors[self.mode] = True
 
     def _add_summaries_tensors(self):
         if CollectionKeys.TENSORFLOW_SUMMARIES in self.include_collections:
@@ -232,10 +236,16 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 # adds a tensor_ref with name `w1/read:0` and export_name `w1:0`
                 self.collection_manager.get(CollectionKeys.WEIGHTS).add(w)
 
+    def _add_losses(self):
+        losses = tf.losses.get_losses()
+        self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
+
     def _is_not_supported(self):
+        if self.distribution_strategy is None:
+            self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
-            if self._get_distribution_strategy() == TFDistributionStrategy.MIRRORED_STRATEGY:
+            if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 from packaging import version
 
                 if version.parse(tf.__version__) < version.parse("1.14.0"):
@@ -246,18 +256,14 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                         "Disabling SMDebug as it does not support mirrored strategy"
                         "with TensorFlow version <1.14"
                     )
-            elif self._get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED:
+            elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
                 self.logger.info(
                     f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
                 )
                 self._hook_supported = False
         return not self._hook_supported
 
-    def begin(self):
-        if self._is_not_supported():
-            return
-
-        # clear all caches so we don't interfere with other modes
+    def _clear_cached_state(self):
         self._subgraph_nodes = {}
         self._tensor_placeholder_dependence = {}
         self._placeholder_tensors = set()
@@ -267,34 +273,28 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         # setting this to False means that on next apply_gradients/get_grads gradients will be set again
         self._gradients_set = False
 
-        # todo: use global step from TF instead of internal steps
+    def begin(self):
+        if self._is_not_supported():
+            return
 
+        # clear all caches so we don't interfere with other modes
+        self._clear_cached_state()
+
+        # todo: use global step from TF instead of internal steps
         # todo: handle multiple graphs in the model
         self.worker = self._get_worker_name()
-        self.distribution_strategy = self._get_distribution_strategy()
         self.graph = tf.get_default_graph()
 
-        self._add_weights_and_biases()
-
-        losses = tf.losses.get_losses()
-        self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
-
-        self._add_summaries_tensors()
         self._add_tensors()
+        self._set_chief_worker()
 
-        if self.save_all_workers is False:
-            if self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER_STRATEGY:
-                self.chief_worker = get_chief_worker_parameter_server(self.tf_config)
-            elif self.distribution_strategy == TFDistributionStrategy.HOROVOD:
-                self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
-            elif (
-                len(self.device_map)
-                and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
-            ):
-                self.chief_worker = sorted(self.device_map.keys())[0]
+        if self._exported_model[self.mode] is False:
+            self._export_model()
+            self._exported_model[self.mode] = True
 
-        self._export_model()
-        self.export_collections()
+        if self._exported_collections is False:
+            self.export_collections()
+            self._exported_collections = True
 
     def _get_tensors_to_save_this_step(self) -> set:
         tensors_to_save = set()

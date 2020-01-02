@@ -305,8 +305,9 @@ def test_basic(out_dir, zcc=False):
 
     tr = create_trial_fast_refresh(out_dir)
     # wts, grads, losses
-    print(tr.tensor_names())
-    assert len(tr.tensor_names()) == 8 + 8 + (1 * strategy.num_replicas_in_sync) + 1
+    assert (
+        len(tr.tensor_names()) == 8 + 8 + (1 * strategy.num_replicas_in_sync) + 1
+    )  # 1 main loss, and 1 from each worker
     assert len(tr.steps()) == 7
     assert len(tr.steps(ModeKeys.TRAIN)) == 3
     assert len(tr.steps(ModeKeys.EVAL)) == 2
@@ -319,7 +320,7 @@ def test_basic(out_dir, zcc=False):
             for worker in tr.tensor(tname).workers(s, ModeKeys.TRAIN):
                 assert tr.tensor(tname).value(s, worker=worker, mode=ModeKeys.TRAIN) is not None
         for s in tr.tensor(tname).steps(ModeKeys.EVAL):
-            assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
+            assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1  # as eval_dist = False
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
     tensornames = tr.tensor_names(regex="Identity_\d+:0")
@@ -334,12 +335,12 @@ def test_basic(out_dir, zcc=False):
     for tname in tr.tensor_names(collection="losses"):
         if tname != tensornames[0]:
             for s in tr.tensor(tname).steps(ModeKeys.TRAIN):
-                assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1
+                assert len(tr.tensor(tname).workers(s, ModeKeys.TRAIN)) == 1, tname
                 assert tr.tensor(tname).value(s, mode=ModeKeys.TRAIN) is not None
 
     tname = "sparse_softmax_cross_entropy_loss/value:0"
     for s in tr.tensor(tname).steps(ModeKeys.EVAL):
-        assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
+        assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1  # eval_dist=False
         assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
 
