@@ -16,11 +16,17 @@ phases:
   install:
     commands:
         -  . config/change_branch.sh
+        - su && apt-get update
+        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
+        - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
+        - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
+        - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+        - pip install -U pip
         - pip install -q pytest wheel pyYaml pytest-html pre-commit
 
   build:
     commands:
-      - cd $CODEBUILD_SRC_DIR  && pip uninstall -y smdebug && ! config/check_smdebug_install.sh && python setup.py bdist_wheel --universal && pip install dist/*.whl && config/check_smdebug_install.sh && cd ..
+      - cd $CODEBUILD_SRC_DIR  && pip uninstall -y smdebug && ! config/check_smdebug_install.sh && python setup.py bdist_wheel --universal && pip install dist/*.whl && config/check_smdebug_install.sh mxnet && cd ..
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
