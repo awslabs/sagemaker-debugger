@@ -1,0 +1,34 @@
+# Build Spec for AWS CodeBuild CI
+
+version: 0.2
+env:
+  variables:
+    run_pytest_pytorch: "disable"
+    run_pytest_mxnet: "enable"
+    run_pytest_tensorflow: "disable"
+    run_pytest_xgboost: "disable"
+    run_integration_pytest_pytorch: "disable"
+    run_integration_pytest_mxnet: "enable"
+    run_integration_pytest_tensorflow: "disable"
+    run_integration_pytest_xgboost: "disable"
+    zero_code_change_test: "enable"
+phases:
+  install:
+    commands:
+        -  . config/change_branch.sh
+        - pip install -q pytest wheel pyYaml pytest-html pre-commit
+
+  build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR  && pip uninstall -y smdebug && ! config/check_smdebug_install.sh && python setup.py bdist_wheel --universal && pip install dist/*.whl && config/check_smdebug_install.sh && cd ..
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+
+  post_build:
+    commands:
+      - . $CODEBUILD_SRC_DIR/config/upload_on_end.sh
+      - rm -rf $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - rm -rf $RULES_CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
