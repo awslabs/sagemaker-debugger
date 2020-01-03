@@ -8,9 +8,9 @@ cd $CODEBUILD_SRC_DIR
 if [ "$SMDEBUG_S3_BINARY" ]; then
   mkdir -p s3_pip_binary
   aws s3 cp "$SMDEBUG_S3_BINARY" s3_pip_binary
-  pip install --force-reinstall s3_pip_binary/*.whl
+  pip install --force-reinstall --upgrade s3_pip_binary/*.whl
 else
-  python setup.py bdist_wheel --universal && pip --force-reinstall dist/*.whl
+  python setup.py bdist_wheel --universal && pip install --upgrade --force-reinstall dist/*.whl
 fi
 
 
