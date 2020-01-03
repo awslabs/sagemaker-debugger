@@ -26,4 +26,5 @@ if [ "$run_pytest_pytorch" == 'enable' ]; then
 fi
 if [ "$run_pytest_xgboost" == 'enable' ]; then
   ./config/check_smdebug_install.sh xgboost
+  pip install --ignore-installed PyYAML
 fi
