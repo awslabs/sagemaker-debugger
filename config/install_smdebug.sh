@@ -23,3 +23,6 @@ fi
 if [ "$run_pytest_pytorch" == 'enable' ]; then
   ./config/check_smdebug_install.sh torch
 fi
+if [ "$run_pytest_xgboost" == 'enable' ]; then
+  ./config/check_smdebug_install.sh xgboost
+fi
