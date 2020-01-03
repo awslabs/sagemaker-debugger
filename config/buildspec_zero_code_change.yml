@@ -3,6 +3,8 @@
 version: 0.2
 env:
   variables:
+    ## below enviornment variables are overridden in respective code build.
+    # for example for pytorch build run_pytest_pytorch and run_integration_pytest_pytorch will be enabled
     run_pytest_pytorch: "disable"
     run_pytest_mxnet: "enable"
     run_pytest_tensorflow: "disable"
@@ -11,6 +13,7 @@ env:
     run_integration_pytest_mxnet: "enable"
     run_integration_pytest_tensorflow: "disable"
     run_integration_pytest_xgboost: "disable"
+    # below needs to be enabled
     zero_code_change_test: "enable"
 phases:
   install:
