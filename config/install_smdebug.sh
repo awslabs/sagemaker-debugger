@@ -21,5 +21,5 @@ if [ "$run_pytest_tensorflow" == 'enable' ]; then
   ./config/check_smdebug_install.sh tensorflow
 fi
 if [ "$run_pytest_pytorch" == 'enable' ]; then
-  ./config/check_smdebug_install.sh pytorch
+  ./config/check_smdebug_install.sh torch
 fi
