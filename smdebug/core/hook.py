@@ -564,7 +564,7 @@ class BaseHook:
         """
         This function writes all the scalar values saved in the scalar_cache to file.
         If sm_metric is set to True for certain scalars, then that scalar is written to
-        Minerva as well. By default, loss values are sm_metric.
+        SageMaker as well. By default, loss values are sm_metric.
         """
         for scalar_obj in self.scalar_cache:
             scalar_name = scalar_obj.name
@@ -598,7 +598,7 @@ class BaseHook:
         :param name: Name of the scalar. A prefix 'scalar/' will be added to it
         :param value: Scalar value
         :param sm_metric: True/False. If set to True, the scalar value will be written to
-        SageMaker Minerva
+        SageMaker
         """
         name = CallbackHook.SCALAR_PREFIX + name
         val = self._make_numpy_array(value)
@@ -662,7 +662,7 @@ class BaseHook:
         for s_col in save_collections_for_tensor:
             if s_col.name in SM_METRIC_COLLECTIONS:
                 np_val = self._make_numpy_array(tensor_value)
-                # Always log loss to Minerva
+                # Always log loss to SageMaker
                 tensor_val = np.mean(np_val)
                 scalar_obj = ScalarCache(
                     tensor_name,
