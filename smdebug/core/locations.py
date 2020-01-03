@@ -38,7 +38,7 @@ class EventFileLocation(ABC):
 
     def get_filename(self):
         step_num_str = self.get_step_num_str()
-        event_filename = f"{step_num_str}_{self.worker_name}.tfevents"
+        event_filename = f"{step_num_str}_{self.worker_name}_{os.getpid()}.tfevents"
         return event_filename
 
     @classmethod
@@ -48,7 +48,7 @@ class EventFileLocation(ABC):
     @classmethod
     def load_filename(cls, s, print_error=True):
         event_file_name = os.path.basename(s)
-        m = re.search("(.*)_(.*).tfevents$", event_file_name)
+        m = re.search("(.*)_(.*)_(.*).tfevents$", event_file_name)
         if m:
             step_num = int(m.group(1))
             worker_name = m.group(2)
@@ -127,7 +127,7 @@ class IndexFileLocationUtils:
     def _get_index_key(trial_prefix, step_num, worker_name):
         index_prefix_for_step_str = IndexFileLocationUtils.get_index_prefix_for_step(step_num)
         step_num_str = format(step_num, "012")
-        index_filename = format(f"{step_num_str}_{worker_name}.json")
+        index_filename = format(f"{step_num_str}_{worker_name}_{os.getpid()}.json")
         index_key = os.path.join(trial_prefix, "index", index_prefix_for_step_str, index_filename)
         return index_key
 

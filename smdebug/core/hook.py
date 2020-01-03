@@ -1,5 +1,6 @@
 # Standard Library
 import atexit
+import os
 import re as _re
 from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Optional, Set, Union
@@ -480,7 +481,7 @@ class BaseHook:
                 return
             num_workers = 1  # Override
         self.collection_manager.set_num_workers(num_workers)
-        collection_file_name = f"{self.worker}_collections.json"
+        collection_file_name = f"{self.worker}_{os.getpid()}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):

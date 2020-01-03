@@ -198,14 +198,14 @@ class TensorflowBaseHook(BaseHook):
             if len(self.device_map):
                 for device, serialized_device in self.device_map.items():
                     if self.save_all_workers is True or device == self.chief_worker:
-                        collection_file_name = f"{serialized_device}_collections.json"
+                        collection_file_name = f"{serialized_device}_{os.getpid()}_collections.json"
                         self.collection_manager.export(self.out_dir, collection_file_name)
                 return
 
         # below is used in these cases
         # if mirrored and device_map is empty (CPU training)
         # if horovod/param server and worker == chief worker
-        collection_file_name = f"{self.worker}_collections.json"
+        collection_file_name = f"{self.worker}_{os.getpid()}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _get_num_workers(self):
