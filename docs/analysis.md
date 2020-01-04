@@ -51,10 +51,10 @@ Trial is capable of loading new tensors as and when they become available at the
 
 ### Path of trial
 #### SageMaker training job
-When running a SageMaker job this path is on S3. SageMaker saves data from your training job locally on the training instance first and uploads them to an S3 location in your account. When you start a SageMaker training job with the python SDK, you can control this path using the parameter `s3_output_path` in the `DebuggerHookConfig` object. This is an optional parameter, if you do not pass this the python SDK will populate a default location for you. If you do pass this, make sure the bucket is in the same region as where the training job is running.  If you're not using the python SDK, set this path for the parameter `S3OutputPath` in the `DebugHookConfig` section of `CreateTrainingJob` API. SageMaker takes this path and appends training_job_name and debug-output to it to ensure we have a unique path for each training job.
+When running a SageMaker job this path is on S3. SageMaker saves data from your training job locally on the training instance first and uploads them to an S3 location in your account. When you start a SageMaker training job with the python SDK, you can control this path using the parameter `s3_output_path` in the `DebuggerHookConfig` object. This is an optional parameter, if you do not pass this the python SDK will populate a default location for you. If you do pass this, make sure the bucket is in the same region as where the training job is running.  If you're not using the python SDK, set this path for the parameter `S3OutputPath` in the `DebugHookConfig` section of `CreateTrainingJob` API. SageMaker takes this path and appends training_job_name and "debug-output" to it to ensure we have a unique path for each training job.
 
 #### Non SageMaker training jobs
-If you are not running a SageMaker training job, this is the path you pass as out_dir when you create a smdebug [`Hook`](hook.md). Just like when creating the hook, you can pass either a local path or an S3 path (as `s3://bucket/prefix`).
+If you are not running a SageMaker training job, this is the path you pass as `out_dir` when you create a smdebug [`Hook`](hook.md). Just like when creating the hook, you can pass either a local path or an S3 path (as `s3://bucket/prefix`).
 
 ### Creating a trial object
 There are two types of trials you can create: LocalTrial or S3Trial depending on the path. We provide a wrapper method to create the appropriate trial.
@@ -93,7 +93,7 @@ tr = create_trial(path='s3://smdebug-testing-bucket/outputs/resnet', name='resne
 
 ### Trial API
 
-Here's a list of methods that the Trial API provides which helps you load data for analysis. Please click on the method to see all the parameters it takes and a detailed description. If you are not familiar with SMDebug constructs, you might want to review [this doc](#todo add link) before going through this page.
+Here's a list of methods that the Trial API provides which helps you load data for analysis. Please click on the method to see all the parameters it takes and a detailed description. If you are not familiar with smdebug constructs, you might want to review [this doc](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md) before going through this page.
 
 | Method        | Description           |
 | ------------- |-------------|
@@ -122,7 +122,7 @@ trial.tensor_names(step= None,
 ```
 
 ###### Arguments
-All arguments to this method are optional. You are required to pass any of these arguments as keyword arguments.
+All arguments to this method are optional. You are not required to pass any of these arguments as keyword arguments.
 
 - `step (int)` If you want to retrieve the list of tensors saved at a particular step, pass the step number as an integer. This step number will be treated as step number corresponding to the mode passed below. By default it is treated as global step.
 - `mode (smdebug.modes enum value)` If you want to retrieve the list of tensors saved for a particular mode, pass the mode here as `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT`, or `smd.modes.GLOBAL`.
@@ -130,18 +130,18 @@ All arguments to this method are optional. You are required to pass any of these
 - `collection (Collection or str)` You can filter tensors belonging to a collection by either passing a collection object or the name of collection as a string. You can only pass one of `regex` or `collection` parameters.
 
 ###### Returns
-`list[str]`: List of strings representing names of tensors matching the given arguments. Arguments are processed as follows: get the list of tensor names for given step and mode. saved for given step matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
+`list[str]`: List of strings representing names of tensors matching the given arguments. Arguments are processed as follows: get the list of tensor names for given step and mode, saved for given step matching all the given arguments, i.e. intersection of tensors matching each of the parameters.
 
 ###### Examples
 - `trial.tensor_names()` Returns all tensors saved for any step or mode.
 - `trial.tensor_names(step=10, mode=modes.TRAIN)` Returns tensors saved for training step 10
-- `trial.tensor_names(regex='relu')` Returns all tensors matching the regex pattern relu saved for any step or mode.
-- `trial.tensor_names(collection='gradients')` Returns tensors from gradients collection
-- `trial.tensor_names(step=10, mode=modes.TRAIN, regex='softmax')` Returns tensor saved for 10th training step which match the regex `softmax`
+- `trial.tensor_names(regex='relu')` Returns all tensors matching the regex pattern `relu` saved for any step or mode.
+- `trial.tensor_names(collection='gradients')` Returns tensors from collection "gradients"
+- `trial.tensor_names(step=10, mode=modes.TRAIN, regex='softmax')` Returns tensor saved for 10th training step which matches the regex `softmax`
 
 
 #### tensor
-Retrieve the `smdebug.core.tensor.Tensor` object by the given name tname. You can review all the methods that this Tensor object provides [here](#Tensor).
+Retrieve the `smdebug.core.tensor.Tensor` object by the given name `tname`. You can review all the methods that this Tensor object provides [here](#Tensor).
 ```python
 trial.tensor(tname)
 ```
@@ -200,7 +200,7 @@ trial.mode(global_step=100)
 `smdebug.modes enum value` of the given global step
 
 #### mode_step
-Given a global step number you can identify the mode_step for that step using this method.
+Given a global step number you can identify the `mode_step` for that step using this method.
 ```python
 trial.mode_step(global_step=100)
 ```
@@ -243,11 +243,11 @@ trial.collections()
 ```
 
 ###### Returns
-`dict[str -> Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](api.md) for more details. #TODO fix link
+`dict[str -> Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md) for more details.
 
 #### collection
 
-Get a specific collection from the trial. Note that tensors part of this collection may not necessarily have been saved from the training job. Whether this collection was saved or not depends on the configuration of the Hook during training.
+Get a specific collection from the trial. Note that tensors which are part of this collection may not necessarily have been saved from the training job. Whether this collection was saved or not depends on the configuration of the Hook during training.
 
 ```python
 trial.collection(coll_name)
@@ -290,7 +290,7 @@ trial.has_passed_step(step, mode=modes.GLOBAL)
 TODO@Nihal describe these in detail
 
 ## Tensor
-An smdebug Tensor object can bee retrieved through the `trial.tensor(name)` API. It is uniquely identified by the string representing name.
+An smdebug `Tensor` object can be retrieved through the `trial.tensor(name)` API. It is uniquely identified by the string representing name.
  It provides the following methods.
 
 | Method | Description|
@@ -351,10 +351,10 @@ trial.tensor(name).reduction_value(step_num, reduction_name,
 - `reduction_name (str)` The name of the reduction to query for. This can be one of `min`, `max`, `mean`, `std`, `variance`, `sum`, `prod` and the norms `l1`, `l2`.
 - `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
 - `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
-- `abs (bool)` If abs is True, this method tries to return the reduction passed through reduction_name after taking the absolute value of the tensor. It defaults to False.
+- `abs (bool)` If abs is True, this method tries to return the reduction passed through `reduction_name` after taking the absolute value of the tensor. It defaults to `False`.
 
 ###### Returns
-`numpy.ndarray` The reduction value of tensor at the given step and worker (if the training job saved data from multiple workers) as a 1x1 numpy array. If this reduction was saved for the tensor during training as part of specification through reduction config, it will be loaded and returned. If the given reduction was not saved then, but the full tensor was saved, the reduction will be computed on the fly and returned. If both the chosen reduction and full tensor are not available, this method raises TensorUnavailableForStep exception.
+`numpy.ndarray` The reduction value of tensor at the given step and worker (if the training job saved data from multiple workers) as a 1x1 numpy array. If this reduction was saved for the tensor during training as part of specification through reduction config, it will be loaded and returned. If the given reduction was not saved then, but the full tensor was saved, the reduction will be computed on the fly and returned. If both the chosen reduction and full tensor are not available, this method raises `TensorUnavailableForStep` exception.
 
 
 #### reduction_values
@@ -415,17 +415,17 @@ trial.tensor(name).prev_steps(step, n, mode=modes.GLOBAL)
 `list[int]` A list of size at most n representing the previous steps for the given step and mode. Note that this list can be of size less than n if there were only less than n steps saved before the given step in this trial.
 
 ## Rules
-Rules are the medium by which SageMaker Debugger executes a certain piece of code regularly on different steps of the jobs. A rule is assigned to a trial and can be invoked at each new step of the trial. It can also access other trials for its execution. You can evaluate a rule using tensors from the current step or any step before the current step. Please ensure your logic respects these semantics, else you will get a `TensorUnavailableForStep` exception as the data would not yet be available for future steps.
+Rules are the medium by which SageMaker Debugger executes a certain piece of code regularly on different steps of a training job. A rule is assigned to a trial and can be invoked at each new step of the trial. It can also access other trials for its evaluation. You can evaluate a rule using tensors from the current step or any step before the current step. Please ensure your logic respects these semantics, else you will get a `TensorUnavailableForStep` exception as the data would not yet be available for future steps.
 
 ### Built In Rules
 Please refer to the built-in rules that SageMaker provides [here](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md#built-in-rules).
 
 ### Writing a custom rule
-Writing a rule involves implementing the [Rule interface](../../smdebug/rules/rule.py). Below let us look at a simplified version of a VanishingGradient rule.
+Writing a rule involves implementing the [Rule interface](../../smdebug/rules/rule.py). Below, let us look at a simplified version of a VanishingGradient rule.
 
 ##### Constructor
-Creating a rule involves first inheriting from the base Rule class SMDebug provides.
-For this rule here we do not need to look at any other trials, so we set `other_trials` to None.
+Creating a rule involves first inheriting from the base `Rule` class provided by smdebug.
+For this example rule here, we do not need to look at any other trials, so we set `other_trials` to None.
 
 ```python
 from smdebug.rules import Rule
@@ -438,12 +438,11 @@ class VanishingGradientRule(Rule):
 
 Please note that apart from `base_trial` and `other_trials` (if required), we require all
 arguments of the rule constructor to take a string as value. You can parse them to the type
-that you want from the string. This means if you want to pass a list of strings, you might want to pass them as a comma separated string. This restriction is
-being enforced so as to let you create and invoke rules from json using Sagemaker's APIs.
+that you want from the string. This means if you want to pass a list of strings, you might want to pass them as a comma separated string. This restriction is being enforced so as to let you create and invoke rules from json using Sagemaker's APIs.
 
 ##### Function to invoke at a given step
 In this function you can implement the core logic of what you want to do with these tensors.
-It should return a boolean value `True` or `False`, where `True` means the rule evaluation condition has been met. When you invoke these rules through SageMaker, the rule job ends when the rule evaluation condition is met. SageMaker creates a Cloudwatch event for every rule job, which can be used to define actions that you might want to take based on the state of the rule.
+It should return a boolean value `True` or `False`, where `True` means the rule evaluation condition has been met. When you invoke these rules through SageMaker, the rule evaluation ends when the rule evaluation condition is met. SageMaker creates a Cloudwatch event for every rule evaluation job, which can be used to define actions that you might want to take based on the state of the rule.
 
 A simplified version of the actual invoke function for `VanishingGradientRule` is below:
 
@@ -460,10 +459,42 @@ A simplified version of the actual invoke function for `VanishingGradientRule` i
 
 That's it, writing a rule is as simple as that.
 
-### Invoking a rule
-Invoking the rule on SageMaker can be done in this way. (#todo add link here)
+### Invoking a rule through SageMaker
+After you've written your rule, you can ask SageMaker to evaluate the rule against your training job by either using SageMaker Python SDK as
+```
+estimator = Estimator(
+    ...
+    rules = Rules.custom(
+    	name='VGRule',
+        image_uri='864354269164.dkr.ecr.us-east-1.amazonaws.com/sagemaker-debugger-rule-evaluator:latest',
+    	instance_type='ml.t3.medium', # instance type to run the rule evaluation on
+    	source='rules/vanishing_gradient_rule.py', # path to the rule source file
+    	rule_to_invoke='VanishingGradientRule', # name of the class to invoke in the rule source file
+    	volume_size_in_gb=30, # EBS volume size required to be attached to the rule evaluation instance
+    	collections_to_save=[CollectionConfig("gradients")], # collections to be analyzed by the rule
+    	rule_parameters={
+      		"threshold": "20.0" # this will be used to initialize 'threshold' param in your rule constructor
+    	}
+)
+```
+If you're using the SageMaker API directly to evaluate the rule, then you can specify the rule configuration [`DebugRuleConfigurations`](https://docs.aws.amazon.com/sagemaker/latest/dg/API_DebugRuleConfiguration.html) in the CreateTrainingJob API request as:
+```
+"DebugRuleConfigurations": [
+	{
+		"RuleConfigurationName": "VGRule",
+		"InstanceType": "ml.t3.medium",
+		"VolumeSizeInGB": 30,
+		"RuleEvaluatorImage": "864354269164.dkr.ecr.us-east-1.amazonaws.com/sagemaker-debugger-rule-evaluator:latest",
+		"RuleParameters": {
+			"source_s3_uri": "s3://path/to/vanishing_gradient_rule.py",
+			"rule_to_invoke": "VanishingGradient",
+			"threshold": "20.0"
+		}
+	}
+]
+```
 
-#### invoke_rule
+#### Invoking a rule outside of SageMaker through `invoke_rule`
 You might want to invoke the rule locally during development. We provide a function to invoke rules easily. Refer [smdebug/rules/rule_invoker.py](../../smdebug/rules/rule_invoker.py). The invoke function has the following syntax. It takes a instance of a Rule and invokes it for a series of steps one after the other.
 
 ```python
@@ -478,22 +509,22 @@ invoke_rule(rule_obj, start_step=0, end_step=None)
 ###### Arguments
 - `rule_obj (Rule)` An instance of a subclass of `smdebug.rules.Rule` that you want to invoke.
 - `start_step (int)` Global step number to start invoking the rule from. Note that this refers to a global step. This defaults to 0.
-- `end_step (int or  None)`: Global step number to end the invocation of rule before. To clarify, end_step is an exclusive bound. The rule is invoked at `end_step`. This defaults to `None` which means run till the end of the job.
-- `raise_eval_cond (bool)` This parameter controls whether to raise the exception RuleEvaluationCondition when raised by the rule, or to catch it and log the Condition and move to the next step. Defaults to False, meaning it catches the exception and logs that the evaluation condition was met for a step and moves on to evaluate for the next step.
+- `end_step (int or  None)`: Global step number to end the invocation of rule before. To clarify, `end_step` is an exclusive bound. The rule is invoked at `end_step`. This defaults to `None` which means run till the end of the job.
+- `raise_eval_cond (bool)` This parameter controls whether to raise the exception `RuleEvaluationConditionMet` when raised by the rule, or to catch it and log the message and move to the next step. Defaults to `False`, which implies that the it catches the exception, logs that the evaluation condition was met for a step and moves on to evaluate the next step.
 
 
 ## Exceptions
-SMDebug is designed to be aware that tensors required to execute a rule may not be available at every step. Hence it raises a few exceptions which allow us to control what happens when a tensor is missing. These are available in the `smdebug.exceptions` module. You can import them as follows:
+smdebug is designed to be aware that tensors required to evaluate a rule may not be available at every step. Hence, it raises a few exceptions which allow us to control what happens when a tensor is missing. These are available in the `smdebug.exceptions` module. You can import them as follows:
 
 ```python
 from smdebug.exceptions import *
 ```
 
-Here are the exceptions and their meanings:
+Here are the exceptions (along with others) and their meaning:
 
-- `TensorUnavailableForStep` : This means that the tensor requested is not available for the step. It may be saved for a different step number. Note that when you see this exception, it means that this tensor can never become available for this step in the future.
+- `TensorUnavailableForStep` : This means that the tensor requested is not available for the step. It may have been saved or will be saved for a different step number. Note that this exception implies that the requested tensor will never become available for this step in the future.
 
-- `TensorUnavailable` : This means that this tensor has not been saved from the training job. Note that if you have a SaveConfig which saves a certain tensor only after the time you queried for the tensor, you might get a TensorUnavailable exception even if the tensor may become available later for some step.
+- `TensorUnavailable` : This means that this tensor has not been saved from the training job. Note that if you have a `SaveConfig` which saves a certain tensor only after the time you queried for the tensor, you might get a `TensorUnavailable` exception even if the tensor may become available later for some step.
 
 - `StepUnavailable`: This means that the step was not saved from the training job. No tensor will be available for this step.
 
@@ -501,15 +532,15 @@ Here are the exceptions and their meanings:
 
 - `NoMoreData` : This will be raised when the training ends. Once you see this, you will know that there will be no more steps and no more tensors saved.
 
-- `RuleEvaluationConditionMet`: This is raised when the rule invocation returns True for some step.
+- `RuleEvaluationConditionMet`: This is raised when the rule invocation returns `True` for some step.
 
-- `MissingCollectionFiles`: This is raised when no data was saved by the training job. Check that the Hook was configured correctly before starting the training job.
+- `MissingCollectionFiles`: This is raised when no data was saved by the training job. Check that the `Hook` was configured correctly before starting the training job.
 
 ## Utils
 
 ### Enable or disable refresh of tensors in a trial
 
-By default SMDebug refreshes tensors each time you try to query the tensor.
+By default smdebug refreshes tensors each time you try to query the tensor.
 It looks for whether this tensor is saved for new steps and if so fetches them.
 If you know the saved data will not change (stopped the machine learning job), or
 are not interested in the latest data, you can stop the refreshing of tensors as follows:
