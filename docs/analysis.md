@@ -243,7 +243,7 @@ trial.collections()
 ```
 
 ###### Returns
-`dict[str -> Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md) for more details.
+`dict[str -> Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#Collection) for more details.
 
 #### collection
 
