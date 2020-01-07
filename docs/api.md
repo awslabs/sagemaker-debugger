@@ -446,4 +446,3 @@ For details on what's supported for different framework, go here:
 * [PyTorch](pytorch.md)
 * [MXNet](mxnet.md)
 * [XGBoost](xgboost.md)
->>>>>>> 38472ce2517ebf13e06940d3f1d6e32fafa7d132
