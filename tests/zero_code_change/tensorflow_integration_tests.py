@@ -22,7 +22,13 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from tests.tensorflow.hooks.test_mirrored_strategy import test_basic
 from tests.tensorflow.keras.test_keras_mirrored import test_tf_keras
-from tf_utils import (
+
+# First Party
+import smdebug.tensorflow as smd
+from smdebug.core.utils import SagemakerSimulator
+
+# Local
+from .tf_utils import (
     get_data,
     get_estimator,
     get_input_fns,
@@ -31,12 +37,8 @@ from tf_utils import (
     get_train_op_and_placeholders,
 )
 
-# First Party
-import smdebug.tensorflow as smd
-from smdebug.core.utils import SagemakerSimulator
 
-
-def test_estimator(script_mode: bool):
+def test_estimator(script_mode: bool = False):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -134,7 +136,15 @@ def test_estimator_gradients_zcc(nested=False, mirrored=False):
             assert len(trial.modes()) == 2
 
 
-def test_linear_classifier(script_mode: bool):
+def test_estimator_gradients_zcc_nested():
+    test_estimator_gradients_zcc(nested=True)
+
+
+def test_estimator_gradients_zcc_mirrored():
+    test_estimator_gradients_zcc(nested=False, mirrored=True)
+
+
+def test_linear_classifier(script_mode: bool = False):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -160,11 +170,20 @@ def test_linear_classifier(script_mode: bool):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
 
-def test_monitored_session(script_mode: bool):
+def test_monitored_session(script_mode: bool = False):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
-    with SagemakerSimulator() as sim:
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/opt/ml/output/tensors",
+                "HookParameters" : {
+                    "save_interval": "100"
+                }
+            }
+            """
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         train_op, X, Y = get_train_op_and_placeholders()
         init = tf.compat.v1.global_variables_initializer()
         mnist = get_data()
@@ -195,6 +214,9 @@ def test_monitored_session_gradients_zcc():
     {
         "S3OutputPath": "s3://sagemaker-test",
         "LocalPath": "/opt/ml/output/tensors",
+        "HookParameters" : {
+            "save_interval": "100"
+        },
         "CollectionConfigurations": [
             {
                 "CollectionName": "gradients"
@@ -227,7 +249,7 @@ def test_monitored_session_gradients_zcc():
         assert len(trial.tensor_names(collection="gradients")) > 0
 
 
-def test_keras_v1(script_mode: bool):
+def test_keras_v1(script_mode: bool = False):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -258,7 +280,7 @@ def test_keras_v1(script_mode: bool):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
 
-def test_keras_gradients(script_mode: bool, tf_optimizer: bool = False):
+def test_keras_gradients(script_mode: bool = False, tf_optimizer: bool = False):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -320,6 +342,10 @@ def test_keras_gradients(script_mode: bool, tf_optimizer: bool = False):
             assert len(trial.tensor_names(collection="optimizer_variables")) > 0
 
 
+def test_keras_gradients_tf_opt(script_mode: bool = False):
+    test_keras_gradients(script_mode=script_mode, tf_optimizer=True)
+
+
 def test_keras_gradients_mirrored(include_workers="one"):
     """ Works as intended. """
     smd.del_hook()
@@ -366,7 +392,11 @@ def test_keras_gradients_mirrored(include_workers="one"):
         test_tf_keras("/opt/ml/output/tensors", zcc=True, include_workers=include_workers)
 
 
-def test_keras_to_estimator(script_mode: bool):
+def test_keras_gradients_mirrored_all_workers():
+    test_keras_gradients_mirrored(include_workers="all")
+
+
+def test_keras_to_estimator(script_mode: bool = False):
     """ Works as intended. """
     import tensorflow.compat.v1.keras as keras
 
@@ -426,14 +456,14 @@ if __name__ == "__main__":
         test_monitored_session_gradients_zcc()
     test_estimator(script_mode=script_mode)
     if not script_mode:
-        test_estimator_gradients_zcc(nested=True)
-        test_estimator_gradients_zcc(nested=False)
-        test_estimator_gradients_zcc(nested=False, mirrored=True)
+        test_estimator_gradients_zcc()
+        test_estimator_gradients_zcc_nested()
+        test_estimator_gradients_zcc_mirrored()
     test_linear_classifier(script_mode=script_mode)
     test_keras_v1(script_mode=script_mode)
     test_keras_gradients(script_mode=script_mode)
-    test_keras_gradients(script_mode=script_mode, tf_optimizer=True)
+    test_keras_gradients_tf_opt(script_mode=script_mode)
     test_keras_to_estimator(script_mode=script_mode)
     if not script_mode:
-        test_keras_gradients_mirrored(include_workers="all")
+        test_keras_gradients_mirrored_all_workers()
         test_keras_gradients_mirrored()

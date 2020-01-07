@@ -3,14 +3,18 @@
 version: 0.2
 env:
   variables:
-    run_pytest_pytorch: "enable"
+    ## below enviornment variables are overridden in respective code build.
+    # for example for pytorch build run_pytest_pytorch and run_integration_pytest_pytorch will be enabled
+    run_pytest_pytorch: "disable"
     run_pytest_mxnet: "enable"
-    run_pytest_tensorflow: "enable"
-    run_pytest_xgboost: "enable"
-    run_integration_pytest_pytorch: "enable"
+    run_pytest_tensorflow: "disable"
+    run_pytest_xgboost: "disable"
+    run_integration_pytest_pytorch: "disable"
     run_integration_pytest_mxnet: "enable"
-    run_integration_pytest_tensorflow: "enable"
+    run_integration_pytest_tensorflow: "disable"
     run_integration_pytest_xgboost: "disable"
+    # below needs to be enabled
+    zero_code_change_test: "enable"
 phases:
   install:
     commands:
@@ -21,16 +25,11 @@ phases:
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install -U pip
-        - pip install -q pytest wheel pyYaml pytest-html keras==2.3.1 tensorflow==1.15.0 mxnet torch xgboost pre-commit tensorflow_datasets
-        - pip uninstall -y boto3 botocore
-
-  pre_build:
-    commands:
-      - cd $CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
+        - pip install -q pytest wheel pyYaml pytest-html pre-commit
 
   build:
     commands:
-      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh && cd ..
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..

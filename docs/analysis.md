@@ -418,7 +418,7 @@ trial.tensor(name).prev_steps(step, n, mode=modes.GLOBAL)
 Rules are the medium by which SageMaker Debugger executes a certain piece of code regularly on different steps of the jobs. A rule is assigned to a trial and can be invoked at each new step of the trial. It can also access other trials for its execution. You can evaluate a rule using tensors from the current step or any step before the current step. Please ensure your logic respects these semantics, else you will get a `TensorUnavailableForStep` exception as the data would not yet be available for future steps.
 
 ### Built In Rules
-Please refer to the built-in rules that SageMaker provides here. (#todo add link)
+Please refer to the built-in rules that SageMaker provides [here](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md#built-in-rules).
 
 ### Writing a custom rule
 Writing a rule involves implementing the [Rule interface](../../smdebug/rules/rule.py). Below let us look at a simplified version of a VanishingGradient rule.
@@ -502,6 +502,8 @@ Here are the exceptions and their meanings:
 - `NoMoreData` : This will be raised when the training ends. Once you see this, you will know that there will be no more steps and no more tensors saved.
 
 - `RuleEvaluationConditionMet`: This is raised when the rule invocation returns True for some step.
+
+- `MissingCollectionFiles`: This is raised when no data was saved by the training job. Check that the Hook was configured correctly before starting the training job.
 
 ## Utils
 

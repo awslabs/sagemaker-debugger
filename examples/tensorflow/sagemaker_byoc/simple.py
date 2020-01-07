@@ -48,6 +48,8 @@ if args.random_seed:
     np.random.seed(2)
     random.seed(12)
 
+##### Enabling SageMaker Debugger ###########
+# Create hook from the configuration provided through sagemaker python sdk
 hook = smd.SessionHook.create_from_json_file()
 
 # Network definition
@@ -60,6 +62,8 @@ with tf.name_scope("foobaz"):
     y = tf.matmul(x, w0)
 loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
 
+##### Enabling SageMaker Debugger ###########
+# Adding custom loss to losses collection
 hook.add_to_collection("losses", loss)
 
 global_step = tf.Variable(17, name="global_step", trainable=False)
@@ -67,22 +71,27 @@ increment_global_step_op = tf.assign(global_step, global_step + 1)
 
 optimizer = tf.train.AdamOptimizer(args.lr)
 
+##### Enabling SageMaker Debugger ###########
 # Wrap the optimizer with wrap_optimizer so smdebug can find gradients to save
 optimizer = hook.wrap_optimizer(optimizer)
 
 # use this wrapped optimizer to minimize loss
 optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
 
+##### Enabling SageMaker Debugger ###########
 # pass the hook to hooks parameter of monitored session
 sess = tf.train.MonitoredSession(hooks=[hook])
 
-# use this session for running the tensorflow model
+##### Enabling SageMaker Debugger ###########
+# setting the mode of job so analysis can differentiate between TRAIN, EVAL, PREDICT
 hook.set_mode(smd.modes.TRAIN)
 for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale
     _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
     print(f"Step={i}, Loss={_loss}")
 
+##### Enabling SageMaker Debugger ###########
+# setting the mode of job so analysis can differentiate between TRAIN, EVAL, PREDICT
 hook.set_mode(smd.modes.EVAL)
 for i in range(args.steps):
     x_ = np.random.random((10, 2)) * args.scale

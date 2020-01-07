@@ -45,7 +45,7 @@ def train(batch_size, epoch, model, hook):
         epochs=epoch,
         validation_data=(X_valid, Y_valid),
         shuffle=True,
-        callbacks=[hook],
+        callbacks=[hook],  ##### Enabling SageMaker Debugger ###########
     )
 
 
@@ -58,14 +58,16 @@ def main():
 
     model = ResNet50(weights=None, input_shape=(32, 32, 3), classes=10)
 
+    ##### Enabling SageMaker Debugger ###########
     # Create hook from the configuration provided through sagemaker python sdk
     hook = smd.KerasHook.create_from_json_file()
     optimizer = tf.keras.optimizers.Adam()
+
+    ##### Enabling SageMaker Debugger ###########
     # wrap the optimizer so the hook can identify the gradients
     optimizer = hook.wrap_optimizer(optimizer)
-    model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"])
 
-    # start the training.
+    model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"])
     train(opt.batch_size, opt.epoch, model, hook)
 
 

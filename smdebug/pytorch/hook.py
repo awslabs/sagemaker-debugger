@@ -7,12 +7,12 @@ import torch.distributed as dist
 # First Party
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
-from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME
+from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
 
-DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES, CollectionKeys.SCALARS]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
 class Hook(CallbackHook):
@@ -88,7 +88,7 @@ class Hook(CallbackHook):
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
         # Return default
-        return CONFIG_DEFAULT_WORKER_NAME
+        return DEFAULT_WORKER_NAME
 
     def _log_params(self, module):
         module_name = module._get_name()

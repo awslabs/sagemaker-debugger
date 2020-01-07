@@ -1,5 +1,5 @@
 CONFIG_FILE_PATH_ENV_STR = "SMDEBUG_CONFIG_FILE_PATH"
-CONFIG_DEFAULT_WORKER_NAME = "worker_0"
+DEFAULT_WORKER_NAME = "worker_0"
 DEFAULT_CONFIG_FILE_PATH = "/opt/ml/input/config/debughookconfig.json"
 EXPORT_TENSORBOARD_KEY = "export_tensorboard"
 TENSORBOARD_DIR_KEY = "tensorboard_dir"

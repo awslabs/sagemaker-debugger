@@ -266,7 +266,6 @@ def test_base_reductions(out_dir):
         steps=["train"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    print(tr.tensor_names())
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
     try:
         tr.tensor(weight_name).value(0)

@@ -57,22 +57,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             save_all=save_all,
             include_workers=include_workers,
         )
-        self._exported_collections = False
-        self._exported_model = {
-            ModeKeys.TRAIN: False,
-            ModeKeys.EVAL: False,
-            ModeKeys.PREDICT: False,
-        }
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
-        self._prepared_tensors = {
-            ModeKeys.TRAIN: False,
-            ModeKeys.EVAL: False,
-            ModeKeys.PREDICT: False,
-        }
         self.callable_cache = CallableCache()
 
     def _is_not_supported(self):
+        if self.distribution_strategy is None:
+            self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
             if tf.executing_eagerly() or (
@@ -80,7 +71,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ):
                 self.logger.info("Disabling SMDebug as it does not support eager mode")
                 self._hook_supported = False
-            elif self._get_distribution_strategy() == TFDistributionStrategy.MIRRORED_STRATEGY:
+            elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
                         get_distributed_model,
@@ -92,7 +83,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         "with TensorFlow version <1.14"
                     )
                     self._hook_supported = False
-            elif self._get_distribution_strategy() == TFDistributionStrategy.UNSUPPORTED:
+            elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
                 self.logger.info(
                     f"Disabling SMDebug as it does not support " f"{tf.distribute.get_strategy()}"
                 )
@@ -134,10 +125,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _check_and_add_layer_tensor(
         self, mode, layer, tensor_type, tensor, is_input_to_model=False, is_output_of_model=False
     ):
-        if (
-            self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
-            and not tensor.device
-        ):
+        if self.distribution_strategy == TFDistributionStrategy.MIRRORED and not tensor.device:
             # these are extra tensors which show up
             # ignoring this still allows us to access all replica's tensors
             # self.logger.debug(f"Skipping {layer} {tensor_type} {tensor}")
@@ -251,7 +239,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _is_input_layer(self, mode, layer_inputs):
         model_inputs = []
-        if self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+        if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             model = self._get_distributed_model(mode)
         else:
             model = self.model
@@ -265,7 +253,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _is_output_layer(self, mode, layer_outputs):
         model_outputs = []
-        if self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY:
+        if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             model = self._get_distributed_model(mode)
         else:
             model = self.model
@@ -298,8 +286,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             weights = layer.weights
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
-
-        self._prepared_tensors[mode] = True
 
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
@@ -450,7 +436,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _on_any_mode_begin(self, mode):
         if self._is_not_supported():
             return
-        self.distribution_strategy = self._get_distribution_strategy()
         self.worker = self._get_worker_name()
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
@@ -495,14 +480,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self._validate_exec_function(self._get_exec_function(mode)):
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
+                self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
                 # so we know that device map is populated
-                if (
-                    len(self.device_map)
-                    and self.distribution_strategy == TFDistributionStrategy.MIRRORED_STRATEGY
-                    and self.save_all_workers is False
-                ):
-                    self.chief_worker = sorted(self.device_map.keys())[0]
+                self._set_chief_worker()
             # else:
             # this will delay the preparation of tensors as the
             # full graph is not built. Gradients are not available

@@ -26,9 +26,8 @@ class CollectionKeys:
     GRADIENTS = "gradients"
     LOSSES = "losses"
     BIASES = "biases"
-    SCALARS = "scalars"
 
-    # Use this collection to log scalars other than losses/metrics to Minerva.
+    # Use this collection to log scalars other than losses/metrics to SageMaker.
     # Mainly for Tensorflow. For all other frameworks, call save_scalar() API
     # with details of the scalar to be saved.
     SM_METRICS = "sm_metrics"
@@ -54,7 +53,6 @@ SUMMARIES_COLLECTIONS = {CollectionKeys.TENSORFLOW_SUMMARIES}
 SCALAR_COLLECTIONS = {
     CollectionKeys.LOSSES,
     CollectionKeys.METRICS,
-    CollectionKeys.SCALARS,
     CollectionKeys.FEATURE_IMPORTANCE,
     CollectionKeys.AVERAGE_SHAP,
     CollectionKeys.SM_METRICS,

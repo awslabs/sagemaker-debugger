@@ -4,20 +4,19 @@ import mxnet as mx
 # First Party
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.hook import CallbackHook
-from smdebug.core.json_config import CONFIG_DEFAULT_WORKER_NAME
+from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
 from smdebug.mxnet.utils import get_reduction_of_data, make_numpy_array
 
-DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES, CollectionKeys.SCALARS]
+DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = [
     CollectionKeys.WEIGHTS,
     CollectionKeys.BIASES,
     CollectionKeys.GRADIENTS,
     CollectionKeys.LOSSES,
-    CollectionKeys.SCALARS,
 ]
 
 
@@ -68,7 +67,7 @@ class Hook(CallbackHook):
                 return f"worker_{hvd.rank()}"
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-        return CONFIG_DEFAULT_WORKER_NAME
+        return DEFAULT_WORKER_NAME
 
     def _get_num_workers(self):
         try:

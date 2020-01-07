@@ -14,11 +14,12 @@ from smdebug.core.collection import (
     NON_REDUCTION_COLLECTIONS,
     SCALAR_COLLECTIONS,
     SM_METRIC_COLLECTIONS,
+    Collection,
     CollectionKeys,
 )
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
-    CONFIG_DEFAULT_WORKER_NAME,
+    DEFAULT_WORKER_NAME,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
@@ -46,9 +47,10 @@ logger = get_logger()
 
 
 class ScalarCache(object):
-    def __init__(self, scalar_name, scalar_val, sm_metric, write_tb, write_event):
+    def __init__(self, scalar_name, scalar_val, mode, sm_metric, write_tb, write_event):
         self.name = scalar_name
         self.value = scalar_val
+        self.mode = mode
         self.sm_metric = sm_metric
         self.write_tb = write_tb
         self.write_event = write_event
@@ -124,7 +126,7 @@ class BaseHook:
         self.dry_run = dry_run
         self.worker = None
         self.save_all_workers = True if include_workers == "all" else False
-        self.chief_worker = CONFIG_DEFAULT_WORKER_NAME
+        self.chief_worker = DEFAULT_WORKER_NAME
 
         if include_collections is None:
             include_collections = default_include_collections
@@ -141,7 +143,6 @@ class BaseHook:
         self.reduction_config = reduction_config
         self.include_regex = include_regex
         self.collection_manager = collection_manager
-        self.collection_manager.set_num_workers(self._get_num_workers())
         self.init_step = init_step
 
         self.logger = logger
@@ -386,9 +387,8 @@ class BaseHook:
         :param tensor_ref: used by TF
         :return: List[FileWriter]
         """
-        if self.save_all_workers is False:
-            if self.worker != self.chief_worker:
-                return []
+        if self.save_all_workers is False and self.worker != self.chief_worker:
+            return []
         return [self.writer] if self.writer else []
 
     def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
@@ -441,6 +441,10 @@ class BaseHook:
 
         self.step += 1
         self.mode_steps[self.mode] += 1
+
+        # Increment Global step number irrespective of what mode it is
+        if self.mode != ModeKeys.GLOBAL:
+            self.mode_steps[ModeKeys.GLOBAL] = self.step
         self._collections_to_save_for_step = None
 
     def _write_state(self):
@@ -560,17 +564,20 @@ class BaseHook:
         """
         This function writes all the scalar values saved in the scalar_cache to file.
         If sm_metric is set to True for certain scalars, then that scalar is written to
-        Minerva as well. By default, loss values are sm_metric.
+        SageMaker as well. By default, loss values are sm_metric.
         """
         for scalar_obj in self.scalar_cache:
             scalar_name = scalar_obj.name
             scalar_val = scalar_obj.value
+            scalar_mode = scalar_obj.mode
             sm_metric = scalar_obj.sm_metric
             write_tb = scalar_obj.write_tb
             write_event = scalar_obj.write_event
             if self.metrics_writer and sm_metric:
                 self.metrics_writer.log_metric(
-                    scalar_name, scalar_val, iteration_number=self.mode_steps[self.mode]
+                    scalar_name + "_" + scalar_mode.name,
+                    scalar_val,
+                    iteration_number=self.mode_steps[scalar_mode],
                 )
             if write_tb:
                 tb_writer = self._maybe_get_tb_writer()
@@ -591,13 +598,13 @@ class BaseHook:
         :param name: Name of the scalar. A prefix 'scalar/' will be added to it
         :param value: Scalar value
         :param sm_metric: True/False. If set to True, the scalar value will be written to
-        SageMaker Minerva
+        SageMaker
         """
         name = CallbackHook.SCALAR_PREFIX + name
         val = self._make_numpy_array(value)
         if val.size != 1:
             raise TypeError(f"{name} has non scalar value of type: {type(value)}")
-        scalar_obj = ScalarCache(name, val, sm_metric=True, write_tb=True, write_event=True)
+        scalar_obj = ScalarCache(name, val, self.mode, sm_metric, write_tb=True, write_event=True)
         self.scalar_cache.append(scalar_obj)
 
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
@@ -655,10 +662,15 @@ class BaseHook:
         for s_col in save_collections_for_tensor:
             if s_col.name in SM_METRIC_COLLECTIONS:
                 np_val = self._make_numpy_array(tensor_value)
-                # Always log loss to Minerva
+                # Always log loss to SageMaker
                 tensor_val = np.mean(np_val)
                 scalar_obj = ScalarCache(
-                    tensor_name, tensor_val, sm_metric=True, write_tb=False, write_event=False
+                    tensor_name,
+                    tensor_val,
+                    self.mode,
+                    sm_metric=True,
+                    write_tb=False,
+                    write_event=False,
                 )
                 self.scalar_cache.append(scalar_obj)
 
@@ -718,14 +730,19 @@ class BaseHook:
         :return: numpy ndarray
         """
 
-    def add_to_collection(self, collection_name, variable):
-        self.collection_manager.get(collection_name).add(variable)
-
     def get_collection(self, name, create=True):
         return self.collection_manager.get(name, create=create)
 
     def get_collections(self):
         return self.collection_manager.get_collections()
+
+    def add_collection(self, collection):
+        if not isinstance(collection, Collection):
+            raise TypeError(
+                f"collection must be an instance of Collection class. "
+                f"value of type {collection.__class__} is not supported"
+            )
+        self.collection_manager.add(collection)
 
 
 class CallbackHook(BaseHook):

@@ -21,7 +21,7 @@ import smdebug.pytorch as smd
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
-def test_pytorch(script_mode: bool, use_loss_module=False):
+def test_pytorch(script_mode: bool = False, use_loss_module=False):
     smd.del_hook()
 
     sim_class = ScriptSimulator if script_mode else SagemakerSimulator
@@ -80,6 +80,10 @@ def test_pytorch(script_mode: bool, use_loss_module=False):
                 for name in hook.collection_manager.get("losses").tensor_names
             ]
         )
+
+
+def test_pytorch_loss_module(script_mode: bool = False):
+    test_pytorch(script_mode=script_mode, use_loss_module=True)
 
 
 if __name__ == "__main__":
