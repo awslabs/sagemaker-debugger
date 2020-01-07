@@ -341,6 +341,9 @@ class Trial(ABC):
             ts.update(self.mode_to_tensors_map[mode])
         else:
             ts.update(self._tensors_for_step(step, mode))
+        self.logger.debug(
+            f"getting tensor_names with params: step:{step} mode:{mode} regex:{regex} collection:{collection}"
+        )
 
         if regex is None and collection is None:
             return sorted(list(ts))
@@ -357,7 +360,9 @@ class Trial(ABC):
                 xs = self._tensors_matching_regex(regex)
                 matching_tensors_saved = ts.intersection(xs)
                 if len(matching_tensors_saved) == 0:
-                    self.logger.warning(f"No tensors matching the regex pattern given were saved")
+                    self.logger.warning(
+                        f"No tensors matching the regex pattern:{regex} given were saved"
+                    )
             return sorted(list(matching_tensors_saved))
 
     def _tensors_for_step(self, step, mode=ModeKeys.GLOBAL) -> list:
@@ -515,7 +520,8 @@ class Trial(ABC):
                     return StepState.UNAVAILABLE
                 return StepState.NOT_YET_AVAILABLE
             elif all_steps[bisect_idx] == step:
-                if len(self.workers_for_global_step[step]) == self.num_workers:
+                g_step = self.global_step(mode, step)
+                if len(self.workers_for_global_step[g_step]) == self.num_workers:
                     return StepState.AVAILABLE
                 elif self.loaded_all_steps is True:
                     self.logger.info(
