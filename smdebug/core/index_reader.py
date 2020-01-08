@@ -351,12 +351,12 @@ class LocalIndexReader(IndexReader):
 
     def list_index_files(self):
         index_dirname = IndexFileLocationUtils.get_index_path(self.path)
-        index_files_regex = ".+\/\d+_(.+)\.(json|csv)$"
+        index_files_regex = "\d+_(.+)\.(json|csv)$"
         index_files = list_files_in_directory(index_dirname, file_regex=index_files_regex)
         return sorted(index_files)
 
     def list_event_files(self, start_after_key=None):
-        event_file_regex = ".+\/\d+_(.+)\.(tfevents)$"
+        event_file_regex = "\d+_(.+)\.(tfevents)$"
         event_files = list_files_in_directory(
             get_path_to_events_directory(self.path), file_regex=event_file_regex
         )
