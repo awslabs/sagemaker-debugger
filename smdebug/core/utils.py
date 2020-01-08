@@ -219,6 +219,11 @@ def get_tb_worker():
     return f"{os.getpid()}_{socket.gethostname()}"
 
 
+def remove_file_if_exist(file_path):
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+
 class SagemakerSimulator(object):
     """
     Creates an environment variable pointing to a JSON config file, and creates the config file.
@@ -233,6 +238,7 @@ class SagemakerSimulator(object):
         tensorboard_dir="/tmp/tensorboard",
         training_job_name="sm_job",
         json_file_contents="{}",
+        remove_outdir=True,
     ):
         self.out_dir = DEFAULT_SAGEMAKER_OUTDIR
         self.json_config_path = json_config_path
@@ -240,9 +246,11 @@ class SagemakerSimulator(object):
         self.tensorboard_dir = tensorboard_dir
         self.training_job_name = training_job_name
         self.json_file_contents = json_file_contents
+        self.remove_outdir = remove_outdir
 
     def __enter__(self):
-        shutil.rmtree(self.out_dir, ignore_errors=True)
+        if self.remove_outdir is True:
+            shutil.rmtree(self.out_dir, ignore_errors=True)
         shutil.rmtree(self.json_config_path, ignore_errors=True)
         tb_parent_dir = str(Path(self.tb_json_config_path).parent)
         shutil.rmtree(tb_parent_dir, ignore_errors=True)
@@ -269,11 +277,14 @@ class SagemakerSimulator(object):
     def __exit__(self, *args):
         # Throws errors when the writers try to close.
         # shutil.rmtree(self.out_dir, ignore_errors=True)
-        os.remove(self.json_config_path)
-        os.remove(self.tb_json_config_path)
-        del os.environ[CONFIG_FILE_PATH_ENV_STR]
-        del os.environ["TRAINING_JOB_NAME"]
-        del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
+        remove_file_if_exist(self.json_config_path)
+        remove_file_if_exist(self.tb_json_config_path)
+        if CONFIG_FILE_PATH_ENV_STR in os.environ:
+            del os.environ[CONFIG_FILE_PATH_ENV_STR]
+        if "TRAINING_JOB_NAME" in os.environ:
+            del os.environ["TRAINING_JOB_NAME"]
+        if TENSORBOARD_CONFIG_FILE_PATH_ENV_STR in os.environ:
+            del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
 
 
 class ScriptSimulator(object):
