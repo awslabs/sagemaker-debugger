@@ -72,11 +72,14 @@ def is_s3(path):
         return False, None, None
 
 
-def list_files_in_directory(directory):
+def list_files_in_directory(directory, file_regex=None):
     files = []
     for root, dir_name, filename in os.walk(directory):
         for f in filename:
-            files.append(os.path.join(root, f))
+            if file_regex is None:
+                files.append(os.path.join(root, f))
+            elif re.match(file_regex, f):
+                files.append(os.path.join(root, f))
     return files
 
 
@@ -85,8 +88,7 @@ def list_collection_files_in_directory(directory):
     import re
 
     collections_file_regex = re.compile(".*_?collections.json")
-    files = [f for f in os.listdir(collections_directory) if re.match(collections_file_regex, f)]
-    return files
+    return list_files_in_directory(collections_directory, file_regex=collections_file_regex)
 
 
 def serialize_tf_device(device: str) -> str:
