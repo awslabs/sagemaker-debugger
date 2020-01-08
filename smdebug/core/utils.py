@@ -221,7 +221,7 @@ def get_tb_worker():
     return f"{os.getpid()}_{socket.gethostname()}"
 
 
-def remove_file_if_exist(file_path):
+def remove_file_if_exists(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)
 
@@ -280,8 +280,8 @@ class SagemakerSimulator(object):
         # Throws errors when the writers try to close.
         # shutil.rmtree(self.out_dir, ignore_errors=True)
         if self.cleanup is True:
-            remove_file_if_exist(self.json_config_path)
-            remove_file_if_exist(self.tb_json_config_path)
+            remove_file_if_exists(self.json_config_path)
+            remove_file_if_exists(self.tb_json_config_path)
             if CONFIG_FILE_PATH_ENV_STR in os.environ:
                 del os.environ[CONFIG_FILE_PATH_ENV_STR]
             if "TRAINING_JOB_NAME" in os.environ:
