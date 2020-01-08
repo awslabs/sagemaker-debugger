@@ -238,7 +238,7 @@ class SagemakerSimulator(object):
         tensorboard_dir="/tmp/tensorboard",
         training_job_name="sm_job",
         json_file_contents="{}",
-        remove_outdir=True,
+        cleanup=True,
     ):
         self.out_dir = DEFAULT_SAGEMAKER_OUTDIR
         self.json_config_path = json_config_path
@@ -246,10 +246,10 @@ class SagemakerSimulator(object):
         self.tensorboard_dir = tensorboard_dir
         self.training_job_name = training_job_name
         self.json_file_contents = json_file_contents
-        self.remove_outdir = remove_outdir
+        self.cleanup = cleanup
 
     def __enter__(self):
-        if self.remove_outdir is True:
+        if self.cleanup is True:
             shutil.rmtree(self.out_dir, ignore_errors=True)
         shutil.rmtree(self.json_config_path, ignore_errors=True)
         tb_parent_dir = str(Path(self.tb_json_config_path).parent)
@@ -277,14 +277,15 @@ class SagemakerSimulator(object):
     def __exit__(self, *args):
         # Throws errors when the writers try to close.
         # shutil.rmtree(self.out_dir, ignore_errors=True)
-        remove_file_if_exist(self.json_config_path)
-        remove_file_if_exist(self.tb_json_config_path)
-        if CONFIG_FILE_PATH_ENV_STR in os.environ:
-            del os.environ[CONFIG_FILE_PATH_ENV_STR]
-        if "TRAINING_JOB_NAME" in os.environ:
-            del os.environ["TRAINING_JOB_NAME"]
-        if TENSORBOARD_CONFIG_FILE_PATH_ENV_STR in os.environ:
-            del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
+        if self.cleanup is True:
+            remove_file_if_exist(self.json_config_path)
+            remove_file_if_exist(self.tb_json_config_path)
+            if CONFIG_FILE_PATH_ENV_STR in os.environ:
+                del os.environ[CONFIG_FILE_PATH_ENV_STR]
+            if "TRAINING_JOB_NAME" in os.environ:
+                del os.environ["TRAINING_JOB_NAME"]
+            if TENSORBOARD_CONFIG_FILE_PATH_ENV_STR in os.environ:
+                del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
 
 
 class ScriptSimulator(object):
