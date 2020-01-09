@@ -22,13 +22,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from tests.tensorflow.hooks.test_mirrored_strategy import test_basic
 from tests.tensorflow.keras.test_keras_mirrored import test_tf_keras
-
-# First Party
-import smdebug.tensorflow as smd
-from smdebug.core.utils import SagemakerSimulator
-
-# Local
-from .tf_utils import (
+from tf_utils import (
     get_data,
     get_estimator,
     get_input_fns,
@@ -36,6 +30,10 @@ from .tf_utils import (
     get_keras_model_v1,
     get_train_op_and_placeholders,
 )
+
+# First Party
+import smdebug.tensorflow as smd
+from smdebug.core.utils import SagemakerSimulator
 
 
 def test_estimator(script_mode: bool = False):
