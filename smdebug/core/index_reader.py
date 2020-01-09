@@ -319,9 +319,11 @@ class S3IndexReader(IndexReader):
                     object_requests.append(
                         ReadObjectRequest(format(f"s3://{self.bucket_name}/") + index_file)
                     )
+                    self.logger.debug(f"Will read index_file: {index_file}")
                 self.index_file_cache.add(index_file, start_after_key)
 
         responses = S3Handler.get_objects(object_requests)
+        assert len(responses) == len(object_requests)
         return responses, steps, start_after_key, workers
 
     def list_index_files(self, start_after_key=None):

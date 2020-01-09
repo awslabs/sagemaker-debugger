@@ -253,11 +253,14 @@ class Trial(ABC):
         if step not in self.workers_for_global_step:
             self.workers_for_global_step[step] = set()
         self.workers_for_global_step[step].add(worker)
+        self.logger.debug(f"Populated workers for global step:{step} worker: {worker}")
+
         if (
             len(self.workers_for_global_step[step]) == self.num_workers
             and step > self.last_complete_step
         ):
             self.last_complete_step = step
+            self.logger.debug(f"Populating last completing step to: {step}")
 
     def _populate_global_step_to_tensor_name_map(self, tensor: TensorLocation, step_num) -> None:
         """
@@ -514,13 +517,14 @@ class Trial(ABC):
         """
         all_steps = self.steps(mode=mode, show_incomplete_steps=True)
         bisect_idx = bisect_left(all_steps, step)
+        g_step = self._global_step_currently(mode, step)
+
         if bisect_idx < len(all_steps):
             if all_steps[bisect_idx] > step:
-                if self.last_complete_step > step:
+                if self.last_complete_step > g_step:
                     return StepState.UNAVAILABLE
                 return StepState.NOT_YET_AVAILABLE
             elif all_steps[bisect_idx] == step:
-                g_step = self.global_step(mode, step)
                 if len(self.workers_for_global_step[g_step]) == self.num_workers:
                     return StepState.AVAILABLE
                 elif self.loaded_all_steps is True:
@@ -531,9 +535,9 @@ class Trial(ABC):
                         f"Step {step} of mode {mode} was marked complete because the job is complete"
                     )
                     return StepState.AVAILABLE
-                elif step <= self.last_complete_step:
+                elif g_step <= self.last_complete_step:
                     self.logger.info(
-                        f"Step {step} of mode {mode} was written only by workers: {self.workers_for_global_step[step]}"
+                        f"Step {step} of mode {mode} was written only by workers: {self.workers_for_global_step[g_step]}"
                     )
                     self.logger.info(
                         f"Step {step} of mode {mode} was marked complete because the last complete step is {self.last_complete_step}"
