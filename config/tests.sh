@@ -19,11 +19,11 @@ run_for_framework() {
       # ignoring some test becuase they require multiple frmaeworks to be installed, these tests need to be broken down
       python -m pytest --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_hook_save_scalar.py --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
       if [ "$1" = "mxnet" ] ; then
-        python  tests/zero_code_change/mxnet_gluon_integration_test.py
+        python tests/zero_code_change/mxnet_gluon_integration_test.py
       elif [ "$1" = "pytorch" ] ; then
         python tests/zero_code_change/pytorch_integration_tests.py
       elif [ "$1" = "tensorflow" ] ; then
-        python -m pytest tests/zero_code_change/tensorflow_integration_tests.py
+        python tests/zero_code_change/tensorflow_integration_tests.py
       fi
 
     else
