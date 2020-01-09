@@ -72,11 +72,14 @@ def is_s3(path):
         return False, None, None
 
 
-def list_files_in_directory(directory):
+def list_files_in_directory(directory, file_regex=None):
     files = []
     for root, dir_name, filename in os.walk(directory):
         for f in filename:
-            files.append(os.path.join(root, f))
+            if file_regex is None:
+                files.append(os.path.join(root, f))
+            elif re.match(file_regex, f):
+                files.append(os.path.join(root, f))
     return files
 
 
@@ -85,8 +88,7 @@ def list_collection_files_in_directory(directory):
     import re
 
     collections_file_regex = re.compile(".*_?collections.json")
-    files = [f for f in os.listdir(collections_directory) if re.match(collections_file_regex, f)]
-    return files
+    return list_files_in_directory(collections_directory, file_regex=collections_file_regex)
 
 
 def serialize_tf_device(device: str) -> str:
@@ -219,6 +221,11 @@ def get_tb_worker():
     return f"{os.getpid()}_{socket.gethostname()}"
 
 
+def remove_file_if_exists(file_path):
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+
 class SagemakerSimulator(object):
     """
     Creates an environment variable pointing to a JSON config file, and creates the config file.
@@ -233,6 +240,7 @@ class SagemakerSimulator(object):
         tensorboard_dir="/tmp/tensorboard",
         training_job_name="sm_job",
         json_file_contents="{}",
+        cleanup=True,
     ):
         self.out_dir = DEFAULT_SAGEMAKER_OUTDIR
         self.json_config_path = json_config_path
@@ -240,9 +248,11 @@ class SagemakerSimulator(object):
         self.tensorboard_dir = tensorboard_dir
         self.training_job_name = training_job_name
         self.json_file_contents = json_file_contents
+        self.cleanup = cleanup
 
     def __enter__(self):
-        shutil.rmtree(self.out_dir, ignore_errors=True)
+        if self.cleanup is True:
+            shutil.rmtree(self.out_dir, ignore_errors=True)
         shutil.rmtree(self.json_config_path, ignore_errors=True)
         tb_parent_dir = str(Path(self.tb_json_config_path).parent)
         shutil.rmtree(tb_parent_dir, ignore_errors=True)
@@ -269,11 +279,15 @@ class SagemakerSimulator(object):
     def __exit__(self, *args):
         # Throws errors when the writers try to close.
         # shutil.rmtree(self.out_dir, ignore_errors=True)
-        os.remove(self.json_config_path)
-        os.remove(self.tb_json_config_path)
-        del os.environ[CONFIG_FILE_PATH_ENV_STR]
-        del os.environ["TRAINING_JOB_NAME"]
-        del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
+        if self.cleanup is True:
+            remove_file_if_exists(self.json_config_path)
+            remove_file_if_exists(self.tb_json_config_path)
+            if CONFIG_FILE_PATH_ENV_STR in os.environ:
+                del os.environ[CONFIG_FILE_PATH_ENV_STR]
+            if "TRAINING_JOB_NAME" in os.environ:
+                del os.environ["TRAINING_JOB_NAME"]
+            if TENSORBOARD_CONFIG_FILE_PATH_ENV_STR in os.environ:
+                del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
 
 
 class ScriptSimulator(object):
