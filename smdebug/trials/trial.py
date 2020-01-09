@@ -556,7 +556,7 @@ class Trial(ABC):
     def _update_last_index_token(self, new_index_token: str) -> None:
         """
         This function updates the last_index_token in the following scenarios:
-            1. last_complete_step > last_index_token_step :
+            1. last_complete_step >= last_index_token_step :
                 this means that the token isn't pointing to the latest completed step
             2. number of steps available ( complete or incomplete ) - (last_completed_step+1) > window_size_limit:
                 we maintain a window to stop querying for older steps that have not completed.
@@ -573,7 +573,7 @@ class Trial(ABC):
             )
 
         # Case 1:
-        if self.last_complete_step > last_index_token_step:
+        if self.last_complete_step >= last_index_token_step:
             prefix = IndexFileLocationUtils.get_prefix_from_index_file(new_index_token)
             # sort lexicographically and select the last worker
             last_worker = sorted(list(self.worker_set))[-1]
@@ -583,6 +583,7 @@ class Trial(ABC):
             self.last_index_token = IndexFileLocationUtils.get_index_key_for_step(
                 prefix, self.last_complete_step, last_worker_serialized
             )
+            self.logger.debug(f"Updated last index token to:{self.last_index_token}")
 
         # Case 2:
         available_step = self._global_to_mode.keys()

@@ -76,10 +76,12 @@ def list_files_in_directory(directory, file_regex=None):
     files = []
     for root, dir_name, filename in os.walk(directory):
         for f in filename:
+            print(f"File:{root}/{f} found")
             if file_regex is None:
                 files.append(os.path.join(root, f))
             elif re.match(file_regex, f):
                 files.append(os.path.join(root, f))
+
     return files
 
 
