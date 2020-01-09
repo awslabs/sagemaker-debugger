@@ -14,9 +14,9 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 """
 
 # Standard Library
+import datetime
 import os
 import sys
-from datetime import date
 
 # Third Party
 import setuptools
@@ -107,7 +107,11 @@ def detect_smdebug_version():
         sys.argv.remove("--release")
         return smdebug.__version__.strip()
 
-    return smdebug.__version__.strip() + "b" + str(date.today()).replace("-", "")
+    return (
+        smdebug.__version__.strip()
+        + "b"
+        + str(datetime.datetime.now().timestamp()).replace(".", "")
+    )  # str(date.today()).replace("-", "")
 
 
 version = detect_smdebug_version()
