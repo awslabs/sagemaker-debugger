@@ -83,7 +83,9 @@ Contains the path to the directory where metrics will be recorded for consumptio
 This is relevant only in SageMaker environment, where this variable points to a pre-defined location.
 
 
-#### `TRAINING_END_DELAY_REFRESH`:
+**Note**: The environment variables below are applicable for versions > 0.4.14
+
+#### `SMDEBUG_TRAINING_END_DELAY_REFRESH`:
 
 During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
 directory contains collections, events, and index files. This environment variable
@@ -91,10 +93,18 @@ specifies how many seconds to wait before refreshing the index files to check if
 and the tensor is available. By default value, this value is set to 1.
 
 
-#### `INCOMPLETE_STEP_WAIT_WINDOW`:
+#### `SMDEBUG_INCOMPLETE_STEP_WAIT_WINDOW`:
 
 During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
 directory contains collections, events, and index files. A trial checks to see if a step
 specified in the smdebug hook has been completed. This environment variable
 specifies the maximum number of incomplete steps that the trial will wait for before marking
 half of them as complete. Default: 1000
+
+
+#### `SMDEBUG_MISSING_EVENT_FILE_RETRY_LIMIT`:
+
+During analysis, a [trial](analysis.md) is created to query for tensors from a specified directory. This
+directory contains collections, events, and index files. All the tensor data is stored in the event files.
+When tensor data contained in an event file that is not available has been requested, this variable specifcies
+the number of times we retry the request.
