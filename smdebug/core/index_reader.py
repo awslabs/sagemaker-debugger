@@ -310,6 +310,7 @@ class S3IndexReader(IndexReader):
         self.logger.debug(f'Loaded Index Files: {",".join(index_files)}')
         for index_file in index_files:
             if self.index_file_cache.has_not_read(index_file):
+
                 step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
                 if (
                     range_steps is not None and step_in_range(range_steps, step)
@@ -319,9 +320,15 @@ class S3IndexReader(IndexReader):
                     object_requests.append(
                         ReadObjectRequest(format(f"s3://{self.bucket_name}/") + index_file)
                     )
-                self.index_file_cache.add(index_file, start_after_key)
+                    self.logger.debug(f"Will read index_file: {index_file}")
+                    self.index_file_cache.add(index_file, start_after_key)
+            else:
+                self.logger.debug(
+                    f"index_file:{index_file} Indexcache contents:{self.index_file_cache.lookup_set}"
+                )
 
         responses = S3Handler.get_objects(object_requests)
+        assert len(responses) == len(object_requests)
         return responses, steps, start_after_key, workers
 
     def list_index_files(self, start_after_key=None):
@@ -416,7 +423,11 @@ class LocalIndexReader(IndexReader):
             start_after_index = bisect_left(index_files, start_after_key)
         else:
             start_after_index = 0
+        self.logger.debug(f"Found index_files:{index_files}")
         index_files = index_files[start_after_index:]  # ignore files we have already read
+        self.logger.debug(
+            f"Curtailed Found index_files to :{index_files} start_after_index:{start_after_index} start_after_key:{start_after_key}"
+        )
         for index_file in index_files:
             if self.index_file_cache.has_not_read(index_file):
                 step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
@@ -428,9 +439,15 @@ class LocalIndexReader(IndexReader):
                     self.logger.debug(
                         f"Sagemaker-Debugger: Read {os.path.getsize(index_file)} bytes from file {index_file}"
                     )
+                    self.logger.debug(f"Will read index file:{index_file}")
                     with open(index_file) as f:
                         responses.append(f.read().encode())
-                self.index_file_cache.add(index_file, start_after_key)
+                    self.index_file_cache.add(index_file, start_after_key)
+            else:
+                self.logger.debug(
+                    f"IndexFile:{index_file} Indexcache contents:{self.index_file_cache.lookup_set}"
+                )
+
         if len(index_files) > 0:
             start_after_key = index_files[-1]  # Last file that we have read
         return responses, steps, start_after_key, workers

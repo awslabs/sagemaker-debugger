@@ -253,11 +253,14 @@ class Trial(ABC):
         if step not in self.workers_for_global_step:
             self.workers_for_global_step[step] = set()
         self.workers_for_global_step[step].add(worker)
+        self.logger.debug(f"Populated workers for global step:{step} worker: {worker}")
+
         if (
             len(self.workers_for_global_step[step]) == self.num_workers
             and step > self.last_complete_step
         ):
             self.last_complete_step = step
+            self.logger.debug(f"Populating last completing step to: {step}")
 
     def _populate_global_step_to_tensor_name_map(self, tensor: TensorLocation, step_num) -> None:
         """
@@ -514,13 +517,14 @@ class Trial(ABC):
         """
         all_steps = self.steps(mode=mode, show_incomplete_steps=True)
         bisect_idx = bisect_left(all_steps, step)
+        g_step = self._global_step_currently(mode, step)
+
         if bisect_idx < len(all_steps):
             if all_steps[bisect_idx] > step:
-                if self.last_complete_step > step:
+                if self.last_complete_step > g_step:
                     return StepState.UNAVAILABLE
                 return StepState.NOT_YET_AVAILABLE
             elif all_steps[bisect_idx] == step:
-                g_step = self.global_step(mode, step)
                 if len(self.workers_for_global_step[g_step]) == self.num_workers:
                     return StepState.AVAILABLE
                 elif self.loaded_all_steps is True:
@@ -531,9 +535,9 @@ class Trial(ABC):
                         f"Step {step} of mode {mode} was marked complete because the job is complete"
                     )
                     return StepState.AVAILABLE
-                elif step <= self.last_complete_step:
+                elif g_step <= self.last_complete_step:
                     self.logger.info(
-                        f"Step {step} of mode {mode} was written only by workers: {self.workers_for_global_step[step]}"
+                        f"Step {step} of mode {mode} was written only by workers: {self.workers_for_global_step[g_step]}"
                     )
                     self.logger.info(
                         f"Step {step} of mode {mode} was marked complete because the last complete step is {self.last_complete_step}"
@@ -552,7 +556,7 @@ class Trial(ABC):
     def _update_last_index_token(self, new_index_token: str) -> None:
         """
         This function updates the last_index_token in the following scenarios:
-            1. last_complete_step > last_index_token_step :
+            1. last_complete_step >= last_index_token_step :
                 this means that the token isn't pointing to the latest completed step
             2. number of steps available ( complete or incomplete ) - (last_completed_step+1) > window_size_limit:
                 we maintain a window to stop querying for older steps that have not completed.
@@ -569,7 +573,7 @@ class Trial(ABC):
             )
 
         # Case 1:
-        if self.last_complete_step > last_index_token_step:
+        if self.last_complete_step >= last_index_token_step:
             prefix = IndexFileLocationUtils.get_prefix_from_index_file(new_index_token)
             # sort lexicographically and select the last worker
             last_worker = sorted(list(self.worker_set))[-1]
@@ -579,6 +583,7 @@ class Trial(ABC):
             self.last_index_token = IndexFileLocationUtils.get_index_key_for_step(
                 prefix, self.last_complete_step, last_worker_serialized
             )
+            self.logger.debug(f"Updated last index token to:{self.last_index_token}")
 
         # Case 2:
         available_step = self._global_to_mode.keys()
