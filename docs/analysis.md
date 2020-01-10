@@ -54,7 +54,7 @@ Trial is capable of loading new tensors as and when they become available at the
 When running a SageMaker job this path is on S3. SageMaker saves data from your training job locally on the training instance first and uploads them to an S3 location in your account. When you start a SageMaker training job with the python SDK, you can control this path using the parameter `s3_output_path` in the `DebuggerHookConfig` object. This is an optional parameter, if you do not pass this the python SDK will populate a default location for you. If you do pass this, make sure the bucket is in the same region as where the training job is running.  If you're not using the python SDK, set this path for the parameter `S3OutputPath` in the `DebugHookConfig` section of `CreateTrainingJob` API. SageMaker takes this path and appends training_job_name and "debug-output" to it to ensure we have a unique path for each training job.
 
 #### Non SageMaker training jobs
-If you are not running a SageMaker training job, this is the path you pass as `out_dir` when you create a smdebug [`Hook`](hook.md). Just like when creating the hook, you can pass either a local path or an S3 path (as `s3://bucket/prefix`).
+If you are not running a SageMaker training job, this is the path you pass as `out_dir` when you create a smdebug [`Hook`](api.md#hook). Just like when creating the hook, you can pass either a local path or an S3 path (as `s3://bucket/prefix`).
 
 ### Creating a trial object
 There are two types of trials you can create: LocalTrial or S3Trial depending on the path. We provide a wrapper method to create the appropriate trial.
@@ -112,7 +112,7 @@ Here's a list of methods that the Trial API provides which helps you load data f
 | [trial.has\_passed\_step(step)](#has\_passed\_step) | Query whether the requested step is available |
 
 
-#### tensors
+#### tensor_names
 Retrieves names of tensors saved
 ```python
 trial.tensor_names(step= None,
@@ -141,7 +141,7 @@ All arguments to this method are optional. You are not required to pass any of t
 
 
 #### tensor
-Retrieve the `smdebug.core.tensor.Tensor` object by the given name `tname`. You can review all the methods that this Tensor object provides [here](#Tensor).
+Retrieve the `smdebug.core.tensor.Tensor` object by the given name `tname`. You can review all the methods that this Tensor object provides [here](api.md#Tensor-1).
 ```python
 trial.tensor(tname)
 ```
@@ -149,7 +149,7 @@ trial.tensor(tname)
 - `tname (str)` Takes the name of tensor
 
 ###### Returns
-`smdebug.core.tensor.Tensor` object which has [this API](#Tensor)
+`smdebug.core.tensor.Tensor` object which has [this API](api.md#Tensor-1)
 
 #### has_tensor
 Query whether the trial has a tensor by the given name
@@ -421,7 +421,7 @@ Rules are the medium by which SageMaker Debugger executes a certain piece of cod
 Please refer to the built-in rules that SageMaker provides [here](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md#built-in-rules).
 
 ### Writing a custom rule
-Writing a rule involves implementing the [Rule interface](../../smdebug/rules/rule.py). Below, let us look at a simplified version of a VanishingGradient rule.
+Writing a rule involves implementing the [Rule interface](../smdebug/rules/rule.py). Below, let us look at a simplified version of a VanishingGradient rule.
 
 ##### Constructor
 Creating a rule involves first inheriting from the base `Rule` class provided by smdebug.
@@ -495,7 +495,7 @@ If you're using the SageMaker API directly to evaluate the rule, then you can sp
 ```
 
 #### Invoking a rule outside of SageMaker through `invoke_rule`
-You might want to invoke the rule locally during development. We provide a function to invoke rules easily. Refer [smdebug/rules/rule_invoker.py](../../smdebug/rules/rule_invoker.py). The invoke function has the following syntax. It takes a instance of a Rule and invokes it for a series of steps one after the other.
+You might want to invoke the rule locally during development. We provide a function to invoke rules easily. Refer [smdebug/rules/rule_invoker.py](../smdebug/rules/rule_invoker.py). The invoke function has the following syntax. It takes a instance of a Rule and invokes it for a series of steps one after the other.
 
 ```python
 from smdebug.rules import invoke_rule
@@ -522,7 +522,7 @@ from smdebug.exceptions import *
 
 Here are the exceptions (along with others) and their meaning:
 
-- `TensorUnavailableForStep` : This means that the tensor requested is not available for the step. It may have been saved or will be saved for a different step number. Note that this exception implies that the requested tensor will never become available for this step in the future.
+- `TensorUnavailableForStep` : This means that the tensor requested is not available for the step. It may have been or will be saved for a different step number. You can check which steps tensor is saved for by `trial.tensor('tname').steps()` [api](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/analysis.md#steps-1). Note that this exception implies that the requested tensor will never become available for this step in the future.
 
 - `TensorUnavailable` : This means that this tensor has not been saved from the training job. Note that if you have a `SaveConfig` which saves a certain tensor only after the time you queried for the tensor, you might get a `TensorUnavailable` exception even if the tensor may become available later for some step.
 
