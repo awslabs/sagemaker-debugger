@@ -1,6 +1,8 @@
 # Third Party
-import mxnet as mx
+# Standard Library
 import os
+
+import mxnet as mx
 
 # First Party
 from smdebug.core.collection import CollectionKeys
