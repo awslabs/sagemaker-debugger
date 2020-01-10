@@ -90,12 +90,12 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
             loss = F.mse_loss(output, target)
             epoch_loss += loss.item()
             loss.backward()
-            if hasattr(dist, "is_initialized"):
+            if hasattr(dist, "is_initialized") and dist.is_initialized():
                 average_gradients(model)
             optimizer.step()
         # print(f"Rank {dist.get_rank()}, epoch {epoch}: {epoch_loss / num_batches}")
 
-    if hasattr(dist, "is_initialized"):
+    if hasattr(dist, "is_initialized") and dist.is_initialized():
         assert hook._get_worker_name() == f"worker_{dist.get_rank()}"
     # Race condition here where both workers attempt to move
     # /tmp/{out_dir}/END_OF_JOB.ts to {out_dir}/END_OF_JOB.ts
