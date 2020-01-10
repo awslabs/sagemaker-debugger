@@ -90,11 +90,13 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
             loss = F.mse_loss(output, target)
             epoch_loss += loss.item()
             loss.backward()
-            average_gradients(model)
+            if hasattr(dist, "is_initialized"):
+                average_gradients(model)
             optimizer.step()
         # print(f"Rank {dist.get_rank()}, epoch {epoch}: {epoch_loss / num_batches}")
 
-    assert hook._get_worker_name() == f"worker_{dist.get_rank()}"
+    if hasattr(dist, "is_initialized"):
+        assert hook._get_worker_name() == f"worker_{dist.get_rank()}"
     # Race condition here where both workers attempt to move
     # /tmp/{out_dir}/END_OF_JOB.ts to {out_dir}/END_OF_JOB.ts
     try:
@@ -177,5 +179,43 @@ def test_run_net_distributed_save_all_workers():
 @pytest.mark.slow  # 0:07 to run
 def test_run_net_distributed_save_one_worker():
     trial = _run_net_distributed(include_workers="one")
+    assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
+    assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+@pytest.mark.slow
+def test_run_net_distributed_multiproc_save_all_workers():
+    size = 2
+    os.environ["SMDEBUG_NUM_WORKERS"] = '2'
+    processes = []
+    for rank in range(size):
+        os.environ["SMDEBUG_WORKER_NAME"] = f"worker_{rank}"
+        p = Process(target=run, args=(rank, size, "all"))
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+
+    out_dir = "/tmp/run"
+    trial = create_trial(path=out_dir)
+    assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
+    assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+@pytest.mark.slow
+def test_run_net_distributed_multiproc_save_one_worker():
+    size = 2
+    os.environ["SMDEBUG_NUM_WORKERS"] = '2'
+    processes = []
+    for rank in range(size):
+        os.environ["SMDEBUG_WORKER_NAME"] = f"worker_{rank}"
+        p = Process(target=run, args=(rank, size, "one"))
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+
+    out_dir = "/tmp/run"
+    trial = create_trial(path=out_dir)
     assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"

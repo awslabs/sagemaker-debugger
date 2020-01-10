@@ -1,5 +1,6 @@
 # Third Party
 import mxnet as mx
+import os
 
 # First Party
 from smdebug.core.collection import CollectionKeys
@@ -67,7 +68,7 @@ class Hook(CallbackHook):
                 return f"worker_{hvd.rank()}"
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-        return DEFAULT_WORKER_NAME
+        return os.getenv("SMDEBUG_WORKER_NAME", DEFAULT_WORKER_NAME)
 
     def _get_num_workers(self):
         try:
@@ -77,7 +78,7 @@ class Hook(CallbackHook):
                 return hvd.size()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-        return 1
+        return int(os.getenv("SMDEBUG_NUM_WORKERS", 1))
 
     def _cleanup(self):
         # Write the gradients of the past step if the writer is still available.

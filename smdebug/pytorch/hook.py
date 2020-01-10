@@ -1,4 +1,5 @@
 # Standard Library
+import os
 
 # Third Party
 import torch
@@ -70,7 +71,7 @@ class Hook(CallbackHook):
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
         # Return default
-        return 1
+        return int(os.getenv("SMDEBUG_NUM_WORKERS", 1))
 
     def _get_worker_name(self):
         """Check horovod and torch.distributed."""
@@ -87,8 +88,7 @@ class Hook(CallbackHook):
                     return f"worker_{hvd.rank()}"
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
-        # Return default
-        return DEFAULT_WORKER_NAME
+        return os.getenv("SMDEBUG_WORKER_NAME", DEFAULT_WORKER_NAME)
 
     def _log_params(self, module):
         module_name = module._get_name()
