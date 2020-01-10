@@ -31,8 +31,8 @@ phases:
     commands:
       - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh && cd ..
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
-      - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && PYTHONPATH=. ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
 
   post_build:
     commands:
