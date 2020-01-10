@@ -141,7 +141,7 @@ All arguments to this method are optional. You are not required to pass any of t
 
 
 #### tensor
-Retrieve the `smdebug.core.tensor.Tensor` object by the given name `tname`. You can review all the methods that this Tensor object provides [here](api.md#Tensor-1).
+Retrieve the `smdebug.core.tensor.Tensor` object by the given name `tname`. You can review all the methods that this Tensor object provides [here](#Tensor-1).
 ```python
 trial.tensor(tname)
 ```
@@ -149,7 +149,7 @@ trial.tensor(tname)
 - `tname (str)` Takes the name of tensor
 
 ###### Returns
-`smdebug.core.tensor.Tensor` object which has [this API](api.md#Tensor-1)
+`smdebug.core.tensor.Tensor` object which has [this API](#Tensor-1)
 
 #### has_tensor
 Query whether the trial has a tensor by the given name
@@ -243,7 +243,7 @@ trial.collections()
 ```
 
 ###### Returns
-`dict[str -> Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#Collection) for more details.
+`dict[str -> Collection]` A dictionary indexed by the name of the collection, with the Collection object as the value. Please refer [Collection API](api.md#Collection) for more details.
 
 #### collection
 
@@ -256,7 +256,7 @@ trial.collection(coll_name)
 - `coll_name (str)` Name of the collection
 
 ###### Returns
-`Collection` The requested Collection object. Please refer [Collection API](api.md) for more details. #TODO fix link
+`Collection` The requested Collection object. Please refer [Collection API](api.md#Collection) for more details.
 
 
 #### wait\_for\_steps
@@ -332,7 +332,7 @@ trial.tensor(name).value(step_num, mode=ModeKeys.GLOBAL, worker=None)
 `numpy.ndarray` The value of tensor at the given step and worker (if the training job saved data from multiple workers)
 
 #### reduction_value
-Get the reduction value of the chosen tensor at a particular step. A reduction value is a tensor reduced to a single value through reduction or aggregation operations. The different reductions you can query for are the same as what are allowed in [ReductionConfig](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md) when saving tensors.
+Get the reduction value of the chosen tensor at a particular step. A reduction value is a tensor reduced to a single value through reduction or aggregation operations. The different reductions you can query for are the same as what are allowed in [ReductionConfig](api.md#reductionconfig) when saving tensors.
 This API thus allows you to access the reduction you might have saved instead of the full tensor. If you had saved the full tensor, it will calculate the requested reduction at the time of this call.
 
 Reduction names allowed are `min`, `max`, `mean`, `prod`, `std`, `sum`, `variance` and `l1`, `l2` representing the norms.
