@@ -182,10 +182,11 @@ def test_run_net_distributed_save_one_worker():
     assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
+
 @pytest.mark.slow
 def test_run_net_distributed_multiproc_save_all_workers():
     size = 2
-    os.environ["SMDEBUG_NUM_WORKERS"] = '2'
+    os.environ["SMDEBUG_NUM_WORKERS"] = "2"
     processes = []
     for rank in range(size):
         os.environ["SMDEBUG_WORKER_NAME"] = f"worker_{rank}"
@@ -201,10 +202,11 @@ def test_run_net_distributed_multiproc_save_all_workers():
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
+
 @pytest.mark.slow
 def test_run_net_distributed_multiproc_save_one_worker():
     size = 2
-    os.environ["SMDEBUG_NUM_WORKERS"] = '2'
+    os.environ["SMDEBUG_NUM_WORKERS"] = "2"
     processes = []
     for rank in range(size):
         os.environ["SMDEBUG_WORKER_NAME"] = f"worker_{rank}"
