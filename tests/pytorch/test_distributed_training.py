@@ -202,6 +202,9 @@ def test_run_net_distributed_multiproc_save_all_workers():
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
+    del os.environ["SMDEBUG_NUM_WORKERS"]
+    del os.environ["SMDEBUG_WORKER_NAME"]
+
 
 @pytest.mark.slow
 def test_run_net_distributed_multiproc_save_one_worker():
@@ -221,3 +224,6 @@ def test_run_net_distributed_multiproc_save_one_worker():
     trial = create_trial(path=out_dir)
     assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+    del os.environ["SMDEBUG_NUM_WORKERS"]
+    del os.environ["SMDEBUG_WORKER_NAME"]
