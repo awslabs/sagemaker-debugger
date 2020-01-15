@@ -39,6 +39,34 @@ def test_single_writer_all_steps_written_complete_job():
 
 
 @pytest.mark.slow
+def demo_test():
+    """Test Scenario Description"
+     workers : [a]
+     steps :{
+        1: [a], 2: [a], 3: [a], 4: [a], 5: [a], 6: [a]
+        }
+    END_OF_JOB.ts --> Present
+    """
+
+    path = "s3://smdebug-testing/resources/has_step_scenarios/single-writer-all-steps-written-complete-job"
+    trial = create_trial(path)
+    num_workers = len(trial.workers())
+    assert num_workers == 1
+    assert trial.loaded_all_steps is True
+    all_steps = trial.steps(show_incomplete_steps=True)
+    completed_steps = trial.steps()
+    assert all_steps == [0, 1, 2, 3, 4, 5, 6]
+    assert completed_steps == all_steps
+    assert trial.has_passed_step(3) == StepState.AVAILABLE
+    assert trial.has_passed_step(8) == StepState.UNAVAILABLE
+    assert (
+        trial.last_index_token
+        == "resources/has_step_scenarios/single-writer-all-steps-written-complete-job/index/000000000/000000000006_worker_0.json"
+    )
+    assert trial.last_complete_step == 6
+
+
+@pytest.mark.slow
 def test_single_writer_all_steps_written_incomplete_job():
     """Test Scenario Description"
      workers : [a]
