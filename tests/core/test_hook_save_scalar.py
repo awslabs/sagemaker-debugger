@@ -343,7 +343,8 @@ def check_trials(out_dir, save_steps, saved_scalars=None):
             if eval_steps:  # need this check for bias and gradients
                 assert len(set(save_steps["EVAL"]) & set(eval_steps)) == len(save_steps["EVAL"])
     scalar_list = trial.tensor_names(regex="^scalar")
-    assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
+    if saved_scalars:
+        assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
 
 
 def verify_files(out_dir, save_config, saved_scalars=None):
