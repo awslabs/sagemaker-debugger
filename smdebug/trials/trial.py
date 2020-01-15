@@ -518,7 +518,6 @@ class Trial(ABC):
         all_steps = self.steps(mode=mode, show_incomplete_steps=True)
         bisect_idx = bisect_left(all_steps, step)
         g_step = self._global_step_currently(mode, step)
-
         if bisect_idx < len(all_steps):
             if all_steps[bisect_idx] > step:
                 if self.last_complete_step > g_step:
@@ -572,7 +571,8 @@ class Trial(ABC):
                 self.last_index_token
             )
 
-        # Case 1:
+        # Case 1: This case is not satisfied when all workers in a
+        # distributed training job have not written a step
         if self.last_complete_step >= last_index_token_step:
             prefix = IndexFileLocationUtils.get_prefix_from_index_file(new_index_token)
             # sort lexicographically and select the last worker
@@ -585,7 +585,8 @@ class Trial(ABC):
             )
             self.logger.debug(f"Updated last index token to:{self.last_index_token}")
 
-        # Case 2:
+        # Case 2: This case is satisfied if the number of incomplete steps
+        # is greater than the INCOMPLETE_STEP_WAIT_WINDOW
         available_step = self._global_to_mode.keys()
         if (
             len(available_step) - (self.last_complete_step + 1)
