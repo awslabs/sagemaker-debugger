@@ -5,7 +5,6 @@ env:
   variables:
     ## below enviornment variables are overridden in respective code build.
     # for example for pytorch build run_pytest_pytorch and run_integration_pytest_pytorch will be enabled
-    SMDEBUG_S3_BINARY: "s3://smdebug-nightly-binaries/$(date +%F)/"
     run_pytest_pytorch: "disable"
     run_pytest_mxnet: "enable"
     run_pytest_tensorflow: "disable"
