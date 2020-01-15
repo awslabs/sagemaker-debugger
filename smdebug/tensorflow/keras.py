@@ -469,7 +469,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # after first evaluation during training
         self.set_mode(mode)
 
-        self._close_writers()
+        # Write the gradients of the past step if the writer is still available.
+        if self.writer is not None:
+            self._close_writers()
         self._increment_step()
 
         if self.prepared_collections is False:

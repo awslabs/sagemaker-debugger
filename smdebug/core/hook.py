@@ -354,8 +354,7 @@ class BaseHook:
             return
 
         # flush out sm_metric scalars to metrics file
-        if self.metrics_writer is not None:
-            self._write_scalars()
+        self._write_scalars()
 
         if self.writer is not None:
             self.writer.flush()

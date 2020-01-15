@@ -322,8 +322,7 @@ class TensorflowBaseHook(BaseHook):
             return
 
         # flush out sm_metric scalars to metrics file
-        if self.metrics_writer is not None:
-            self._write_scalars()
+        self._write_scalars()
 
         if self.writer is not None:
             self.writer.flush()
@@ -428,13 +427,6 @@ class TensorflowBaseHook(BaseHook):
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
             optimizer_variables, ModeKeys.TRAIN
-        )
-
-    def save_scalar(self, name, value, sm_metric=False):
-        raise NotImplementedError(
-            "save_scalar not supported for Tensorflow. "
-            "Add the scalar to scalars or sm_metrics collection instead depending "
-            "on whether you want the scalar to show up as a SageMaker Metric. "
         )
 
     @staticmethod

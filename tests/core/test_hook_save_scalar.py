@@ -7,12 +7,14 @@ from datetime import datetime
 
 # Third Party
 import mxnet as mx
+import numpy as np
 import pytest
 import tensorflow as tf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import xgboost
 from mxnet import autograd, gluon, init
 from mxnet.gluon import nn as mxnn
 from tensorflow import keras
@@ -25,12 +27,15 @@ from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.mxnet import Hook as MX_Hook
 from smdebug.pytorch import Hook as PT_Hook
-from smdebug.tensorflow import KerasHook as TF_Hook
+from smdebug.tensorflow import KerasHook as TF_KerasHook
+from smdebug.tensorflow import SessionHook as TF_SessionHook
 from smdebug.trials import create_trial
+from smdebug.xgboost import Hook as XG_Hook
 
 SMDEBUG_PT_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_pt/tests/"
 SMDEBUG_MX_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_mx/tests/"
 SMDEBUG_TF_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_tf/tests/"
+SMDEBUG_XG_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_xg/tests/"
 
 
 def simple_pt_model(hook, steps=10, register_loss=False):
@@ -187,12 +192,73 @@ def simple_tf_model(hook, steps=10, lr=0.4):
         metrics=["accuracy"],
     )
     hooks = [hook]
+    hook.save_scalar("tf_keras_num_steps", steps, sm_metric=True)
 
+    hook.save_scalar("tf_keras_before_train", 1, sm_metric=False)
     hook.set_mode(ModeKeys.TRAIN)
     model.fit(x_train, y_train, epochs=1, steps_per_epoch=steps, callbacks=hooks, verbose=0)
 
     hook.set_mode(ModeKeys.EVAL)
     model.evaluate(x_test, y_test, steps=10, callbacks=hooks, verbose=0)
+    hook.save_scalar("tf_keras_after_train", 1, sm_metric=False)
+
+
+def tf_session_model(hook, steps=10, lr=0.4):
+    # Network definition
+    with tf.name_scope("foobar"):
+        x = tf.placeholder(shape=(None, 2), dtype=tf.float32)
+        w = tf.Variable(initial_value=[[10.0], [10.0]], name="weight1")
+    with tf.name_scope("foobaz"):
+        w0 = [[1], [1.0]]
+        y = tf.matmul(x, w0)
+    loss = tf.reduce_mean((tf.matmul(x, w) - y) ** 2, name="loss")
+    hook.get_collection("losses").add(loss)
+    global_step = tf.Variable(17, name="global_step", trainable=False)
+    increment_global_step_op = tf.assign(global_step, global_step + 1)
+
+    optimizer = tf.train.AdamOptimizer(lr)
+    optimizer = hook.wrap_optimizer(optimizer)
+    optimizer_op = optimizer.minimize(loss, global_step=increment_global_step_op)
+
+    sess = tf.train.MonitoredSession(hooks=[hook])
+    hook.save_scalar("tf_session_num_steps", steps, sm_metric=True)
+
+    hook.save_scalar("tf_session_before_train", 1, sm_metric=False)
+    hook.set_mode(ModeKeys.TRAIN)
+    for i in range(steps):
+        x_ = np.random.random((10, 2)) * 0.1
+        _loss, opt, gstep = sess.run([loss, optimizer_op, increment_global_step_op], {x: x_})
+
+    sess.close()
+    hook.save_scalar("tf_session_after_train", 1, sm_metric=False)
+
+
+def simple_xg_model(hook, num_round=10, seed=42):
+
+    np.random.seed(seed)
+
+    train_data = np.random.rand(5, 10)
+    train_label = np.random.randint(2, size=5)
+    dtrain = xgboost.DMatrix(train_data, label=train_label)
+
+    test_data = np.random.rand(5, 10)
+    test_label = np.random.randint(2, size=5)
+    dtest = xgboost.DMatrix(test_data, label=test_label)
+
+    params = {}
+
+    hook.save_scalar("xg_num_steps", num_round, sm_metric=True)
+
+    hook.save_scalar("xg_before_train", 1, sm_metric=False)
+    hook.set_mode(ModeKeys.TRAIN)
+    xgboost.train(
+        params,
+        dtrain,
+        evals=[(dtrain, "train"), (dtest, "test")],
+        num_boost_round=num_round,
+        callbacks=[hook],
+    )
+    hook.save_scalar("xg_after_train", 1, sm_metric=False)
 
 
 def delete_local_trials(local_trials):
@@ -277,8 +343,7 @@ def check_trials(out_dir, save_steps, saved_scalars=None):
             if eval_steps:  # need this check for bias and gradients
                 assert len(set(save_steps["EVAL"]) & set(eval_steps)) == len(save_steps["EVAL"])
     scalar_list = trial.tensor_names(regex="^scalar")
-    if scalar_list:
-        assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
+    assert len(set(saved_scalars) & set(scalar_list)) == len(saved_scalars)
 
 
 def verify_files(out_dir, save_config, saved_scalars=None):
@@ -383,27 +448,49 @@ def test_mxnet_save_scalar(collection, save_config, register_loss):
     delete_local_trials([SMDEBUG_MX_HOOK_TESTS_DIR])
 
 
-def helper_tensorflow_tests(collection, save_config):
+def helper_tensorflow_tests(use_keras, collection, save_config):
     coll_name, coll_regex = collection
 
     run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
     trial_dir = os.path.join(SMDEBUG_TF_HOOK_TESTS_DIR, run_id)
 
-    hook = TF_Hook(
-        out_dir=trial_dir,
-        include_collections=[coll_name],
-        save_config=save_config,
-        export_tensorboard=True,
-    )
+    if use_keras:
+        hook = TF_KerasHook(
+            out_dir=trial_dir,
+            include_collections=[coll_name],
+            save_config=save_config,
+            export_tensorboard=True,
+        )
 
-    simple_tf_model(hook)
+        simple_tf_model(hook)
+
+        saved_scalars = [
+            "scalar/tf_keras_num_steps",
+            "scalar/tf_keras_before_train",
+            "scalar/tf_keras_after_train",
+        ]
+    else:
+        hook = TF_SessionHook(
+            out_dir=trial_dir,
+            include_collections=[coll_name],
+            save_config=save_config,
+            export_tensorboard=True,
+        )
+
+        tf_session_model(hook)
+        tf.reset_default_graph()
+
+        saved_scalars = [
+            "scalar/tf_session_num_steps",
+            "scalar/tf_session_before_train",
+            "scalar/tf_session_after_train",
+        ]
     hook.close()
-
-    saved_scalars = ["loss"]
     verify_files(trial_dir, save_config, saved_scalars)
 
 
-@pytest.mark.parametrize("collection", [("all", ".*"), ("sm_metrics", "loss")])
+@pytest.mark.parametrize("use_keras", [True, False])
+@pytest.mark.parametrize("collection", [("all", ".*"), ("scalars", "^scalar")])
 @pytest.mark.parametrize(
     "save_config",
     [
@@ -417,6 +504,45 @@ def helper_tensorflow_tests(collection, save_config):
         ),
     ],
 )
-def test_tf_save_scalar(collection, save_config):
-    helper_tensorflow_tests(collection, save_config)
+def test_tf_save_scalar(use_keras, collection, save_config):
+    helper_tensorflow_tests(use_keras, collection, save_config)
     delete_local_trials([SMDEBUG_TF_HOOK_TESTS_DIR])
+
+
+def helper_xgboost_tests(collection, save_config):
+    coll_name, coll_regex = collection
+
+    run_id = "trial_" + coll_name + "-" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
+    trial_dir = os.path.join(SMDEBUG_XG_HOOK_TESTS_DIR, run_id)
+
+    hook = XG_Hook(
+        out_dir=trial_dir,
+        include_collections=[coll_name],
+        save_config=save_config,
+        export_tensorboard=True,
+    )
+
+    simple_xg_model(hook)
+    hook.close()
+
+    saved_scalars = ["scalar/xg_num_steps", "scalar/xg_before_train", "scalar/xg_after_train"]
+    verify_files(trial_dir, save_config, saved_scalars)
+
+
+@pytest.mark.parametrize("collection", [("all", ".*"), ("scalars", "^scalar")])
+@pytest.mark.parametrize(
+    "save_config",
+    [
+        SaveConfig(save_steps=[0, 2, 4, 6, 8]),
+        SaveConfig(
+            {
+                ModeKeys.TRAIN: SaveConfigMode(save_interval=2),
+                ModeKeys.GLOBAL: SaveConfigMode(save_interval=3),
+                ModeKeys.EVAL: SaveConfigMode(save_interval=1),
+            }
+        ),
+    ],
+)
+def test_xgboost_save_scalar(collection, save_config):
+    helper_xgboost_tests(collection, save_config)
+    delete_local_trials([SMDEBUG_XG_HOOK_TESTS_DIR])
