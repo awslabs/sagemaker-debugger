@@ -147,6 +147,7 @@ Note that `smd` import below translates to `import smdebug.{framework} as smd`.
 |`set_mode(mode)`| value of the enum `smd.modes` | Sets mode of the job, can be one of `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT` or `smd.modes.GLOBAL`. Refer [Modes](#modes) for more on that. |
 |`create_from_json_file(`<br/>`  json_file_path=None)` | `json_file_path (str)` | Takes the path of a file which holds the json configuration of the hook, and creates hook from that configuration. This is an optional parameter. <br/> If this is not passed it tries to get the file path from the value of the environment variable `SMDEBUG_CONFIG_FILE_PATH` and defaults to `/opt/ml/input/config/debughookconfig.json`. When training on SageMaker you do not have to specify any path because this is the default path that SageMaker writes the hook configuration to.
 |`close()` | - | Closes all files that are currently open by the hook |
+| `save_scalar(`<br/>`name, `<br/>`value, `<br/>`sm_metric=False)` | `name (str)` <br/> `value (float)` <br/> `sm_metric (bool)`| Saves a scalar value by the given name. Passing `sm_metric=True` flag also makes this scalar available as a SageMaker Metric to show up in SageMaker Studio. Note that when `sm_metric` is False, this scalar always resides only in your AWS account, but setting it to True saves the scalar also on AWS servers. The default value of `sm_metric` for this method is False. |
 
 ### TensorFlow specific Hook API
 Note that there are three types of Hooks in TensorFlow: SessionHook, EstimatorHook and KerasHook based on the TensorFlow interface being used for training. [This page](tensorflow.md) shows examples of each of these.
@@ -161,7 +162,6 @@ Note that there are three types of Hooks in TensorFlow: SessionHook, EstimatorHo
 | Method | Arguments | Behavior |
 | --- | --- | --- |
 | `register_block(block)` | `block (mx.gluon.Block)` | Calling this method applies the hook to the Gluon block representing the model, so SageMaker Debugger gets called by MXNet and can save the tensors required. |
-| `save_scalar(`<br/>`name, `<br/>`value, `<br/>`sm_metric=False)` | `name (str)` <br/> `value (float)` <br/> `sm_metric (bool)`| Saves a scalar value by the given name. Passing `sm_metric=True` flag also makes this scalar available as a SageMaker Metric to show up in SageMaker Studio. Note that when `sm_metric` is False, this scalar always resides only in your AWS account, but setting it to True saves the scalar also on AWS servers. The default value of `sm_metric` for this method is False. |
 
 ### PyTorch specific Hook API
 
@@ -170,7 +170,6 @@ Note that there are three types of Hooks in TensorFlow: SessionHook, EstimatorHo
 | --- | --- | --- |
 | `register_module(module)` | `module (torch.nn.Module)` | Calling this method applies the hook to the Torch Module representing the model, so SageMaker Debugger gets called by PyTorch and can save the tensors required. |
 | `register_loss(loss_module)` | `loss_module (torch.nn.modules.loss._Loss)` | Calling this method applies the hook to the Torch Module representing the loss, so SageMaker Debugger can save losses |
-| `save_scalar(`<br/>`name, `<br/>`value, `<br/>`sm_metric=False)` | `name (str)` <br/> `value (float)` <br/> `sm_metric (bool)`| Saves a scalar value by the given name. Passing `sm_metric=True` flag also makes this scalar available as a SageMaker Metric to show up in SageMaker Studio. Note that when `sm_metric` is False, this scalar always resides only in your AWS account, but setting it to True saves the scalar also on AWS servers. The default value of `sm_metric` for this method is False. |
 
 ---
 
