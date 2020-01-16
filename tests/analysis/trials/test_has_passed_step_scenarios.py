@@ -165,7 +165,7 @@ def test_single_writer_all_steps_written_incomplete_job_two_modes():
     assert all_steps == [0, 10, 20, 30, 40, 50, 60, 70]
     assert completed_steps == all_steps
     assert trial.has_passed_step(30) == StepState.AVAILABLE
-    assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.NOT_YET_AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
     assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
     assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.NOT_YET_AVAILABLE
     assert trial.has_passed_step(80) == StepState.NOT_YET_AVAILABLE
