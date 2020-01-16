@@ -167,7 +167,7 @@ def test_single_writer_all_steps_written_incomplete_job_two_modes():
     assert trial.has_passed_step(30) == StepState.AVAILABLE
     assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
     assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
-    assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.NOT_YET_AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.UNAVAILABLE
     assert trial.has_passed_step(80) == StepState.NOT_YET_AVAILABLE
     assert trial.last_index_token == os.path.join(
         path, "index/000000000/000000000070_worker_0.json"
