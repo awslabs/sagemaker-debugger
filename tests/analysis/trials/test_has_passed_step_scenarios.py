@@ -1,13 +1,51 @@
 # Standard Library
+import json
+import os
+import shutil
+import uuid
+from pathlib import Path
 
 # Third Party
 import pytest
 
 # First Party
+from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import INCOMPLETE_STEP_WAIT_WINDOW_KEY
+from smdebug.core.locations import IndexFileLocationUtils
+from smdebug.core.modes import ModeKeys
 from smdebug.core.tensor import StepState
 from smdebug.exceptions import NoMoreData, StepUnavailable
 from smdebug.trials import create_trial
+
+
+def dummy_trial_creator(trial_dir, num_workers, job_ended):
+    Path(trial_dir).mkdir(parents=True, exist_ok=True)
+    cm = CollectionManager()
+    for i in range(num_workers):
+        collection_file_name = f"worker_{i}_collections.json"
+        cm.export(trial_dir, collection_file_name)
+    if job_ended:
+        Path(os.path.join(trial_dir, "training_job_end.ts")).touch()
+
+
+def dummy_step_creator(trial_dir, global_step, mode, mode_step, worker_name):
+    static_step_data = (
+        '{"meta": {"mode": "TRAIN", "mode_step": 0, "event_file_name": ""}, '
+        '"tensor_payload": ['
+        '{"tensorname": "gradients/dummy:0", "start_idx": 0, "length": 1}'
+        "]}"
+    )
+
+    step = json.loads(static_step_data)
+    step["meta"]["mode"] = mode
+    step["meta"]["mode_step"] = mode_step
+
+    index_file_location = IndexFileLocationUtils.get_index_key_for_step(
+        trial_dir, global_step, worker_name
+    )
+    Path(os.path.dirname(index_file_location)).mkdir(parents=True, exist_ok=True)
+    with open(index_file_location, "w") as f:
+        json.dump(step, f)
 
 
 @pytest.mark.slow
@@ -39,31 +77,103 @@ def test_single_writer_all_steps_written_complete_job():
 
 
 @pytest.mark.slow
-def demo_test():
+def test_single_writer_all_steps_written_complete_job_two_modes():
     """Test Scenario Description"
      workers : [a]
+     modes: TRAIN, EVAL
      steps :{
-        1: [a], 2: [a], 3: [a], 4: [a], 5: [a], 6: [a]
+        0: [worker:a, mode: TRAIN, mode_step: 0],
+        10: [worker:a, mode: TRAIN, mode_step: 10],
+        20: [worker:a, mode: TRAIN, mode_step: 20],
+        30: [worker:a, mode: TRAIN, mode_step: 30],
+        40: [worker:a, mode: EVAL, mode_step: 0],
+        50: [worker:a, mode: EVAL, mode_step: 10],
+        60: [worker:a, mode: EVAL, mode_step: 20],
+        70: [worker:a, mode: EVAL, mode_step: 30]
         }
     END_OF_JOB.ts --> Present
     """
 
-    path = "s3://smdebug-testing/resources/has_step_scenarios/single-writer-all-steps-written-complete-job"
+    path = os.path.join("ts_output/train/", str(uuid.uuid4()))
+    dummy_trial_creator(trial_dir=path, num_workers=1, job_ended=True)
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i, mode="TRAIN", mode_step=i, worker_name="worker_0"
+        )
+
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i + 40, mode="EVAL", mode_step=i, worker_name="worker_0"
+        )
+
     trial = create_trial(path)
     num_workers = len(trial.workers())
     assert num_workers == 1
     assert trial.loaded_all_steps is True
     all_steps = trial.steps(show_incomplete_steps=True)
     completed_steps = trial.steps()
-    assert all_steps == [0, 1, 2, 3, 4, 5, 6]
+    assert all_steps == [0, 10, 20, 30, 40, 50, 60, 70]
     assert completed_steps == all_steps
-    assert trial.has_passed_step(3) == StepState.AVAILABLE
-    assert trial.has_passed_step(8) == StepState.UNAVAILABLE
-    assert (
-        trial.last_index_token
-        == "resources/has_step_scenarios/single-writer-all-steps-written-complete-job/index/000000000/000000000006_worker_0.json"
+    assert trial.has_passed_step(30) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(80) == StepState.UNAVAILABLE
+    assert trial.last_index_token == os.path.join(
+        path, "index/000000000/000000000070_worker_0.json"
     )
-    assert trial.last_complete_step == 6
+    assert trial.last_complete_step == 70
+    shutil.rmtree(path, ignore_errors=True)
+
+
+@pytest.mark.slow
+def test_single_writer_all_steps_written_incomplete_job_two_modes():
+    """Test Scenario Description"
+     workers : [a]
+     modes: TRAIN, EVAL
+     steps :{
+        0: [worker:a, mode: TRAIN, mode_step: 0],
+        10: [worker:a, mode: TRAIN, mode_step: 10],
+        20: [worker:a, mode: TRAIN, mode_step: 20],
+        30: [worker:a, mode: TRAIN, mode_step: 30],
+        40: [worker:a, mode: EVAL, mode_step: 0],
+        50: [worker:a, mode: EVAL, mode_step: 10],
+        60: [worker:a, mode: EVAL, mode_step: 20],
+        70: [worker:a, mode: EVAL, mode_step: 30]
+        }
+    END_OF_JOB.ts --> Absent
+    """
+
+    path = os.path.join("ts_output/train/", str(uuid.uuid4()))
+    dummy_trial_creator(trial_dir=path, num_workers=1, job_ended=False)
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i, mode="TRAIN", mode_step=i, worker_name="worker_0"
+        )
+
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i + 40, mode="EVAL", mode_step=i, worker_name="worker_0"
+        )
+
+    trial = create_trial(path)
+    num_workers = len(trial.workers())
+    assert num_workers == 1
+    assert trial.loaded_all_steps is False
+    all_steps = trial.steps(show_incomplete_steps=True)
+    completed_steps = trial.steps()
+    assert all_steps == [0, 10, 20, 30, 40, 50, 60, 70]
+    assert completed_steps == all_steps
+    assert trial.has_passed_step(30) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.NOT_YET_AVAILABLE
+    assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.NOT_YET_AVAILABLE
+    assert trial.has_passed_step(80) == StepState.NOT_YET_AVAILABLE
+    assert trial.last_index_token == os.path.join(
+        path, "index/000000000/000000000070_worker_0.json"
+    )
+    assert trial.last_complete_step == 70
+    shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.mark.slow
