@@ -339,6 +339,16 @@ class TensorflowBaseHook(BaseHook):
         for device in to_delete_writers:
             del self.writer_map[device]
 
+        to_delete_writers = []
+        # Delete all the tb writers
+        for mode, writer in self.tb_writers.items():
+            if writer is not None:
+                writer.flush()
+                writer.close()
+                to_delete_writers.append(mode)
+        for mode in to_delete_writers:
+            del self.tb_writers[mode]
+
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()
         if tb_writer:

@@ -490,6 +490,7 @@ def helper_tensorflow_tests(use_keras, collection, save_config):
     verify_files(trial_dir, save_config, saved_scalars)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("use_keras", [True, False])
 @pytest.mark.parametrize("collection", [("all", ".*"), ("scalars", "^scalar")])
 @pytest.mark.parametrize(
