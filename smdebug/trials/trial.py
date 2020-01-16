@@ -517,11 +517,13 @@ class Trial(ABC):
         """
         all_steps = self.steps(mode=mode, show_incomplete_steps=True)
         bisect_idx = bisect_left(all_steps, step)
-        g_step = self._global_step_currently(mode, step)
 
         if bisect_idx < len(all_steps):
+            # This returns either the global step corresponding to the mode-step
+            # or the closest global step that is greater than the step passed as a parameter
+            g_step = self._global_step_currently(mode, all_steps[bisect_idx])
             if all_steps[bisect_idx] > step:
-                if self.last_complete_step > g_step:
+                if self.last_complete_step >= g_step:
                     return StepState.UNAVAILABLE
                 return StepState.NOT_YET_AVAILABLE
             elif all_steps[bisect_idx] == step:
