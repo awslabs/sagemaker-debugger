@@ -116,6 +116,7 @@ def test_single_writer_all_steps_written_complete_job_two_modes():
     assert completed_steps == all_steps
     assert trial.has_passed_step(30) == StepState.AVAILABLE
     assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(40, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
     assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
     assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.UNAVAILABLE
     assert trial.has_passed_step(80) == StepState.UNAVAILABLE
@@ -168,6 +169,7 @@ def test_single_writer_all_steps_written_incomplete_job_two_modes():
     assert completed_steps == all_steps
     assert trial.has_passed_step(30) == StepState.AVAILABLE
     assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(40, mode=ModeKeys.TRAIN) == StepState.NOT_YET_AVAILABLE
     assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
     assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.UNAVAILABLE
     assert trial.has_passed_step(80) == StepState.NOT_YET_AVAILABLE
