@@ -70,7 +70,8 @@ class Hook(CallbackHook):
                 return f"worker_{hvd.rank()}"
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-        return os.getenv("SMDEBUG_WORKER_NAME", DEFAULT_WORKER_NAME)
+        worker_name = f"worker_" + os.getenv("SMDEBUG_WORKER_RANK", str(0))
+        return worker_name
 
     def _get_num_workers(self):
         try:

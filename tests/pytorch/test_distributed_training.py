@@ -63,8 +63,9 @@ def train(model, device, optimizer, num_steps=10):
         optimizer.step()
 
 
-def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_batches=10):
+def run(monkeypatch, rank, size, include_workers="one", num_epochs=10, batch_size=128, num_batches=10):
     """Distributed function to be implemented later."""
+    monkeypatch.setenv("SMDEBUG_WORKER_RANK", str(rank))
     torch.manual_seed(1234)
     device = torch.device("cpu")
     model = Net().to(device)
@@ -184,13 +185,12 @@ def test_run_net_distributed_save_one_worker():
 
 
 @pytest.mark.slow
-def test_run_net_distributed_multiproc_save_all_workers():
+def test_run_net_distributed_multiproc_save_all_workers(monkeypatch):
     size = 2
-    os.environ["SMDEBUG_NUM_WORKERS"] = "2"
+    monkeypatch.setenv("SMDEBUG_NUM_WORKERS", str(size))
     processes = []
     for rank in range(size):
-        os.environ["SMDEBUG_WORKER_NAME"] = f"worker_{rank}"
-        p = Process(target=run, args=(rank, size, "all"))
+        p = Process(target=run, args=(monkeypatch, rank, size, "all"))
         p.start()
         processes.append(p)
 
@@ -203,17 +203,15 @@ def test_run_net_distributed_multiproc_save_all_workers():
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
     del os.environ["SMDEBUG_NUM_WORKERS"]
-    del os.environ["SMDEBUG_WORKER_NAME"]
 
 
 @pytest.mark.slow
-def test_run_net_distributed_multiproc_save_one_worker():
+def test_run_net_distributed_multiproc_save_one_worker(monkeypatch):
     size = 2
-    os.environ["SMDEBUG_NUM_WORKERS"] = "2"
+    monkeypatch.setenv("SMDEBUG_NUM_WORKERS", str(size))
     processes = []
     for rank in range(size):
-        os.environ["SMDEBUG_WORKER_NAME"] = f"worker_{rank}"
-        p = Process(target=run, args=(rank, size, "one"))
+        p = Process(target=run, args=(monkeypatch, rank, size, "one"))
         p.start()
         processes.append(p)
 
@@ -226,4 +224,3 @@ def test_run_net_distributed_multiproc_save_one_worker():
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
     del os.environ["SMDEBUG_NUM_WORKERS"]
-    del os.environ["SMDEBUG_WORKER_NAME"]

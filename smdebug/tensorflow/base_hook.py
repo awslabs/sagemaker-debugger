@@ -175,7 +175,8 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
             return get_worker_id_from_tf_config(self.tf_config_json)
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
-            return os.getenv("SMDEBUG_WORKER_NAME", DEFAULT_WORKER_NAME)
+            worker_name = f"worker_" + os.getenv("SMDEBUG_WORKER_RANK", str(0))
+            return worker_name
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
 
