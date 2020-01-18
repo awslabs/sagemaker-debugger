@@ -3,6 +3,7 @@ from enum import Enum
 
 # Third Party
 import tensorflow as tf
+from packaging import version
 from tensorflow.python.distribute import values
 
 # First Party
@@ -96,13 +97,26 @@ class TensorRef:
                 # for mirrored variable value this will be the mirrored variable
                 original_tensor = variable
 
-            return TensorRef(
-                variable.value(),
-                export_name=export_name,
-                type=TensorType.VARIABLE,
-                original_tensor=original_tensor,
-                mode=mode,
-            )
+            if version.parse(tf.__version__) >= version.parse("2.0.0") and isinstance(
+                variable, tf.Variable
+            ):
+                # In TF 2.X eager mode, TF throws an error if you try to access a tensor's name.
+                # We need to pass it in as a variable, not a tensor, to maintain the name.
+                return TensorRef(
+                    variable,
+                    export_name=export_name,
+                    type=TensorType.VARIABLE,
+                    original_tensor=original_tensor,
+                    mode=mode,
+                )
+            else:
+                return TensorRef(
+                    variable.value(),
+                    export_name=export_name,
+                    type=TensorType.VARIABLE,
+                    original_tensor=original_tensor,
+                    mode=mode,
+                )
         except AttributeError:
             logger.debug(
                 f"Could not create TensorRef from {variable}. " "Perhaps eager mode is turned on"

@@ -1,5 +1,6 @@
 # Third Party
 import numpy as np
+import tensorflow as tf
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -61,6 +62,9 @@ def make_numpy_array(x):
         return np.array([x])
     elif isinstance(x, tuple):
         return np.asarray(x, dtype=x.dtype)
+    elif (isinstance(x, tf.Variable) or isinstance(x, tf.Tensor)) and hasattr(x, "numpy"):
+        # TF 2.X
+        return x.numpy()
     else:
         raise TypeError(
             "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"
