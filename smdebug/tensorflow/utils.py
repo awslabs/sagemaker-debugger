@@ -4,11 +4,18 @@ import json
 from enum import Enum
 
 # Third Party
-from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStrategy
 from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.modes import ModeKeys
+
+try:
+    from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStrategy  # TF 1.X
+except ImportError:
+    import tensorflow as tf
+
+    ContribMirroredStrategy = tf.distribute.MirroredStrategy  # TF 2.X
+
 
 try:
     import tensorflow.compat.v1 as tf
