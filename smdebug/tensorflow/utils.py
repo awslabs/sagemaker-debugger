@@ -13,8 +13,6 @@ from smdebug.core.modes import ModeKeys
 try:
     from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStrategy  # TF 1.X
 except ImportError:
-    import tensorflow.compat.v1 as tf
-
     ContribMirroredStrategy = tf.distribute.MirroredStrategy  # TF 2.X
 
 
