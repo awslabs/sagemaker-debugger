@@ -4,6 +4,7 @@ import json
 from enum import Enum
 
 # Third Party
+import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
@@ -15,13 +16,6 @@ except ImportError:
     import tensorflow.compat.v1 as tf
 
     ContribMirroredStrategy = tf.distribute.MirroredStrategy  # TF 2.X
-
-
-try:
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow.compat.v1 as tf
 
 
 class TFDistributionStrategy(Enum):
