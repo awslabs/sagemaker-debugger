@@ -34,7 +34,7 @@ try:
     import tensorflow.compat.v1 as tf
 except ImportError:
     # For TF 1.13
-    import tensorflow as tf
+    import tensorflow.compat.v1 as tf
 
 try:
     pass

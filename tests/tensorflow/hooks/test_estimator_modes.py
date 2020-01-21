@@ -16,7 +16,7 @@ from datetime import datetime
 # Third Party
 import numpy as np
 import pytest
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tests.analysis.utils import delete_s3_prefix
 
 # First Party

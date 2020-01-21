@@ -1,6 +1,6 @@
 # Third Party
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # First Party
 from smdebug.core.logger import get_logger

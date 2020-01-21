@@ -19,7 +19,7 @@ from __future__ import absolute_import, division, print_function
 # Third Party
 import numpy as np
 import pytest
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.python.client import device_lib
 from tests.tensorflow.utils import create_trial_fast_refresh
 
@@ -277,7 +277,7 @@ def helper_mirrored(
 def skip_trial_check():
     # Skip trial check as in this case SMDebug is disabled for mirrored strategy
     # trial will not be loaded
-    import tensorflow as tf
+    import tensorflow.compat.v1 as tf
     from packaging import version
 
     if version.parse(tf.__version__) < version.parse("1.14.0"):
