@@ -2,7 +2,7 @@
 import os
 
 # Third Party
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # First Party
 from smdebug.core.utils import get_path_to_collections

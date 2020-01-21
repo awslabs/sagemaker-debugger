@@ -15,7 +15,7 @@ import os
 
 # Third Party
 import horovod.tensorflow.keras as hvd
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
 from tensorflow.keras.datasets import mnist

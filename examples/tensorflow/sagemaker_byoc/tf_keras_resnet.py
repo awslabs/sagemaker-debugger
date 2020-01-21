@@ -14,7 +14,7 @@ import argparse
 
 # Third Party
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.datasets import cifar10
 from tensorflow.keras.utils import to_categorical

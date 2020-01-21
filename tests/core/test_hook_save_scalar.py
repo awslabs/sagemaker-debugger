@@ -9,7 +9,7 @@ from datetime import datetime
 import mxnet as mx
 import numpy as np
 import pytest
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

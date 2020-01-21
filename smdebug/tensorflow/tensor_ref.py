@@ -2,7 +2,7 @@
 from enum import Enum
 
 # Third Party
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from packaging import version
 from tensorflow.python.distribute import values
 

@@ -12,7 +12,7 @@ from smdebug.core.modes import ModeKeys
 try:
     from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStrategy  # TF 1.X
 except ImportError:
-    import tensorflow as tf
+    import tensorflow.compat.v1 as tf
 
     ContribMirroredStrategy = tf.distribute.MirroredStrategy  # TF 2.X
 
@@ -21,7 +21,7 @@ try:
     import tensorflow.compat.v1 as tf
 except ImportError:
     # For TF 1.13
-    import tensorflow as tf
+    import tensorflow.compat.v1 as tf
 
 
 class TFDistributionStrategy(Enum):

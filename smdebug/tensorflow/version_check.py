@@ -1,5 +1,5 @@
 # Third Party
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from packaging import version
 
 # Separating this out to a different file because black doesn't like any code before imports
