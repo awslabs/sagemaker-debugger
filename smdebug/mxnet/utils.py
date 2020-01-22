@@ -1,7 +1,6 @@
 # Third Party
 import mxnet as mx
 import numpy as np
-from mxnet.ndarray import NDArray
 
 # First Party
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
@@ -49,7 +48,7 @@ def make_numpy_array(x):
         return x
     elif np.isscalar(x):
         return np.array([x])
-    elif isinstance(x, NDArray):
+    elif isinstance(x, mx.ndarray.NDArray):
         return x.asnumpy()
     elif isinstance(x, tuple):
         # todo: fix this, will crash
