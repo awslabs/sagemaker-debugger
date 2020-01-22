@@ -1,29 +1,27 @@
-# First Party
-# Third Party
-from tests.zero_code_change.horovod_tests.utils import (
-    build_json,
-    get_available_gpus,
-    launch_horovod_job,
-)
+# Standard Library
 
+# Third Party
+from tests.zero_code_change.horovod_tests.utils import build_json, launch_horovod_job
+from torch.cuda import device_count
+
+# First Party
 from smdebug.trials import create_trial
 
 """
-Tested on current DLAMI p3.8xlarge
+Tested on current DLAMI p3.8xlarge when run from the main directory
 """
 
-HOROVOD_MNIST_SCRIPT_NAME = "horovod_keras_mnist.py"
-HOROVOD_MNIST_ARGS = ["--num_epochs", "2"]
+HOROVOD_MNIST_SCRIPT_NAME = "horovod_mnist.py"
 
 
 def basic_test(out_dir, mode):
     path = build_json(out_dir, include_workers="one", include_collections=["weights", "gradients"])
-    num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
+    num_workers = device_count()
+    mode_args = []
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/pytorch/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -33,7 +31,7 @@ def basic_test(out_dir, mode):
     tr = create_trial(out_dir)
     print(tr.tensor_names())
     assert len(tr.workers()) == 1
-    assert len(tr.tensor_names()) == 18
+    assert len(tr.tensor_names()) == 13
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
 
 
@@ -47,12 +45,12 @@ def test_gpu(out_dir):
 
 def mode_allworkers(out_dir, mode):
     path = build_json(out_dir, include_workers="all", include_collections=["weights", "gradients"])
-    num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
+    num_workers = device_count()
+    mode_args = []
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/pytorch/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -60,7 +58,7 @@ def mode_allworkers(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) == 18
+    assert len(tr.tensor_names()) == 13
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
 
 
@@ -76,8 +74,8 @@ def mode_allworkers_saveall(out_dir, mode):
     path = build_json(
         out_dir, include_workers="all", save_all=True, include_collections=["weights", "gradients"]
     )
-    num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
+    num_workers = device_count()
+    mode_args = []
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
@@ -88,11 +86,10 @@ def mode_allworkers_saveall(out_dir, mode):
         mode=mode,
     )
     tr = create_trial(out_dir)
-    print(tr.tensor_names())
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) > 20
+    assert len(tr.tensor_names()) > 99
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
-    assert len(tr.tensor("loss").workers(0)) == num_workers
+    assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == num_workers
 
 
 def test_gpu_allworkers_saveall(out_dir):
