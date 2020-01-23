@@ -79,7 +79,7 @@ def mode_allworkers_saveall(out_dir, mode):
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/pytorch/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
