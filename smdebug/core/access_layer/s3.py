@@ -6,6 +6,7 @@ import tempfile
 
 # Third Party
 import boto3
+import botocore
 from boto3.s3.transfer import TransferConfig
 
 # First Party
@@ -35,9 +36,10 @@ class TSAccessS3(TSAccessBase):
         MB = 1024 ** 2
         self.transfer_config = TransferConfig(multipart_threshold=5 * MB)
 
-        # check if the bucket exists
-        buckets = [bucket["Name"] for bucket in self.s3_client.list_buckets()["Buckets"]]
-        if self.bucket_name not in buckets:
+        # Create bucket if does not exist
+        try:
+            self.s3_client.head_bucket(Bucket=self.bucket_name)
+        except botocore.exceptions.ClientError:
             self.s3_client.create_bucket(ACL="private", Bucket=self.bucket_name)
 
     def _init_data(self):
