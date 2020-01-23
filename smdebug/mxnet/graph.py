@@ -2,7 +2,8 @@
 import json
 
 # Third Party
-import mxnet as mx
+from mxnet.gluon import HybridBlock
+from mxnet.symbol import Symbol
 
 # First Party
 from smdebug.core.tfevent.proto.attr_value_pb2 import AttrValue
@@ -86,7 +87,7 @@ def _sym2pb(sym):
 
 
 def _net2pb(net):
-    if isinstance(net, mx.gluon.HybridBlock):
+    if isinstance(net, HybridBlock):
         # TODO(junwu): may need a more approprite way to get symbol from a HybridBlock
         if not net._cached_graph:
             raise RuntimeError(
@@ -94,7 +95,7 @@ def _net2pb(net):
                 "this net at least once before calling add_graph()."
             )
         net = net._cached_graph[1]
-    elif not isinstance(net, mx.symbol.Symbol):
+    elif not isinstance(net, Symbol):
         raise TypeError(
             "only accepts mxnet.gluon.HybridBlock and mxnet.symbol.Symbol "
             "as input network, received type {}".format(str(type(net)))
