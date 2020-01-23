@@ -13,17 +13,6 @@ import torch.utils.data.distributed
 from torchvision import datasets, transforms
 
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ("yes", "true", "t", "y", "1"):
-        return True
-    elif v.lower() in ("no", "false", "f", "n", "0"):
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
-
-
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -111,15 +100,9 @@ if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
     parser.add_argument(
-        "--epochs", type=int, default=5, metavar="N", help="number of epochs to train (default: 10)"
+        "--epochs", type=int, default=1, metavar="N", help="number of epochs to train (default: 1)"
     )
-    parser.add_argument(
-        "--use_only_cpu",
-        action="store_true",
-        type=str2bool,
-        default=False,
-        help="disables CUDA training",
-    )
+    parser.add_argument("--use_only_cpu", type=str2bool, default=False)
     parser.add_argument(
         "--log-interval",
         type=int,
@@ -128,7 +111,7 @@ if __name__ == "__main__":
         help="how many batches to wait before logging training status",
     )
     args = parser.parse_args()
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
+    args.cuda = not args.use_only_cpu and torch.cuda.is_available()
 
     # constants
     batch_size = 64
@@ -141,7 +124,7 @@ if __name__ == "__main__":
     hvd.init()
     torch.manual_seed(seed)
 
-    if args.use_only_cpu:
+    if args.cuda:
         # Horovod: pin GPU to local rank.
         torch.cuda.set_device(hvd.local_rank())
         torch.cuda.manual_seed(seed)
