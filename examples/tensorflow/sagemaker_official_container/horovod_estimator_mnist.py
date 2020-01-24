@@ -35,7 +35,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-tf.logging.set_verbosity(tf.logging.INFO)
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
 
 
 def str2bool(v):
