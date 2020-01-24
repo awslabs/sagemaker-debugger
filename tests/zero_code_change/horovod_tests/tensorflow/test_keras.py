@@ -1,12 +1,11 @@
 # First Party
 # Third Party
-from tests.zero_code_change.horovod_tests.utils import (
-    build_json,
-    get_available_gpus,
-    launch_horovod_job,
-)
+from tests.zero_code_change.horovod_tests.utils import build_json, launch_horovod_job
 
 from smdebug.trials import create_trial
+
+# Local
+from .utils import get_available_gpus
 
 """
 Tested on current DLAMI p3.8xlarge
