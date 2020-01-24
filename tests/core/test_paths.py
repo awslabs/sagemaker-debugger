@@ -24,9 +24,6 @@ def test_whitespace_handling_in_path_str():
     path = os.path.join("ts_output/train/", _id)
     dummy_trial_creator(trial_dir=path, num_workers=1, job_ended=True)
 
-    # Test Interspersed Whitespace Handling
-    create_trial(os.path.join("ts_output / train /", _id))
-
     # Test Leading Whitespace Handling
     create_trial("   " + path)
 

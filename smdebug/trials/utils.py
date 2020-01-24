@@ -10,7 +10,7 @@ from .s3_trial import S3Trial
 
 
 def create_trial(path, name=None, **kwargs):
-    path = "".join(path.split())  # Remove any accidental whitespace input by the user
+    path = path.strip()  # Remove any accidental leading/trailing whitespace input by the user
     if name is None:
         name = os.path.basename(path)
     s3, bucket_name, prefix_name = is_s3(path)
