@@ -289,24 +289,32 @@ class Trial(ABC):
             self.mode_to_tensors_map[tensor.mode].add(tensor.tensorname)
 
     def _add_tensor(self, step_num, worker, tensor_object: TensorLocation):
-        to = tensor_object
-        # self.worker_set.add(worker)
-        if REDUCTIONS_PREFIX in to.tensorname:
-            tname, red_name, abs = reverse_reduction_tensor_name(to.tensorname)
+        is_reduction = False
+
+        if REDUCTIONS_PREFIX in tensor_object.tensorname:
+            tname, red_name, abs = reverse_reduction_tensor_name(tensor_object.tensorname)
+            tensor_object.tensorname = tname
+            is_reduction = True
         else:
-            tname = to.tensorname
+            tname = tensor_object.tensorname
+
         if tname not in self._tensors:
-            t = Tensor(tname, trial=self, cache=self.cache)
-            self._tensors[tname] = t
-        t = self._tensors[tname]
-        self._populate_step_dict(to, step_num)
-        self._populate_global_step_to_tensor_name_map(to, step_num)
-        self._populate_workers_for_global_step(step_num, worker)
-        self._populate_mode_to_tensor_name_map(to)
-        if REDUCTIONS_PREFIX in to.tensorname:
-            t.add_reduction_step(to.mode, to.mode_step, worker, red_name, abs, to)
+            tensor = Tensor(tname, trial=self, cache=self.cache)
+            self._tensors[tname] = tensor
+
+        tensor = self._tensors[tname]
+
+        if is_reduction:
+            tensor.add_reduction_step(
+                tensor_object.mode, tensor_object.mode_step, worker, red_name, abs, tensor_object
+            )
         else:
-            t.add_step(to.mode, to.mode_step, worker, to)
+            tensor.add_step(tensor_object.mode, tensor_object.mode_step, worker, tensor_object)
+
+        self._populate_step_dict(tensor_object, step_num)
+        self._populate_global_step_to_tensor_name_map(tensor_object, step_num)
+        self._populate_workers_for_global_step(step_num, worker)
+        self._populate_mode_to_tensor_name_map(tensor_object)
 
     def _tensors_matching_regex(self, regex_list) -> set:
         matched_tensornames = set()
