@@ -1,0 +1,38 @@
+# Build Spec for AWS CodeBuild CI to build smdebug pip wheels
+
+version: 0.2
+
+phases:
+  install:
+    commands:
+        - su && apt-get update
+        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
+        - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
+        - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
+        - cd $CODEBUILD_SRC_DIR && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+        - pip install -U pip
+        - pip install -q pytest wheel pyYaml pytest-html pre-commit
+        - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
+
+  build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR  && if [ -z "$CORE_COMMIT" ]; then export CORE_COMMIT=$(git log -1 --pretty=%h); fi
+      - cd $CODEBUILD_SRC_DIR  && echo $CORE_COMMIT > smdebug/CORE_COMMIT
+      - cd $CODEBUILD_SRC_DIR && git checkout $CORE_COMMIT && python setup.py bdist_wheel --universal
+      - cd $CODEBUILD_SRC_DIR_RULES && if [ -z "$RULES_COMMIT" ]; then export RULES_COMMIT=$(git log -1 --pretty=%h); fi
+      - cd $CODEBUILD_SRC_DIR_RULES  && echo $RULES_COMMIT > smdebug_rules/RULES_COMMIT
+      - cd $CODEBUILD_SRC_DIR_RULES && python setup.py bdist_wheel --universal
+
+  post_build:
+    commands:
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
+
+artifacts:
+  files:
+    - $CODEBUILD_SRC_DIR/dist/*.whl
+    - $CODEBUILD_SRC_DIR/smdebug/CORE_COMMIT
+    - $CODEBUILD_SRC_DIR_RULES/dist/*.whl
+    - $CODEBUILD_SRC_DIR_RULES/smdebug_rules/RULES_COMMIT
+  name: $(date +%F)
+  discard-paths: yes
