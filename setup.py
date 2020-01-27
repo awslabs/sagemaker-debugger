@@ -16,6 +16,7 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 # Standard Library
 import os
 import sys
+from datetime import date
 
 # Third Party
 import setuptools
