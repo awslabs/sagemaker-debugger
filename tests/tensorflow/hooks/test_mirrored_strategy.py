@@ -323,7 +323,7 @@ def test_basic(out_dir, zcc=False):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1  # as eval_dist = False
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    tensornames = tr.tensor_names(regex="Identity_\d+:0")
+    tensornames = tr.tensor_names(regex=r"Identity_\d+:0")
     for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
         for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
             assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None
@@ -369,7 +369,7 @@ def test_eval_distributed(out_dir):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    tensornames = tr.tensor_names(regex="Identity_\d+:0")
+    tensornames = tr.tensor_names(regex=r"Identity_\d+:0")
     for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
         for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
             assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None

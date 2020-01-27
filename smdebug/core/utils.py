@@ -205,7 +205,7 @@ def parse_worker_name_from_file(filename: str) -> str:
     :return: worker_name: str
     """
     # worker_2 = /tmp/ts-logs/index/000000001/000000001230_worker_2.json
-    worker_name_regex = re.compile(".+\/\d+_(.+)\.(json|csv|tfevents)$")
+    worker_name_regex = re.compile(r".+\/\d+_(.+)\.(json|csv|tfevents)$")
     worker_name_regex_match = re.match(worker_name_regex, filename)
     if worker_name_regex_match is None:
         raise IndexReaderException(f"Invalid File Found: {filename}")
