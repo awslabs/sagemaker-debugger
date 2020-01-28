@@ -1,6 +1,10 @@
 # Build Spec for AWS CodeBuild CI to build smdebug pip wheels
 
 version: 0.2
+env:
+  variables:
+    CORE_COMMIT: ""
+    RULES_COMMIT: ""
 
 phases:
   install:
