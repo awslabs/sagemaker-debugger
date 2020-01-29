@@ -1,17 +1,21 @@
 #!/bin/bash
 set -ex
 set -o pipefail
+
+# Check if smdebug has been installed
 python -c "import smdebug"
 res="$?"
-echo "output of import smdebug is: $res"
+if [ $res -gt 0 ]; then
+  echo "output of import smdebug is: $res"
+  exit $res
+fi
 
-#version=python -c "exec(\"import smdebug\nprint(smdebug.__version__)\")`
-version="$(python -c "exec(\"import smdebug\nprint(smdebug.__version__)\")")"
-# force check version, you can set this env variable in build env when releasing
-
-if [ "$force_check_smdebug_version" ]  && [ "$force_check_smdebug_version" != "${version}" ]; then
-  echo "force_check_version $force_check_smdebug_version doesn't match version found: ${version}"
-  exit 1
+# Check if smdebug_rules has been installed
+python -c "import smdebug_rules"
+res="$?"
+if [ $res -gt 0 ]; then
+  echo "output of import smdebug_rules is: $res"
+  exit $res
 fi
 
 if [ $1 ]; then

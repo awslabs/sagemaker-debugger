@@ -6,14 +6,22 @@ CORE_REPO="https://github.com/awslabs/sagemaker-debugger.git"
 RULES_REPO="https://$RULES_ACCESS_USER:$RULES_ACCESS_TOKEN@github.com/awslabs/sagemaker-debugger-rules.git"
 SMDEBUG_S3_BINARY="s3://smdebug-nightly-binaries/$(date +%F)/"
 
+# Uninstall the built-in version of smdebug and assert that it no longer exists.
+pip uninstall -y smdebug
+python -c "import smdebug"
+if [ "$?" == 0 ]; then
+  echo "Smdebug uninstall failed."
+  exit 1
+fi
+
 echo "Cloning sagemaker-debugger repository."
 cd && git clone "$CORE_REPO"
-export CODEBUILD_SRC_DIR=`pwd`/sagemaker-debugger
+cd && export CODEBUILD_SRC_DIR=`pwd`/sagemaker-debugger
 echo "sagemaker-debugger repository cloned in the path $CODEBUILD_SRC_DIR"
 
 echo "Cloning sagemaker-debugger-rules repository."
 cd && git clone "$RULES_REPO"
-export CODEBUILD_SRC_DIR_RULES=`pwd`/sagemaker-debugger-rules
+cd && export CODEBUILD_SRC_DIR_RULES=`pwd`/sagemaker-debugger-rules
 echo "sagemaker-debugger-rules repository cloned in the path $CODEBUILD_SRC_DIR_RULES"
 
 # you can provide pip binary as s3 path in the build environment
