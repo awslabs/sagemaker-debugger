@@ -25,7 +25,7 @@ phases:
       - cd $CODEBUILD_SRC_DIR && git checkout $CORE_COMMIT && python setup.py bdist_wheel --universal
       - cd $CODEBUILD_SRC_DIR_RULES && if [ -z "$RULES_COMMIT" ]; then export RULES_COMMIT=$(git log -1 --pretty=%h); fi
       - cd $CODEBUILD_SRC_DIR_RULES  && echo $RULES_COMMIT > smdebug_rules/RULES_COMMIT
-      - cd $CODEBUILD_SRC_DIR_RULES && python setup.py bdist_wheel --universal
+      - cd $CODEBUILD_SRC_DIR_RULES && git checkout $RULES_COMMIT && python setup.py bdist_wheel --universal
 
   post_build:
     commands:
