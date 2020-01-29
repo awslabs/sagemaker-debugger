@@ -2,20 +2,24 @@
 set -ex
 set -o pipefail
 
-# Check if smdebug has been installed
+echo "Checking if smdebug has been installed"
 python -c "import smdebug"
 res="$?"
 if [ $res -gt 0 ]; then
   echo "output of import smdebug is: $res"
   exit $res
+else
+  echo "Successfully imported smdebug package."
 fi
 
-# Check if smdebug_rules has been installed
+echo "Check if smdebug_rules has been installed"
 python -c "import smdebug_rules"
 res="$?"
 if [ $res -gt 0 ]; then
   echo "output of import smdebug_rules is: $res"
   exit $res
+else
+  echo "Successfully imported smdebug_rules package"
 fi
 
 if [ $1 ]; then
