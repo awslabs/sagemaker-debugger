@@ -45,6 +45,10 @@ class CollectionKeys:
     FULL_SHAP = "full_shap"
     TREES = "trees"
 
+    @classmethod
+    def values(cls):
+        return [value for name, value in vars(cls).items() if name.isupper()]
+
 
 # Collection with summary objects instead of tensors
 # so we don't create summaries or reductions of these

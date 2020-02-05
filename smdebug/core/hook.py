@@ -36,6 +36,7 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
 from smdebug.core.writer import FileWriter
+from smdebug.exceptions import InvalidCollectionConfiguration
 
 try:
     from smexperiments.metrics import SageMakerFileMetricsWriter
@@ -314,7 +315,11 @@ class BaseHook:
     def _prepare_collections(self):
         """Populate collections_to_save and ensure every collection has
         a save_config and reduction_config."""
+        builtin_collection_names = set(CollectionKeys.values())
         for c_name, c in self.collection_manager.get_collections().items():
+            if c_name not in builtin_collection_names:
+                if bool(c.include_regex) is False and bool(c.tensor_names) is False:
+                    raise InvalidCollectionConfiguration(c_name)
             if c in self._collections_to_save:
                 continue
             elif self._should_collection_be_saved(CollectionKeys.ALL):
