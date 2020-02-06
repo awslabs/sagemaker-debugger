@@ -104,7 +104,6 @@ class Hook(CallbackHook):
         pass
 
     def _prepare_collections(self):
-        super()._prepare_collections()
         for coll in self.collection_manager.collections.values():
             for m, (include_inputs, include_outputs) in coll.modules.items():
                 module_name = self.module_maps[m]
@@ -112,6 +111,7 @@ class Hook(CallbackHook):
                     coll.include(module_name + "_input_")
                 if include_outputs:
                     coll.include(module_name + "_output_")
+        super()._prepare_collections()
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
