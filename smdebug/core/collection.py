@@ -34,45 +34,16 @@ class CollectionKeys:
 
     OPTIMIZER_VARIABLES = "optimizer_variables"
     TENSORFLOW_SUMMARIES = "tensorflow_summaries"
+    METRICS = "metrics"
 
     # XGBOOST
     HYPERPARAMETERS = "hyperparameters"
-    METRICS = "metrics"
     PREDICTIONS = "predictions"
     LABELS = "labels"
     FEATURE_IMPORTANCE = "feature_importance"
     AVERAGE_SHAP = "average_shap"
     FULL_SHAP = "full_shap"
     TREES = "trees"
-
-    @classmethod
-    def builtins(cls, framework=None):
-        default = [
-            CollectionKeys.DEFAULT,
-            CollectionKeys.ALL,
-            CollectionKeys.INPUTS,
-            CollectionKeys.OUTPUTS,
-            CollectionKeys.WEIGHTS,
-            CollectionKeys.GRADIENTS,
-            CollectionKeys.LOSSES,
-            CollectionKeys.BIASES,
-            CollectionKeys.SM_METRICS,
-            CollectionKeys.OPTIMIZER_VARIABLES,
-            CollectionKeys.TENSORFLOW_SUMMARIES,
-        ]
-        if framework is None:
-            return default
-        elif framework == "xgboost":
-            return [
-                CollectionKeys.HYPERPARAMETERS,
-                CollectionKeys.METRICS,
-                CollectionKeys.PREDICTIONS,
-                CollectionKeys.LABELS,
-                CollectionKeys.FEATURE_IMPORTANCE,
-                CollectionKeys.AVERAGE_SHAP,
-                CollectionKeys.FULL_SHAP,
-                CollectionKeys.TREES,
-            ] + default
 
 
 # Collection with summary objects instead of tensors
@@ -93,6 +64,50 @@ SM_METRIC_COLLECTIONS = {CollectionKeys.LOSSES, CollectionKeys.METRICS, Collecti
 NON_REDUCTION_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)
 
 NON_HISTOGRAM_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)
+
+DEFAULT_TF_COLLECTIONS = {
+    CollectionKeys.ALL,
+    CollectionKeys.DEFAULT,
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.BIASES,
+    CollectionKeys.GRADIENTS,
+    CollectionKeys.LOSSES,
+    CollectionKeys.METRICS,
+    CollectionKeys.INPUTS,
+    CollectionKeys.OUTPUTS,
+    CollectionKeys.SM_METRICS,
+    CollectionKeys.OPTIMIZER_VARIABLES,
+}
+
+DEFAULT_PYTORCH_COLLECTIONS = {
+    CollectionKeys.ALL,
+    CollectionKeys.DEFAULT,
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.BIASES,
+    CollectionKeys.GRADIENTS,
+    CollectionKeys.LOSSES,
+}
+
+DEFAULT_MXNET_COLLECTIONS = {
+    CollectionKeys.ALL,
+    CollectionKeys.DEFAULT,
+    CollectionKeys.WEIGHTS,
+    CollectionKeys.BIASES,
+    CollectionKeys.GRADIENTS,
+    CollectionKeys.LOSSES,
+}
+
+DEFAULT_XGBOOST_COLLECTIONS = {
+    CollectionKeys.ALL,
+    CollectionKeys.DEFAULT,
+    CollectionKeys.HYPERPARAMETERS,
+    CollectionKeys.PREDICTIONS,
+    CollectionKeys.LABELS,
+    CollectionKeys.FEATURE_IMPORTANCE,
+    CollectionKeys.AVERAGE_SHAP,
+    CollectionKeys.FULL_SHAP,
+    CollectionKeys.TREES,
+}
 
 
 class Collection:

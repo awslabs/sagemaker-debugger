@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 # First Party
-from smdebug.core.collection import CollectionKeys
+from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.pytorch.collection import CollectionManager
@@ -102,6 +102,9 @@ class Hook(CallbackHook):
 
     def _export_model(self):
         pass
+
+    def _get_default_collections(self):
+        return DEFAULT_PYTORCH_COLLECTIONS
 
     def _prepare_collections(self):
         for coll in self.collection_manager.collections.values():

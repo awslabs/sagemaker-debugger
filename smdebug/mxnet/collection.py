@@ -1,4 +1,5 @@
 # First Party
+from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS
 from smdebug.core.collection import Collection as BaseCollection
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.collection_manager import CollectionManager as BaseCollectionManager
@@ -21,6 +22,8 @@ class CollectionManager(BaseCollectionManager):
             self._register_default_collections()
 
     def _register_default_collections(self):
+        for c in DEFAULT_MXNET_COLLECTIONS:
+            self.create_collection(c)
         self.get(CollectionKeys.WEIGHTS).include("^(?!gradient).*weight")
         self.get(CollectionKeys.BIASES).include("^(?!gradient).*bias")
         self.get(CollectionKeys.GRADIENTS).include("^gradient")
