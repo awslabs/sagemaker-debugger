@@ -144,6 +144,10 @@ class Hook(CallbackHook):
     def hook_from_config(cls, json_config_path=None):
         return cls.create_from_json_file(json_file_path=json_config_path)
 
+    def _prepare_collections(self):
+        builtin_collection_names = set(CollectionKeys.builtins(framework="xgboost"))
+        super()._prepare_collections(builtin_collection_names)
+
     def _is_last_step(self, env: CallbackEnv) -> bool:
         # env.iteration: current boosting round.
         # env.end_iteration: round # when training will end. this is always num_round + 1.  # noqa: E501

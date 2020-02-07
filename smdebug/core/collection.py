@@ -46,8 +46,33 @@ class CollectionKeys:
     TREES = "trees"
 
     @classmethod
-    def values(cls):
-        return [value for name, value in vars(cls).items() if name.isupper()]
+    def builtins(cls, framework=None):
+        default = [
+            CollectionKeys.DEFAULT,
+            CollectionKeys.ALL,
+            CollectionKeys.INPUTS,
+            CollectionKeys.OUTPUTS,
+            CollectionKeys.WEIGHTS,
+            CollectionKeys.GRADIENTS,
+            CollectionKeys.LOSSES,
+            CollectionKeys.BIASES,
+            CollectionKeys.SM_METRICS,
+            CollectionKeys.OPTIMIZER_VARIABLES,
+            CollectionKeys.TENSORFLOW_SUMMARIES,
+        ]
+        if framework is None:
+            return default
+        elif framework == "xgboost":
+            return [
+                CollectionKeys.HYPERPARAMETERS,
+                CollectionKeys.METRICS,
+                CollectionKeys.PREDICTIONS,
+                CollectionKeys.LABELS,
+                CollectionKeys.FEATURE_IMPORTANCE,
+                CollectionKeys.AVERAGE_SHAP,
+                CollectionKeys.FULL_SHAP,
+                CollectionKeys.TREES,
+            ] + default
 
 
 # Collection with summary objects instead of tensors

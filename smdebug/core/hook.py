@@ -312,10 +312,11 @@ class BaseHook:
             self.tensor_to_collections[tensor_name] = matched_colls
         return self.tensor_to_collections[tensor_name]
 
-    def _prepare_collections(self):
+    def _prepare_collections(self, builtin_collection_names=None):
         """Populate collections_to_save and ensure every collection has
         a save_config and reduction_config."""
-        builtin_collection_names = set(CollectionKeys.values())
+        if builtin_collection_names is None:
+            builtin_collection_names = set(CollectionKeys.builtins())
         for c_name, c in self.collection_manager.get_collections().items():
             if c_name not in builtin_collection_names:
                 if bool(c.include_regex) is False and bool(c.tensor_names) is False:
