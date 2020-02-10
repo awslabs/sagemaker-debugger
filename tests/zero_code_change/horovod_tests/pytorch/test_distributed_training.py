@@ -21,7 +21,7 @@ def basic_test(out_dir, mode):
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/pytorch/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/pytorch/zero_code_change/{HOROVOD_MNIST_SCRIPT_NAME}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -29,8 +29,9 @@ def basic_test(out_dir, mode):
     )
 
     tr = create_trial(out_dir)
-    print(tr.tensor_names())
-    assert len(tr.workers()) == 1
+    print("Saved Tensor Names: {}".format(tr.tensor_names()))
+    assert len(tr.workers()) == 1  # We expect only one worker because
+    # it has been configured so in HOROVOD_MNIST_SCRIPT_NAME
     assert len(tr.tensor_names()) == 13
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
 
@@ -50,7 +51,7 @@ def mode_allworkers(out_dir, mode):
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/pytorch/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/pytorch/zero_code_change/{HOROVOD_MNIST_SCRIPT_NAME}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -79,7 +80,7 @@ def mode_allworkers_saveall(out_dir, mode):
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/pytorch/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/pytorch/zero_code_change/{HOROVOD_MNIST_SCRIPT_NAME}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
