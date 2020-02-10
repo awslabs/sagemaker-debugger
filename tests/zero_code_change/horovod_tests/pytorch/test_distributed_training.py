@@ -75,7 +75,7 @@ def mode_allworkers_saveall(out_dir, mode):
     path = build_json(
         out_dir, include_workers="all", save_all=True, include_collections=["weights", "gradients"]
     )
-    num_workers = device_count()
+    num_workers = 1 if bool(device_count()) is False else device_count()
     mode_args = []
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
