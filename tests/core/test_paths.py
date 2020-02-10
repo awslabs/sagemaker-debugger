@@ -13,6 +13,22 @@ from smdebug.core.access_layer.file import (
 from smdebug.core.access_layer.utils import training_has_ended
 from smdebug.core.hook_utils import verify_and_get_out_dir
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
+from smdebug.trials import create_trial
+
+# Local
+from ..analysis.utils import dummy_trial_creator
+
+
+def test_whitespace_handling_in_path_str():
+    _id = str(uuid.uuid4())
+    path = os.path.join("ts_output/train/", _id)
+    dummy_trial_creator(trial_dir=path, num_workers=1, job_ended=True)
+
+    # Test Leading Whitespace Handling
+    create_trial("   " + path)
+
+    # Test Trailing Whitespace Handling
+    create_trial(path + "  ")
 
 
 def test_outdir_non_sagemaker():

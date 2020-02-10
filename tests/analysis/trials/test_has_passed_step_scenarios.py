@@ -1,51 +1,20 @@
 # Standard Library
-import json
 import os
 import shutil
 import uuid
-from pathlib import Path
 
 # Third Party
 import pytest
 
 # First Party
-from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import INCOMPLETE_STEP_WAIT_WINDOW_KEY
-from smdebug.core.locations import IndexFileLocationUtils
 from smdebug.core.modes import ModeKeys
 from smdebug.core.tensor import StepState
 from smdebug.exceptions import NoMoreData, StepUnavailable
 from smdebug.trials import create_trial
 
-
-def dummy_trial_creator(trial_dir, num_workers, job_ended):
-    Path(trial_dir).mkdir(parents=True, exist_ok=True)
-    cm = CollectionManager()
-    for i in range(num_workers):
-        collection_file_name = f"worker_{i}_collections.json"
-        cm.export(trial_dir, collection_file_name)
-    if job_ended:
-        Path(os.path.join(trial_dir, "training_job_end.ts")).touch()
-
-
-def dummy_step_creator(trial_dir, global_step, mode, mode_step, worker_name):
-    static_step_data = (
-        '{"meta": {"mode": "TRAIN", "mode_step": 0, "event_file_name": ""}, '
-        '"tensor_payload": ['
-        '{"tensorname": "gradients/dummy:0", "start_idx": 0, "length": 1}'
-        "]}"
-    )
-
-    step = json.loads(static_step_data)
-    step["meta"]["mode"] = mode
-    step["meta"]["mode_step"] = mode_step
-
-    index_file_location = IndexFileLocationUtils.get_index_key_for_step(
-        trial_dir, global_step, worker_name
-    )
-    Path(os.path.dirname(index_file_location)).mkdir(parents=True, exist_ok=True)
-    with open(index_file_location, "w") as f:
-        json.dump(step, f)
+# Local
+from ..utils import dummy_step_creator, dummy_trial_creator
 
 
 @pytest.mark.slow

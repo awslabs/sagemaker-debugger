@@ -44,7 +44,7 @@ def test_modes(hook=None, path=None):
     assert grad_eval_steps == []
 
     # Ensure that the weights are available in TRAIN and EVAL  modes.
-    wt_tns_name = tr.tensor_names(regex="conv\d+_weight")[0]
+    wt_tns_name = tr.tensor_names(regex=r"conv\d+_weight")[0]
     wt_tns = tr.tensor(wt_tns_name)
     wt_train_steps = wt_tns.steps(mode=modes.TRAIN)
     wt_eval_steps = wt_tns.steps(mode=modes.EVAL)
