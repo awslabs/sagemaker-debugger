@@ -107,7 +107,7 @@ class Hook(CallbackHook):
         super()._prepare_collections()
         for coll in self.collection_manager.collections.values():
             for m, (include_inputs, include_outputs) in coll.modules.items():
-                module_name = self.module_maps[m]
+                module_name = self.module_maps[id(m)]
                 if include_inputs:
                     coll.include(module_name + "_input_")
                 if include_outputs:
@@ -150,7 +150,7 @@ class Hook(CallbackHook):
         if not self._get_collections_to_save_for_step():
             return
 
-        module_name = self.module_maps[module]
+        module_name = self.module_maps[id(module)]
         # This overwhelms the logs; turn back on if you really need it
         # logger.debug("Processing the global step {0} for module {1}".format(self.step, module_name))
 
@@ -206,8 +206,8 @@ class Hook(CallbackHook):
         # Create a mapping from modules to their names
         for name, submodule in module.named_modules():
             assert submodule not in self.module_maps, f"Don't register module={module} twice"
-            self.module_maps[submodule] = name
-        self.module_maps[module] = module._get_name()
+            self.module_maps[id(submodule)] = name
+        self.module_maps[id(module)] = module._get_name()
 
         # Use `forward_pre_hook` for the entire net
         module.register_forward_pre_hook(self.forward_pre_hook)
@@ -230,7 +230,7 @@ class Hook(CallbackHook):
         )
         # Register the module in self.module_maps
         name = loss_module._get_name()
-        self.module_maps[loss_module] = name
+        self.module_maps[id(loss_module)] = name
         # Add a callback to the forward pass
         loss_module.register_forward_hook(self.forward_hook)
         self.has_registered_loss_module = True
