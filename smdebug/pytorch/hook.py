@@ -210,8 +210,8 @@ class Hook(CallbackHook):
             assert submodule not in self.module_set, f"Don't register module={module} twice"
             submodule._module_name = name
             self.module_set.add(submodule)
-        self.module_set.add(module)
         module._module_name = module._get_name()
+        self.module_set.add(module)
 
         # Use `forward_pre_hook` for the entire net
         module.register_forward_pre_hook(self.forward_pre_hook)
@@ -233,6 +233,7 @@ class Hook(CallbackHook):
             f"but has class hierarchy {type.mro(type(loss_module))}"
         )
         loss_module._module_name = loss_module._get_name()
+        self.module_set.add(loss_module)
         # Add a callback to the forward pass
         loss_module.register_forward_hook(self.forward_hook)
         self.has_registered_loss_module = True
