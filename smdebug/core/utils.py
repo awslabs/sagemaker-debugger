@@ -84,11 +84,10 @@ def list_files_in_directory(directory, file_regex=None):
 
 
 def list_collection_files_in_directory(directory):
-    collections_directory = get_path_to_collections(directory)
     import re
 
     collections_file_regex = re.compile(".*_?collections.json$")
-    return list_files_in_directory(collections_directory, file_regex=collections_file_regex)
+    return list_files_in_directory(directory, file_regex=collections_file_regex)
 
 
 def serialize_tf_device(device: str) -> str:
