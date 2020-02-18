@@ -35,8 +35,12 @@ def helper_keras_fit(eager=True, saveall=True):
     with TemporaryDirectory() as dirpath:
         hook = smd.KerasHook(out_dir=dirpath, save_all=saveall)
 
-        model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"],
-                      experimental_run_tf_function=eager)
+        model.compile(
+            optimizer="adam",
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
+            experimental_run_tf_function=eager,
+        )
         model.fit(x_train, y_train, epochs=1, callbacks=[hook])
         model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
 
