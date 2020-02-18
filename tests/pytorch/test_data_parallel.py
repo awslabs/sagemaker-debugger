@@ -40,9 +40,8 @@ def get_dataloader():
 def test_data_parallel():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = Net()
-    if device == "cpu":
-        model = model.to(device)
-    else:
+    model = model.to(device)
+    if device == "cuda":
         model = DataParallel(model)
     epochs = 10
     optimizer = Adam(model.parameters(), lr=0.0001)
