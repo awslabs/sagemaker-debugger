@@ -11,47 +11,41 @@ This was tested with TensorFlow 2.1, by running
 from tempfile import TemporaryDirectory
 
 # Third Party
+import pytest
 import tensorflow.compat.v2 as tf
 
 # First Party
 import smdebug.tensorflow as smd
 
-mnist = tf.keras.datasets.mnist
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train, x_test = x_train / 255, x_test / 255
 
-train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
+def helper_keras_fit(eager=True, saveall=True):
+    mnist = tf.keras.datasets.mnist
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    x_train, x_test = x_train / 255, x_test / 255
 
-model = tf.keras.models.Sequential(
-    [
-        tf.keras.layers.Flatten(input_shape=(28, 28)),
-        tf.keras.layers.Dense(128, activation="relu"),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(10, activation="softmax"),
-    ]
-)
-cce = tf.keras.losses.CategoricalCrossentropy()
+    model = tf.keras.models.Sequential(
+        [
+            tf.keras.layers.Flatten(input_shape=(28, 28)),
+            tf.keras.layers.Dense(128, activation="relu"),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(10, activation="softmax"),
+        ]
+    )
 
-with TemporaryDirectory() as dirpath:
-    hook = smd.KerasHook(out_dir=dirpath)
+    with TemporaryDirectory() as dirpath:
+        hook = smd.KerasHook(out_dir=dirpath, save_all=saveall)
 
-    # n_epochs = 1
-    # batch_size = 32
-    # for epoch in range(n_epochs):
-    #     for data, labels in train_dataset.batch(batch_size).as_numpy_iterator():
-    #         # batch is tuple of ((32,28,28), (32,))
-    #         labels = tf.one_hot(labels, depth=10)
-    #         with tf.GradientTape(persistent=True) as tape:
-    #             logits = model(data) # (32,10)
-    #             loss_value = cce(labels, logits)
-    #             layer = model.layers[1]
-    #             vars = layer
+        model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"],
+                      experimental_run_tf_function=eager)
+        model.fit(x_train, y_train, epochs=1, callbacks=[hook])
+        model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
 
-    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-    model.fit(x_train, y_train, epochs=1, callbacks=[hook])
-    model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
+        trial = smd.create_trial(path=dirpath)
+        print(hook)
+        print(trial)
 
-    trial = smd.create_trial(path=dirpath)
-    print(hook)
-    print(trial)
+
+@pytest.mark.parametrize("eager", [True, False])
+@pytest.mark.parametrize("saveall", [True, False])
+def test_keras_fit(eager, saveall):
+    helper_keras_fit(eager, saveall)

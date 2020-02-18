@@ -115,7 +115,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 continue
 
             if match_inc(ts_name, current_coll.include_regex):
-                if not current_coll.has_tensor(tensor):
+                # In TF 2.x, we can't put tensors in a set/dictionary as tensor.__hash__()
+                # is no longer available. tensor.experimental_ref() returns a hashable reference
+                # object to this Tensor.
+                check_tensor = tensor
+                if version.parse(tf.__version__) >= version.parse("2.0.0"):
+                    check_tensor = tensor.experimental_ref()
+                if not current_coll.has_tensor(check_tensor):
                     # tensor will be added to this coll below
                     colls_with_tensor.add(current_coll)
                 # don't recommend adding tensors externally as
@@ -522,7 +528,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # if saving metric, writer may not be initialized as a result
                 self._initialize_writers()
 
-            self._add_callbacks(mode)
+            if version.parse(tf.__version__) < version.parse("2.0.0"):
+                self._add_callbacks(mode)
 
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
