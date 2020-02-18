@@ -2,13 +2,10 @@
 import shutil
 
 # Third Party
-import numpy as np
 import torch
-import torch.nn.functional as F
-from tests.pytorch.utils import Net
+import torch.optim as optim
+from tests.pytorch.utils import Net, train
 from torch.nn.parallel import DataParallel
-from torch.optim import Adam
-from torch.utils.data import DataLoader, TensorDataset
 
 # First Party
 import smdebug.pytorch as smd
@@ -17,26 +14,7 @@ from smdebug.trials import create_trial
 out_dir = "/tmp/run"
 
 
-def get_dataloader():
-    data = torch.randn([100, 20], requires_grad=True)
-    target = torch.from_numpy(np.random.randint(0, 9, (100)))
-    data = data.float()
-    dataset = TensorDataset(data, target)
-    dataloader = DataLoader(dataset, batch_size=10)
-    return dataloader
-
-
 def test_data_parallel():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = Net()
-    model = model.to(device)
-    if device == "cuda":
-        model = DataParallel(model)
-    epochs = 10
-    optimizer = Adam(model.parameters(), lr=0.0001)
-
-    dataloader = get_dataloader()
-
     shutil.rmtree(out_dir, ignore_errors=True)
 
     hook = smd.Hook(
@@ -46,18 +24,18 @@ def test_data_parallel():
         include_workers="one",
     )
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = Net().to(device)
+    if device == "cuda":
+        model = DataParallel(model)
+
     hook.register_module(model)
 
-    for i in range(epochs):
-        model.train()
-
-        for data, label in dataloader:
-            data, label = data.to(device), label.to(device)
-            optimizer.zero_grad()
-            output = model(data)
-            loss = F.nll_loss(output, label)
-            loss.backward()
-            optimizer.step()
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    train(model, hook, torch.device(device), optimizer, num_steps=10)
 
     trial = create_trial(out_dir)
-    assert len(trial.tensor_names()) == 1
+    if device == "cpu":
+        assert len(trial.tensor_names()) == 36
+    else:
+        assert len(trial.tensor_names()) == 1
