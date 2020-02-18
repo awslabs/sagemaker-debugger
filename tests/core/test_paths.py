@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.core.access_layer.file import SAGEMAKER_TEMP_PATH_SUFFIX, get_temp_path
+from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX, get_temp_path
 from smdebug.core.access_layer.utils import training_has_ended
 from smdebug.core.hook_utils import verify_and_get_out_dir
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
@@ -89,12 +89,12 @@ def test_temp_paths():
             "/opt/ml/output/tensors/events/a/b",
         ]:
             temp_path = get_temp_path(path)
-            assert temp_path.endswith(SAGEMAKER_TEMP_PATH_SUFFIX)
+            assert temp_path.endswith(SMDEBUG_TEMP_PATH_SUFFIX)
 
     with ScriptSimulator() as sim:
         for path in ["/a/b/c", "/opt/ml/output/a", "a/b/c"]:
             temp_path = get_temp_path(path)
-            assert temp_path.endswith(SAGEMAKER_TEMP_PATH_SUFFIX)
+            assert temp_path.endswith(SMDEBUG_TEMP_PATH_SUFFIX)
 
 
 def test_s3_path_that_exists_without_end_of_job():

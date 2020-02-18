@@ -8,7 +8,7 @@ from smdebug.core.logger import get_logger
 # Local
 from .base import TSAccessBase
 
-SAGEMAKER_TEMP_PATH_SUFFIX = ".tmp"
+SMDEBUG_TEMP_PATH_SUFFIX = ".tmp"
 
 
 def ensure_dir(file_path, is_file=True):
@@ -21,7 +21,7 @@ def ensure_dir(file_path, is_file=True):
 
 
 def get_temp_path(file_path):
-    temp_path = file_path + SAGEMAKER_TEMP_PATH_SUFFIX
+    temp_path = file_path + SMDEBUG_TEMP_PATH_SUFFIX
     return temp_path
 
 
