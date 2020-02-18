@@ -4,8 +4,8 @@ import shutil
 # Third Party
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from tests.pytorch.utils import Net
 from torch.nn.parallel import DataParallel
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
@@ -15,17 +15,6 @@ import smdebug.pytorch as smd
 from smdebug.trials import create_trial
 
 out_dir = "/tmp/run"
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.fc = nn.Linear(20, 10)
-
-    def forward(self, x):
-        output = self.fc(x)
-        output = F.log_softmax(x, dim=1)
-        return output
 
 
 def get_dataloader():
