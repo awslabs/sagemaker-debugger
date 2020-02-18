@@ -38,4 +38,6 @@ def test_data_parallel():
     if device == "cpu":
         assert len(trial.tensor_names()) == 36
     else:
-        assert len(trial.tensor_names()) == 1
+        assert len(trial.tensor_names()) > 36
+
+    shutil.rmtree(out_dir, ignore_errors=True)
