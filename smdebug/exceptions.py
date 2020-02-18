@@ -2,6 +2,15 @@
 from smdebug.core.modes import ModeKeys as modes
 
 
+class InvalidCollectionConfiguration(Exception):
+    def __init__(self, c_name):
+        self.c_name = c_name
+
+    def __str__(self):
+        return f"Collection {self.c_name} has not been configured. \
+        Please fill in tensor_name or include_regex"
+
+
 class StepNotYetAvailable(Exception):
     def __init__(self, step, mode):
         self.step = step

@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 # First Party
-from smdebug.core.collection import CollectionKeys
+from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.pytorch.collection import CollectionManager
@@ -103,8 +103,10 @@ class Hook(CallbackHook):
     def _export_model(self):
         pass
 
+    def _get_default_collections(self):
+        return DEFAULT_PYTORCH_COLLECTIONS
+
     def _prepare_collections(self):
-        super()._prepare_collections()
         for coll in self.collection_manager.collections.values():
             for m, (include_inputs, include_outputs) in coll.modules.items():
                 module_name = self.module_maps[m]
@@ -112,6 +114,7 @@ class Hook(CallbackHook):
                     coll.include(module_name + "_input_")
                 if include_outputs:
                     coll.include(module_name + "_output_")
+        super()._prepare_collections()
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):

@@ -7,6 +7,7 @@ from typing import List, Set
 from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStrategy
 
 # First Party
+from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
 from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
@@ -178,6 +179,9 @@ class TensorflowBaseHook(BaseHook):
             return DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
+
+    def _get_default_collections(self):
+        return DEFAULT_TF_COLLECTIONS
 
     def export_collections(self):
         assert self._prepared_tensors[self.mode]
