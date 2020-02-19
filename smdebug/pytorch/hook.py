@@ -47,7 +47,7 @@ class Hook(CallbackHook):
         )
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
-        self.module_maps = dict()
+        self.module_set = set()
 
         self.has_registered_module = False
         self.has_registered_loss_module = False
@@ -109,7 +109,7 @@ class Hook(CallbackHook):
     def _prepare_collections(self):
         for coll in self.collection_manager.collections.values():
             for m, (include_inputs, include_outputs) in coll.modules.items():
-                module_name = self.module_maps[m]
+                module_name = m._module_name
                 if include_inputs:
                     coll.include(module_name + "_input_")
                 if include_outputs:
@@ -153,7 +153,7 @@ class Hook(CallbackHook):
         if not self._get_collections_to_save_for_step():
             return
 
-        module_name = self.module_maps[module]
+        module_name = module._module_name
         # This overwhelms the logs; turn back on if you really need it
         # logger.debug("Processing the global step {0} for module {1}".format(self.step, module_name))
 
@@ -206,11 +206,15 @@ class Hook(CallbackHook):
                 f"Module type {module.__class__.__name__} must be type torch.nn.Module"
             )
 
-        # Create a mapping from modules to their names
+        # Create an attribute and store the module name in the object
+        # So that it is available in the forward hook.
+
         for name, submodule in module.named_modules():
-            assert submodule not in self.module_maps, f"Don't register module={module} twice"
-            self.module_maps[submodule] = name
-        self.module_maps[module] = module._get_name()
+            assert submodule not in self.module_set, f"Don't register module={module} twice"
+            submodule._module_name = name
+            self.module_set.add(submodule)
+        module._module_name = module._get_name()
+        self.module_set.add(module)
 
         # Use `forward_pre_hook` for the entire net
         module.register_forward_pre_hook(self.forward_pre_hook)
@@ -231,9 +235,8 @@ class Hook(CallbackHook):
             f"loss_module={loss_module} must be subclass of `torch.nn.modules.loss._Loss`, "
             f"but has class hierarchy {type.mro(type(loss_module))}"
         )
-        # Register the module in self.module_maps
-        name = loss_module._get_name()
-        self.module_maps[loss_module] = name
+        loss_module._module_name = loss_module._get_name()
+        self.module_set.add(loss_module)
         # Add a callback to the forward pass
         loss_module.register_forward_hook(self.forward_hook)
         self.has_registered_loss_module = True
