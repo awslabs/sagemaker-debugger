@@ -58,7 +58,17 @@ class TSAccessFile(TSAccessBase):
         """Close the file and move it from /tmp to a permanent directory."""
         self._accessor.close()
         if self.mode in WRITE_MODES:
-            shutil.move(self.temp_path, self.path)
+            try:
+                shutil.move(self.temp_path, self.path)
+            except FileNotFoundError:
+                import sys
+
+                modulename = "torch.multiprocessing as mp"
+                if modulename in sys.modules:
+                    self.logger.warn(
+                        "You are using torch.multiprocessing that is currently not supported by \
+                        smedebug. Do not use the saved data for analysis as it may be corrupt"
+                    )
             self.logger.debug(
                 f"Sagemaker-Debugger: Wrote {os.path.getsize(self.path)} bytes to file {self.path}"
             )
