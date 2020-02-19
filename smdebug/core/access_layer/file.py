@@ -65,7 +65,7 @@ class TSAccessFile(TSAccessBase):
 
                 modulename = "torch.multiprocessing as mp"
                 if modulename in sys.modules:
-                    self.logger.warn(
+                    self.logger.error(
                         "You are using torch.multiprocessing that is currently not supported by \
                         smedebug. Do not use the saved data for analysis as it may be corrupt"
                     )
