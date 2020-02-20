@@ -28,7 +28,7 @@ try:
     import tensorflow.compat.v1 as tf
 except ImportError:
     # For TF 1.13
-    import tensorflow.compat.v1 as tf
+    import tensorflow as tf
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -369,21 +369,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
 
-        model = self.model
+        if version.parse(tf.__version__) >= version.parse("2.0.0"):
+            model = self.model
 
-        # tf.keras lumps weights and biases together under `layer.weights`.
-        # TODO: Use a regex to be more precise and separate out the biases into their own collection.
-        weights_coll = self.collection_manager.get(CollectionKeys.WEIGHTS)
-        for layer in model.layers:
-            for weight in layer.weights:
-                # Contains weights and biases!
-                weights_coll.add_tensor(weight)
+            # tf.keras lumps weights and biases together under `layer.weights`.
+            # TODO: Use a regex to be more precise and separate out the biases into their own collection.
+            weights_coll = self.collection_manager.get(CollectionKeys.WEIGHTS)
+            for layer in model.layers:
+                for weight in layer.weights:
+                    # Contains weights and biases!
+                    weights_coll.add_tensor(weight)
 
-        for layer in model.layers:
-            for var in layer.trainable_variables:
-                self._save_for_tensor(
-                    tensor_name=var.name, tensor_value=var.value(), check_before_write=False
-                )
+            for layer in model.layers:
+                for var in layer.trainable_variables:
+                    self._save_for_tensor(
+                        tensor_name=var.name, tensor_value=var.value(), check_before_write=False
+                    )
 
         if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS):
             self._save_inputs(check_before_write=False)

@@ -50,6 +50,10 @@ if [ "$run_pytest_tensorflow" = "enable" ] ; then
     run_for_framework tensorflow
 fi
 
+if [ "$run_pytest_tensorflow2" = "enable" ] ; then
+    run_for_framework tensorflow2
+fi
+
 if [ "$run_pytest_mxnet" = "enable" ] ; then
     run_for_framework mxnet
 fi
