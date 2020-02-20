@@ -8,10 +8,12 @@ env:
     run_pytest_pytorch: "disable"
     run_pytest_mxnet: "enable"
     run_pytest_tensorflow: "disable"
+    run_pytest_tensorflow2: "disable"
     run_pytest_xgboost: "disable"
     run_integration_pytest_pytorch: "disable"
     run_integration_pytest_mxnet: "enable"
     run_integration_pytest_tensorflow: "disable"
+    run_integration_pytest_tensorflow2: "disable"
     run_integration_pytest_xgboost: "disable"
     # below needs to be enabled
     zero_code_change_test: "enable"

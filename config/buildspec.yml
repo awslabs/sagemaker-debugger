@@ -11,6 +11,7 @@ env:
     run_integration_pytest_pytorch: "enable"
     run_integration_pytest_mxnet: "enable"
     run_integration_pytest_tensorflow: "enable"
+    run_integration_pytest_tensorflow2: "enable"
     run_integration_pytest_xgboost: "disable"
 phases:
   install:
@@ -22,8 +23,7 @@ phases:
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
-        - pip install -q pytest wheel pyYaml pytest-html keras==2.3.1 mxnet torch torchvision xgboost pre-commit tensorflow_datasets
-        - if ["$run_pytest_tensorflow2" = "enable"]; then pip install tensorflow ; else pip install tensorflow==1.15.0 ; fi
+        - pip install -q pytest wheel pyYaml pytest-html keras==2.3.1 tensorflow==1.15.0 mxnet torch torchvision xgboost pre-commit tensorflow_datasets
         - pip uninstall -y boto3 botocore
 
   pre_build:

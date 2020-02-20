@@ -24,6 +24,8 @@ run_for_framework() {
         python tests/zero_code_change/pytorch_integration_tests.py
       elif [ "$1" = "tensorflow" ] ; then
         python tests/zero_code_change/tensorflow_integration_tests.py
+      elif [ "$1" = "tensorflow2" ] ; then
+        python tests/zero_code_change/tensorflow2_integration_tests.py
       fi
 
     else
