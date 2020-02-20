@@ -1,4 +1,9 @@
 # Third Party
+# Standard Library
+import shutil
+from multiprocessing import Manager, Process
+from os import makedirs
+
 import pytest
 
 # First Party
@@ -13,7 +18,7 @@ from smdebug.core.json_config import (
     get_json_config_as_dict,
 )
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import SagemakerSimulator, is_s3
+from smdebug.core.utils import SagemakerSimulator, is_first_process, is_s3
 
 
 def test_normal():
@@ -149,3 +154,31 @@ def test_json_params_sagemaker():
         assert len(include_collections) == 2
         assert hook_params["export_tensorboard"] == True
         assert hook_params["tensorboard_dir"] == sim.tensorboard_dir
+
+
+def test_is_first_process():
+    for _ in range(10):
+        helper_test_is_first_process()
+
+
+def helper_test_is_first_process():
+    path = "/tmp/first_process"
+    shutil.rmtree(path, ignore_errors=True)
+    makedirs(path)
+    process_list = []
+
+    def helper(fn, arg, shared_list):
+        shared_list.append(fn(arg))
+
+    manager = Manager()
+    results = manager.list()
+    for i in range(100):
+        p = Process(target=helper, args=(is_first_process, path, results))
+        p.start()
+        process_list.append(p)
+
+    for p in process_list:
+        p.join()
+
+    assert results.count(True) == 1
+    shutil.rmtree(path, ignore_errors=True)

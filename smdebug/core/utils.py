@@ -64,7 +64,8 @@ def get_immediate_subdirectories(a_dir):
 def is_first_process(path):
     filename = os.path.join(path, "claim.smd")
     try:
-        os.open(filename, os.O_CREAT | os.O_EXCL)
+        fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.close(fd)
         return True
     except FileExistsError:
         return False
