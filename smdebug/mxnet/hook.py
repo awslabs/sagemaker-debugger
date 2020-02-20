@@ -5,6 +5,7 @@ import mxnet as mx
 from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
+from smdebug.core.utils import is_first_process
 from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
@@ -77,6 +78,11 @@ class Hook(CallbackHook):
                 return hvd.size()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
+
+        if not is_first_process(self.out_dir):
+            self.save_all_workers = False
+            self.worker = "non_chief_worker"
+
         return 1
 
     def _cleanup(self):

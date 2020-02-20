@@ -61,6 +61,15 @@ def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 
 
+def is_first_process(path):
+    filename = os.path.join(path, "claim.smd")
+    try:
+        os.open(filename, os.O_CREAT | os.O_EXCL)
+        return True
+    except FileExistsError:
+        return False
+
+
 def is_s3(path):
     if path.startswith("s3://"):
         try:
