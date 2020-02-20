@@ -18,6 +18,15 @@ from smdebug.core.config_constants import (
 from smdebug.exceptions import IndexReaderException
 
 
+def ensure_dir(file_path, is_file=True):
+    if is_file:
+        directory = os.path.dirname(file_path)
+    else:
+        directory = file_path
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+
+
 def load_json_as_dict(s):
     if s is None or s == str(None):
         return None
@@ -73,6 +82,7 @@ def is_s3(path):
 
 
 def is_first_process(path):
+    ensure_dir(path, is_file=False)
     filename = os.path.join(path, "claim.smd")
     s3, _, _ = is_s3(path)
     if s3:

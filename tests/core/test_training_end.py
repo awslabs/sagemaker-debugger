@@ -5,14 +5,13 @@ import shutil
 import pytest
 
 # First Party
-from smdebug.core.access_layer.file import ensure_dir
 from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.access_layer.utils import (
     delete_s3_prefixes,
     has_training_ended,
     training_has_ended,
 )
-from smdebug.core.utils import is_s3
+from smdebug.core.utils import ensure_dir, is_s3
 
 
 def test_local_training_end():
