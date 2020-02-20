@@ -73,10 +73,10 @@ def is_s3(path):
 
 
 def is_first_process(path):
+    filename = os.path.join(path, "claim.smd")
     if is_s3(path):
-        return True  # TODO: Implement for S3
+        return True  # Cannot Implement This Functionality for S3
     else:
-        filename = os.path.join(path, "claim.smd")
         try:
             fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             os.close(fd)

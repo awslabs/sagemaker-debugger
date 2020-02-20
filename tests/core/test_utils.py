@@ -180,5 +180,5 @@ def helper_test_is_first_process():
     for p in process_list:
         p.join()
 
-    assert results.count(True) == 1
+    assert results.count(True) == 1, f"Failed for path: {path}"
     shutil.rmtree(path, ignore_errors=True)
