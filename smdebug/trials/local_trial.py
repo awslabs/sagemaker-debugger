@@ -4,7 +4,7 @@ import os
 # First Party
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.index_reader import LocalIndexReader
-from smdebug.core.utils import get_path_to_collections, list_files_in_directory
+from smdebug.core.utils import get_path_to_collections, list_collection_files_in_directory
 
 # Local
 from .trial import Trial
@@ -37,7 +37,7 @@ class LocalTrial(Trial):
         self._load_tensors()
 
     def _get_collection_files(self) -> list:
-        return list_files_in_directory(get_path_to_collections(self.path))
+        return list_collection_files_in_directory(get_path_to_collections(self.path))
 
     def _load_tensors_from_index_tensors(self, index_tensors_dict):
         for tname in index_tensors_dict:

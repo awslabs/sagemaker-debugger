@@ -17,6 +17,8 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
 
     tr = create_trial(trial_dir)
     assert len(tr.tensor_names()) == 3, tr.tensor_names()
+    for step in tr.steps():
+        assert len(tr.tensor_names(step=step)) == 3, tr.tensor_names()
     for tname in tr.tensor_names():
         t = tr.tensor(tname)
         if tname in tr.tensor_names(collection="losses"):

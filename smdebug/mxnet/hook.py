@@ -2,7 +2,7 @@
 import mxnet as mx
 
 # First Party
-from smdebug.core.collection import CollectionKeys
+from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.mxnet.collection import CollectionManager
@@ -112,6 +112,9 @@ class Hook(CallbackHook):
                     f"Could not export model graph for tensorboard "
                     f"due to the mxnet exception: {e}"
                 )
+
+    def _get_default_collections(self):
+        return DEFAULT_MXNET_COLLECTIONS
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, block, inputs):

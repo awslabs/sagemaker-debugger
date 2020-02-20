@@ -4,13 +4,11 @@ import shutil
 
 # First Party
 from smdebug.core.logger import get_logger
-from smdebug.core.sagemaker_utils import is_sagemaker_job
 
 # Local
 from .base import TSAccessBase
 
-NON_SAGEMAKER_TEMP_PATH_PREFIX = "/tmp"
-SAGEMAKER_TEMP_PATH_SUFFIX = ".tmp"
+SMDEBUG_TEMP_PATH_SUFFIX = ".tmp"
 
 
 def ensure_dir(file_path, is_file=True):
@@ -23,13 +21,7 @@ def ensure_dir(file_path, is_file=True):
 
 
 def get_temp_path(file_path):
-    directory = os.path.dirname(file_path)
-    if is_sagemaker_job():
-        temp_path = file_path + SAGEMAKER_TEMP_PATH_SUFFIX
-    else:
-        if len(file_path) > 0 and file_path[0] == "/":
-            file_path = file_path[1:]
-        temp_path = os.path.join(NON_SAGEMAKER_TEMP_PATH_PREFIX, file_path)
+    temp_path = file_path + SMDEBUG_TEMP_PATH_SUFFIX
     return temp_path
 
 
