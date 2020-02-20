@@ -61,16 +61,6 @@ def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 
 
-def is_first_process(path):
-    filename = os.path.join(path, "claim.smd")
-    try:
-        fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        os.close(fd)
-        return True
-    except FileExistsError:
-        return False
-
-
 def is_s3(path):
     if path.startswith("s3://"):
         try:
@@ -80,6 +70,19 @@ def is_s3(path):
             return True, path[5:], ""
     else:
         return False, None, None
+
+
+def is_first_process(path):
+    if is_s3(path):
+        return True  # TODO: Implement for S3
+    else:
+        filename = os.path.join(path, "claim.smd")
+        try:
+            fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            return True
+        except FileExistsError:
+            return False
 
 
 def list_files_in_directory(directory, file_regex=None):
