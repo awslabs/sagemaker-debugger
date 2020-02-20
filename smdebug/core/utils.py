@@ -74,7 +74,8 @@ def is_s3(path):
 
 def is_first_process(path):
     filename = os.path.join(path, "claim.smd")
-    if is_s3(path):
+    s3, _, _ = is_s3(path)
+    if s3:
         return True  # Cannot Implement This Functionality for S3
     else:
         try:
