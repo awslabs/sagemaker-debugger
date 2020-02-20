@@ -23,7 +23,7 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - pip install -q pytest wheel pyYaml pytest-html keras==2.3.1 mxnet torch torchvision xgboost pre-commit tensorflow_datasets
-        - if ["$run_pytest_tensorflow2" = "enable"]; then pip install tensorflow ; else pip install tensorflow==1.15.0 fi
+        - if ["$run_pytest_tensorflow2" = "enable"]; then pip install tensorflow ; else pip install tensorflow==1.15.0 ; fi
         - pip uninstall -y boto3 botocore
 
   pre_build:
