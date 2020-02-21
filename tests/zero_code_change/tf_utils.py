@@ -256,17 +256,3 @@ def get_keras_model_v1():
 
     model = keras.Model(inputs=inputs, outputs=outputs, name="mnist_model")
     return model
-
-
-def get_keras_model_v2():
-    import tensorflow.compat.v2.keras as keras
-
-    model = keras.models.Sequential(
-        [
-            keras.layers.Flatten(input_shape=(28, 28)),
-            keras.layers.Dense(128, activation="relu"),
-            keras.layers.Dropout(0.2),
-            keras.layers.Dense(10, activation="softmax"),
-        ]
-    )
-    return model
