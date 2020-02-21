@@ -19,18 +19,37 @@ import argparse
 
 # Third Party
 import tensorflow.compat.v2 as tf
-from tf_utils import get_keras_data, get_keras_model_v2
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.utils import SagemakerSimulator
 
 
-def test_keras_v2(script_mode: bool = False):
+def get_keras_model_v2():
+    import tensorflow.compat.v2.keras as keras
+
+    model = keras.models.Sequential(
+        [
+            keras.layers.Flatten(input_shape=(28, 28)),
+            keras.layers.Dense(128, activation="relu"),
+            keras.layers.Dropout(0.2),
+            keras.layers.Dense(10, activation="softmax"),
+        ]
+    )
+    return model
+
+
+def get_keras_data():
+    mnist = tf.keras.datasets.mnist
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    x_train, x_test = x_train / 255, x_test / 255
+
+    return (x_train, y_train), (x_test, y_test)
+
+
+def test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     """ Works as intended. """
     smd.del_hook()
-    tf.reset_default_graph()
-    tf.keras.backend.clear_session()
     with SagemakerSimulator() as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
@@ -39,6 +58,7 @@ def test_keras_v2(script_mode: bool = False):
             loss="sparse_categorical_crossentropy",
             optimizer=tf.keras.optimizers.RMSprop(),
             metrics=["accuracy"],
+            experimental_run_tf_function=eager_mode,
         )
         if script_mode:
             hook = smd.KerasHook(out_dir=sim.out_dir)
@@ -65,4 +85,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     script_mode = args.script_mode
 
+    # eager mode
     test_keras_v2(script_mode=script_mode)
+    # non-eager mode
+    test_keras_v2(script_mode=script_mode, eager_mode=False)
