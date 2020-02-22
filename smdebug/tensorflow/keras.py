@@ -518,12 +518,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._prepare_collections()
 
         if self._prepared_tensors[mode] is False:
-            self._prepare_layers(mode)
-            self._prepare_non_layer_tensors()
-            self._prepared_tensors[mode] = True
-            # below should be after tensors are processed,
-            # so we know that device map is populated
-            self._set_chief_worker()
+            if version.parse(tf.__version__) >= version.parse(
+                "2.0.0"
+            ) or self._validate_exec_function(self._get_exec_function(mode)):
+                self._prepare_layers(mode)
+                self._prepare_non_layer_tensors()
+                self._prepared_tensors[mode] = True
+                # below should be after tensors are processed,
+                # so we know that device map is populated
+                self._set_chief_worker()
             # this will delay the preparation of tensors as the
             # full graph is not built. Gradients are not available
             # at this stage for example
