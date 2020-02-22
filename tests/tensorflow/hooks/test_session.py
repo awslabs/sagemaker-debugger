@@ -1,6 +1,6 @@
 # Third Party
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tests.zero_code_change.tf_utils import get_data, get_train_op_and_placeholders
 
 # First Party

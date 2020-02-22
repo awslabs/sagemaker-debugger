@@ -4,7 +4,7 @@ import sys
 
 # Third Party
 import pytest
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # First Party
 from smdebug.core.access_layer.utils import has_training_ended

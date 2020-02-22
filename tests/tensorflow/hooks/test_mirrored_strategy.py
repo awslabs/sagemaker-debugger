@@ -19,7 +19,7 @@ from __future__ import absolute_import, division, print_function
 # Third Party
 import numpy as np
 import pytest
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.python.client import device_lib
 from tests.tensorflow.utils import create_trial_fast_refresh
 
