@@ -7,19 +7,17 @@ This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
 
-# Standard Library
-
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
+import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from smdebug.tensorflow import ReductionConfig, SaveConfig
 from smdebug.exceptions import TensorUnavailableForStep
-import smdebug.tensorflow as smd
+from smdebug.tensorflow import ReductionConfig, SaveConfig
 
 
 def helper_keras_fit(
@@ -98,8 +96,9 @@ def helper_keras_fit(
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_fit(out_dir, eager, saveall):
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
-    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=eager,
-                     steps=["train", "eval", "predict", "train"])
+    helper_keras_fit(
+        trial_dir=out_dir, hook=hook, eager=eager, steps=["train", "eval", "predict", "train"]
+    )
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x

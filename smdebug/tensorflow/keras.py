@@ -378,7 +378,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for layer in model.layers:
                 for vars in layer.variables:
                     # Contains weights and biases!
-                    if match_inc(vars.name, self.collection_manager.get(CollectionKeys.BIASES).include_regex):
+                    if match_inc(
+                        vars.name, self.collection_manager.get(CollectionKeys.BIASES).include_regex
+                    ):
                         bias_coll.add_tensor(vars)
                     else:
                         weights_coll.add_tensor(vars)
