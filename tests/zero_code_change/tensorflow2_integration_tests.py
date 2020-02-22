@@ -26,14 +26,12 @@ from smdebug.core.utils import SagemakerSimulator
 
 
 def get_keras_model_v2():
-    import tensorflow.compat.v2.keras as keras
-
-    model = keras.models.Sequential(
+    model = tf.keras.models.Sequential(
         [
-            keras.layers.Flatten(input_shape=(28, 28)),
-            keras.layers.Dense(128, activation="relu"),
-            keras.layers.Dropout(0.2),
-            keras.layers.Dense(10, activation="softmax"),
+            tf.keras.layers.Flatten(input_shape=(28, 28)),
+            tf.keras.layers.Dense(128, activation="relu"),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(10, activation="softmax"),
         ]
     )
     return model
