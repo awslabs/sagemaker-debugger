@@ -3,7 +3,7 @@ import typing as Tuple
 
 # Third Party
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_datasets as tfds
 from tensorflow.examples.tutorials.mnist import input_data
 

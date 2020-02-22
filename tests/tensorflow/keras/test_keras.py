@@ -3,7 +3,7 @@ import shutil
 
 # Third Party
 import pytest
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
