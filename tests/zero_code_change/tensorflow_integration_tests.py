@@ -18,7 +18,7 @@ Here in the test suite we delete the hook after every script.
 import argparse
 
 # Third Party
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_datasets as tfds
 from tests.tensorflow.hooks.test_mirrored_strategy import test_basic
 from tests.tensorflow.keras.test_keras_mirrored import test_tf_keras

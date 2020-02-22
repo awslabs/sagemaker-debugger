@@ -6,7 +6,7 @@ import os
 
 # Third Party
 import pytest
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
 from tests.tensorflow.utils import create_trial_fast_refresh

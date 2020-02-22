@@ -45,7 +45,7 @@ def test_new_graph(out_dir):
 
 def test_uninit_sess_run(out_dir):
     train_op, X, Y = get_train_op_and_placeholders()
-    init = tf.compat.v1.global_variables_initializer()
+    init = tf.global_variables_initializer()
     mnist = get_data()
     hook = smd.SessionHook(out_dir, include_collections=["weights"])
     sess = tf.train.MonitoredSession(hooks=[hook])
