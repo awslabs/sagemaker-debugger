@@ -373,12 +373,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             model = self.model
 
             # tf.keras lumps weights and biases together under `layer.weights`.
-            # TODO: Use a regex to be more precise and separate out the biases into their own collection.
             weights_coll = self.collection_manager.get(CollectionKeys.WEIGHTS)
+            bias_coll = self.collection_manager.get(CollectionKeys.BIASES)
             for layer in model.layers:
-                for weight in layer.weights:
+                for vars in layer.variables:
                     # Contains weights and biases!
-                    weights_coll.add_tensor(weight)
+                    if match_inc(vars.name, self.collection_manager.get(CollectionKeys.BIASES).include_regex):
+                        bias_coll.add_tensor(vars)
+                    else:
+                        weights_coll.add_tensor(vars)
 
             for layer in model.layers:
                 for var in layer.trainable_variables:
