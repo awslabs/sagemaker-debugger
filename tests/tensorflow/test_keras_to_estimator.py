@@ -1,5 +1,5 @@
 # Third Party
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_datasets as tfds
 
 # First Party
