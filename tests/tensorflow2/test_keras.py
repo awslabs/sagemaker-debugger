@@ -14,6 +14,7 @@ from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
@@ -75,8 +76,6 @@ def helper_keras_fit(
                     log_dir="/tmp/logs", histogram_freq=1, write_grads=True, write_images=True
                 )
             )
-        # if "fetch_tensor" in add_callbacks:
-        #     hooks.append(FetchTensorCallback(model.outputs + model.weights))
     hooks.append(hook)
 
     if steps is None:
@@ -109,11 +108,13 @@ def test_keras_fit(out_dir, eager, saveall):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
 
 
-def test_base_reductions(out_dir):
+@pytest.mark.parametrize("eager", [True, False])
+def test_base_reductions(out_dir, eager):
     helper_keras_fit(
         trial_dir=out_dir,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        eager=eager,
     )
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
@@ -133,14 +134,15 @@ def test_base_reductions(out_dir):
     assert tr.tensor(metric_name).value(0) is not None
 
 
-def test_collection_reductions(out_dir):
+@pytest.mark.parametrize("eager", [True, False])
+def test_collection_reductions(out_dir, eager):
     hook = smd.KerasHook(
         out_dir,
         save_config=SaveConfig(save_interval=3),
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES],
     )
     hook.get_collection(CollectionKeys.WEIGHTS).reduction_config = ReductionConfig(norms=["l1"])
-    helper_keras_fit(out_dir, hook=hook, steps=["train"])
+    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=eager)
 
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
@@ -154,12 +156,15 @@ def test_collection_reductions(out_dir):
         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
 
 
-def test_include_regex(out_dir):
+@pytest.mark.parametrize("eager", [True, False])
+def test_include_regex(out_dir, eager):
     hook = smd.KerasHook(
         out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
     )
     hook.get_collection("custom_coll").include("dense")
-    helper_keras_fit(out_dir, hook=hook, save_config=SaveConfig(save_interval=9), steps=["train"])
+    helper_keras_fit(
+        out_dir, hook=hook, save_config=SaveConfig(save_interval=9), steps=["train"], eager=eager
+    )
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
@@ -169,7 +174,8 @@ def test_include_regex(out_dir):
         assert tr.tensor(tname).value(0) is not None
 
 
-def test_clash_with_tb_callback(out_dir):
+@pytest.mark.parametrize("eager", [True, False])
+def test_clash_with_tb_callback(out_dir, eager):
     helper_keras_fit(
         out_dir,
         save_config=SaveConfig(save_interval=9),
@@ -181,6 +187,15 @@ def test_clash_with_tb_callback(out_dir):
             CollectionKeys.METRICS,
         ],
         add_callbacks=["tensorboard"],
+        eager=eager,
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensor_names()) == 8
+
+
+@pytest.mark.parametrize("eager", [True, False])
+def test_training_end(out_dir, eager):
+    helper_keras_fit(
+        out_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"], eager=eager
+    )
+    assert has_training_ended(out_dir) is True
