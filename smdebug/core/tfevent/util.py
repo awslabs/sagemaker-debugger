@@ -1,9 +1,5 @@
 # Third Party
 import numpy as np
-try:
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    tf = None
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -11,6 +7,12 @@ from smdebug.core.logger import get_logger
 # Local
 from .proto.tensor_pb2 import TensorProto
 from .proto.tensor_shape_pb2 import TensorShapeProto
+
+try:
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    tf = None
+
 
 logger = get_logger()
 

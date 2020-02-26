@@ -59,7 +59,7 @@ def test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
             experimental_run_tf_function=eager_mode,
         )
         if script_mode:
-            hook = smd.KerasHook(out_dir=sim.out_dir)
+            hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
             )
@@ -68,9 +68,11 @@ def test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
             history = model.fit(x_train, y_train, batch_size=64, epochs=5, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
+        hook = smd.get_hook()
+        assert hook
+        hook.close()
         # Check that hook created and tensors saved
         trial = smd.create_trial(path=sim.out_dir)
-        assert smd.get_hook() is not None, "Hook was not created."
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
