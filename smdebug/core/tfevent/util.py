@@ -1,6 +1,9 @@
 # Third Party
 import numpy as np
-import tensorflow.compat.v1 as tf
+try:
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    tf = None
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -62,7 +65,7 @@ def make_numpy_array(x):
         return np.array([x])
     elif isinstance(x, tuple):
         return np.asarray(x, dtype=x.dtype)
-    elif (isinstance(x, tf.Variable) or isinstance(x, tf.Tensor)) and hasattr(x, "numpy"):
+    elif tf and (isinstance(x, tf.Variable) or isinstance(x, tf.Tensor)) and hasattr(x, "numpy"):
         # TF 2.X
         return x.numpy()
     else:
