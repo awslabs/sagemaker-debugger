@@ -71,10 +71,6 @@ class Hook(CallbackHook):
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
 
-        if not is_first_process(self.out_dir):
-            self.save_all_workers = False
-            self.worker = "non_chief_worker"
-
         # Return default
         return 1
 
@@ -93,6 +89,11 @@ class Hook(CallbackHook):
                     return f"worker_{hvd.rank()}"
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
+
+        if not is_first_process(self.out_dir):
+            self.save_all_workers = False
+            return "non_chief_worker"
+
         # Return default
         return DEFAULT_WORKER_NAME
 
