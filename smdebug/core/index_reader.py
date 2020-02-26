@@ -76,6 +76,9 @@ class ReadIndexFilesCache:
 
     def _evict_cache(self, start_after_key: str) -> None:
         read_files = sorted(self.lookup_set)
+        start_after_key = "" if start_after_key is None else start_after_key
+        # eviction_point = 0 if start_after_key is None (unset).
+        # This happens more that self.cache_limit number of files are read on the first read attempt.
         eviction_point = bisect_left(read_files, start_after_key)
         for i in range(eviction_point):
             self.lookup_set.remove(read_files[i])
