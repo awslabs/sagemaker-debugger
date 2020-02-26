@@ -1,30 +1,33 @@
-# Build Spec for AWS CodeBuild CI
+# Build Spec for AWS CodeBuild CI which will run for every PR.
 
 version: 0.2
 env:
   variables:
-    run_pytest_pytorch: "enable"
+    ## below enviornment variables are overridden in respective code build.
+    # for example for pytorch build run_pytest_pytorch and run_integration_pytest_pytorch will be enabled
+    run_pytest_pytorch: "disable"
     run_pytest_mxnet: "enable"
-    run_pytest_tensorflow: "enable"
-    run_pytest_tensorflow2: "enable"
-    run_pytest_xgboost: "enable"
-    run_integration_pytest_pytorch: "enable"
+    run_pytest_tensorflow: "disable"
+    run_pytest_tensorflow2: "disable"
+    run_pytest_xgboost: "disable"
+    run_integration_pytest_pytorch: "disable"
     run_integration_pytest_mxnet: "enable"
-    run_integration_pytest_tensorflow: "enable"
-    run_integration_pytest_tensorflow2: "enable"
+    run_integration_pytest_tensorflow: "disable"
+    run_integration_pytest_tensorflow2: "disable"
     run_integration_pytest_xgboost: "disable"
+    # below needs to be enabled
+    zero_code_change_test: "enable"
 phases:
   install:
     commands:
         -  . config/change_branch.sh
         - su && apt-get update
-        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
+        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
-        - pip install -q pytest wheel pyYaml pytest-html keras==2.3.1 tensorflow==1.15.0 mxnet torch torchvision xgboost pre-commit tensorflow_datasets
-        - pip uninstall -y boto3 botocore
+        - pip install -q pytest wheel pyYaml pytest-html pre-commit awscli
 
   pre_build:
     commands:
