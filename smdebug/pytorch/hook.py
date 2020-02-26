@@ -50,10 +50,23 @@ class Hook(CallbackHook):
         # useful in forward hook for logging input/output of modules
         self.module_set = set()
 
+        self.first_process = None
         self.has_registered_module = False
         self.has_registered_loss_module = False
         self.worker = self._get_worker_name()
+        self.first_process = self._is_suppported_dist_strategy()
         set_hook(self)
+
+    def _is_suppported_dist_strategy(self):
+        num_workers = self._get_num_workers()
+        if num_workers > 1:
+            return True
+        else:
+            if self.first_process is not None:
+                self.first_process = is_first_process(self.out_dir)
+                self.save_all_workers = False
+                self.worker = self._get_worker_name()
+            return self.first_process
 
     def _get_num_workers(self):
         """Check horovod and torch.distributed."""
@@ -75,6 +88,8 @@ class Hook(CallbackHook):
         return 1
 
     def _get_worker_name(self):
+        if self.worker is not None:
+            return self.worker
         """Check horovod and torch.distributed."""
         # Try torch.distributed
         # torch.distributed is empty on Mac on Torch <= 1.2

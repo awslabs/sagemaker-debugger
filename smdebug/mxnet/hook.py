@@ -52,6 +52,7 @@ class Hook(CallbackHook):
             include_workers=include_workers,
         )
         self.last_block = None
+        self.first_process = None
 
         self.model = None
         self.exported_model = False
@@ -60,7 +61,20 @@ class Hook(CallbackHook):
         self.worker = self._get_worker_name()
         set_hook(self)
 
+    def _is_suppported_dist_strategy(self):
+        num_workers = self._get_num_workers()
+        if num_workers > 1:
+            return True
+        else:
+            if self.first_process is not None:
+                self.first_process = is_first_process(self.out_dir)
+                self.save_all_workers = False
+                self.worker = self._get_worker_name()
+            return self.first_process
+
     def _get_worker_name(self):
+        if self.worker is not None:
+            return self.worker
         try:
             import horovod.mxnet as hvd
 
@@ -68,10 +82,6 @@ class Hook(CallbackHook):
                 return f"worker_{hvd.rank()}"
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-
-        if not is_first_process(self.out_dir):
-            self.save_all_workers = False
-            return "non_chief_worker"
 
         return DEFAULT_WORKER_NAME
 
