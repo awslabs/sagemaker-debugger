@@ -51,8 +51,6 @@ class Hook(CallbackHook):
             include_workers=include_workers,
         )
         self.last_block = None
-        self.first_process = None
-        self._is_suppported_dist_strategy()
 
         self.model = None
         self.exported_model = False

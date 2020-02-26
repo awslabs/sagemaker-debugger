@@ -49,8 +49,6 @@ class Hook(CallbackHook):
         # useful in forward hook for logging input/output of modules
         self.module_set = set()
 
-        self.first_process = None
-        self._is_suppported_dist_strategy()
         self.has_registered_module = False
         self.has_registered_loss_module = False
         self.worker = self._get_worker_name()
@@ -90,8 +88,6 @@ class Hook(CallbackHook):
                     return f"worker_{hvd.rank()}"
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
-        if self.first_process is False:
-            return "non_chief_worker"
 
         # Return default
         return DEFAULT_WORKER_NAME

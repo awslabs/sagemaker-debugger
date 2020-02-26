@@ -126,6 +126,7 @@ class BaseHook:
 
         self.dry_run = dry_run
         self.worker = None
+        self.first_process = None
         self.save_all_workers = True if include_workers == "all" else False
         self.chief_worker = DEFAULT_WORKER_NAME
 
@@ -360,6 +361,16 @@ class BaseHook:
     def _close_writers(self) -> None:
         if self.dry_run:
             return
+
+        if self.first_process is False:
+            return
+        else:
+            if self._get_num_workers() == 1:
+                if is_first_process(self.out_dir):
+                    self.first_process = True
+                else:
+                    self.first_process = False
+                    return
 
         # flush out sm_metric scalars to metrics file
         self._write_scalars()
@@ -793,17 +804,6 @@ class CallbackHook(BaseHook):
         )
         self.exported_collections = False
         self.data_type_name = data_type_name
-
-    def _is_suppported_dist_strategy(self):
-        num_workers = self._get_num_workers()
-        if num_workers > 1:
-            return True
-        else:
-            if self.first_process is None:
-                self.first_process = is_first_process(self.out_dir)
-                if self.first_process is False:
-                    self.save_all_workers = False
-            return self.first_process
 
     def _cleanup(self):
         if not self.exported_collections:
