@@ -34,7 +34,7 @@ from smdebug.core.reductions import get_reduction_tensor_name
 from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
-from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
+from smdebug.core.utils import flatten, get_tb_worker, is_first_process, match_inc, size_and_shape
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
 
@@ -793,6 +793,17 @@ class CallbackHook(BaseHook):
         )
         self.exported_collections = False
         self.data_type_name = data_type_name
+
+    def _is_suppported_dist_strategy(self):
+        num_workers = self._get_num_workers()
+        if num_workers > 1:
+            return True
+        else:
+            if self.first_process is None:
+                self.first_process = is_first_process(self.out_dir)
+                if self.first_process is False:
+                    self.save_all_workers = False
+            return self.first_process
 
     def _cleanup(self):
         if not self.exported_collections:
