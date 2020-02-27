@@ -1,6 +1,9 @@
 # Future
 from __future__ import print_function
 
+# Standard Library
+import shutil
+
 # Third Party
 import torch
 import torch.multiprocessing as mp
@@ -85,6 +88,7 @@ def test_no_failure_with_torch_mp():
     model.share_memory()  # gradients are allocated lazily, so they are not shared here
 
     out_dir = "/tmp/run"
+    shutil.rmtree(out_dir, ignore_errors=True)
 
     hook = smd.Hook(
         out_dir=out_dir,
@@ -109,3 +113,4 @@ def test_no_failure_with_torch_mp():
     assert trial.num_workers == 1  # Ensure only one worker saved data
     assert len(trial.tensor_names()) > 20  # Ensure that data was saved
     assert len(trial.steps()) == [0, 1]  # Ensure that steps were saved
+    shutil.rmtree(out_dir, ignore_errors=True)
