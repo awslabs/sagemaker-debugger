@@ -362,16 +362,6 @@ class BaseHook:
         if self.dry_run:
             return
 
-        if self.first_process is False:
-            return
-        else:
-            if self._get_num_workers() == 1:
-                if is_first_process(self.out_dir):
-                    self.first_process = True
-                else:
-                    self.first_process = False
-                    return
-
         # flush out sm_metric scalars to metrics file
         self._write_scalars()
 
@@ -394,6 +384,16 @@ class BaseHook:
     def _initialize_writers(self) -> None:
         if self.dry_run:
             return
+        if self.first_process is False:
+            return
+        elif self.first_process is None:
+            if self._get_num_workers() == 1:
+                if is_first_process(self.out_dir):
+                    self.first_process = True
+                else:
+                    self.first_process = False
+                    return
+
         if self.save_all_workers is False:
             if self.worker != self.chief_worker:
                 return
