@@ -1,9 +1,6 @@
 # Future
 from __future__ import print_function
 
-# Standard Library
-import os
-
 # Third Party
 import torch
 import torch.multiprocessing as mp
@@ -13,7 +10,8 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 
 # First Party
-import smdebug as smd
+import smdebug.pytorch as smd
+from smdebug.trials import create_trial
 
 
 class Net(nn.Module):
@@ -65,30 +63,18 @@ def train(rank, model, device, dataloader_kwargs):
 
 
 def train_epoch(epoch, model, device, data_loader, optimizer):
-    log_interval = 10
     model.train()
-    pid = os.getpid()
     for batch_idx, (data, target) in enumerate(data_loader):
+        if batch_idx > 4:
+            break
         optimizer.zero_grad()
         output = model(data.to(device))
         loss = F.nll_loss(output, target.to(device))
         loss.backward()
         optimizer.step()
-        if batch_idx % log_interval == 0:
-            print(
-                "{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    pid,
-                    epoch,
-                    batch_idx * len(data),
-                    len(data_loader.dataset),
-                    100.0 * batch_idx / len(data_loader),
-                    loss.item(),
-                )
-            )
 
 
-def run_test():
-
+def test_no_failure_with_torch_mp():
     device = "cpu"
     dataloader_kwargs = {}
     cpu_count = 2 if mp.cpu_count() > 2 else mp.cpu_count()
@@ -98,8 +84,10 @@ def run_test():
     model = Net().to(device)
     model.share_memory()  # gradients are allocated lazily, so they are not shared here
 
+    out_dir = "/tmp/run"
+
     hook = smd.Hook(
-        out_dir="./here",
+        out_dir=out_dir,
         save_config=smd.SaveConfig(save_steps=[0, 1, 5]),
         save_all=True,
         include_workers="all",
@@ -115,3 +103,9 @@ def run_test():
         processes.append(p)
     for p in processes:
         p.join()
+
+    trial = create_trial(out_dir)
+
+    assert trial.num_workers == 1  # Ensure only one worker saved data
+    assert len(trial.tensor_names()) > 20  # Ensure that data was saved
+    assert len(trial.steps()) == [0, 1]  # Ensure that steps were saved
