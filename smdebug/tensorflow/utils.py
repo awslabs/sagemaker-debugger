@@ -5,6 +5,7 @@ from enum import Enum
 
 # Third Party
 import tensorflow.compat.v1 as tf
+from packaging import version
 from tensorflow.python.distribute import values
 
 # First Party
@@ -294,3 +295,7 @@ def get_keras_mode(mode):
         return KerasModeKeys.TEST
     elif mode == ModeKeys.PREDICT:
         return KerasModeKeys.PREDICT
+
+
+def is_tf_version_2x():
+    return version.parse(tf.__version__) >= version.parse("2.0.0")

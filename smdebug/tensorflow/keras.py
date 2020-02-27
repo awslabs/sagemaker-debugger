@@ -2,7 +2,6 @@
 import functools
 
 # Third Party
-from packaging import version
 from tensorflow.python.distribute import values
 
 # First Party
@@ -21,6 +20,7 @@ from .utils import (
     get_keras_layer_outputs,
     get_keras_mode,
     is_keras_optimizer,
+    is_tf_version_2x,
 )
 
 try:
@@ -70,8 +70,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if tf.executing_eagerly() or (
                 hasattr(self.model, "run_eagerly") and self.model.run_eagerly
             ):
-                # self.logger.info("Disabling SMDebug as it does not support eager mode")
-                # self._hook_supported = False
                 pass
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
@@ -119,7 +117,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # is no longer available. tensor.experimental_ref() returns a hashable reference
                 # object to this Tensor.
                 check_tensor = tensor
-                if version.parse(tf.__version__) >= version.parse("2.0.0"):
+                if is_tf_version_2x():
                     check_tensor = tensor.experimental_ref()
                 if not current_coll.has_tensor(check_tensor):
                     # tensor will be added to this coll below
@@ -282,7 +280,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # adds any layer tensor (input, output and weight) to appropriate collection
         for layer in self.model.layers:
             # Input and output tensors are difficult to get in TF 2.X
-            if version.parse(tf.__version__) < version.parse("2.0.0"):
+            if not is_tf_version_2x():
                 layer_inputs = get_keras_layer_inputs(layer)
                 is_input_layer = self._is_input_layer(mode, layer_inputs)
                 for inp in layer_inputs:
@@ -300,6 +298,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             # Weights can be retrieved in both
             weights = layer.weights
+
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
@@ -369,22 +368,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
 
-        if version.parse(tf.__version__) >= version.parse("2.0.0"):
+        if is_tf_version_2x():
             model = self.model
-
-            # tf.keras lumps weights and biases together under `layer.weights`.
-            weights_coll = self.collection_manager.get(CollectionKeys.WEIGHTS)
-            bias_coll = self.collection_manager.get(CollectionKeys.BIASES)
-            for layer in model.layers:
-                for vars in layer.variables:
-                    # Contains weights and biases!
-                    if match_inc(
-                        vars.name, self.collection_manager.get(CollectionKeys.BIASES).include_regex
-                    ):
-                        bias_coll.add_tensor(vars)
-                    else:
-                        weights_coll.add_tensor(vars)
-
             for layer in model.layers:
                 for var in layer.trainable_variables:
                     self._save_for_tensor(
@@ -518,15 +503,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._prepare_collections()
 
         if self._prepared_tensors[mode] is False:
-            if version.parse(tf.__version__) >= version.parse(
-                "2.0.0"
-            ) or self._validate_exec_function(self._get_exec_function(mode)):
+            if is_tf_version_2x() or self._validate_exec_function(self._get_exec_function(mode)):
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
                 # so we know that device map is populated
                 self._set_chief_worker()
+            # else:
             # this will delay the preparation of tensors as the
             # full graph is not built. Gradients are not available
             # at this stage for example
@@ -537,7 +521,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # if saving metric, writer may not be initialized as a result
                 self._initialize_writers()
 
-            if version.parse(tf.__version__) < version.parse("2.0.0"):
+            if not is_tf_version_2x():
                 self._add_callbacks(mode)
 
     def on_train_batch_begin(self, batch, logs=None):
@@ -553,7 +537,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
-        if version.parse(tf.__version__) < version.parse("2.0.0"):
+        if not is_tf_version_2x():
             self._remove_fetches_and_callbacks(mode)
         self._save_tensors_post_step(batch, logs)
 

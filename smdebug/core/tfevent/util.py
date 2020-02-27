@@ -8,12 +8,6 @@ from smdebug.core.logger import get_logger
 from .proto.tensor_pb2 import TensorProto
 from .proto.tensor_shape_pb2 import TensorShapeProto
 
-try:
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    tf = None
-
-
 logger = get_logger()
 
 # hash value of ndarray.dtype is not the same as np.float class
@@ -67,9 +61,6 @@ def make_numpy_array(x):
         return np.array([x])
     elif isinstance(x, tuple):
         return np.asarray(x, dtype=x.dtype)
-    elif tf and (isinstance(x, tf.Variable) or isinstance(x, tf.Tensor)) and hasattr(x, "numpy"):
-        # TF 2.X
-        return x.numpy()
     else:
         raise TypeError(
             "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"

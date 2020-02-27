@@ -449,6 +449,11 @@ class TensorflowBaseHook(BaseHook):
         Convert the tensor value into a numpy array.
         Here it's already numpy array
         """
+        if (
+            isinstance(tensor_value, tf.Variable) or isinstance(tensor_value, tf.Tensor)
+        ) and hasattr(tensor_value, "numpy"):
+            # TF 2.X
+            return tensor_value.numpy()
         return make_numpy_array(tensor_value)
 
     @staticmethod

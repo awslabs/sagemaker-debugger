@@ -3,11 +3,13 @@ from enum import Enum
 
 # Third Party
 import tensorflow.compat.v1 as tf
-from packaging import version
 from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.logger import get_logger
+
+# Local
+from .utils import is_tf_version_2x
 
 logger = get_logger()
 
@@ -97,9 +99,7 @@ class TensorRef:
                 # for mirrored variable value this will be the mirrored variable
                 original_tensor = variable
 
-            if version.parse(tf.__version__) >= version.parse("2.0.0") and isinstance(
-                variable, tf.Variable
-            ):
+            if is_tf_version_2x() and isinstance(variable, tf.Variable):
                 # In TF 2.X eager mode, TF throws an error if you try to access a tensor's name.
                 # We need to pass it in as a variable, not a tensor, to maintain the name.
                 return TensorRef(
