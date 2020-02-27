@@ -13,7 +13,6 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 
 # First Party
-import smdebug.pytorch as smd
 from smdebug.trials import create_trial
 
 data_dir = "/tmp/pytorch-mnist-data"
@@ -90,15 +89,6 @@ def test_no_failure_with_torch_mp():
 
     out_dir = "/tmp/run"
     shutil.rmtree(out_dir, ignore_errors=True)
-
-    hook = smd.Hook(
-        out_dir=out_dir,
-        save_config=smd.SaveConfig(save_steps=[0, 1, 5]),
-        save_all=True,
-        include_workers="all",
-    )
-
-    hook.register_module(model)
 
     processes = []
     for rank in range(cpu_count):
