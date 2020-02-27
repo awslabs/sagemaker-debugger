@@ -392,6 +392,9 @@ class BaseHook:
                     self.first_process = True
                 else:
                     self.first_process = False
+                    self.logger.warn(
+                        "Unsupported Distribution Strategy Detected. Hook will only write from one process."
+                    )
                     return
 
         if self.save_all_workers is False:

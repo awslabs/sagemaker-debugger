@@ -82,6 +82,17 @@ def is_s3(path):
 
 
 def is_first_process(path):
+    """
+    This function is used to determine the caller of the process
+    is the first process to do so.
+
+    It uses the os.O_EXCL flag (https://linux.die.net/man/3/open)
+    to fail if the the file already exists, i.e another process has
+    written first.
+    :param path: path to the trial
+    :return: boolean that indicates if the caller was the
+    first process to execute the fn.
+    """
     ensure_dir(path, is_file=False)
     filename = os.path.join(path, "claim.smd")
     s3, _, _ = is_s3(path)
