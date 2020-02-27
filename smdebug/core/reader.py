@@ -18,7 +18,10 @@
 """APIs for logging data in the event file."""
 
 # First Party
-from smdebug.core.tfevent.event_file_reader import EventFileReader
+from smdebug.core.tfevent.event_file_reader import EventFileReader, get_tensor_data
+
+# Local
+from .utils import match_inc
 
 
 class FileReader:
@@ -54,3 +57,23 @@ class FileReader:
         if check is True:
             check = "minimal"
         return self._reader.read_tensors(check=check)
+
+    # Read the events that match the given regex list. If Regex list is not specified all events are read.
+    def read_events(self, check="minimal", regex_list=None):
+        if check is True:
+            check = "minimal"
+        tf_events = self._reader.read_events(check=check)
+        scalar_events = list()
+        for tf_event in tf_events:
+            for v in tf_event.summary.value:
+                event_name = v.tag
+                if regex_list is None or match_inc(event_name, regex_list):
+                    scalar_events.append(
+                        {
+                            "timestamp": tf_event.wall_time,
+                            "step": tf_event.step,
+                            "name": event_name,
+                            "value": get_tensor_data(v.tensor),
+                        }
+                    )
+        return scalar_events

@@ -119,7 +119,9 @@ class FileWriter:
         smd = SummaryMetadata(plugin_data=plugin_data)
         return smd
 
-    def write_tensor(self, tdata, tname, write_index=True, mode=ModeKeys.GLOBAL, mode_step=None):
+    def write_tensor(
+        self, tdata, tname, write_index=True, mode=ModeKeys.GLOBAL, mode_step=None, timestamp=None
+    ):
         mode, mode_step = self._check_mode_step(mode, mode_step, self.step)
         smd = self._get_metadata(mode, mode_step)
         value = make_numpy_array(tdata)
@@ -127,9 +129,11 @@ class FileWriter:
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
         s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
         if write_index:
-            self._writer.write_summary_with_index(s, self.step, tname, mode, mode_step)
+            self._writer.write_summary_with_index(
+                s, self.step, tname, mode, mode_step, timestamp=timestamp
+            )
         else:
-            self._writer.write_summary(s, self.step)
+            self._writer.write_summary(s, self.step, timestamp)
 
     def write_graph(self, graph):
         self._writer.write_graph(graph)

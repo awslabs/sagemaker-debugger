@@ -1,6 +1,7 @@
 # Standard Library
 import atexit
 import re as _re
+import time
 from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Optional, Set, Union
 
@@ -48,13 +49,16 @@ logger = get_logger()
 
 
 class ScalarCache(object):
-    def __init__(self, scalar_name, scalar_val, mode, sm_metric, write_tb, write_event):
+    def __init__(
+        self, scalar_name, scalar_val, mode, sm_metric, write_tb, write_event, timestamp=None
+    ):
         self.name = scalar_name
         self.value = scalar_val
         self.mode = mode
         self.sm_metric = sm_metric
         self.write_tb = write_tb
         self.write_event = write_event
+        self.timestamp = timestamp if timestamp else time.time()
 
 
 class BaseHook:
@@ -580,10 +584,12 @@ class BaseHook:
             sm_metric = scalar_obj.sm_metric
             write_tb = scalar_obj.write_tb
             write_event = scalar_obj.write_event
+            timestamp = scalar_obj.timestamp
             if self.metrics_writer and sm_metric:
                 self.metrics_writer.log_metric(
                     scalar_name + "_" + scalar_mode.name,
                     scalar_val,
+                    timestamp=timestamp,
                     iteration_number=self.mode_steps[scalar_mode],
                 )
             if write_tb:
@@ -593,12 +599,12 @@ class BaseHook:
             if write_event:
                 if self.writer is None:
                     self._initialize_writers()
-                self._write_raw_tensor_simple(scalar_name, scalar_val)
+                self._write_raw_tensor_simple(scalar_name, scalar_val, timestamp=timestamp)
 
         self.scalar_cache = []
 
     # Fix step number for saving scalar and tensor
-    def save_scalar(self, name, value, sm_metric=False):
+    def save_scalar(self, name, value, sm_metric=False, timestamp=None):
         """
         Call save_scalar at any point in the training script to log a scalar value,
         such as a metric or any other value.
@@ -611,7 +617,9 @@ class BaseHook:
         val = self._make_numpy_array(value)
         if val.size != 1:
             raise TypeError(f"{name} has non scalar value of type: {type(value)}")
-        scalar_obj = ScalarCache(name, val, self.mode, sm_metric, write_tb=True, write_event=True)
+        scalar_obj = ScalarCache(
+            name, val, self.mode, sm_metric, write_tb=True, write_event=True, timestamp=timestamp
+        )
         self.scalar_cache.append(scalar_obj)
 
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
@@ -621,7 +629,7 @@ class BaseHook:
                 self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
                 break
 
-    def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None):
+    def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):
         # tensor_ref is used by TF
         # todo: if fp16, check perf of saving as fp16 in proto vs as fp32
         numpy_tensor_value = self._make_numpy_array(tensor_value)
@@ -634,6 +642,7 @@ class BaseHook:
                     tname=tensor_name,
                     mode=self.mode,
                     mode_step=self.mode_steps[self.mode],
+                    timestamp=timestamp,
                 )
 
     def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
