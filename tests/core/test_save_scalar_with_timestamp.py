@@ -18,10 +18,7 @@ from smdebug.core.reader import FileReader
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.mxnet import Hook as MX_Hook
 
-SMDEBUG_PT_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_pt/tests/"
 SMDEBUG_MX_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_mx/tests/"
-SMDEBUG_TF_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_tf/tests/"
-SMDEBUG_XG_HOOK_TESTS_DIR = "/tmp/test_output/smdebug_xg/tests/"
 
 
 def simple_mx_model(hook, steps=10, register_loss=False):
