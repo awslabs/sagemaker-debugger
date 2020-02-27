@@ -35,6 +35,10 @@ def test_data_parallel():
     train(model, hook, torch.device(device), optimizer, num_steps=10)
 
     trial = create_trial(out_dir)
-    assert len(trial.tensor_names()) > 30
+    assert trial.steps() == [0, 1, 5]
+    if device == "cpu":
+        assert len(trial.tensor_names()) == 37
+    else:
+        assert len(trial.tensor_names()) > 37
 
     shutil.rmtree(out_dir, ignore_errors=True)
