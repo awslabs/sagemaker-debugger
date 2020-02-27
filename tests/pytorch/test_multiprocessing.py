@@ -44,10 +44,10 @@ def train(rank, model, device, dataloader_kwargs):
     momentum = 0.5
 
     torch.manual_seed(1 + rank)
-
+    data_dir = "/tmp/pytorch-mnist-data"
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST(
-            "../data",
+            data_dir,
             train=True,
             download=True,
             transform=transforms.Compose(
@@ -112,5 +112,5 @@ def test_no_failure_with_torch_mp():
 
     assert trial.num_workers == 1  # Ensure only one worker saved data
     assert len(trial.tensor_names()) > 20  # Ensure that data was saved
-    assert len(trial.steps()) == [0, 1]  # Ensure that steps were saved
+    assert trial.steps() == [0, 1]  # Ensure that steps were saved
     shutil.rmtree(out_dir, ignore_errors=True)
