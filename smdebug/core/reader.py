@@ -60,7 +60,7 @@ class FileReader:
 
     # Read the events that match the given regex list. If Regex list is not specified all events are read.
     def read_events(self, check="minimal", regex_list=None):
-        if check is True:
+        if check.lower() == "minimal":
             check = "minimal"
         tf_events = self._reader.read_events(check=check)
         scalar_events = list()
