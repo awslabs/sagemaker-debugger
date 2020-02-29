@@ -27,12 +27,11 @@ def write_dummy_collection_file(trial):
 
 
 def delete_local_trials(local_trials):
+    """
+    Delete the local trial directories.
+    """
     for trial in local_trials:
         shutil.rmtree(trial)
-
-
-# need this to seek to the right file offset for test output verification
-metrics_file_position = 0
 
 
 def check_metrics_file(save_steps, saved_scalars=None):
@@ -40,7 +39,8 @@ def check_metrics_file(save_steps, saved_scalars=None):
     Check the SageMaker metrics file to ensure that all the scalars saved using
     save_scalar(sm_metrics=True) or mentioned through SM_METRICS collections, have been saved.
     """
-    global metrics_file_position
+    # need this to seek to the right file offset for test output verification
+    metrics_file_position = 0
     if is_sagemaker_job():
         METRICS_DIR = os.environ.get(DEFAULT_SAGEMAKER_METRICS_PATH)
         if not METRICS_DIR:
@@ -134,16 +134,14 @@ def verify_files(out_dir, save_config, saved_scalars=None):
     check_metrics_file(save_steps, saved_scalars)
 
 
-"""
-    Read the scalar events from tfevents files.
-    Test and assert on following:
-    1. The names of scalars in 'saved_scalars' match with the names in tfevents.
-    2. The timestamps along with the 'saved_scalars' match with timestamps saved in tfevents
-    3. The values of 'saved_scalars' match with the values saved in tfevents.
-"""
-
-
 def check_tf_events(out_dir, saved_scalars=None):
+    """
+        Read the scalar events from tfevents files.
+        Test and assert on following:
+        1. The names of scalars in 'saved_scalars' match with the names in tfevents.
+        2. The timestamps along with the 'saved_scalars' match with timestamps saved in tfevents
+        3. The values of 'saved_scalars' match with the values saved in tfevents.
+    """
     # Read the events from all the saved steps
     fs = glob.glob(join(out_dir, "events", "*", "*.tfevents"), recursive=True)
     events = list()

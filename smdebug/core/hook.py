@@ -52,6 +52,19 @@ class ScalarCache(object):
     def __init__(
         self, scalar_name, scalar_val, mode, sm_metric, write_tb, write_event, timestamp=None
     ):
+        """
+
+        Args:
+            scalar_name: Name of the scalar to be stored
+            scalar_val: Value of scalar
+            mode: Modekey
+            sm_metric: True or False indicates whether the scalar will be written to SageMaker
+            write_tb: True or False indicates whether scalar will be written to Tensorboard
+            write_event: True or False indicates whether scalar will be writen to event file.
+            timestamp: Timestamp at which this object is created.
+        The 'save_scalar()' method creates objects of this class and caches the scalars that users intends to store.
+        These objects will be written to disk in the next available step.
+        """
         self.name = scalar_name
         self.value = scalar_val
         self.mode = mode

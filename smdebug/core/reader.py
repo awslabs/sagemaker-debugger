@@ -58,8 +58,22 @@ class FileReader:
             check = "minimal"
         return self._reader.read_tensors(check=check)
 
-    # Read the events that match the given regex list. If Regex list is not specified all events are read.
     def read_events(self, check="minimal", regex_list=None):
+        """
+
+        Args:
+            check: default value = 'minimal'
+            regex_list: default value = None
+            When check is 'minimal' the crc checksum of the read payload is compared with CHECKSUM_MAGIC_BYTES.
+        Returns: List of scalar events. Each scalar event is a dictionary containing following keys:
+        scalar_event{
+        "timestamp"
+        "step"
+        "name"
+        "value"
+        }
+
+        """
         if check.lower() == "minimal":
             check = "minimal"
         tf_events = self._reader.read_events(check=check)
