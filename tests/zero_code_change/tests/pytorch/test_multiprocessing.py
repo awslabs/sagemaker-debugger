@@ -81,7 +81,7 @@ def train_epoch(epoch, model, device, data_loader, optimizer):
 
 def test_no_failure_with_torch_mp(out_dir):
     shutil.rmtree(out_dir, ignore_errors=True)
-    path = build_json(out_dir, save_all=True)
+    path = build_json(out_dir, save_all=True, save_interval="500")
     path = str(path)
     os.environ["SMDEBUG_CONFIG_FILE_PATH"] = path
     device = "cpu"
