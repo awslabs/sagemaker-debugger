@@ -149,8 +149,8 @@ class FileWriter:
         event = Event(tagged_run_metadata=trm)
         self._writer.write_event(event)
 
-    def write_summary(self, summ, global_step):
-        self._writer.write_summary(summ, global_step)
+    def write_summary(self, summ, global_step, timestamp: float = None):
+        self._writer.write_summary(summ, global_step, timestamp=timestamp)
 
     def write_histogram_summary(self, tdata, tname, global_step, bins="default"):
         """Add histogram data to the event file.
@@ -183,9 +183,9 @@ class FileWriter:
         except ValueError as e:
             logger.warning(f"Unable to write histogram {tname} at {global_step}: {e}")
 
-    def write_scalar_summary(self, name, value, global_step):
+    def write_scalar_summary(self, name, value, global_step, timestamp: float = None):
         s = scalar_summary(name, value)
-        self._writer.write_summary(s, global_step)
+        self._writer.write_summary(s, global_step, timestamp=timestamp)
 
     def flush(self):
         """Flushes the event file to disk.

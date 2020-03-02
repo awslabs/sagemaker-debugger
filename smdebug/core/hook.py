@@ -608,7 +608,9 @@ class BaseHook:
             if write_tb:
                 tb_writer = self._maybe_get_tb_writer()
                 if tb_writer:
-                    tb_writer.write_scalar_summary(scalar_name, scalar_val, self.step)
+                    tb_writer.write_scalar_summary(
+                        scalar_name, scalar_val, self.step, timestamp=timestamp
+                    )
             if write_event:
                 if self.writer is None:
                     self._initialize_writers()
@@ -617,7 +619,7 @@ class BaseHook:
         self.scalar_cache = []
 
     # Fix step number for saving scalar and tensor
-    def save_scalar(self, name, value, sm_metric=False, timestamp=None):
+    def save_scalar(self, name, value, sm_metric=False, timestamp: float = None):
         """
         Call save_scalar at any point in the training script to log a scalar value,
         such as a metric or any other value.
