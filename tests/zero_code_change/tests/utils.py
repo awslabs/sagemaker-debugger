@@ -1,0 +1,38 @@
+# Future
+from __future__ import print_function
+
+# Standard Library
+import json
+import os
+from pathlib import Path
+
+
+def build_json(
+    out_dir,
+    include_workers="all",
+    include_collections=None,
+    path=None,
+    save_all=False,
+    save_interval=None,
+):
+    if include_collections is None:
+        include_collections = ["weights", "gradients"]
+    if path is None:
+        path = Path(out_dir).joinpath("config.json")
+    if save_interval is None:
+        save_interval = "500"
+
+    config_dict = {}
+    config_dict["LocalPath"] = out_dir
+    config_dict["HookParameters"] = {
+        "include_workers": include_workers,
+        "save_all": save_all,
+        "save_interval": save_interval,
+    }
+    config_dict["CollectionConfigurations"] = []
+    for ic in include_collections:
+        config_dict["CollectionConfigurations"].append({"CollectionName": ic})
+    os.makedirs(out_dir, exist_ok=True)
+    with open(path.absolute(), "w") as outfile:
+        json.dump(config_dict, outfile)
+    return path.absolute()

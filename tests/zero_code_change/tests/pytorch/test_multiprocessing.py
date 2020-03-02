@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 # Standard Library
+import os
 import shutil
 
 # Third Party
@@ -10,6 +11,7 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from tests.zero_code_change.tests.utils import build_json
 from torchvision import datasets, transforms
 
 # First Party
@@ -77,7 +79,11 @@ def train_epoch(epoch, model, device, data_loader, optimizer):
         optimizer.step()
 
 
-def test_no_failure_with_torch_mp():
+def test_no_failure_with_torch_mp(out_dir):
+    shutil.rmtree(out_dir, ignore_errors=True)
+    path = build_json(out_dir, save_all=True)
+    path = str(path)
+    os.environ["SMDEBUG_CONFIG_FILE_PATH"] = path
     device = "cpu"
     dataloader_kwargs = {}
     cpu_count = 2 if mp.cpu_count() > 2 else mp.cpu_count()
@@ -86,9 +92,6 @@ def test_no_failure_with_torch_mp():
 
     model = Net().to(device)
     model.share_memory()  # gradients are allocated lazily, so they are not shared here
-
-    out_dir = "/tmp/run"
-    shutil.rmtree(out_dir, ignore_errors=True)
 
     processes = []
     for rank in range(cpu_count):
@@ -103,6 +106,6 @@ def test_no_failure_with_torch_mp():
 
     assert trial.num_workers == 1  # Ensure only one worker saved data
     assert len(trial.tensor_names()) > 20  # Ensure that data was saved
-    assert trial.steps() == [0, 1]  # Ensure that steps were saved
+    assert trial.steps() == [0, 1, 2, 3]  # Ensure that steps were saved
     shutil.rmtree(out_dir, ignore_errors=True)
     shutil.rmtree(data_dir, ignore_errors=True)
