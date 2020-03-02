@@ -107,6 +107,18 @@ def is_first_process(path):
             return False
 
 
+def remove_claim_file(path):
+    """
+    This function deletes the claim.smd file created by the is_first_process fn
+    when the hook is closed.
+
+    :param path: path to the trial
+    :return: boolean that indicates if the caller was the
+    first process to execute the fn.
+    """
+    shutil.rmtree(os.path.join(path, "claim.smd"), ignore_errors=True)
+
+
 def list_files_in_directory(directory, file_regex=None):
     files = []
     for root, dir_name, filename in os.walk(directory):
