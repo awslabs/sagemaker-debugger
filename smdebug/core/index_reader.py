@@ -54,7 +54,8 @@ class ReadIndexFilesCache:
 
     Note: cache_limit is a soft limit.
 
-    In certain cases, the size of the cache can exceed this limit.
+    The size of the cache can exceed this limit if eviction_point is 0.
+    This can happen if start_after_key is None (unset) or is equal to the first element in the cache.
 
     If start_after_key happens to the be first element in sorted(self.lookup_set), then we do not
     evict any element from the cache, but add more elements to cache.
@@ -76,6 +77,9 @@ class ReadIndexFilesCache:
 
     def _evict_cache(self, start_after_key: str) -> None:
         read_files = sorted(self.lookup_set)
+        start_after_key = "" if start_after_key is None else start_after_key
+        # eviction_point = 0 if start_after_key is None (unset).
+        # This happens if more than self.cache_limit number of files are read on the first read attempt.
         eviction_point = bisect_left(read_files, start_after_key)
         for i in range(eviction_point):
             self.lookup_set.remove(read_files[i])
