@@ -6,12 +6,10 @@ env:
     run_pytest_pytorch: "enable"
     run_pytest_mxnet: "enable"
     run_pytest_tensorflow: "enable"
-    run_pytest_tensorflow2: "enable"
     run_pytest_xgboost: "enable"
     run_integration_pytest_pytorch: "enable"
     run_integration_pytest_mxnet: "enable"
     run_integration_pytest_tensorflow: "enable"
-    run_integration_pytest_tensorflow2: "enable"
     run_integration_pytest_xgboost: "disable"
 phases:
   install:
