@@ -365,13 +365,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x():
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
-                for var in self.model.trainable_variables:
-                    if tensor.name == var.name:
-                        self._save_for_tensor(
-                            tensor_name=tensor.name,
-                            tensor_value=tensor.value(),
-                            check_before_write=False,
-                        )
+                self._save_for_tensor(
+                    tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
+                )
 
         if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS):
             self._save_inputs(check_before_write=False)
