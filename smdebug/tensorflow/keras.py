@@ -23,12 +23,7 @@ from .utils import (
     is_tf_version_2x,
 )
 
-try:
-    # as most of the v1 API is deprecated from the main tf namespace from 1.14
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -369,14 +364,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_metrics(batch, logs)
 
         if is_tf_version_2x():
-            if self._is_collection_being_saved_for_step(
-                CollectionKeys.WEIGHTS
-            ) or self._is_collection_being_saved_for_step(CollectionKeys.BIASES):
-                model = self.model
-                for layer in model.layers:
-                    for var in layer.trainable_variables:
+            for tensor_ref in self.tensor_refs_to_save_this_step:
+                tensor = tensor_ref.tf_obj
+                for var in self.model.trainable_variables:
+                    if tensor.name == var.name:
                         self._save_for_tensor(
-                            tensor_name=var.name, tensor_value=var.value(), check_before_write=False
+                            tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
                         )
 
         if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS):

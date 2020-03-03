@@ -101,10 +101,13 @@ def test_keras_fit(out_dir, eager, saveall):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 8
+    if saveall:  # save losses, metrics, weights, biases
+        assert len(trial.tensor_names()) == 8
+        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    else:  # save the default losses and metrics
+        assert len(trial.tensor_names()) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
 
 
@@ -199,3 +202,22 @@ def test_training_end(out_dir, eager):
         out_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"], eager=eager
     )
     assert has_training_ended(out_dir) is True
+
+
+@pytest.mark.parametrize("eager", [True, False])
+def test_weights_collections(out_dir, eager):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=3),
+        include_collections=[CollectionKeys.WEIGHTS],
+    )
+
+    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=eager)
+
+    trial = smd.create_trial(path=out_dir)
+    # can't save gradients in TF 2.x
+    assert len(trial.tensor_names()) == 6
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
