@@ -116,7 +116,7 @@ def remove_claim_file(path):
     :return: boolean that indicates if the caller was the
     first process to execute the fn.
     """
-    shutil.rmtree(os.path.join(path, "claim.smd"), ignore_errors=True)
+    os.remove(os.path.join(path, "claim.smd"))
 
 
 def list_files_in_directory(directory, file_regex=None):
