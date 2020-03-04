@@ -4,6 +4,7 @@ from abc import ABCMeta
 from typing import List, Set
 
 # Third Party
+import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStrategy
 
 # First Party
@@ -26,15 +27,9 @@ from .utils import (
     get_worker_id_from_tf_config,
     is_mirrored_strategy,
     is_parameter_server_strategy,
+    is_tf_version_2x,
     load_tf_config_json,
 )
-
-try:
-    # as most of the v1 API is deprecated from the main tf namespace from 1.14
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow as tf
 
 try:
     pass
@@ -422,6 +417,11 @@ class TensorflowBaseHook(BaseHook):
         :param gradients_and_variables: list of tuples [(tf.Tensor/tf.Variable, tf.Tensor/tf.Variable)...]
             list of tuples representing gradients and weights
         """
+        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
+        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
+        # support to pass names and values from TF side.
+        if is_tf_version_2x():
+            return
         if self._gradients_set is False:
             if gradients is not None:
                 self.collection_manager.get(CollectionKeys.GRADIENTS).add_for_mode(
@@ -438,6 +438,11 @@ class TensorflowBaseHook(BaseHook):
         This method helps find the optimizer variables (such as momentum)
         :param optimizer_variables: list of tf.Variables/tf.Tensors/tf.MirroredVariables
         """
+        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
+        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
+        # support to pass names and values from TF side.
+        if is_tf_version_2x():
+            return
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
             optimizer_variables, ModeKeys.TRAIN
