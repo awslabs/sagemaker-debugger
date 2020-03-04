@@ -98,6 +98,17 @@ def test_index_files_cache():
     )  # Elements in the cache will be file_4, file_5, file_6
 
 
+def test_index_files_cache_insert_many_elements_in_the_first_read():
+    cache = ReadIndexFilesCache()
+    cache.cache_limit = 5
+    elements = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    for e in elements:
+        cache.add(e, None)
+
+    # No files should be evicted because start_after_key has not been set
+    assert len(cache.lookup_set) == len(elements)
+
+
 def test_get_prefix_from_index_file():
     local_index_filepath = "/opt/ml/testing/run_1/index/000000000/000000000000_worker_0.json"
     prefix = IndexFileLocationUtils.get_prefix_from_index_file(local_index_filepath)

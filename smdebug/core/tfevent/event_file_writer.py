@@ -92,15 +92,15 @@ class EventFileWriter:
         event = Event(graph_def=graph.SerializeToString())
         self.write_event(event)
 
-    def write_summary(self, summary, step):
+    def write_summary(self, summary, step, timestamp=None):
         event = Event(summary=summary)
-        event.wall_time = time.time()
+        event.wall_time = timestamp if timestamp else time.time()
         event.step = step
         self.write_event(event)
 
-    def write_summary_with_index(self, summary, step, tname, mode, mode_step):
+    def write_summary_with_index(self, summary, step, tname, mode, mode_step, timestamp=None):
         event = Event(summary=summary)
-        event.wall_time = time.time()
+        event.wall_time = timestamp if timestamp else time.time()
         event.step = step
         return self.write_event(EventWithIndex(event, tname, mode, mode_step))
 
