@@ -102,21 +102,16 @@ class TensorRef:
             if is_tf_version_2x() and isinstance(variable, tf.Variable):
                 # In TF 2.X eager mode, TF throws an error if you try to access a tensor's name.
                 # We need to pass it in as a variable, not a tensor, to maintain the name.
-                return TensorRef(
-                    variable,
-                    export_name=export_name,
-                    type=TensorType.VARIABLE,
-                    original_tensor=original_tensor,
-                    mode=mode,
-                )
+                tf_obj = variable
             else:
-                return TensorRef(
-                    variable.value(),
-                    export_name=export_name,
-                    type=TensorType.VARIABLE,
-                    original_tensor=original_tensor,
-                    mode=mode,
-                )
+                tf_obj = variable.value()
+            return TensorRef(
+                tf_obj,
+                export_name=export_name,
+                type=TensorType.VARIABLE,
+                original_tensor=original_tensor,
+                mode=mode,
+            )
         except AttributeError:
             logger.debug(
                 f"Could not create TensorRef from {variable}. " "Perhaps eager mode is turned on"
