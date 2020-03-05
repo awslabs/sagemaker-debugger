@@ -48,6 +48,9 @@ def get_keras_data():
 def test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     """ Works as intended. """
     smd.del_hook()
+
+    if not eager_mode:
+        tf.compat.v1.disable_eager_execution()
     with SagemakerSimulator() as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
@@ -56,7 +59,6 @@ def test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
             loss="sparse_categorical_crossentropy",
             optimizer=tf.keras.optimizers.RMSprop(),
             metrics=["accuracy"],
-            experimental_run_tf_function=eager_mode,
         )
         if script_mode:
             hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)

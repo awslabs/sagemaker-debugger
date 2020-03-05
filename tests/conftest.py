@@ -43,3 +43,8 @@ def out_dir():
     out_dir = "/tmp/test"
     shutil.rmtree(out_dir, ignore_errors=True)
     return out_dir
+
+
+@pytest.fixture(scope="module", params=[False])
+def tf_eager_mode(request):
+    return request.param

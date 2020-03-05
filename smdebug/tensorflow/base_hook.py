@@ -454,15 +454,26 @@ class TensorflowBaseHook(BaseHook):
         Convert the tensor value into a numpy array.
         Here it's already numpy array
         """
-        if (
-            isinstance(tensor_value, tf.Variable) or isinstance(tensor_value, tf.Tensor)
-        ) and hasattr(tensor_value, "numpy"):
-            # TF 2.X
-            return tensor_value.numpy()
+        if is_tf_version_2x():
+            if (
+                isinstance(tensor_value, tf.Variable) or isinstance(tensor_value, tf.Tensor)
+            ) and hasattr(tensor_value, "numpy"):
+                # TF 2.X
+                return tensor_value.numpy()
+            elif isinstance(tensor_value, tf.Tensor) and not tf.executing_eagerly():
+                # TF 2.x non-eager mode
+                return tf.keras.backend.eval(tensor_value)
         return make_numpy_array(tensor_value)
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        if (
+            is_tf_version_2x()
+            and isinstance(tensor_value, tf.Tensor)
+            and not tf.executing_eagerly()
+        ):
+            # TF 2.x non-eager mode
+            return tf.keras.backend.eval(tensor_value)
         return get_numpy_reduction(reduction_name, tensor_value, abs)
 
     def add_to_collection(self, collection_name, variable):

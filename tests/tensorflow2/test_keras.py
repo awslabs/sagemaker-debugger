@@ -28,10 +28,13 @@ def helper_keras_fit(
     reduction_config=None,
     save_config=None,
     hook=None,
-    eager=False,
+    eager=True,
     steps=None,
     add_callbacks=None,
 ):
+    if not eager:
+        tf.compat.v1.disable_eager_execution()
+
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train, x_test = x_train / 255, x_test / 255
@@ -62,12 +65,7 @@ def helper_keras_fit(
                 if cname not in include_collections:
                     hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
-    model.compile(
-        optimizer="adam",
-        loss="sparse_categorical_crossentropy",
-        metrics=["accuracy"],
-        experimental_run_tf_function=eager,
-    )
+    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
     hooks = []
     if add_callbacks:
         if "tensorboard" in add_callbacks:
@@ -91,12 +89,15 @@ def helper_keras_fit(
     hook.close()
 
 
-@pytest.mark.parametrize("eager", [True, False])
+@pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True, False])
-def test_keras_fit(out_dir, eager, saveall):
+def test_keras_fit(out_dir, tf_eager_mode, saveall):
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
     helper_keras_fit(
-        trial_dir=out_dir, hook=hook, eager=eager, steps=["train", "eval", "predict", "train"]
+        trial_dir=out_dir,
+        hook=hook,
+        eager=tf_eager_mode,
+        steps=["train", "eval", "predict", "train"],
     )
 
     trial = smd.create_trial(path=out_dir)
@@ -111,13 +112,13 @@ def test_keras_fit(out_dir, eager, saveall):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
 
 
-@pytest.mark.parametrize("eager", [True, False])
-def test_base_reductions(out_dir, eager):
+@pytest.mark.slow
+def test_base_reductions(out_dir, tf_eager_mode):
     helper_keras_fit(
         trial_dir=out_dir,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
-        eager=eager,
+        eager=tf_eager_mode,
     )
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
@@ -137,15 +138,15 @@ def test_base_reductions(out_dir, eager):
     assert tr.tensor(metric_name).value(0) is not None
 
 
-@pytest.mark.parametrize("eager", [True, False])
-def test_collection_reductions(out_dir, eager):
+@pytest.mark.slow
+def test_collection_reductions(out_dir, tf_eager_mode):
     hook = smd.KerasHook(
         out_dir,
         save_config=SaveConfig(save_interval=3),
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES],
     )
     hook.get_collection(CollectionKeys.WEIGHTS).reduction_config = ReductionConfig(norms=["l1"])
-    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=eager)
+    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
@@ -159,14 +160,18 @@ def test_collection_reductions(out_dir, eager):
         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
 
 
-@pytest.mark.parametrize("eager", [True, False])
-def test_include_regex(out_dir, eager):
+@pytest.mark.slow
+def test_include_regex(out_dir, tf_eager_mode):
     hook = smd.KerasHook(
         out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
     )
     hook.get_collection("custom_coll").include("dense")
     helper_keras_fit(
-        out_dir, hook=hook, save_config=SaveConfig(save_interval=9), steps=["train"], eager=eager
+        out_dir,
+        hook=hook,
+        save_config=SaveConfig(save_interval=9),
+        steps=["train"],
+        eager=tf_eager_mode,
     )
 
     tr = create_trial_fast_refresh(out_dir)
@@ -177,8 +182,11 @@ def test_include_regex(out_dir, eager):
         assert tr.tensor(tname).value(0) is not None
 
 
-@pytest.mark.parametrize("eager", [True, False])
-def test_clash_with_tb_callback(out_dir, eager):
+@pytest.mark.slow
+def test_clash_with_tb_callback(out_dir, tf_eager_mode):
+    # this test cannot be run in non-eager mode
+    if not tf_eager_mode:
+        return
     helper_keras_fit(
         out_dir,
         save_config=SaveConfig(save_interval=9),
@@ -190,29 +198,29 @@ def test_clash_with_tb_callback(out_dir, eager):
             CollectionKeys.METRICS,
         ],
         add_callbacks=["tensorboard"],
-        eager=eager,
+        eager=tf_eager_mode,
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensor_names()) == 8
 
 
-@pytest.mark.parametrize("eager", [True, False])
-def test_training_end(out_dir, eager):
+@pytest.mark.slow
+def test_training_end(out_dir, tf_eager_mode):
     helper_keras_fit(
-        out_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"], eager=eager
+        out_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"], eager=tf_eager_mode
     )
     assert has_training_ended(out_dir) is True
 
 
-@pytest.mark.parametrize("eager", [True, False])
-def test_weights_collections(out_dir, eager):
+@pytest.mark.slow
+def test_weights_collections(out_dir, tf_eager_mode):
     hook = smd.KerasHook(
         out_dir,
         save_config=SaveConfig(save_interval=3),
         include_collections=[CollectionKeys.WEIGHTS],
     )
 
-    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=eager)
+    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
