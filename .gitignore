@@ -104,7 +104,6 @@ venv.bak/
 .mypy_cache/
 
 .vscode/
-*_pb2.py
 *~
 ts_output*/
 log
