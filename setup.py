@@ -17,6 +17,13 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 import os
 import sys
 from datetime import date
+import shutil
+import logging
+import urllib
+import urllib.request
+import tempfile
+from zipfile import ZipFile
+from subprocess import check_call
 
 # Third Party
 import setuptools
@@ -24,24 +31,55 @@ import setuptools
 # First Party
 import smdebug
 
+
 DOCLINES = (__doc__ or "").split("\n")
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging", "boto3>=1.10.32"]
 
 
-def compile_summary_protobuf():
+def _protoc_bundle():
+    import platform
+    system = platform.system()
+    machine = platform.machine()
+    if system == 'Darwin':
+        archive_url = 'https://github.com/protocolbuffers/protobuf/releases/download/v3.11.4/protoc-3.11.4-osx-x86_64.zip'
+    elif system == 'Linux':
+        archive_url = f'https://github.com/protocolbuffers/protobuf/releases/download/v3.11.4/protoc-3.11.4-linux-{machine}.zip'
+    else:
+        archive_url = None
+    return archive_url
+
+
+def get_protoc():
+    """make sure protoc is available, otherwise download it and return the path to protoc"""
+    if not shutil.which('protoc'):
+        archive_url = _protoc_bundle()
+        if not archive_url:
+            raise RuntimeError("protoc not installed and I don't know how to download it, please install manually.")
+        logging.info("Downloading protoc")
+        (fname, headers) = urllib.request.urlretrieve(archive_url)
+        tmpdir = tempfile.mkdtemp(prefix='protoc_smdebug')
+        with ZipFile(fname, 'r') as zipf:
+            zipf.extractall(tmpdir)
+        protoc_bin = os.path.join(tmpdir, 'bin', 'protoc')
+        os.chmod(protoc_bin, 0o755)
+        return protoc_bin
+    return shutil.which('protoc')
+
+
+
+def compile_protobuf():
     proto_paths = ["smdebug/core/tfevent/proto"]
-    cmd = "set -ex && protoc "
+    protoc_bin = get_protoc()
     for proto_path in proto_paths:
         proto_files = os.path.join(proto_path, "*.proto")
-        cmd += proto_files + " "
         print("compiling protobuf files in {}".format(proto_path))
-    cmd += " --python_out=."
-    return os.system(cmd)
+    check_call([protoc_bin, proto_path, "--python_out=."])
 
 
 def build_package(version):
+    compile_protobuf()
     packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
@@ -69,14 +107,6 @@ def build_package(version):
     )
 
 
-if compile_summary_protobuf() != 0:
-    print(
-        "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
-        "Please make sure that you have installed protobuf3 compiler and runtime correctly."
-    )
-    sys.exit(1)
-
-
 def scan_git_secrets():
     import subprocess
     import os
@@ -98,7 +128,6 @@ def scan_git_secrets():
 
 if scan_git_secrets() != 0:
     import sys
-
     sys.exit(1)
 
 
