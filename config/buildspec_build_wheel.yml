@@ -13,7 +13,7 @@ phases:
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
-        - cd $CODEBUILD_SRC_DIR && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+        - cd $CODEBUILD_SRC_DIR
         - pip install --upgrade pip==19.3.1
         - pip install -q pytest wheel pyYaml pytest-html pre-commit
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore

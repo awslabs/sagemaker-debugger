@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Amazon SageMaker Debugger is an offering from AWS which helps you automate the debugging of machine learning training jobs.
 This library powers Amazon SageMaker Debugger, and helps you develop better, faster and cheaper models by catching common errors quickly.
 It allows you to save tensors from training jobs and makes these tensors available for analysis, all through a flexible and powerful API.
@@ -19,6 +19,7 @@ import sys
 from datetime import date
 
 # Third Party
+import compile_protobuf
 import setuptools
 
 # First Party
@@ -29,16 +30,6 @@ FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging", "boto3>=1.10.32"]
 
-
-def compile_summary_protobuf():
-    proto_paths = ["smdebug/core/tfevent/proto"]
-    cmd = "set -ex && protoc "
-    for proto_path in proto_paths:
-        proto_files = os.path.join(proto_path, "*.proto")
-        cmd += proto_files + " "
-        print("compiling protobuf files in {}".format(proto_path))
-    cmd += " --python_out=."
-    return os.system(cmd)
 
 
 @contextlib.contextmanager
@@ -75,6 +66,7 @@ def scan_git_secrets():
 
 
 def build_package(version):
+    compile_protobuf.compile_protobuf()
     packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
@@ -100,14 +92,6 @@ def build_package(version):
         python_requires=">=3.6",
         license="Apache License Version 2.0",
     )
-
-
-if compile_summary_protobuf() != 0:
-    print(
-        "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
-        "Please make sure that you have installed protobuf3 compiler and runtime correctly."
-    )
-    sys.exit(1)
 
 
 def detect_smdebug_version():
