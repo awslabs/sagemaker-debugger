@@ -496,7 +496,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._prepare_collections()
 
         if self._prepared_tensors[mode] is False:
-            if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(self._get_exec_function(mode)):
+            if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
+                self._get_exec_function(mode)
+            ):
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
