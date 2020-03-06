@@ -33,8 +33,6 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
 def _get_proto_dtype(npdtype):
     if npdtype.kind == "U":
         return (False, "DT_STRING")
-    if npdtype.kind == "V":
-        return (False, "DT_VOID")
     return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
 
 
@@ -50,12 +48,9 @@ def make_tensor_proto(nparray_data, tag):
         )
     else:
         tensor_proto = TensorProto(tensor_shape=tps)
-        if dtype == "DT_STRING":
-            for s in nparray_data:
-                sb = bytes(s, encoding="utf-8")
-                tensor_proto.string_val.append(sb)
-        else:
-            tensor_proto.tensor_content = nparray_data.tostring()
+        for s in nparray_data:
+            sb = bytes(s, encoding="utf-8")
+            tensor_proto.string_val.append(sb)
     return tensor_proto
 
 

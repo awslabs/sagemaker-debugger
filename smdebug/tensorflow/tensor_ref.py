@@ -99,7 +99,7 @@ class TensorRef:
                 # for mirrored variable value this will be the mirrored variable
                 original_tensor = variable
 
-            if is_tf_version_2x() and isinstance(variable, tf.Variable):
+            if is_tf_version_2x() and tf.executing_eagerly() and isinstance(variable, tf.Variable):
                 # In TF 2.X eager mode, TF throws an error if you try to access a tensor's name.
                 # We need to pass it in as a variable, not a tensor, to maintain the name.
                 tf_obj = variable
