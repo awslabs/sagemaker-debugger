@@ -4,7 +4,7 @@ import json
 from enum import Enum
 
 # Third Party
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from packaging import version
 from tensorflow.python.distribute import values
 
@@ -229,10 +229,9 @@ def get_chief_worker_from_tf_config(tf_config_json: dict):
 
 
 def is_mirrored_strategy(strat):
-    if not is_tf_version_2x():
-        return isinstance(strat, tf.distribute.MirroredStrategy)
-    else:
-        return isinstance(strat, tensorflow.distribute.MirroredStrategy)
+    return isinstance(
+        strat, (tf.distribute.MirroredStrategy, tf.compat.v1.distribute.MirroredStrategy)
+    )
 
 
 def is_keras_optimizer(obj):
