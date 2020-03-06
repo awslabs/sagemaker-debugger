@@ -45,6 +45,6 @@ def out_dir():
     return out_dir
 
 
-@pytest.fixture(scope="module", params=[False])
+@pytest.fixture(scope="module", params=[True, False])
 def tf_eager_mode(request):
     return request.param
