@@ -34,6 +34,7 @@ def launch_horovod_job_helper(out_dir, mode):
     # it has been configured so in HOROVOD_MNIST_SCRIPT_NAME
     assert len(tr.tensor_names()) == 13
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
+    assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == 1
 
 
 def test_cpu(out_dir):
