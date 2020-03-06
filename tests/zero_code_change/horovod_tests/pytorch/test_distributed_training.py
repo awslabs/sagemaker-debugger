@@ -15,7 +15,7 @@ Tested on current DLAMI p3.8xlarge when run from the main directory
 HOROVOD_MNIST_SCRIPT_NAME = "horovod_mnist.py"
 
 
-def basic_test(out_dir, mode):
+def launch_horovod_job_helper(out_dir, mode):
     path = build_json(out_dir, include_workers="one", include_collections=["weights", "gradients"])
     num_workers = device_count()
     mode_args = []
@@ -37,11 +37,11 @@ def basic_test(out_dir, mode):
 
 
 def test_cpu(out_dir):
-    basic_test(out_dir, "cpu")
+    launch_horovod_job_helper(out_dir, "cpu")
 
 
 def test_gpu(out_dir):
-    basic_test(out_dir, "gpu")
+    launch_horovod_job_helper(out_dir, "gpu")
 
 
 def mode_allworkers(out_dir, mode):
