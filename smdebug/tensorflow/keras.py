@@ -111,7 +111,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # is no longer available. tensor.experimental_ref() returns a hashable reference
                 # object to this Tensor.
                 check_tensor = tensor
-                if is_tf_version_2x():
+                if is_tf_version_2x() and tf.executing_eagerly():
                     check_tensor = tensor.experimental_ref()
                 if not current_coll.has_tensor(check_tensor):
                     # tensor will be added to this coll below
@@ -274,7 +274,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # adds any layer tensor (input, output and weight) to appropriate collection
         for layer in self.model.layers:
             # Input and output tensors are difficult to get in TF 2.X
-            if not is_tf_version_2x():
+            if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 layer_inputs = get_keras_layer_inputs(layer)
                 is_input_layer = self._is_input_layer(mode, layer_inputs)
                 for inp in layer_inputs:
@@ -362,7 +362,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
 
-        if is_tf_version_2x():
+        if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
                 self._save_for_tensor(
@@ -496,7 +496,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._prepare_collections()
 
         if self._prepared_tensors[mode] is False:
-            if is_tf_version_2x() or self._validate_exec_function(self._get_exec_function(mode)):
+            if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(self._get_exec_function(mode)):
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
@@ -514,7 +514,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # if saving metric, writer may not be initialized as a result
                 self._initialize_writers()
 
-            if not is_tf_version_2x():
+            if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 self._add_callbacks(mode)
 
     def on_train_batch_begin(self, batch, logs=None):
@@ -530,7 +530,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
-        if not is_tf_version_2x():
+        if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
             self._remove_fetches_and_callbacks(mode)
         self._save_tensors_post_step(batch, logs)
 

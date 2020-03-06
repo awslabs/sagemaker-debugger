@@ -65,7 +65,10 @@ def helper_keras_fit(
                 if cname not in include_collections:
                     hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
-    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    opt = tf.keras.optimizers.Adam()
+
+    opt = hook.wrap_optimizer(opt)
+    model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
     hooks = []
     if add_callbacks:
         if "tensorboard" in add_callbacks:
@@ -101,9 +104,12 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     )
 
     trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x
+    # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 8
+        if tf_eager_mode:
+            assert len(trial.tensor_names()) == 8
+        else:
+            assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     else:  # save the default losses and metrics
@@ -177,7 +183,10 @@ def test_include_regex(out_dir, tf_eager_mode):
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
 
-    assert len(tnames) == 4
+    if tf_eager_mode:
+        assert len(tnames) == 4
+    else:
+        assert len(tnames) == 8
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
