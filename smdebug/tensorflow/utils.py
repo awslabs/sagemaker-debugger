@@ -11,6 +11,11 @@ from tensorflow.python.distribute import values
 # First Party
 from smdebug.core.modes import ModeKeys
 
+try:
+    from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStrategy  # TF 1.X
+except ImportError:
+    ContribMirroredStrategy = tf.distribute.MirroredStrategy  # TF 2.X
+
 
 class TFDistributionStrategy(Enum):
     NONE = 0
@@ -229,9 +234,7 @@ def get_chief_worker_from_tf_config(tf_config_json: dict):
 
 
 def is_mirrored_strategy(strat):
-    return isinstance(
-        strat, (tf.distribute.MirroredStrategy, tf.compat.v1.distribute.MirroredStrategy)
-    )
+    return isinstance(strat, (tf.distribute.MirroredStrategy, ContribMirroredStrategy))
 
 
 def is_keras_optimizer(obj):
