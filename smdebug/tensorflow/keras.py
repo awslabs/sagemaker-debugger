@@ -64,7 +64,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if tf.executing_eagerly() or (
                 hasattr(self.model, "run_eagerly") and self.model.run_eagerly
             ):
-                pass
+                if is_tf_version_2x():
+                    self.logger.info(
+                        "Executing in TF2.x eager mode."
+                        "TF 2.x eager doesn't provide gradient and optimizer variable values."
+                        "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
+                    )
+                else:
+                    self.logger.info("Disabling SMDebug as it does not support eager mode")
+                    self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
@@ -110,13 +118,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # In TF 2.x eager mode, we can't put tensors in a set/dictionary as tensor.__hash__()
                 # is no longer available. tensor.experimental_ref() returns a hashable reference
                 # object to this Tensor.
-                check_tensor = tensor
                 if is_tf_version_2x() and tf.executing_eagerly():
                     # tensor.experimental_ref is an experimental API
                     # and can be changed or removed.
                     # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
-                    check_tensor = tensor.experimental_ref()
-                if not current_coll.has_tensor(check_tensor):
+                    tensor = tensor.experimental_ref()
+                if not current_coll.has_tensor(tensor):
                     # tensor will be added to this coll below
                     colls_with_tensor.add(current_coll)
                 # don't recommend adding tensors externally as
