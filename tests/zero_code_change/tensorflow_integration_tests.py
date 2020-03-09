@@ -396,7 +396,7 @@ def test_keras_gradients_mirrored_all_workers():
 
 def test_keras_to_estimator(script_mode: bool = False):
     """ Works as intended. """
-    import tf.keras as keras
+    import tensorflow.compat.v1.keras as keras
 
     tf.reset_default_graph()
     smd.del_hook()
