@@ -103,7 +103,9 @@ class BaseHook:
         Attributes
         ----------
         out_dir : str
-            represents a path into which outputs will be written to
+            represents a path into which outputs will be written to. The hook raises error if the 'out_dir' already
+            exists. The implementation does not support merging the tensors generated in current job with tensors
+            from previous job. Hence, ensure that the 'out_dir' does not exist.
         dry_run : bool
             when dry run is set, behavior is only described in the log file.
             tensors are not actually saved.

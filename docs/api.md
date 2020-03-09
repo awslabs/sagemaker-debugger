@@ -22,7 +22,7 @@ The imports assume `import smdebug.{tensorflow,pytorch,mxnet,xgboost} as smd`.
 
 **Step**: Step means one the work done by the training job for one batch (i.e. forward and backward pass). (An exception is with TensorFlow's Session interface, where a step also includes the initialization session run calls). SageMaker Debugger is designed in terms of steps. When to save data is specified using steps as well as the invocation of Rules is on a step-by-step basis.
 
-**Hook**: The main class to pass as a callback object, or to create callback functions. It keeps track of collections and writes output files at each step.
+**Hook**: The main class to pass as a callback object, or to create callback functions. It keeps track of collections and writes output files at each step. The current hook implementation does not support merging tensors from current job with tensors from previous job(s). Hence ensure that the 'out_dir' does not exist prior to instantiating the 'Hook' object.
 - `hook = smd.Hook(out_dir="/tmp/mnist_job")`
 
 **Mode**: One of "train", "eval", "predict", or "global". Helpful for segmenting data based on the phase
@@ -123,7 +123,7 @@ hook = HookClass(
 )
 ```
 ##### Arguments
-- `out_dir` (str): Path where to save tensors and metadata. This is a required argument.
+- `out_dir` (str): Path where to save tensors and metadata. This is a required argument. Please ensure that the 'out_dir' does not exist.
 - `export_tensorboard` (bool): Whether to export TensorBoard summaries (distributions and histograms for tensors saved, and scalar summaries for scalars saved). Defaults to `False`.  Note that when running on SageMaker this parameter will be ignored. You will need to use the TensorBoardOutputConfig section in API to enable TensorBoard summaries. Refer [SageMaker page](sagemaker.md) for an example.
 - `tensorboard_dir` (str): Path where to save TensorBoard artifacts. If this is not passed and `export_tensorboard` is True, then TensorBoard artifacts are saved in `out_dir/tensorboard` . Note that when running on SageMaker this parameter will be ignored. You will need to use the TensorBoardOutputConfig section in API to enable TensorBoard summaries. Refer [SageMaker page](sagemaker.md) for an example.
 - `dry_run` (bool): If true, don't write any files
