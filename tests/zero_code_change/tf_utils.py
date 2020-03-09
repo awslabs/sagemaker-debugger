@@ -247,7 +247,7 @@ def get_keras_data(n_examples=32) -> Tuple:
 
 
 def get_keras_model_v1():
-    import tf.keras as keras
+    import tensorflow.compat.v1.keras as keras
 
     inputs = keras.Input(shape=(784,), name="img")
     x = keras.layers.Dense(64, activation="relu")(inputs)
