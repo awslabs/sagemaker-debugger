@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Amazon SageMaker Debugger is an offering from AWS which helps you automate the debugging of machine learning training jobs.
 This library powers Amazon SageMaker Debugger, and helps you develop better, faster and cheaper models by catching common errors quickly.
 It allows you to save tensors from training jobs and makes these tensors available for analysis, all through a flexible and powerful API.
@@ -18,6 +18,7 @@ import sys
 from datetime import date
 
 # Third Party
+import compile_protobuf
 import setuptools
 
 # First Party
@@ -30,6 +31,7 @@ INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging", "boto3>=1.10.32"]
 
 
 def build_package(version):
+    compile_protobuf.compile_protobuf()
     packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
