@@ -107,11 +107,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 continue
 
             if match_inc(ts_name, current_coll.include_regex):
-                # In TF 2.x, we can't put tensors in a set/dictionary as tensor.__hash__()
+                # In TF 2.x eager mode, we can't put tensors in a set/dictionary as tensor.__hash__()
                 # is no longer available. tensor.experimental_ref() returns a hashable reference
                 # object to this Tensor.
                 check_tensor = tensor
                 if is_tf_version_2x() and tf.executing_eagerly():
+                    # tensor.experimental_ref is an experimental API
+                    # and can be changed or removed.
+                    # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
                     check_tensor = tensor.experimental_ref()
                 if not current_coll.has_tensor(check_tensor):
                     # tensor will be added to this coll below
@@ -273,7 +276,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _prepare_layers(self, mode):
         # adds any layer tensor (input, output and weight) to appropriate collection
         for layer in self.model.layers:
-            # Input and output tensors are difficult to get in TF 2.X
+            # Cannot get input and output tensor values in TF 2.x eager mode.
+            # therefore, adding input and output layers only in TF 1.x and
+            # TF 2.x non-eager mode.
             if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 layer_inputs = get_keras_layer_inputs(layer)
                 is_input_layer = self._is_input_layer(mode, layer_inputs)
@@ -409,7 +414,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # self.original_fetches = self._get_exec_function(mode).fetches.copy()
 
         x = self._get_exec_function(mode)  # Returns GraphExecutionFunction
-        if x and self._validate_exec_function(x):
+        if self._validate_exec_function(x):
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
                 if tensor not in x.fetches and tensor not in x.fetch_callbacks:

@@ -4,7 +4,7 @@ from abc import ABCMeta
 from typing import List, Set
 
 # Third Party
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStrategy
 
 # First Party
@@ -421,6 +421,11 @@ class TensorflowBaseHook(BaseHook):
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
         if is_tf_version_2x() and tf.executing_eagerly():
+            self.logger.info(
+                "TF 2.x doesn't provide gradient and optimizer variable values."
+                "Returning from set_gradients without saving gradient names"
+                "as we don't have the values."
+            )
             return
         if self._gradients_set is False:
             if gradients is not None:
@@ -442,6 +447,11 @@ class TensorflowBaseHook(BaseHook):
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
         if is_tf_version_2x() and tf.executing_eagerly():
+            self.logger.info(
+                "TF 2.x doesn't provide gradient and optimizer variable values."
+                "Returning from set_optimizer_variables without saving variable names"
+                "as we don't have the values."
+            )
             return
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
