@@ -14,6 +14,7 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 """
 
 # Standard Library
+import contextlib
 import os
 import sys
 from datetime import date
@@ -28,6 +29,18 @@ DOCLINES = (__doc__ or "").split("\n")
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy", "packaging", "boto3>=1.10.32"]
+
+
+@contextlib.contextmanager
+def remember_cwd():
+    """
+    Restore current directory when exiting context
+    """
+    curdir = os.getcwd()
+    try:
+        yield
+    finally:
+        os.chdir(curdir)
 
 
 def compile_summary_protobuf():
@@ -78,28 +91,26 @@ if compile_summary_protobuf() != 0:
 
 
 def scan_git_secrets():
-    import subprocess
+    from subprocess import check_call
     import os
-    import shutil
+    from pathlib import Path
+    import tempfile
+
+    if os.path.exists(".git/hooks/commit-msg"):
+        print("git secrets: commit hook already present")
+        return
 
     def git(*args):
-        return subprocess.call(["git"] + list(args))
+        return check_call(["git"] + list(args))
 
-    shutil.rmtree("/tmp/git-secrets", ignore_errors=True)
-    git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    os.chdir("/tmp/git-secrets")
-    subprocess.check_call(["make"] + ["install"])
-    os.chdir(dir_path)
-    git("secrets", "--install")
-    git("secrets", "--register-aws")
-    return git("secrets", "--scan", "-r")
-
-
-if scan_git_secrets() != 0:
-    import sys
-
-    sys.exit(1)
+    with tempfile.TemporaryDirectory(prefix="git_secrets") as tmpdir, remember_cwd():
+        os.chdir(tmpdir)
+        git("clone", "https://github.com/awslabs/git-secrets.git", tmpdir)
+        prefix = str(Path.home())
+        manprefix = os.path.join(tmpdir, "man")
+        check_call(["make", "install"], env={"PREFIX": prefix, "MANPREFIX": manprefix})
+        git("secrets", "--install")
+        git("secrets", "--register-aws")
 
 
 def detect_smdebug_version():
@@ -111,4 +122,5 @@ def detect_smdebug_version():
 
 
 version = detect_smdebug_version()
+scan_git_secrets()
 build_package(version=version)
