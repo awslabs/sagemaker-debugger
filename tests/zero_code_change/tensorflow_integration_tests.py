@@ -183,7 +183,7 @@ def test_monitored_session(script_mode: bool = False):
             """
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         train_op, X, Y = get_train_op_and_placeholders()
-        init = tf.compat.v1.global_variables_initializer()
+        init = tf.global_variables_initializer()
         mnist = get_data()
 
         if script_mode:
@@ -396,7 +396,7 @@ def test_keras_gradients_mirrored_all_workers():
 
 def test_keras_to_estimator(script_mode: bool = False):
     """ Works as intended. """
-    import tensorflow.compat.v1.keras as keras
+    import tf.keras as keras
 
     tf.reset_default_graph()
     smd.del_hook()
