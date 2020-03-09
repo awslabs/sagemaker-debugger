@@ -1,11 +1,5 @@
 # Third Party
-try:
-    # to address deprecation warnings from 1.14 use the compat namespace
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow as tf
-
+import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party

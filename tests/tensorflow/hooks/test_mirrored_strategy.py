@@ -198,7 +198,7 @@ def helper_mirrored(
     # Use multiple GPUs by MirroredStragtegy.
     # All avaiable GPUs will be used if `num_gpus` is omitted.
     # if num_devices > 1:
-    distribution = tf.contrib.distribute.MirroredStrategy()
+    distribution = tf.compat.v1.distribute.MirroredStrategy()
     # print("### Doing Multi GPU Training")
     # else:
     #     distribution = None
