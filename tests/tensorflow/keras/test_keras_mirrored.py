@@ -357,9 +357,9 @@ def test_save_one_worker(out_dir):
     assert len(tr.steps())
     assert len(tr.tensor_names(collection="weights"))
     assert len(tr.tensor_names(collection="weights"))
-    assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
+    assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(5)) == 1
     assert len(tr.tensor_names(collection="biases"))
-    assert len(tr.tensor(tr.tensor_names(collection="biases")[0]).workers(0)) == 1
+    assert len(tr.tensor(tr.tensor_names(collection="biases")[0]).workers(5)) == 1
     assert len(tr.tensor_names(collection="gradients"))
 
 
