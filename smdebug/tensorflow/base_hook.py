@@ -4,7 +4,7 @@ from abc import ABCMeta
 from typing import List, Set
 
 # Third Party
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStrategy
 
 # First Party
