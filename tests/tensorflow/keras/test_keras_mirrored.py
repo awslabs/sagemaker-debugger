@@ -380,19 +380,19 @@ def test_save_all_workers(out_dir, zcc=False):
     assert len(tr.workers()) == get_available_gpus()
     assert len(tr.tensor_names(collection="weights"))
     assert (
-        len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0))
+        len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(5))
         == strategy.num_replicas_in_sync
     )
 
     assert "conv2d/weights/conv2d/kernel:0" in tr.tensor_names(collection="weights")
     assert (
-        len(tr.tensor("conv2d/weights/conv2d/kernel:0").workers(0)) == strategy.num_replicas_in_sync
+        len(tr.tensor("conv2d/weights/conv2d/kernel:0").workers(5)) == strategy.num_replicas_in_sync
     )
 
     assert len(tr.tensor_names(collection="biases"))
     assert "conv2d/weights/conv2d/bias:0" in tr.tensor_names(collection="biases")
     assert (
-        len(tr.tensor(tr.tensor_names(collection="biases")[0]).workers(0))
+        len(tr.tensor(tr.tensor_names(collection="biases")[0]).workers(5))
         == strategy.num_replicas_in_sync
     )
     assert len(tr.tensor_names(collection="gradients"))
