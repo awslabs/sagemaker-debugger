@@ -71,8 +71,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
                     )
                 else:
-                    self.logger.info("Disabling SMDebug as it does not support eager mode"
-                                     "for TF versions 1.x")
+                    self.logger.info(
+                        "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
+                    )
                     self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
