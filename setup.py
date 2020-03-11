@@ -56,24 +56,22 @@ def remember_cwd():
 def scan_git_secrets():
     from subprocess import check_call
     import os
-    from pathlib import Path
     import tempfile
+    import shutil
 
-    if os.path.exists(".git/hooks/commit-msg"):
-        print("git secrets: commit hook already present")
+    if os.path.exists(".git/hooks/pre-commit"):
+        print("git secrets: pre-commit hook already present")
         return
 
-    def git(*args):
-        return check_call(["git"] + list(args))
+    if shutil.which("git-secrets"):
+        check_call(["git", "secrets", "--scan"])
+        print("scanned for git secrets")
 
-    with tempfile.TemporaryDirectory(prefix="git_secrets") as tmpdir, remember_cwd():
-        os.chdir(tmpdir)
-        git("clone", "https://github.com/awslabs/git-secrets.git", tmpdir)
-        prefix = str(Path.home())
-        manprefix = os.path.join(tmpdir, "man")
-        check_call(["make", "install"], env={"PREFIX": prefix, "MANPREFIX": manprefix})
-        git("secrets", "--install")
-        git("secrets", "--register-aws")
+    else:
+        with tempfile.TemporaryDirectory(prefix="git_secrets_") as tmpdir:
+            check_call(["git", "clone", "https://github.com/awslabs/git-secrets.git", tmpdir])
+            check_call([os.path.join(tmpdir, "git-secrets"), "--scan"])
+        print("scanned for git secrets")
 
 
 def build_package(version):
