@@ -13,13 +13,13 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 
 """
 # Standard Library
+import contextlib
 import os
 import sys
 from datetime import date
 
 # Third Party
 import setuptools
-import contextlib
 
 # First Party
 import smdebug
@@ -70,11 +70,10 @@ def scan_git_secrets():
         os.chdir(tmpdir)
         git("clone", "https://github.com/awslabs/git-secrets.git", tmpdir)
         prefix = str(Path.home())
-        manprefix = os.path.join(tmpdir, 'man')
+        manprefix = os.path.join(tmpdir, "man")
         check_call(["make", "install"], env={"PREFIX": prefix, "MANPREFIX": manprefix})
         git("secrets", "--install")
         git("secrets", "--register-aws")
-
 
 
 def build_package(version):
