@@ -19,6 +19,7 @@ from datetime import date
 
 # Third Party
 import setuptools
+import contextlib
 
 # First Party
 import smdebug
@@ -38,6 +39,42 @@ def compile_summary_protobuf():
         print("compiling protobuf files in {}".format(proto_path))
     cmd += " --python_out=."
     return os.system(cmd)
+
+
+@contextlib.contextmanager
+def remember_cwd():
+    """
+    Restore current directory when exiting context
+    """
+    curdir = os.getcwd()
+    try:
+        yield
+    finally:
+        os.chdir(curdir)
+
+
+def scan_git_secrets():
+    from subprocess import check_call
+    import os
+    from pathlib import Path
+    import tempfile
+
+    if os.path.exists(".git/hooks/commit-msg"):
+        print("git secrets: commit hook already present")
+        return
+
+    def git(*args):
+        return check_call(["git"] + list(args))
+
+    with tempfile.TemporaryDirectory(prefix="git_secrets") as tmpdir, remember_cwd():
+        os.chdir(tmpdir)
+        git("clone", "https://github.com/awslabs/git-secrets.git", tmpdir)
+        prefix = str(Path.home())
+        manprefix = os.path.join(tmpdir, 'man')
+        check_call(["make", "install"], env={"PREFIX": prefix, "MANPREFIX": manprefix})
+        git("secrets", "--install")
+        git("secrets", "--register-aws")
+
 
 
 def build_package(version):
@@ -85,4 +122,5 @@ def detect_smdebug_version():
 
 
 version = detect_smdebug_version()
+scan_git_secrets()
 build_package(version=version)
