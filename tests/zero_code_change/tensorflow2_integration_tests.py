@@ -16,14 +16,12 @@ Here in the test suite we delete the hook after every script.
 """
 # Standard Library
 import argparse
-import os
 
 # Third Party
 import tensorflow.compat.v2 as tf
 
 # First Party
 import smdebug.tensorflow as smd
-from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -81,13 +79,15 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
 
-def helper_test_keras_v2_json_config(script_mode: bool = False, eager_mode: bool = True):
+def helper_test_keras_v2_json_config(
+    json_file_contents, script_mode: bool = False, eager_mode: bool = True
+):
     """ Works as intended. """
     smd.del_hook()
 
     if not eager_mode:
         tf.compat.v1.disable_eager_execution()
-    with SagemakerSimulator() as sim:
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
 
@@ -123,23 +123,58 @@ def test_keras_v2_default(script_mode: bool = False):
 
 
 def test_keras_v2_multi_collections(script_mode: bool = False):
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/zero_code_change/tf2_zcc_json/test_hook_multi_collections.json"
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/opt/ml/output/tensors",
+                "HookParameters" : {
+                    "save_interval": "2",
+                    "include_workers": "all"
+                },
+                "CollectionConfigurations": [
+                    {
+                        "CollectionName": "gradients"
+                    },
+                    {
+                        "CollectionName": "weights"
+                    },
+                    {
+                        "CollectionName": "losses"
+                    },
+                    {
+                        "CollectionName": "biases"
+                    },
+                    {
+                        "CollectionName": "optimizer_variables"
+                    }
+                ]
+            }
+            """
     # eager mode
-    helper_test_keras_v2_json_config(script_mode=script_mode)
+    helper_test_keras_v2_json_config(script_mode=script_mode, json_file_contents=json_file_contents)
     # non-eager mode
-    helper_test_keras_v2_json_config(script_mode=script_mode, eager_mode=False)
+    helper_test_keras_v2_json_config(
+        script_mode=script_mode, eager_mode=False, json_file_contents=json_file_contents
+    )
 
 
 def test_keras_v2_save_all(script_mode: bool = False):
-    os.environ[
-        CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/zero_code_change/tf2_zcc_json/test_hook_save_all_hook.json"
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/opt/ml/output/tensors",
+                "HookParameters" : {
+                    "save_steps": "0,1,2,3"
+                    "save_all": true,
+                }
+            }
+            """
     # eager mode
-    helper_test_keras_v2_json_config(script_mode=script_mode)
+    helper_test_keras_v2_json_config(script_mode=script_mode, json_file_contents=json_file_contents)
     # non-eager mode
-    helper_test_keras_v2_json_config(script_mode=script_mode, eager_mode=False)
+    helper_test_keras_v2_json_config(
+        script_mode=script_mode, eager_mode=False, json_file_contents=json_file_contents
+    )
 
 
 if __name__ == "__main__":
