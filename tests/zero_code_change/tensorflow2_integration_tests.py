@@ -16,12 +16,14 @@ Here in the test suite we delete the hook after every script.
 """
 # Standard Library
 import argparse
+import os
 
 # Third Party
 import tensorflow.compat.v2 as tf
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -45,7 +47,7 @@ def get_keras_data():
     return (x_train, y_train), (x_test, y_test)
 
 
-def test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
+def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     """ Works as intended. """
     smd.del_hook()
 
@@ -79,6 +81,67 @@ def test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
 
+def helper_test_keras_v2_json_config(script_mode: bool = False, eager_mode: bool = True):
+    """ Works as intended. """
+    smd.del_hook()
+
+    if not eager_mode:
+        tf.compat.v1.disable_eager_execution()
+    with SagemakerSimulator() as sim:
+        model = get_keras_model_v2()
+        (x_train, y_train), (x_test, y_test) = get_keras_data()
+
+        model.compile(
+            loss="sparse_categorical_crossentropy",
+            optimizer=tf.keras.optimizers.RMSprop(),
+            metrics=["accuracy"],
+        )
+        if script_mode:
+            hook = smd.KerasHook.create_from_json_file()
+            history = model.fit(
+                x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
+            )
+            test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
+        else:
+            history = model.fit(x_train, y_train, batch_size=64, epochs=5, validation_split=0.2)
+            test_scores = model.evaluate(x_test, y_test, verbose=2)
+
+        hook = smd.get_hook()
+        assert hook
+        hook.close()
+        # Check that hook created and tensors saved
+        trial = smd.create_trial(path=sim.out_dir)
+        assert len(trial.steps()) > 0, "Nothing saved at any step."
+        assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+
+
+def test_keras_v2_default(script_mode: bool = False):
+    # eager mode
+    helper_test_keras_v2(script_mode=script_mode)
+    # non-eager mode
+    helper_test_keras_v2(script_mode=script_mode, eager_mode=False)
+
+
+def test_keras_v2_multi_collections(script_mode: bool = False):
+    os.environ[
+        CONFIG_FILE_PATH_ENV_STR
+    ] = "tests/pytorch/test_json_configs/test_hook_multi_collections.json"
+    # eager mode
+    helper_test_keras_v2_json_config(script_mode=script_mode)
+    # non-eager mode
+    helper_test_keras_v2_json_config(script_mode=script_mode, eager_mode=False)
+
+
+def test_keras_v2_save_all(script_mode: bool = False):
+    os.environ[
+        CONFIG_FILE_PATH_ENV_STR
+    ] = "tests/pytorch/test_json_configs/test_hook_save_all_hook.json"
+    # eager mode
+    helper_test_keras_v2_json_config(script_mode=script_mode)
+    # non-eager mode
+    helper_test_keras_v2_json_config(script_mode=script_mode, eager_mode=False)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -87,7 +150,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     script_mode = args.script_mode
 
-    # eager mode
-    test_keras_v2(script_mode=script_mode)
-    # non-eager mode
-    test_keras_v2(script_mode=script_mode, eager_mode=False)
+    test_keras_v2_default(script_mode)
+    test_keras_v2_multi_collections(script_mode)
+    test_keras_v2_save_all(script_mode)

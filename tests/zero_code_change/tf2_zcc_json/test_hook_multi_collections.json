@@ -1,0 +1,13 @@
+{
+  "LocalPath": "/tmp/test_output/test_hook_multi_collection/jsonloading",
+  "HookParameters": {
+    "save_all": false,
+    "save_steps": "0, 1, 2, 3"
+  },
+  "CollectionConfigurations": [
+    { "CollectionName": "weights" },
+    { "CollectionName": "biases" },
+    { "CollectionName": "gradients" },
+    { "CollectionName": "optimizer_variables"}
+  ]
+}
