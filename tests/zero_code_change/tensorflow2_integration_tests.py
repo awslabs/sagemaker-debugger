@@ -80,8 +80,6 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         trial = smd.create_trial(path=sim.out_dir)
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
-        if not eager_mode:
-            assert len(trial.tensor_names(collection="gradients")) > 0
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
