@@ -421,6 +421,9 @@ class TensorflowBaseHook(BaseHook):
         # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
+
+        # From TF 2.2, executing_eagerly_outside_functions() should be called using
+        # tf.compat.v1.executing_eagerly_outside_functions()
         if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
             return
         if self._gradients_set is False:
@@ -442,6 +445,9 @@ class TensorflowBaseHook(BaseHook):
         # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
+
+        # From TF 2.2, executing_eagerly_outside_functions() should be called using
+        # tf.compat.v1.executing_eagerly_outside_functions()
         if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
             return
         # since this is done for each variable at a time for keras, not checking if set already
