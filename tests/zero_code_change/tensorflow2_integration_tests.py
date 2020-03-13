@@ -48,25 +48,28 @@ def get_keras_data():
 def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     """ Works as intended. """
     smd.del_hook()
-
+    tf.keras.backend.clear_session()
     if not eager_mode:
         tf.compat.v1.disable_eager_execution()
     with SagemakerSimulator() as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
 
-        model.compile(
-            loss="sparse_categorical_crossentropy",
-            optimizer=tf.keras.optimizers.RMSprop(),
-            metrics=["accuracy"],
-        )
+        opt = tf.keras.optimizers.RMSprop()
         if script_mode:
             hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
+            opt = hook.wrap_optimizer(opt)
+            model.compile(
+                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+            )
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
+            model.compile(
+                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+            )
             history = model.fit(x_train, y_train, batch_size=64, epochs=5, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
@@ -77,6 +80,10 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         trial = smd.create_trial(path=sim.out_dir)
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+        if not eager_mode:
+            assert len(trial.tensor_names(collection="gradients")) > 0
+        assert len(trial.tensor_names(collection="weights")) > 0
+        assert len(trial.tensor_names(collection="losses")) > 0
 
 
 def helper_test_keras_v2_json_config(
@@ -84,26 +91,29 @@ def helper_test_keras_v2_json_config(
 ):
     """ Works as intended. """
     smd.del_hook()
-
+    tf.keras.backend.clear_session()
     if not eager_mode:
         tf.compat.v1.disable_eager_execution()
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
 
-        model.compile(
-            loss="sparse_categorical_crossentropy",
-            optimizer=tf.keras.optimizers.RMSprop(),
-            metrics=["accuracy"],
-        )
+        opt = tf.keras.optimizers.RMSprop()
         if script_mode:
             hook = smd.KerasHook.create_from_json_file()
+            opt = hook.wrap_optimizer(opt)
+            model.compile(
+                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+            )
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
-            history = model.fit(x_train, y_train, batch_size=64, epochs=5, validation_split=0.2)
+            model.compile(
+                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+            )
+            history = model.fit(x_train, y_train, epochs=5, batch_size=64, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
@@ -113,6 +123,10 @@ def helper_test_keras_v2_json_config(
         trial = smd.create_trial(path=sim.out_dir)
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+        if not eager_mode:
+            assert len(trial.tensor_names(collection="gradients")) > 0
+        assert len(trial.tensor_names(collection="weights")) > 0
+        assert len(trial.tensor_names(collection="losses")) > 0
 
 
 def test_keras_v2_default(script_mode: bool = False):
@@ -164,7 +178,7 @@ def test_keras_v2_save_all(script_mode: bool = False):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0,1,2,3"
+                    "save_steps": "0,1,2,3",
                     "save_all": true,
                 }
             }
