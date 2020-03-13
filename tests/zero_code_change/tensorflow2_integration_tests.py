@@ -126,14 +126,11 @@ def helper_test_keras_v2_json_config(
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
-def test_keras_v2_default(script_mode: bool = False):
-    # eager mode
-    helper_test_keras_v2(script_mode=script_mode)
-    # non-eager mode
-    helper_test_keras_v2(script_mode=script_mode, eager_mode=False)
+def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):
+    helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
-def test_keras_v2_multi_collections(script_mode: bool = False):
+def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool = True):
     json_file_contents = """
             {
                 "S3OutputPath": "s3://sagemaker-test",
@@ -161,15 +158,12 @@ def test_keras_v2_multi_collections(script_mode: bool = False):
                 ]
             }
             """
-    # eager mode
-    helper_test_keras_v2_json_config(script_mode=script_mode, json_file_contents=json_file_contents)
-    # non-eager mode
     helper_test_keras_v2_json_config(
-        script_mode=script_mode, eager_mode=False, json_file_contents=json_file_contents
+        script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
     )
 
 
-def test_keras_v2_save_all(script_mode: bool = False):
+def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
     json_file_contents = """
             {
                 "S3OutputPath": "s3://sagemaker-test",
@@ -180,11 +174,8 @@ def test_keras_v2_save_all(script_mode: bool = False):
                 }
             }
             """
-    # eager mode
-    helper_test_keras_v2_json_config(script_mode=script_mode, json_file_contents=json_file_contents)
-    # non-eager mode
     helper_test_keras_v2_json_config(
-        script_mode=script_mode, eager_mode=False, json_file_contents=json_file_contents
+        script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
     )
 
 
@@ -196,6 +187,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     script_mode = args.script_mode
 
+    # eager mode
     test_keras_v2_default(script_mode)
     test_keras_v2_multi_collections(script_mode)
     test_keras_v2_save_all(script_mode)
+
+    # non-eager mode
+    test_keras_v2_default(script_mode, eager_mode=False)
+    test_keras_v2_multi_collections(script_mode, eager_mode=False)
+    test_keras_v2_save_all(script_mode, eager_mode=False)
