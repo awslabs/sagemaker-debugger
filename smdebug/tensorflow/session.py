@@ -1,6 +1,7 @@
 # Standard Library
 
 # Third Party
+import tensorflow.compat.v1 as tf
 from tensorflow.python.keras.backend import is_placeholder
 
 # First Party
@@ -18,13 +19,6 @@ from .utils import (
     extract_graph_summary,
     tensor_can_be_saved,
 )
-
-try:
-    # as most of the v1 API is deprecated from the main tf namespace from 1.14
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow as tf
 
 
 class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):

@@ -1,5 +1,7 @@
 # Standard Library
+import json
 import os
+from pathlib import Path
 
 # Third Party
 import numpy as np
@@ -8,6 +10,7 @@ import numpy as np
 from smdebug.core.access_layer.s3handler import DeleteRequest, S3Handler
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import DEFAULT_COLLECTIONS_FILE_NAME
+from smdebug.core.locations import IndexFileLocationUtils
 from smdebug.core.writer import FileWriter
 
 
@@ -51,3 +54,33 @@ def check_trial(trial_obj, num_steps, num_tensors):
 
 def delete_s3_prefix(bucket, prefix):
     S3Handler.delete_prefix(delete_request=DeleteRequest(Bucket=bucket, Prefix=prefix))
+
+
+def dummy_trial_creator(trial_dir, num_workers, job_ended):
+    Path(trial_dir).mkdir(parents=True, exist_ok=True)
+    cm = CollectionManager()
+    for i in range(num_workers):
+        collection_file_name = f"worker_{i}_collections.json"
+        cm.export(trial_dir, collection_file_name)
+    if job_ended:
+        Path(os.path.join(trial_dir, "training_job_end.ts")).touch()
+
+
+def dummy_step_creator(trial_dir, global_step, mode, mode_step, worker_name):
+    static_step_data = (
+        '{"meta": {"mode": "TRAIN", "mode_step": 0, "event_file_name": ""}, '
+        '"tensor_payload": ['
+        '{"tensorname": "gradients/dummy:0", "start_idx": 0, "length": 1}'
+        "]}"
+    )
+
+    step = json.loads(static_step_data)
+    step["meta"]["mode"] = mode
+    step["meta"]["mode_step"] = mode_step
+
+    index_file_location = IndexFileLocationUtils.get_index_key_for_step(
+        trial_dir, global_step, worker_name
+    )
+    Path(os.path.dirname(index_file_location)).mkdir(parents=True, exist_ok=True)
+    with open(index_file_location, "w") as f:
+        json.dump(step, f)

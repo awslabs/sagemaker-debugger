@@ -55,29 +55,29 @@ def test_save_config(hook=None, out_dir=None):
     assert len(tr.steps()) == 7
 
     print(tr.tensor_names())
-    tname = tr.tensor_names(regex="conv\d+_weight")[0]
+    tname = tr.tensor_names(regex=r"conv\d+_weight")[0]
     # Global reduction with max and mean
     weight_tensor = tr.tensor(tname)
     max_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name="max")
-    assert max_val != None
+    assert max_val is not None
     mean_val = weight_tensor.reduction_value(step_num=1, abs=False, reduction_name="mean")
-    assert mean_val != None
+    assert mean_val is not None
 
     # custom reduction at step 4 with reduction = 'min' and abs reduction = 'max'
-    tname = tr.tensor_names(regex="conv\d+_relu_input_0")[0]
+    tname = tr.tensor_names(regex=r"conv\d+_relu_input_0")[0]
     relu_input = tr.tensor(tname)
     min_val = relu_input.reduction_value(step_num=4, abs=False, reduction_name="min")
-    assert min_val != None
+    assert min_val is not None
     abs_max_val = relu_input.reduction_value(step_num=4, abs=True, reduction_name="max")
-    assert abs_max_val != None
+    assert abs_max_val is not None
 
     # Custom reduction with normalization
-    tname = tr.tensor_names(regex="flatten\d+_input_0")[0]
+    tname = tr.tensor_names(regex=r"flatten\d+_input_0")[0]
     flatten_input = tr.tensor(tname)
     l1_norm = flatten_input.reduction_value(step_num=4, abs=False, reduction_name="l1")
-    assert l1_norm != None
+    assert l1_norm is not None
     l2_norm = flatten_input.reduction_value(step_num=4, abs=True, reduction_name="l2")
-    assert l2_norm != None
+    assert l2_norm is not None
     if hook_created:
         shutil.rmtree(out_dir)
 

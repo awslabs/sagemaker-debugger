@@ -2,6 +2,7 @@
 import functools
 
 # Third Party
+import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
@@ -20,14 +21,8 @@ from .utils import (
     get_keras_layer_outputs,
     get_keras_mode,
     is_keras_optimizer,
+    is_tf_version_2x,
 )
-
-try:
-    # as most of the v1 API is deprecated from the main tf namespace from 1.14
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow as tf
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -69,8 +64,17 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if tf.executing_eagerly() or (
                 hasattr(self.model, "run_eagerly") and self.model.run_eagerly
             ):
-                self.logger.info("Disabling SMDebug as it does not support eager mode")
-                self._hook_supported = False
+                if is_tf_version_2x():
+                    self.logger.info(
+                        "Executing in TF2.x eager mode."
+                        "TF 2.x eager doesn't provide gradient and optimizer variable values."
+                        "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
+                    )
+                else:
+                    self.logger.info(
+                        "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
+                    )
+                    self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
@@ -113,6 +117,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 continue
 
             if match_inc(ts_name, current_coll.include_regex):
+                # In TF 2.x eager mode, we can't put tensors in a set/dictionary as tensor.__hash__()
+                # is no longer available. tensor.experimental_ref() returns a hashable reference
+                # object to this Tensor.
+                if is_tf_version_2x() and tf.executing_eagerly():
+                    # tensor.experimental_ref is an experimental API
+                    # and can be changed or removed.
+                    # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
+                    tensor = tensor.experimental_ref()
                 if not current_coll.has_tensor(tensor):
                     # tensor will be added to this coll below
                     colls_with_tensor.add(current_coll)
@@ -263,27 +275,38 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 model_outputs.extend(per_replica_model.outputs)
         else:
             model_outputs.extend(model.outputs)
+        # In TF 2.X, calling `layer_outputs[0] in model_outputs gives the error:
+        # *** tensorflow.python.framework.errors_impl.OperatorNotAllowedInGraphError: using a
+        # `tf.Tensor` as a Python `bool` is not allowed in Graph execution. Use Eager execution or
+        # decorate this function with @tf.function.
+        # Calling `layer_outputs[0] == model_outputs[0]` gives <tf.Tensor 'Equal_1:0'>
         return any([i in model_outputs for i in layer_outputs])
 
     def _prepare_layers(self, mode):
         # adds any layer tensor (input, output and weight) to appropriate collection
         for layer in self.model.layers:
-            layer_inputs = get_keras_layer_inputs(layer)
-            is_input_layer = self._is_input_layer(mode, layer_inputs)
-            for inp in layer_inputs:
-                self._check_and_add_layer_tensor(
-                    mode, layer, "input", inp, is_input_to_model=is_input_layer
-                )
+            # Cannot get input and output tensor values in TF 2.x eager mode.
+            # therefore, adding input and output layers only in TF 1.x and
+            # TF 2.x non-eager mode.
+            if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
+                layer_inputs = get_keras_layer_inputs(layer)
+                is_input_layer = self._is_input_layer(mode, layer_inputs)
+                for inp in layer_inputs:
+                    self._check_and_add_layer_tensor(
+                        mode, layer, "input", inp, is_input_to_model=is_input_layer
+                    )
 
-            layer_outputs = get_keras_layer_outputs(layer)
+                layer_outputs = get_keras_layer_outputs(layer)
 
-            is_output_layer = self._is_output_layer(mode, layer_outputs)
-            for outp in layer_outputs:
-                self._check_and_add_layer_tensor(
-                    mode, layer, "output", outp, is_output_of_model=is_output_layer
-                )
+                is_output_layer = self._is_output_layer(mode, layer_outputs)
+                for outp in layer_outputs:
+                    self._check_and_add_layer_tensor(
+                        mode, layer, "output", outp, is_output_of_model=is_output_layer
+                    )
 
+            # Weights can be retrieved in both
             weights = layer.weights
+
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
@@ -353,10 +376,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
 
+        if is_tf_version_2x() and tf.executing_eagerly():
+            for tensor_ref in self.tensor_refs_to_save_this_step:
+                tensor = tensor_ref.tf_obj
+                self._save_for_tensor(
+                    tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
+                )
+
         if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS):
             self._save_inputs(check_before_write=False)
 
     def _get_exec_function(self, mode):
+        # exec_function is None in 2.X; self.model exists but has no train_function, test_function, etc.
         if self.distribution_strategy in [
             TFDistributionStrategy.NONE,
             TFDistributionStrategy.HOROVOD,
@@ -469,7 +500,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # after first evaluation during training
         self.set_mode(mode)
 
-        self._close_writers()
+        # Write the gradients of the past step if the writer is still available.
+        if self.writer is not None or len(self.writer_map):
+            self._close_writers()
         self._increment_step()
 
         if self.prepared_collections is False:
@@ -477,7 +510,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._prepare_collections()
 
         if self._prepared_tensors[mode] is False:
-            if self._validate_exec_function(self._get_exec_function(mode)):
+            if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
+                self._get_exec_function(mode)
+            ):
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
@@ -495,7 +530,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # if saving metric, writer may not be initialized as a result
                 self._initialize_writers()
 
-            self._add_callbacks(mode)
+            if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
+                self._add_callbacks(mode)
 
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
@@ -510,7 +546,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
-        self._remove_fetches_and_callbacks(mode)
+        if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
+            self._remove_fetches_and_callbacks(mode)
         self._save_tensors_post_step(batch, logs)
 
         if self._prepared_tensors[mode]:

@@ -18,17 +18,11 @@ Here in the test suite we delete the hook after every script.
 import argparse
 
 # Third Party
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 from tests.tensorflow.hooks.test_mirrored_strategy import test_basic
 from tests.tensorflow.keras.test_keras_mirrored import test_tf_keras
-
-# First Party
-import smdebug.tensorflow as smd
-from smdebug.core.utils import SagemakerSimulator
-
-# Local
-from .tf_utils import (
+from tf_utils import (
     get_data,
     get_estimator,
     get_input_fns,
@@ -36,6 +30,10 @@ from .tf_utils import (
     get_keras_model_v1,
     get_train_op_and_placeholders,
 )
+
+# First Party
+import smdebug.tensorflow as smd
+from smdebug.core.utils import SagemakerSimulator
 
 
 def test_estimator(script_mode: bool = False):
@@ -152,7 +150,7 @@ def test_linear_classifier(script_mode: bool = False):
         # Setup
         train_input_fn, eval_input_fn = get_input_fns()
         x_feature = tf.feature_column.numeric_column("x", shape=(28, 28))
-        estimator = tf.compat.v1.estimator.LinearClassifier(
+        estimator = tf.estimator.LinearClassifier(
             feature_columns=[x_feature], model_dir="/tmp/mnist_linear_classifier", n_classes=10
         )
 
@@ -185,7 +183,7 @@ def test_monitored_session(script_mode: bool = False):
             """
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         train_op, X, Y = get_train_op_and_placeholders()
-        init = tf.compat.v1.global_variables_initializer()
+        init = tf.global_variables_initializer()
         mnist = get_data()
 
         if script_mode:
@@ -230,7 +228,7 @@ def test_monitored_session_gradients_zcc():
     tf.reset_default_graph()
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         train_op, X, Y = get_train_op_and_placeholders()
-        init = tf.compat.v1.global_variables_initializer()
+        init = tf.global_variables_initializer()
         mnist = get_data()
 
         sess = tf.train.MonitoredSession()

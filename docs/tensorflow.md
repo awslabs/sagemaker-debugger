@@ -15,7 +15,7 @@
 ### Versions
 - Zero Script Change experience where you need no modifications to your training script is supported in the official [SageMaker Framework Container for TensorFlow 1.15](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html), or the [AWS Deep Learning Container for TensorFlow 1.15](https://aws.amazon.com/machine-learning/containers/).
 
-- This library itself supports the following versions when you use our API which requires a few minimal changes to your training script: TensorFlow 1.13, 1.14, 1.15. Keras 2.3.
+- This library itself supports the following versions when you use our API which requires a few minimal changes to your training script: TensorFlow 1.14, 1.15, 2.0.1, 2.1.0. Keras 2.3.
 
 ### Interfaces
 - [Estimator](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/estimator)

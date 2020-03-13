@@ -12,7 +12,10 @@ import numpy as np
 # First Party
 from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.core.config_constants import DEFAULT_EVENT_FILE_RETRY_LIMIT
+from smdebug.core.config_constants import (
+    MISSING_EVENT_FILE_RETRY_LIMIT,
+    MISSING_EVENT_FILE_RETRY_LIMIT_KEY,
+)
 from smdebug.core.locations import IndexFileLocationUtils, TensorLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
@@ -51,7 +54,8 @@ class ReadIndexFilesCache:
 
     Note: cache_limit is a soft limit.
 
-    In certain cases, the size of the cache can exceed this limit.
+    The size of the cache can exceed this limit if eviction_point is 0.
+    This can happen if start_after_key is None (unset) or is equal to the first element in the cache.
 
     If start_after_key happens to the be first element in sorted(self.lookup_set), then we do not
     evict any element from the cache, but add more elements to cache.
@@ -73,6 +77,9 @@ class ReadIndexFilesCache:
 
     def _evict_cache(self, start_after_key: str) -> None:
         read_files = sorted(self.lookup_set)
+        start_after_key = "" if start_after_key is None else start_after_key
+        # eviction_point = 0 if start_after_key is None (unset).
+        # This happens if more than self.cache_limit number of files are read on the first read attempt.
         eviction_point = bisect_left(read_files, start_after_key)
         for i in range(eviction_point):
             self.lookup_set.remove(read_files[i])
@@ -100,7 +107,7 @@ class IndexReader(ABC):
 
     def __init__(self, path):
         self.event_file_retry_limit = os.getenv(
-            "TORNASOLE_EVENT_FILE_RETRY_LIMIT", DEFAULT_EVENT_FILE_RETRY_LIMIT
+            MISSING_EVENT_FILE_RETRY_LIMIT_KEY, MISSING_EVENT_FILE_RETRY_LIMIT
         )
         self.path = path
         self.logger = get_logger()
@@ -310,6 +317,7 @@ class S3IndexReader(IndexReader):
         self.logger.debug(f'Loaded Index Files: {",".join(index_files)}')
         for index_file in index_files:
             if self.index_file_cache.has_not_read(index_file):
+
                 step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
                 if (
                     range_steps is not None and step_in_range(range_steps, step)
@@ -319,9 +327,15 @@ class S3IndexReader(IndexReader):
                     object_requests.append(
                         ReadObjectRequest(format(f"s3://{self.bucket_name}/") + index_file)
                     )
-                self.index_file_cache.add(index_file, start_after_key)
+                    self.logger.debug(f"Will read index_file: {index_file}")
+                    self.index_file_cache.add(index_file, start_after_key)
+            else:
+                self.logger.debug(
+                    f"index_file:{index_file} Indexcache contents:{self.index_file_cache.lookup_set}"
+                )
 
         responses = S3Handler.get_objects(object_requests)
+        assert len(responses) == len(object_requests)
         return responses, steps, start_after_key, workers
 
     def list_index_files(self, start_after_key=None):
@@ -351,11 +365,17 @@ class LocalIndexReader(IndexReader):
 
     def list_index_files(self):
         index_dirname = IndexFileLocationUtils.get_index_path(self.path)
-        index_files = list_files_in_directory(index_dirname)
+        # index files are json files or csv files ending with string ".csv" or ".json"
+        index_files_regex = r"(.+)\.(json|csv)$"
+        index_files = list_files_in_directory(index_dirname, file_regex=index_files_regex)
         return sorted(index_files)
 
     def list_event_files(self, start_after_key=None):
-        event_files = list_files_in_directory(get_path_to_events_directory(self.path))
+        # event files are ending with string ".tfevents"
+        event_file_regex = r"(.+)\.(tfevents)$"
+        event_files = list_files_in_directory(
+            get_path_to_events_directory(self.path), file_regex=event_file_regex
+        )
         event_files.sort()
         start_after_index = bisect_left(event_files, start_after_key)
         return event_files[start_after_index:]
@@ -410,7 +430,11 @@ class LocalIndexReader(IndexReader):
             start_after_index = bisect_left(index_files, start_after_key)
         else:
             start_after_index = 0
+        self.logger.debug(f"Found index_files:{index_files}")
         index_files = index_files[start_after_index:]  # ignore files we have already read
+        self.logger.debug(
+            f"Curtailed Found index_files to :{index_files} start_after_index:{start_after_index} start_after_key:{start_after_key}"
+        )
         for index_file in index_files:
             if self.index_file_cache.has_not_read(index_file):
                 step = IndexFileLocationUtils.parse_step_from_index_file_name(index_file)
@@ -422,9 +446,15 @@ class LocalIndexReader(IndexReader):
                     self.logger.debug(
                         f"Sagemaker-Debugger: Read {os.path.getsize(index_file)} bytes from file {index_file}"
                     )
+                    self.logger.debug(f"Will read index file:{index_file}")
                     with open(index_file) as f:
                         responses.append(f.read().encode())
-                self.index_file_cache.add(index_file, start_after_key)
+                    self.index_file_cache.add(index_file, start_after_key)
+            else:
+                self.logger.debug(
+                    f"IndexFile:{index_file} Indexcache contents:{self.index_file_cache.lookup_set}"
+                )
+
         if len(index_files) > 0:
             start_after_key = index_files[-1]  # Last file that we have read
         return responses, steps, start_after_key, workers

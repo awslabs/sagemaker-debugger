@@ -1,13 +1,20 @@
 # Standard Library
 import os
+import shutil
+import uuid
 
 # Third Party
 import pytest
 
 # First Party
+from smdebug.core.config_constants import INCOMPLETE_STEP_WAIT_WINDOW_KEY
+from smdebug.core.modes import ModeKeys
 from smdebug.core.tensor import StepState
 from smdebug.exceptions import NoMoreData, StepUnavailable
 from smdebug.trials import create_trial
+
+# Local
+from ..utils import dummy_step_creator, dummy_trial_creator
 
 
 @pytest.mark.slow
@@ -36,6 +43,112 @@ def test_single_writer_all_steps_written_complete_job():
         == "resources/has_step_scenarios/single-writer-all-steps-written-complete-job/index/000000000/000000000006_worker_0.json"
     )
     assert trial.last_complete_step == 6
+
+
+@pytest.mark.slow
+def test_single_writer_all_steps_written_complete_job_two_modes():
+    """Test Scenario Description"
+     workers : [a]
+     modes: TRAIN, EVAL
+     steps :{
+        0: [worker:a, mode: TRAIN, mode_step: 0],
+        10: [worker:a, mode: TRAIN, mode_step: 10],
+        20: [worker:a, mode: TRAIN, mode_step: 20],
+        30: [worker:a, mode: TRAIN, mode_step: 30],
+        40: [worker:a, mode: EVAL, mode_step: 0],
+        50: [worker:a, mode: EVAL, mode_step: 10],
+        60: [worker:a, mode: EVAL, mode_step: 20],
+        70: [worker:a, mode: EVAL, mode_step: 30]
+        }
+    END_OF_JOB.ts --> Present
+    """
+
+    path = os.path.join("ts_output/train/", str(uuid.uuid4()))
+    dummy_trial_creator(trial_dir=path, num_workers=1, job_ended=True)
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i, mode="TRAIN", mode_step=i, worker_name="worker_0"
+        )
+
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i + 40, mode="EVAL", mode_step=i, worker_name="worker_0"
+        )
+
+    trial = create_trial(path)
+    num_workers = len(trial.workers())
+    assert num_workers == 1
+    assert trial.loaded_all_steps is True
+    all_steps = trial.steps(show_incomplete_steps=True)
+    completed_steps = trial.steps()
+    assert all_steps == [0, 10, 20, 30, 40, 50, 60, 70]
+    assert completed_steps == all_steps
+    assert trial.has_passed_step(30) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(40, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(80) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(80, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(80, mode=ModeKeys.EVAL) == StepState.UNAVAILABLE
+    assert trial.last_index_token == os.path.join(
+        path, "index/000000000/000000000070_worker_0.json"
+    )
+    assert trial.last_complete_step == 70
+    shutil.rmtree(path, ignore_errors=True)
+
+
+@pytest.mark.slow
+def test_single_writer_all_steps_written_incomplete_job_two_modes():
+    """Test Scenario Description"
+     workers : [a]
+     modes: TRAIN, EVAL
+     steps :{
+        0: [worker:a, mode: TRAIN, mode_step: 0],
+        10: [worker:a, mode: TRAIN, mode_step: 10],
+        20: [worker:a, mode: TRAIN, mode_step: 20],
+        30: [worker:a, mode: TRAIN, mode_step: 30],
+        40: [worker:a, mode: EVAL, mode_step: 0],
+        50: [worker:a, mode: EVAL, mode_step: 10],
+        60: [worker:a, mode: EVAL, mode_step: 20],
+        70: [worker:a, mode: EVAL, mode_step: 30]
+        }
+    END_OF_JOB.ts --> Absent
+    """
+
+    path = os.path.join("ts_output/train/", str(uuid.uuid4()))
+    dummy_trial_creator(trial_dir=path, num_workers=1, job_ended=False)
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i, mode="TRAIN", mode_step=i, worker_name="worker_0"
+        )
+
+    for i in range(0, 31, 10):
+        dummy_step_creator(
+            trial_dir=path, global_step=i + 40, mode="EVAL", mode_step=i, worker_name="worker_0"
+        )
+
+    trial = create_trial(path)
+    num_workers = len(trial.workers())
+    assert num_workers == 1
+    assert trial.loaded_all_steps is False
+    all_steps = trial.steps(show_incomplete_steps=True)
+    completed_steps = trial.steps()
+    assert all_steps == [0, 10, 20, 30, 40, 50, 60, 70]
+    assert completed_steps == all_steps
+    assert trial.has_passed_step(30) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.TRAIN) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(40, mode=ModeKeys.TRAIN) == StepState.NOT_YET_AVAILABLE
+    assert trial.has_passed_step(30, mode=ModeKeys.EVAL) == StepState.AVAILABLE
+    assert trial.has_passed_step(23, mode=ModeKeys.EVAL) == StepState.UNAVAILABLE
+    assert trial.has_passed_step(80) == StepState.NOT_YET_AVAILABLE
+    assert trial.has_passed_step(80, mode=ModeKeys.TRAIN) == StepState.NOT_YET_AVAILABLE
+    assert trial.has_passed_step(80, mode=ModeKeys.EVAL) == StepState.NOT_YET_AVAILABLE
+    assert trial.last_index_token == os.path.join(
+        path, "index/000000000/000000000070_worker_0.json"
+    )
+    assert trial.last_complete_step == 70
+    shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.mark.slow
@@ -419,7 +532,7 @@ def test_three_writers_not_all_steps_written_but_later_step_written_complete_job
 
 
 @pytest.mark.slow
-def test_override_if_too_many_steps_skipped():
+def test_override_if_too_many_steps_skipped(monkeypatch):
     """Test Scenario Description"
      workers : [a,b,c]
      steps :{
@@ -449,7 +562,7 @@ def test_override_if_too_many_steps_skipped():
     window is smaller than the set threshold
     """
 
-    os.environ["INCOMPLETE_STEP_WAIT_WINDOW"] = "10"
+    monkeypatch.setenv(INCOMPLETE_STEP_WAIT_WINDOW_KEY, "10")
 
     path = "s3://smdebug-testing/resources/has_step_scenarios/too-many-steps-skipped"
     trial = create_trial(path)
@@ -486,8 +599,6 @@ def test_override_if_too_many_steps_skipped():
         trial.last_index_token
         == "resources/has_step_scenarios/too-many-steps-skipped/index/000000000/000000000009_worker_2.json"
     )
-
-    del os.environ["INCOMPLETE_STEP_WAIT_WINDOW"]
 
 
 @pytest.mark.slow

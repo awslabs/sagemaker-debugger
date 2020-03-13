@@ -198,7 +198,7 @@ def helper_mirrored(
     # Use multiple GPUs by MirroredStragtegy.
     # All avaiable GPUs will be used if `num_gpus` is omitted.
     # if num_devices > 1:
-    distribution = tf.contrib.distribute.MirroredStrategy()
+    distribution = tf.compat.v1.distribute.MirroredStrategy()
     # print("### Doing Multi GPU Training")
     # else:
     #     distribution = None
@@ -277,7 +277,6 @@ def helper_mirrored(
 def skip_trial_check():
     # Skip trial check as in this case SMDebug is disabled for mirrored strategy
     # trial will not be loaded
-    import tensorflow as tf
     from packaging import version
 
     if version.parse(tf.__version__) < version.parse("1.14.0"):
@@ -323,7 +322,7 @@ def test_basic(out_dir, zcc=False):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == 1  # as eval_dist = False
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    tensornames = tr.tensor_names(regex="Identity_\d+:0")
+    tensornames = tr.tensor_names(regex=r"Identity_\d+:0")
     for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
         for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
             assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None
@@ -369,7 +368,7 @@ def test_eval_distributed(out_dir):
             assert len(tr.tensor(tname).workers(s, ModeKeys.EVAL)) == strategy.num_replicas_in_sync
             assert tr.tensor(tname).value(s, mode=ModeKeys.EVAL) is not None
 
-    tensornames = tr.tensor_names(regex="Identity_\d+:0")
+    tensornames = tr.tensor_names(regex=r"Identity_\d+:0")
     for s in tr.tensor(tensornames[0]).steps(ModeKeys.TRAIN):
         for w in tr.tensor(tensornames[0]).workers(s, ModeKeys.TRAIN):
             assert tr.tensor(tensornames[0]).value(s, worker=w, mode=ModeKeys.TRAIN) is not None

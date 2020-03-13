@@ -1,6 +1,11 @@
 # First Party
 from smdebug.core.logger import get_logger
-from smdebug.exceptions import RuleEvaluationConditionMet, StepUnavailable, TensorUnavailableForStep
+from smdebug.exceptions import (
+    RuleEvaluationConditionMet,
+    StepUnavailable,
+    TensorUnavailable,
+    TensorUnavailableForStep,
+)
 
 logger = get_logger()
 
@@ -11,7 +16,7 @@ def invoke_rule(rule_obj, start_step=0, end_step=None, raise_eval_cond=False):
     while (end_step is None) or (step < end_step):
         try:
             rule_obj.invoke(step)
-        except (TensorUnavailableForStep, StepUnavailable) as e:
+        except (TensorUnavailableForStep, StepUnavailable, TensorUnavailable) as e:
             logger.debug(str(e))
         except RuleEvaluationConditionMet as e:
             if raise_eval_cond:

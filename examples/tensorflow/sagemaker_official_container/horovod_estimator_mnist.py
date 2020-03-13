@@ -32,7 +32,7 @@ import os
 # Third Party
 import horovod.tensorflow as hvd
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow import keras
 
 tf.logging.set_verbosity(tf.logging.INFO)

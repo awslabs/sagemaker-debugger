@@ -1,16 +1,22 @@
-# Build Spec for AWS CodeBuild CI
+# Build Spec for AWS CodeBuild CI which will run for every PR.
 
 version: 0.2
 env:
   variables:
-    run_pytest_pytorch: "enable"
-    run_pytest_mxnet: "enable"
-    run_pytest_tensorflow: "enable"
-    run_pytest_xgboost: "enable"
-    run_integration_pytest_pytorch: "enable"
-    run_integration_pytest_mxnet: "enable"
-    run_integration_pytest_tensorflow: "enable"
+    ## below enviornment variables are overridden in respective code build.
+    # for example for pytorch build run_pytest_pytorch and run_integration_pytest_pytorch will be enabled
+    run_pytest_pytorch: "disable"
+    run_pytest_mxnet: "disable"
+    run_pytest_tensorflow: "disable"
+    run_pytest_tensorflow2: "disable"
+    run_pytest_xgboost: "disable"
+    run_integration_pytest_pytorch: "disable"
+    run_integration_pytest_mxnet: "disable"
+    run_integration_pytest_tensorflow: "disable"
+    run_integration_pytest_tensorflow2: "disable"
     run_integration_pytest_xgboost: "disable"
+    # below needs to be enabled
+    zero_code_change_test: "enable"
 phases:
   install:
     commands:
@@ -20,9 +26,9 @@ phases:
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
-        - pip install -U pip
-        - pip install -q pytest wheel pyYaml pytest-html keras==2.3.1 tensorflow==1.15.0 mxnet torch xgboost pre-commit tensorflow_datasets
-        - pip uninstall -y boto3 botocore
+        - pip install --upgrade pip==19.3.1
+        - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
+        - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets
 
   pre_build:
     commands:
@@ -32,8 +38,8 @@ phases:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
-      - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
 
   post_build:
     commands:

@@ -9,7 +9,7 @@ from xgboost import DMatrix
 from xgboost.core import CallbackEnv
 
 # First Party
-from smdebug.core.collection import CollectionKeys
+from smdebug.core.collection import DEFAULT_XGBOOST_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig
@@ -143,6 +143,12 @@ class Hook(CallbackHook):
     @classmethod
     def hook_from_config(cls, json_config_path=None):
         return cls.create_from_json_file(json_file_path=json_config_path)
+
+    def _get_default_collections(self):
+        return DEFAULT_XGBOOST_COLLECTIONS
+
+    def _prepare_collections(self):
+        super()._prepare_collections()
 
     def _is_last_step(self, env: CallbackEnv) -> bool:
         # env.iteration: current boosting round.

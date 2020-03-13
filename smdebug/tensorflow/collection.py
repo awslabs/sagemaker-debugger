@@ -1,14 +1,9 @@
 # Third Party
-try:
-    # to address deprecation warnings from 1.14 use the compat namespace
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow as tf
-
+import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
+from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
 from smdebug.core.collection import Collection as BaseCollection
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.collection_manager import CollectionManager as BaseCollectionManager
@@ -136,18 +131,7 @@ class CollectionManager(BaseCollectionManager):
     def __init__(self, collections=None, create_default=True):
         super().__init__(collections=collections)
         if create_default:
-            for n in [
-                CollectionKeys.DEFAULT,
-                CollectionKeys.WEIGHTS,
-                CollectionKeys.BIASES,
-                CollectionKeys.GRADIENTS,
-                CollectionKeys.LOSSES,
-                CollectionKeys.METRICS,
-                CollectionKeys.INPUTS,
-                CollectionKeys.OUTPUTS,
-                CollectionKeys.ALL,
-                CollectionKeys.SM_METRICS,
-            ]:
+            for n in DEFAULT_TF_COLLECTIONS:
                 self.create_collection(n)
             self.get(CollectionKeys.BIASES).include("bias")
 
