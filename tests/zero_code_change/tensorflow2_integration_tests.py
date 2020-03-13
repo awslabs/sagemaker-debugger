@@ -46,7 +46,7 @@ def get_keras_data():
 
 
 def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
-    """ Test the deafult ZCC behavior of saving losses and metrics in eager and non-eager modes."""
+    """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
     if not eager_mode:
