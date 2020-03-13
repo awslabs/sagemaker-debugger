@@ -176,7 +176,7 @@ def test_keras_v2_save_all(script_mode: bool = False):
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
                     "save_steps": "0,1,2,3",
-                    "save_all": true,
+                    "save_all": true
                 }
             }
             """
