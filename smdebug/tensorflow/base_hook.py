@@ -422,8 +422,9 @@ class TensorflowBaseHook(BaseHook):
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
 
-        # From TF 2.2, executing_eagerly_outside_functions() should be called using
-        # tf.compat.v1.executing_eagerly_outside_functions()
+        # From TF 2.2, executing_eagerly_outside_functions() can be used as
+        # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
+        # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
         if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
             return
         if self._gradients_set is False:
@@ -446,8 +447,9 @@ class TensorflowBaseHook(BaseHook):
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
 
-        # From TF 2.2, executing_eagerly_outside_functions() should be called using
-        # tf.compat.v1.executing_eagerly_outside_functions()
+        # From TF 2.2, executing_eagerly_outside_functions() can be used as
+        # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
+        # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
         if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
             return
         # since this is done for each variable at a time for keras, not checking if set already
