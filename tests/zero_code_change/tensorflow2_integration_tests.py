@@ -46,7 +46,7 @@ def get_keras_data():
 
 
 def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
-    """ Works as intended. """
+    """ Test the deafult ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
     if not eager_mode:
@@ -86,7 +86,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
 def helper_test_keras_v2_json_config(
     json_file_contents, script_mode: bool = False, eager_mode: bool = True
 ):
-    """ Works as intended. """
+    """ Tests ZCC with custom hook configs """
     smd.del_hook()
     tf.keras.backend.clear_session()
     if not eager_mode:
@@ -127,10 +127,12 @@ def helper_test_keras_v2_json_config(
 
 
 def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):
+    # Test default ZCC behavior
     helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
 def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool = True):
+    # Test multiple collections included in hook json
     json_file_contents = """
             {
                 "S3OutputPath": "s3://sagemaker-test",
@@ -164,6 +166,7 @@ def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool 
 
 
 def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
+    # Test save all through hook config
     json_file_contents = """
             {
                 "S3OutputPath": "s3://sagemaker-test",
