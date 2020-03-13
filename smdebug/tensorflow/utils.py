@@ -4,17 +4,12 @@ import json
 from enum import Enum
 
 # Third Party
-from tensorflow.contrib.distribute import MirroredStrategy as ContribMirroredStrategy
+import tensorflow as tf
+from packaging import version
 from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.modes import ModeKeys
-
-try:
-    import tensorflow.compat.v1 as tf
-except ImportError:
-    # For TF 1.13
-    import tensorflow as tf
 
 
 class TFDistributionStrategy(Enum):
@@ -234,7 +229,9 @@ def get_chief_worker_from_tf_config(tf_config_json: dict):
 
 
 def is_mirrored_strategy(strat):
-    return isinstance(strat, (tf.distribute.MirroredStrategy, ContribMirroredStrategy))
+    return isinstance(
+        strat, (tf.distribute.MirroredStrategy, tf.compat.v1.distribute.MirroredStrategy)
+    )
 
 
 def is_keras_optimizer(obj):
@@ -295,3 +292,7 @@ def get_keras_mode(mode):
         return KerasModeKeys.TEST
     elif mode == ModeKeys.PREDICT:
         return KerasModeKeys.PREDICT
+
+
+def is_tf_version_2x():
+    return version.parse(tf.__version__) >= version.parse("2.0.0")

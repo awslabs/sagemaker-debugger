@@ -3,7 +3,7 @@ import typing as Tuple
 
 # Third Party
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -186,8 +186,8 @@ def get_train_op_and_placeholders():
     num_classes = 10  # MNIST total classes (0-9 digits)
 
     # tf Graph input
-    X = tf.compat.v1.placeholder("float", [None, num_input])
-    Y = tf.compat.v1.placeholder("float", [None, num_classes])
+    X = tf.placeholder("float", [None, num_input])
+    Y = tf.placeholder("float", [None, num_classes])
 
     # Store layers weight & bias
     weights = {
@@ -216,18 +216,18 @@ def get_train_op_and_placeholders():
     prediction = tf.nn.softmax(logits)
 
     # Define loss and optimizer
-    loss_op = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=Y, logits=logits)
+    loss_op = tf.losses.softmax_cross_entropy(onehot_labels=Y, logits=logits)
     # Using a functional loss will fail because TF optimizes away the mean.
     # See https://stackoverflow.com/questions/58532324/tf-gradients-dont-flow-through-tf-reduce-mean
     # loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=Y))
-    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     train_op = optimizer.minimize(loss_op)
     # Evaluate model
     correct_pred = tf.equal(tf.argmax(prediction, 1), tf.argmax(Y, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
     # Initialize the variables (i.e. assign their default value)
-    init = tf.compat.v1.global_variables_initializer()
+    init = tf.global_variables_initializer()
     return train_op, X, Y
 
 

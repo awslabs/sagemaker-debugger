@@ -15,7 +15,7 @@ from smdebug.exceptions import IndexReaderException
 
 
 def test_tf_device_name_serialize_and_deserialize():
-    import tensorflow as tf
+    import tensorflow.compat.v1 as tf
 
     device_name = tf.test.gpu_device_name()
     if not bool(device_name):
