@@ -82,7 +82,6 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
         if not eager_mode:
             assert len(trial.tensor_names(collection="gradients")) > 0
-        assert len(trial.tensor_names(collection="weights")) > 0
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
