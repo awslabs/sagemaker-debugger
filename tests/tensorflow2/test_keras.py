@@ -7,9 +7,6 @@ This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
 
-# Standard Library
-from tempfile import TemporaryDirectory
-
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
@@ -279,19 +276,18 @@ def test_include_collections(out_dir, tf_eager_mode):
 
 
 @pytest.mark.slow
-def test_hook_from_json(tf_eager_mode, monkeypatch):
-    with TemporaryDirectory() as out_dir:
-        monkeypatch.setenv(
-            CONFIG_FILE_PATH_ENV_STR,
-            "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
-        )
-        hook = smd.KerasHook.create_from_json_file()
-        helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
+def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
+    )
+    hook = smd.KerasHook.create_from_json_file()
+    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
-        trial = smd.create_trial(path=out_dir)
-        # can't save gradients in TF 2.x
-        assert len(trial.tensor_names()) == 6
-        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
-        assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-        assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
+    trial = smd.create_trial(path=out_dir)
+    # can't save gradients in TF 2.x
+    assert len(trial.tensor_names()) == 6
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
