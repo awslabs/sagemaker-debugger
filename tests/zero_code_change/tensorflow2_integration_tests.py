@@ -125,7 +125,7 @@ def test_keras_v2_default(script_mode: bool = False):
 def test_keras_v2_multi_collections(script_mode: bool = False):
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/pytorch/test_json_configs/test_hook_multi_collections.json"
+    ] = "tests/zero_code_change/tf2_zcc_json/test_hook_multi_collections.json"
     # eager mode
     helper_test_keras_v2_json_config(script_mode=script_mode)
     # non-eager mode
@@ -135,7 +135,7 @@ def test_keras_v2_multi_collections(script_mode: bool = False):
 def test_keras_v2_save_all(script_mode: bool = False):
     os.environ[
         CONFIG_FILE_PATH_ENV_STR
-    ] = "tests/pytorch/test_json_configs/test_hook_save_all_hook.json"
+    ] = "tests/zero_code_change/tf2_zcc_json/test_hook_save_all_hook.json"
     # eager mode
     helper_test_keras_v2_json_config(script_mode=script_mode)
     # non-eager mode
