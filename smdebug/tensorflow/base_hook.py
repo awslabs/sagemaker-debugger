@@ -6,6 +6,7 @@ from typing import List, Set
 # Third Party
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute.distribute_lib import _DefaultDistributionStrategy
+from tensorflow.python.framework import ops
 
 # First Party
 from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
@@ -420,7 +421,11 @@ class TensorflowBaseHook(BaseHook):
         # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
-        if is_tf_version_2x() and tf.executing_eagerly():
+
+        # From TF 2.2, executing_eagerly_outside_functions() can be used as
+        # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
+        # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
+        if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
             return
         if self._gradients_set is False:
             if gradients is not None:
@@ -441,7 +446,11 @@ class TensorflowBaseHook(BaseHook):
         # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
         # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
         # support to pass names and values from TF side.
-        if is_tf_version_2x() and tf.executing_eagerly():
+
+        # From TF 2.2, executing_eagerly_outside_functions() can be used as
+        # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
+        # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
+        if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
             return
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
