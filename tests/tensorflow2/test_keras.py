@@ -16,6 +16,7 @@ from tests.tensorflow.utils import create_trial_fast_refresh
 import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
+from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
@@ -229,6 +230,58 @@ def test_weights_collections(out_dir, tf_eager_mode):
         include_collections=[CollectionKeys.WEIGHTS],
     )
 
+    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
+
+    trial = smd.create_trial(path=out_dir)
+    # can't save gradients in TF 2.x
+    assert len(trial.tensor_names()) == 6
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
+
+
+@pytest.mark.slow
+def test_include_collections(out_dir, tf_eager_mode):
+    include_collections = [
+        CollectionKeys.WEIGHTS,
+        CollectionKeys.BIASES,
+        CollectionKeys.GRADIENTS,
+        CollectionKeys.LOSSES,
+        CollectionKeys.OUTPUTS,
+        CollectionKeys.METRICS,
+        CollectionKeys.OPTIMIZER_VARIABLES,
+    ]
+    save_config = SaveConfig(save_interval=3)
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=save_config,
+        include_collections=include_collections,
+        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+    )
+    helper_keras_fit(out_dir, hook=hook, steps=["train", "eval", "predict"], eager=tf_eager_mode)
+
+    trial = smd.create_trial(path=out_dir)
+    # can't save gradients in TF 2.x
+    if tf_eager_mode:
+        assert len(trial.tensor_names()) == 8
+    else:
+        assert len(trial.tensor_names()) == 18
+        assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
+        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 3
+
+
+@pytest.mark.slow
+def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
+    monkeypatch.setenv(
+        CONFIG_FILE_PATH_ENV_STR,
+        "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
+    )
+    hook = smd.KerasHook.create_from_json_file()
     helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     trial = smd.create_trial(path=out_dir)
