@@ -69,7 +69,6 @@ class Hook(CallbackHook):
                     return hvd.size()
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
-
         # Return default
         return 1
 
@@ -88,7 +87,6 @@ class Hook(CallbackHook):
                     return f"worker_{hvd.rank()}"
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
-
         # Return default
         return DEFAULT_WORKER_NAME
 

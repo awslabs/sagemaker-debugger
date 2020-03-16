@@ -1,6 +1,7 @@
 # Third Party
 # Standard Library
 import shutil
+import tempfile
 from multiprocessing import Manager, Process
 from os import makedirs
 
@@ -156,15 +157,18 @@ def test_json_params_sagemaker():
         assert hook_params["tensorboard_dir"] == sim.tensorboard_dir
 
 
-def test_is_first_process():
+@pytest.mark.parametrize("dir", [True, False])
+def test_is_first_process(dir):
     for _ in range(10):
-        helper_test_is_first_process()
+        helper_test_is_first_process(dir)
 
 
-def helper_test_is_first_process():
-    path = "/tmp/first_process"
+def helper_test_is_first_process(dir):
+    temp_dir = tempfile.TemporaryDirectory()
+    path = temp_dir.name
     shutil.rmtree(path, ignore_errors=True)
-    makedirs(path)
+    if dir:
+        makedirs(temp_dir.name)
     process_list = []
 
     def helper(fn, arg, shared_list):
@@ -181,4 +185,3 @@ def helper_test_is_first_process():
         p.join()
 
     assert results.count(True) == 1, f"Failed for path: {path}"
-    shutil.rmtree(path, ignore_errors=True)

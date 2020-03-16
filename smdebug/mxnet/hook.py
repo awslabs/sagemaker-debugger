@@ -67,8 +67,6 @@ class Hook(CallbackHook):
                 return f"worker_{hvd.rank()}"
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-        if self.first_process is False:
-            return "non_chief_worker"
 
         return DEFAULT_WORKER_NAME
 
@@ -80,7 +78,6 @@ class Hook(CallbackHook):
                 return hvd.size()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
-
         return 1
 
     def _cleanup(self):

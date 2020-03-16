@@ -10,6 +10,7 @@ from typing import Dict, List
 
 # First Party
 from smdebug.core.config_constants import (
+    CLAIM_FILENAME,
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
@@ -93,12 +94,12 @@ def is_first_process(path):
     :return: boolean that indicates if the caller was the
     first process to execute the fn.
     """
-    ensure_dir(path, is_file=False)
-    filename = os.path.join(path, "claim.smd")
+    filename = os.path.join(path, CLAIM_FILENAME)
     s3, _, _ = is_s3(path)
     if s3:
         return True  # Cannot Implement This Functionality for S3
     else:
+        ensure_dir(filename, is_file=True)
         try:
             fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             os.close(fd)
@@ -107,16 +108,18 @@ def is_first_process(path):
             return False
 
 
-def remove_claim_file(path):
+def remove_claim_file(path: str) -> None:
     """
     This function deletes the claim.smd file created by the is_first_process fn
     when the hook is closed.
 
     :param path: path to the trial
-    :return: boolean that indicates if the caller was the
-    first process to execute the fn.
+    :return: None
     """
-    os.remove(os.path.join(path, "claim.smd"))
+    try:
+        os.remove(os.path.join(path, CLAIM_FILENAME))
+    except FileNotFoundError:
+        pass
 
 
 def list_files_in_directory(directory, file_regex=None):

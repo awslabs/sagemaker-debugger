@@ -1,6 +1,8 @@
 # Standard Library
 import atexit
+import os
 import re as _re
+import socket
 from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Optional, Set, Union
 
@@ -399,6 +401,10 @@ class BaseHook:
             if self._get_num_workers() == 1:
                 if is_first_process(self.out_dir):
                     self.first_process = True
+                    self.logger.info(
+                        f"Hook is writing from the hook with pid: {os.getpid()}\n"
+                        f"and hostname: {socket.gethostname()}"
+                    )
                 else:
                     self.first_process = False
                     self.logger.warn(
