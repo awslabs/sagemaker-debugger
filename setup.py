@@ -12,8 +12,8 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 - TensorBoard support
 
 """
-
 # Standard Library
+import contextlib
 import os
 import sys
 from datetime import date
@@ -41,13 +41,46 @@ def compile_summary_protobuf():
     return os.system(cmd)
 
 
+@contextlib.contextmanager
+def remember_cwd():
+    """
+    Restore current directory when exiting context
+    """
+    curdir = os.getcwd()
+    try:
+        yield
+    finally:
+        os.chdir(curdir)
+
+
+def scan_git_secrets():
+    from subprocess import check_call
+    import os
+    import tempfile
+    import shutil
+
+    if os.path.exists(".git/hooks/pre-commit"):
+        print("git secrets: pre-commit hook already present")
+        return
+
+    if shutil.which("git-secrets"):
+        check_call(["git", "secrets", "--scan"])
+        print("scanned for git secrets")
+
+    else:
+        with tempfile.TemporaryDirectory(prefix="git_secrets_") as tmpdir:
+            check_call(["git", "clone", "https://github.com/awslabs/git-secrets.git", tmpdir])
+            check_call([os.path.join(tmpdir, "git-secrets"), "--scan"])
+        print("scanned for git secrets")
+
+
 def build_package(version):
     packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
         version=version,
         long_description="\n".join(DOCLINES[1:]),
-        long_description_content_type="text/x-rst",
+        long_description_content_type="text/markdown",
         author="AWS DeepLearning Team",
         description=DOCLINES[0],
         url="https://github.com/awslabs/sagemaker-debugger",
@@ -77,31 +110,6 @@ if compile_summary_protobuf() != 0:
     sys.exit(1)
 
 
-def scan_git_secrets():
-    import subprocess
-    import os
-    import shutil
-
-    def git(*args):
-        return subprocess.call(["git"] + list(args))
-
-    shutil.rmtree("/tmp/git-secrets", ignore_errors=True)
-    git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    os.chdir("/tmp/git-secrets")
-    subprocess.check_call(["make"] + ["install"])
-    os.chdir(dir_path)
-    git("secrets", "--install")
-    git("secrets", "--register-aws")
-    return git("secrets", "--scan", "-r")
-
-
-if scan_git_secrets() != 0:
-    import sys
-
-    sys.exit(1)
-
-
 def detect_smdebug_version():
     if "--release" in sys.argv:
         sys.argv.remove("--release")
@@ -111,4 +119,5 @@ def detect_smdebug_version():
 
 
 version = detect_smdebug_version()
+scan_git_secrets()
 build_package(version=version)

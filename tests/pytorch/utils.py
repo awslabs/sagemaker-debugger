@@ -40,7 +40,6 @@ def train(model, hook, device, optimizer, num_steps=500, set_modes=False):
         hook.set_mode(modes.TRAIN)
 
     model.train()
-    count = 0
     # for batch_idx, (data, target) in enumerate(train_loader):
     for i in range(num_steps):
         batch_size = 32
@@ -49,6 +48,7 @@ def train(model, hook, device, optimizer, num_steps=500, set_modes=False):
         optimizer.zero_grad()
         output = model(Variable(data, requires_grad=True))
         loss = F.nll_loss(output, target)
+        hook.record_tensor_value("nll_loss", tensor_value=loss)
         loss.backward()
         optimizer.step()
 

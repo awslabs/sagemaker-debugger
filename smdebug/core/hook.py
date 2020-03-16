@@ -3,6 +3,7 @@ import atexit
 import os
 import re as _re
 import socket
+import time
 from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Optional, Set, Union
 
@@ -57,13 +58,29 @@ logger = get_logger()
 
 
 class ScalarCache(object):
-    def __init__(self, scalar_name, scalar_val, mode, sm_metric, write_tb, write_event):
+    def __init__(
+        self, scalar_name, scalar_val, mode, sm_metric, write_tb, write_event, timestamp=None
+    ):
+        """
+
+        Args:
+            scalar_name: Name of the scalar to be stored
+            scalar_val: Value of scalar
+            mode: Modekey
+            sm_metric: True or False indicates whether the scalar will be written to SageMaker
+            write_tb: True or False indicates whether scalar will be written to Tensorboard
+            write_event: True or False indicates whether scalar will be writen to event file.
+            timestamp: Timestamp at which this object is created.
+        The 'save_scalar()' method creates objects of this class and caches the scalars that users intends to store.
+        These objects will be written to disk in the next available step.
+        """
         self.name = scalar_name
         self.value = scalar_val
         self.mode = mode
         self.sm_metric = sm_metric
         self.write_tb = write_tb
         self.write_event = write_event
+        self.timestamp = timestamp if timestamp else time.time()
 
 
 class BaseHook:
@@ -95,7 +112,9 @@ class BaseHook:
         Attributes
         ----------
         out_dir : str
-            represents a path into which outputs will be written to
+            represents a path into which outputs will be written to. The hook raises error if the 'out_dir' already
+            exists. The implementation does not support merging the tensors generated in current job with tensors
+            from previous job. Hence, ensure that the 'out_dir' does not exist.
         dry_run : bool
             when dry run is set, behavior is only described in the log file.
             tensors are not actually saved.
@@ -611,25 +630,29 @@ class BaseHook:
             sm_metric = scalar_obj.sm_metric
             write_tb = scalar_obj.write_tb
             write_event = scalar_obj.write_event
+            timestamp = scalar_obj.timestamp
             if self.metrics_writer and sm_metric:
                 self.metrics_writer.log_metric(
                     scalar_name + "_" + scalar_mode.name,
                     scalar_val,
+                    timestamp=timestamp,
                     iteration_number=self.mode_steps[scalar_mode],
                 )
             if write_tb:
                 tb_writer = self._maybe_get_tb_writer()
                 if tb_writer:
-                    tb_writer.write_scalar_summary(scalar_name, scalar_val, self.step)
+                    tb_writer.write_scalar_summary(
+                        scalar_name, scalar_val, self.step, timestamp=timestamp
+                    )
             if write_event:
                 if self.writer is None:
                     self._initialize_writers()
-                self._write_raw_tensor_simple(scalar_name, scalar_val)
+                self._write_raw_tensor_simple(scalar_name, scalar_val, timestamp=timestamp)
 
         self.scalar_cache = []
 
     # Fix step number for saving scalar and tensor
-    def save_scalar(self, name, value, sm_metric=False):
+    def save_scalar(self, name, value, sm_metric=False, timestamp: float = None):
         """
         Call save_scalar at any point in the training script to log a scalar value,
         such as a metric or any other value.
@@ -642,7 +665,9 @@ class BaseHook:
         val = self._make_numpy_array(value)
         if val.size != 1:
             raise TypeError(f"{name} has non scalar value of type: {type(value)}")
-        scalar_obj = ScalarCache(name, val, self.mode, sm_metric, write_tb=True, write_event=True)
+        scalar_obj = ScalarCache(
+            name, val, self.mode, sm_metric, write_tb=True, write_event=True, timestamp=timestamp
+        )
         self.scalar_cache.append(scalar_obj)
 
     def _write_raw_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
@@ -652,7 +677,7 @@ class BaseHook:
                 self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
                 break
 
-    def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None):
+    def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):
         # tensor_ref is used by TF
         # todo: if fp16, check perf of saving as fp16 in proto vs as fp32
         numpy_tensor_value = self._make_numpy_array(tensor_value)
@@ -665,6 +690,7 @@ class BaseHook:
                     tname=tensor_name,
                     mode=self.mode,
                     mode_step=self.mode_steps[self.mode],
+                    timestamp=timestamp,
                 )
 
     def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
