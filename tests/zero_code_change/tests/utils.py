@@ -15,6 +15,24 @@ def build_json(
     save_all=False,
     save_interval=None,
 ):
+    """
+    :param out_dir: str
+        represents a path into which outputs will be written to
+    :param include_workers: str
+        makes the hook save data from all workers
+    :param include_collections: list of str representing collection names
+            takes as input the collections which should be saved.
+            if this is empty, it defaults to including all collections from code
+
+    :param path: str
+        path at which config.json is found.
+    :param save_all:  bool
+            a shortcut for saving all tensors in the model.
+            they are all saved in the collection `all`
+    :param save_interval: int
+            step interval at which the hook will save tensors
+    :return: str absolute path of the json generated
+    """
     if include_collections is None:
         include_collections = ["weights", "gradients"]
     if path is None:
