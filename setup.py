@@ -29,6 +29,7 @@ DOCLINES = (__doc__ or "").split("\n")
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy>1.16.0,<2.0.0", "packaging", "boto3>=1.10.32"]
+EXTRAS_REQUIRE = dict(test=["tensorflow==1.15.0", "mxnet", "tensorflow_datasets"])
 
 
 @contextlib.contextmanager
@@ -87,6 +88,7 @@ def build_package(version):
         ],
         install_requires=INSTALL_REQUIRES,
         setup_requires=["pytest-runner"],
+        extras_require=EXTRAS_REQUIRE,
         tests_require=TESTS_PACKAGES,
         python_requires=">=3.6",
         license="Apache License Version 2.0",
