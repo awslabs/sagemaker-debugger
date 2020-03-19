@@ -60,6 +60,16 @@ def get_logger(name="smdebug"):
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
+        if "SM_TRAINING_ENV" in os.environ:
+            # TRSL-522
+            sm_log_fh = logging.FileHandler(
+                os.environ.get("SMDEBUG_SM_LOGFILE", "/opt/ml/output/failure")
+            )
+            sm_log_fh.setLevel(
+                logging.getLevelName((os.environ.get("SMDEBUG_SM_LOGLEVEL", "INFO")))
+            )
+            logger.addHandler(sm_log_fh)
+
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setFormatter(log_formatter)
 
