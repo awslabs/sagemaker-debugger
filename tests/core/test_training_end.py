@@ -1,5 +1,6 @@
 # Standard Library
 import shutil
+import uuid
 
 # Third Party
 import pytest
@@ -30,7 +31,8 @@ def test_negative_local_training_end():
 
 @pytest.mark.slow  # 0:04 to run
 def test_s3_training_end():
-    s3dir = "s3://smdebugcodebuildtest/training_end_test_dir"
+    s3key = str(uuid.uuid4())
+    s3dir = f"s3://smdebugcodebuildtest/ok_to_delete_{s3key}"
     _, bucket, key = is_s3(s3dir)
     f = TSAccessS3(bucket_name=bucket, key_name=key)
     f.close()
