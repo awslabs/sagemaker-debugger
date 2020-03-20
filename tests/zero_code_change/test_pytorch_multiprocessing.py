@@ -11,7 +11,7 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from tests.zero_code_change.tests.utils import build_json
+from tests.zero_code_change.utils import build_json
 from torchvision import datasets, transforms
 
 # First Party

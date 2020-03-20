@@ -2,7 +2,7 @@
 import os
 
 # Third Party
-from tests.zero_code_change.tests.utils import build_json
+from tests.zero_code_change.utils import build_json
 
 # First Party
 from smdebug.trials import create_trial

@@ -1,6 +1,6 @@
 # First Party
 # Third Party
-from tests.zero_code_change.tests.utils import build_json
+from tests.zero_code_change.utils import build_json
 
 from smdebug.trials import create_trial
 
