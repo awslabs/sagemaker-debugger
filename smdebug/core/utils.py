@@ -19,12 +19,8 @@ from smdebug.core.config_constants import (
 from smdebug.exceptions import IndexReaderException
 
 
-def ensure_dir(file_path, is_file=True):
-    if is_file:
-        directory = os.path.dirname(file_path)
-    else:
-        directory = file_path
-    if directory and not os.path.exists(directory):
+def ensure_dir(directory):
+    if os.path.exists(directory) is False:
         os.makedirs(directory, exist_ok=True)
 
 
@@ -87,19 +83,30 @@ def is_first_process(path):
     This function is used to determine the caller of the process
     is the first process to do so.
 
-    It uses the os.O_EXCL flag (https://linux.die.net/man/3/open)
-    to fail if the the file already exists, i.e another process has
+    The purpose this function serves is to allow only one hook process
+    to write in the case the user is unintentionally using the debugger
+    with a training script that uses an unsupported distributed training
+    process.
+
+    In the case of s3 however, each hook process overwrites data written by the
+    other hook processes and hence this is no possibility of race conditions,
+    so this fn simply returns True.
+
+
+    For non s3 mode, it uses the os.O_EXCL flag (https://linux.die.net/man/3/open)
+    to determine if the the file already exists, i.e another process has
     written first.
+
     :param path: path to the trial
     :return: boolean that indicates if the caller was the
     first process to execute the fn.
     """
-    filename = os.path.join(path, CLAIM_FILENAME)
     s3, _, _ = is_s3(path)
     if s3:
         return True  # Cannot Implement This Functionality for S3
     else:
-        ensure_dir(filename, is_file=True)
+        filename = os.path.join(path, CLAIM_FILENAME)
+        ensure_dir(filename)
         try:
             fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             os.close(fd)
@@ -116,8 +123,12 @@ def remove_claim_file(path: str) -> None:
     :param path: path to the trial
     :return: None
     """
+    filename = os.path.join(path, CLAIM_FILENAME)
+    s3, _, _ = is_s3(path)
+    if s3:
+        return
     try:
-        os.remove(os.path.join(path, CLAIM_FILENAME))
+        os.remove(filename)
     except FileNotFoundError:
         pass
 

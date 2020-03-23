@@ -17,7 +17,7 @@ from smdebug.core.utils import ensure_dir, is_s3
 
 def test_local_training_end():
     localdir = "/tmp/training_end_test_dir"
-    ensure_dir(localdir, is_file=False)
+    ensure_dir(localdir)
     training_has_ended(localdir)
     assert has_training_ended(localdir) is True
     shutil.rmtree(localdir)
