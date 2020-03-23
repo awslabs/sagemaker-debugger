@@ -109,8 +109,8 @@ def is_first_process(path):
     if s3:
         return True  # Cannot Implement This Functionality for S3
     else:
+        ensure_dir(path, is_file=False)
         filename = os.path.join(path, CLAIM_FILENAME)
-        ensure_dir(path)
         try:
             fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             os.close(fd)
