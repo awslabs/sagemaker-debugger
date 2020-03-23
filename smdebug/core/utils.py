@@ -19,8 +19,12 @@ from smdebug.core.config_constants import (
 from smdebug.exceptions import IndexReaderException
 
 
-def ensure_dir(directory):
-    if os.path.exists(directory) is False:
+def ensure_dir(file_path, is_file=True):
+    if is_file:
+        directory = os.path.dirname(file_path)
+    else:
+        directory = file_path
+    if directory and not os.path.exists(directory):
         os.makedirs(directory, exist_ok=True)
 
 
