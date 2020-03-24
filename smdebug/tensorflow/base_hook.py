@@ -368,13 +368,6 @@ class TensorflowBaseHook(BaseHook):
             "using the methods hook.set_gradients() and hook.set_optimizer_variables()."
         )
 
-    def _log_unsupported_tape(self, tape):
-        self.logger.warning(
-            f"Unsupported optimizer {tape} {tape.__class__}, cannot automatically find "
-            "gradients. Please specify the gradient tensors and optimizer variables "
-            "using the methods hook.set_gradients() and hook.set_optimizer_variables()."
-        )
-
     def _get_collections_with_tensor(self, tf_tensor_name) -> Set["Collection"]:
         self._assert_prep()
         if self.tape:
@@ -417,16 +410,6 @@ class TensorflowBaseHook(BaseHook):
             self.set_optimizer_variables(opt.variables())
             return original_apply_gradients(opt, grads_and_vars, global_step, name)
 
-        # def new_tf2_apply_gradients(opt, grads_and_vars, name=None):
-        #     # keras models can use tf optimizer through the wrapper
-        #     # keras/optimizers/TFOptimizer
-        #     self.set_gradients(gradients_and_variables=grads_and_vars)
-        #     self.set_optimizer_variables(opt.variables())
-        #     return original_apply_gradients(opt, grads_and_vars, name)
-        #
-        # if is_tf_version_2x():
-        #     optimizer.__class__.apply_gradients = new_tf2_apply_gradients
-        # else:
         optimizer.__class__.apply_gradients = new_apply_gradients
         return optimizer
 

@@ -73,10 +73,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 else:
                     self.logger.info(
-                        "Disabling SMDebug as it does not support eager mode"
-                        "for TF versions 1.x"
-                        "Disabling SMDebug as it does not support eager mode"
-                        "for TF versions 1.x"
+                        "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
                     )
                     self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
