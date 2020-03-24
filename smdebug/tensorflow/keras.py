@@ -378,8 +378,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
         # weights, metrics
-        if batch:
-            self._save_metrics(batch, logs)
+        self._save_metrics(batch, logs)
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
