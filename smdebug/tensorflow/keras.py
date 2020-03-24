@@ -733,22 +733,21 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
         if self._get_collections_to_save_for_step():
-            if grads is not None:
-                for idx, g in enumerate(grads):
-                    self._save_for_tensor(
-                        tensor_name="gradient/" + str(idx) + str(self.step),
-                        tensor_value=g,
-                        check_before_write=False,
-                    )
-            self._save_for_tensor(tensor_name="loss", tensor_value=loss, check_before_write=False)
+            self._save_for_tensor(tensor_name="loss", tensor_value=loss, check_before_write=True)
             self._add_metric("acc")
-            self._save_for_tensor(tensor_name="acc", tensor_value=metric, check_before_write=False)
-            if vars is not None:
-                for idx, v in enumerate(vars):
+            self._save_for_tensor(tensor_name="acc", tensor_value=metric, check_before_write=True)
+            if grads is not None and vars is not None:
+                for idx, (g,v) in enumerate(zip(grads, vars)):
+                    layer = v.name.split(':')[0]
+                    self._save_for_tensor(
+                        tensor_name="gradients/" + layer + "Grad",
+                        tensor_value=g,
+                        check_before_write=True,
+                    )
                     self._save_for_tensor(
                         tensor_name="weights/" + v.name,
                         tensor_value=v.value(),
-                        check_before_write=False,
+                        check_before_write=True,
                     )
         if self._exported_collections is False:
             # in keras, these collections change when mode changes

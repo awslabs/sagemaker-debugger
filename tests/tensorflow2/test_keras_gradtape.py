@@ -103,11 +103,10 @@ def test_keras_gradtape(out_dir, saveall):
     helper_keras_gradtape(trial_dir=out_dir, hook=hook, steps=["train", "eval", "predict", "train"])
 
     trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 22
-        # assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-        # assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+        assert len(trial.tensor_names()) == 10
+        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
