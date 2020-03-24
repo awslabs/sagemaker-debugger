@@ -133,7 +133,7 @@ class CollectionManager(BaseCollectionManager):
         if create_default:
             for n in DEFAULT_TF_COLLECTIONS:
                 self.create_collection(n)
-            self.get(CollectionKeys.BIASES).include("bias")
+            self.get(CollectionKeys.BIASES).include("^(?!gradient).*bias")
             self.get(CollectionKeys.WEIGHTS).include("^weights/.*/((?!bias).)*$")
             self.get(CollectionKeys.LOSSES).include(".*loss.*")
             self.get(CollectionKeys.GRADIENTS).include("^gradient")
