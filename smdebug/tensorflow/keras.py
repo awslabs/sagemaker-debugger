@@ -55,6 +55,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
+        self.tape = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -72,7 +73,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 else:
                     self.logger.info(
-                        "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
+                        "Disabling SMDebug as it does not support eager mode"
+                        "for TF versions 1.x"
+                        "Disabling SMDebug as it does not support eager mode"
+                        "for TF versions 1.x"
                     )
                     self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
@@ -346,10 +350,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             coll_name = CollectionKeys.METRICS
         coll = self.collection_manager.get(coll_name)
-        if not self.tape:
-            coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
-        else:
-            coll.add_tensor_name(metric_name)
+        coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
     def _save_metrics(self, batch, logs, force_save=False):
@@ -717,7 +718,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape = tape
         return tape
 
-    def update_step(self, grads, vars, loss, metric, tape):
+    def forward_pre_hook(self, tape):
         self.tape = tape
         self.set_mode(ModeKeys.TRAIN)
         if self._is_not_supported():
@@ -731,16 +732,27 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # as user's code after hook might add collections
             self._prepare_collections()
             self.prepared_collections = True
+
         self._increment_step()
+
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
+
+        if self._exported_collections is False:
+            # in keras, these collections change when mode changes
+            # but rest of the project isn't yet capable of handling this
+            # this means that collections like outputs, or other collections with intermediate tensors
+            # will only have tensor names from first mode
+
+            # this means sometimes collections will be exported after 1 step
+            self.export_collections()
+            self._exported_collections = True
+
+    def update_step(self, grads, vars):
         if self._get_collections_to_save_for_step():
-            self._save_for_tensor(tensor_name="loss", tensor_value=loss, check_before_write=True)
-            self._add_metric("acc")
-            self._save_for_tensor(tensor_name="acc", tensor_value=metric, check_before_write=True)
             if grads is not None and vars is not None:
-                for idx, (g,v) in enumerate(zip(grads, vars)):
-                    layer = v.name.split(':')[0]
+                for idx, (g, v) in enumerate(zip(grads, vars)):
+                    layer = v.name.split(":")[0]
                     self._save_for_tensor(
                         tensor_name="gradients/" + layer + "Grad",
                         tensor_value=g,
@@ -751,12 +763,31 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         tensor_value=v.value(),
                         check_before_write=True,
                     )
-        if self._exported_collections is False:
-            # in keras, these collections change when mode changes
-            # but rest of the project isn't yet capable of handling this
-            # this means that collections like outputs, or other collections with intermediate tensors
-            # will only have tensor names from first mode
 
-            # this means sometimes collections will be exported after 1 step
-            self.export_collections()
-            self._exported_collections = True
+    def record_tensor_value(self, tensor_name, tensor_value, tape):
+        self.tape = tape
+
+        def add_metric_to_coll(self, tensor_name, tensor_value):
+            if tensor_name in self.tensor_to_collections:
+                return
+
+            matched_coll = set()
+            if tensor_name in ["loss", "val_loss"]:
+                coll_name = CollectionKeys.LOSSES
+            else:
+                coll_name = CollectionKeys.METRICS
+            coll = self.collection_manager.get(coll_name)
+            coll.add_tensor_name(tensor_name)
+            matched_coll.add(coll)
+            if self.save_all:
+                coll = self.collection_manager.get(CollectionKeys.ALL)
+                coll.add_tensor_name(tensor_name)
+                matched_coll.add(coll)
+            self.tensor_to_collections[tensor_name] = matched_coll
+
+        add_metric_to_coll(self, tensor_name, tensor_value)
+        if self._is_collection_being_saved_for_step(
+            CollectionKeys.METRICS
+        ) or self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
+            self._initialize_writers(only_initialize_if_missing=True)
+            self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)

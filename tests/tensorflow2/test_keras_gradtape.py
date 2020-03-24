@@ -83,14 +83,16 @@ def helper_keras_gradtape(
             dataset_labels = labels
             labels = tf.one_hot(labels, depth=10)
             with tf.GradientTape(persistent=True) as tape:
+                hook.forward_pre_hook(tape)
                 logits = model(data, training=True)  # (32,10)
                 loss_value = cce(labels, logits)
-                # layer = model.layers[1]
-                # vars = layer
+            hook.record_tensor_value("loss", loss_value, tape)
             grads = tape.gradient(loss_value, model.variables)
+            # hook.forward_hook(zip(grads, model.variables))
             opt.apply_gradients(zip(grads, model.variables))
             acc = train_acc_metric(dataset_labels, logits)
-            hook.update_step(grads, model.variables, loss_value, acc, tape)
+            hook.record_tensor_value("accuracy", acc, tape)
+            hook.update_step(grads, model.variables)
         train_acc_metric.reset_states()
 
     hook.close()
@@ -172,7 +174,7 @@ def test_include_regex(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
 
-    assert len(tnames) == 4
+    assert len(tnames) == 8
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
@@ -224,9 +226,8 @@ def test_include_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 18
+    assert len(trial.tensor_names()) == 10
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
