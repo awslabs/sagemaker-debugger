@@ -5,6 +5,9 @@ set -o pipefail
 CORE_REPO="https://github.com/awslabs/sagemaker-debugger.git"
 RULES_REPO="https://$RULES_ACCESS_USER:$RULES_ACCESS_TOKEN@github.com/awslabs/sagemaker-debugger-rules.git"
 SMDEBUG_S3_BINARY="s3://smdebug-nightly-binaries/$(date +%F)/"
+if [ "$stable_release" = "enable" ]; then
+  SMDEBUG_S3_BINARY="s3://smdebug-stable-release/$(date +%F)/";
+fi
 
 # Uninstall the built-in version of smdebug and assert that it no longer exists.
 pip uninstall -y smdebug

@@ -25,7 +25,7 @@ phases:
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
-        - cd $CODEBUILD_SRC_DIR
+        - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
         - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets

@@ -4,7 +4,7 @@
 
 #### Style and formatting:
 
-I have run `pre-commit install && pre-commit run --all-files` to ensure that auto-formatting happens with every commit.
+I have run `pre-commit install` to ensure that auto-formatting happens with every commit.
 
 #### Issue number, if available
 
