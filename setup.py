@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """ Amazon SageMaker Debugger is an offering from AWS which helps you automate the debugging of machine learning training jobs.
 This library powers Amazon SageMaker Debugger, and helps you develop better, faster and cheaper models by catching common errors quickly.
 It allows you to save tensors from training jobs and makes these tensors available for analysis, all through a flexible and powerful API.
@@ -12,14 +12,13 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 - TensorBoard support
 
 """
+
 # Standard Library
-import contextlib
 import os
 import sys
 from datetime import date
 
 # Third Party
-import compile_protobuf
 import setuptools
 
 # First Party
@@ -31,41 +30,18 @@ TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy>1.16.0,<2.0.0", "packaging", "boto3>=1.10.32"]
 
 
-@contextlib.contextmanager
-def remember_cwd():
-    """
-    Restore current directory when exiting context
-    """
-    curdir = os.getcwd()
-    try:
-        yield
-    finally:
-        os.chdir(curdir)
-
-
-def scan_git_secrets():
-    from subprocess import check_call
-    import os
-    import tempfile
-    import shutil
-
-    if os.path.exists(".git/hooks/pre-commit"):
-        print("git secrets: pre-commit hook already present")
-        return
-
-    if shutil.which("git-secrets"):
-        check_call(["git", "secrets", "--scan"])
-        print("scanned for git secrets")
-
-    else:
-        with tempfile.TemporaryDirectory(prefix="git_secrets_") as tmpdir:
-            check_call(["git", "clone", "https://github.com/awslabs/git-secrets.git", tmpdir])
-            check_call([os.path.join(tmpdir, "git-secrets"), "--scan"])
-        print("scanned for git secrets")
+def compile_summary_protobuf():
+    proto_paths = ["smdebug/core/tfevent/proto"]
+    cmd = "set -ex && protoc "
+    for proto_path in proto_paths:
+        proto_files = os.path.join(proto_path, "*.proto")
+        cmd += proto_files + " "
+        print("compiling protobuf files in {}".format(proto_path))
+    cmd += " --python_out=."
+    return os.system(cmd)
 
 
 def build_package(version):
-    compile_protobuf.compile_protobuf()
     packages = setuptools.find_packages(include=["smdebug", "smdebug.*"])
     setuptools.setup(
         name="smdebug",
@@ -93,6 +69,39 @@ def build_package(version):
     )
 
 
+if compile_summary_protobuf() != 0:
+    print(
+        "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
+        "Please make sure that you have installed protobuf3 compiler and runtime correctly."
+    )
+    sys.exit(1)
+
+
+def scan_git_secrets():
+    import subprocess
+    import os
+    import shutil
+
+    def git(*args):
+        return subprocess.call(["git"] + list(args))
+
+    shutil.rmtree("/tmp/git-secrets", ignore_errors=True)
+    git("clone", "https://github.com/awslabs/git-secrets.git", "/tmp/git-secrets")
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir("/tmp/git-secrets")
+    subprocess.check_call(["make"] + ["install"])
+    os.chdir(dir_path)
+    git("secrets", "--install")
+    git("secrets", "--register-aws")
+    return git("secrets", "--scan", "-r")
+
+
+if scan_git_secrets() != 0:
+    import sys
+
+    sys.exit(1)
+
+
 def detect_smdebug_version():
     if "--release" in sys.argv:
         sys.argv.remove("--release")
@@ -102,5 +111,4 @@ def detect_smdebug_version():
 
 
 version = detect_smdebug_version()
-scan_git_secrets()
 build_package(version=version)

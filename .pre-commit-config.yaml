@@ -1,12 +1,10 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+    rev: v2.3.0
     hooks:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
-    -   id: detect-aws-credentials
-        args: [--allow-missing-credentials]
 
 - repo: https://github.com/humitos/mirrors-autoflake.git
   rev: v1.3
