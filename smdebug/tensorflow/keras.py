@@ -348,6 +348,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         coll = self.collection_manager.get(coll_name)
         if not self.tape:
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
+        else:
+            coll.add_tensor_name(metric_name)
         self.tensor_to_collections[metric_name] = {coll}
 
     def _save_metrics(self, batch, logs, force_save=False):
