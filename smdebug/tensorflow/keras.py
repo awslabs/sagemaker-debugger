@@ -55,7 +55,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
-        self.tape = False
+        self.tape = None
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -581,78 +581,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_predict_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.PREDICT, logs=logs)
 
-    def _wrap_gradient(self, tape):
-        # original_gradient = tape.__class__.gradient
-        original_push_tape = tape.__class__._push_tape
-        original_pop_tape = tape.__class__._pop_tape
-
-        def new_gradient(tape, target, sources, output_gradients=None):
-            # keras models can use tf optimizer through the wrapper
-            # keras/optimizers/TFOptimizer
-            grads = original_gradient(tape, target, sources, output_gradients)
-            loss = target
-            vars = sources
-            if self._is_not_supported():
-                return grads
-            if self._get_collections_to_save_for_step():
-                if grads is not None:
-                    for idx, g in enumerate(grads):
-                        self._save_for_tensor(
-                            tensor_name="gradient/" + str(idx) + str(self.step),
-                            tensor_value=g,
-                            check_before_write=False,
-                        )
-                self._save_for_tensor(
-                    tensor_name="loss", tensor_value=loss, check_before_write=False
-                )
-                if vars is not None:
-                    for idx, v in enumerate(vars):
-                        self._save_for_tensor(
-                            tensor_name="weights/" + v.name,
-                            tensor_value=v.value(),
-                            check_before_write=False,
-                        )
-
-            # self.set_gradients(gradients=grads)
-            # self.set_optimizer_variables(sources)
-
-            return grads
-
-        def new_push_tape(tape):
-            original_push_tape(tape)
-            self.set_mode(ModeKeys.TRAIN)
-            if self._is_not_supported():
-                return
-            self.worker = self._get_worker_name()
-            if self.writer is not None or len(self.writer_map):
-                self._close_writers()
-            if not self.prepared_collections:
-                # at this point we need all collections to be ready
-                # this may not be the case at creation of hook
-                # as user's code after hook might add collections
-                self._prepare_collections()
-                self.prepared_collections = True
-            self._increment_step()
-            if self._get_collections_to_save_for_step():
-                self._initialize_writers()
-
-        def new_pop_tape(tape):
-            original_pop_tape(tape)
-            if self._exported_collections is False:
-                # in keras, these collections change when mode changes
-                # but rest of the project isn't yet capable of handling this
-                # this means that collections like outputs, or other collections with intermediate tensors
-                # will only have tensor names from first mode
-
-                # this means sometimes collections will be exported after 1 step
-                self.export_collections()
-                self._exported_collections = True
-
-        # tape.__class__.gradient = new_gradient
-        tape.__class__._push_tape = new_push_tape
-        tape.__class__._pop_tape = new_pop_tape
-        return tape
-
     def wrap_optimizer(self, optimizer):
         """
         Wrapping your optimizer with this method enables finding gradient tensors and optimizer
@@ -696,26 +624,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Optimizer is being saved to support additional features in the future.
         self.optimizer = optimizer
         return optimizer
-
-    def wrap_tape(self, tape):
-        """
-        Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
-        variables.
-
-        :param tape: tensorflow.python.eager.backprop.GradientTap
-            the tape object used for training
-        :return: Wrapped tape of same type as passed.
-            This tape should be used for training
-        """
-        from tensorflow.python.eager.backprop import GradientTape
-
-        if isinstance(tape, GradientTape):
-            tape = self._wrap_gradient(tape)
-        else:
-            self._log_unsupported_optimizer(tape)
-        # Optimizer is being saved to support additional features in the future.
-        self.tape = tape
-        return tape
 
     def forward_pre_hook(self, tape):
         self.tape = tape
@@ -767,22 +675,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape = tape
 
         def add_metric_to_coll(self, tensor_name, tensor_value):
-            if tensor_name in self.tensor_to_collections:
-                return
-
-            matched_coll = set()
-            if tensor_name in ["loss", "val_loss"]:
-                coll_name = CollectionKeys.LOSSES
-            else:
-                coll_name = CollectionKeys.METRICS
-            coll = self.collection_manager.get(coll_name)
-            coll.add_tensor_name(tensor_name)
-            matched_coll.add(coll)
-            if self.save_all:
-                coll = self.collection_manager.get(CollectionKeys.ALL)
-                coll.add_tensor_name(tensor_name)
-                matched_coll.add(coll)
-            self.tensor_to_collections[tensor_name] = matched_coll
+            if tensor_name not in self.tensor_to_collections:
+                matched_colls = set()
+                if tensor_name in ["loss", "val_loss"]:
+                    coll_name = CollectionKeys.LOSSES
+                else:
+                    coll_name = CollectionKeys.METRICS
+                coll = self.collection_manager.get(coll_name)
+                coll.set_tensor(tensor_name, tensor_value)
+                matched_colls.add(coll)
+                if self.save_all:
+                    coll = self.collection_manager.get(CollectionKeys.ALL)
+                    coll.set_tensor(tensor_name, tensor_value)
+                    matched_colls.add(coll)
+                self.tensor_to_collections[tensor_name] = matched_colls
 
         add_metric_to_coll(self, tensor_name, tensor_value)
         if self._is_collection_being_saved_for_step(

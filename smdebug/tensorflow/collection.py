@@ -114,6 +114,11 @@ class Collection(BaseCollection):
         self._tensors[tensor.name] = tensor
         self.add_tensor_name(tensor.export_name)
 
+    def set_tensor(self, tensor_name, tensor):
+        # should always be a mapping from tf_obj.name to the argument
+        self._tensors[tensor_name] = tensor
+        self.add_tensor_name(tensor_name)
+
     def has_tensor(self, name):
         # tf object name
         return name in self._tensors
