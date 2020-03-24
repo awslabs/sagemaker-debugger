@@ -16,7 +16,10 @@ from smdebug.core.config_constants import (
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
+
+logger = get_logger()
 
 
 def ensure_dir(file_path, is_file=True):
@@ -107,6 +110,10 @@ def is_first_process(path):
     """
     s3, _, _ = is_s3(path)
     if s3:
+        logger.debug(
+            f"S3 Path passed to is_first_process. \
+            {CLAIM_FILENAME} will not be generated."
+        )
         return True  # Cannot Implement This Functionality for S3
     else:
         ensure_dir(path, is_file=False)

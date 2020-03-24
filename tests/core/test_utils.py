@@ -170,6 +170,10 @@ def test_json_params_sagemaker():
 
 @pytest.mark.parametrize("dir", [True, False])
 def test_is_first_process(dir):
+    s3_path = "s3://this/is/a/valid/path"
+    assert is_first_process(s3_path)
+
+    # This section tests local path
     for _ in range(10):
         helper_test_is_first_process(dir)
 
