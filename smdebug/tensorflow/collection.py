@@ -11,6 +11,7 @@ from smdebug.core.logger import get_logger
 
 # Local
 from .tensor_ref import TensorRef
+from .utils import is_tf_version_2x
 
 logger = get_logger()
 
@@ -145,10 +146,13 @@ class CollectionManager(BaseCollectionManager):
         if create_default:
             for n in DEFAULT_TF_COLLECTIONS:
                 self.create_collection(n)
-            self.get(CollectionKeys.BIASES).include("^(?!gradient).*bias")
-            self.get(CollectionKeys.WEIGHTS).include("^weights/.*/((?!bias).)*$")
-            self.get(CollectionKeys.LOSSES).include(".*loss.*")
-            self.get(CollectionKeys.GRADIENTS).include("^gradient")
+            if is_tf_version_2x() and tf.executing_eagerly():
+                self.get(CollectionKeys.BIASES).include("^(?!gradient).*bias")
+                self.get(CollectionKeys.WEIGHTS).include("^weights/.*/((?!bias).)*$")
+                self.get(CollectionKeys.LOSSES).include(".*loss.*")
+                self.get(CollectionKeys.GRADIENTS).include("^gradient")
+            else:
+                self.get(CollectionKeys.BIASES).include("bias")
 
     def create_collection(self, name):
         super().create_collection(name, cls=Collection)
