@@ -20,9 +20,7 @@ def helper_keras_gradtape(
     reduction_config=None,
     save_config=None,
     hook=None,
-    steps=None,
     batch_size=32,
-    add_callbacks=None,
 ):
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), _ = mnist.load_data()
@@ -31,13 +29,6 @@ def helper_keras_gradtape(
     )
     dataset = dataset.shuffle(1000).batch(batch_size)
 
-    # model = tf.keras.Sequential([
-    #     tf.keras.layers.Conv2D(16, [3, 3], activation='relu',
-    #                            input_shape=(None, None, 1)),
-    #     tf.keras.layers.Conv2D(16, [3, 3], activation='relu'),
-    #     tf.keras.layers.GlobalAveragePooling2D(),
-    #     tf.keras.layers.Dense(10)
-    # ])
     model = tf.keras.models.Sequential(
         [
             tf.keras.layers.Flatten(input_shape=(28, 28)),
@@ -68,14 +59,8 @@ def helper_keras_gradtape(
 
     opt = hook.wrap_optimizer(opt)
 
-    # tape = tf.GradientTape(persistent=True)
-    # tape = hook.wrap_tape(tape)
-
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
-
-    # hooks = []
-    # hooks.append(hook)
 
     n_epochs = 1
     for epoch in range(n_epochs):
@@ -83,16 +68,21 @@ def helper_keras_gradtape(
             dataset_labels = labels
             labels = tf.one_hot(labels, depth=10)
             with tf.GradientTape(persistent=True) as tape:
+                # call this API before a forward pass to prepare collections
+                # and initialize writers
                 hook.forward_pre_hook(tape)
                 logits = model(data, training=True)  # (32,10)
                 loss_value = cce(labels, logits)
-            hook.record_tensor_value("loss", loss_value, tape)
+            # call this API to save loss or metric tensors
+            hook.record_tensor_value("loss", loss_value)
             grads = tape.gradient(loss_value, model.variables)
-            # hook.forward_hook(zip(grads, model.variables))
+            # API to save gradients and model variables
+            hook.set_grads_vars(grads, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
             acc = train_acc_metric(dataset_labels, logits)
-            hook.record_tensor_value("accuracy", acc, tape)
-            hook.update_step(grads, model.variables)
+            hook.record_tensor_value("accuracy", acc)
+            # call this API to export collections to file
+            hook.forward_post_hook()
         train_acc_metric.reset_states()
 
     hook.close()
@@ -101,8 +91,11 @@ def helper_keras_gradtape(
 @pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_gradtape(out_dir, saveall):
+    """
+    Test save all and save default collection
+    """
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
-    helper_keras_gradtape(trial_dir=out_dir, hook=hook, steps=["train", "eval", "predict", "train"])
+    helper_keras_gradtape(trial_dir=out_dir, hook=hook)
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
@@ -116,6 +109,9 @@ def test_keras_gradtape(out_dir, saveall):
 
 
 def test_base_reductions(out_dir):
+    """
+    Test reduction config
+    """
     helper_keras_gradtape(
         trial_dir=out_dir,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
@@ -141,13 +137,16 @@ def test_base_reductions(out_dir):
 
 @pytest.mark.slow
 def test_collection_reductions(out_dir):
+    """
+    Test reduction config for weights collection
+    """
     hook = smd.KerasHook(
         out_dir,
         save_config=SaveConfig(save_interval=3),
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES],
     )
     hook.get_collection(CollectionKeys.WEIGHTS).reduction_config = ReductionConfig(norms=["l1"])
-    helper_keras_gradtape(out_dir, hook=hook, steps=["train"])
+    helper_keras_gradtape(out_dir, hook=hook)
 
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
@@ -163,13 +162,14 @@ def test_collection_reductions(out_dir):
 
 @pytest.mark.slow
 def test_include_regex(out_dir):
+    """
+    Test custom collection with regex
+    """
     hook = smd.KerasHook(
         out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
     )
     hook.get_collection("custom_coll").include("dense")
-    helper_keras_gradtape(
-        out_dir, hook=hook, save_config=SaveConfig(save_interval=9), steps=["train"]
-    )
+    helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
@@ -181,19 +181,27 @@ def test_include_regex(out_dir):
 
 @pytest.mark.slow
 def test_training_end(out_dir):
-    helper_keras_gradtape(out_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"])
+    """
+    Verify enf of training file
+    """
+    helper_keras_gradtape(out_dir, include_collections=[CollectionKeys.OUTPUTS])
     assert has_training_ended(out_dir) is True
 
 
 @pytest.mark.slow
 def test_weights_collections(out_dir):
+    """
+    This test ensures that a training script written with GradientTape
+    handles the case where only weight and default collections are saved.
+    The aim is to distinguish between weights and biases.
+    """
     hook = smd.KerasHook(
         out_dir,
         save_config=SaveConfig(save_interval=3),
         include_collections=[CollectionKeys.WEIGHTS],
     )
 
-    helper_keras_gradtape(out_dir, hook=hook, steps=["train"])
+    helper_keras_gradtape(out_dir, hook=hook)
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
@@ -206,6 +214,11 @@ def test_weights_collections(out_dir):
 
 @pytest.mark.slow
 def test_include_collections(out_dir):
+    """
+    This test ensures that a training script written with GradientTape
+    handles the case where hook config contains all collections mentioned
+    through include collections
+    """
     include_collections = [
         CollectionKeys.WEIGHTS,
         CollectionKeys.BIASES,
@@ -222,12 +235,13 @@ def test_include_collections(out_dir):
         include_collections=include_collections,
         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
     )
-    helper_keras_gradtape(out_dir, hook=hook, steps=["train", "eval", "predict"])
+    helper_keras_gradtape(out_dir, hook=hook)
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     assert len(trial.tensor_names()) == 10
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
+    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -236,12 +250,17 @@ def test_include_collections(out_dir):
 
 @pytest.mark.slow
 def test_hook_from_json(out_dir, monkeypatch):
+    """
+    This test ensures that a training script written with GradientTape
+    handles the case where hook config is provided through a JSON and saves
+    only weights and losses
+    """
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR,
         "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
     )
     hook = smd.KerasHook.create_from_json_file()
-    helper_keras_gradtape(out_dir, hook=hook, steps=["train"])
+    helper_keras_gradtape(out_dir, hook=hook)
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x

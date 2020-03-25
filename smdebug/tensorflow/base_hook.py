@@ -87,6 +87,9 @@ class TensorflowBaseHook(BaseHook):
         # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
+
+        # Identify TF 2.x GradientTape
+        self.tape = None
         self._exported_collections = False
         self._distribution_strategy = {
             ModeKeys.TRAIN: None,

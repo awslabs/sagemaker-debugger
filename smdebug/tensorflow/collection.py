@@ -109,15 +109,22 @@ class Collection(BaseCollection):
     def get_tensor(self, name):
         return self._tensors[name]
 
-    def set_tensor_ref(self, tensor):
+    def set_tensor_ref(self, tensor, tensor_name=None):
+        """
+        Map tf_obj to a name.
+        In case of EagerTensor, rely on the tensor name
+        passed by the caller.
+        :param tensor: tf_obj or EagerTensor
+        :param tensor_name: name of EagerTensor
+        """
         # should always be a mapping from tf_obj.name to the argument
-        self._tensors[tensor.name] = tensor
-        self.add_tensor_name(tensor.export_name)
-
-    def set_tensor(self, tensor_name, tensor):
-        # should always be a mapping from tf_obj.name to the argument
-        self._tensors[tensor_name] = tensor
-        self.add_tensor_name(tensor_name)
+        if tensor_name:
+            name = export_name = tensor_name
+        else:
+            name = tensor.name
+            export_name = tensor.export_name
+        self._tensors[name] = tensor
+        self.add_tensor_name(export_name)
 
     def has_tensor(self, name):
         # tf object name
