@@ -170,28 +170,29 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                     # call this API to export collections to file
                     hook.forward_post_hook()
                 train_acc_metric.reset_states()
+            hook = smd.get_hook()
+            assert hook
+            hook.close()
+            # Check that hook created and tensors saved
+            trial = smd.create_trial(path=sim.out_dir)
+            assert len(trial.steps()) > 0, "Nothing saved at any step."
+            assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+            assert len(trial.tensor_names(collection="losses")) > 0
         else:
-            return
-            # for epoch in range(n_epochs):
-            #     for data, labels in dataset:
-            #         dataset_labels = labels
-            #         labels = tf.one_hot(labels, depth=10)
-            #         with tf.GradientTape(persistent=True) as tape:
-            #             logits = model(data, training=True)  # (32,10)
-            #             loss_value = cce(labels, logits)
-            #         grads = tape.gradient(loss_value, model.variables)
-            #         opt.apply_gradients(zip(grads, model.variables))
-            #         acc = train_acc_metric(dataset_labels, logits)
-            #     train_acc_metric.reset_states()
-
-        hook = smd.get_hook()
-        assert hook
-        hook.close()
-        # Check that hook created and tensors saved
-        trial = smd.create_trial(path=sim.out_dir)
-        assert len(trial.steps()) > 0, "Nothing saved at any step."
-        assert len(trial.tensor_names()) > 0, "Tensors were not saved."
-        assert len(trial.tensor_names(collection="losses")) > 0
+            # ZCC doesn't support yet (as of smdebug v0.7.2)
+            for epoch in range(n_epochs):
+                for data, labels in dataset:
+                    dataset_labels = labels
+                    labels = tf.one_hot(labels, depth=10)
+                    with tf.GradientTape(persistent=True) as tape:
+                        logits = model(data, training=True)  # (32,10)
+                        loss_value = cce(labels, logits)
+                    grads = tape.gradient(loss_value, model.variables)
+                    opt.apply_gradients(zip(grads, model.variables))
+                    acc = train_acc_metric(dataset_labels, logits)
+                train_acc_metric.reset_states()
+            hook = smd.get_hook()
+            assert not hook
 
 
 def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):

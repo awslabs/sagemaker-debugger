@@ -20,7 +20,7 @@ def helper_keras_gradtape(
     reduction_config=None,
     save_config=None,
     hook=None,
-    batch_size=32,
+    batch_size=64,
 ):
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), _ = mnist.load_data()
