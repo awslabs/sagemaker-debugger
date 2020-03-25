@@ -12,6 +12,8 @@ from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
 
+tf.compat.v1.enable_eager_execution()
+
 
 def helper_keras_gradtape(
     trial_dir,
