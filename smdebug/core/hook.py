@@ -2,7 +2,6 @@
 import atexit
 import os
 import re as _re
-import socket
 import time
 from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Optional, Set, Union
@@ -420,14 +419,13 @@ class BaseHook:
             if self._get_num_workers() == 1:
                 if is_first_process(self.out_dir):
                     self.first_process = True
-                    self.logger.info(
-                        f"Hook is writing from the hook with pid: {os.getpid()}\n"
-                        f"and hostname: {socket.gethostname()}"
-                    )
+                    self.logger.info(f"Hook is writing from the hook with pid: {os.getpid()}\n")
                 else:
                     self.first_process = False
                     self.logger.warn(
-                        "Unsupported Distribution Strategy Detected. Hook will only write from one process."
+                        f"Unsupported Distributed Training Strategy Detected.\n\
+                        Sagemaker-Debugger will only write from one process.\n\
+                        The process with pid: {os.getpid()} will not be writing any data. \n"
                     )
                     return
 
