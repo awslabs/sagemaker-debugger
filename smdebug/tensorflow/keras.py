@@ -624,13 +624,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.optimizer = optimizer
         return optimizer
 
-    def forward_pre_hook(self, tape):
-        self.tape = tape
-
+    def forward_pre_hook(self, tape, mode=ModeKeys.GLOBAL):
+        """
+        Similar to _on_any_batch_begin(), this function prepares collections,
+        writes tensors, initializes writers, and increments step number
+        """
         if self._is_not_supported():
             return
 
+        self.tape = tape
+
         self.worker = self._get_worker_name()
+        self.set_mode(mode)
 
         if self.writer is not None or len(self.writer_map):
             self._close_writers()
@@ -648,6 +653,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers()
 
     def set_grads_vars(self, grads, vars):
+        """
+        Use to set gradients and variables, useful when GradientTape is
+        used in the training script
+        """
+        if self._is_not_supported():
+            return
+
         if self._get_collections_to_save_for_step():
             if grads is not None and vars is not None:
                 for (g, v) in zip(grads, vars):
@@ -664,6 +676,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
 
     def record_tensor_value(self, tensor_name, tensor_value):
+        """
+        Used to manually set losses and metrics when GradientTape is
+        used in the training script
+        """
+        if self._is_not_supported():
+            return
+
         self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
         if self._is_collection_being_saved_for_step(
             CollectionKeys.METRICS
@@ -672,6 +691,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
 
     def forward_post_hook(self):
+        """
+        Export collections and model at the end of a step.
+        """
         if self._is_not_supported():
             return
 
@@ -684,10 +706,3 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # this means sometimes collections will be exported after 1 step
             self.export_collections()
             self._exported_collections = True
-
-        if self._exported_model[self.mode] is False:
-            # confirmed that keras has same graph for all modes
-            # but we are writing it multiple times to keep behavior consistent with
-            # estimator and to make it easier when seeing tensorboard
-            self._export_model()
-            self._exported_model[self.mode] = True
