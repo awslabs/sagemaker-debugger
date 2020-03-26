@@ -156,6 +156,11 @@ Note that there are three types of Hooks in TensorFlow: SessionHook, EstimatorHo
 | --- | --- | --- | --- |
 | `wrap_optimizer(optimizer)` | `optimizer` (tf.train.Optimizer or tf.keras.Optimizer) | Returns the same optimizer object passed with a couple of identifying markers to help `smdebug`. This returned optimizer should be used for training. | When not using Zero Script Change environments, calling this method on your optimizer is necessary for SageMaker Debugger to identify and save gradient tensors. Note that this method returns the same optimizer object passed and does not change your optimization logic. If the hook is of type `KerasHook`, you can pass in either an object of type `tf.train.Optimizer` or `tf.keras.Optimizer`. If the hook is of type `SessionHook` or `EstimatorHook`, the optimizer can only be of type `tf.train.Optimizer`.  This new
 | `add_to_collection(`<br/>  `collection_name, variable)` | `collection_name (str)` : name of the collection to add to. <br/> `variable` parameter to pass to the collection's `add` method. | `None` | Calls the `add` method of a collection object. See [this section](#collection) for more. |
+| `forward_pre_hook(`<br/>  `tape, mode)` | `tape (tensorflow.python.eager.backprop.GradientTape)` : GradientTape object. <br/> `mode` value of the enum `smd.modes`. | `None` | Prepares the collection, initializes writer, and sets the step number. This needs to be called before the call to forward pass `logits=models(data)` within the scope of the tape. |
+| `forward_post_hook()` | `None` | Exports the collection files. This needs to be called after the `apply_gradients` call at the end of a batch/step. |
+| `record_tensor_value(`<br/>  `tensor_name,` <br/> `tensor_value)` | `tensor_name (str)` : Name of the tensor to be saved. <br/> `tensor_value (Tensor)` value of the tensor. | `None` | Saves losses and metrics. To be used only in eager mode for saving loss and metrics tensors. |
+| `set_grads_vars(`<br/>  `grads,` <br/> `vars)` | `grads (list)` : List of gradients to be saved. Each gradient is of type `Tensor`. <br/> `vars (list)` List of model variables to be saved. Each model variable is of type `Variable` | `None` | Saves gradients and model variables (weights and biases). To be used only in eager mode. |
+
 
 ### MXNet specific Hook API
 

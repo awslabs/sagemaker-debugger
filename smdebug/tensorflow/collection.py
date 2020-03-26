@@ -110,7 +110,7 @@ class Collection(BaseCollection):
     def get_tensor(self, name):
         return self._tensors[name]
 
-    def set_tensor_ref(self, tensor, tensor_name=None):
+    def set_tensor_ref(self, tensor, tensor_name: tf.Tensor = None):
         """
         Map tf_obj to a name.
         In case of EagerTensor, rely on the tensor name

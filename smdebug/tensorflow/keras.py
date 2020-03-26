@@ -337,7 +337,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # TODO
         pass
 
-    def _add_metric(self, metric_name, metric_value=None):
+    def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
         if metric_name in self.tensor_to_collections:
             return
 
@@ -624,12 +624,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.optimizer = optimizer
         return optimizer
 
-    def forward_pre_hook(self, tape, mode=ModeKeys.GLOBAL):
+    def forward_pre_hook(self, tape=None, mode=ModeKeys.GLOBAL):
         """
         Similar to _on_any_batch_begin(), this function prepares collections,
         writes tensors, initializes writers, and increments step number
         """
-        if self._is_not_supported():
+        # Check for GradientTape as this API is applicable only in scenarios where
+        # GradientTape is used
+        from tensorflow.python.eager.backprop import GradientTape
+
+        if not tape or not isinstance(tape, GradientTape) or self._is_not_supported():
             return
 
         self.tape = tape
@@ -652,35 +656,42 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
 
-    def set_grads_vars(self, grads, vars):
+    def set_grads_vars(self, grads=None, vars=None):
         """
         Use to set gradients and variables, useful when GradientTape is
         used in the training script
         """
-        if self._is_not_supported():
+        # check if grads and vars are valid and are of type EagerTensor
+        if (
+            (not grads or not vars)
+            or (not isinstance(grads, list) or not isinstance(vars, list))
+            or (not ((isinstance(vars[0], tf.Variable)) and hasattr(vars[0], "numpy")))
+            or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
+            or self._is_not_supported()
+        ):
             return
 
         if self._get_collections_to_save_for_step():
-            if grads is not None and vars is not None:
-                for (g, v) in zip(grads, vars):
-                    layer = v.name.split(":")[0]
-                    self._save_for_tensor(
-                        tensor_name="gradients/" + layer + "Grad",
-                        tensor_value=g,
-                        check_before_write=True,
-                    )
-                    self._save_for_tensor(
-                        tensor_name="weights/" + v.name,
-                        tensor_value=v.value(),
-                        check_before_write=True,
-                    )
+            for (g, v) in zip(grads, vars):
+                layer = v.name.split(":")[0]
+                self._save_for_tensor(
+                    tensor_name="gradients/" + layer + "Grad",
+                    tensor_value=g,
+                    check_before_write=True,
+                )
+                self._save_for_tensor(
+                    tensor_name="weights/" + v.name, tensor_value=v.value(), check_before_write=True
+                )
 
     def record_tensor_value(self, tensor_name, tensor_value):
         """
         Used to manually set losses and metrics when GradientTape is
         used in the training script
         """
-        if self._is_not_supported():
+        # To be used to save losses and metrics of type EagerTensor
+        if (
+            not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
+        ) or self._is_not_supported():
             return
 
         self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
@@ -694,7 +705,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Export collections and model at the end of a step.
         """
-        if self._is_not_supported():
+        # to be used only in the context of GradientTape
+        if not self.tape or self._is_not_supported():
             return
 
         if self._exported_collections is False:
