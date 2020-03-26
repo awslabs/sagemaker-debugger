@@ -197,9 +197,9 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
 
 def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):
     # Test default ZCC behavior
-    helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
     if eager_mode:
         helper_test_keras_v2_gradienttape(script_mode=script_mode)
+    helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
 def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool = True):
@@ -231,13 +231,13 @@ def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool 
                 ]
             }
             """
-    helper_test_keras_v2_json_config(
-        script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
-    )
     if eager_mode:
         helper_test_keras_v2_gradienttape(
             script_mode=script_mode, json_file_contents=json_file_contents
         )
+    helper_test_keras_v2_json_config(
+        script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
+    )
 
 
 def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
@@ -252,13 +252,13 @@ def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
                 }
             }
             """
-    helper_test_keras_v2_json_config(
-        script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
-    )
     if eager_mode:
         helper_test_keras_v2_gradienttape(
             script_mode=script_mode, json_file_contents=json_file_contents
         )
+    helper_test_keras_v2_json_config(
+        script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
+    )
 
 
 if __name__ == "__main__":
