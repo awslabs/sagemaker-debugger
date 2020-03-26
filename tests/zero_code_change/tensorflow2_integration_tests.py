@@ -40,7 +40,6 @@ def get_keras_model_v2():
 def get_keras_data():
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    x_train, x_test = x_train / 255, x_test / 255
 
     return (x_train, y_train), (x_test, y_test)
 
@@ -54,6 +53,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     with SagemakerSimulator() as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
+        x_train, x_test = x_train / 255, x_test / 255
 
         opt = tf.keras.optimizers.RMSprop()
         if script_mode:
@@ -94,6 +94,7 @@ def helper_test_keras_v2_json_config(
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
+        x_train, x_test = x_train / 255, x_test / 255
 
         opt = tf.keras.optimizers.RMSprop()
         if script_mode:
@@ -132,8 +133,15 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
     tf.keras.backend.clear_session()
 
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
-        model = get_keras_model_v2()
-        (x_train, y_train), (x_test, y_test) = get_keras_data()
+        model = tf.keras.models.Sequential(
+            [
+                tf.keras.layers.Flatten(input_shape=(28, 28, 1)),  # WA for TF issue #36279
+                tf.keras.layers.Dense(128, activation="relu"),
+                tf.keras.layers.Dropout(0.2),
+                tf.keras.layers.Dense(10, activation="softmax"),
+            ]
+        )
+        (x_train, y_train), _ = get_keras_data()
         dataset = tf.data.Dataset.from_tensor_slices(
             (tf.cast(x_train[..., tf.newaxis] / 255, tf.float32), tf.cast(y_train, tf.int64))
         )

@@ -111,7 +111,8 @@ def helper_keras_gradtape(
 
     model = tf.keras.models.Sequential(
         [
-            tf.keras.layers.Flatten(input_shape=(28, 28)),
+            # WA for TF issue https://github.com/tensorflow/tensorflow/issues/36279
+            tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
             tf.keras.layers.Dense(128, activation="relu"),
             tf.keras.layers.Dropout(0.2),
             tf.keras.layers.Dense(10, activation="softmax"),
