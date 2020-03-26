@@ -26,7 +26,6 @@ run_for_framework() {
         python tests/zero_code_change/tensorflow_integration_tests.py
       elif [ "$1" = "tensorflow2" ] ; then
         python tests/zero_code_change/tensorflow2_integration_tests.py
-        python tests/zero_code_change/tensorflow2_integration_tests.py --script-mode
       fi
 
     else
