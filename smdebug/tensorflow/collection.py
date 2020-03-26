@@ -81,7 +81,7 @@ class Collection(BaseCollection):
             return self.add_variable(arg, mode=mode)
         elif isinstance(arg, tf.Tensor):
             return self.add_tensor(arg, mode=mode)
-        elif isinstance(arg, values.MirroredVariable):
+        elif isinstance(arg, (values.MirroredVariable, values.DistributedVariable)):
             return self.add_mirrored_variable(arg, mode=mode)
         elif isinstance(arg, values.AggregatingVariable):
             return self.add_aggregating_variable(arg, mode=mode)
