@@ -624,97 +624,128 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.optimizer = optimizer
         return optimizer
 
-    def forward_pre_hook(self, tape=None, mode=ModeKeys.GLOBAL):
+    def _unwrap_tape(self):
+        def _is_wrapper(f):
+            return hasattr(f, "__wrapped__")
+
+        def unwrap(func):
+            while _is_wrapper(func):
+                func = func.__wrapped__
+            return func
+
+        self.tape.__class__._push_tape = unwrap(self.tape.__class__._push_tape)
+        self.tape.__class__._pop_tape = unwrap(self.tape.__class__._pop_tape)
+        self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
+
+    def close(self):
+        if self.tape:
+            self._unwrap_tape()
+        super().close()
+
+    def wrap_push_tape(self, function):
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            function(*args, **kwargs)
+            if self._is_not_supported():
+                return
+
+            self.worker = self._get_worker_name()
+
+            if self.writer is not None or len(self.writer_map):
+                self._close_writers()
+
+            if not self.prepared_collections:
+                # at this point we need all collections to be ready
+                # this may not be the case at creation of hook
+                # as user's code after hook might add collections
+                self._prepare_collections()
+                self.prepared_collections = True
+
+            self._increment_step()
+
+            if self._get_collections_to_save_for_step():
+                self._initialize_writers()
+
+        return run
+
+    def wrap_tape_gradient(self, function):
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            grads = function(*args, **kwargs)
+            if self._is_not_supported():
+                return grads
+            loss = args[1]
+            vars = args[2]
+            if (
+                (not grads or not vars)
+                or (not isinstance(grads, list) or not isinstance(vars, list))
+                or (not ((isinstance(vars[0], tf.Variable)) and hasattr(vars[0], "numpy")))
+                or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
+            ):
+                return grads
+
+            if self._get_collections_to_save_for_step():
+                for (g, v) in zip(grads, vars):
+                    layer = v.name.split(":")[0]
+                    self._save_for_tensor(
+                        tensor_name="gradients/" + layer + "Grad",
+                        tensor_value=g,
+                        check_before_write=True,
+                    )
+                    self._save_for_tensor(
+                        tensor_name="weights/" + v.name,
+                        tensor_value=v.value(),
+                        check_before_write=True,
+                    )
+
+            if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
+                return grads
+
+            self._add_metric(metric_name="loss", metric_value=loss)
+            if self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
+                self._initialize_writers(only_initialize_if_missing=True)
+                self._save_for_tensor("loss", loss, check_before_write=False)
+
+            return grads
+
+        return run
+
+    def wrap_pop_tape(self, function):
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            function(*args, **kwargs)
+            if self._is_not_supported():
+                return
+
+            if self._exported_collections is False:
+                # in keras, these collections change when mode changes
+                # but rest of the project isn't yet capable of handling this
+                # this means that collections like outputs, or other collections with intermediate tensors
+                # will only have tensor names from first mode
+
+                # this means sometimes collections will be exported after 1 step
+                self.export_collections()
+                self._exported_collections = True
+
+        return run
+
+    def wrap_tape(self, tape):
         """
-        Similar to _on_any_batch_begin(), this function prepares collections,
-        writes tensors, initializes writers, and increments step number
+        Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
+        variables.
+
+        :param tape: tensorflow.python.eager.backprop.GradientTap
+            the tape object used for training
+        :return: Wrapped tape of same type as passed.
+            This tape should be used for training
         """
-        # Check for GradientTape as this API is applicable only in scenarios where
-        # GradientTape is used
         from tensorflow.python.eager.backprop import GradientTape
 
-        if not tape or not isinstance(tape, GradientTape) or self._is_not_supported():
-            return
-
-        self.tape = tape
-
-        self.worker = self._get_worker_name()
-        self.set_mode(mode)
-
-        if self.writer is not None or len(self.writer_map):
-            self._close_writers()
-
-        if not self.prepared_collections:
-            # at this point we need all collections to be ready
-            # this may not be the case at creation of hook
-            # as user's code after hook might add collections
-            self._prepare_collections()
-            self.prepared_collections = True
-
-        self._increment_step()
-
-        if self._get_collections_to_save_for_step():
-            self._initialize_writers()
-
-    def set_grads_vars(self, grads=None, vars=None):
-        """
-        Use to set gradients and variables, useful when GradientTape is
-        used in the training script
-        """
-        # check if grads and vars are valid and are of type EagerTensor
-        if (
-            (not grads or not vars)
-            or (not isinstance(grads, list) or not isinstance(vars, list))
-            or (not ((isinstance(vars[0], tf.Variable)) and hasattr(vars[0], "numpy")))
-            or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
-            or self._is_not_supported()
-        ):
-            return
-
-        if self._get_collections_to_save_for_step():
-            for (g, v) in zip(grads, vars):
-                layer = v.name.split(":")[0]
-                self._save_for_tensor(
-                    tensor_name="gradients/" + layer + "Grad",
-                    tensor_value=g,
-                    check_before_write=True,
-                )
-                self._save_for_tensor(
-                    tensor_name="weights/" + v.name, tensor_value=v.value(), check_before_write=True
-                )
-
-    def record_tensor_value(self, tensor_name, tensor_value):
-        """
-        Used to manually set losses and metrics when GradientTape is
-        used in the training script
-        """
-        # To be used to save losses and metrics of type EagerTensor
-        if (
-            not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
-        ) or self._is_not_supported():
-            return
-
-        self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
-        if self._is_collection_being_saved_for_step(
-            CollectionKeys.METRICS
-        ) or self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
-            self._initialize_writers(only_initialize_if_missing=True)
-            self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
-
-    def forward_post_hook(self):
-        """
-        Export collections and model at the end of a step.
-        """
-        # to be used only in the context of GradientTape
-        if not self.tape or self._is_not_supported():
-            return
-
-        if self._exported_collections is False:
-            # in keras, these collections change when mode changes
-            # but rest of the project isn't yet capable of handling this
-            # this means that collections like outputs, or other collections with intermediate tensors
-            # will only have tensor names from first mode
-
-            # this means sometimes collections will be exported after 1 step
-            self.export_collections()
-            self._exported_collections = True
+        if isinstance(tape, GradientTape):
+            self.tape = GradientTape(persistent=True)
+            self.tape.__class__._push_tape = self.wrap_push_tape(tape.__class__._push_tape)
+            self.tape.__class__.gradient = self.wrap_tape_gradient(tape.__class__.gradient)
+            self.tape.__class__._pop_tape = self.wrap_pop_tape(tape.__class__._pop_tape)
+        else:
+            self._log_unsupported_optimizer(tape)
+        return self.tape

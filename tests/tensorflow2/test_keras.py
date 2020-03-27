@@ -140,6 +140,9 @@ def helper_keras_gradtape(
 
     opt = hook.wrap_optimizer(opt)
 
+    tape = tf.GradientTape(persistent=True)
+    tape = hook.wrap_tape(tape)
+
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
 
@@ -148,22 +151,22 @@ def helper_keras_gradtape(
         for data, labels in dataset:
             dataset_labels = labels
             labels = tf.one_hot(labels, depth=10)
-            with tf.GradientTape(persistent=True) as tape:
+            with tape:
                 # call this API before a forward pass to prepare collections
                 # and initialize writers
-                hook.forward_pre_hook(tape)
+                # hook.forward_pre_hook(tape)
                 logits = model(data, training=True)  # (32,10)
                 loss_value = cce(labels, logits)
             # call this API to save loss or metric tensors
-            hook.record_tensor_value("loss", loss_value)
+            # hook.record_tensor_value("loss", loss_value)
             grads = tape.gradient(loss_value, model.variables)
             # API to save gradients and model variables
-            hook.set_grads_vars(grads, model.variables)
+            # hook.set_grads_vars(grads, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
             acc = train_acc_metric(dataset_labels, logits)
-            hook.record_tensor_value("accuracy", acc)
+            # hook.record_tensor_value("accuracy", acc)
             # call this API to export collections to file
-            hook.forward_post_hook()
+            # hook.forward_post_hook()
         train_acc_metric.reset_states()
 
     hook.close()
@@ -176,18 +179,18 @@ def test_keras_gradtape(out_dir, saveall):
     """
     Test save all and save default collection
     """
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
+    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=SaveConfig(save_interval=3))
     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 10
+        assert len(trial.tensor_names()) == 9  # 10
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == 2
+        assert len(trial.tensor_names()) == 1  # 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+    # assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
 
 @pytest.mark.skip_if_non_eager
@@ -215,8 +218,8 @@ def test_gradtape_base_reductions(out_dir):
     loss_name = tr.tensor_names(collection=CollectionKeys.LOSSES)[0]
     assert tr.tensor(loss_name).value(0) is not None
 
-    metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
-    assert tr.tensor(metric_name).value(0) is not None
+    # metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
+    # assert tr.tensor(metric_name).value(0) is not None
 
 
 @pytest.mark.skip_if_non_eager
@@ -293,11 +296,11 @@ def test_gradtape_weights_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 4
+    assert len(trial.tensor_names()) == 3  # 4
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+    # assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
 
 @pytest.mark.skip_if_non_eager
@@ -328,13 +331,13 @@ def test_gradtape_include_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 10
+    assert len(trial.tensor_names()) == 9  # 10
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+    # assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
 
 @pytest.mark.skip_if_non_eager
@@ -354,11 +357,11 @@ def test_gradtape_hook_from_json(out_dir, monkeypatch):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 4
+    assert len(trial.tensor_names()) == 3  # 4
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+    # assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
 
 @pytest.mark.slow
