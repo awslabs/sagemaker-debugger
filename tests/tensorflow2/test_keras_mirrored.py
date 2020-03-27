@@ -426,7 +426,7 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensor_names()) == 16
+    assert len(tr.tensor_names()) == 10
 
 
 def test_one_device(out_dir, tf_eager_mode):
