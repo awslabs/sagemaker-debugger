@@ -76,8 +76,6 @@ def do_training():
 
     # Setup model.
     model = TestModel(embedding_size=EMBEDDING_SIZE).to(get_device())
-    for parameter in model.parameters():
-        parameter.requires_grad = False
 
     # Setup criterion.
     criterion = torch.nn.CosineEmbeddingLoss()
