@@ -183,7 +183,8 @@ class Hook(CallbackHook):
         params = module.named_parameters()
         for name, param in params:
             pname = module._get_name() + "_" + name
-            param.register_hook(self.backward_hook(pname))
+            if param.requires_grad:
+                param.register_hook(self.backward_hook(pname))
 
     def _closure_for_registering_forward_hook(self, module):
         """Lambda functions don't work here."""
