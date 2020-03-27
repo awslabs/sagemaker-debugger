@@ -10,12 +10,25 @@ from typing import Dict, List
 
 # First Party
 from smdebug.core.config_constants import (
+    CLAIM_FILENAME,
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
+
+logger = get_logger()
+
+
+def ensure_dir(file_path, is_file=True):
+    if is_file:
+        directory = os.path.dirname(file_path)
+    else:
+        directory = file_path
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
 
 
 def load_json_as_dict(s):
@@ -70,6 +83,65 @@ def is_s3(path):
             return True, path[5:], ""
     else:
         return False, None, None
+
+
+def is_first_process(path):
+    """
+    This function is used to determine the caller of the process
+    is the first process to do so.
+
+    The purpose this function serves is to allow only one hook process
+    to write in the case the user is unintentionally using the debugger
+    with a training script that uses an unsupported distributed training
+    process.
+
+    In the case of s3 however, each hook process overwrites data written by the
+    other hook processes and hence this is no possibility of race conditions,
+    so this fn simply returns True.
+
+
+    For non s3 mode, it uses the os.O_EXCL flag (https://linux.die.net/man/3/open)
+    to determine if the the file already exists, i.e another process has
+    written first.
+
+    :param path: path to the trial
+    :return: boolean that indicates if the caller was the
+    first process to execute the fn.
+    """
+    s3, _, _ = is_s3(path)
+    if s3:
+        logger.debug(
+            f"S3 Path passed to is_first_process. \
+            {CLAIM_FILENAME} will not be generated."
+        )
+        return True  # Cannot Implement This Functionality for S3
+    else:
+        ensure_dir(path, is_file=False)
+        filename = os.path.join(path, CLAIM_FILENAME)
+        try:
+            fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            return True
+        except FileExistsError:
+            return False
+
+
+def remove_claim_file(path: str) -> None:
+    """
+    This function deletes the claim.smd file created by the is_first_process fn
+    when the hook is closed.
+
+    :param path: path to the trial
+    :return: None
+    """
+    filename = os.path.join(path, CLAIM_FILENAME)
+    s3, _, _ = is_s3(path)
+    if s3:
+        return
+    try:
+        os.remove(filename)
+    except FileNotFoundError:
+        pass
 
 
 def list_files_in_directory(directory, file_regex=None):
