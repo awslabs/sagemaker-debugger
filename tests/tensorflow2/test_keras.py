@@ -211,11 +211,10 @@ def test_include_regex(out_dir, tf_eager_mode):
         assert tr.tensor(tname).value(0) is not None
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
-def test_clash_with_tb_callback(out_dir, tf_eager_mode):
+def test_clash_with_tb_callback(out_dir):
     # this test cannot be run in non-eager mode
-    if not tf_eager_mode:
-        return
     helper_keras_fit(
         out_dir,
         save_config=SaveConfig(save_interval=9),
@@ -227,7 +226,6 @@ def test_clash_with_tb_callback(out_dir, tf_eager_mode):
             CollectionKeys.METRICS,
         ],
         add_callbacks=["tensorboard"],
-        eager=tf_eager_mode,
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensor_names()) == 7 if is_tf_2_2() else 8
