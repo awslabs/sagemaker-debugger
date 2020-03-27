@@ -1,6 +1,4 @@
 # Standard Library
-import argparse
-import os
 
 # Third Party
 import torch
@@ -100,13 +98,6 @@ def do_training(args):
         # Update model.
         optimizer.step()
 
-    # Save out the final model.
-    torch.save(model.state_dict(), os.path.join(args.model_dir, "model.pth"))
-
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--train", type=str, default=os.environ.get("SM_CHANNEL_TRAIN"))
-    parser.add_argument("--model_dir", type=str, default=os.environ.get("SM_MODEL_DIR"))
-    args = parser.parse_args()
-    do_training(args)
+    do_training()
