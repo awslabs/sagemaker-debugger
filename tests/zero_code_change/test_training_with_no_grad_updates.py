@@ -1,8 +1,14 @@
 # Standard Library
+import os
+from tempfile import TemporaryDirectory
 
 # Third Party
 import torch
 from torch.utils.data import DataLoader, IterableDataset
+from utils import build_json
+
+# First Party
+from smdebug.trials import create_trial
 
 
 class TestDataset(IterableDataset):
@@ -90,7 +96,6 @@ def do_training():
             lookup_embeddings.shape[0], dtype=torch.int32, device=embedding_matrix.weight.device
         )
         loss = criterion(output_embeddings, lookup_embeddings, labels)
-        print("Loss: {}".format(loss))
         # Zero out gradients.
         optimizer.zero_grad()
         # Do backwards pass.
@@ -100,4 +105,9 @@ def do_training():
 
 
 if __name__ == "__main__":
+    temp_dir = TemporaryDirectory().name
+    path = build_json(temp_dir, include_collections=["losses"], save_interval="1")
+    os.environ["SMDEBUG_CONFIG_FILE_PATH"] = str(path)
     do_training()
+    trial = create_trial(temp_dir)
+    assert len(trial.steps()) == 99
