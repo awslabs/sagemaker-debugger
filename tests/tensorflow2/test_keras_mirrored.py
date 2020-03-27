@@ -243,7 +243,7 @@ def test_save_all(out_dir, tf_eager_mode):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        assert len(tr.tensor_names()) == 6 + 1 + 3 * strategy.num_replicas_in_sync
+        assert len(tr.tensor_names()) == 6 + 1 + 3
         # weights, metrics, losses
     else:
         assert (
