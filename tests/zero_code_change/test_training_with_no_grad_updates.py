@@ -104,7 +104,7 @@ def do_training():
         optimizer.step()
 
 
-if __name__ == "__main__":
+def test_training_with_no_grad_updates():
     temp_dir = TemporaryDirectory().name
     path = build_json(temp_dir, include_collections=["losses"], save_interval="1")
     os.environ["SMDEBUG_CONFIG_FILE_PATH"] = str(path)
