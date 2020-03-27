@@ -4,8 +4,8 @@ from tempfile import TemporaryDirectory
 
 # Third Party
 import torch
+from tests.zero_code_change.utils import build_json
 from torch.utils.data import DataLoader, IterableDataset
-from utils import build_json
 
 # First Party
 from smdebug.trials import create_trial
