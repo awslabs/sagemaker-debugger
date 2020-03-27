@@ -169,6 +169,7 @@ def helper_keras_gradtape(
     hook.close()
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_gradtape(out_dir, saveall):
@@ -189,6 +190,7 @@ def test_keras_gradtape(out_dir, saveall):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_gradtape_base_reductions(out_dir):
     """
@@ -217,6 +219,7 @@ def test_gradtape_base_reductions(out_dir):
     assert tr.tensor(metric_name).value(0) is not None
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_gradtape_collection_reductions(out_dir):
     """
@@ -242,6 +245,7 @@ def test_gradtape_collection_reductions(out_dir):
         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_gradtape_include_regex(out_dir):
     """
@@ -261,6 +265,7 @@ def test_gradtape_include_regex(out_dir):
         assert tr.tensor(tname).value(0) is not None
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_gradtape_training_end(out_dir):
     """
@@ -270,6 +275,7 @@ def test_gradtape_training_end(out_dir):
     assert has_training_ended(out_dir) is True
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_gradtape_weights_collections(out_dir):
     """
@@ -294,6 +300,7 @@ def test_gradtape_weights_collections(out_dir):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_gradtape_include_collections(out_dir):
     """
@@ -330,6 +337,7 @@ def test_gradtape_include_collections(out_dir):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_gradtape_hook_from_json(out_dir, monkeypatch):
     """
@@ -452,11 +460,10 @@ def test_include_regex(out_dir, tf_eager_mode):
         assert tr.tensor(tname).value(0) is not None
 
 
+@pytest.mark.skip_if_non_eager
 @pytest.mark.slow
-def test_clash_with_tb_callback(out_dir, tf_eager_mode):
+def test_clash_with_tb_callback(out_dir):
     # this test cannot be run in non-eager mode
-    if not tf_eager_mode:
-        return
     helper_keras_fit(
         out_dir,
         save_config=SaveConfig(save_interval=9),
@@ -468,7 +475,6 @@ def test_clash_with_tb_callback(out_dir, tf_eager_mode):
             CollectionKeys.METRICS,
         ],
         add_callbacks=["tensorboard"],
-        eager=tf_eager_mode,
     )
     tr = create_trial_fast_refresh(out_dir)
     assert len(tr.tensor_names()) == 8

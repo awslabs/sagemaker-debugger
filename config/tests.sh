@@ -29,7 +29,12 @@ run_for_framework() {
       fi
 
     else
-      python -m pytest --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html tests/$1
+      if [ "$1" = "tensorflow2" ] ; then
+        python -m pytest --durations=50 --html=$REPORT_DIR/report_$1/eager_mode.html -v -s --self-contained-html tests/$1
+        python -m pytest --durations=50 --non-eager --html=$REPORT_DIR/report_$1/non_eager_mode.html -v -s --self-contained-html tests/$1
+      else
+        python -m pytest --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html tests/$1
+      fi
     fi
 }
 
