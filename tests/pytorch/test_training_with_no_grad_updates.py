@@ -53,7 +53,7 @@ def init_weights(method):
     return _init_weights
 
 
-def do_training(args):
+def do_training():
     # Generate a matrix of fake random embeddings.
     N = 1000
     EMBEDDING_SIZE = 768
