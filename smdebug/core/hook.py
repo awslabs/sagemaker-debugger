@@ -4,6 +4,7 @@ import os
 import re as _re
 import time
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from typing import Dict, List, Optional, Set, Union
 
 # Third Party
@@ -848,6 +849,7 @@ class CallbackHook(BaseHook):
         )
         self.exported_collections = False
         self.data_type_name = data_type_name
+        self.written_tensors = defaultdict(int)
 
     def _cleanup(self):
         if not self.exported_collections:
@@ -874,10 +876,16 @@ class CallbackHook(BaseHook):
         return idx
 
     def _write_inputs(self, name, inputs):
-        self._write(name, inputs, CallbackHook.INPUT_TENSOR_SUFFIX, idx=0)
+        idx = self.written_tensors.get(name, default=0)
+        self.written_tensors[name] = self._write(
+            name, inputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
+        )
 
     def _write_outputs(self, name, outputs):
-        self._write(name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=0)
+        idx = self.written_tensors.get(name, default=0)
+        self.written_tensors[name] = self._write(
+            name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
+        )
 
     @abstractmethod
     def _export_model(self):
