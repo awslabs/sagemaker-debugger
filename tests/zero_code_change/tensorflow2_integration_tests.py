@@ -157,26 +157,18 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             else:
                 hook = smd.KerasHook.create_from_json_file()
             opt = hook.wrap_optimizer(opt)
+            tape = tf.GradientTape(persistent=True)
+            tape = hook.wrap_tape(tape)
             for epoch in range(n_epochs):
                 for data, labels in dataset:
                     dataset_labels = labels
                     labels = tf.one_hot(labels, depth=10)
-                    with tf.GradientTape(persistent=True) as tape:
-                        # call this API before a forward pass to prepare collections
-                        # and initialize writers
-                        hook.forward_pre_hook(tape)
+                    with tape:
                         logits = model(data, training=True)  # (32,10)
                         loss_value = cce(labels, logits)
-                    # call this API to save loss or metric tensors
-                    hook.record_tensor_value("loss", loss_value)
                     grads = tape.gradient(loss_value, model.variables)
-                    # API to save gradients and model variables
-                    hook.set_grads_vars(grads, model.variables)
                     opt.apply_gradients(zip(grads, model.variables))
                     acc = train_acc_metric(dataset_labels, logits)
-                    hook.record_tensor_value("accuracy", acc)
-                    # call this API to export collections to file
-                    hook.forward_post_hook()
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
             assert hook
