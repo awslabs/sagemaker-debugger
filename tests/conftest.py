@@ -51,6 +51,10 @@ def out_dir():
     return out_dir
 
 
+# In TF, once we disable eager execution, we cannot re-enable eager execution.
+# The following two fixtures will enable the script `tests.sh` to execute all
+# tests in eager mode first followed by non-eager mode.
+# TF issue: https://github.com/tensorflow/tensorflow/issues/18304
 @pytest.fixture(scope="module")
 def tf_eager_mode(request):
     return not request.config.getoption("--non-eager")
