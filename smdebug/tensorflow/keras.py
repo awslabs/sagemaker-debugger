@@ -771,10 +771,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         from tensorflow.python.eager.backprop import GradientTape
 
         if isinstance(tape, GradientTape):
-            self.tape = GradientTape(persistent=True)
+            self.tape = tape
             self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
             self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
             self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
         else:
             self._log_unsupported_tape(tape)
-        return self.tape
+        return tape
