@@ -876,13 +876,13 @@ class CallbackHook(BaseHook):
         return idx
 
     def _write_inputs(self, name, inputs):
-        idx = self.written_tensors.get(name, default=0)
+        idx = self.written_tensors.get(name, 0)
         self.written_tensors[name] = self._write(
             name, inputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
         )
 
     def _write_outputs(self, name, outputs):
-        idx = self.written_tensors.get(name, default=0)
+        idx = self.written_tensors.get(name, 0)
         self.written_tensors[name] = self._write(
             name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
         )
