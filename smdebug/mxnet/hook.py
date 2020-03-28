@@ -67,6 +67,7 @@ class Hook(CallbackHook):
                 return f"worker_{hvd.rank()}"
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
+
         return DEFAULT_WORKER_NAME
 
     def _get_num_workers(self):

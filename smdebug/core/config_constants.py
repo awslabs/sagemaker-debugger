@@ -1,3 +1,4 @@
+CLAIM_FILENAME = "claim.smd"
 CONFIG_FILE_PATH_ENV_STR = "SMDEBUG_CONFIG_FILE_PATH"
 DEFAULT_WORKER_NAME = "worker_0"
 DEFAULT_CONFIG_FILE_PATH = "/opt/ml/input/config/debughookconfig.json"

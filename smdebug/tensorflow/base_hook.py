@@ -226,7 +226,7 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return 1
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
-            raise NotImplementedError
+            return 1
 
     def _set_chief_worker(self):
         self._assert_distribution_strategy()

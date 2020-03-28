@@ -1,5 +1,6 @@
 # Standard Library
 import atexit
+import os
 import re as _re
 import time
 from abc import ABCMeta, abstractmethod
@@ -35,7 +36,14 @@ from smdebug.core.reductions import get_reduction_tensor_name
 from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
-from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
+from smdebug.core.utils import (
+    flatten,
+    get_tb_worker,
+    is_first_process,
+    match_inc,
+    remove_claim_file,
+    size_and_shape,
+)
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
 
@@ -145,6 +153,9 @@ class BaseHook:
 
         self.dry_run = dry_run
         self.worker = None
+        # when smdebug is used during an unsupported dist training process
+        # we write data only from the process that has self.first_process set to True.
+        self.first_process = None
         self.save_all_workers = True if include_workers == "all" else False
         self.chief_worker = DEFAULT_WORKER_NAME
 
@@ -402,6 +413,22 @@ class BaseHook:
     def _initialize_writers(self) -> None:
         if self.dry_run:
             return
+        if self.first_process is False:
+            return
+        elif self.first_process is None:
+            if self._get_num_workers() == 1:
+                if is_first_process(self.out_dir):
+                    self.first_process = True
+                    self.logger.info(f"Hook is writing from the hook with pid: {os.getpid()}\n")
+                else:
+                    self.first_process = False
+                    self.logger.warn(
+                        f"Unsupported Distributed Training Strategy Detected.\n\
+                        Sagemaker-Debugger will only write from one process.\n\
+                        The process with pid: {os.getpid()} will not be writing any data. \n"
+                    )
+                    return
+
         if self.save_all_workers is False:
             if self.worker != self.chief_worker:
                 return
@@ -460,6 +487,8 @@ class BaseHook:
             self.metrics_writer.close()
 
         training_has_ended(self.out_dir)
+        if self.first_process is True:
+            remove_claim_file(self.out_dir)
 
     def _increment_step(self):
         # Update the last_state to the last step number that was saved or seen
