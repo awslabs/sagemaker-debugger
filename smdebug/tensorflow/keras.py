@@ -624,7 +624,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.optimizer = optimizer
         return optimizer
 
+    def _log_unsupported_tape(self, tape):
+        self.logger.warning(
+            f"Unsupported tape {tape} {tape.__class__}, cannot automatically find "
+            "gradients, loss, weights, and biases."
+        )
+
     def _unwrap_tape(self):
+        """
+        Unwrap the wrapped tape. Not doing so on hook cleanup or close,
+        will lead to recursive wrapping when there are more tapes in the
+        training script.
+        """
+
         def _is_wrapper(f):
             return hasattr(f, "__wrapped__")
 
@@ -638,11 +650,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
 
     def close(self):
+        # Unwrap the tape before closing
         if self.tape:
             self._unwrap_tape()
         super().close()
 
-    def wrap_push_tape(self, function):
+    def _wrap_push_tape(self, function):
+        """
+        tape._push_tape is called at the beginning of the GradientTape block.
+        Using this wrapper to prepare collections, initialize writers, and
+        increment step.
+        """
+
         @functools.wraps(function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
@@ -668,7 +687,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         return run
 
-    def wrap_tape_gradient(self, function):
+    def _wrap_tape_gradient(self, function):
+        """
+        tape.gradient() is used to compute gradients from loss and model variables.
+        Using this wrapper to get gradients, loss, weights, and bias values.
+        """
+
         @functools.wraps(function)
         def run(*args, **kwargs):
             grads = function(*args, **kwargs)
@@ -710,7 +734,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         return run
 
-    def wrap_pop_tape(self, function):
+    def _wrap_pop_tape(self, function):
+        """
+        tape._pop_tape() is called at the end of a GradientTape execution.
+        Using this to export collections
+        """
+
         @functools.wraps(function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
@@ -734,7 +763,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
         variables.
 
-        :param tape: tensorflow.python.eager.backprop.GradientTap
+        :param tape: tensorflow.python.eager.backprop.GradientTape
             the tape object used for training
         :return: Wrapped tape of same type as passed.
             This tape should be used for training
@@ -743,9 +772,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if isinstance(tape, GradientTape):
             self.tape = GradientTape(persistent=True)
-            self.tape.__class__._push_tape = self.wrap_push_tape(tape.__class__._push_tape)
-            self.tape.__class__.gradient = self.wrap_tape_gradient(tape.__class__.gradient)
-            self.tape.__class__._pop_tape = self.wrap_pop_tape(tape.__class__._pop_tape)
+            self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
+            self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
+            self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
         else:
-            self._log_unsupported_optimizer(tape)
+            self._log_unsupported_tape(tape)
         return self.tape
