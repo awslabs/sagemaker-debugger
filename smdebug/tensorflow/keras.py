@@ -337,7 +337,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # TODO
         pass
 
-    def _add_metric(self, metric_name):
+    def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
         if metric_name in self.tensor_to_collections:
             return
 
@@ -346,7 +346,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             coll_name = CollectionKeys.METRICS
         coll = self.collection_manager.get(coll_name)
-        coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
+        if metric_value:
+            coll.set_tensor_ref(metric_value, metric_name)
+        else:
+            coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
     def _save_metrics(self, batch, logs, force_save=False):
@@ -620,3 +623,158 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Optimizer is being saved to support additional features in the future.
         self.optimizer = optimizer
         return optimizer
+
+    def _log_unsupported_tape(self, tape):
+        self.logger.warning(
+            f"Unsupported tape {tape} {tape.__class__}, cannot automatically find "
+            "gradients, loss, weights, and biases."
+        )
+
+    def _unwrap_tape(self):
+        """
+        Unwrap the wrapped tape. Not doing so on hook cleanup or close,
+        will lead to recursive wrapping when there are more tapes in the
+        training script.
+        """
+
+        def _is_wrapper(f):
+            return hasattr(f, "__wrapped__")
+
+        def unwrap(func):
+            while _is_wrapper(func):
+                func = func.__wrapped__
+            return func
+
+        self.tape.__class__._push_tape = unwrap(self.tape.__class__._push_tape)
+        self.tape.__class__._pop_tape = unwrap(self.tape.__class__._pop_tape)
+        self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
+
+    def close(self):
+        # Unwrap the tape before closing
+        if self.tape:
+            self._unwrap_tape()
+        super().close()
+
+    def _wrap_push_tape(self, function):
+        """
+        tape._push_tape is called at the beginning of the GradientTape block.
+        Using this wrapper to prepare collections, initialize writers, and
+        increment step.
+        """
+
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            function(*args, **kwargs)
+            if self._is_not_supported():
+                return
+
+            self.worker = self._get_worker_name()
+
+            if self.writer is not None or len(self.writer_map):
+                self._close_writers()
+
+            if not self.prepared_collections:
+                # at this point we need all collections to be ready
+                # this may not be the case at creation of hook
+                # as user's code after hook might add collections
+                self._prepare_collections()
+                self.prepared_collections = True
+
+            self._increment_step()
+
+            if self._get_collections_to_save_for_step():
+                self._initialize_writers()
+
+        return run
+
+    def _wrap_tape_gradient(self, function):
+        """
+        tape.gradient() is used to compute gradients from loss and model variables.
+        Using this wrapper to get gradients, loss, weights, and bias values.
+        """
+
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            grads = function(*args, **kwargs)
+            if self._is_not_supported():
+                return grads
+            loss = args[1]
+            vars = args[2]
+            if (
+                (not grads or not vars)
+                or (not isinstance(grads, list) or not isinstance(vars, list))
+                or (not ((isinstance(vars[0], tf.Variable)) and hasattr(vars[0], "numpy")))
+                or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
+            ):
+                return grads
+
+            if self._get_collections_to_save_for_step():
+                for (g, v) in zip(grads, vars):
+                    layer = v.name.split(":")[0]
+                    self._save_for_tensor(
+                        tensor_name="gradients/" + layer + "Grad",
+                        tensor_value=g,
+                        check_before_write=True,
+                    )
+                    self._save_for_tensor(
+                        tensor_name="weights/" + v.name,
+                        tensor_value=v.value(),
+                        check_before_write=True,
+                    )
+
+            if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
+                return grads
+
+            self._add_metric(metric_name="loss", metric_value=loss)
+            if self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
+                self._initialize_writers(only_initialize_if_missing=True)
+                self._save_for_tensor("loss", loss, check_before_write=False)
+
+            return grads
+
+        return run
+
+    def _wrap_pop_tape(self, function):
+        """
+        tape._pop_tape() is called at the end of a GradientTape execution.
+        Using this to export collections
+        """
+
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            function(*args, **kwargs)
+            if self._is_not_supported():
+                return
+
+            if self._exported_collections is False:
+                # in keras, these collections change when mode changes
+                # but rest of the project isn't yet capable of handling this
+                # this means that collections like outputs, or other collections with intermediate tensors
+                # will only have tensor names from first mode
+
+                # this means sometimes collections will be exported after 1 step
+                self.export_collections()
+                self._exported_collections = True
+
+        return run
+
+    def wrap_tape(self, tape):
+        """
+        Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
+        variables.
+
+        :param tape: tensorflow.python.eager.backprop.GradientTape
+            the tape object used for training
+        :return: Wrapped tape of same type as passed.
+            This tape should be used for training
+        """
+        from tensorflow.python.eager.backprop import GradientTape
+
+        if isinstance(tape, GradientTape):
+            self.tape = tape
+            self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
+            self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
+            self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
+        else:
+            self._log_unsupported_tape(tape)
+        return tape

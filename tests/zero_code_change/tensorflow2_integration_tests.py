@@ -40,7 +40,6 @@ def get_keras_model_v2():
 def get_keras_data():
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    x_train, x_test = x_train / 255, x_test / 255
 
     return (x_train, y_train), (x_test, y_test)
 
@@ -54,6 +53,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     with SagemakerSimulator() as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
+        x_train, x_test = x_train / 255, x_test / 255
 
         opt = tf.keras.optimizers.RMSprop()
         if script_mode:
@@ -94,6 +94,7 @@ def helper_test_keras_v2_json_config(
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
+        x_train, x_test = x_train / 255, x_test / 255
 
         opt = tf.keras.optimizers.RMSprop()
         if script_mode:
@@ -126,8 +127,78 @@ def helper_test_keras_v2_json_config(
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
+def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_contents="{}"):
+    """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
+    smd.del_hook()
+    tf.keras.backend.clear_session()
+
+    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+        model = tf.keras.models.Sequential(
+            [
+                tf.keras.layers.Flatten(input_shape=(28, 28, 1)),  # WA for TF issue #36279
+                tf.keras.layers.Dense(128, activation="relu"),
+                tf.keras.layers.Dropout(0.2),
+                tf.keras.layers.Dense(10, activation="softmax"),
+            ]
+        )
+        (x_train, y_train), _ = get_keras_data()
+        dataset = tf.data.Dataset.from_tensor_slices(
+            (tf.cast(x_train[..., tf.newaxis] / 255, tf.float32), tf.cast(y_train, tf.int64))
+        )
+        dataset = dataset.shuffle(1000).batch(64)
+
+        opt = tf.keras.optimizers.RMSprop()
+        cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+        train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
+        n_epochs = 5
+        if script_mode:
+            if json_file_contents == "{}":
+                hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
+            else:
+                hook = smd.KerasHook.create_from_json_file()
+            opt = hook.wrap_optimizer(opt)
+            tape = tf.GradientTape(persistent=True)
+            tape = hook.wrap_tape(tape)
+            for epoch in range(n_epochs):
+                for data, labels in dataset:
+                    dataset_labels = labels
+                    labels = tf.one_hot(labels, depth=10)
+                    with tape:
+                        logits = model(data, training=True)  # (32,10)
+                        loss_value = cce(labels, logits)
+                    grads = tape.gradient(loss_value, model.variables)
+                    opt.apply_gradients(zip(grads, model.variables))
+                    acc = train_acc_metric(dataset_labels, logits)
+                train_acc_metric.reset_states()
+            hook = smd.get_hook()
+            assert hook
+            hook.close()
+            # Check that hook created and tensors saved
+            trial = smd.create_trial(path=sim.out_dir)
+            assert len(trial.steps()) > 0, "Nothing saved at any step."
+            assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+            assert len(trial.tensor_names(collection="losses")) > 0
+        else:
+            # ZCC doesn't support yet (as of smdebug v0.7.2)
+            for epoch in range(n_epochs):
+                for data, labels in dataset:
+                    dataset_labels = labels
+                    labels = tf.one_hot(labels, depth=10)
+                    with tf.GradientTape(persistent=True) as tape:
+                        logits = model(data, training=True)  # (32,10)
+                        loss_value = cce(labels, logits)
+                    grads = tape.gradient(loss_value, model.variables)
+                    opt.apply_gradients(zip(grads, model.variables))
+                    acc = train_acc_metric(dataset_labels, logits)
+                train_acc_metric.reset_states()
+            hook = smd.get_hook()
+            assert not hook
+
+
 def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):
     # Test default ZCC behavior
+    if eager_mode:
+        helper_test_keras_v2_gradienttape(script_mode=script_mode)
     helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
@@ -160,6 +231,10 @@ def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool 
                 ]
             }
             """
+    if eager_mode:
+        helper_test_keras_v2_gradienttape(
+            script_mode=script_mode, json_file_contents=json_file_contents
+        )
     helper_test_keras_v2_json_config(
         script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
     )
@@ -177,6 +252,10 @@ def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
                 }
             }
             """
+    if eager_mode:
+        helper_test_keras_v2_gradienttape(
+            script_mode=script_mode, json_file_contents=json_file_contents
+        )
     helper_test_keras_v2_json_config(
         script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
     )

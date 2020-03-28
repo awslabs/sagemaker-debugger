@@ -3,6 +3,7 @@
 # Third Party
 import numpy as np
 import pytest
+import tensorflow.compat.v2 as tf
 from tensorflow.keras.layers import LSTM, Activation, Dense, Dropout, Embedding, TimeDistributed
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
@@ -64,7 +65,7 @@ def train(num_epochs, batch_size, model, num_steps, hook):
 
 
 @pytest.mark.slow
-def test_lstm_and_generator(out_dir):
+def test_lstm_and_generator(out_dir, tf_eager_mode):
     # init hook
     hook = KerasHook(
         out_dir,
@@ -75,6 +76,9 @@ def test_lstm_and_generator(out_dir):
         ],
         save_config=SaveConfig(save_steps=[0, 1, 2, 3]),
     )
+
+    if not tf_eager_mode:
+        tf.compat.v1.disable_eager_execution()
 
     # init model
     num_steps = 100
