@@ -39,8 +39,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         save_all=False,
         include_workers="one",
     ):
-        TensorflowBaseHook.__init__(
-            self,
+        super().__init__(
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
             tensorboard_dir=tensorboard_dir,
@@ -53,7 +52,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             save_all=save_all,
             include_workers=include_workers,
         )
-        tf.keras.callbacks.Callback.__init__(self)
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
@@ -651,11 +649,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape.__class__._pop_tape = unwrap(self.tape.__class__._pop_tape)
         self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
 
-    def close(self):
+    def _cleanup(self):
         # Unwrap the tape before closing
         if self.tape:
             self._unwrap_tape()
-        super().close()
+        super()._cleanup()
 
     def _wrap_push_tape(self, function):
         """
@@ -686,6 +684,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if self._get_collections_to_save_for_step():
                 self._initialize_writers()
+
+            if self.last_saved_step is not None and self._exported_collections is False:
+                # in keras, these collections change when mode changes
+                # but rest of the project isn't yet capable of handling this
+                # this means that collections like outputs, or other collections with intermediate tensors
+                # will only have tensor names from first mode
+
+                # this means sometimes collections will be exported after 1 step
+                self.export_collections()
+                self._exported_collections = True
 
         return run
 
@@ -732,6 +740,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._initialize_writers(only_initialize_if_missing=True)
                 self._save_for_tensor("loss", loss, check_before_write=False)
 
+            # unwrap tape at the end to avoid recursive wrap tapes
+            self._unwrap_tape()
             return grads
 
         return run
@@ -748,15 +758,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self._is_not_supported():
                 return
 
-            if self._exported_collections is False:
-                # in keras, these collections change when mode changes
-                # but rest of the project isn't yet capable of handling this
-                # this means that collections like outputs, or other collections with intermediate tensors
-                # will only have tensor names from first mode
-
-                # this means sometimes collections will be exported after 1 step
-                self.export_collections()
-                self._exported_collections = True
+            self.last_saved_step = self.step
 
         return run
 
@@ -780,3 +782,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self._log_unsupported_tape(tape)
         return tape
+
+    def record_tensor_value(self, tensor_name, tensor_value):
+        # To be used to save metrics of type EagerTensor
+        if (
+            not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
+        ) or self._is_not_supported():
+            return
+
+        self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
+        if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
+            self._initialize_writers(only_initialize_if_missing=True)
+            self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
