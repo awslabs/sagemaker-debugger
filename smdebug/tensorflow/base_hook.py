@@ -364,8 +364,27 @@ class TensorflowBaseHook(BaseHook):
         # else we will have to open the file again
 
     def _add_to_device_map(self, tensor):
-        if tensor.device and "CPU" not in tensor.device and tensor.device not in self.device_map:
-            self.device_map[tensor.device] = serialize_tf_device(tensor.device)
+        tensors = []
+
+        # In TF 2.x eager mode, we cannot rely on input tensors to
+        # populate this device map as these tensors cannot be saved.
+        # Due to this, while executing MirroredStrategy on multiple GPUs,
+        # weights and biases in the form of values.MirroredVariable are the
+        # first tensors to reach this point. Since MirroredVariable is not
+        # processed here, MirroredStrategy distributed training jobs failed
+        # on GPU. Adding a check and processing MirroredVariable for TF 2.x
+        # eager mode alone.
+        if is_tf_version_2x() and tf.executing_eagerly():
+            from tensorflow.python.distribute import values
+
+            if isinstance(tensor, values.DistributedVariable):
+                tensors = [t for t in tensor._values]
+        else:
+            tensors = [tensor]
+
+        for t in tensors:
+            if t.device and "CPU" not in t.device and t.device not in self.device_map:
+                self.device_map[t.device] = serialize_tf_device(t.device)
 
     def _log_unsupported_optimizer(self, optimizer):
         self.logger.warning(

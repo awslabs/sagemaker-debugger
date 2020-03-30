@@ -63,20 +63,21 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
-            if tf.executing_eagerly() or (
-                hasattr(self.model, "run_eagerly") and self.model.run_eagerly
+            if is_tf_version_2x() and tf.executing_eagerly():
+                self.logger.info(
+                    "Executing in TF2.x eager mode."
+                    "TF 2.x eager doesn't provide gradient and optimizer variable values."
+                    "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
+                )
+            if (
+                not is_tf_version_2x()
+                and tf.executing_eagerly()
+                or (hasattr(self.model, "run_eagerly") and self.model.run_eagerly)
             ):
-                if is_tf_version_2x():
-                    self.logger.info(
-                        "Executing in TF2.x eager mode."
-                        "TF 2.x eager doesn't provide gradient and optimizer variable values."
-                        "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
-                    )
-                else:
-                    self.logger.info(
-                        "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
-                    )
-                    self._hook_supported = False
+                self.logger.info(
+                    "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
+                )
+                self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
@@ -212,9 +213,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         )
                     elif isinstance(tensor, tf.Tensor):
                         tensor_refs.append(coll.add_tensor(tensor, name=export_name, mode=mode))
-                    elif isinstance(tensor, values.MirroredVariable):
+                    elif isinstance(tensor, values.DistributedVariable):
                         tensor_refs.extend(
-                            coll.add_mirrored_variable(tensor, export_name=export_name, mode=mode)
+                            coll.add_distributed_variable(
+                                tensor, export_name=export_name, mode=mode
+                            )
                         )
                     else:
                         raise NotImplementedError
