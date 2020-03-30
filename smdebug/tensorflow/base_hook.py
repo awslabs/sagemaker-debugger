@@ -183,6 +183,9 @@ class TensorflowBaseHook(BaseHook):
         return DEFAULT_TF_COLLECTIONS
 
     def export_collections(self):
+        # When TF 2.x GradientTape is used, prepare_layers() is not used
+        # as the tensors provided by GradientTape are eager tensors and hence,
+        # do not require preparing layers
         if not self.tape:
             assert self._prepared_tensors[self.mode]
 
@@ -373,6 +376,10 @@ class TensorflowBaseHook(BaseHook):
 
     def _get_collections_with_tensor(self, tf_tensor_name) -> Set["Collection"]:
         self._assert_prep()
+        # When TF 2.x GradientTape is used, layers are not prepared, hence
+        # tensors are not matched with collections at preparation time.
+        # Call core/hook.py's _get_collections_with_tensor() where tensors are
+        # matched with collections by regex
         if self.tape:
             return super()._get_collections_with_tensor(tf_tensor_name)
         return self.tensor_to_collections[tf_tensor_name]
@@ -381,10 +388,14 @@ class TensorflowBaseHook(BaseHook):
         return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=False)
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
-        # this tensor_name is tf tensor name, need to convert to export_name
+        # When TF 2.x GradientTape is used, the tensors to be saved are of type
+        # EagerTensor where tensor values are immediately available.
+        # Calling core/hook.py's write_for_tensor directly in this case.
         if self.tape:
             super()._write_for_tensor(tensor_name, tensor_value, save_collections)
             return
+
+        # this tensor_name is tf tensor name, need to convert to export_name
         tensor_ref = self._get_tensor_ref(tensor_name, save_collections=save_collections)
         if tensor_ref:
             name = tensor_ref.export_name

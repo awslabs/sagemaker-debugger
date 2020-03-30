@@ -154,8 +154,6 @@ def helper_keras_gradtape(
 
     opt = tf.keras.optimizers.Adam()
 
-    opt = hook.wrap_optimizer(opt)
-
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
 

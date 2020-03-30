@@ -39,7 +39,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         save_all=False,
         include_workers="one",
     ):
-        super().__init__(
+        TensorflowBaseHook.__init__(
+            self,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
             tensorboard_dir=tensorboard_dir,
@@ -52,6 +53,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             save_all=save_all,
             include_workers=include_workers,
         )
+        tf.keras.callbacks.Callback.__init__(self)
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()

@@ -156,7 +156,6 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
             else:
                 hook = smd.KerasHook.create_from_json_file()
-            opt = hook.wrap_optimizer(opt)
 
             for epoch in range(n_epochs):
                 for data, labels in dataset:
