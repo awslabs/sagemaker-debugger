@@ -116,6 +116,7 @@ def helper_keras_gradtape(
     save_config=None,
     hook=None,
     batch_size=64,
+    persistent=False,
 ):
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), _ = mnist.load_data()
@@ -163,10 +164,18 @@ def helper_keras_gradtape(
         for data, labels in dataset:
             dataset_labels = labels
             labels = tf.one_hot(labels, depth=10)
-            with hook.wrap_tape(tf.GradientTape(persistent=True)) as tape:
+            with hook.wrap_tape(tf.GradientTape(persistent=persistent)) as tape:
                 logits = model(data, training=True)  # (32,10)
                 loss_value = cce(labels, logits)
             grads = tape.gradient(loss_value, model.variables)
+
+            # By default, the resources held by a GradientTape are released as
+            # soon as GradientTape.gradient() method is called. To compute
+            # multiple gradients over the same computation, create a persistent
+            # gradient tape. This allows multiple calls to the gradient() method
+            # as resources are released when the tape object is garbage collected.
+            if persistent:
+                _ = tape.gradient(loss_value, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
             acc = train_acc_metric(dataset_labels, logits)
             hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
@@ -363,6 +372,27 @@ def test_gradtape_hook_from_json(out_dir, monkeypatch):
     assert len(trial.tensor_names()) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+
+
+@pytest.mark.skip_if_non_eager
+@pytest.mark.slow
+@pytest.mark.parametrize("saveall", [True, False])
+def test_gradtape_persistent(out_dir, saveall):
+    """
+    Test save all and save default collection
+    """
+    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=SaveConfig(save_interval=3))
+    helper_keras_gradtape(trial_dir=out_dir, hook=hook, persistent=True)
+
+    trial = smd.create_trial(path=out_dir)
+    if saveall:  # save losses, metrics, weights, biases
+        assert len(trial.tensor_names()) == 10
+        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    else:  # save the default losses and metrics
+        assert len(trial.tensor_names()) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 

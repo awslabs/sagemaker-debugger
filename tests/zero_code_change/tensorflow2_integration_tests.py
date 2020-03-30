@@ -162,7 +162,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 for data, labels in dataset:
                     dataset_labels = labels
                     labels = tf.one_hot(labels, depth=10)
-                    with hook.wrap_tape(tf.GradientTape(persistent=True)) as tape:
+                    with hook.wrap_tape(tf.GradientTape()) as tape:
                         logits = model(data, training=True)  # (32,10)
                         loss_value = cce(labels, logits)
                     grads = tape.gradient(loss_value, model.variables)

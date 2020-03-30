@@ -740,8 +740,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._initialize_writers(only_initialize_if_missing=True)
                 self._save_for_tensor("loss", loss, check_before_write=False)
 
-            # unwrap tape at the end to avoid recursive wrap tapes
-            self._unwrap_tape()
             return grads
 
         return run
@@ -775,6 +773,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         from tensorflow.python.eager.backprop import GradientTape
 
         if isinstance(tape, GradientTape):
+            # unwrap tape before wrapping new tape to avoid recursive wrap tapes
+            if self.tape:
+                self._unwrap_tape()
+
             self.tape = tape
             self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
             self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
