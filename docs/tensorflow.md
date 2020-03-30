@@ -74,6 +74,26 @@ model.fit(x_train, y_train, epochs=args.epochs, callbacks=[hook])
 model.evaluate(x_test, y_test, callbacks=[hook])
 ```
 
+### TF 2.x GradientTape example
+```python
+import smdebug.tensorflow as smd
+hook = smd.KerasHook(out_dir=args.out_dir)
+
+model = tf.keras.models.Sequential([ ... ])
+    for epoch in range(n_epochs):
+        for data, labels in dataset:
+            dataset_labels = labels
+            # wrap the tape to capture tensors
+            with hook.wrap_tape(tf.GradientTape(persistent=True)) as tape:
+                logits = model(data, training=True)  # (32,10)
+                loss_value = cce(labels, logits)
+            grads = tape.gradient(loss_value, model.variables)
+            opt.apply_gradients(zip(grads, model.variables))
+            acc = train_acc_metric(dataset_labels, logits)
+            # manually save metric values
+            hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
+```
+
 ---
 
 ## MonitoredSession
