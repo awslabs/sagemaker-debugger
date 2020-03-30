@@ -43,7 +43,7 @@ class Collection(BaseCollection):
         )
         return self._store_tensor_ref(tensor_ref)
 
-    def add_mirrored_variable(self, arg, export_name=None, mode=None):
+    def add_distributed_variable(self, arg, export_name=None, mode=None):
         # in keras we need to store the mode and only get tensors by mode
         tensors = []
         for value in arg._values:
@@ -81,8 +81,8 @@ class Collection(BaseCollection):
             return self.add_variable(arg, mode=mode)
         elif isinstance(arg, tf.Tensor):
             return self.add_tensor(arg, mode=mode)
-        elif isinstance(arg, values.MirroredVariable):
-            return self.add_mirrored_variable(arg, mode=mode)
+        elif isinstance(arg, values.DistributedVariable):
+            return self.add_distributed_variable(arg, mode=mode)
         elif isinstance(arg, values.AggregatingVariable):
             return self.add_aggregating_variable(arg, mode=mode)
         else:

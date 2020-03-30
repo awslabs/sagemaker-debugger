@@ -18,6 +18,12 @@ def pytest_addoption(parser):
     parser.addoption(
         "--skipslow", action="store_true", default=False, help="skip slow tests"
     )  # Anything taking longer than 2 seconds
+    parser.addoption(
+        "--non-eager",
+        action="store_true",
+        default=False,
+        help="enable or disable TF non-eager mode",
+    )
 
 
 def pytest_configure(config):
@@ -45,6 +51,17 @@ def out_dir():
     return out_dir
 
 
-@pytest.fixture(scope="module", params=[True, False])
+# In TF, once we disable eager execution, we cannot re-enable eager execution.
+# The following two fixtures will enable the script `tests.sh` to execute all
+# tests in eager mode first followed by non-eager mode.
+# TF issue: https://github.com/tensorflow/tensorflow/issues/18304
+@pytest.fixture(scope="module")
 def tf_eager_mode(request):
-    return request.param
+    return not request.config.getoption("--non-eager")
+
+
+@pytest.fixture(autouse=True)
+def skip_if_non_eager(request):
+    if request.node.get_closest_marker("skip_if_non_eager"):
+        if request.config.getoption("--non-eager"):
+            pytest.skip("Skipping because this test cannot be executed in non-eager mode")
