@@ -94,13 +94,18 @@ class Hook(CallbackHook):
             self._log_param(param)
 
     def _log_param(self, param):
-        self._save_for_tensor(tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0]))
-        # If Gradient for this param is available
-        if param.grad_req != "null":
+        try:
             self._save_for_tensor(
-                tensor_name=self.GRADIENT_PREFIX + param.name,
-                tensor_value=param.grad(param.list_ctx()[0]),
+                tensor_name=param.name, tensor_value=param.data(param.list_ctx()[0])
             )
+            # If Gradient for this param is available
+            if param.grad_req != "null":
+                self._save_for_tensor(
+                    tensor_name=self.GRADIENT_PREFIX + param.name,
+                    tensor_value=param.grad(param.list_ctx()[0]),
+                )
+        except RuntimeError as e:
+            self.logger.warning(f"Could not log parameter {param} due to the mxnet exception: {e}")
 
     def _export_model(self):
         if self.model is not None:
