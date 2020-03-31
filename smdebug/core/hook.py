@@ -15,6 +15,7 @@ from smdebug.core.collection import (
     NON_REDUCTION_COLLECTIONS,
     SCALAR_COLLECTIONS,
     SM_METRIC_COLLECTIONS,
+    PROFILER_COLLECTIONS,
     Collection,
     CollectionKeys,
 )

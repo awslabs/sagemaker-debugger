@@ -3,13 +3,14 @@ import functools
 
 # Third Party
 import tensorflow.compat.v1 as tf
+import time
 from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
-
+from smdebug.core.collection import PROFILER_COLLECTIONS
 # Local
 from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
@@ -23,9 +24,57 @@ from .utils import (
     is_keras_optimizer,
     is_tf_version_2x,
 )
-
+import numpy as np
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
+    def reset_batch_time_stats(self):
+        self.train_batch_begin_time = None
+        self.train_batch_end_time = None
+        self.avg_train_step_time = 0
+        self.test_batch_begin_time = None
+        self.test_batch_end_time = None
+        self.avg_test_step_time = 0
+        self.avg_post_step_time = 0
+        self.avg_post_test_step_time = 0
+        self.train_step_times = []
+        self.test_step_times = []
+        for metric_name in PROFILER_COLLECTIONS:
+            if metric_name in self.tensor_to_collections:
+                continue
+
+            coll_name = CollectionKeys.PROFILE_METRICS
+            coll = self.collection_manager.get(coll_name)
+            coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
+            self.tensor_to_collections[metric_name] = {coll}
+
+    def save_profiling_tensors(self, dump_step_times=False):
+          
+        if self.avg_train_step_time:
+            self._save_for_tensor(
+                    tensor_name="profile.avg_train_step_time", tensor_value=self.avg_train_step_time, check_before_write=False
+                )
+        if self.avg_test_step_time:
+            self._save_for_tensor(
+                    tensor_name="profile.avg_test_step_time", tensor_value=self.avg_test_step_time, check_before_write=False
+                )
+        if self.avg_post_step_time:
+            self._save_for_tensor(
+                    tensor_name="profile.average_post_step_time", tensor_value=self.avg_post_step_time, check_before_write=False
+                )
+        if self.avg_post_test_step_time:
+            self._save_for_tensor(
+                    tensor_name="profile.avg_post_test_step_time", tensor_value=self.avg_post_test_step_time, check_before_write=False
+                ) 
+
+        if dump_step_times and len(self.train_step_times) > 0:
+            self._save_for_tensor(
+                    tensor_name="profile.train_step_times", tensor_value=tf.constant([self.train_step_times]), check_before_write=False
+                )
+        if dump_step_times and len(self.test_step_times) > 0:
+            self._save_for_tensor(
+                    tensor_name="profile.test_step_times", tensor_value=tf.constant([self.test_step_times]), check_before_write=False
+                )
+        
     def __init__(
         self,
         out_dir,
@@ -55,6 +104,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
+        self.reset_batch_time_stats()
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -462,6 +512,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
         self._save_metrics(batch=batch, logs=logs, force_save=True)
+        self.save_profiling_tensors(True)
         self._close_writers()
 
     def _on_any_mode_begin(self, mode):
@@ -532,11 +583,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 self._add_callbacks(mode)
-
+    
     def on_train_batch_begin(self, batch, logs=None):
+            # record time difference
+        self.train_batch_begin_time = time.time()
+        if self.train_batch_end_time:
+            post_step_time = self.train_batch_begin_time - self.train_batch_end_time
+            self.avg_post_step_time = (post_step_time + (batch * self.avg_post_step_time))/(batch + 1)
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
 
     def on_test_batch_begin(self, batch, logs=None):
+        self.test_batch_begin_time = time.time()
+        if self.test_batch_end_time:
+            post_test_step_time = self.test_batch_begin_time - self.test_batch_end_time
+            self.avg_post_test_step_time = (post_test_step_time + (batch * self.avg_post_test_step_time))/(batch + 1)
         self._on_any_batch_begin(batch, ModeKeys.EVAL, logs=logs)
 
     def on_predict_batch_begin(self, batch, logs=None):
@@ -569,9 +629,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._exported_model[self.mode] = True
 
     def on_train_batch_end(self, batch, logs=None):
+        self.train_batch_end_time = time.time()
+        step_time = self.train_batch_end_time - self.train_batch_begin_time
+        self.train_step_times.append(step_time)
+        self.avg_train_step_time = (step_time + (batch * self.avg_train_step_time))/(batch + 1)
+        #Time for train_step = backward_end_time - batch_begin_time
+        #avg_time =  (Time for train_step + (batch-1 * avg_time) ) /batch
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)
 
     def on_test_batch_end(self, batch, logs=None):
+        self.test_batch_end_time = time.time()
+        test_step_time = self.train_batch_end_time - self.train_batch_begin_time
+        self.test_step_times.append(test_step_time)
+        self.avg_test_step_time = (test_step_time + (batch * self.avg_test_step_time))/(batch + 1)
         self._on_any_batch_end(batch, ModeKeys.EVAL, logs=logs)
 
     def on_predict_batch_end(self, batch, logs=None):

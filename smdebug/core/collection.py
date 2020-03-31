@@ -31,7 +31,7 @@ class CollectionKeys:
     # Mainly for Tensorflow. For all other frameworks, call save_scalar() API
     # with details of the scalar to be saved.
     SM_METRICS = "sm_metrics"
-
+    PROFILE_METRICS = "profile_metrics"
     OPTIMIZER_VARIABLES = "optimizer_variables"
     TENSORFLOW_SUMMARIES = "tensorflow_summaries"
     METRICS = "metrics"
@@ -59,7 +59,7 @@ SCALAR_COLLECTIONS = {
 }
 
 SM_METRIC_COLLECTIONS = {CollectionKeys.LOSSES, CollectionKeys.METRICS, CollectionKeys.SM_METRICS}
-
+PROFILER_COLLECTIONS = {"profile.avg_train_step_time", "profile.avg_test_step_time", "profile.average_post_step_time", "profile.avg_post_test_step_time", "profile.train_step_times", "profile.test_step_times"}
 # used by pt, mx, keras
 NON_REDUCTION_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)
 
@@ -77,6 +77,7 @@ DEFAULT_TF_COLLECTIONS = {
     CollectionKeys.OUTPUTS,
     CollectionKeys.SM_METRICS,
     CollectionKeys.OPTIMIZER_VARIABLES,
+    "profile.avg_train_step_time", "profile.avg_test_step_time", "profile.average_post_step_time", "profile.avg_post_test_step_time", "profile.train_step_times", "profile.test_step_times",
 }
 
 DEFAULT_PYTORCH_COLLECTIONS = {
