@@ -59,7 +59,18 @@ SCALAR_COLLECTIONS = {
 }
 
 SM_METRIC_COLLECTIONS = {CollectionKeys.LOSSES, CollectionKeys.METRICS, CollectionKeys.SM_METRICS}
-PROFILER_COLLECTIONS = {"profile.avg_train_step_time", "profile.avg_test_step_time", "profile.average_post_step_time", "profile.avg_post_test_step_time", "profile.train_step_times", "profile.test_step_times"}
+PROFILER_COLLECTIONS = {
+    "profile.avg_train_step_time",
+    "profile.avg_test_step_time",
+    "profile.average_post_step_time",
+    "profile.avg_post_test_step_time",
+    "profile.train_step_times",
+    "profile.test_step_times",
+    "profile.test_time_batch_begin_to_forward",
+    "profile.train_time_batch_begin_to_forward",
+    "profile.test_layer_forward_times",
+    "profile.train_layer_forward_times",
+}
 # used by pt, mx, keras
 NON_REDUCTION_COLLECTIONS = SCALAR_COLLECTIONS.union(SUMMARIES_COLLECTIONS)
 
@@ -77,7 +88,16 @@ DEFAULT_TF_COLLECTIONS = {
     CollectionKeys.OUTPUTS,
     CollectionKeys.SM_METRICS,
     CollectionKeys.OPTIMIZER_VARIABLES,
-    "profile.avg_train_step_time", "profile.avg_test_step_time", "profile.average_post_step_time", "profile.avg_post_test_step_time", "profile.train_step_times", "profile.test_step_times",
+    "profile.avg_train_step_time",
+    "profile.avg_test_step_time",
+    "profile.average_post_step_time",
+    "profile.avg_post_test_step_time",
+    "profile.train_step_times",
+    "profile.test_step_times",
+    "profile.test_time_batch_begin_to_forward",
+    "profile.train_time_batch_begin_to_forward",
+    "profile.test_layer_forward_times",
+    "profile.train_layer_forward_times",
 }
 
 DEFAULT_PYTORCH_COLLECTIONS = {

@@ -13,9 +13,9 @@ from smdebug.core.access_layer import training_has_ended
 from smdebug.core.collection import (
     NON_HISTOGRAM_COLLECTIONS,
     NON_REDUCTION_COLLECTIONS,
+    PROFILER_COLLECTIONS,
     SCALAR_COLLECTIONS,
     SM_METRIC_COLLECTIONS,
-    PROFILER_COLLECTIONS,
     Collection,
     CollectionKeys,
 )
@@ -44,7 +44,6 @@ try:
     from smexperiments.metrics import SageMakerFileMetricsWriter
 except ImportError:
     SageMakerFileMetricsWriter = None
-
 
 logger = get_logger()
 
@@ -215,6 +214,7 @@ class BaseHook:
         # Cache scalars that are being saved through save_scalar() calls
         self.scalar_cache = []
 
+        self.layer_forward_times = []
         self.logger.info("Saving to {}".format(self.out_dir))
         atexit.register(self._cleanup)
 
@@ -586,6 +586,22 @@ class BaseHook:
                         tdata=np_value, tname=hist_name, global_step=self.step
                     )
                     break
+
+    def set_layer_forward_begin(self):
+        if len(self.layer_forward_times) == 0:
+            self.layer_forward_times = [time.time()]
+        else:
+            # TODO skip this if not all forward need to be captured(config value or env?), time.time() can be
+            #  expensive call sometimes
+            self.layer_forward_times.append(time.time())
+
+    # layer forward times need to be reset after every batch is processed
+    # During train batch, this need to be reset at end of (forward + backward) call
+    # during test batch this need to be reset at end of forward call
+    def reset_layer_forward_times(self):
+        self.layer_forward_times = None
+
+    #### Save Manager methods ####
 
     def _write_scalars(self):
         """
