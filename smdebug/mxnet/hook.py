@@ -105,7 +105,9 @@ class Hook(CallbackHook):
                     tensor_value=param.grad(param.list_ctx()[0]),
                 )
         except RuntimeError as e:
-            self.logger.warning(f"Could not log parameter {param} due to the mxnet exception: {e}")
+            self.logger.warning(
+                f"Could not log parameter {param.name} due to the mxnet exception: {e}"
+            )
 
     def _export_model(self):
         if self.model is not None:
