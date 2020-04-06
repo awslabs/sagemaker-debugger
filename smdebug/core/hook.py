@@ -884,7 +884,7 @@ class CallbackHook(BaseHook):
     def _write_inputs(self, name, inputs):
         idx = self.written_tensor_name_for_step.get(name, 0)
         self.written_tensor_name_for_step[name] = self._write(
-            name, inputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
+            name, inputs, CallbackHook.INPUT_TENSOR_SUFFIX, idx=idx
         )
 
     def _write_outputs(self, name, outputs):
