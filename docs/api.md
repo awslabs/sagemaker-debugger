@@ -157,6 +157,13 @@ Note that there are three types of Hooks in TensorFlow: SessionHook, EstimatorHo
 | `wrap_optimizer(optimizer)` | `optimizer` (tf.train.Optimizer or tf.keras.Optimizer) | Returns the same optimizer object passed with a couple of identifying markers to help `smdebug`. This returned optimizer should be used for training. | When not using Zero Script Change environments, calling this method on your optimizer is necessary for SageMaker Debugger to identify and save gradient tensors. Note that this method returns the same optimizer object passed and does not change your optimization logic. If the hook is of type `KerasHook`, you can pass in either an object of type `tf.train.Optimizer` or `tf.keras.Optimizer`. If the hook is of type `SessionHook` or `EstimatorHook`, the optimizer can only be of type `tf.train.Optimizer`.  This new
 | `add_to_collection(`<br/>  `collection_name, variable)` | `collection_name (str)` : name of the collection to add to. <br/> `variable` parameter to pass to the collection's `add` method. | `None` | Calls the `add` method of a collection object. See [this section](#collection) for more. |
 
+APIs specific to training scripts using TF 2.x GradientTape ([Example](tensorflow.md#TF 2.x GradientTape example)):
+
+| Method | Arguments | Returns | Behavior |
+| --- | --- | --- | --- |
+| `wrap_tape(tape)` | `tape` (tensorflow.python.eager.backprop.GradientTape) | Returns a tape object with three identifying markers to help `smdebug`. This returned tape should be used for training. | When not using Zero Script Change environments, calling this method on your tape is necessary for SageMaker Debugger to identify and save gradient tensors. Note that this method returns the same tape object passed.
+| `record_tensor_value(`<br/>  `tensor_name, tensor_value)` | `tensor_name (str)` : name of the tensor to save. <br/> `tensor_value` EagerTensor to save. | `None` | Manually save metrics tensors while using TF 2.x GradientTape. |
+
 ### MXNet specific Hook API
 
 | Method | Arguments | Behavior |

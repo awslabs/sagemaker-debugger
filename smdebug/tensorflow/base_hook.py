@@ -87,6 +87,9 @@ class TensorflowBaseHook(BaseHook):
         # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
+
+        # Identify TF 2.x GradientTape
+        self.tape = None
         self._exported_collections = False
         self._distribution_strategy = {
             ModeKeys.TRAIN: None,
@@ -180,7 +183,11 @@ class TensorflowBaseHook(BaseHook):
         return DEFAULT_TF_COLLECTIONS
 
     def export_collections(self):
-        assert self._prepared_tensors[self.mode]
+        # When TF 2.x GradientTape is used, prepare_layers() is not used
+        # as the tensors provided by GradientTape are eager tensors and hence,
+        # do not require preparing layers
+        if not self.tape:
+            assert self._prepared_tensors[self.mode]
 
         if self.save_all_workers is False:
             num_workers = 1
@@ -357,8 +364,27 @@ class TensorflowBaseHook(BaseHook):
         # else we will have to open the file again
 
     def _add_to_device_map(self, tensor):
-        if tensor.device and "CPU" not in tensor.device and tensor.device not in self.device_map:
-            self.device_map[tensor.device] = serialize_tf_device(tensor.device)
+        tensors = []
+
+        # In TF 2.x eager mode, we cannot rely on input tensors to
+        # populate this device map as these tensors cannot be saved.
+        # Due to this, while executing MirroredStrategy on multiple GPUs,
+        # weights and biases in the form of values.MirroredVariable are the
+        # first tensors to reach this point. Since MirroredVariable is not
+        # processed here, MirroredStrategy distributed training jobs failed
+        # on GPU. Adding a check and processing MirroredVariable for TF 2.x
+        # eager mode alone.
+        if is_tf_version_2x() and tf.executing_eagerly():
+            from tensorflow.python.distribute import values
+
+            if isinstance(tensor, values.DistributedVariable):
+                tensors = [t for t in tensor._values]
+        else:
+            tensors = [tensor]
+
+        for t in tensors:
+            if t.device and "CPU" not in t.device and t.device not in self.device_map:
+                self.device_map[t.device] = serialize_tf_device(t.device)
 
     def _log_unsupported_optimizer(self, optimizer):
         self.logger.warning(
@@ -369,12 +395,25 @@ class TensorflowBaseHook(BaseHook):
 
     def _get_collections_with_tensor(self, tf_tensor_name) -> Set["Collection"]:
         self._assert_prep()
+        # When TF 2.x GradientTape is used, layers are not prepared, hence
+        # tensors are not matched with collections at preparation time.
+        # Call core/hook.py's _get_collections_with_tensor() where tensors are
+        # matched with collections by regex
+        if self.tape:
+            return super()._get_collections_with_tensor(tf_tensor_name)
         return self.tensor_to_collections[tf_tensor_name]
 
     def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
         return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=False)
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
+        # When TF 2.x GradientTape is used, the tensors to be saved are of type
+        # EagerTensor where tensor values are immediately available.
+        # Calling core/hook.py's write_for_tensor directly in this case.
+        if self.tape:
+            super()._write_for_tensor(tensor_name, tensor_value, save_collections)
+            return
+
         # this tensor_name is tf tensor name, need to convert to export_name
         tensor_ref = self._get_tensor_ref(tensor_name, save_collections=save_collections)
         if tensor_ref:

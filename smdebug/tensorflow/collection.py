@@ -11,6 +11,7 @@ from smdebug.core.logger import get_logger
 
 # Local
 from .tensor_ref import TensorRef
+from .utils import is_tf_version_2x
 
 logger = get_logger()
 
@@ -43,7 +44,7 @@ class Collection(BaseCollection):
         )
         return self._store_tensor_ref(tensor_ref)
 
-    def add_mirrored_variable(self, arg, export_name=None, mode=None):
+    def add_distributed_variable(self, arg, export_name=None, mode=None):
         # in keras we need to store the mode and only get tensors by mode
         tensors = []
         for value in arg._values:
@@ -81,8 +82,8 @@ class Collection(BaseCollection):
             return self.add_variable(arg, mode=mode)
         elif isinstance(arg, tf.Tensor):
             return self.add_tensor(arg, mode=mode)
-        elif isinstance(arg, values.MirroredVariable):
-            return self.add_mirrored_variable(arg, mode=mode)
+        elif isinstance(arg, values.DistributedVariable):
+            return self.add_distributed_variable(arg, mode=mode)
         elif isinstance(arg, values.AggregatingVariable):
             return self.add_aggregating_variable(arg, mode=mode)
         else:
@@ -109,10 +110,22 @@ class Collection(BaseCollection):
     def get_tensor(self, name):
         return self._tensors[name]
 
-    def set_tensor_ref(self, tensor):
+    def set_tensor_ref(self, tensor, tensor_name: tf.Tensor = None):
+        """
+        Map tf_obj to a name.
+        In case of EagerTensor, rely on the tensor name
+        passed by the caller.
+        :param tensor: tf_obj or EagerTensor
+        :param tensor_name: name of EagerTensor
+        """
         # should always be a mapping from tf_obj.name to the argument
-        self._tensors[tensor.name] = tensor
-        self.add_tensor_name(tensor.export_name)
+        if tensor_name:
+            name = export_name = tensor_name
+        else:
+            name = tensor.name
+            export_name = tensor.export_name
+        self._tensors[name] = tensor
+        self.add_tensor_name(export_name)
 
     def has_tensor(self, name):
         # tf object name
@@ -133,7 +146,13 @@ class CollectionManager(BaseCollectionManager):
         if create_default:
             for n in DEFAULT_TF_COLLECTIONS:
                 self.create_collection(n)
-            self.get(CollectionKeys.BIASES).include("bias")
+            if is_tf_version_2x() and tf.executing_eagerly():
+                self.get(CollectionKeys.BIASES).include("^(?!gradient).*bias")
+                self.get(CollectionKeys.WEIGHTS).include("^weights/.*/((?!bias).)*$")
+                self.get(CollectionKeys.LOSSES).include(".*loss.*")
+                self.get(CollectionKeys.GRADIENTS).include("^gradient")
+            else:
+                self.get(CollectionKeys.BIASES).include("bias")
 
     def create_collection(self, name):
         super().create_collection(name, cls=Collection)
