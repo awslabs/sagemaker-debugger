@@ -497,7 +497,7 @@ class BaseHook:
 
         self.step += 1
         self.mode_steps[self.mode] += 1
-        self.written_tensors.clear()
+        self.written_tensor_name_for_step.clear()
 
         # Increment Global step number irrespective of what mode it is
         if self.mode != ModeKeys.GLOBAL:
@@ -850,7 +850,12 @@ class CallbackHook(BaseHook):
         )
         self.exported_collections = False
         self.data_type_name = data_type_name
-        self.written_tensors = defaultdict(int)
+        # The written_tensor_name_for_step dictionary stores
+        # the names of each tensor saved for every step.
+        # This is to detect name clashes.
+        # If a name clash is detected, it is avoided by appending
+        # an index to the tensor name.
+        self.written_tensor_name_for_step = defaultdict(int)
 
     def _cleanup(self):
         if not self.exported_collections:
@@ -877,14 +882,14 @@ class CallbackHook(BaseHook):
         return idx
 
     def _write_inputs(self, name, inputs):
-        idx = self.written_tensors.get(name, 0)
-        self.written_tensors[name] = self._write(
+        idx = self.written_tensor_name_for_step.get(name, 0)
+        self.written_tensor_name_for_step[name] = self._write(
             name, inputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
         )
 
     def _write_outputs(self, name, outputs):
-        idx = self.written_tensors.get(name, 0)
-        self.written_tensors[name] = self._write(
+        idx = self.written_tensor_name_for_step.get(name, 0)
+        self.written_tensor_name_for_step[name] = self._write(
             name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
         )
 
