@@ -54,5 +54,5 @@ def test_no_name_clash():
     trial = create_trial(out_dir)
     assert trial.steps() == [0, 1, 5]
 
-    assert len(trial.tensor_names()) == 38
+    assert len(trial.tensor_names(regex="relu.*")) == 6
     shutil.rmtree(out_dir, ignore_errors=True)
