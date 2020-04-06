@@ -47,7 +47,6 @@ def test_no_name_clash():
     )
     model = Net()
     hook.register_module(model)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     device = "cpu"
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, hook, torch.device(device), optimizer, num_steps=10)
@@ -55,5 +54,5 @@ def test_no_name_clash():
     trial = create_trial(out_dir)
     assert trial.steps() == [0, 1, 5]
 
-    assert len(trial.tensor_names()) == 37
+    assert len(trial.tensor_names()) == 38
     shutil.rmtree(out_dir, ignore_errors=True)

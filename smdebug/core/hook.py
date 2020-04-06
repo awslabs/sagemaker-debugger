@@ -497,6 +497,7 @@ class BaseHook:
 
         self.step += 1
         self.mode_steps[self.mode] += 1
+        self.written_tensors.clear()
 
         # Increment Global step number irrespective of what mode it is
         if self.mode != ModeKeys.GLOBAL:
