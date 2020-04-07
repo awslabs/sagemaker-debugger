@@ -56,28 +56,28 @@ def test_is_checkpoint_updated():
     # checkpoints_dir still has only metadata.json. It should return false.
     assert s2.is_checkpoint_updated() is False
 
-    os.mkdir(checkpoints_dir_path + "/subdir1")
+    os.mkdir(s2._checkpoint_dir + "/subdir1")
     with open(checkpoints_dir_path + "/subdir1/checkpoint_test1.txt", "w") as f:
         pass
     # the checkpoint update time is greater than _checkpoint_update_timestamp. is_checkpoint_updated should return true.
     assert s2.is_checkpoint_updated()
 
-    s2.update_state("test-state")
+    s2.update_state("test-state2")
     # the state_file has been updated. The lastest checkpoint update time is lesser than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return false.
     assert s2.is_checkpoint_updated() is False
 
-    with open(checkpoints_dir_path + "/subdir1/checkpoint_test1.txt", "a") as f:
+    with open(s2._checkpoint_dir + "/subdir1/checkpoint_test1.txt", "a") as f:
         f.write("test-string")
     # A checkpoint file has been updated. The checkpoint update time is greater than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return true.
     assert s2.is_checkpoint_updated()
 
-    s2.update_state("test-state1")
-    os.mkdir(checkpoints_dir_path + "/subdir2")
-    with open(checkpoints_dir_path + "/subdir2/checkpoint_test2.txt", "w") as f:
+    s2.update_state("test-state3")
+    os.mkdir(s2._checkpoint_dir + "/subdir2")
+    with open(s2._checkpoint_dir + "/subdir2/checkpoint_test2.txt", "w") as f:
         pass
     # A new checkpoint file has been created. The checkpoint update time is greater than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return true.
     assert s2.is_checkpoint_updated()
-    cleanup(checkpoints_dir_path, config_path)
+    cleanup(s2._checkpoint_dir, config_path)
