@@ -78,19 +78,14 @@ class StateStore:
         stored got updated.
         """
         if self._checkpoint_dir is not None:
-            timestamps = [
-                os.path.getmtime(child)
-                for child, _, _ in os.walk(self._checkpoint_dir)
-                if child != self._checkpoint_dir
-            ]
-            _, _, files = next(os.walk(self._checkpoint_dir))
-            timestamps += [
-                os.path.getmtime(os.path.join(self._checkpoint_dir, file))
-                for file in files
-                if file != METADATA_FILENAME
-            ]
-            if not timestamps:
+            checkpoint_files = []
+            for child, _, files in os.walk(self._checkpoint_dir):
+                for file in files:
+                    if file != METADATA_FILENAME:
+                        checkpoint_files.append(os.path.join(child, file))
+            if not checkpoint_files:
                 return False
+            timestamps = [os.path.getmtime(file) for file in checkpoint_files]
             if max(timestamps) > self._checkpoint_update_timestamp:
                 return True
         return False
