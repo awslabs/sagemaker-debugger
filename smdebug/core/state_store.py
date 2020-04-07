@@ -86,6 +86,12 @@ class StateStore:
             if not checkpoint_files:
                 return False
             timestamps = [os.path.getmtime(file) for file in checkpoint_files]
+            logger.debug(
+                f"Timestamps of different checkpoint files {[i for i in zip(checkpoint_files, timestamps)]}"
+            )
+            logger.debug(
+                f"Timestamp of the last checkpoint update: {self._checkpoint_update_timestamp}"
+            )
             if max(timestamps) > self._checkpoint_update_timestamp:
                 return True
         return False
