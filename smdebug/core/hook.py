@@ -177,6 +177,13 @@ class BaseHook:
         self.collection_manager = collection_manager
         self.init_step = init_step
 
+        # The written_tensor_name_for_step dictionary stores
+        # the names of each tensor saved for every step.
+        # This is to detect name clashes.
+        # If a name clash is detected, it is avoided by appending
+        # an index to the tensor name.
+        self.written_tensor_name_for_step = defaultdict(int)
+
         self.logger = logger
 
         if self.tensorboard_dir is None:
@@ -850,12 +857,6 @@ class CallbackHook(BaseHook):
         )
         self.exported_collections = False
         self.data_type_name = data_type_name
-        # The written_tensor_name_for_step dictionary stores
-        # the names of each tensor saved for every step.
-        # This is to detect name clashes.
-        # If a name clash is detected, it is avoided by appending
-        # an index to the tensor name.
-        self.written_tensor_name_for_step = defaultdict(int)
 
     def _cleanup(self):
         if not self.exported_collections:
