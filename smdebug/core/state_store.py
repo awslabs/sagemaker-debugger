@@ -74,14 +74,24 @@ class StateStore:
 
     def is_checkpoint_updated(self):
         """
-        Check whether the folder in which checkpoints are stored got updated.
-        Update to that folder indicates, user attempted to store the new checkpoint in that directory.
+        Check whether new checkpoint files got added or existing checkpoint files that are
+        stored got updated.
         """
         if self._checkpoint_dir is not None:
-            checkpoint_timestamp = max(
-                os.path.getmtime(child) for child, _, _ in os.walk(self._checkpoint_dir)
-            )
-            if checkpoint_timestamp > self._checkpoint_update_timestamp:
+            timestamps = [
+                os.path.getmtime(child)
+                for child, _, _ in os.walk(self._checkpoint_dir)
+                if child != self._checkpoint_dir
+            ]
+            _, _, files = next(os.walk(self._checkpoint_dir))
+            timestamps += [
+                os.path.getmtime(os.path.join(self._checkpoint_dir, file))
+                for file in files
+                if file != METADATA_FILENAME
+            ]
+            if not timestamps:
+                return False
+            if max(timestamps) > self._checkpoint_update_timestamp:
                 return True
         return False
 
