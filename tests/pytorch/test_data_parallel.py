@@ -37,7 +37,7 @@ def test_data_parallel():
     trial = create_trial(out_dir)
     assert trial.steps() == [0, 1, 5]
     if device == "cpu":
-        assert len(trial.tensor_names()) == 37
+        assert len(trial.tensor_names()) == 38
     else:
         assert len(trial.tensor_names()) > 37
 
