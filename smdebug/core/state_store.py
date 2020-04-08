@@ -84,6 +84,9 @@ class StateStore:
                     if file != METADATA_FILENAME:
                         checkpoint_files.append(os.path.join(child, file))
             if not checkpoint_files:
+                logger.debug(
+                    "Checkpoints not updated. There are no checkpoint files created yet, to be updated"
+                )
                 return False
             timestamps = [os.path.getmtime(file) for file in checkpoint_files]
             logger.debug(
@@ -93,6 +96,9 @@ class StateStore:
                 f"Timestamp of the last checkpoint update: {self._checkpoint_update_timestamp}"
             )
             if max(timestamps) > self._checkpoint_update_timestamp:
+                logger.debug(
+                    f"The most recent timestamp of the checkpoint files: {max(timestamps)}"
+                )
                 return True
         return False
 
