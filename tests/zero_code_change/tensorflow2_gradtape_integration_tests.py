@@ -111,7 +111,7 @@ def test_keras_v2_multi_collections(script_mode: bool = False):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_interval": "2",
+                    "save_interval": "100",
                     "include_workers": "all"
                 },
                 "CollectionConfigurations": [
