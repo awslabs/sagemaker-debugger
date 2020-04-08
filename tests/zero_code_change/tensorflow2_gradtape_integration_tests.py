@@ -55,6 +55,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 hook = smd.KerasHook.create_from_json_file()
 
             for epoch in range(n_epochs):
+                print("Epoch %d/%d" % (epoch + 1, n_epochs))
                 for data, labels in dataset:
                     dataset_labels = labels
                     labels = tf.one_hot(labels, depth=10)
@@ -65,6 +66,9 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                     opt.apply_gradients(zip(grads, model.variables))
                     acc = train_acc_metric(dataset_labels, logits)
                     hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
+                log = "Epoch %d " % (epoch + 1)
+                log += "Accuracy %.4f" % train_acc_metric.result()
+                print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
             assert hook
@@ -77,6 +81,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
         else:
             # ZCC doesn't support yet (as of smdebug v0.7.2)
             for epoch in range(n_epochs):
+                print("Epoch %d/%d" % (epoch + 1, n_epochs))
                 for data, labels in dataset:
                     dataset_labels = labels
                     labels = tf.one_hot(labels, depth=10)
@@ -86,6 +91,9 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                     grads = tape.gradient(loss_value, model.variables)
                     opt.apply_gradients(zip(grads, model.variables))
                     acc = train_acc_metric(dataset_labels, logits)
+                log = "Epoch %d " % (epoch + 1)
+                log += "Accuracy %.4f" % train_acc_metric.result()
+                print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
             assert not hook
