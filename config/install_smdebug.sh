@@ -60,8 +60,6 @@ if [ "$run_pytest_tensorflow" == 'enable' ]; then
   pip install tensorflow_datasets
 fi
 if [ "$run_pytest_pytorch" == 'enable' ]; then
-  pip uninstall -y torch # remove default pytorch
-  pip install -q -e git://github.com/pytorch/pytorch.git@v1.5.0-rc2#egg=pytorch
   ./config/check_smdebug_install.sh torch
 fi
 if [ "$run_pytest_xgboost" == 'enable' ]; then
