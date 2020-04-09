@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 # First Party
-import smdebug.pytorch as smd
+from smdebug.pytorch import Hook, SaveConfig
 from smdebug.trials import create_trial
 
 
@@ -43,7 +43,10 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
     optimizer = optim.SGD(net.parameters(), lr=0.05, momentum=0.9)
     criterion = nn.CrossEntropyLoss()
 
-    hook = smd.Hook(out_dir=out_dir, save_config=smd.SaveConfig(save_interval=1))
+    hook = Hook(
+        out_dir=out_dir,
+        save_config=SaveConfig(save_interval=1),
+    )
     hook.register_module(net)
     if use_loss_module:
         hook.register_loss(criterion)
@@ -64,7 +67,6 @@ def create_net_and_train(out_dir, n_steps, use_loss_module=False, use_loss_funct
 
     # Users can call this method to immediately use the Trials API.
     hook.close()
-    smd.del_hook()
 
 
 @pytest.mark.slow  # 0:05 to run
@@ -78,8 +80,8 @@ def test_register_loss_functional(out_dir):
     loss_tensor = trial.tensor("nll_loss_output_0")
 
     # Capture ['nll_loss_output_0']
-    assert len(trial.tensor_names()) == 2
-    assert len(loss_coll.tensor_names) == 2
+    assert len(trial.tensor_names()) == 1
+    assert len(loss_coll.tensor_names) == 1
 
     # Loss should be logged for all the steps since passed `available_steps = range(n_steps)`
     assert len(trial.steps()) == n_steps
