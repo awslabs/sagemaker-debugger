@@ -23,6 +23,11 @@ else
 fi
 
 if [ $1 ]; then
+  version=`python -c "import torch; print(torch.__version__)"`
+  echo "torch version is $version"
+  if [ $version != "1.5.0a0+dacdbc2" ]; then
+    exit 1
+  fi
   python -c "import $1"
   res="$?"
   echo "output of import $1 is: $res"
