@@ -892,8 +892,11 @@ class CallbackHook(BaseHook):
     def _write_outputs(self, name, outputs):
         tensor_name = name + CallbackHook.OUTPUT_TENSOR_SUFFIX
         idx = self.written_tensor_name_for_step.get(tensor_name, 0)
+        # Do not register loss if already registered
+        # This happens when explicitly saving loss functional
+        # with AWS Pytorch.
         if name == "nll_loss" and idx == 1:
-            return 
+            return
         self.written_tensor_name_for_step[tensor_name] = self._write(
             name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
         )
