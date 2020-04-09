@@ -2,6 +2,7 @@
 import json
 import os
 import shutil
+import time
 
 # First Party
 from smdebug.core.state_store import StateStore
@@ -54,6 +55,7 @@ def test_is_checkpoint_updated():
     assert s2.is_checkpoint_updated() is False
 
     s2.update_state("test-state1")
+    time.sleep(1)
     # checkpoints_dir still has only metadata.json. It should return false.
     assert s2.is_checkpoint_updated() is False
 
@@ -64,6 +66,7 @@ def test_is_checkpoint_updated():
     assert s2.is_checkpoint_updated()
 
     s2.update_state("test-state2")
+    time.sleep(1)
     # the state_file has been updated. The lastest checkpoint update time is lesser than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return false.
     assert s2.is_checkpoint_updated() is False
@@ -75,10 +78,12 @@ def test_is_checkpoint_updated():
     assert s2.is_checkpoint_updated()
 
     s2.update_state("test-state3")
+    time.sleep(1)
     os.mkdir(s2._checkpoint_dir + "/subdir2")
     with open(s2._checkpoint_dir + "/subdir2/checkpoint_test2.txt", "w") as f:
         f.write("checkpoint-test-string-3")
     # A new checkpoint file has been created. The checkpoint update time is greater than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return true.
     assert s2.is_checkpoint_updated()
+    del os.environ["SMDEBUG_LOG_LEVEL"]
     cleanup(s2._checkpoint_dir, config_path)
