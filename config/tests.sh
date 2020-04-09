@@ -16,8 +16,6 @@ check_logs() {
 
 run_for_framework() {
     if [ "$1" = "pytorch" ] ; then
-        pip uninstall -y torch # remove default pytorch
-        pip install s3://built-pytorch-wheel/torch-1.5.0a0+dacdbc2-cp36-cp36m-linux_x86_64.whl
         version=`python -c "import torch; print(torch.__version__)"`
         echo "torch version is $version"
         if [ $version != "1.5.0a0+dacdbc2" ]; then

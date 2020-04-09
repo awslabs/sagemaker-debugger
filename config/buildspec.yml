@@ -29,6 +29,8 @@ phases:
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
         - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets
+        - pip uninstall -y torch # remove default pytorch
+        - pip install s3://built-pytorch-wheel/torch-1.5.0a0+dacdbc2-cp36-cp36m-linux_x86_64.whl
 
   pre_build:
     commands:
