@@ -47,7 +47,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
         opt = tf.keras.optimizers.RMSprop()
         cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
-        n_epochs = 5
+        n_epochs = 2
         if script_mode:
             if json_file_contents == "{}":
                 hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)

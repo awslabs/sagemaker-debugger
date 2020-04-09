@@ -63,14 +63,14 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
             history = model.fit(
-                x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
+                x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
-            history = model.fit(x_train, y_train, batch_size=64, epochs=5, validation_split=0.2)
+            history = model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
@@ -104,14 +104,14 @@ def helper_test_keras_v2_json_config(
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
             history = model.fit(
-                x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
+                x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
-            history = model.fit(x_train, y_train, epochs=5, batch_size=64, validation_split=0.2)
+            history = model.fit(x_train, y_train, epochs=2, batch_size=64, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
