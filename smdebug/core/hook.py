@@ -895,8 +895,6 @@ class CallbackHook(BaseHook):
         # Do not register loss if already registered
         # This happens when explicitly saving loss functional
         # with AWS Pytorch.
-        if name == "nll_loss" and idx == 1:
-            return
         self.written_tensor_name_for_step[tensor_name] = self._write(
             name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
         )

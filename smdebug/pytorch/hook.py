@@ -140,11 +140,14 @@ class Hook(CallbackHook):
             self.export_collections()
             self.exported_collections = True
 
-    def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
+    def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor, is_loss=False) -> None:
         """Used for registering functional directly, such as F.mse_loss()."""
         assert isinstance(
             tensor_value, torch.Tensor
         ), f"tensor_value={tensor_value} must be torch.Tensor"
+
+        if is_loss is True:
+            self.has_registered_loss_module = True
 
         self._write_outputs(tensor_name, tensor_value)
 
