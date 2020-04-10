@@ -1,7 +1,6 @@
 # Standard Library
 import json
 import os
-import time
 
 # First Party
 from smdebug.core.config_constants import (
@@ -119,4 +118,4 @@ class StateStore:
         self._saved_states.append(ts_state)
         with open(self._states_file, "w") as out_file:
             json.dump(self._saved_states, out_file)
-        self._checkpoint_update_timestamp = time.time()
+        self._checkpoint_update_timestamp = os.path.getmtime(self._states_file)
