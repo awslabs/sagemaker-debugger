@@ -15,13 +15,6 @@ check_logs() {
 }
 
 run_for_framework() {
-    if [ "$1" = "pytorch" ] ; then
-        version=`python -c "import torch; print(torch.__version__)"`
-        echo "torch version is $version"
-        if [ $version != "1.5.0a0+dacdbc2" ]; then
-            exit 1
-        fi
-    fi
     if [ "$zero_code_change_test" = "enable" ] ; then
       # ignoring some test becuase they require multiple frmaeworks to be installed, these tests need to be broken down
       python -m pytest --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
