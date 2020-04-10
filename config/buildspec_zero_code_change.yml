@@ -31,8 +31,8 @@ phases:
 
   build:
     commands:
-      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh && cd ..
-      - cd $CODEBUILD_SRC_DIR_RULES && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && cd ..
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh && cd ..
+      - cd $CODEBUILD_SRC_DIR_RULES && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh  && cd ..
 
   post_build:
     commands:
