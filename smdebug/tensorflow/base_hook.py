@@ -419,6 +419,9 @@ class TensorflowBaseHook(BaseHook):
         if self.tape:
             super()._write_for_tensor(tensor_name, tensor_value, save_collections)
             return
+        print("---------------- Write For Tensor --------------")
+        print(tensor_name)
+        print("------------------------------------------------")
 
         # this tensor_name is tf tensor name, need to convert to export_name
         tensor_ref = self._get_tensor_ref(tensor_name, save_collections=save_collections)

@@ -34,6 +34,9 @@ class Collection(BaseCollection):
 
     def _store_tensor_ref(self, tensor_ref):
         if tensor_ref:
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@")
+            print(tensor_ref)
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@")
             self.set_tensor_ref(tensor_ref)
         return tensor_ref
 
@@ -73,12 +76,18 @@ class Collection(BaseCollection):
          Adds tensors to the collection from a given Operation, Tensor, Variable or MirroredVariable
          :param arg: the argument to add to collection
          """
+        print("$***************$")
+        print(arg)
+        print("***************") 
         if isinstance(arg, list) or isinstance(arg, set):
             for a in arg:
                 self.add_for_mode(a, mode)
         elif isinstance(arg, tf.Operation):
             return self.add_operation(arg, mode=mode)
         elif isinstance(arg, tf.Variable):
+            print("$******** Variable *********$")
+            print(arg)
+            print("$*******************$")
             return self.add_variable(arg, mode=mode)
         elif isinstance(arg, tf.Tensor):
             return self.add_tensor(arg, mode=mode)
