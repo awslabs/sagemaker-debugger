@@ -498,6 +498,9 @@ class TensorflowBaseHook(BaseHook):
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
+
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
         print("==================================")
         print(optimizer_variables)
         print("==================================")
