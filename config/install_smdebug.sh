@@ -36,8 +36,8 @@ if [ "$SMDEBUG_S3_BINARY" ]; then
   aws s3 cp --recursive "$SMDEBUG_S3_BINARY" s3_pip_binary
   pip install --upgrade --force-reinstall s3_pip_binary/smdebug_rules-*.whl
   pip install --upgrade --force-reinstall s3_pip_binary/smdebug-*.whl
-  CORE_COMMIT=`cat s3_pip_binary/CORE_COMMIT`
-  RULES_COMMIT=`cat s3_pip_binary/RULES_COMMIT`
+  export CORE_COMMIT=`cat s3_pip_binary/CORE_COMMIT`
+  export RULES_COMMIT=`cat s3_pip_binary/RULES_COMMIT`
   echo "Commit hash on sagemaker-debugger-rules repository being used: $RULES_COMMIT"
   cd $CODEBUILD_SRC_DIR_RULES && git checkout "$RULES_COMMIT"
   python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
