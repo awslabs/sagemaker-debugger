@@ -4,7 +4,7 @@ case "${unameOut}" in
     Linux*)     machine=Linux;;
     Darwin*)    machine=Mac;;
 esac
-if [ "$machine" == "Mac" ] ; then
+if [ "$machine" = "Mac" ] ; then
     PROTOC_ZIP=protoc-3.7.1-osx-x86_64.zip
     brew install unzip
 else
