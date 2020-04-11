@@ -100,6 +100,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _get_matching_collections(
         self, mode, tensor, tensor_type, ts_name, is_input_to_model=False, is_output_of_model=False
     ):
+
         colls_with_tensor = set()
         if tensor_type == "weight":
             if match_inc(
@@ -183,6 +184,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             is_input_to_model=is_input_to_model,
             is_output_of_model=is_output_of_model,
         )
+
+
 
         self._create_tensors_for_matching_collections(
             mode, tensor, tf_names, export_name, colls_with_tensor
