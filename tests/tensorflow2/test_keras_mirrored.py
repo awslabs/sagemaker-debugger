@@ -224,7 +224,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     assert len(tr.tensor(loss_name).steps()) == 12
 
     metricnames = tr.tensor_names(collection=CollectionKeys.METRICS)
-    assert len(metricnames) == 3
+    assert len(metricnames) == (2 if is_tf_2_2() else 3)
 
 
 @pytest.mark.slow
