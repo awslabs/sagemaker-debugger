@@ -185,8 +185,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             is_output_of_model=is_output_of_model,
         )
 
-
-
         self._create_tensors_for_matching_collections(
             mode, tensor, tf_names, export_name, colls_with_tensor
         )
@@ -321,20 +319,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
         for coll in self.collection_manager.get_collections().values():
-            print("COll: {}".format(coll))
             for tensor_ref in coll.get_tensors():
-                print("Tensor ReF: P{}".format(tensor_ref.name))
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
                     self.tensor_to_collections[tensor_ref.name].add(coll)
-                self.tensor_refs_to_save_this_step.add(tensor_ref)
-        for t in self.tensor_refs_to_save_this_step:
-            print(t.name)
 
     def _prepare_tensors_for_step(self, mode):
-        print("Prepare Tensors For Step")
-
         # self.tensor_refs_to_save_this_step = set()
         colls_to_save_for_step = self._get_collections_to_save_for_step()
         input_tensors_set = set(
@@ -395,19 +386,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_metrics(batch, logs)
 
         if is_tf_version_2x() and tf.executing_eagerly():
-            print("Tensor Refs")
-            print(self.tensor_refs_to_save_this_step)
             for tensor_ref in self.tensor_refs_to_save_this_step:
-                if tensor_ref is None:
-                    continue
                 tensor = tensor_ref.tf_obj
-                print(tensor)
-                print("###################### SAVE TENSOR POST STEP ######################")
-                print("Tensor Name: {}".format(tensor_ref.name))
-                print("Tensor: {}".format(tensor))
-                if tensor is None:
-                    continue
-                print("############################################")
                 self._save_for_tensor(
                     tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
                 )
@@ -561,7 +541,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._initialize_writers()
             if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 self._add_callbacks(mode)
-            # self._add_callbacks(mode)
 
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)

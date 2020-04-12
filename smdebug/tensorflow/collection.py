@@ -118,9 +118,6 @@ class Collection(BaseCollection):
         :param tensor: tf_obj or EagerTensor
         :param tensor_name: name of EagerTensor
         """
-        print("***************** SET TENSOR REF *****************")
-        print(tensor)
-        print("***************** *****************")
         # should always be a mapping from tf_obj.name to the argument
         if tensor_name:
             name = export_name = tensor_name
