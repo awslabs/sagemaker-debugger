@@ -2,7 +2,6 @@
 import json
 import os
 import shutil
-import time
 
 # First Party
 from smdebug.core.state_store import StateStore
@@ -58,7 +57,6 @@ def test_is_checkpoint_updated():
     # checkpoints_dir still has only metadata.json. It should return false.
     assert s2.is_checkpoint_updated() is False
 
-    time.sleep(0.01)
     os.mkdir(s2._checkpoint_dir + "/subdir1")
     with open(s2._checkpoint_dir + "/subdir1/checkpoint_test1.txt", "w") as f:
         f.write("checkpoint-test-string-1")
@@ -73,7 +71,6 @@ def test_is_checkpoint_updated():
     # is_checkpoint_updated should return false.
     assert s2.is_checkpoint_updated() is False
 
-    time.sleep(0.01)
     with open(s2._checkpoint_dir + "/subdir1/checkpoint_test1.txt", "a") as f:
         f.write("checkpoint-test-string-2")
     # A checkpoint file has been updated. The checkpoint update time is greater than _checkpoint_update_timestamp.
@@ -81,7 +78,6 @@ def test_is_checkpoint_updated():
     assert s2.is_checkpoint_updated()
 
     s2.update_state("test-state3")
-    time.sleep(0.01)
     os.mkdir(s2._checkpoint_dir + "/subdir2")
     with open(s2._checkpoint_dir + "/subdir2/checkpoint_test2.txt", "w") as f:
         f.write("checkpoint-test-string-3")

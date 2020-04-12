@@ -34,6 +34,7 @@ class StateStore:
             self._checkpoint_update_timestamp = max(
                 os.path.getmtime(child) for child, _, _ in os.walk(self._checkpoint_dir)
             )
+        self._max_timestamp_seen = 0
 
     def _retrieve_path_to_checkpoint(self):
         """
@@ -94,9 +95,10 @@ class StateStore:
             logger.debug(
                 f"Timestamp of the last checkpoint update: {self._checkpoint_update_timestamp}"
             )
-            if max(timestamps) > self._checkpoint_update_timestamp:
+            self._max_timestamp_seen = max(timestamps)
+            if self._max_timestamp_seen > self._checkpoint_update_timestamp:
                 logger.debug(
-                    f"The most recent timestamp of the checkpoint files: {max(timestamps)}"
+                    f"The most recent timestamp of the checkpoint files: {self._max_timestamp_seen}"
                 )
                 return True
         return False
@@ -118,4 +120,4 @@ class StateStore:
         self._saved_states.append(ts_state)
         with open(self._states_file, "w") as out_file:
             json.dump(self._saved_states, out_file)
-        self._checkpoint_update_timestamp = os.path.getmtime(self._states_file)
+        self._checkpoint_update_timestamp = self._max_timestamp_seen
