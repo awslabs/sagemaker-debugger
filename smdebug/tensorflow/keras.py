@@ -406,7 +406,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 print("Tensor Name: {}".format(tensor_ref.name))
                 print("Tensor: {}".format(tensor))
                 if tensor is None:
-                    tensor = tensor_ref
+                    continue
                 print("############################################")
                 self._save_for_tensor(
                     tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
