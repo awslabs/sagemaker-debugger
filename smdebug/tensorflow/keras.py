@@ -321,7 +321,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
         for coll in self.collection_manager.get_collections().values():
+            print("COll: {}".format(coll))
             for tensor_ref in coll.get_tensors():
+                print("Tensor ReF: P{}".format(tensor_ref.name))
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
@@ -390,6 +392,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
+                print("###################### SAVE TENSOR POST STEP ######################")
+                print("Tensor Name: {}".format(tensor.name))
+                print("############################################")
                 self._save_for_tensor(
                     tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
                 )
