@@ -96,7 +96,7 @@ class StateStore:
                 f"Timestamp of the last checkpoint update: {self._checkpoint_update_timestamp}"
             )
             self._max_timestamp_seen = max(timestamps)
-            if  max_timestamp_seen > self._checkpoint_update_timestamp:
+            if  self._max_timestamp_seen > self._checkpoint_update_timestamp:
                 logger.debug(
                     f"The most recent timestamp of the checkpoint files: {self._max_timestamp_seen}"
                 )
