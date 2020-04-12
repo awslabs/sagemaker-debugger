@@ -13,6 +13,7 @@ from re import search
 import pytest
 import tensorflow.compat.v2 as tf
 from tests.tensorflow.utils import create_trial_fast_refresh
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -22,19 +23,6 @@ from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
-
-
-def is_tf_2_2():
-    """
-    TF 2.0 returns ['accuracy', 'batch', 'size'] as metric collections.
-    where 'batch' is the batch number and size is the batch size.
-    But TF 2.2 returns ['accuracy', 'batch'] in eager mode, reducing the total
-    number of tensor_names emitted by 1.
-    :return: bool
-    """
-    if search("2.2..", tf.__version__):
-        return True
-    return False
 
 
 def helper_keras_fit(
