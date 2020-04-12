@@ -106,8 +106,8 @@ class IndexReader(ABC):
     """
 
     def __init__(self, path):
-        self.event_file_retry_limit = os.getenv(
-            MISSING_EVENT_FILE_RETRY_LIMIT_KEY, MISSING_EVENT_FILE_RETRY_LIMIT
+        self.event_file_retry_limit = int(
+            os.getenv(MISSING_EVENT_FILE_RETRY_LIMIT_KEY, MISSING_EVENT_FILE_RETRY_LIMIT)
         )
         self.path = path
         self.logger = get_logger()
