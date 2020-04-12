@@ -6,6 +6,10 @@ import shutil
 # First Party
 from smdebug.core.state_store import StateStore
 
+# setting os environ log level to debug
+# this is unset in test case test_is_checkpoint_updated
+os.environ["SMDEBUG_LOG_LEVEL"] = "debug"
+
 
 def setup_test():
     try:
@@ -42,7 +46,6 @@ def cleanup(checkpoints_dir_path, config_path):
 
 
 def test_is_checkpoint_updated():
-    os.environ["SMDEBUG_LOG_LEVEL"] = "debug"
     s1 = StateStore()
     # There is no checkpoint_dir. is_checkpoint_updated should return False.
     assert s1.is_checkpoint_updated() is False
@@ -60,6 +63,8 @@ def test_is_checkpoint_updated():
     os.mkdir(s2._checkpoint_dir + "/subdir1")
     with open(s2._checkpoint_dir + "/subdir1/checkpoint_test1.txt", "w") as f:
         f.write("checkpoint-test-string-1")
+        f.flush()
+        os.fsync(f)
     # the checkpoint update time is greater than _checkpoint_update_timestamp. is_checkpoint_updated should return true.
     print(f"\nlast update timestamp: {s2._checkpoint_update_timestamp}")
     chkpnt_fname = s2._checkpoint_dir + "/subdir1/checkpoint_test1.txt"
@@ -73,6 +78,8 @@ def test_is_checkpoint_updated():
 
     with open(s2._checkpoint_dir + "/subdir1/checkpoint_test1.txt", "a") as f:
         f.write("checkpoint-test-string-2")
+        f.flush()
+        os.fsync(f)
     # A checkpoint file has been updated. The checkpoint update time is greater than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return true.
     assert s2.is_checkpoint_updated()
@@ -81,6 +88,8 @@ def test_is_checkpoint_updated():
     os.mkdir(s2._checkpoint_dir + "/subdir2")
     with open(s2._checkpoint_dir + "/subdir2/checkpoint_test2.txt", "w") as f:
         f.write("checkpoint-test-string-3")
+        f.flush()
+        os.fsync(f)
     # A new checkpoint file has been created. The checkpoint update time is greater than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return true.
     assert s2.is_checkpoint_updated()
