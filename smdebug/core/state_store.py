@@ -22,19 +22,30 @@ def _rule_for_sorting(state):
 
 
 class StateStore:
+    def _get_checkpoint_files_in_dir(self, cp_dir):
+        checkpoint_files = []
+        for child, _, files in os.walk(cp_dir):
+            for file in files:
+                if file != METADATA_FILENAME:
+                    checkpoint_files.append(os.path.join(child, file))
+        return checkpoint_files
+
     def __init__(self):
         self._saved_states = []
-        self._checkpoint_update_timestamp = 0
         self._states_file = None
         self._checkpoint_dir = None
         self._retrieve_path_to_checkpoint()
+        self._last_seen_checkpoint_files = []
+        self._last_seen_cp_files_size = []
         if self._checkpoint_dir is not None:
             self._states_file = os.path.join(self._checkpoint_dir, METADATA_FILENAME)
             self._read_states_file()
-            self._checkpoint_update_timestamp = max(
-                os.path.getmtime(child) for child, _, _ in os.walk(self._checkpoint_dir)
+            self._last_seen_checkpoint_files = self._get_checkpoint_files_in_dir(
+                self._checkpoint_dir
             )
-        self._max_timestamp_seen = 0
+            self._last_seen_cp_files_size = [
+                os.path.getsize(file) for file in self._last_seen_checkpoint_files
+            ]
 
     def _retrieve_path_to_checkpoint(self):
         """
@@ -78,29 +89,51 @@ class StateStore:
         stored got updated.
         """
         if self._checkpoint_dir is not None:
-            checkpoint_files = []
-            for child, _, files in os.walk(self._checkpoint_dir):
-                for file in files:
-                    if file != METADATA_FILENAME:
-                        checkpoint_files.append(os.path.join(child, file))
+            checkpoint_files = self._get_checkpoint_files_in_dir(self._checkpoint_dir)
             if not checkpoint_files:
                 logger.info(
                     "Checkpoints not updated. There are no checkpoint files created yet, to be updated"
                 )
                 return False
+            checkpoint_files = sorted(checkpoint_files)
             timestamps = [os.path.getmtime(file) for file in checkpoint_files]
             logger.info(
                 f"Timestamps of different checkpoint files {[i for i in zip(checkpoint_files, timestamps)]}"
             )
-            logger.info(
-                f"Timestamp of the last checkpoint update: {self._checkpoint_update_timestamp}"
-            )
-            self._max_timestamp_seen = max(timestamps)
-            if self._max_timestamp_seen > self._checkpoint_update_timestamp:
+
+            if len(self._last_seen_checkpoint_files) != len(checkpoint_files):
+                self._last_seen_checkpoint_files = checkpoint_files
+                self._last_seen_cp_files_size = [os.path.getsize(file) for file in checkpoint_files]
                 logger.info(
-                    f"The most recent timestamp of the checkpoint files: {self._max_timestamp_seen}"
+                    f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
                 )
                 return True
+            # check for each file if file size has changed
+            cp_file_sizes = [os.path.getsize(file) for file in checkpoint_files]
+            i = 0
+            for size in cp_file_sizes:
+                if size != self._last_seen_cp_files_size[i]:
+                    self._last_seen_cp_files_size = cp_file_sizes
+                    self._last_seen_checkpoint_files = checkpoint_files
+                    logger.info(
+                        f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
+                    )
+                    return True
+                i += 1
+            # check if actual seen files has changed
+            i = 0
+            for file in checkpoint_files:
+                if file != self._last_seen_checkpoint_files[i]:
+                    self._last_seen_checkpoint_files = checkpoint_files
+                    self._last_seen_cp_files_size = [
+                        os.path.getsize(file) for file in checkpoint_files
+                    ]
+                    logger.info(
+                        f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
+                    )
+                    return True
+                i += 1
+
         return False
 
     def get_last_saved_state(self):
@@ -120,4 +153,3 @@ class StateStore:
         self._saved_states.append(ts_state)
         with open(self._states_file, "w") as out_file:
             json.dump(self._saved_states, out_file)
-        self._checkpoint_update_timestamp = self._max_timestamp_seen

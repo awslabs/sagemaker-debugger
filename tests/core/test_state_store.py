@@ -62,9 +62,7 @@ def test_is_checkpoint_updated():
         f.flush()
         os.fsync(f)
     # the checkpoint update time is greater than _checkpoint_update_timestamp. is_checkpoint_updated should return true.
-    print(f"\nlast update timestamp: {s2._checkpoint_update_timestamp}")
     chkpnt_fname = s2._checkpoint_dir + "/subdir1/checkpoint_test1.txt"
-    print(f"checkpoint file timestamp: {os.path.getmtime(chkpnt_fname)}")
     assert s2.is_checkpoint_updated()
 
     s2.update_state("test-state2")
@@ -89,5 +87,4 @@ def test_is_checkpoint_updated():
     # A new checkpoint file has been created. The checkpoint update time is greater than _checkpoint_update_timestamp.
     # is_checkpoint_updated should return true.
     assert s2.is_checkpoint_updated()
-    del os.environ["SMDEBUG_LOG_LEVEL"]
     cleanup(s2._checkpoint_dir, config_path)
