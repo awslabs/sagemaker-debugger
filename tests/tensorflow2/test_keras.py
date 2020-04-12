@@ -410,18 +410,19 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == 7 if is_tf_2_2() else 8
+            assert len(trial.tensor_names()) == (7 if is_tf_2_2() else 8)
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == 3 if is_tf_2_2() and tf_eager_mode else 4
+        assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert (
-        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 2
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
         if is_tf_2_2() and tf_eager_mode
         else 3
+                                                                       )
     )
 
 
@@ -515,7 +516,7 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensor_names()) == 7 if is_tf_2_2() else 8
+    assert len(tr.tensor_names()) == (7 if is_tf_2_2() else 8)
 
 
 @pytest.mark.slow
@@ -538,14 +539,15 @@ def test_weights_collections(out_dir, tf_eager_mode):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 5 if is_tf_2_2() and tf_eager_mode else 6
+    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert (
-        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 2
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
         if is_tf_2_2() and tf_eager_mode
         else 3
+                                                                       )
     )
 
 
@@ -572,7 +574,7 @@ def test_include_collections(out_dir, tf_eager_mode):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     if tf_eager_mode:
-        assert len(trial.tensor_names()) == 7 if is_tf_2_2() else 8
+        assert len(trial.tensor_names()) == (7 if is_tf_2_2() else 8)
     else:
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
@@ -581,9 +583,10 @@ def test_include_collections(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert (
-        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 2
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
         if is_tf_2_2() and tf_eager_mode
         else 3
+                                                                       )
     )
 
 
@@ -598,12 +601,13 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 5 if is_tf_2_2() and tf_eager_mode else 6
+    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert (
-        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 2
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
         if is_tf_2_2() and tf_eager_mode
         else 3
+                                                                       )
     )
