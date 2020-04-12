@@ -324,6 +324,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
                     self.tensor_to_collections[tensor_ref.name].add(coll)
+                self.tensor_refs_to_save_this_step.add(tensor_ref)
 
     def _prepare_tensors_for_step(self, mode):
         # self.tensor_refs_to_save_this_step = set()
