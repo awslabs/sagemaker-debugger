@@ -718,6 +718,10 @@ class BaseHook:
             checks whether to save tensor for this step
         :return:
         """
+        print("@@@@@@@@@ SAVE TENSOR @@@@@@@@@@@")
+        print("Tensor Name: {}".format(tensor_name))
+        print("@@@@@@@@@@@@@@@@@@@@")
+        # raise Exception
         save_collections = self._get_collections_with_tensor(tensor_name)
         save_collections_for_tensor = save_collections.intersection(
             self._get_collections_to_save_for_step()
