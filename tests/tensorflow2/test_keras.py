@@ -396,6 +396,7 @@ def test_keras_fit(out_dir):
     if saveall:  # save losses, metrics, weights, biases
         if tf_eager_mode:
             assert len(trial.tensor_names()) == (7 if is_tf_2_2() else 8)
+            print(trial.tensor_names())
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
