@@ -53,7 +53,7 @@ class StateStore:
                 if CHECKPOINT_DIR_KEY in parameters:
                     self._checkpoint_dir = parameters[CHECKPOINT_DIR_KEY]
         else:
-            logger.debug(f"The checkpoint config file {checkpoint_config_file} does not exist.")
+            logger.info(f"The checkpoint config file {checkpoint_config_file} does not exist.")
 
     def _read_states_file(self):
         """
@@ -84,20 +84,20 @@ class StateStore:
                     if file != METADATA_FILENAME:
                         checkpoint_files.append(os.path.join(child, file))
             if not checkpoint_files:
-                logger.debug(
+                logger.info(
                     "Checkpoints not updated. There are no checkpoint files created yet, to be updated"
                 )
                 return False
             timestamps = [os.path.getmtime(file) for file in checkpoint_files]
-            logger.debug(
+            logger.info(
                 f"Timestamps of different checkpoint files {[i for i in zip(checkpoint_files, timestamps)]}"
             )
-            logger.debug(
+            logger.info(
                 f"Timestamp of the last checkpoint update: {self._checkpoint_update_timestamp}"
             )
             self._max_timestamp_seen = max(timestamps)
             if self._max_timestamp_seen > self._checkpoint_update_timestamp:
-                logger.debug(
+                logger.info(
                     f"The most recent timestamp of the checkpoint files: {self._max_timestamp_seen}"
                 )
                 return True

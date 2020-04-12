@@ -6,10 +6,6 @@ import shutil
 # First Party
 from smdebug.core.state_store import StateStore
 
-# setting os environ log level to debug
-# this is unset in test case test_is_checkpoint_updated
-os.environ["SMDEBUG_LOG_LEVEL"] = "debug"
-
 
 def setup_test():
     try:
