@@ -403,8 +403,10 @@ def test_keras_fit(out_dir):
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+    assert (
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
+        if is_tf_2_2() and tf_eager_mode
+        else 3
     )
 
 
@@ -525,8 +527,10 @@ def test_weights_collections(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+    assert (
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
+        if is_tf_2_2() and tf_eager_mode
+        else 3
     )
 
 
@@ -561,8 +565,10 @@ def test_include_collections(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+    assert (
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
+        if is_tf_2_2() and tf_eager_mode
+        else 3
     )
 
 
@@ -581,6 +587,9 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+    assert (
+        len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (2
+        if is_tf_2_2() and tf_eager_mode
+        else 3
+        )
     )
