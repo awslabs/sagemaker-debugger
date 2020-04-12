@@ -11,6 +11,7 @@ import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -245,7 +246,7 @@ def test_save_all(out_dir, tf_eager_mode):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        assert len(tr.tensor_names()) == (6 + 2 + 1 if is_tf_2_2() else 6 + 3 + 1)
+        assert len(tr.tensor_names()) == (5 + 1 + 3 if is_tf_2_2() else 6 + 1 + 3)
         # weights, metrics, losses
     else:
         assert (
