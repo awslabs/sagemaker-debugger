@@ -1,4 +1,7 @@
+# Standard Library
 from re import search
+
+# Third Party
 import tensorflow.compat.v2 as tf
 
 
