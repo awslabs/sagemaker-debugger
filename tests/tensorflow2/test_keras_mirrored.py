@@ -233,7 +233,8 @@ def test_tf_keras(out_dir, tf_eager_mode, include_workers="all"):
 
 
 @pytest.mark.slow
-def test_save_all(out_dir, tf_eager_mode):
+def test_save_all(out_dir):
+    tf_eager_mode = False
     strategy = train_model(
         out_dir,
         include_collections=None,

@@ -381,7 +381,7 @@ def test_gradtape_persistent(out_dir, saveall):
 
 
 def test_keras_fit(out_dir):
-    tf_eager_mode = True
+    tf_eager_mode = False
     saveall = True
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
     helper_keras_fit(
