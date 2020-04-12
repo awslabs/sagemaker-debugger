@@ -9,6 +9,7 @@ import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
+from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
@@ -157,8 +158,9 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     if include_workers == "all":
         assert len(tr.workers()) == strategy.num_replicas_in_sync
         if eager:
-            assert len(tr.tensor_names()) == (6 + 3 + 1)
-            # 6 weights, 1 loss, 3 metrics
+            assert len(tr.tensor_names()) == (6 + 1 + 2 if is_tf_2_2() else 6 + 1 + 3)
+            # 6 weights, 1 loss, 3 metrics for Tf 2.1
+            # 6 weights, 1 loss, 2 metrics for Tf 2.1
         else:
             assert len(tr.tensor_names()) == (6 + 6 + 1 + 3 + strategy.num_replicas_in_sync * 3 + 5)
     else:
@@ -222,7 +224,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     assert len(tr.tensor(loss_name).steps()) == 12
 
     metricnames = tr.tensor_names(collection=CollectionKeys.METRICS)
-    assert len(metricnames) == 3
+    assert len(metricnames) == (2 if is_tf_2_2() else 3)
 
 
 @pytest.mark.slow
@@ -243,7 +245,7 @@ def test_save_all(out_dir, tf_eager_mode):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        assert len(tr.tensor_names()) == 6 + 1 + 3
+        assert len(tr.tensor_names()) == (6 + 2 + 1 if is_tf_2_2() else 6 + 3 + 1)
         # weights, metrics, losses
     else:
         assert (
@@ -426,7 +428,7 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensor_names()) == 10
+    assert len(tr.tensor_names()) == (9 if is_tf_2_2() else 10)
 
 
 def test_one_device(out_dir, tf_eager_mode):
