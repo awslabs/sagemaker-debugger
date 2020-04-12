@@ -160,7 +160,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
         if eager:
             assert len(tr.tensor_names()) == (6 + 1 + 2 if is_tf_2_2() else 6 + 1 + 3)
             # 6 weights, 1 loss, 3 metrics for Tf 2.1
-            # 6 weights, 1 loss, 2 metrics for Tf 2.1
+            # 6 weights, 1 loss, 2 metrics for Tf 2.2
         else:
             assert len(tr.tensor_names()) == (6 + 6 + 1 + 3 + strategy.num_replicas_in_sync * 3 + 5)
     else:
