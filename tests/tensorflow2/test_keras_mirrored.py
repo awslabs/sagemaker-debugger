@@ -9,9 +9,13 @@ import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
+<<<<<<< HEAD
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
+=======
+>>>>>>> lint
 from tests.tensorflow2.utils import is_tf_2_2
+from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 import smdebug.tensorflow as smd
