@@ -521,8 +521,8 @@ def test_weights_collections(out_dir, tf_eager_mode):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+    assert len(trial.tensor_names()) == (7 if is_tf_2_2() and tf_eager_mode else 8)
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
@@ -553,11 +553,11 @@ def test_include_collections(out_dir, tf_eager_mode):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     if tf_eager_mode:
-        assert len(trial.tensor_names()) == (7 if is_tf_2_2() else 8)
+        assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
     else:
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -577,8 +577,8 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+    assert len(trial.tensor_names()) == (7 if is_tf_2_2() and tf_eager_mode else 8)
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
