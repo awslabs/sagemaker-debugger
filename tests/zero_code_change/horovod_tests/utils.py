@@ -6,7 +6,7 @@ import sys
 
 def launch_horovod_job(script_file_path, script_args, num_workers, config_file_path, mode):
     command = (
-        ["horovodrun", "-np", str(num_workers)] + [sys.executable, script_file_path] + script_args
+        ["mpirun", "-np", str(num_workers)] + [sys.executable, script_file_path] + script_args
     )
     env_dict = os.environ.copy()
     env_dict["SMDEBUG_CONFIG_FILE_PATH"] = f"{config_file_path}"
