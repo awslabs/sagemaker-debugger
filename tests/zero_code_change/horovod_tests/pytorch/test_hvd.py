@@ -1,8 +1,9 @@
 # Standard Library
 
 # Third Party
+from tests.zero_code_change.utils import build_json
 from tests.zero_code_change.horovod_tests.constants import HOROVOD_PYTORCH_TEST_MNIST_SCRIPT
-from tests.zero_code_change.horovod_tests.utils import build_json, launch_horovod_job
+from tests.zero_code_change.horovod_tests.utils import launch_horovod_job
 from torch.cuda import device_count
 
 # First Party
