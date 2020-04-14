@@ -31,8 +31,8 @@ phases:
         - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets
         - pip uninstall -q --yes horovod
         - pip uninstall -q --yes tensorflow
-        - pip install -q  --yes horovod
-        - pip install -q --yes tensorflow==2.2.0rc3
+        - pip install -q horovod
+        - pip install -q tensorflow==2.2.0rc3
 
   pre_build:
     commands:
