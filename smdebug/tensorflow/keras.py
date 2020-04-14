@@ -328,6 +328,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_tensors_for_step(self, mode):
         if is_tf_version_2x() and tf.executing_eagerly():
+            # self.tensor_refs_to_save_this_step.add(tensor_ref)
             pass
         else:
             self.tensor_refs_to_save_this_step = set()
