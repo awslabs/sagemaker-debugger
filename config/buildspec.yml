@@ -29,8 +29,10 @@ phases:
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
         - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets
-        - pip uninstall -q horovod tensorflow
-        - pip install -q horovod tensorflow==2.2.0rc3
+        - pip uninstall -q -y horovod
+        - pip uninstall -q -y tensorflow
+        - pip install -q  -y horovod
+        - pip install -q -y tensorflow==2.2.0rc3
 
   pre_build:
     commands:
