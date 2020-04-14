@@ -48,7 +48,6 @@ def train(model, hook, device, optimizer, num_steps=500, set_modes=False):
         optimizer.zero_grad()
         output = model(Variable(data, requires_grad=True))
         loss = F.nll_loss(output, target)
-        hook.record_tensor_value("nll_loss", tensor_value=loss)
         loss.backward()
         optimizer.step()
 
