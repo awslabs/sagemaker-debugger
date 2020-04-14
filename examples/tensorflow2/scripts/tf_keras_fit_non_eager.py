@@ -65,7 +65,7 @@ def main():
     # creating hook
     hook = smd.KerasHook(
         out_dir=opt.out_dir,
-        include_collections=["weights", "biases", "default"],
+        save_all=True,
         save_config=smd.SaveConfig(save_interval=opt.save_interval),
     )
 
