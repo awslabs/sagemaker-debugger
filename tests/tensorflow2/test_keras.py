@@ -381,6 +381,7 @@ def test_gradtape_persistent(out_dir, saveall):
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 
+
 @pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_fit(out_dir, tf_eager_mode, saveall):

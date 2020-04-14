@@ -264,6 +264,7 @@ def test_save_all(out_dir, tf_eager_mode):
         # weights, grads, optimizer_variables, metrics, losses, outputs
     assert len(tr.steps()) == 3
 
+
 # Test has become flaky
 @pytest.mark.skip
 def test_save_one_worker(out_dir, tf_eager_mode):
