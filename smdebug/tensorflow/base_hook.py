@@ -477,6 +477,7 @@ class TensorflowBaseHook(BaseHook):
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
         if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
+            print("!!!!! Ops Executing Eagerly Outside Functions !!!!!")
             return
         if self._gradients_set is False:
             if gradients is not None:
