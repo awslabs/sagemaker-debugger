@@ -62,6 +62,7 @@ def main():
     # creating hook
     hook = smd.KerasHook(
         out_dir=opt.out_dir,
+        # Information on default collections https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#default-collections-saved
         include_collections=["weights", "biases", "default"],
         save_config=smd.SaveConfig(save_interval=opt.save_interval),
     )
