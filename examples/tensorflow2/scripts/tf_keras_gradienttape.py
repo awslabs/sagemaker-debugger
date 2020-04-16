@@ -3,7 +3,6 @@ This script is a ResNet training script which uses Tensorflow's Keras interface.
 It has been orchestrated with SageMaker Debugger hook to allow saving tensors during training.
 Here, the hook has been created using its constructor to allow running this locally for your experimentation.
 When you want to run this script in SageMaker, it is recommended to create the hook from json file.
-Please see scripts in either 'sagemaker_byoc' or 'sagemaker_official_container' folder based on your use case.
 """
 
 # Standard Library
@@ -48,6 +47,10 @@ def train(batch_size, n_epochs, model, hook):
             dataset_labels = labels
             labels = to_categorical(labels, 10)
             # wrap the tape so the hook can identify the gradients, parameters, loss
+            # wrapping the tape ensures that smdebug's wrapper around functions of
+            # the tape object - push_tape(), pop_tape(), gradient(), will setup the writers of
+            # the debugger and save tensors that are provided as input to gradient() (trainable
+            # variables and loss), output of gradient() (gradients).
             with hook.wrap_tape(tf.GradientTape()) as tape:
                 logits = model(data, training=True)  # (32,10)
                 loss_value = cce(labels, logits)

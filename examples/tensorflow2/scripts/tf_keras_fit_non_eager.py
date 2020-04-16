@@ -3,7 +3,6 @@ This script is a ResNet training script which uses Tensorflow's Keras interface.
 It has been orchestrated with SageMaker Debugger hook to allow saving tensors during training.
 Here, the hook has been created using its constructor to allow running this locally for your experimentation.
 When you want to run this script in SageMaker, it is recommended to create the hook from json file.
-Please see scripts in either 'sagemaker_byoc' or 'sagemaker_official_container' folder based on your use case.
 """
 
 # Standard Library
@@ -65,7 +64,8 @@ def main():
     # creating hook
     hook = smd.KerasHook(
         out_dir=opt.out_dir,
-        save_all=True,
+        include_collections=["weights", "biases", "default", "gradients",
+                             "optimizer_variables", "inputs", "outputs"],
         save_config=smd.SaveConfig(save_interval=opt.save_interval),
     )
 
