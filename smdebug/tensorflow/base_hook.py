@@ -405,8 +405,6 @@ class TensorflowBaseHook(BaseHook):
             tf_tensor_name not in self.tensor_to_collections
             and tf.executing_eagerly()
         ):
-            # import pdb
-            # pdb.set_trace()
             return super()._get_collections_with_tensor(tf_tensor_name)
         return self.tensor_to_collections[tf_tensor_name]
 
@@ -501,6 +499,10 @@ class TensorflowBaseHook(BaseHook):
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
             optimizer_variables, ModeKeys.TRAIN
         )
+        if self.save_all is True:
+            self.collection_manager.get(CollectionKeys.ALL).add_for_mode(
+                optimizer_variables, ModeKeys.TRAIN
+            )
 
     @staticmethod
     def _make_numpy_array(tensor_value):
