@@ -208,7 +208,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for coll in colls_with_tensor:
                 if not tensor_refs:
                     if isinstance(tensor, tf.Variable):
-
                         tensor_refs.append(
                             coll.add_variable(tensor, export_name=export_name, mode=mode)
                         )
@@ -437,7 +436,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
                 if tensor not in x.fetches and tensor not in x.fetch_callbacks:
-
                     x.fetches.append(tensor)
                     self._fetches_added.add(tensor)
                     x.fetch_callbacks[tensor] = functools.partial(
@@ -525,7 +523,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
-                self.tensor_refs_to_save_this_step = set()
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
