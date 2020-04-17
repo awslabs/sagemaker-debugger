@@ -34,6 +34,11 @@ def train(batch_size, epoch, model, hook):
     X_train /= 128.0
     X_valid /= 128.0
 
+    # save_scalar() API can be used to save arbitrary scalar values that may
+    # or may not be related to training.
+    # Ref: https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api
+    hook.save_scalar("epoch", epoch, sm_metric=True)
+
     model.fit(
         X_train,
         Y_train,
@@ -45,6 +50,8 @@ def train(batch_size, epoch, model, hook):
         # adding hook as a callback
         callbacks=[hook],
     )
+
+    hook.save_scalar("batch_size", batch_size, sm_metric=True)
 
 
 def main():

@@ -40,12 +40,18 @@ def train(batch_size, n_epochs, model, hook):
 
     num_training_samples = x_train.shape[0]
 
+    # save_scalar() API can be used to save arbitrary scalar values that may
+    # or may not be related to training.
+    # Ref: https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api
+    hook.save_scalar("num_training_samples", num_training_samples, sm_metric=True)
+
     for epoch in range(n_epochs):
         print("Epoch %d/%d" % (epoch + 1, n_epochs))
         progBar = tf.keras.utils.Progbar(num_training_samples, stateful_metrics="accuracy")
         for idx, (data, labels) in enumerate(dataset):
             dataset_labels = labels
             labels = to_categorical(labels, 10)
+            hook.save_scalar("step_number", idx + 1, sm_metric=False)
             # wrap the tape so the hook can identify the gradients, parameters, loss
             # wrapping the tape ensures that smdebug's wrapper around functions of
             # the tape object - push_tape(), pop_tape(), gradient(), will setup the writers of
@@ -64,6 +70,7 @@ def train(batch_size, n_epochs, model, hook):
             progBar.update(idx * batch_size, values=values)
 
         train_acc_metric.reset_states()
+    hook.save_scalar("n_epochs", n_epochs, sm_metric=True)
 
 
 def main():
