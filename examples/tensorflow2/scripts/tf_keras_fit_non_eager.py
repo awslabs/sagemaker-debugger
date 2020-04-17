@@ -78,7 +78,6 @@ def main():
             "default",
             "gradients",
             "optimizer_variables",
-            "inputs",
             "outputs",
         ],
         save_config=smd.SaveConfig(save_interval=opt.save_interval),
