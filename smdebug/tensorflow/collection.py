@@ -124,11 +124,6 @@ class Collection(BaseCollection):
         else:
             name = tensor.name
             export_name = tensor.export_name
-        """
-        if name == "Adam/beta_2:0" or name == "size":
-            import pdb
-            pdb.set_trace()
-        """
         self._tensors[name] = tensor
         self.add_tensor_name(export_name)
 
@@ -156,7 +151,6 @@ class CollectionManager(BaseCollectionManager):
                 self.get(CollectionKeys.WEIGHTS).include("^weights/.*/((?!bias).)*$")
                 self.get(CollectionKeys.LOSSES).include(".*loss.*")
                 self.get(CollectionKeys.GRADIENTS).include("^gradient")
-                self.get(CollectionKeys.OPTIMIZER_VARIABLES)
             else:
                 self.get(CollectionKeys.BIASES).include("bias")
 
