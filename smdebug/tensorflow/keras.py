@@ -388,6 +388,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
+                if tensor is None:
+                    # Ignore metrics that do not have tf_obj
+                    continue
                 self._save_for_tensor(
                     tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
                 )
@@ -523,6 +526,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
+                self.tensor_refs_to_save_this_step = set()
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
