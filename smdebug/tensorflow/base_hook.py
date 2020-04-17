@@ -418,10 +418,6 @@ class TensorflowBaseHook(BaseHook):
         if self.tape:
             super()._write_for_tensor(tensor_name, tensor_value, save_collections)
             return
-        print("---------------- Write For Tensor --------------")
-        print(tensor_name)
-        # raise Exception
-        print("------------------------------------------------")
 
         # this tensor_name is tf tensor name, need to convert to export_name
         tensor_ref = self._get_tensor_ref(tensor_name, save_collections=save_collections)
@@ -500,11 +496,6 @@ class TensorflowBaseHook(BaseHook):
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
 
-        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-        print("==================================")
-        print(optimizer_variables)
-        print("==================================")
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
             optimizer_variables, ModeKeys.TRAIN

@@ -108,9 +108,6 @@ class Collection(BaseCollection):
         return self.tensor_names
 
     def get_tensor(self, name):
-        print("*******************************")
-        print(self._tensors)
-        print("*******************************")
         return self._tensors[name]
 
     def set_tensor_ref(self, tensor, tensor_name: tf.Tensor = None):

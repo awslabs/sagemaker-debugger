@@ -443,6 +443,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
                 if tensor not in x.fetches and tensor not in x.fetch_callbacks:
+
                     x.fetches.append(tensor)
                     self._fetches_added.add(tensor)
                     x.fetch_callbacks[tensor] = functools.partial(
