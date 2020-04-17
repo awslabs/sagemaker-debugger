@@ -208,6 +208,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for coll in colls_with_tensor:
                 if not tensor_refs:
                     if isinstance(tensor, tf.Variable):
+
                         tensor_refs.append(
                             coll.add_variable(tensor, export_name=export_name, mode=mode)
                         )
