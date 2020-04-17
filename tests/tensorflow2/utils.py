@@ -16,4 +16,3 @@ def is_tf_2_2():
     if search("2.2..", tf.__version__):
         return True
     return False
-

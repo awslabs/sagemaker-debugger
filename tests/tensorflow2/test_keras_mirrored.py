@@ -11,8 +11,6 @@ import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
-from tests.tensorflow2.utils import is_tf_2_2
-from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 import smdebug.tensorflow as smd
@@ -174,6 +172,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
 
     # 6 weights, 6 gradients, 1 loss, 3 metrics, 24 outputs (8 for each mode), 5 optimizer variables
     assert len(tr.modes()) == 3
+    print(tr.steps())
     assert len(tr.steps()) == 14
     assert len(tr.steps(ModeKeys.TRAIN)) == 8  # 0, 3, 6, 9, 12, 15, 18, 19(end of epoch)
     assert len(tr.steps(ModeKeys.EVAL)) == 4

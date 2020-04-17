@@ -401,10 +401,7 @@ class TensorflowBaseHook(BaseHook):
         # matched with collections by regex
         if self.tape:
             return super()._get_collections_with_tensor(tf_tensor_name)
-       if (
-            tf_tensor_name not in self.tensor_to_collections
-            and tf.executing_eagerly()
-        ):
+        if tf_tensor_name not in self.tensor_to_collections and tf.executing_eagerly():
             return super()._get_collections_with_tensor(tf_tensor_name)
         return self.tensor_to_collections[tf_tensor_name]
 
