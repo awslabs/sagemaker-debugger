@@ -526,12 +526,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.prepared_collections is False:
             # sets prepared_collections to True here
             self._prepare_collections()
+        self.tensor_refs_to_save_this_step = set()
 
         if self._prepared_tensors[mode] is False:
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
-                # self.tensor_refs_to_save_this_step = set()
+                self.tensor_refs_to_save_this_step = set()
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
