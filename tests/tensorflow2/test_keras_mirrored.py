@@ -262,8 +262,7 @@ def test_save_all(out_dir, tf_eager_mode):
             + 2 * strategy.num_replicas_in_sync
         )
         # weights, grads, optimizer_variables, metrics, losses, outputs
-    print(tr.steps())
-    assert len(tr.steps()) == 3
+    assert len(tr.steps()) == 10
 
 
 # Test has become flaky
