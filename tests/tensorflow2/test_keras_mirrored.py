@@ -233,7 +233,6 @@ def test_tf_keras(out_dir, tf_eager_mode, include_workers="all"):
     exhaustive_check(out_dir, include_workers=include_workers, eager=tf_eager_mode)
 
 
-# Test has become flaky
 @pytest.mark.slow
 def test_save_all(out_dir, tf_eager_mode):
     strategy = train_model(
@@ -264,7 +263,6 @@ def test_save_all(out_dir, tf_eager_mode):
     assert len(tr.steps()) == 3
 
 
-# Test has become flaky
 @pytest.mark.slow
 def test_save_one_worker(out_dir, tf_eager_mode):
     strategy = train_model(
