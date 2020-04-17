@@ -388,8 +388,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
-                if tensor_ref.tf_obj is None:
-                    continue
                 tensor = tensor_ref.tf_obj
                 self._save_for_tensor(
                     tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
