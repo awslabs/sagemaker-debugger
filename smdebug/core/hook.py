@@ -312,7 +312,7 @@ class BaseHook:
         return self.collection_manager.get(name) in colls_for_step
 
     def _get_collections_to_save_for_step(self) -> Set["Collection"]:
-        if self._collections_to_save_for_step is None:
+        if self._collections_to_save_for_step is None or True:
             self._assert_prep()
             self._collections_to_save_for_step = set()
             for coll in self._get_all_collections_to_save():

@@ -510,10 +510,25 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # set mode for each batch as when users run model.fit() and pass validation data
         # through the optional argument, then mode_begin is not called for the training steps
         # after first evaluation during training
+        print("============= Batch Begin ===============")
         self.set_mode(mode)
+        
+        def _write_optimizer_variables():
+            optimizer_collections = self.collection_manager.\
+                get(CollectionKeys.OPTIMIZER_VARIABLES)
+            #import pdb
+            #pdb.set_trace()
+            print(optimizer_collections)
+            for tensor_ref in optimizer_collections.get_tensors(mode):
+                tensor = tensor_ref.tf_obj
+                print(tensor_ref)
+                self._save_for_tensor(
+                    tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
+                )
 
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None or len(self.writer_map):
+            _write_optimizer_variables()
             self._close_writers()
         self._increment_step()
 
@@ -544,6 +559,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._initialize_writers()
             if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 self._add_callbacks(mode)
+
 
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
@@ -805,3 +821,4 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
+

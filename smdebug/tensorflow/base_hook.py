@@ -80,6 +80,7 @@ class TensorflowBaseHook(BaseHook):
         )
         self.optimizer = None
         self._gradients_set = False
+        self.optimizer_variables_cache = []
         """self.device_map is a mapping between a tf device string to a serialized (filename-friendly) device string
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
         self.device_map = {}
@@ -492,8 +493,10 @@ class TensorflowBaseHook(BaseHook):
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
         # since this is done for each variable at a time for keras, not checking if set already
+        print("====== set_optimizer_variables =======")
+        self.optimizer_variables_cache.append(optimizer_variables)
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
-            optimizer_variables, ModeKeys.TRAIN
+            optimizer_variables, self.mode
         )
         if self.save_all is True:
             self.collection_manager.get(CollectionKeys.ALL).add_for_mode(
