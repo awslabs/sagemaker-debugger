@@ -323,8 +323,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
                     self.tensor_to_collections[tensor_ref.name].add(coll)
-                if is_tf_version_2x() and tf.executing_eagerly():
-                    self.tensor_refs_to_save_this_step.add(tensor_ref)
 
     def _prepare_tensors_for_step(self, mode):
         colls_to_save_for_step = self._get_collections_to_save_for_step()
@@ -388,9 +386,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
                 tensor = tensor_ref.tf_obj
-                if tensor is None:
-                    # Ignore metrics that do not have tf_obj
-                    continue
                 self._save_for_tensor(
                     tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
                 )
@@ -512,8 +507,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # after first evaluation during training
         self.set_mode(mode)
 
+        def _write_optimizer_variables():
+            if self.prepared_collections is False:
+                return
+            optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
+            if optimizer_collections in self._get_collections_to_save_for_step():
+                for tensor_ref in optimizer_collections.get_tensors(mode):
+                    tensor = tensor_ref.tf_obj
+                    self._save_for_tensor(
+                        tensor_name=tensor.name,
+                        tensor_value=tensor.value(),
+                        check_before_write=False,
+                    )
+
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None or len(self.writer_map):
+            _write_optimizer_variables()
             self._close_writers()
         self._increment_step()
 
