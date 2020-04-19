@@ -385,7 +385,10 @@ def test_gradtape_persistent(out_dir, saveall):
 def test_keras_fit(out_dir, tf_eager_mode, saveall):
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
     helper_keras_fit(
-        trial_dir=out_dir, hook=hook, eager=tf_eager_mode, steps=["train", "eval", "predict", "train"]
+        trial_dir=out_dir,
+        hook=hook,
+        eager=tf_eager_mode,
+        steps=["train", "eval", "predict", "train"],
     )
 
     trial = smd.create_trial(path=out_dir)
