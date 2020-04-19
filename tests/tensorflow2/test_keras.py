@@ -381,16 +381,14 @@ def test_gradtape_persistent(out_dir, saveall):
 
 
 @pytest.mark.slow
-# @pytest.mark.parametrize("saveall", [True, False])
-def test_keras_fit(out_dir):
-    saveall = True
-    tf_eager_mode = True
+@pytest.mark.parametrize("saveall", [True, False])
+def test_keras_fit(out_dir, tf_eager_mode, saveall):
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
         eager=tf_eager_mode,
-        steps=["train"],  # , "eval", "predict", "train"],
+        steps=["train", "eval", "predict"],
     )
 
     trial = smd.create_trial(path=out_dir)
@@ -403,11 +401,11 @@ def test_keras_fit(out_dir):
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == (12 if is_tf_2_2() and tf_eager_mode else 13)
+        print(trial.tensor_names())
+        assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    # assert len(trial.steps()) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
@@ -526,8 +524,8 @@ def test_weights_collections(out_dir, tf_eager_mode):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (7 if is_tf_2_2() and tf_eager_mode else 8)
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
@@ -582,8 +580,8 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (7 if is_tf_2_2() and tf_eager_mode else 8)
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
