@@ -509,7 +509,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         def _write_optimizer_variables():
             if self.prepared_collections is False:
-                return 
+                return
             optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
             if optimizer_collections in self._get_collections_to_save_for_step():
                 for tensor_ref in optimizer_collections.get_tensors(mode):
