@@ -325,6 +325,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self.tensor_to_collections[tensor_ref.name].add(coll)
 
     def _prepare_tensors_for_step(self, mode):
+        self.tensor_refs_to_save_this_step = set()
         colls_to_save_for_step = self._get_collections_to_save_for_step()
         input_tensors_set = set(
             self.collection_manager.get(CollectionKeys.INPUTS).get_tensors(mode=mode)
@@ -529,7 +530,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.prepared_collections is False:
             # sets prepared_collections to True here
             self._prepare_collections()
-        self.tensor_refs_to_save_this_step = set()
 
         if self._prepared_tensors[mode] is False:
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
@@ -551,6 +551,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self.tensor_refs_to_save_this_step:
                 # if saving metric, writer may not be initialized as a result
                 self._initialize_writers()
+
             if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 self._add_callbacks(mode)
 

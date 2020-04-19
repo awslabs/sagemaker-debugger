@@ -459,8 +459,8 @@ class TensorflowBaseHook(BaseHook):
         :param gradients_and_variables: list of tuples [(tf.Tensor/tf.Variable, tf.Tensor/tf.Variable)...]
             list of tuples representing gradients and weights
         """
-        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
-        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
+        # TF 2.x provides only symbolic gradient variables that do not provide access to their values.
+        # Skipping set_gradients for Tf 2.x until there is
         # support to pass names and values from TF side.
 
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
@@ -484,8 +484,8 @@ class TensorflowBaseHook(BaseHook):
         This method helps find the optimizer variables (such as momentum)
         :param optimizer_variables: list of tf.Variables/tf.Tensors/tf.MirroredVariables
         """
-        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
-        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
+        # TF 2.x provides only symbolic gradient variables that do not provide access to their values.
+        # Skipping set_gradients for Tf 2.x until there is
         # support to pass names and values from TF side.
 
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
