@@ -390,7 +390,7 @@ def test_keras_fit(out_dir):
         trial_dir=out_dir,
         hook=hook,
         eager=tf_eager_mode,
-        steps=["train"],#, "eval", "predict", "train"],
+        steps=["train"],  # , "eval", "predict", "train"],
     )
 
     trial = smd.create_trial(path=out_dir)
