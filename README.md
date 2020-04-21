@@ -16,7 +16,7 @@
 `smdebug` library powers [Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) by calling the saved tensors in S3 during the training job. `smdebug` retrieves and filters tensors such as gradients, weights, and biases.
 
 Amazon SageMaker Debugger supports TensorFlow, PyTorch, MXNet, and XGBoost frameworks.
-The following list is a summary of the main funcionalities of Amazon SageMaker Debugger:
+The following list is a summary of the main functionalities of Amazon SageMaker Debugger:
 
 - Zero Script Change experience on SageMaker when using [supported containers](#support)
 - Full visibility into any tensor part of the training process
@@ -32,7 +32,6 @@ The following list is a summary of the main funcionalities of Amazon SageMaker D
 ### [Latest release v0.7.2](https://github.com/awslabs/sagemaker-debugger/releases)
 
    - Experimental support for TF 2.x GradientTape - Introducing experimental support for TF 2.x training scripts using GradientTape.
-
    SageMaker Debugger GradientTape now captures tensors such as loss, metrics, weights, biases, and gradients by modifying training scripts in TF 2.x framework. A sample training script is provided [here](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py).
    GradientTape does not work with Zero Script Change experience at this time.
 
