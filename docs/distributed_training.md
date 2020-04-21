@@ -12,8 +12,8 @@ Here is a list of distributed training strategies that are supported by Sagemake
   * [MirroredStrategy](#mirrored-strategy)
 - [Pytorch](#pytorch)
   * [Horovod](#horovod)
-  * [torch.distributed](#sub-heading-1)
-- [MXNet](#heading-1)
+  * [torch.distributed](#torch.distributed)
+- [MXNet](#MXNet)
   * [Horovod](#sub-heading-2)
 - [XGBoost](#heading-1)
   * [Rabit](#sub-heading-2)
@@ -380,5 +380,49 @@ For details on hook initialization, see [here](#zero-code-change-hook-initializa
 
 You can run this [example](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/pytorch/zero_code_change_examples/horovod_mnist.py) after setting up the hook. 
 
+### torch.distributed
+
+- [Custom Hook Initializaton](#custom-hook-initializaton)
+- [Zero Code Change Hook](#zero-code-change-hook)
+
+#### Custom Hook Initializaton
+
+See full [source-code](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/pytorch/scripts/pytorch_distributed_training.py).
 
 
+Minimal custom hook configuration
+
+```
+    hook = smd.Hook(
+        out_dir=out_dir,
+        save_config=smd.SaveConfig(save_steps=[0, 1, 5]),
+        save_all=True,
+        include_workers=include_workers,
+    )
+```
+
+Register the model with the smdebug hook
+
+```
+    hook.register_module(model)
+```
+
+The example script can be run with the following command:
+
+```
+python pytorch_distributed_training.py --out_dir ./dist_training_trial --include_workers all
+```
+
+#### Zero Code Change Hook
+
+For details on hook initialization, see [here](#zero-code-change-hook-initialization).
+
+The example script can be run with the following command after following the above steps
+
+```
+python pytorch_distributed_training.py --out_dir ./dist_training_trial --include_workers all --zcc True
+```
+
+## MXNet
+
+#TODO
