@@ -22,7 +22,7 @@ def get_tf_names(arg):
     elif isinstance(arg, values.DistributedVariable):
         tf_names = [v.name for v in arg._values]
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"Does not support:{arg} which of type:{type(arg)}")
     return tf_names
 
 
