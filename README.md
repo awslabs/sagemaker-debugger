@@ -30,8 +30,11 @@ The following list is a summary of the main funcionalities of Amazon SageMaker D
 ## Support
 
 ### [Latest release v0.7.2](https://github.com/awslabs/sagemaker-debugger/releases)
-    
-   - Experimental support for TF 2.x GradientTape - Introducing experimental support for TF 2.x training scripts using GradientTape. With this change, weights, bias, loss, metrics, and gradients are captured by SageMaker Debugger. These changes work with vanilla version of Tensorflow 2.x (not with the zero-code change version).
+
+   - Experimental support for TF 2.x GradientTape - Introducing experimental support for TF 2.x training scripts using GradientTape.
+
+   SageMaker Debugger GradientTape now captures tensors such as loss, metrics, weights, biases, and gradients by modifying training scripts in TF 2.x framework. A sample training script is provided [here](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py).
+   GradientTape does not work with Zero Script Change experience at this time.
 
         Note: Training scripts using GradientTape for higher-order gradients or multiple tapes are not supported. Distributed training scripts that use GradientTape are not supported at this time.
 
@@ -39,7 +42,7 @@ The following list is a summary of the main funcionalities of Amazon SageMaker D
 
    - Turn off hook and write only from one worker for unsupported distributed training techniques – Fixes a crash when distributed training in PyTorch framework is implemented using generic multiprocessing library, which is not a method supported by smdebug. This fix handles this case and ensures that tensors are saved.
 
-   - Bug fix: Pytorch: Register only if tensors require gradients – Users were observing a crash when training with pretrained embeddings which does not need gradient updates. This fix checks if a gradient update is required and registers a backward hook only in those cases.
+   - Bug fix: Pytorch: Register only if tensors require gradients – Users were observing a crash when training with pre-trained embeddings which does not need gradient updates. This fix checks if a gradient update is required and registers a backward hook only in those cases.
 
 #### Setting up SageMaker Debugger
 
@@ -121,7 +124,7 @@ These framework forks are not available in custom containers or non-SM environme
 
 ## Examples
 ### Notebooks
-Example notebooks demonstrating different functionalities of SageMaker Debugger are provided [here](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger). 
+Example notebooks demonstrating different functionalities of SageMaker Debugger are provided [here](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
 
 ### Running a Rule with Zero Script Change on SageMaker
 This example uses a zero-script-change experience, where you can use your training script as-is. Refer to [Running SageMaker jobs with Amazon SageMaker Debugger](docs/sagemaker.md) for more details on this.
