@@ -20,14 +20,13 @@ env:
 phases:
   install:
     commands:
-        - su && apt-get update
-        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
-        - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
-        - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
-        - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
-        - pip install --upgrade pip==19.3.1
-        - pip install -q pytest wheel pyYaml pytest-html pre-commit awscli tensorflow_datasets
-        - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh;
+      - apt-get update
+      - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
+      - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+      - pip install --upgrade pip==19.3.1
+      - pip install -q pytest wheel pyYaml pytest-html pre-commit awscli tensorflow_datasets
+      - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh;
 
   build:
     commands:
