@@ -14,9 +14,9 @@ Here is a list of distributed training strategies that are supported by Sagemake
   * [Horovod](#horovod)
   * [torch.distributed](#torch.distributed)
 - [MXNet](#MXNet)
-  * [Horovod](#sub-heading-2)
-- [XGBoost](#heading-1)
-  * [Rabit](#sub-heading-2)
+  * [Horovod](#horovod)
+- [XGBoost](#xgboost)
+  * [Rabit](#rabit)
 
   ## API
 
@@ -425,4 +425,49 @@ python pytorch_distributed_training.py --out_dir ./dist_training_trial --include
 
 ## MXNet
 
-#TODO
+### Horovod
+
+- [Custom Hook Initializaton](#custom-hook-initializaton)
+- [Zero Code Change Hook](#zero-code-change-hook)
+
+#### Custom Hook Initializaton
+
+See full [source-code](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/mxnet/scripts/horovod_mnist.py).
+
+Minimal custom hook configuration
+
+```
+    smd_hook = smd.Hook(
+        out_dir=args.out_dir,
+        save_config=smd.SaveConfig(save_interval=1),
+        include_collections=["weights", "gradients"],
+        include_workers=args.include_workers,
+    )
+```
+
+Register the hook with the model
+
+```
+hook.register_hook(model)
+```
+
+The example script can be run with the following command:
+
+```
+mpirun -np 4 -H localhost:4 python horovod_mnist.py --out_dir ./hvd_mnist_trial --include_workers all
+```
+
+
+#### Zero Code Change Hook
+
+For details on hook initialization, see [here](#zero-code-change-hook-initialization).
+
+The example script can be run with the following command after following the above steps
+
+```
+mpirun -np 4 -H localhost:4 python horovod_mnist.py --zcc
+```
+
+## XGBoost
+
+### Rabit
