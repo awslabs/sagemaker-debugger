@@ -17,9 +17,9 @@ Here is a list of distributed training strategies that are supported by Sagemake
   * [Horovod](#sub-heading-2)
 - [XGBoost](#heading-1)
   * [Rabit](#sub-heading-2)
-  
+
   ## API
-  
+
   See [Full API Docs](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md) for the detailed documentation of Sagemaker Debugger API.
 
 Here we highlight distributed training specific API.
@@ -138,7 +138,7 @@ trial.tensor(name).workers(step_num, mode=modes.GLOBAL)
 
 
 ## Tensorflow 1.x
-  
+
 ### Horovod
 
 - [Custom Hook Initializaton](#custom-hook-initializaton)
@@ -252,14 +252,14 @@ Wrap gradient tape with smdebug hook
     with smd_hook.wrap_tape(tf.GradientTape()) as tape:
         probs = mnist_model(images, training=True)
         loss_value = loss(labels, probs)
-...        
+...
 ```
 
 Wrap the optimizer so hook can identify gradients
 ```
     opt = smd_hook.wrap_optimizer(opt)
-``` 
-   
+```
+
 The [example](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf2_hvd_gradienttape_mnist.py) program provided can be executed with the command:
 
 ```
@@ -378,7 +378,7 @@ mpirun -np 4 -H localhost:4 python horovod_mnist.py --out_dir ./hvd_mnist_trial 
 
 For details on hook initialization, see [here](#zero-code-change-hook-initialization).
 
-You can run this [example](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/pytorch/zero_code_change_examples/horovod_mnist.py) after setting up the hook. 
+You can run this [example](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/pytorch/zero_code_change_examples/horovod_mnist.py) after setting up the hook.
 
 ### torch.distributed
 
