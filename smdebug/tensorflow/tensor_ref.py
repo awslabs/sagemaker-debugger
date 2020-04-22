@@ -22,7 +22,9 @@ def get_tf_names(arg):
     elif isinstance(arg, values.DistributedVariable):
         tf_names = [v.name for v in arg._values]
     else:
-        raise NotImplementedError(f"Smdebug currenty not support:{arg} which of type:{type(arg)}")
+        raise NotImplementedError(
+            f"Smdebug currenty does not support:{arg} which of type:{type(arg)}"
+        )
     return tf_names
 
 
