@@ -19,6 +19,9 @@ def test_tf_device_name_serialize_and_deserialize():
 
     device_name = tf.test.gpu_device_name()
     if not bool(device_name):
+        print(
+            "There is no GPU Support on this machine. Please ignore the cuInit errors generated above"
+        )
         device_name = "/device:GPU:0"
 
     serialized_device_name = serialize_tf_device(device_name)
