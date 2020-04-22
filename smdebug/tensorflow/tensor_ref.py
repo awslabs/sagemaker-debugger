@@ -19,7 +19,7 @@ def get_tf_names(arg):
         tf_names = [arg.name]
     elif isinstance(arg, tf.Tensor):
         tf_names = [arg.name]
-    elif isinstance(arg, values.DistributedVariable):
+    elif isinstance(arg, values.DistributedValues):
         tf_names = [v.name for v in arg._values]
     else:
         raise NotImplementedError(
