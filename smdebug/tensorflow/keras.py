@@ -556,9 +556,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for tensor_ref in optimizer_collections.get_tensors(self.mode):
                 tensor = tensor_ref.tf_obj
                 self._save_for_tensor(
-                    tensor_name=tensor.name,
-                    tensor_value=tensor.value(),
-                    check_before_write=False,
+                    tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
                 )
 
     def _on_any_batch_end(self, batch, mode, logs=None):
