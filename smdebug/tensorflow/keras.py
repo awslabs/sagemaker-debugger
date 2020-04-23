@@ -517,8 +517,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     tensor = tensor_ref.tf_obj
                     try:
                         tensor.value()
-                    except Exception:
-                        print("The tensor that has no value is: {}".format(tensor))
+                    except AttributeError:
+                        raise AttributeError("The tensor that has no value is: {}".format(tensor))
                     self._save_for_tensor(
                         tensor_name=tensor.name,
                         tensor_value=tensor.value(),
