@@ -2,6 +2,7 @@
 
 # First Party
 from smdebug.core.index_reader import S3IndexReader
+from smdebug.core.logger import get_logger
 from smdebug.core.s3_utils import list_s3_objects
 from smdebug.core.utils import (
     deserialize_tf_device,
@@ -15,10 +16,14 @@ from smdebug.exceptions import IndexReaderException
 
 
 def test_tf_device_name_serialize_and_deserialize():
+    logger = get_logger()
     import tensorflow.compat.v1 as tf
 
     device_name = tf.test.gpu_device_name()
     if not bool(device_name):
+        logger.warning(
+            "There is no GPU Support on this machine. Please ignore the cuInit errors generated above"
+        )
         device_name = "/device:GPU:0"
 
     serialized_device_name = serialize_tf_device(device_name)

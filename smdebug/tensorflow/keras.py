@@ -744,11 +744,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self._get_collections_to_save_for_step():
                 for (g, v) in zip(grads, vars):
                     layer = v.name.split(":")[0]
-                    self._save_for_tensor(
-                        tensor_name="gradients/" + layer + "Grad",
-                        tensor_value=g,
-                        check_before_write=True,
-                    )
+                    # Adding a check to make sure gradients are not None.
+                    # gradients may be None if user tries to compute gradients for
+                    # non-training variable when using model.variables instead of
+                    # model.trainable_variables in tape.gradient().
+                    # model.variables includes trainable and non-trainable
+                    # variables.
+                    if g is not None:
+                        self._save_for_tensor(
+                            tensor_name="gradients/" + layer + "Grad",
+                            tensor_value=g,
+                            check_before_write=True,
+                        )
                     self._save_for_tensor(
                         tensor_name="weights/" + v.name,
                         tensor_value=v.value(),
