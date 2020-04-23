@@ -488,10 +488,6 @@ class TensorflowBaseHook(BaseHook):
         This method helps find the optimizer variables (such as momentum)
         :param optimizer_variables: list of tf.Variables/tf.Tensors/tf.MirroredVariables
         """
-        # TF 2.x provides only symbolic gradient variables that do not provide access to their values.
-        # Skipping set_gradients for Tf 2.x until there is
-        # support to pass names and values from TF side.
-
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
@@ -499,10 +495,6 @@ class TensorflowBaseHook(BaseHook):
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
             optimizer_variables, self.mode
         )
-        if self.save_all is True:
-            self.collection_manager.get(CollectionKeys.ALL).add_for_mode(
-                optimizer_variables, self.mode
-            )
 
     @staticmethod
     def _make_numpy_array(tensor_value):

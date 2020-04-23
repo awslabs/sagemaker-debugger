@@ -567,6 +567,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._remove_fetches_and_callbacks(mode)
 
         if is_tf_version_2x() and tf.executing_eagerly():
+            # Need to prepare non layer tensors again since
+            # some tensors only become available on  batch end
+            self._prepare_non_layer_tensors()
             self._write_optimizer_variables()
 
         self._save_tensors_post_step(batch, logs)
