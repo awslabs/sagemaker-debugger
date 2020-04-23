@@ -515,6 +515,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if optimizer_collections in self._get_collections_to_save_for_step():
                 for tensor_ref in optimizer_collections.get_tensors(mode):
                     tensor = tensor_ref.tf_obj
+                    try:
+                        tensor.value()
+                    except Exception:
+                        print("The tensor that has no value is: {}".format(tensor))
                     self._save_for_tensor(
                         tensor_name=tensor.name,
                         tensor_value=tensor.value(),
