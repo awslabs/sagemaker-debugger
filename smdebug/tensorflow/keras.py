@@ -508,26 +508,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # after first evaluation during training
         self.set_mode(mode)
 
-        def _write_optimizer_variables():
-            if self.prepared_collections is False:
-                return
-            optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
-            if optimizer_collections in self._get_collections_to_save_for_step():
-                for tensor_ref in optimizer_collections.get_tensors(mode):
-                    tensor = tensor_ref.tf_obj
-                    try:
-                        tensor.value()
-                    except AttributeError:
-                        raise AttributeError("The tensor that has no value is: {}".format(tensor))
-                    self._save_for_tensor(
-                        tensor_name=tensor.name,
-                        tensor_value=tensor.value(),
-                        check_before_write=False,
-                    )
-
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None or len(self.writer_map):
-            _write_optimizer_variables()
             self._close_writers()
         self._increment_step()
 
@@ -568,12 +550,27 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
+    def _write_optimizer_variables(self):
+        optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
+        if optimizer_collections in self._get_collections_to_save_for_step():
+            for tensor_ref in optimizer_collections.get_tensors(self.mode):
+                tensor = tensor_ref.tf_obj
+                self._save_for_tensor(
+                    tensor_name=tensor.name,
+                    tensor_value=tensor.value(),
+                    check_before_write=False,
+                )
+
     def _on_any_batch_end(self, batch, mode, logs=None):
         if self._is_not_supported():
             return
 
         if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
             self._remove_fetches_and_callbacks(mode)
+
+        if is_tf_version_2x() and tf.executing_eagerly():
+            self._write_optimizer_variables()
+
         self._save_tensors_post_step(batch, logs)
 
         if self._prepared_tensors[mode]:
