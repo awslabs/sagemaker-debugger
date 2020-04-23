@@ -496,13 +496,14 @@ class TensorflowBaseHook(BaseHook):
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
         # since this is done for each variable at a time for keras, not checking if set already
-        self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
-            optimizer_variables, self.mode
-        )
-        if self.save_all is True:
-            self.collection_manager.get(CollectionKeys.ALL).add_for_mode(
+        if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
+            self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
                 optimizer_variables, self.mode
             )
+            if self.save_all is True:
+                self.collection_manager.get(CollectionKeys.ALL).add_for_mode(
+                    optimizer_variables, self.mode
+                )
 
     @staticmethod
     def _make_numpy_array(tensor_value):
