@@ -4,16 +4,16 @@ Sagemaker debugger can be used to debug and save tensors with distributed traini
 
 Here is a list of distributed training strategies that are supported by Sagemaker Debugger.
 
-- [Tensorflow 1.x](#tensorflow-1.x)
+- [Tensorflow 1.x](#tensorflow-1)
   * [Horovod](#horovod)
   * [MirroredStrategy](#mirrored-strategy)
-- [Tensorflow 2.x](#heading)
+- [Tensorflow 2.x](#tensorflow-2)
   * [Horovod](#horovod)
   * [MirroredStrategy](#mirrored-strategy)
 - [Pytorch](#pytorch)
   * [Horovod](#horovod)
-  * [torch.distributed](#torch.distributed)
-- [MXNet](#MXNet)
+  * [torch.distributed](#torch-distributed)
+- [MXNet](#mxnet)
   * [Horovod](#horovod)
 - [XGBoost](#xgboost)
   * [Rabit](#rabit)
@@ -137,7 +137,7 @@ trial.tensor(name).workers(step_num, mode=modes.GLOBAL)
 `list[str]` A list of worker names for which the tensor was saved at the given step.
 
 
-## Tensorflow 1.x
+## Tensorflow 1
 
 ### Horovod
 
@@ -216,7 +216,7 @@ and then run
 python tf_mirrored_strategy.py --zcc True
 ```
 
-## Tensorflow 2.x
+## Tensorflow 2
 
 ### Horovod
 
@@ -380,7 +380,7 @@ For details on hook initialization, see [here](#zero-code-change-hook-initializa
 
 You can run this [example](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/pytorch/zero_code_change_examples/horovod_mnist.py) after setting up the hook.
 
-### torch.distributed
+### torch distributed
 
 - [Custom Hook Initializaton](#custom-hook-initializaton)
 - [Zero Code Change Hook](#zero-code-change-hook)
@@ -471,3 +471,5 @@ mpirun -np 4 -H localhost:4 python horovod_mnist.py --zcc
 ## XGBoost
 
 ### Rabit
+
+[TODO]
