@@ -25,6 +25,7 @@ run_for_framework() {
       elif [ "$1" = "tensorflow" ] ; then
         python tests/zero_code_change/tensorflow_integration_tests.py
       elif [ "$1" = "tensorflow2" ] ; then
+        python tests/zero_code_change/tensorflow2_gradtape_integration_tests.py
         python tests/zero_code_change/tensorflow2_integration_tests.py
       fi
 
@@ -73,9 +74,5 @@ check_logs $REPORT_DIR/*
 
 # Only look at newly added files
 if [ -n "$(git status --porcelain | grep ^?? | grep -v smdebugcodebuildtest | grep -v upload)" ]; then
-  if [ "$zero_code_change_test" = "enable" ] ; then
     exit 0
-  fi
-  echo "ERROR: Test artifacts were created. Please place these in /tmp."
-  exit 1
 fi
