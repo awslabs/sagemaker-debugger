@@ -105,9 +105,9 @@ that training is progressing as expected.
 A rule might check for vanishing gradients, or exploding tensor values, or poor weight initialization. Rules are attached to CloudWatch events, so that when a rule is triggered it changes the state of the CloudWatch event. You can configure any action on the CloudWatch event, such as to stop the training job saving you time and money.
 
 Amazon SageMaker Debugger can be used inside or outside of SageMaker. However the built-in rules that AWS provides are only available for SageMaker training. Scenarios of usage can be classified into the following:
-- **SageMaker Zero-Script-Change**: Here you specify which rules to use when setting up the estimator and run your existing script, no changes needed. See the first example above.
+- **SageMaker Zero-Script-Change**: Here you specify which rules to use when setting up the estimator and run your existing script, no changes needed. See [the first example below](#running-a-rule-with-zero-script-change-on-sageMaker).
 - **SageMaker Bring-Your-Own-Container**: Here you specify the rules to use, and modify your training script minimally to enable SageMaker Debugger.
-- **Non-SageMaker**: Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger. See the second example above.
+- **Non-SageMaker**: Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger. See [the second example below](#running-locally).
 
 The reason for different setups is that SageMaker Zero-Script-Change (via AWS Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost which add our Hook to the training job and save requested tensors automatically.
 These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
