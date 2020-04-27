@@ -82,7 +82,7 @@ class Collection(BaseCollection):
             return self.add_variable(arg, mode=mode)
         elif isinstance(arg, tf.Tensor):
             return self.add_tensor(arg, mode=mode)
-        elif isinstance(arg, values.DistributedVariable):
+        elif isinstance(arg, values.DistributedValues):
             return self.add_distributed_variable(arg, mode=mode)
         elif isinstance(arg, values.AggregatingVariable):
             return self.add_aggregating_variable(arg, mode=mode)

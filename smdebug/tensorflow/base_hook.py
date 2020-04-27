@@ -377,7 +377,7 @@ class TensorflowBaseHook(BaseHook):
         if is_tf_version_2x() and tf.executing_eagerly():
             from tensorflow.python.distribute import values
 
-            if isinstance(tensor, values.DistributedVariable):
+            if isinstance(tensor, values.DistributedValues):
                 tensors = [t for t in tensor._values]
         else:
             tensors = [tensor]
