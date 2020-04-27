@@ -399,9 +399,7 @@ class TensorflowBaseHook(BaseHook):
         # tensors are not matched with collections at preparation time.
         # Call core/hook.py's _get_collections_with_tensor() where tensors are
         # matched with collections by regex
-        if self.tape:
-            return super()._get_collections_with_tensor(tf_tensor_name)
-        if (
+        if self.tape or (
             tf_tensor_name not in self.tensor_to_collections
             and is_tf_version_2x()
             and tf.executing_eagerly()
