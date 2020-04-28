@@ -821,6 +821,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
 
         self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
+        self._write_optimizer_variables()
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
