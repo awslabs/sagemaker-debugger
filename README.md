@@ -12,12 +12,16 @@
 - [SageMaker Debugger in action](#sagemaker-debugger-in-action)
 
 ## Overview
-[Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) automates the debugging process of machine learning training jobs. It allows you to save tensors from training jobs and makes these tensors available for analysis, all through a flexible and powerful API.
-The `smdebug` library powers [Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) by calling the saved tensors in S3 during the training job.
-[Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) supports `Hook` and `Rule` features to designate saving directory in S3 and monitor the tensors. See [How it work](#how-it-works) for more details.
-[Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) provides built-in (Zero Script Change) `Hook` and `Rule` configurations and supports customization of configurations.
-`smdebug` retrieves and filters the tensors generated from [Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) such as gradients, weights, and biases. `smdebug` helps you develop better, faster and cheaper models by tracing the tensors and iterative model pruning.
-Through the model pruning process, you can iteratively identify the importance of weights and cut neurons below a threshold. This process allows us to train the model with significantly less number of neurons, which means lighter, efficient, after, and cheaper without compensating accuracy.
+[Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) automates the debugging process of machine learning training jobs. From training jobs, Debugger allows you to
+run your own training script (Zero Script Change experience) using Debugger built-in features---`Hook` and `Rule`---to capture tensors,
+have flexibility to build customized `Hook`s and `Rule`s for configuring tensors as you want,
+and make the tensors available for analysis by saving in S3,
+all through a flexible and powerful API.
+The `smdebug` library powers Debugger by calling the saved tensors in S3 during the training job.
+
+`smdebug` retrieves and filters the tensors generated from Debugger such as gradients, weights, and biases. `smdebug` helps you develop better, faster and cheaper models by tracing the tensors and iterative model pruning.
+
+Through the model pruning process using Debugger and `smdebug`, you can iteratively identify the importance of weights, and cut neurons below a threshold you define. This process allows you to train the model with significantly fewer neurons, which means a lighter, more efficient, faster, and cheaper model without compromising accuracy.
 
 Amazon SageMaker Debugger supports TensorFlow, PyTorch, MXNet, and XGBoost frameworks.
 The following list is a summary of the main functionalities of Amazon SageMaker Debugger:
@@ -31,19 +35,22 @@ The following list is a summary of the main functionalities of Amazon SageMaker 
 - Distributed training support
 - TensorBoard support
 
+See [How it work](#how-it-works) for more details.
+
 ## Support
 
 ### [Latest release v0.7.2](https://github.com/awslabs/sagemaker-debugger/releases)
 
-   - Experimental support for TF 2.x GradientTape - Introducing experimental support for TF 2.x training scripts using GradientTape.
-   SageMaker Debugger GradientTape now captures tensors such as loss, metrics, weights, biases, and gradients by modifying training scripts in TF 2.x framework. A sample training script is provided [here](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py).
+   - Introducing experimental support for TF 2.x training scripts using GradientTape -
+   With this update, weights, bias, loss, metrics, and gradients are captured by SageMaker Debugger.
+   GradientTape in TF 2.x captures these tensors from custom training jobs. An example of GradientTape implementation to a custom ResNet training script using TensorFlow's Keras interface is provided at [tf_keras_gradienttape.py](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py).
    GradientTape does not work with Zero Script Change experience at this time.
 
-        Note: Training scripts using GradientTape for higher-order gradients or multiple tapes are not supported. Distributed training scripts that use GradientTape are not supported at this time.
+        *Note*: Training scripts using GradientTape for higher-order gradients or multiple tapes are not supported. Distributed training scripts that use GradientTape are not supported at this time.
 
-   - Support SyncOnReadVariable in mirrored strategy - Fixes a bug that occurred because SyncOnRead distributed variable was not supported with smdebug. Also enables the use of smdebug with training scripts using TF 2.x MirroredStrategy with fit() API.
+   - Support `SyncOnReadVariable` in mirrored strategy - Fixes a bug that occurred because the `SyncOnRead` distributed variable was not supported with `smdebug`. Also enables the use of `smdebug` with training scripts using TF 2.x MirroredStrategy with the `fit()` API.
 
-   - Turn off hook and write only from one worker for unsupported distributed training techniques – Fixes a crash when distributed training in PyTorch framework is implemented using generic multiprocessing library, which is not a method supported by smdebug. This fix handles this case and ensures that tensors are saved.
+   - Turn off hook and write only from one worker for unsupported distributed training techniques – Fixes a crash when distributed training in PyTorch framework is implemented using generic multiprocessing library, which is not a method supported by `smdebug`. This fix handles this case and ensures that tensors are saved.
 
    - Bug fix: Pytorch: Register only if tensors require gradients – Users were observing a crash when training with pre-trained embeddings which does not need gradient updates. This fix checks if a gradient update is required and registers a backward hook only in those cases.
 
@@ -57,12 +64,18 @@ The following list is a summary of the main functionalities of Amazon SageMaker 
 
 #### Zero Script Change
 
+You can use your own training script while using [AWS Deep Learning Containers (DLC)](https://aws.amazon.com/machine-learning/containers/) in TensorFlow, PyTorch, MXNet and XGBoost frameworks. The AWS DLCs enable you to use Debugger with no changes to your training script, by automatically adding SageMaker Debugger's Hook.
+The following table shows currently supported versions of DLC.
+
 | Framework | Version |
 | --- | --- |
 | [TensorFlow](tensorflow.md) | 1.15, 2.1 |
 | [MXNet](mxnet.md) | 1.6 |
 | [PyTorch](pytorch.md) | 1.3, 1.4 |
 | [XGBoost](xgboost.md) | >=0.90-2 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|
+
+*Note*: For the TensorFlow framework, Zero Script Change experience is supported
+when using [AWS Deep Learning Containers (DLC)](https://aws.amazon.com/machine-learning/containers/).
 
 #### Bring your own training container
 
@@ -109,11 +122,11 @@ that training is progressing as expected.
 A rule might check for vanishing gradients, or exploding tensor values, or poor weight initialization. Rules are attached to CloudWatch events, so that when a rule is triggered it changes the state of the CloudWatch event. You can configure any action on the CloudWatch event, such as to stop the training job saving you time and money.
 
 Amazon SageMaker Debugger can be used inside or outside of SageMaker. However the built-in rules that AWS provides are only available for SageMaker training. Scenarios of usage can be classified into the following:
-- **SageMaker Zero Script Change**: Here you specify which rules to use when setting up the estimator and run your existing script, no changes needed. See [Running a Rule with Zero Script Change on SageMaker](#running-a-rule-with-zero-script-change-on-sageMaker).
-- **SageMaker Bring Your Own Container**: Here you specify the rules to use, and modify your training script minimally to enable SageMaker Debugger.
-- **Non-SageMaker**: Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger. See [Running Locally](#running-locally).
+- **SageMaker Zero Script Change**: Here you specify which rules to use when setting up the estimator and run your existing script without no change. For an example of how to  [Running a Rule with Zero Script Change on SageMaker](#running-a-rule-with-zero-script-change-on-sageMaker).
+- **SageMaker Bring Your Own Container**: Here you specify the rules to use and modify your training script minimally to enable SageMaker Debugger.
+- **Non-SageMaker**: Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger. For an example, see [Running Locally](#running-locally).
 
-The reason for different setups is that SageMaker Zero-Script-Change (via AWS Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost which add our Hook to the training job and save requested tensors automatically.
+The reason for different setups is that SageMaker Zero-Script-Change (via AWS Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost which add the `Hook` to the training job and save requested tensors automatically.
 These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
 
@@ -193,8 +206,8 @@ print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').v
 | --- | --- |
 | [SageMaker Training](docs/sagemaker.md) | SageMaker users, we recommend you start with this page on how to run SageMaker training jobs with SageMaker Debugger |
 | Frameworks <ul><li>[TensorFlow](docs/tensorflow.md)</li><li>[PyTorch](docs/pytorch.md)</li><li>[MXNet](docs/mxnet.md)</li><li>[XGBoost](docs/xgboost.md)</li></ul> | See the frameworks pages for details on what's supported and how to modify your training script if applicable |
-| [APIs for Saving Tensors](docs/api.md) | Full description of our APIs on saving tensors |
-| [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by our APIs which allows you to perform interactive exploration of tensors saved as well as to write your own Rules monitoring your training jobs. |
+| [APIs for Saving Tensors](docs/api.md) | Full description of the APIs for saving tensors |
+| [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by the APIs that enable you to perform interactive exploration of tensors saved as well as to write your own Rules monitoring your training jobs. |
 
 ## SageMaker Debugger in action
 - Using SageMaker Debugger with XGBoost in SageMaker Studio to save feature importance values and plot them in a notebook during training. ![](docs/resources/xgboost_feature_importance.png?raw=true)
