@@ -13,11 +13,11 @@
 
 ## Overview
 [Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) automates the debugging process of machine learning training jobs. From training jobs, Debugger allows you to
-run your own training script (Zero Script Change experience) using Debugger built-in features---`Hook` and `Rule`---to capture tensors,
+run your own training script (Zero Script Change experience) using Debugger built-in features&mdash;`Hook` and `Rule`&mdash;to capture tensors,
 have flexibility to build customized `Hook`s and `Rule`s for configuring tensors as you want,
-and make the tensors available for analysis by saving in S3,
+and make the tensors available for analysis by saving in an [Amazon S3](https://aws.amazon.com/s3/?nc=sn&loc=0) bucket,
 all through a flexible and powerful API.
-The `smdebug` library powers Debugger by calling the saved tensors in S3 during the training job.
+The `smdebug` library powers Debugger by calling the saved tensors from the S3 bucket during the training job.
 
 `smdebug` retrieves and filters the tensors generated from Debugger such as gradients, weights, and biases. `smdebug` helps you develop better, faster and cheaper models by tracing the tensors and iterative model pruning.
 
@@ -54,18 +54,18 @@ See [How it work](#how-it-works) for more details.
 
    - Bug fix: Pytorch: Register only if tensors require gradients – Users were observing a crash when training with pre-trained embeddings which does not need gradient updates. This fix checks if a gradient update is required and registers a backward hook only in those cases.
 
-#### Setting up SageMaker Debugger
+### Setting up SageMaker Debugger
 
-- `smdebug` library runs on Python 3.x. Install `smdebug` through:
+`smdebug` library runs on Python 3.x. Install `smdebug` through:
 
-    ```
-    pip install smdebug
-    ```
+```
+pip install smdebug
+```
 
 #### Zero Script Change
 
-You can use your own training script while using [AWS Deep Learning Containers (DLC)](https://aws.amazon.com/machine-learning/containers/) in TensorFlow, PyTorch, MXNet and XGBoost frameworks. The AWS DLCs enable you to use Debugger with no changes to your training script, by automatically adding SageMaker Debugger's Hook.
-The following table shows currently supported versions of DLC.
+You can use your own training script while using [AWS Deep Learning Containers (DLC)](https://aws.amazon.com/machine-learning/containers/) in TensorFlow, PyTorch, MXNet and XGBoost frameworks. The AWS DLCs enable you to use Debugger with no changes to your training script by automatically adding SageMaker Debugger's `Hook`.
+The following table shows currently supported versions of the four frameworks for Zero Script Change experience.
 
 | Framework | Version |
 | --- | --- |
@@ -74,8 +74,6 @@ The following table shows currently supported versions of DLC.
 | [PyTorch](pytorch.md) | 1.3, 1.4 |
 | [XGBoost](xgboost.md) | >=0.90-2 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|
 
-*Note*: For the TensorFlow framework, Zero Script Change experience is supported
-when using [AWS Deep Learning Containers (DLC)](https://aws.amazon.com/machine-learning/containers/).
 
 #### Bring your own training container
 
@@ -179,7 +177,7 @@ If you want greater configuration and control, we offer that too. Head over [her
 ### Running Locally
 Requires Python 3.6+, and this example uses tf.keras.
 
-To use Amazon SageMaker Debugger, simply add a callback hook:
+To use Amazon SageMaker Debugger, simply add a callback `hook`:
 ```python
 import smdebug.tensorflow as smd
 hook = smd.KerasHook(out_dir='~/smd_outputs/')
