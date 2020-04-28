@@ -138,6 +138,7 @@ def helper_keras_gradtape(
                     hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
     opt = tf.keras.optimizers.Adam()
+    hook.wrap_optimizer(opt)
 
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
@@ -174,14 +175,16 @@ def test_keras_gradtape(out_dir, saveall):
     """
     Test save all and save default collection
     """
+    saveall = True
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=SaveConfig(save_interval=3))
     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 10
+        assert len(trial.tensor_names()) == 15
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -326,9 +329,9 @@ def test_gradtape_include_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 10
+    assert len(trial.tensor_names()) == 15
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -371,9 +374,10 @@ def test_gradtape_persistent(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 10
+        assert len(trial.tensor_names()) == 15
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
