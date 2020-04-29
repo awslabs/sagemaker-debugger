@@ -35,7 +35,7 @@ The following list is a summary of the main functionalities of Amazon SageMaker 
 - Distributed training support
 - TensorBoard support
 
-See [How it work](#how-it-works) for more details.
+See [How it works](#how-it-works) for more details.
 
 ## Support
 
@@ -82,7 +82,7 @@ For the full list and information of the AWS DLCs, see [Deep Learning Containers
 
 #### Bring your own training container
 
-`smdebug` supports frameworks other than the ones listed in the previous Zero Script Change section. You can orchestrate your training script by ading a few lines.
+`smdebug` supports frameworks other than the ones listed in the previous Zero Script Change section. You can orchestrate your training script by adding a few lines.
 Currently supported versions of frameworks are listed in the following table.
 
 | Framework | Versions |
@@ -186,12 +186,12 @@ print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').v
 ```
 
 That's it! When you configure the `sagemaker_simple_estimator`,
-you designate the `entry_point` to your training script python file.
+you simply specify the `entry_point` to your training script python file.
 When you run the `sagemaker_simple_estimator.fit()` API,
 Amazon SageMaker will automatically monitor your training job for you with the `Rule`s specified and create a `CloudWatch` event that tracks the status of the `Rule`,
 so you can take any action based on them.
 
-If you want greater configuration and control, see [SageMaker page](docs/sagemaker.md) for more information.
+If you want a greater configuration and control, see [Running SageMaker jobs with Amazon SageMaker Debugger](docs/sagemaker.md) for more information.
 
 ### Running Locally
 Requires Python 3.6+ and this example uses tf.keras.
