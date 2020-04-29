@@ -502,7 +502,7 @@ def test_include_regex(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
 
-    assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
+    assert len(tnames) == 4 + 4 + 3 * strategy.num_replicas_in_sync
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
