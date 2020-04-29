@@ -544,6 +544,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._get_exec_function(mode)
             ):
                 self._prepare_layers(mode)
+                self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
                 # so we know that device map is populated
