@@ -327,24 +327,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             else:
                 default_tf_collection.add(coll)
 
-        for coll in default_tf_collection:
-            for tensor_ref in coll.get_tensors():
+        for default_coll in default_tf_collection:
+            for tensor_ref in default_coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
-                    self.tensor_to_collections[tensor_ref.name] = {coll}
-                elif coll not in self.tensor_to_collections[tensor_ref.name]:
-                    self.tensor_to_collections[tensor_ref.name].add(coll)
+                    self.tensor_to_collections[tensor_ref.name] = {default_coll}
+                elif default_coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(default_coll)
 
-                # Add to custom collections
+                # Add tensor to custom collections
                 for custom_coll in custom_collections:
                     if match_inc(tensor_ref.name, custom_coll.include_regex):
                         custom_coll.add_for_mode(tensor_ref.tf_obj, self.mode)
-
-        for coll in custom_collections:
-            for tensor_ref in coll.get_tensors():
-                if tensor_ref.name not in self.tensor_to_collections:
-                    self.tensor_to_collections[tensor_ref.name] = {coll}
-                elif coll not in self.tensor_to_collections[tensor_ref.name]:
-                    self.tensor_to_collections[tensor_ref.name].add(coll)
+                        if custom_coll not in self.tensor_to_collections[tensor_ref.name]:
+                            self.tensor_to_collections[tensor_ref.name].add(custom_coll)
 
     def _prepare_tensors_for_step(self, mode):
         self.tensor_refs_to_save_this_step = set()
