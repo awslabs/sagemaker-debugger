@@ -6,6 +6,7 @@ import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
+from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
@@ -317,7 +318,28 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
+        custom_collections = set()
+        default_tf_collection = set()
+
         for coll in self.collection_manager.get_collections().values():
+            if coll.name not in DEFAULT_TF_COLLECTIONS:
+                custom_collections.add(coll)
+            else:
+                default_tf_collection.add(coll)
+
+        for coll in default_tf_collection:
+            for tensor_ref in coll.get_tensors():
+                if tensor_ref.name not in self.tensor_to_collections:
+                    self.tensor_to_collections[tensor_ref.name] = {coll}
+                elif coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(coll)
+
+                # Add to custom collections
+                for custom_coll in custom_collections:
+                    if match_inc(tensor_ref.name, custom_coll.include_regex):
+                        custom_coll.add_for_mode(tensor_ref.tf_obj, self.mode)
+
+        for coll in custom_collections:
             for tensor_ref in coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
@@ -522,7 +544,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._get_exec_function(mode)
             ):
                 self._prepare_layers(mode)
-                self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
                 # so we know that device map is populated
@@ -552,12 +573,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
-        if optimizer_collections in self._get_collections_to_save_for_step():
-            for tensor_ref in optimizer_collections.get_tensors(self.mode):
-                tensor = tensor_ref.tf_obj
-                self._save_for_tensor(
-                    tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
-                )
+        collections = self._get_collections_to_save_for_step()
+        for tensor_ref in optimizer_collections.get_tensors(self.mode):
+            for coll in collections:
+                if coll in self.tensor_to_collections[tensor_ref.name]:
+                    tensor = tensor_ref.tf_obj
+                    self._save_for_tensor(
+                        tensor_name=tensor.name,
+                        tensor_value=tensor.value(),
+                        check_before_write=False,
+                    )
 
     def _on_any_batch_end(self, batch, mode, logs=None):
         if self._is_not_supported():

@@ -383,7 +383,10 @@ def test_gradtape_persistent(out_dir, saveall):
 @pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_fit(out_dir, tf_eager_mode, saveall):
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
+    hook = smd.KerasHook(
+        out_dir=out_dir, save_all=saveall, include_collections=["custom_optimizer_variables"]
+    )
+    hook.get_collection("custom_optimizer_variables").include("Adam")
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
@@ -403,6 +406,7 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
+    assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
@@ -541,6 +545,7 @@ def test_include_collections(out_dir, tf_eager_mode):
         CollectionKeys.OUTPUTS,
         CollectionKeys.METRICS,
         CollectionKeys.OPTIMIZER_VARIABLES,
+        "custom_optimizer_variables",
     ]
     save_config = SaveConfig(save_interval=3)
     hook = smd.KerasHook(
@@ -549,6 +554,7 @@ def test_include_collections(out_dir, tf_eager_mode):
         include_collections=include_collections,
         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
     )
+    hook.get_collection("custom_optimizer_variables").include("Adam")
     helper_keras_fit(out_dir, hook=hook, steps=["train", "eval", "predict"], eager=tf_eager_mode)
 
     trial = smd.create_trial(path=out_dir)
@@ -559,6 +565,7 @@ def test_include_collections(out_dir, tf_eager_mode):
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+    assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
