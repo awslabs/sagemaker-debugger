@@ -129,7 +129,7 @@ that training is progressing as expected.
 A `Rule` checks for vanishing gradients, exploding tensor values, or poor weight initialization. `Rule`s are attached to Amazon CloudWatch events, so that when a rule is triggered it changes the state of the CloudWatch event.
 You can configure any action on the CloudWatch event, such as to stop the training job saving you time and money.
 
-Amazon SageMaker Debugger can be used inside or outside of SageMaker. However the built-in rules that AWS provides are only available for SageMaker training. Scenarios of usage can be classified into the following three cases.
+Debugger can be used inside or outside of SageMaker. However the built-in rules that AWS provides are only available for SageMaker training. Scenarios of usage can be classified into the following three cases.
 
 #### Using SageMaker Debugger with Zero Script Change of Your Training Script
 
