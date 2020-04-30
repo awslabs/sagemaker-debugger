@@ -581,6 +581,24 @@ def test_include_collections(out_dir, tf_eager_mode):
 
 
 @pytest.mark.slow
+def test_include_only_custom_collection(out_dir, tf_eager_mode):
+    include_collections = ["custom_optimizer_variables"]
+    save_config = SaveConfig(save_interval=3)
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=save_config,
+        include_collections=include_collections,
+        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+    )
+    hook.get_collection("custom_optimizer_variables").include("Adam")
+    helper_keras_fit(out_dir, hook=hook, steps=["train", "eval", "predict"], eager=tf_eager_mode)
+
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.tensor_names()) == (8 if is_tf_2_2() and tf_eager_mode else 9)
+    assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
+
+
+@pytest.mark.slow
 def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR,
