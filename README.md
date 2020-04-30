@@ -235,7 +235,7 @@ To see a full script of this, refer to the [tf_keras_gradienttape.py](https://gi
 #### Run Debugger Locally
 Requires Python 3.6+ and this example uses tf.keras.
 
-To use Amazon SageMaker Debugger, simply add a callback `hook`:
+To use Debugger, simply add a callback `hook`:
 ```python
 import smdebug.tensorflow as smd
 hook = smd.KerasHook(out_dir='~/smd_outputs/')
