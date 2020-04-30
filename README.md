@@ -202,7 +202,7 @@ print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').v
 That's it! When you configure the `sagemaker_simple_estimator`,
 you simply specify the `entry_point` to your training script python file.
 When you run the `sagemaker_simple_estimator.fit()` API,
-Amazon SageMaker will automatically monitor your training job for you with the `Rule`s specified and create a `CloudWatch` event that tracks the status of the `Rule`,
+SageMaker will automatically monitor your training job for you with the Rules specified and create a `CloudWatch` event that tracks the status of the Rule,
 so you can take any action based on them.
 
 If you want a greater configuration and control, see [Running SageMaker jobs with Amazon SageMaker Debugger](docs/sagemaker.md) for more information.
