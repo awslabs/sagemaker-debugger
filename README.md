@@ -161,7 +161,7 @@ To find a collection of demonstrations using Debugger, see [SageMaker Debugger E
 
 #### Run a Rule with Zero Script Change
 
-This example shows a how to use SageMaker Debugger with Zero Script Change of
+This example shows a how to use Debugger with Zero Script Change of
 your training script on a SageMaker DLC.
 
 ```python
