@@ -147,7 +147,7 @@ See the following instruction pages to set up Debugger in your preferred framewo
 
 #### Using SageMaker Debugger on a Non-SageMaker Environment
 
-Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger on a non-SageMaker Environment such as your local machine. For an example of this, see [Running Locally](#running-locally).
+Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable Debugger on a non-SageMaker Environment such as your local machine. For an example of this, see [Running Locally](#running-locally).
 
 The reason for different setups is that SageMaker Zero Script Change (via AWS Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost which add the `Hook` to the training job and save requested tensors automatically.
 These framework forks are not available in custom containers or non-SageMaker environments, so you must modify your training script in these environments.
