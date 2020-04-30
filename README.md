@@ -205,7 +205,7 @@ When you run the `sagemaker_simple_estimator.fit()` API,
 SageMaker will automatically monitor your training job for you with the Rules specified and create a `CloudWatch` event that tracks the status of the Rule,
 so you can take any action based on them.
 
-If you want a greater configuration and control, see [Running SageMaker jobs with Amazon SageMaker Debugger](docs/sagemaker.md) for more information.
+If you want additional configuration and control, see [Running SageMaker jobs with Debugger](docs/sagemaker.md) for more information.
 
 #### Running on Your Own Container
 
