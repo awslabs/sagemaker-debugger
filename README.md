@@ -132,29 +132,26 @@ You can configure any action on the CloudWatch event, such as to stop the traini
 
 Amazon SageMaker Debugger can be used inside or outside of SageMaker. However the built-in rules that AWS provides are only available for SageMaker training. Scenarios of usage can be classified into the following three cases.
 
-### Using SageMaker Debugger with Zero Script Change of Your Training Script
+#### Using SageMaker Debugger with Zero Script Change of Your Training Script
 
 Here you specify which rules to use when setting up the estimator and run your existing script without no change. For an example of this, see [Running a Rule with Zero Script Change on SageMaker](#running-a-rule-with-zero-script-change-on-sageMaker).
 
-### Using SageMaker Debugger on Bring Your Own Container
+#### Using SageMaker Debugger on Bring Your Own Container
 
 You can use Debugger with your training script on your own container making only a minimal modification to your training script to add SageMaker Debugger's `Hook`.
 For an example template of code to use Debugger on your own container in TensorFlow 2.x frameworks, see [Running on Your Own Container](#Running-on-Your-Own-Container).
-
-Refer to the following instruction pages to set up Debugger in your preferred framework.
+See the following instruction pages to set up Debugger in your preferred framework.
   - [TensorFlow](tensorflow.md)
   - [PyTorch](pytorch.md)
   - [MXNet](mxnet.md)
   - [XGBoost](xgboost.md)
 
-### Non-SageMaker
+#### Using SageMaker Debugger on a Non-SageMaker Environment
 
-Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger. For an example of this, see [Running Locally](#running-locally).
+Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger on a non-SageMaker Environment such as your local machine. For an example of this, see [Running Locally](#running-locally).
 
 The reason for different setups is that SageMaker Zero Script Change (via AWS Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost which add the `Hook` to the training job and save requested tensors automatically.
-These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
-
-** not on SageMaker environments like DLC
+These framework forks are not available in custom containers or non-SageMaker environments, so you must modify your training script in these environments.
 
 
 ## Examples
@@ -163,7 +160,7 @@ These framework forks are not available in custom containers or non-SM environme
 
 To find a collection of demonstrations using SageMaker Debugger, see [SageMaker Debugger Example Notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
 
-### Running a Rule with Zero Script Change
+#### Running a Rule with Zero Script Change
 
 This example shows a how to use SageMaker Debugger with Zero Script Change of
 your training script on a SageMaker DLC.
@@ -211,7 +208,7 @@ so you can take any action based on them.
 
 If you want a greater configuration and control, see [Running SageMaker jobs with Amazon SageMaker Debugger](docs/sagemaker.md) for more information.
 
-### Running on Your Own Container
+#### Running on Your Own Container
 
 in TF 2.x framework using GradientTape
 
@@ -234,9 +231,9 @@ model = tf.keras.models.Sequential([ ... ])
             hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
 ```
 
-To see the full script of this, refer to the [tf_keras_gradienttape.py](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py) example script.
+To see a full script of this, refer to the [tf_keras_gradienttape.py](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py) example script.
 
-### Running Locally
+#### Running Locally
 Requires Python 3.6+ and this example uses tf.keras.
 
 To use Amazon SageMaker Debugger, simply add a callback `hook`:
