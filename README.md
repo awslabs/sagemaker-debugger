@@ -72,10 +72,10 @@ The following table shows currently supported versions of the four frameworks fo
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](tensorflow.md) | 1.15, 1.15.2, 2.1 |
-| [MXNet](mxnet.md) | 1.6 |
-| [PyTorch](pytorch.md) | 1.3, 1.4 |
-| [XGBoost](xgboost.md) | >=0.90-2 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|
+| [TensorFlow](docs/tensorflow.md) | 1.15, 1.15.2, 2.1 |
+| [MXNet](docs/mxnet.md) | 1.6 |
+| [PyTorch](docs/pytorch.md) | 1.3, 1.4 |
+| [XGBoost](docs/xgboost.md) | >=0.90-2 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|
 
 For the full list and information of the AWS DLCs, see [Deep Learning Containers Images](https://docs.aws.amazon.com/deep-learning-containers/latest/devguide/deep-learning-containers-images.html#deep-learning-containers-images-table).
 
@@ -87,13 +87,11 @@ Currently supported versions of frameworks are listed in the following table.
 
 | Framework | Versions |
 | --- | --- |
-| [TensorFlow](tensorflow.md) | 1.14. 1.15, 2.0.1, 2.1.0 |
+| [TensorFlow](docs/tensorflow.md) | 1.14. 1.15, 2.0.1, 2.1.0 |
 | Keras (with TensorFlow backend) | 2.3 |
-| [MXNet](mxnet.md) | 1.4, 1.5, 1.6 |
-| [PyTorch](pytorch.md) | 1.2, 1.3, 1.4 |
-| [XGBoost](xgboost.md) | [As Framework](xgboost.md#use-xgboost-as-a-framework) |
-
-For more information and examples, see [SageMaker Bring Your Own Container](#sagemaker-bring-your-own-container).
+| [MXNet](docs/mxnet.md) | 1.4, 1.5, 1.6 |
+| [PyTorch](docs/pytorch.md) | 1.2, 1.3, 1.4 |
+| [XGBoost](docs/xgboost.md) | [As Framework](xgboost.md#use-xgboost-as-a-framework) |
 
 ### Support for Distributed Training and Known Limitations
 
@@ -141,10 +139,10 @@ Here you specify which rules to use when setting up the estimator and run your e
 You can use Debugger with your training script on your own container making only a minimal modification to your training script to add SageMaker Debugger's `Hook`.
 For an example template of code to use Debugger on your own container in TensorFlow 2.x frameworks, see [Running on Your Own Container](#Running-on-Your-Own-Container).
 See the following instruction pages to set up Debugger in your preferred framework.
-  - [TensorFlow](tensorflow.md)
-  - [PyTorch](pytorch.md)
-  - [MXNet](mxnet.md)
-  - [XGBoost](xgboost.md)
+  - [TensorFlow](docs/tensorflow.md)
+  - [PyTorch](docs/pytorch.md)
+  - [MXNet](docs/mxnet.md)
+  - [XGBoost](docs/xgboost.md)
 
 #### Using SageMaker Debugger on a Non-SageMaker Environment
 
