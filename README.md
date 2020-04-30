@@ -207,7 +207,7 @@ so you can take any action based on them.
 
 If you want additional configuration and control, see [Running SageMaker jobs with Debugger](docs/sagemaker.md) for more information.
 
-#### Running on Your Own Container
+#### Run Debugger in Your Own Container
 
 in TF 2.x framework using GradientTape
 
