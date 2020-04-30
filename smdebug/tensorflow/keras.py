@@ -734,7 +734,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         optimizer_variables_collection = self.get_collection(CollectionKeys.OPTIMIZER_VARIABLES)
         custom_collections, _ = self._get_custom_and_default_collections()
 
-        for tensor_ref in optimizer_variables_collection:
+        for tensor_ref in optimizer_variables_collection.get_tensors():
             if tensor_ref.name not in self.tensor_to_collections:
                 self.tensor_to_collections[tensor_ref.name] = {optimizer_variables_collection}
             elif optimizer_variables_collection not in self.tensor_to_collections[tensor_ref.name]:
