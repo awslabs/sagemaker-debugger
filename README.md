@@ -137,7 +137,7 @@ Here you specify which rules to use when setting up the estimator and run your e
 
 #### Using SageMaker Debugger on Bring Your Own Container
 
-You can use Debugger with your training script on your own container making only a minimal modification to your training script to add SageMaker Debugger's `Hook`.
+You can use Debugger with your training script on your own container making only a minimal modification to your training script to add Debugger's `Hook`.
 For an example template of code to use Debugger on your own container in TensorFlow 2.x frameworks, see [Running on Your Own Container](#Running-on-Your-Own-Container).
 See the following instruction pages to set up Debugger in your preferred framework.
   - [TensorFlow](docs/tensorflow.md)
