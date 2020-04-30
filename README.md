@@ -24,7 +24,7 @@ The `smdebug` library powers Debugger by calling the saved tensors from the S3 b
 
 Through the model pruning process using Debugger and `smdebug`, you can iteratively identify the importance of weights, and cut neurons below a threshold you define. This process allows you to train the model with significantly fewer neurons, which means a lighter, more efficient, faster, and cheaper model without compromising accuracy.
 
-Amazon SageMaker Debugger supports TensorFlow, PyTorch, MXNet, and XGBoost frameworks.
+Debugger supports TensorFlow, PyTorch, MXNet, and XGBoost frameworks.
 The following list is a summary of the main functionalities of Amazon SageMaker Debugger:
 
 - Zero Script Change experience on SageMaker when using [supported containers](#support)
