@@ -63,11 +63,11 @@ pip install smdebug
 ```
 
 ### Supported Frameworks
-There are two ways in which you can enable SageMaker Debugger while training on SageMaker.
+There are two ways in which you can enable SageMaker Debugger while training on SageMaker&mdash;Zero Script Change and Bring Your Own Training Container.
 
 #### Zero Script Change
 
-You can use your own training script while using [AWS Deep Learning Containers (DLC)](https://aws.amazon.com/machine-learning/containers/) in TensorFlow, PyTorch, MXNet and XGBoost frameworks. The AWS DLCs enable you to use Debugger with no changes to your training script by automatically adding SageMaker Debugger's `Hook`.
+You can use your own training script while using [AWS Deep Learning Containers (DLC)](https://aws.amazon.com/machine-learning/containers/) in TensorFlow, PyTorch, MXNet, and XGBoost frameworks. The AWS DLCs enable you to use Debugger with no changes to your training script by automatically adding SageMaker Debugger's `Hook`.
 The following table shows currently supported versions of the four frameworks for Zero Script Change experience.
 
 | Framework | Version |
@@ -80,9 +80,9 @@ The following table shows currently supported versions of the four frameworks fo
 For the full list and information of the AWS DLCs, see [Deep Learning Containers Images](https://docs.aws.amazon.com/deep-learning-containers/latest/devguide/deep-learning-containers-images.html#deep-learning-containers-images-table).
 
 
-#### Bring your own training container
+#### Bring Your Own Training Container
 
-`smdebug` supports frameworks other than the ones listed in the previous Zero Script Change section. You can orchestrate your training script by adding a few lines.
+`smdebug` supports frameworks other than the ones listed in the previous Zero Script Change section. You can use your own training script by adding a minimal modification.
 Currently supported versions of frameworks are listed in the following table.
 
 | Framework | Versions |
@@ -93,7 +93,9 @@ Currently supported versions of frameworks are listed in the following table.
 | [PyTorch](pytorch.md) | 1.2, 1.3, 1.4 |
 | [XGBoost](xgboost.md) | [As Framework](xgboost.md#use-xgboost-as-a-framework) |
 
-#### Support for Distributed Training and Known Limitations
+For more information and examples, see [SageMaker Bring Your Own Container](#sagemaker-bring-your-own-container).
+
+### Support for Distributed Training and Known Limitations
 
 <table>
     <thead>
@@ -124,31 +126,47 @@ Currently supported versions of frameworks are listed in the following table.
 
 Amazon SageMaker Debugger uses the construct of a `Hook` to save the values of requested tensors throughout the training process. You can then setup a `Rule` job which simultaneously monitors and validates these tensors to ensure
 that training is progressing as expected.
-A `Rule` checks for vanishing gradients, exploding tensor values, or poor weight initialization. `Rule`s are attached to CloudWatch events, so that when a rule is triggered it changes the state of the CloudWatch event. You can configure any action on the CloudWatch event, such as to stop the training job saving you time and money.
+
+A `Rule` checks for vanishing gradients, exploding tensor values, or poor weight initialization. `Rule`s are attached to CloudWatch events, so that when a rule is triggered it changes the state of the CloudWatch event.
+You can configure any action on the CloudWatch event, such as to stop the training job saving you time and money.
 
 Amazon SageMaker Debugger can be used inside or outside of SageMaker. However the built-in rules that AWS provides are only available for SageMaker training. Scenarios of usage can be classified into the following three cases.
-- **SageMaker Zero Script Change**:
+
+### Using SageMaker Debugger with Zero Script Change of Your Training Script
+
 Here you specify which rules to use when setting up the estimator and run your existing script without no change. For an example of this, see [Running a Rule with Zero Script Change on SageMaker](#running-a-rule-with-zero-script-change-on-sageMaker).
-- **SageMaker Bring Your Own Container**:
-To use Debugger with your own script on your own container, make some minimal modifications to your training script to add SageMaker Debugger's `Hook`.
+
+### Using SageMaker Debugger on Bring Your Own Container
+
+You can use Debugger with your training script on your own container making only a minimal modification to your training script to add SageMaker Debugger's `Hook`.
+For an example template of code to use Debugger on your own container in TensorFlow 2.x frameworks, see [Running on Your Own Container](#Running-on-Your-Own-Container).
+
 Refer to the following instruction pages to set up Debugger in your preferred framework.
   - [TensorFlow](tensorflow.md)
   - [PyTorch](pytorch.md)
   - [MXNet](mxnet.md)
   - [XGBoost](xgboost.md)
-- **Non-SageMaker**:
+
+### Non-SageMaker
+
 Here you write custom rules (or manually analyze the tensors) and modify your training script minimally to enable SageMaker Debugger. For an example of this, see [Running Locally](#running-locally).
 
 The reason for different setups is that SageMaker Zero Script Change (via AWS Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost which add the `Hook` to the training job and save requested tensors automatically.
 These framework forks are not available in custom containers or non-SM environments, so you must modify your training script in these environments.
 
+** not on SageMaker environments like DLC
+
 
 ## Examples
-### Notebooks
-Example notebooks demonstrating different functionalities of SageMaker Debugger are provided [here](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
 
-### Running a Rule with Zero Script Change on SageMaker
-This example shows a how to use SageMaker Debugger with Zero Script Change.
+### SageMaker Notebook Examples
+
+To find a collection of demonstrations using SageMaker Debugger, see [SageMaker Debugger Example Notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
+
+### Running a Rule with Zero Script Change
+
+This example shows a how to use SageMaker Debugger with Zero Script Change of
+your training script on a SageMaker DLC.
 
 ```python
 import sagemaker as sm
@@ -192,6 +210,31 @@ Amazon SageMaker will automatically monitor your training job for you with the `
 so you can take any action based on them.
 
 If you want a greater configuration and control, see [Running SageMaker jobs with Amazon SageMaker Debugger](docs/sagemaker.md) for more information.
+
+### Running on Your Own Container
+
+in TF 2.x framework using GradientTape
+
+```python
+import smdebug.tensorflow as smd
+hook = smd.KerasHook(out_dir=args.out_dir)
+
+model = tf.keras.models.Sequential([ ... ])
+    for epoch in range(n_epochs):
+        for data, labels in dataset:
+            dataset_labels = labels
+            # wrap the tape to capture tensors
+            with hook.wrap_tape(tf.GradientTape(persistent=True)) as tape:
+                logits = model(data, training=True)  # (32,10)
+                loss_value = cce(labels, logits)
+            grads = tape.gradient(loss_value, model.variables)
+            opt.apply_gradients(zip(grads, model.variables))
+            acc = train_acc_metric(dataset_labels, logits)
+            # manually save metric values
+            hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
+```
+
+To see the full script of this, refer to the [tf_keras_gradienttape.py](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py) example script.
 
 ### Running Locally
 Requires Python 3.6+ and this example uses tf.keras.
