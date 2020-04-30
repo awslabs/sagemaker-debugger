@@ -55,7 +55,7 @@ See [How it works](#how-it-works) for more details.
 
    - Bug fix: Pytorch: Register only if tensors require gradients – Users were observing a crash when training with pre-trained embeddings which does not need gradient updates. This fix checks if a gradient update is required and registers a backward hook only in those cases.
 
-### Setting up SageMaker Debugger
+## Install SageMaker Debugger
 
 `smdebug` library runs on Python 3.x. Install `smdebug` through:
 
