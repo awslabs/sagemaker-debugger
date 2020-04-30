@@ -17,6 +17,7 @@ import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
@@ -401,6 +402,15 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+        assert (
+            len(
+                trial.tensor_names(
+                    collection=CollectionKeys.OPTIMIZER_VARIABLES, mode=ModeKeys.EVAL
+                )
+            )
+            == 0,
+            "No Optimizer Variables Should be Saved in EVAL Mode",
+        )
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
