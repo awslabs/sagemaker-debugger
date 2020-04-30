@@ -157,7 +157,7 @@ These framework forks are not available in custom containers or non-SageMaker en
 
 ### SageMaker Notebook Examples
 
-To find a collection of demonstrations using SageMaker Debugger, see [SageMaker Debugger Example Notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
+To find a collection of demonstrations using Debugger, see [SageMaker Debugger Example Notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
 
 #### Running a Rule with Zero Script Change
 
