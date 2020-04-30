@@ -64,7 +64,7 @@ pip install smdebug
 ```
 
 ### Supported Frameworks
-There are two ways in which you can enable SageMaker Debugger while training on SageMaker&mdash;Zero Script Change and Bring Your Own Training Container.
+There are two ways in which you can enable SageMaker Debugger while training on SageMaker&mdash;Zero Script Change and Bring Your Own Training Container (BYOC).
 
 #### Zero Script Change
 
