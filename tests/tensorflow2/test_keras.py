@@ -17,6 +17,7 @@ import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
@@ -395,11 +396,21 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (7 if is_tf_2_2() else 8)
+            assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+        assert (
+            len(
+                trial.tensor_names(
+                    collection=CollectionKeys.OPTIMIZER_VARIABLES, mode=ModeKeys.EVAL
+                )
+            )
+            == 0,
+            "No Optimizer Variables Should be Saved in EVAL Mode",
+        )
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -540,6 +551,7 @@ def test_include_collections(out_dir, tf_eager_mode):
         CollectionKeys.OUTPUTS,
         CollectionKeys.METRICS,
         CollectionKeys.OPTIMIZER_VARIABLES,
+        "custom_optimizer_variables",
     ]
     save_config = SaveConfig(save_interval=3)
     hook = smd.KerasHook(
@@ -548,22 +560,42 @@ def test_include_collections(out_dir, tf_eager_mode):
         include_collections=include_collections,
         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
     )
+    hook.get_collection("custom_optimizer_variables").include("Adam")
     helper_keras_fit(out_dir, hook=hook, steps=["train", "eval", "predict"], eager=tf_eager_mode)
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     if tf_eager_mode:
-        assert len(trial.tensor_names()) == (7 if is_tf_2_2() else 8)
+        assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
     else:
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+    assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
+
+
+@pytest.mark.slow
+def test_include_only_custom_collection(out_dir, tf_eager_mode):
+    include_collections = ["custom_optimizer_variables"]
+    save_config = SaveConfig(save_interval=3)
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=save_config,
+        include_collections=include_collections,
+        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+    )
+    hook.get_collection("custom_optimizer_variables").include("Adam")
+    helper_keras_fit(out_dir, hook=hook, steps=["train", "eval", "predict"], eager=tf_eager_mode)
+
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.tensor_names()) == (8 if is_tf_2_2() and tf_eager_mode else 9)
+    assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
 
 
 @pytest.mark.slow

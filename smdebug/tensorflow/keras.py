@@ -6,6 +6,7 @@ import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
+from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
@@ -317,12 +318,28 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
+        custom_collections = set()
+        default_tf_collection = set()
+
         for coll in self.collection_manager.get_collections().values():
-            for tensor_ref in coll.get_tensors():
+            if coll.name not in DEFAULT_TF_COLLECTIONS:
+                custom_collections.add(coll)
+            else:
+                default_tf_collection.add(coll)
+
+        for default_coll in default_tf_collection:
+            for tensor_ref in default_coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
-                    self.tensor_to_collections[tensor_ref.name] = {coll}
-                elif coll not in self.tensor_to_collections[tensor_ref.name]:
-                    self.tensor_to_collections[tensor_ref.name].add(coll)
+                    self.tensor_to_collections[tensor_ref.name] = {default_coll}
+                elif default_coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(default_coll)
+
+                # Add tensor to custom collections
+                for custom_coll in custom_collections:
+                    if match_inc(tensor_ref.name, custom_coll.include_regex):
+                        custom_coll.add_for_mode(tensor_ref.tf_obj, self.mode)
+                        if custom_coll not in self.tensor_to_collections[tensor_ref.name]:
+                            self.tensor_to_collections[tensor_ref.name].add(custom_coll)
 
     def _prepare_tensors_for_step(self, mode):
         self.tensor_refs_to_save_this_step = set()
@@ -550,12 +567,32 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
+    def _write_optimizer_variables(self):
+        optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
+        collections = self._get_collections_to_save_for_step()
+        for tensor_ref in optimizer_collections.get_tensors(self.mode):
+            for coll in collections:
+                if coll in self.tensor_to_collections[tensor_ref.name]:
+                    tensor = tensor_ref.tf_obj
+                    self._save_for_tensor(
+                        tensor_name=tensor.name,
+                        tensor_value=tensor.value(),
+                        check_before_write=False,
+                    )
+
     def _on_any_batch_end(self, batch, mode, logs=None):
         if self._is_not_supported():
             return
 
         if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
             self._remove_fetches_and_callbacks(mode)
+
+        if is_tf_version_2x() and tf.executing_eagerly():
+            # Need to prepare non layer tensors again since
+            # some tensors only become available on  batch end
+            self._prepare_non_layer_tensors()
+            self._write_optimizer_variables()
+
         self._save_tensors_post_step(batch, logs)
 
         if self._prepared_tensors[mode]:

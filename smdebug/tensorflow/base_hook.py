@@ -399,7 +399,11 @@ class TensorflowBaseHook(BaseHook):
         # tensors are not matched with collections at preparation time.
         # Call core/hook.py's _get_collections_with_tensor() where tensors are
         # matched with collections by regex
-        if self.tape:
+        if self.tape or (
+            tf_tensor_name not in self.tensor_to_collections
+            and is_tf_version_2x()
+            and tf.executing_eagerly()
+        ):
             return super()._get_collections_with_tensor(tf_tensor_name)
         return self.tensor_to_collections[tf_tensor_name]
 
@@ -457,8 +461,8 @@ class TensorflowBaseHook(BaseHook):
         :param gradients_and_variables: list of tuples [(tf.Tensor/tf.Variable, tf.Tensor/tf.Variable)...]
             list of tuples representing gradients and weights
         """
-        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
-        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
+        # TF 2.x provides only symbolic gradient variables that do not provide access to their values.
+        # Skipping set_gradients for Tf 2.x until there is
         # support to pass names and values from TF side.
 
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
@@ -482,18 +486,12 @@ class TensorflowBaseHook(BaseHook):
         This method helps find the optimizer variables (such as momentum)
         :param optimizer_variables: list of tf.Variables/tf.Tensors/tf.MirroredVariables
         """
-        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
-        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
-        # support to pass names and values from TF side.
-
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
-        if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
-            return
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
-            optimizer_variables, ModeKeys.TRAIN
+            optimizer_variables, self.mode
         )
 
     @staticmethod

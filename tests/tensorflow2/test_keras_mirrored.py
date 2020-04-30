@@ -158,9 +158,9 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     if include_workers == "all":
         assert len(tr.workers()) == strategy.num_replicas_in_sync
         if eager:
-            assert len(tr.tensor_names()) == (6 + 1 + 2 if is_tf_2_2() else 6 + 1 + 3)
-            # 6 weights, 1 loss, 3 metrics for Tf 2.1
-            # 6 weights, 1 loss, 2 metrics for Tf 2.2
+            assert len(tr.tensor_names()) == (6 + 1 + 2 + 5 if is_tf_2_2() else 6 + 1 + 3 + 5)
+            # 6 weights, 1 loss, 3 metrics, 5 optimizer variables for Tf 2.1
+            # 6 weights, 1 loss, 2 metrics, 5 optimizer variables for Tf 2.2
         else:
             assert len(tr.tensor_names()) == (6 + 6 + 1 + 3 + strategy.num_replicas_in_sync * 3 + 5)
     else:
@@ -245,8 +245,8 @@ def test_save_all(out_dir, tf_eager_mode):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        assert len(tr.tensor_names()) == (6 + 2 + 1 if is_tf_2_2() else 6 + 3 + 1)
-        # weights, metrics, losses
+        assert len(tr.tensor_names()) == (6 + 2 + 1 + 5 if is_tf_2_2() else 6 + 3 + 1 + 5)
+        # weights, metrics, losses, optimizer variables
     else:
         assert (
             len(tr.tensor_names())
