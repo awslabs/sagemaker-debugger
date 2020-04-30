@@ -232,7 +232,7 @@ model = tf.keras.models.Sequential([ ... ])
 
 To see a full script of this, refer to the [tf_keras_gradienttape.py](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py) example script.
 
-#### Running Locally
+#### Run Debugger Locally
 Requires Python 3.6+ and this example uses tf.keras.
 
 To use Amazon SageMaker Debugger, simply add a callback `hook`:
