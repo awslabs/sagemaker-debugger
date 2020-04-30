@@ -6,7 +6,6 @@ import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
-from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
@@ -318,15 +317,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
-        custom_collections = set()
-        default_tf_collection = set()
-
-        for coll in self.collection_manager.get_collections().values():
-            if coll.name not in DEFAULT_TF_COLLECTIONS:
-                custom_collections.add(coll)
-            else:
-                default_tf_collection.add(coll)
-
+        custom_collections, default_tf_collection = self._get_custom_and_default_collections()
         for default_coll in default_tf_collection:
             for tensor_ref in default_coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
@@ -739,6 +730,23 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         return run
 
+    def _prepare_opt_variables(self):
+        optimizer_variables_collection = self.get_collection(CollectionKeys.OPTIMIZER_VARIABLES)
+        custom_collections, _ = self._get_custom_and_default_collections()
+
+        for tensor_ref in optimizer_variables_collection:
+            if tensor_ref.name not in self.tensor_to_collections:
+                self.tensor_to_collections[tensor_ref.name] = {optimizer_variables_collection}
+            elif optimizer_variables_collection not in self.tensor_to_collections[tensor_ref.name]:
+                self.tensor_to_collections[tensor_ref.name].add(optimizer_variables_collection)
+
+            # Add tensor to custom collections
+            for custom_coll in custom_collections:
+                if match_inc(tensor_ref.name, custom_coll.include_regex):
+                    custom_coll.add_for_mode(tensor_ref.tf_obj, self.mode)
+                    if custom_coll not in self.tensor_to_collections[tensor_ref.name]:
+                        self.tensor_to_collections[tensor_ref.name].add(custom_coll)
+
     def _wrap_tape_gradient(self, function):
         """
         tape.gradient() is used to compute gradients from loss and model variables.
@@ -783,7 +791,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
-
+            self._prepare_opt_variables()
+            self._write_optimizer_variables()
             self._add_metric(metric_name="loss", metric_value=loss)
             if self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
                 self._initialize_writers(only_initialize_if_missing=True)
@@ -842,7 +851,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
 
         self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
-        self._write_optimizer_variables()
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
