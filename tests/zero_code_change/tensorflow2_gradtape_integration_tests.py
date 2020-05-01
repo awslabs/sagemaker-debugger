@@ -73,7 +73,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             hook = smd.get_hook()
             assert hook
             hook.close()
-            # Check that hook created and tensors saved
+            # Check that hook is created and tensors saved
             trial = smd.create_trial(path=sim.out_dir)
             assert len(trial.steps()) > 0, "Nothing saved at any step."
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
@@ -96,7 +96,13 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
-            assert not hook
+            assert hook
+            hook.close()
+            # Check that hook is created and tensors saved
+            trial = smd.create_trial(path=sim.out_dir)
+            assert len(trial.steps()) > 0, "Nothing saved at any step."
+            assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+            assert len(trial.tensor_names(collection="losses")) > 0
 
 
 def test_keras_v2_default(script_mode: bool = False):
