@@ -44,7 +44,6 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
         )
         dataset = dataset.shuffle(1000).batch(64)
 
-        opt = tf.keras.optimizers.RMSprop()
         cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
         n_epochs = 2
@@ -53,7 +52,8 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
             else:
                 hook = smd.KerasHook.create_from_json_file()
-
+            opt = tf.keras.optimizers.RMSprop()
+            opt = hook.wrap_optimizer(opt)
             for epoch in range(n_epochs):
                 print("Epoch %d/%d" % (epoch + 1, n_epochs))
                 for data, labels in dataset:
@@ -78,8 +78,12 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             assert len(trial.steps()) > 0, "Nothing saved at any step."
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
+            if json_file_contents != "{}":
+                assert len(trial.tensor_names(collection="optimizer_variables")) > 0
+                assert len(trial.tensor_names(collection="gradients")) > 0
         else:
             # ZCC doesn't support yet (as of smdebug v0.7.2)
+            opt = tf.keras.optimizers.RMSprop()
             for epoch in range(n_epochs):
                 print("Epoch %d/%d" % (epoch + 1, n_epochs))
                 for data, labels in dataset:
