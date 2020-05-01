@@ -22,6 +22,7 @@ import tensorflow.compat.v2 as tf
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -80,7 +81,16 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         trial = smd.create_trial(path=sim.out_dir)
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
-        assert len(trial.tensor_names(collection="losses")) > 0
+
+        # DEFAULT TENSORS SAVED
+        assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) > 0, "No Losses Saved"
+        assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) > 0, "No Metrics Saved"
+        assert (
+            len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 0
+        ), "Weights were not expected to be saved by default"
+        assert (
+            len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+        ), "Biases were not expected to be saved by default"
 
 
 def helper_test_keras_v2_json_config(
