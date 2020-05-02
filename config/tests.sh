@@ -17,7 +17,7 @@ check_logs() {
 run_for_framework() {
     if [ "$zero_code_change_test" = "enable" ] ; then
       # ignoring some test becuase they require multiple frmaeworks to be installed, these tests need to be broken down
-      python -m pytest --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
+      python -m pytest --cov=./ --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
       if [ "$1" = "mxnet" ] ; then
         python tests/zero_code_change/mxnet_gluon_integration_test.py
       elif [ "$1" = "pytorch" ] ; then
@@ -31,10 +31,10 @@ run_for_framework() {
 
     else
       if [ "$1" = "tensorflow2" ] ; then
-        python -m pytest --durations=50 --html=$REPORT_DIR/report_$1/eager_mode.html -v -s --self-contained-html tests/$1
-        python -m pytest --durations=50 --non-eager --html=$REPORT_DIR/report_$1/non_eager_mode.html -v -s --self-contained-html tests/$1
+        python -m pytest --cov=./ --durations=50 --html=$REPORT_DIR/report_$1/eager_mode.html -v -s --self-contained-html tests/$1
+        python -m pytest --cov=./ --durations=50 --non-eager --html=$REPORT_DIR/report_$1/non_eager_mode.html -v -s --self-contained-html tests/$1
       else
-        python -m pytest --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html tests/$1
+        python -m pytest --cov=./ --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html tests/$1
       fi
     fi
 }
