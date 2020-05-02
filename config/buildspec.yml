@@ -49,4 +49,4 @@ phases:
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
       - echo 'Connect to CodeCov'
-      - chmod +x $CODEBUILD_SRC_DIR/config/codecov.sh && . $CODEBUILD_SRC_DIR/config/codecov.sh
+      - bash $CODEBUILD_SRC_DIR/config/codecov.sh
