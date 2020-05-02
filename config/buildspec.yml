@@ -28,7 +28,7 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
-        - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets
+        - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets pytest-cov
 
   pre_build:
     commands:
@@ -48,3 +48,5 @@ phases:
       - rm -rf $RULES_CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
       - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
+      - echo 'Connect to CodeCov'
+      - bash $CODEBUILD_SRC_DIR/config/codecov.sh
