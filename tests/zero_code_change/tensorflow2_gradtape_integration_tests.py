@@ -100,13 +100,13 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             assert not hook
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_keras_v2_default(script_mode):
     # Test default ZCC behavior
     helper_test_keras_v2_gradienttape(script_mode=script_mode)
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_keras_v2_multi_collections(script_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
@@ -141,7 +141,7 @@ def test_keras_v2_multi_collections(script_mode):
     )
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_keras_v2_save_all(script_mode):
     # Test save all through hook config
     json_file_contents = """

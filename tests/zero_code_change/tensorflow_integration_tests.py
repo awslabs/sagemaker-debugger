@@ -37,7 +37,7 @@ import smdebug.tensorflow as smd
 from smdebug.core.utils import SagemakerSimulator
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_estimator(script_mode):
     """ Works as intended. """
     smd.del_hook()
@@ -144,7 +144,7 @@ def test_estimator_gradients_zcc_mirrored():
     helper_test_estimator_gradients_zcc(nested=False, mirrored=True)
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_linear_classifier(script_mode):
     """ Works as intended. """
     smd.del_hook()
@@ -251,7 +251,7 @@ def test_monitored_session_gradients_zcc():
         assert len(trial.tensor_names(collection="gradients")) > 0
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_keras_v1(script_mode):
     """ Works as intended. """
     smd.del_hook()
@@ -283,7 +283,7 @@ def test_keras_v1(script_mode):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("tf_optimizer", [True, False])
 def test_keras_gradients(script_mode, tf_optimizer):
     """ Works as intended. """
@@ -347,7 +347,7 @@ def test_keras_gradients(script_mode, tf_optimizer):
             assert len(trial.tensor_names(collection="optimizer_variables")) > 0
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_keras_gradients_tf_opt(script_mode):
     test_keras_gradients(script_mode=script_mode, tf_optimizer=True)
 
@@ -402,7 +402,7 @@ def test_keras_gradients_mirrored_all_workers():
     test_keras_gradients_mirrored(include_workers="all")
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 def test_keras_to_estimator(script_mode):
     """ Works as intended. """
     import tensorflow.compat.v1.keras as keras

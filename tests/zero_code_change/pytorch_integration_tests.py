@@ -22,7 +22,7 @@ import smdebug.pytorch as smd
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("use_loss_module", [True, False])
 def test_pytorch(script_mode, use_loss_module):
     smd.del_hook()

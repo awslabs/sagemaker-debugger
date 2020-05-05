@@ -138,14 +138,14 @@ def helper_test_keras_v2_json_config(
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True, False])
 def test_keras_v2_default(script_mode, eager_mode):
     # Test default ZCC behavior
     helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True, False])
 def test_keras_v2_multi_collections(script_mode, eager_mode):
     # Test multiple collections included in hook json
@@ -181,7 +181,7 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
     )
 
 
-@pytest.mark.parametrize("script_mode", [True, False])
+@pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True, False])
 def test_keras_v2_save_all(script_mode, eager_mode):
     # Test save all through hook config
