@@ -1,7 +1,7 @@
 # Standard Library
 import os
 from abc import ABCMeta
-from typing import List, Set
+from typing import List, Set, Tuple
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -79,6 +79,8 @@ class TensorflowBaseHook(BaseHook):
             include_workers=include_workers,
         )
         self.optimizer = None
+        self._custom_collections = None
+        self._default_collections = None
         self._gradients_set = False
         """self.device_map is a mapping between a tf device string to a serialized (filename-friendly) device string
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
@@ -214,6 +216,18 @@ class TensorflowBaseHook(BaseHook):
         # if horovod/param server and worker == chief worker
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
+
+    def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
+        if self._custom_collections is None:
+            self._custom_collections = set()
+            self._default_collections = set()
+            for coll in self.collection_manager.get_collections().values():
+                if coll.name not in DEFAULT_TF_COLLECTIONS:
+                    self._custom_collections.add(coll)
+                else:
+                    self._default_collections.add(coll)
+
+        return self._custom_collections, self._default_collections
 
     def _get_num_workers(self):
         self._assert_distribution_strategy()
