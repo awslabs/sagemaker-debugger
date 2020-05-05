@@ -213,7 +213,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         )
                     elif isinstance(tensor, tf.Tensor):
                         tensor_refs.append(coll.add_tensor(tensor, name=export_name, mode=mode))
-                    elif isinstance(tensor, values.DistributedVariable):
+                    elif isinstance(tensor, values.DistributedValues):
                         tensor_refs.extend(
                             coll.add_distributed_variable(
                                 tensor, export_name=export_name, mode=mode
