@@ -18,11 +18,12 @@ Here in the test suite we delete the hook after every script.
 import argparse
 
 # Third Party
+import pytest
 import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 from tests.tensorflow.hooks.test_mirrored_strategy import test_basic
 from tests.tensorflow.keras.test_keras_mirrored import test_tf_keras
-from tf_utils import (
+from tests.zero_code_change.tf_utils import (
     get_data,
     get_estimator,
     get_input_fns,
@@ -36,7 +37,8 @@ import smdebug.tensorflow as smd
 from smdebug.core.utils import SagemakerSimulator
 
 
-def test_estimator(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_estimator(script_mode):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -66,7 +68,7 @@ def test_estimator(script_mode: bool = False):
         assert trial.steps() == [0, train_steps], "Wrong step count for trial."
 
 
-def test_estimator_gradients_zcc(nested=False, mirrored=False):
+def helper_test_estimator_gradients_zcc(nested=False, mirrored=False):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -135,14 +137,15 @@ def test_estimator_gradients_zcc(nested=False, mirrored=False):
 
 
 def test_estimator_gradients_zcc_nested():
-    test_estimator_gradients_zcc(nested=True)
+    helper_test_estimator_gradients_zcc(nested=True)
 
 
 def test_estimator_gradients_zcc_mirrored():
-    test_estimator_gradients_zcc(nested=False, mirrored=True)
+    helper_test_estimator_gradients_zcc(nested=False, mirrored=True)
 
 
-def test_linear_classifier(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_linear_classifier(script_mode):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -168,7 +171,8 @@ def test_linear_classifier(script_mode: bool = False):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
 
-def test_monitored_session(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_monitored_session(script_mode):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -247,7 +251,8 @@ def test_monitored_session_gradients_zcc():
         assert len(trial.tensor_names(collection="gradients")) > 0
 
 
-def test_keras_v1(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_keras_v1(script_mode):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -278,7 +283,9 @@ def test_keras_v1(script_mode: bool = False):
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
 
 
-def test_keras_gradients(script_mode: bool = False, tf_optimizer: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("tf_optimizer", [True, False])
+def test_keras_gradients(script_mode, tf_optimizer):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
@@ -340,7 +347,8 @@ def test_keras_gradients(script_mode: bool = False, tf_optimizer: bool = False):
             assert len(trial.tensor_names(collection="optimizer_variables")) > 0
 
 
-def test_keras_gradients_tf_opt(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_keras_gradients_tf_opt(script_mode):
     test_keras_gradients(script_mode=script_mode, tf_optimizer=True)
 
 
@@ -394,7 +402,8 @@ def test_keras_gradients_mirrored_all_workers():
     test_keras_gradients_mirrored(include_workers="all")
 
 
-def test_keras_to_estimator(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_keras_to_estimator(script_mode):
     """ Works as intended. """
     import tensorflow.compat.v1.keras as keras
 
@@ -447,21 +456,21 @@ if __name__ == "__main__":
         "--script-mode", help="Manually create hooks instead of relying on ZCC", action="store_true"
     )
     args = parser.parse_args()
-    script_mode = args.script_mode
+    script_mode_arg = args.script_mode
 
-    test_monitored_session(script_mode=script_mode)
-    if not script_mode:
+    test_monitored_session(script_mode=script_mode_arg)
+    if not script_mode_arg:
         test_monitored_session_gradients_zcc()
-    test_estimator(script_mode=script_mode)
-    if not script_mode:
-        test_estimator_gradients_zcc()
+    test_estimator(script_mode=script_mode_arg)
+    if not script_mode_arg:
+        helper_test_estimator_gradients_zcc()
         test_estimator_gradients_zcc_nested()
         test_estimator_gradients_zcc_mirrored()
-    test_linear_classifier(script_mode=script_mode)
-    test_keras_v1(script_mode=script_mode)
-    test_keras_gradients(script_mode=script_mode)
-    test_keras_gradients_tf_opt(script_mode=script_mode)
-    test_keras_to_estimator(script_mode=script_mode)
-    if not script_mode:
+    test_linear_classifier(script_mode=script_mode_arg)
+    test_keras_v1(script_mode=script_mode_arg)
+    test_keras_gradients(script_mode=script_mode_arg)
+    test_keras_gradients_tf_opt(script_mode=script_mode_arg)
+    test_keras_to_estimator(script_mode=script_mode_arg)
+    if not script_mode_arg:
         test_keras_gradients_mirrored_all_workers()
         test_keras_gradients_mirrored()

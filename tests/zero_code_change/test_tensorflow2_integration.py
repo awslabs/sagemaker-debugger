@@ -18,6 +18,7 @@ Here in the test suite we delete the hook after every script.
 import argparse
 
 # Third Party
+import pytest
 import tensorflow.compat.v2 as tf
 
 # First Party
@@ -137,12 +138,16 @@ def helper_test_keras_v2_json_config(
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
-def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_default(script_mode, eager_mode):
     # Test default ZCC behavior
     helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
-def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_multi_collections(script_mode, eager_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
             {
@@ -176,7 +181,9 @@ def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool 
     )
 
 
-def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_save_all(script_mode, eager_mode):
     # Test save all through hook config
     json_file_contents = """
             {
@@ -196,7 +203,10 @@ def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--script-mode", help="Manually create hooks instead of relying on ZCC", action="store_true"
+        "--script-mode",
+        help="Manually create hooks instead of relying on ZCC",
+        action="store_true",
+        default=False,
     )
     args = parser.parse_args()
     script_mode = args.script_mode
