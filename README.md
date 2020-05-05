@@ -4,6 +4,8 @@
 
 ## Table of Contents
 
+## Table of Contents
+
 - [Overview](#overview)
 - [SageMaker Debugger in action](#sagemaker-debugger-in-action)
 - [Install](#install-sagemaker-debugger)
@@ -257,13 +259,9 @@ print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').v
 | --- | --- |
 | [SageMaker Training](docs/sagemaker.md) | SageMaker users, we recommend you start with this page on how to run SageMaker training jobs with SageMaker Debugger |
 | Frameworks <ul><li>[TensorFlow](docs/tensorflow.md)</li><li>[PyTorch](docs/pytorch.md)</li><li>[MXNet](docs/mxnet.md)</li><li>[XGBoost](docs/xgboost.md)</li></ul> | See the frameworks pages for details on what's supported and how to modify your training script if applicable |
-<<<<<<< HEAD
-| [APIs for Saving Tensors](docs/api.md) | Full description of the APIs for saving tensors |
-| [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by the APIs that enable you to perform interactive exploration of tensors saved as well as to write your own Rules monitoring your training jobs. |
-=======
 | [APIs for Saving Tensors](docs/api.md) | Full description of our APIs on saving tensors |
 | [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by the APIs that enable you to perform interactive exploration of tensors saved, as well as to write your own Rules monitoring your training jobs. |
->>>>>>> 15ed2dc... Update README.md
+
 
 ## Release Notes
 
