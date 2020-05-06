@@ -1,0 +1,9 @@
+ignore:
+  - ".github/"
+  - "bin/"
+  - "config/"
+  - "docs/"
+  - "examples/"
+  - "*.md/"
+  - "setup.py"
+  - "setup.cfg"
