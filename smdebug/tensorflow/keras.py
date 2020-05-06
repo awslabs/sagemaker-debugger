@@ -561,7 +561,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
         collections_to_save = self._get_collections_to_save_for_step()
-        for tensor_ref in optimizer_collections.get_tensors(self.mode):
+        for tensor_ref in optimizer_collections.get_tensors(mode=ModeKeys.TRAIN):
             tensor = tensor_ref.tf_obj
             collections_to_save = self._get_collections_with_tensor(tensor.name).intersection(
                 collections_to_save
