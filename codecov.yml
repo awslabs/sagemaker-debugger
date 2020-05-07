@@ -7,3 +7,4 @@ ignore:
   - "*.md/"
   - "setup.py"
   - "setup.cfg"
+  - "tests/"
