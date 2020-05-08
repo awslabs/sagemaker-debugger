@@ -1,4 +1,6 @@
 # Standard Library
+import time
+import numpy as np
 
 # Third Party
 import torch
@@ -28,6 +30,8 @@ class Hook(CallbackHook):
         include_collections=None,
         save_all=False,
         include_workers="one",
+        profiler_enabled="True",
+        profiler_steps=[0,1,2]
     ):
         collection_manager = CollectionManager()
         super().__init__(
@@ -53,6 +57,13 @@ class Hook(CallbackHook):
         self.has_registered_loss_module = False
         self.worker = self._get_worker_name()
         set_hook(self)
+
+        self.forward_start = 0
+        self.backward_start = 0
+        self.buffer = {}
+        self.profiler_enabled = profiler_enabled
+        self.profiler_steps = profiler_steps
+        self.autograd_profiler_enabled = False
 
     def _get_num_workers(self):
         """Check horovod and torch.distributed."""
@@ -99,7 +110,7 @@ class Hook(CallbackHook):
             # self.logger.debug(
             # "Processing the global step {0} for parameter {1}".format(self.step, pname))
             self._save_for_tensor(tensor_name=pname, tensor_value=param.data)
-
+ 
     def _export_model(self):
         pass
 
@@ -118,6 +129,27 @@ class Hook(CallbackHook):
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
+        if self.profiler_enabled and self.forward_start != 0:
+            if "forward" not in self.buffer:
+               self.buffer["forward"] = []
+               self.buffer["backward"] = []
+            self.buffer["forward"].append([self.forward_start, self.forward_end])
+            self.buffer["backward"].append([self.backward_start, self.backward_end])
+            if self.step in self.profiler_steps:
+                if not self.autograd_profiler_enabled:
+                   torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(torch.autograd.ProfilerState.CUDA, False))
+                   self.autograd_profiler_enabled = True
+            else:
+                if self.autograd_profiler_enabled:
+                    records = torch.autograd._disable_profiler()
+                    self.function_events = torch.autograd.profiler.EventList(torch.autograd.profiler.parse_cpu_trace(records), use_cuda=True)
+                    for event in self.function_events.key_averages():
+                        if event.key not in self.buffer:
+                            self.buffer[event.key] = []
+                        self.buffer[event.key].append([event.cpu_time_total, event.cuda_time_total])
+                    self.autograd_profiler_enabled = False
+            self.backward_start = 0
+        
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
             self._close_writers()
@@ -131,14 +163,19 @@ class Hook(CallbackHook):
             self.prepared_collections = True
 
         self._increment_step()
-
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
             self._log_params(module)
-
+            for sync_metric in self.buffer:
+                self._write_raw_tensor_simple("profiler_" + sync_metric, tensor_value=np.array(self.buffer[sync_metric]))
+            self.buffer = {}
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
             self.exported_collections = True
+
+        if self.profiler_enabled:
+          #start timer for forward pass
+          self.forward_start = time.time()
 
     def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
         """Used for registering functional directly, such as F.mse_loss()."""
@@ -150,6 +187,11 @@ class Hook(CallbackHook):
 
     # This hook is invoked by trainer after running the forward pass.
     def forward_hook(self, module, inputs, outputs):
+
+        if self.profiler_enabled:
+            #time per operation in forward pass
+           self.forward_end = time.time()
+         
         if not self._get_collections_to_save_for_step():
             return
 
@@ -168,6 +210,13 @@ class Hook(CallbackHook):
         # Helper function that has access to the parameter name via
         # the scope in which it's defined.
         def back(grad):
+            
+            if self.profiler_enabled:
+              if self.backward_start == 0:
+                  self.backward_start = time.time()
+              self.backward_end = time.time()
+
+            
             if self._get_collections_to_save_for_step():
                 if grad is not None:
                     # self.logger.debug(f"Processing the backward step " f"{self.step} for {tname}")
@@ -249,3 +298,4 @@ class Hook(CallbackHook):
     @staticmethod
     def _make_numpy_array(tensor_value):
         return make_numpy_array(tensor_value)
+
