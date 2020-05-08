@@ -80,7 +80,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
         else:
-            # ZCC doesn't support yet (as of smdebug v0.7.2)
+            # ZCC support added from smdebug v0.8.0)
             for epoch in range(n_epochs):
                 print("Epoch %d/%d" % (epoch + 1, n_epochs))
                 for data, labels in dataset:
@@ -97,7 +97,13 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
-            assert not hook
+            assert hook
+            hook.close()
+            # Check that hook created and tensors saved
+            trial = smd.create_trial(path=sim.out_dir)
+            assert len(trial.steps()) > 0, "Nothing saved at any step."
+            assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+            assert len(trial.tensor_names(collection="losses")) > 0
 
 
 @pytest.mark.parametrize("script_mode", [False])
