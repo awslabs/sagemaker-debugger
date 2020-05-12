@@ -32,7 +32,7 @@ class SMTFProfilerEvents(TraceEventParser):
                 trace_json_data = json.load(json_data)
         except Exception as e:
             # TODO log
-            print(f"Can't open TF trace file {trace_json_file}: Exception {str(e)} ")
+            print(f"Can't open TF trace file {self._trace_json_file}: Exception {str(e)} ")
             return
 
         for event in trace_json_data:
@@ -66,7 +66,7 @@ class TFProfilerEvents(TraceEventParser):
                 trace_json_data = json.load(json_data)
         except Exception as e:
             # TODO log
-            print(f"Can't open TF trace file {trace_json_file}: Exception {str(e)} ")
+            print(f"Can't open TF trace file {self._trace_json_file}: Exception {str(e)} ")
             return
         if "traceEvents" not in trace_json_data:
             # TODO log
