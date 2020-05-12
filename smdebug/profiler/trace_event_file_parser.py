@@ -1,4 +1,4 @@
-TIMESCALE_MULTIPLIER = {"ns": 1, "us": 1000, "ms": 1000000, "s": 1000000000}
+TIMESCALE_MULTIPLIER = {"ns": 1000, "us": 1, "ms": 0.001, "s": 0.000001}
 
 
 class ThreadInfo:
@@ -32,14 +32,14 @@ class TraceEvent:
 
 
 class TraceEventParser:
-    def __init__(self):
+    def __init__(self, timescale_multiplier_for_ns=1, start_timestamp=0):
         self._processes = dict()
         self._trace_events = list()
-        self._start_timestamp = 0
+        self._start_timestamp = start_timestamp
         self._start_time_known = False
-        self._timescale_multiplier_for_ns = 1
+        self._timescale_multiplier_for_ns = timescale_multiplier_for_ns
 
-    def read_trace_file(self, filename):
+    def read_trace_file(self):
         pass
 
     def _populate_process_info_for_metaevent(self, event):
@@ -66,7 +66,7 @@ class TraceEventParser:
 
         if phase_type == "X":
             # In nano seconds
-            start_time = (event["ts"] - self._start_time_stamp) * self._timescale_multiplier_for_ns
+            start_time = (event["ts"] - self._start_timestamp) * self._timescale_multiplier_for_ns
             # In nano seconds
             dur = event["dur"] * self._timescale_multiplier_for_ns
             name = event["name"]
