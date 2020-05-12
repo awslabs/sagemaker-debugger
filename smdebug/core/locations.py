@@ -105,6 +105,23 @@ class TensorboardFileLocation(EventFileLocation):
         return os.path.join(event_key_prefix, self.get_filename())
 
 
+class TraceFileLocation(EventFileLocation):
+    def __init__(self, step_num, worker_name, mode=None):
+        super().__init__(step_num, worker_name)
+        self.mode = mode
+        self.type = "trace"
+
+    def get_file_location(self, base_dir=""):
+        # when base_dir is empty it just returns the relative file path
+        if base_dir:
+            event_key_prefix = os.path.join(base_dir)
+        else:
+            event_key_prefix = os.path.join(self.type)
+
+        # TODO: kannanva: Change this to get file path from env var
+        return os.path.join(event_key_prefix, f"{os.getpid()}.json")
+
+
 class IndexFileLocationUtils:
     # These functions are common to index reader and index writer
     MAX_INDEX_FILE_NUM_IN_INDEX_PREFIX = 1000
