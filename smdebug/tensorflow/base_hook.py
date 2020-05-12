@@ -326,6 +326,7 @@ class TensorflowBaseHook(BaseHook):
                         self.writer_map[device_string] = FileWriter(
                             trial_dir=self.out_dir, step=self.step, worker=device_string
                         )
+                        # TODO: kannanva: Timeline writer record device string
             else:
                 # training on CPU when all device strings have cpu
                 if self.writer is None or only_initialize_if_missing is False:
@@ -349,6 +350,10 @@ class TensorflowBaseHook(BaseHook):
             self.writer.flush()
             self.writer.close()
             self.writer = None
+
+        if self.timeline_writer is not None:
+            self.timeline_writer.flush()
+            self.timeline_writer.close()
 
         # Delete all the dist training writers
         to_delete_writers = []
