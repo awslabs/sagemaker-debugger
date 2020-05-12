@@ -20,9 +20,10 @@ class SMTFProfilerEvents(TraceEventParser):
     def _populate_start_time(self, event):
         event_args = event["args"] if "args" in event else None
         if self._start_time_known is False:
-            ## TODO Change parser
-            if event_args and "value" in event_args:
-                self._start_time_stamp = event_args["value"]
+            if event_args is None:
+                return
+            if "start_time_since_epoch_in_micros" in event_args:
+                self._start_timestamp = event_args["start_time_since_epoch_in_micros"]
                 self._start_time_known = True
 
     # TODO implementation of below would be changed to support streaming file and incomplete json file
@@ -42,7 +43,7 @@ class SMTFProfilerEvents(TraceEventParser):
 class TFProfilerEvents(TraceEventParser):
     def __init__(self, trace_file):
         self._trace_json_file = trace_file
-        # TFPrfoiler events in are in displayed in ns
+        # TFProiler events in are in displayed in ns
         super().__init__(timescale_multiplier_for_ns=TIMESCALE_MULTIPLIER["ns"])
         self.read_trace_file()
 

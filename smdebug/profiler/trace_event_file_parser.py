@@ -45,7 +45,7 @@ class TraceEventParser:
     def _populate_process_info_for_metaevent(self, event):
         id = event["pid"]
         if event["name"] == "process_name":
-            name = event["args"]["name"]
+            name = event["args"]["name"] if "name" in event["args"] else "Unknown"
             self._processes[id] = ProcessInfo(id, name)
 
     def _populate_thread_info_for_metaevent(self, event):
@@ -66,7 +66,7 @@ class TraceEventParser:
 
         if phase_type == "X":
             # In nano seconds
-            start_time = (event["ts"] - self._start_timestamp) * self._timescale_multiplier_for_ns
+            start_time = (event["ts"] + self._start_timestamp) * self._timescale_multiplier_for_ns
             # In nano seconds
             dur = event["dur"] * self._timescale_multiplier_for_ns
             name = event["name"]
