@@ -14,6 +14,8 @@ class TimelineWriter(object):
         self.file_path = file_path
         self.event_payload = []
         self.writer = None
+        self.start_time_since_epoch_in_micros = int(round(time.time() * 1000000))
+        self._init_writer()
 
     def __exit__(self):
         self.close()
@@ -25,6 +27,14 @@ class TimelineWriter(object):
         else:
             self.writer = TSAccessFile(self.file_path, "a+")
         self.writer.write("[")
+
+        # TODO: kannanva: probably have a write_marker()
+        args = {
+            "name": "start_time_since_epoch_in_micros",
+            "value": self.start_time_since_epoch_in_micros,
+        }
+        marker = Marker(name="StepTime", args=args, worker="0")
+        self.writer.write(marker.to_json() + ",\n")
 
     def write_trace_event(self, tensor_name="", step_num=0, timestamp=None, duration=1, worker=0):
         args = {
@@ -41,6 +51,7 @@ class TimelineWriter(object):
             args=args,
             duration=duration_in_us,
             worker=worker,
+            start_time_since_epoch=self.start_time_since_epoch_in_micros,
         )
         self.add_event(event)
 
@@ -58,7 +69,6 @@ class TimelineWriter(object):
         #         f"Cannot write empty event={self.event_payload} to file {self.file_path}"
         #     )
 
-        # TODO: kannanva: Add marker event indicating start of step?
         for event in self.event_payload:
             self.writer.write(event.to_json() + ",\n")
         self.writer.flush()
@@ -73,21 +83,51 @@ class TimelineWriter(object):
 
 
 class Event:
-    def __init__(self, tensor_name="", phase="X", worker="", args=None, timestamp=None, duration=1):
+    def __init__(
+        self,
+        tensor_name="",
+        phase="X",
+        worker="",
+        args=None,
+        timestamp=None,
+        duration=1,
+        start_time_since_epoch=0,
+    ):
         self.tensor_name = tensor_name
         self.phase = phase
         self.worker = worker
         self.args = args
         self.timestamp = timestamp
         self.duration = duration
+        self.start_time_since_epoch_in_micros = start_time_since_epoch
 
     def to_json(self):
         json_dict = {
             "name": self.tensor_name,
             "ph": self.phase,
-            "ts": self.timestamp if self.timestamp else int(round(time.time() * 1000000)),
+            "ts": self.timestamp - self.start_time_since_epoch_in_micros
+            if self.timestamp
+            else int(round(time.time() * 1000000)) - self.start_time_since_epoch_in_micros,
             "pid": self.worker,  # TODO: kannanva: pid should be tensor index. For now, it is worker name.
             "dur": self.duration,
+        }
+        if self.args:
+            json_dict["args"] = self.args
+
+        return json.dumps(json_dict)
+
+
+class Marker:
+    def __init__(self, name="", worker="", args=None):
+        self.name = name
+        self.worker = worker
+        self.args = args
+
+    def to_json(self):
+        json_dict = {
+            "name": self.name,
+            "ph": "M",
+            "pid": self.worker,  # TODO: kannanva: pid should be tensor index. For now, it is worker name.
         }
         if self.args:
             json_dict["args"] = self.args
