@@ -4,6 +4,7 @@ import re
 from abc import ABC, abstractmethod
 
 # Local
+from .config_constants import DEFAULT_SAGEMAKER_PROFILER_PATH, SM_PROFILER_FILE_PATH_ENV_STR
 from .logger import get_logger
 from .utils import get_immediate_subdirectories
 
@@ -105,21 +106,13 @@ class TensorboardFileLocation(EventFileLocation):
         return os.path.join(event_key_prefix, self.get_filename())
 
 
-class TraceFileLocation(EventFileLocation):
-    def __init__(self, step_num, worker_name, mode=None):
-        super().__init__(step_num, worker_name)
+class TraceFileLocation:
+    def __init__(self, mode=None):
         self.mode = mode
-        self.type = "trace"
 
-    def get_file_location(self, base_dir=""):
-        # when base_dir is empty it just returns the relative file path
-        if base_dir:
-            event_key_prefix = os.path.join(base_dir)
-        else:
-            event_key_prefix = os.path.join(self.type)
-
-        # TODO: kannanva: Change this to get file path from env var
-        return os.path.join(event_key_prefix, f"{os.getpid()}.json")
+    @property
+    def get_file_location(self):
+        return os.getenv(SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH)
 
 
 class IndexFileLocationUtils:

@@ -225,11 +225,7 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        # TODO: kannanva: Don't access env var here. Make timeline writer implementation
-        # similar to tb writer.
-        self.timeline_writer = TimelineWriter(
-            os.getenv(SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH)
-        )
+        self.timeline_writer = None
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
@@ -656,6 +652,17 @@ class BaseHook:
                         tdata=np_value, tname=hist_name, global_step=self.step
                     )
                     break
+
+    def _write_trace_event_summary(self, tensor_name, duration, timestamp, step_num, worker):
+        timeline_writer = self._maybe_get_timeline_writer()
+        if timeline_writer:
+            timeline_writer.write_trace_events(
+                tensor_name=tensor_name,
+                step_num=step_num,
+                timestamp=timestamp,
+                duration=duration,
+                worker=worker,
+            )
 
     def _write_scalars(self):
         """

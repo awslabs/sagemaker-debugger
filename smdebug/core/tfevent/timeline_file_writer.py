@@ -36,12 +36,12 @@ class TimelineWriter(object):
         marker = Marker(name="StepTime", args=args, worker="0")
         self.writer.write(marker.to_json() + ",\n")
 
-    def write_trace_event(self, tensor_name="", step_num=0, timestamp=None, duration=1, worker=0):
-        args = {
-            # "start_timestamp": timestamp - duration if timestamp else time.time() - duration,
-            # "end_timestamp": timestamp if timestamp else time.time(),
-            "step number": step_num
-        }
+    def write_trace_events(self, tensor_name="", timestamp=None, duration=1, worker=0, args=None):
+        # args = {
+        #     # "start_timestamp": timestamp - duration if timestamp else time.time() - duration,
+        #     # "end_timestamp": timestamp if timestamp else time.time(),
+        #     "step number": step_num
+        # }
         # args["start_timestamp"] = int(args["start_timestamp"] * 100000)
         # args["end_timestamp"] = int(args["end_timestamp"] * 100000)
         duration_in_us = int(duration * 100000)
@@ -63,11 +63,7 @@ class TimelineWriter(object):
     def flush(self):
         """Flushes the event string to file."""
         if not self.writer:
-            raise ValueError(f"Cannot flush because self.writer={self.writer}")
-        # if not self.event_payload:
-        #     raise ValueError(
-        #         f"Cannot write empty event={self.event_payload} to file {self.file_path}"
-        #     )
+            return
 
         for event in self.event_payload:
             self.writer.write(event.to_json() + ",\n")
