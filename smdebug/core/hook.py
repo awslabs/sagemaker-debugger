@@ -485,13 +485,11 @@ class BaseHook:
             return self.tb_writers[self.mode]
 
     def _maybe_get_timeline_writer(self) -> Optional[FileWriter]:
-        """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
+        """ Returns a FileWriter object if timeline_writer has been created, else creates a file at the
+        location specified by the environment variable SM_PROFILER_FILE_PATH and returns the FileWriter.
 
-        Creates a writer if does not exist.
         """
         if not self.timeline_writer:
-            # s = self.step
-            # if s < 0: s = 0
             self.timeline_writer = FileWriter(
                 trial_dir=self.out_dir,
                 step=self.step,
