@@ -28,13 +28,13 @@ class TimelineWriter(object):
             self.writer = TSAccessFile(self.file_path, "a+")
         self.writer.write("[")
 
-        # TODO: kannanva: probably have a write_marker()
+        # TODO: kannanva: probably have a write_metadata()
         args = {
             "name": "start_time_since_epoch_in_micros",
             "value": self.start_time_since_epoch_in_micros,
         }
-        marker = Marker(name="StepTime", args=args, worker="0")
-        self.writer.write(marker.to_json() + ",\n")
+        metadata = MetaData(name="StepTime", args=args, worker="0")
+        self.writer.write(metadata.to_json() + ",\n")
 
     def write_trace_events(self, tensor_name="", timestamp=None, duration=1, worker=0, args=None):
         # args = {
@@ -113,7 +113,7 @@ class Event:
         return json.dumps(json_dict)
 
 
-class Marker:
+class MetaData:
     def __init__(self, name="", worker="", args=None):
         self.name = name
         self.worker = worker
