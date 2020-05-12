@@ -1,5 +1,4 @@
 # Standard Library
-import argparse
 import json
 
 # First Party
@@ -81,25 +80,3 @@ class TFProfilerEvents(TraceEventParser):
             ]
         for event in trace_events_json:
             self._read_event(event)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--trace_file", type=str, help="Config file for the request in JSON format")
-    args = parser.parse_args()
-
-    trace_json_file = args.trace_file
-    t_events = TFProfilerEvents(trace_json_file)
-
-    print("trace file Done")
-
-    # Test
-    event_list = t_events.get_events_at(15013686)  # nanoseconds
-    print(f"{event_list}")
-
-    completed_event_list = t_events.get_events_within_range(0, 15013686)  # nanoseconds
-    print(f"{completed_event_list}")
-
-    start_time_sorted = t_events.get_events_start_time_sorted()
-
-    end_time_sorted = t_events.get_events_end_time_sorted()
