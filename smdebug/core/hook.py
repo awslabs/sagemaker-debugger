@@ -47,7 +47,6 @@ from smdebug.core.utils import (
     remove_claim_file,
     size_and_shape,
 )
-from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
 
