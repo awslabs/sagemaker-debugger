@@ -1,6 +1,5 @@
 # Standard Library
 import json
-import os
 import time
 
 # First Party
@@ -20,7 +19,6 @@ class TimelineWriter(object):
         self.close()
 
     def _init_writer(self):
-        # TODO: kannanva: file path remains as .tmp. Need to check this.
         s3, bucket_name, key_name = is_s3(self.file_path)
         if s3:
             self.writer = TSAccessS3(bucket_name, key_name, binary=False)
@@ -32,13 +30,17 @@ class TimelineWriter(object):
         args = {
             # "start_timestamp": timestamp - duration if timestamp else time.time() - duration,
             # "end_timestamp": timestamp if timestamp else time.time(),
-            "step number": step_num,
+            "step number": step_num
         }
         # args["start_timestamp"] = int(args["start_timestamp"] * 100000)
         # args["end_timestamp"] = int(args["end_timestamp"] * 100000)
         duration_in_us = int(duration * 100000)
         event = Event(
-            tensor_name=tensor_name, timestamp=timestamp, args=args, duration=duration_in_us, worker=worker
+            tensor_name=tensor_name,
+            timestamp=timestamp,
+            args=args,
+            duration=duration_in_us,
+            worker=worker,
         )
         self.add_event(event)
 
@@ -65,10 +67,9 @@ class TimelineWriter(object):
     def close(self):
         """Closes the record writer."""
         if self.writer is not None:
-            if self.event_payload:
-                self.flush()
-                self.writer.close()
-                self.writer = None
+            self.flush()
+            self.writer.close()
+            self.writer = None
 
 
 class Event:
@@ -85,7 +86,7 @@ class Event:
             "name": self.tensor_name,
             "ph": self.phase,
             "ts": self.timestamp if self.timestamp else int(round(time.time() * 1000000)),
-            "pid": self.worker, # TODO: kannanva: pid should be tensor index. For now, it is worker name.
+            "pid": self.worker,  # TODO: kannanva: pid should be tensor index. For now, it is worker name.
             "dur": self.duration,
         }
         if self.args:

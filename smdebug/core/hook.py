@@ -22,10 +22,12 @@ from smdebug.core.collection import (
 )
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
+    DEFAULT_SAGEMAKER_PROFILER_PATH,
     DEFAULT_WORKER_NAME,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
+    SM_PROFILER_FILE_PATH_ENV_STR,
     TRAINING_RUN,
 )
 from smdebug.core.hook_utils import get_tensorboard_dir, verify_and_get_out_dir
@@ -47,7 +49,6 @@ from smdebug.core.utils import (
 )
 from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
 from smdebug.core.writer import FileWriter
-from smdebug.core.config_constants import SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH
 from smdebug.exceptions import InvalidCollectionConfiguration
 
 try:
@@ -226,9 +227,9 @@ class BaseHook:
 
         # TODO: kannanva: Don't access env var here. Make timeline writer implementation
         # similar to tb writer.
-        self.timeline_writer = TimelineWriter(os.getenv(
-            SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH
-        ))
+        self.timeline_writer = TimelineWriter(
+            os.getenv(SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH)
+        )
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
@@ -417,7 +418,6 @@ class BaseHook:
 
         if self.timeline_writer is not None:
             self.timeline_writer.flush()
-            self.timeline_writer.close()
 
         to_delete_writers = []
 
@@ -453,9 +453,6 @@ class BaseHook:
             if self.worker != self.chief_worker:
                 return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
-        self.timeline_writer = FileWriter(
-            trial_dir=self.out_dir, step=self.step, worker=self.worker, wtype="trace"
-        )
 
     def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
@@ -525,6 +522,10 @@ class BaseHook:
 
         if self.metrics_writer:
             self.metrics_writer.close()
+
+        if self.timeline_writer is not None:
+            self.timeline_writer.flush()
+            self.timeline_writer.close()
 
         training_has_ended(self.out_dir)
         if self.first_process is True:
