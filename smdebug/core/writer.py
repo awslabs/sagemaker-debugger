@@ -28,6 +28,7 @@ from smdebug.core.tfevent.summary import (
     make_numpy_array,
     scalar_summary,
 )
+from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local
@@ -95,22 +96,24 @@ class FileWriter:
             )
             event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
-        # elif wtype == "trace":
-        #     el = TraceFileLocation(step_num=self.step, worker_name=self.worker, mode=self.mode)
-        #     event_file_path = el.get_file_location(base_dir=self.trial_dir)
-        #     self.timeline_writer = TimelineWriter(event_file_path)
-        #     self.index_writer = None
+        elif wtype == "trace":
+            el = TraceFileLocation(mode=self.mode)
+            event_file_path = el.get_file_location
+            self.index_writer = None
         else:
             assert False, "Writer type not supported: {}".format(wtype)
 
-        self._writer = EventFileWriter(
-            path=event_file_path,
-            index_writer=self.index_writer,
-            max_queue=max_queue,
-            flush_secs=flush_secs,
-            verbose=verbose,
-            write_checksum=write_checksum,
-        )
+        if wtype == "trace":
+            self._writer = TimelineWriter(event_file_path)
+        else:
+            self._writer = EventFileWriter(
+                path=event_file_path,
+                index_writer=self.index_writer,
+                max_queue=max_queue,
+                flush_secs=flush_secs,
+                verbose=verbose,
+                write_checksum=write_checksum,
+            )
         self._default_bins = _get_default_bins()
 
     def __enter__(self):
@@ -162,14 +165,19 @@ class FileWriter:
     def write_summary(self, summ, global_step, timestamp: float = None):
         self._writer.write_summary(summ, global_step, timestamp=timestamp)
 
-    # def write_event(self, tensor_name="", step_num=0, timestamp=None, duration=1):
-    #     args = {
-    #         "duration": duration,
-    #         "start_timestamp": timestamp - duration if timestamp else time.time() - duration,
-    #         "end_timestamp": timestamp if timestamp else time.time(),
-    #         "step number": step_num,
-    #     }
-    #     self._writer.write
+    def write_trace_events(
+        self, tensor_name="", step_num=0, timestamp=None, duration=1, worker="0", *args
+    ):
+        if not isinstance(self._writer, TimelineWriter):
+            return
+        other_args = {"step number": step_num}
+        self._writer.write_trace_events(
+            tensor_name=tensor_name,
+            timestamp=timestamp,
+            duration=duration,
+            worker=worker,
+            args=other_args,
+        )
 
     def write_histogram_summary(self, tdata, tname, global_step, bins="default"):
         """Add histogram data to the event file.
