@@ -18,10 +18,12 @@ Here in the test suite we delete the hook after every script.
 import argparse
 
 # Third Party
+import pytest
 import tensorflow.compat.v2 as tf
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -40,7 +42,6 @@ def get_keras_model_v2():
 def get_keras_data():
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    x_train, x_test = x_train / 255, x_test / 255
 
     return (x_train, y_train), (x_test, y_test)
 
@@ -54,6 +55,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     with SagemakerSimulator() as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
+        x_train, x_test = x_train / 255, x_test / 255
 
         opt = tf.keras.optimizers.RMSprop()
         if script_mode:
@@ -63,14 +65,14 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
             history = model.fit(
-                x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
+                x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
-            history = model.fit(x_train, y_train, batch_size=64, epochs=5, validation_split=0.2)
+            history = model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
@@ -80,7 +82,16 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         trial = smd.create_trial(path=sim.out_dir)
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
-        assert len(trial.tensor_names(collection="losses")) > 0
+
+        # DEFAULT TENSORS SAVED
+        assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) > 0, "No Losses Saved"
+        assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) > 0, "No Metrics Saved"
+        assert (
+            len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 0
+        ), "Weights were not expected to be saved by default"
+        assert (
+            len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+        ), "Biases were not expected to be saved by default"
 
 
 def helper_test_keras_v2_json_config(
@@ -94,6 +105,7 @@ def helper_test_keras_v2_json_config(
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
+        x_train, x_test = x_train / 255, x_test / 255
 
         opt = tf.keras.optimizers.RMSprop()
         if script_mode:
@@ -103,14 +115,14 @@ def helper_test_keras_v2_json_config(
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
             history = model.fit(
-                x_train, y_train, batch_size=64, epochs=5, validation_split=0.2, callbacks=[hook]
+                x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
-            history = model.fit(x_train, y_train, epochs=5, batch_size=64, validation_split=0.2)
+            history = model.fit(x_train, y_train, epochs=2, batch_size=64, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
@@ -126,12 +138,16 @@ def helper_test_keras_v2_json_config(
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
-def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_default(script_mode, eager_mode):
     # Test default ZCC behavior
     helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
-def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_multi_collections(script_mode, eager_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
             {
@@ -165,7 +181,9 @@ def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool 
     )
 
 
-def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_save_all(script_mode, eager_mode):
     # Test save all through hook config
     json_file_contents = """
             {
@@ -185,7 +203,10 @@ def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--script-mode", help="Manually create hooks instead of relying on ZCC", action="store_true"
+        "--script-mode",
+        help="Manually create hooks instead of relying on ZCC",
+        action="store_true",
+        default=False,
     )
     args = parser.parse_args()
     script_mode = args.script_mode

@@ -1,4 +1,10 @@
 # Third Party
+# Standard Library
+import shutil
+import tempfile
+from multiprocessing import Manager, Process
+from os import makedirs
+
 import pytest
 
 # First Party
@@ -13,7 +19,7 @@ from smdebug.core.json_config import (
     get_json_config_as_dict,
 )
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import SagemakerSimulator, is_s3
+from smdebug.core.utils import SagemakerSimulator, is_first_process, is_s3
 
 
 def test_normal():
@@ -160,3 +166,37 @@ def test_json_params_sagemaker():
         assert len(include_collections) == 2
         assert hook_params["export_tensorboard"] == True
         assert hook_params["tensorboard_dir"] == sim.tensorboard_dir
+
+
+@pytest.mark.parametrize("dir", [True, False])
+def test_is_first_process(dir):
+    s3_path = "s3://this/is/a/valid/path"
+    assert is_first_process(s3_path)
+
+    # This section tests local path
+    for _ in range(10):
+        helper_test_is_first_process(dir)
+
+
+def helper_test_is_first_process(dir):
+    temp_dir = tempfile.TemporaryDirectory()
+    path = temp_dir.name
+    shutil.rmtree(path, ignore_errors=True)
+    if dir:
+        makedirs(temp_dir.name)
+    process_list = []
+
+    def helper(fn, arg, shared_list):
+        shared_list.append(fn(arg))
+
+    manager = Manager()
+    results = manager.list()
+    for i in range(100):
+        p = Process(target=helper, args=(is_first_process, path, results))
+        p.start()
+        process_list.append(p)
+
+    for p in process_list:
+        p.join()
+
+    assert results.count(True) == 1, f"Failed for path: {path}"

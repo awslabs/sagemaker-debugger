@@ -1,9 +1,15 @@
 # Third Party
+# Standard Library
+import os
+
 import pytest
 
 # First Party
+from smdebug.core.config_constants import MISSING_EVENT_FILE_RETRY_LIMIT_KEY
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.trials import create_trial
+
+os.environ[MISSING_EVENT_FILE_RETRY_LIMIT_KEY] = "5"
 
 
 @pytest.mark.slow  # 0:01 to run

@@ -1,7 +1,7 @@
 # Standard Library
 import os
 from abc import ABCMeta
-from typing import List, Set
+from typing import List, Set, Tuple
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -79,6 +79,8 @@ class TensorflowBaseHook(BaseHook):
             include_workers=include_workers,
         )
         self.optimizer = None
+        self._custom_collections = None
+        self._default_collections = None
         self._gradients_set = False
         """self.device_map is a mapping between a tf device string to a serialized (filename-friendly) device string
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
@@ -87,6 +89,9 @@ class TensorflowBaseHook(BaseHook):
         # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
+
+        # Identify TF 2.x GradientTape
+        self.tape = None
         self._exported_collections = False
         self._distribution_strategy = {
             ModeKeys.TRAIN: None,
@@ -180,7 +185,11 @@ class TensorflowBaseHook(BaseHook):
         return DEFAULT_TF_COLLECTIONS
 
     def export_collections(self):
-        assert self._prepared_tensors[self.mode]
+        # When TF 2.x GradientTape is used, prepare_layers() is not used
+        # as the tensors provided by GradientTape are eager tensors and hence,
+        # do not require preparing layers
+        if not self.tape:
+            assert self._prepared_tensors[self.mode]
 
         if self.save_all_workers is False:
             num_workers = 1
@@ -208,6 +217,18 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
+    def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
+        if self._custom_collections is None:
+            self._custom_collections = set()
+            self._default_collections = set()
+            for coll in self.collection_manager.get_collections().values():
+                if coll.name not in DEFAULT_TF_COLLECTIONS:
+                    self._custom_collections.add(coll)
+                else:
+                    self._default_collections.add(coll)
+
+        return self._custom_collections, self._default_collections
+
     def _get_num_workers(self):
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
@@ -222,7 +243,7 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return 1
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
-            raise NotImplementedError
+            return 1
 
     def _set_chief_worker(self):
         self._assert_distribution_strategy()
@@ -362,8 +383,27 @@ class TensorflowBaseHook(BaseHook):
         # else we will have to open the file again
 
     def _add_to_device_map(self, tensor):
-        if tensor.device and "CPU" not in tensor.device and tensor.device not in self.device_map:
-            self.device_map[tensor.device] = serialize_tf_device(tensor.device)
+        tensors = []
+
+        # In TF 2.x eager mode, we cannot rely on input tensors to
+        # populate this device map as these tensors cannot be saved.
+        # Due to this, while executing MirroredStrategy on multiple GPUs,
+        # weights and biases in the form of values.MirroredVariable are the
+        # first tensors to reach this point. Since MirroredVariable is not
+        # processed here, MirroredStrategy distributed training jobs failed
+        # on GPU. Adding a check and processing MirroredVariable for TF 2.x
+        # eager mode alone.
+        if is_tf_version_2x() and tf.executing_eagerly():
+            from tensorflow.python.distribute import values
+
+            if isinstance(tensor, values.DistributedValues):
+                tensors = [t for t in tensor._values]
+        else:
+            tensors = [tensor]
+
+        for t in tensors:
+            if t.device and "CPU" not in t.device and t.device not in self.device_map:
+                self.device_map[t.device] = serialize_tf_device(t.device)
 
     def _log_unsupported_optimizer(self, optimizer):
         self.logger.warning(
@@ -374,12 +414,29 @@ class TensorflowBaseHook(BaseHook):
 
     def _get_collections_with_tensor(self, tf_tensor_name) -> Set["Collection"]:
         self._assert_prep()
+        # When TF 2.x GradientTape is used, layers are not prepared, hence
+        # tensors are not matched with collections at preparation time.
+        # Call core/hook.py's _get_collections_with_tensor() where tensors are
+        # matched with collections by regex
+        if self.tape or (
+            tf_tensor_name not in self.tensor_to_collections
+            and is_tf_version_2x()
+            and tf.executing_eagerly()
+        ):
+            return super()._get_collections_with_tensor(tf_tensor_name)
         return self.tensor_to_collections[tf_tensor_name]
 
     def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
         return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=False)
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
+        # When TF 2.x GradientTape is used, the tensors to be saved are of type
+        # EagerTensor where tensor values are immediately available.
+        # Calling core/hook.py's write_for_tensor directly in this case.
+        if self.tape:
+            super()._write_for_tensor(tensor_name, tensor_value, save_collections)
+            return
+
         # this tensor_name is tf tensor name, need to convert to export_name
         tensor_ref = self._get_tensor_ref(tensor_name, save_collections=save_collections)
         if tensor_ref:
@@ -423,8 +480,8 @@ class TensorflowBaseHook(BaseHook):
         :param gradients_and_variables: list of tuples [(tf.Tensor/tf.Variable, tf.Tensor/tf.Variable)...]
             list of tuples representing gradients and weights
         """
-        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
-        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
+        # TF 2.x provides only symbolic gradient variables that do not provide access to their values.
+        # Skipping set_gradients for Tf 2.x until there is
         # support to pass names and values from TF side.
 
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
@@ -448,15 +505,9 @@ class TensorflowBaseHook(BaseHook):
         This method helps find the optimizer variables (such as momentum)
         :param optimizer_variables: list of tf.Variables/tf.Tensors/tf.MirroredVariables
         """
-        # TF 2.x doesn't provide gradient/optimizer variable names and values by default.
-        # Skipping set_gradients and set_optimizer_variables for Tf 2.x until there is
-        # support to pass names and values from TF side.
-
         # From TF 2.2, executing_eagerly_outside_functions() can be used as
         # ops.executing_eagerly_outside_functions() or tf.compat.v1.executing_eagerly_outside_functions().
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
-        if is_tf_version_2x() and ops.executing_eagerly_outside_functions():
-            return
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
             optimizer_variables, ModeKeys.TRAIN

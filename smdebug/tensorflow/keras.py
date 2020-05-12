@@ -133,7 +133,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         save_all=False,
         include_workers="one",
     ):
-        super().__init__(
+        TensorflowBaseHook.__init__(
+            self,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
             tensorboard_dir=tensorboard_dir,
@@ -146,6 +147,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             save_all=save_all,
             include_workers=include_workers,
         )
+        tf.keras.callbacks.Callback.__init__(self)
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
@@ -156,20 +158,21 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
-            if tf.executing_eagerly() or (
-                hasattr(self.model, "run_eagerly") and self.model.run_eagerly
+            if is_tf_version_2x() and tf.executing_eagerly():
+                self.logger.info(
+                    "Executing in TF2.x eager mode."
+                    "TF 2.x eager doesn't provide gradient and optimizer variable values."
+                    "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
+                )
+            if (
+                not is_tf_version_2x()
+                and tf.executing_eagerly()
+                or (hasattr(self.model, "run_eagerly") and self.model.run_eagerly)
             ):
-                if is_tf_version_2x():
-                    self.logger.info(
-                        "Executing in TF2.x eager mode."
-                        "TF 2.x eager doesn't provide gradient and optimizer variable values."
-                        "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
-                    )
-                else:
-                    self.logger.info(
-                        "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
-                    )
-                    self._hook_supported = False
+                self.logger.info(
+                    "Disabling SMDebug as it does not support eager mode" "for TF versions 1.x"
+                )
+                self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
                     from tensorflow.python.keras.distribute.distributed_training_utils import (
@@ -305,9 +308,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         )
                     elif isinstance(tensor, tf.Tensor):
                         tensor_refs.append(coll.add_tensor(tensor, name=export_name, mode=mode))
-                    elif isinstance(tensor, values.MirroredVariable):
+                    elif isinstance(tensor, values.DistributedValues):
                         tensor_refs.extend(
-                            coll.add_mirrored_variable(tensor, export_name=export_name, mode=mode)
+                            coll.add_distributed_variable(
+                                tensor, export_name=export_name, mode=mode
+                            )
                         )
                     else:
                         raise NotImplementedError
@@ -407,12 +412,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
-        for coll in self.collection_manager.get_collections().values():
-            for tensor_ref in coll.get_tensors():
+        custom_collections, default_tf_collection = self._get_custom_and_default_collections()
+        for default_coll in default_tf_collection:
+            for tensor_ref in default_coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
-                    self.tensor_to_collections[tensor_ref.name] = {coll}
-                elif coll not in self.tensor_to_collections[tensor_ref.name]:
-                    self.tensor_to_collections[tensor_ref.name].add(coll)
+                    self.tensor_to_collections[tensor_ref.name] = {default_coll}
+                elif default_coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(default_coll)
+
+                # Add tensor to custom collections
+                for custom_coll in custom_collections:
+                    if match_inc(tensor_ref.name, custom_coll.include_regex):
+                        custom_coll.add_for_mode(tensor_ref.tf_obj, self.mode)
+                        if custom_coll not in self.tensor_to_collections[tensor_ref.name]:
+                            self.tensor_to_collections[tensor_ref.name].add(custom_coll)
 
     def _prepare_tensors_for_step(self, mode):
         self.tensor_refs_to_save_this_step = set()
@@ -432,7 +445,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # TODO
         pass
 
-    def _add_metric(self, metric_name):
+    def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
         if metric_name in self.tensor_to_collections:
             return
 
@@ -441,7 +454,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             coll_name = CollectionKeys.METRICS
         coll = self.collection_manager.get(coll_name)
-        coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
+        if metric_value:
+            coll.set_tensor_ref(metric_value, metric_name)
+        else:
+            coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
     def _save_metrics(self, batch, logs, force_save=False):
@@ -654,12 +670,33 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
+    def _write_optimizer_variables(self):
+        optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
+        collections_to_save = self._get_collections_to_save_for_step()
+        for tensor_ref in optimizer_collections.get_tensors(mode=ModeKeys.TRAIN):
+            tensor = tensor_ref.tf_obj
+            collections_to_save = self._get_collections_with_tensor(tensor.name).intersection(
+                collections_to_save
+            )
+            if len(collections_to_save):
+                tensor = tensor_ref.tf_obj
+                self._save_for_tensor(
+                    tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
+                )
+
     def _on_any_batch_end(self, batch, mode, logs=None):
         if self._is_not_supported():
             return
 
         if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
             self._remove_fetches_and_callbacks(mode)
+
+        if is_tf_version_2x() and tf.executing_eagerly():
+            # Need to prepare non layer tensors again since
+            # some tensors only become available on  batch end
+            self._prepare_non_layer_tensors()
+            self._write_optimizer_variables()
+
         self._save_tensors_post_step(batch, logs)
 
         if self._prepared_tensors[mode]:
@@ -761,3 +798,183 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Optimizer is being saved to support additional features in the future.
         self.optimizer = optimizer
         return optimizer
+
+    def _log_unsupported_tape(self, tape):
+        self.logger.warning(
+            f"Unsupported tape {tape} {tape.__class__}, cannot automatically find "
+            "gradients, loss, weights, and biases."
+        )
+
+    def _unwrap_tape(self):
+        """
+        Unwrap the wrapped tape. Not doing so on hook cleanup or close,
+        will lead to recursive wrapping when there are more tapes in the
+        training script.
+        """
+
+        def _is_wrapper(f):
+            return hasattr(f, "__wrapped__")
+
+        def unwrap(func):
+            while _is_wrapper(func):
+                func = func.__wrapped__
+            return func
+
+        self.tape.__class__._push_tape = unwrap(self.tape.__class__._push_tape)
+        self.tape.__class__._pop_tape = unwrap(self.tape.__class__._pop_tape)
+        self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
+
+    def _cleanup(self):
+        # Unwrap the tape before closing
+        if self.tape:
+            self._unwrap_tape()
+        super()._cleanup()
+
+    def _wrap_push_tape(self, function):
+        """
+        tape._push_tape is called at the beginning of the GradientTape block.
+        Using this wrapper to prepare collections, initialize writers, and
+        increment step.
+        """
+
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            function(*args, **kwargs)
+            if self._is_not_supported():
+                return
+
+            self.worker = self._get_worker_name()
+
+            if self.writer is not None or len(self.writer_map):
+                self._close_writers()
+
+            if not self.prepared_collections:
+                # at this point we need all collections to be ready
+                # this may not be the case at creation of hook
+                # as user's code after hook might add collections
+                self._prepare_collections()
+                self.prepared_collections = True
+
+            self._increment_step()
+
+            if self._get_collections_to_save_for_step():
+                self._initialize_writers()
+
+            if self.last_saved_step is not None and self._exported_collections is False:
+                # in keras, these collections change when mode changes
+                # but rest of the project isn't yet capable of handling this
+                # this means that collections like outputs, or other collections with intermediate tensors
+                # will only have tensor names from first mode
+
+                # this means sometimes collections will be exported after 1 step
+                self.export_collections()
+                self._exported_collections = True
+
+        return run
+
+    def _wrap_tape_gradient(self, function):
+        """
+        tape.gradient() is used to compute gradients from loss and model variables.
+        Using this wrapper to get gradients, loss, weights, and bias values.
+        """
+
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            grads = function(*args, **kwargs)
+            if self._is_not_supported():
+                return grads
+            loss = args[1]
+            vars = args[2]
+            if (
+                (not grads or not vars)
+                or (not isinstance(grads, list) or not isinstance(vars, list))
+                or (not ((isinstance(vars[0], tf.Variable)) and hasattr(vars[0], "numpy")))
+                or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
+            ):
+                return grads
+
+            if self._get_collections_to_save_for_step():
+                for (g, v) in zip(grads, vars):
+                    layer = v.name.split(":")[0]
+                    # Adding a check to make sure gradients are not None.
+                    # gradients may be None if user tries to compute gradients for
+                    # non-training variable when using model.variables instead of
+                    # model.trainable_variables in tape.gradient().
+                    # model.variables includes trainable and non-trainable
+                    # variables.
+                    if g is not None:
+                        self._save_for_tensor(
+                            tensor_name="gradients/" + layer + "Grad",
+                            tensor_value=g,
+                            check_before_write=True,
+                        )
+                    self._save_for_tensor(
+                        tensor_name="weights/" + v.name,
+                        tensor_value=v.value(),
+                        check_before_write=True,
+                    )
+
+            if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
+                return grads
+            self._write_optimizer_variables()
+            self._add_metric(metric_name="loss", metric_value=loss)
+            if self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
+                self._initialize_writers(only_initialize_if_missing=True)
+                self._save_for_tensor("loss", loss, check_before_write=False)
+
+            return grads
+
+        return run
+
+    def _wrap_pop_tape(self, function):
+        """
+        tape._pop_tape() is called at the end of a GradientTape execution.
+        Using this to export collections
+        """
+
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            function(*args, **kwargs)
+            if self._is_not_supported():
+                return
+
+            self.last_saved_step = self.step
+
+        return run
+
+    def wrap_tape(self, tape):
+        """
+        Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
+        variables.
+
+        :param tape: tensorflow.python.eager.backprop.GradientTape
+            the tape object used for training
+        :return: Wrapped tape of same type as passed.
+            This tape should be used for training
+        """
+        from tensorflow.python.eager.backprop import GradientTape
+
+        if isinstance(tape, GradientTape):
+            # unwrap tape before wrapping new tape to avoid recursive wrap tapes
+            if self.tape:
+                self._unwrap_tape()
+
+            self.tape = tape
+            self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
+            self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
+            self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
+        else:
+            self._log_unsupported_tape(tape)
+        return tape
+
+    def record_tensor_value(self, tensor_name, tensor_value):
+        # To be used to save metrics of type EagerTensor
+        if (
+            not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
+        ) or self._is_not_supported():
+            return
+
+        self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
+        if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
+            self._initialize_writers(only_initialize_if_missing=True)
+            self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)

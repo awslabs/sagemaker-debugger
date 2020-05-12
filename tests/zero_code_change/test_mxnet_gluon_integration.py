@@ -30,7 +30,7 @@ def parse_args():
     return opt
 
 
-def test(ctx, net, val_data):
+def fn_test(ctx, net, val_data):
     metric = mx.metric.Accuracy()
     for i, (data, label) in enumerate(val_data):
         data = data.as_in_context(ctx)
@@ -75,7 +75,7 @@ def train_model(net, epochs, ctx, learning_rate, momentum, train_data, val_data)
 
         name, acc = metric.get()
         print("[Epoch %d] Training: %s=%f" % (epoch, name, acc))
-        name, val_acc = test(ctx, net, val_data)
+        name, val_acc = fn_test(ctx, net, val_data)
         print("[Epoch %d] Validation: %s=%f" % (epoch, name, val_acc))
 
 
@@ -145,18 +145,21 @@ def validate():
     print("Validation Complete")
 
 
-def main():
-    opt = parse_args()
+def test_integration_mxnet():
+    # DEFAULT CONSTANTS
+    batch_size = 256
+    epochs = 1
+    learning_rate = 0.1
     mx.random.seed(128)
     random.seed(12)
     np.random.seed(2)
 
-    context = mx.cpu() if opt.context.lower() == "cpu" else mx.gpu()
+    context = mx.cpu()
     # Create a Gluon Model.
     net = create_gluon_model()
 
     # Start the training.
-    train_data, val_data = prepare_data(opt.batch_size)
+    train_data, val_data = prepare_data(batch_size)
 
     json_file_contents = """
         {
@@ -175,16 +178,16 @@ def main():
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         train_model(
             net=net,
-            epochs=opt.epochs,
+            epochs=epochs,
             ctx=context,
-            learning_rate=opt.learning_rate,
+            learning_rate=learning_rate,
             momentum=0.9,
             train_data=train_data,
             val_data=val_data,
         )
-        if opt.validate:
-            validate()
+
+        validate()
 
 
 if __name__ == "__main__":
-    main()
+    test_integration_mxnet()

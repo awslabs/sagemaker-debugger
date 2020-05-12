@@ -4,20 +4,12 @@ import shutil
 
 # First Party
 from smdebug.core.logger import get_logger
+from smdebug.core.utils import ensure_dir
 
 # Local
 from .base import TSAccessBase
 
 SMDEBUG_TEMP_PATH_SUFFIX = ".tmp"
-
-
-def ensure_dir(file_path, is_file=True):
-    if is_file:
-        directory = os.path.dirname(file_path)
-    else:
-        directory = file_path
-    if directory and not os.path.exists(directory):
-        os.makedirs(directory, exist_ok=True)
 
 
 def get_temp_path(file_path):

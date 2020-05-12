@@ -1,25 +1,31 @@
 # First Party
+# Third Party
+from tests.zero_code_change.horovod_tests.constants import (
+    HOROVOD_KERAS_TEST_SCRIPT_ARGS,
+    HOROVOD_KERAS_TEST_SCRIPT_PATH,
+)
+from tests.zero_code_change.horovod_tests.utils import launch_horovod_job
+from tests.zero_code_change.utils import build_json
+
 from smdebug.trials import create_trial
 
 # Local
-from .utils import build_json, get_available_gpus, launch_horovod_job
+from .utils import get_available_gpus
+
 
 """
 Tested on current DLAMI p3.8xlarge
 """
 
-HOROVOD_MNIST_SCRIPT_NAME = "horovod_keras_mnist.py"
-HOROVOD_MNIST_ARGS = ["--num_epochs", "2"]
-
 
 def basic_test(out_dir, mode):
     path = build_json(out_dir, include_workers="one", include_collections=["weights", "gradients"])
     num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
+    mode_args = list(HOROVOD_KERAS_TEST_SCRIPT_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_KERAS_TEST_SCRIPT_PATH}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -44,11 +50,11 @@ def test_gpu(out_dir):
 def mode_allworkers(out_dir, mode):
     path = build_json(out_dir, include_workers="all", include_collections=["weights", "gradients"])
     num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
+    mode_args = list(HOROVOD_KERAS_TEST_SCRIPT_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_KERAS_TEST_SCRIPT_PATH}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -73,11 +79,11 @@ def mode_allworkers_saveall(out_dir, mode):
         out_dir, include_workers="all", save_all=True, include_collections=["weights", "gradients"]
     )
     num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_MNIST_ARGS) + ["--model_dir", out_dir]
+    mode_args = list(HOROVOD_KERAS_TEST_SCRIPT_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_MNIST_SCRIPT_NAME}",
+        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_KERAS_TEST_SCRIPT_PATH}",
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,

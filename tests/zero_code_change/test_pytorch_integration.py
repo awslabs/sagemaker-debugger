@@ -11,17 +11,20 @@ Afterwards, we read from the directory and ensure that all the values are there.
 import argparse
 
 # Third Party
+import pytest
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from pt_utils import Net, get_dataloaders
+from tests.zero_code_change.pt_utils import Net, get_dataloaders
 
 # First Party
 import smdebug.pytorch as smd
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
-def test_pytorch(script_mode: bool = False, use_loss_module=False):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("use_loss_module", [True, False])
+def test_pytorch(script_mode, use_loss_module):
     smd.del_hook()
 
     sim_class = ScriptSimulator if script_mode else SagemakerSimulator
@@ -82,17 +85,13 @@ def test_pytorch(script_mode: bool = False, use_loss_module=False):
         )
 
 
-def test_pytorch_loss_module(script_mode: bool = False):
-    test_pytorch(script_mode=script_mode, use_loss_module=True)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--script-mode", help="Manually create hooks instead of relying on ZCC", action="store_true"
     )
     args = parser.parse_args()
-    script_mode = args.script_mode
+    use_script_mode = args.script_mode
 
-    test_pytorch(script_mode=script_mode, use_loss_module=True)
-    test_pytorch(script_mode=script_mode, use_loss_module=False)
+    test_pytorch(script_mode=use_script_mode, use_loss_module=True)
+    test_pytorch(script_mode=use_script_mode, use_loss_module=False)

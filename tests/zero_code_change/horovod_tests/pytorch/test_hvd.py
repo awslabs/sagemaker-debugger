@@ -1,37 +1,29 @@
 # Standard Library
-import os
 
 # Third Party
-from tests.zero_code_change.horovod_tests.constants import (
-    HOROVOD_ESTIMATOR_TEST_SCRIPT_ARGS,
-    HOROVOD_ESTIMATOR_TEST_SCRIPT_PATH,
-)
+from tests.zero_code_change.horovod_tests.constants import HOROVOD_PYTORCH_TEST_MNIST_SCRIPT
 from tests.zero_code_change.horovod_tests.utils import launch_horovod_job
 from tests.zero_code_change.utils import build_json
+from torch.cuda import device_count
 
 # First Party
 from smdebug.trials import create_trial
-
-# Local
-from .utils import get_available_gpus
-
 
 """
 Tested on current DLAMI p3.8xlarge when run from the main directory
 """
 
+HOROVOD_MNIST_SCRIPT_NAME = "horovod_mnist.py"
 
-def basic_test(out_dir, mode):
+
+def mode_one_worker(out_dir, mode):
     path = build_json(out_dir, include_workers="one", include_collections=["weights", "gradients"])
-    num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_ESTIMATOR_TEST_SCRIPT_ARGS) + [
-        "--model_dir",
-        os.path.join(out_dir, "checkpoint"),
-    ]
+    num_workers = device_count()
+    mode_args = []
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_ESTIMATOR_TEST_SCRIPT_PATH}",
+        script_file_path=HOROVOD_PYTORCH_TEST_MNIST_SCRIPT,
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -39,31 +31,29 @@ def basic_test(out_dir, mode):
     )
 
     tr = create_trial(out_dir)
-    print(tr.tensor_names())
-    assert len(tr.workers()) == 1
+    assert len(tr.workers()) == 1  # We expect only one worker because
+    # it has been configured so in HOROVOD_MNIST_SCRIPT_NAME
     assert len(tr.tensor_names()) == 13
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
+    assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == 1
 
 
 def test_cpu(out_dir):
-    basic_test(out_dir, "cpu")
+    mode_one_worker(out_dir, "cpu")
 
 
 def test_gpu(out_dir):
-    basic_test(out_dir, "gpu")
+    mode_one_worker(out_dir, "gpu")
 
 
 def mode_allworkers(out_dir, mode):
     path = build_json(out_dir, include_workers="all", include_collections=["weights", "gradients"])
-    num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_ESTIMATOR_TEST_SCRIPT_ARGS) + [
-        "--model_dir",
-        os.path.join(out_dir, "checkpoint"),
-    ]
+    num_workers = 1 if bool(device_count()) is False else device_count()
+    mode_args = []
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_ESTIMATOR_TEST_SCRIPT_PATH}",
+        script_file_path=HOROVOD_PYTORCH_TEST_MNIST_SCRIPT,
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -84,18 +74,13 @@ def test_gpu_allworkers(out_dir):
 
 
 def mode_allworkers_saveall(out_dir, mode):
-    path = build_json(
-        out_dir, include_workers="all", save_all=True, include_collections=["weights", "gradients"]
-    )
-    num_workers = len(get_available_gpus())
-    mode_args = list(HOROVOD_ESTIMATOR_TEST_SCRIPT_ARGS) + [
-        "--model_dir",
-        os.path.join(out_dir, "checkpoint"),
-    ]
+    path = build_json(out_dir, include_workers="all", save_all=True)
+    num_workers = 1 if bool(device_count()) is False else device_count()
+    mode_args = []
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=f"examples/tensorflow/sagemaker_official_container/{HOROVOD_ESTIMATOR_TEST_SCRIPT_PATH}",
+        script_file_path=HOROVOD_PYTORCH_TEST_MNIST_SCRIPT,
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -103,7 +88,7 @@ def mode_allworkers_saveall(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) > 99
+    assert len(tr.tensor_names()) > 25
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
     assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == num_workers
 

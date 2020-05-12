@@ -4,6 +4,7 @@ import os
 import re as _re
 import time
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from typing import Dict, List, Optional, Set, Union
 
 # Third Party
@@ -38,7 +39,14 @@ from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
-from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
+from smdebug.core.utils import (
+    flatten,
+    get_tb_worker,
+    is_first_process,
+    match_inc,
+    remove_claim_file,
+    size_and_shape,
+)
 from smdebug.core.writer import FileWriter
 from smdebug.core.config_constants import SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH
 from smdebug.exceptions import InvalidCollectionConfiguration
@@ -148,6 +156,9 @@ class BaseHook:
 
         self.dry_run = dry_run
         self.worker = None
+        # when smdebug is used during an unsupported dist training process
+        # we write data only from the process that has self.first_process set to True.
+        self.first_process = None
         self.save_all_workers = True if include_workers == "all" else False
         self.chief_worker = DEFAULT_WORKER_NAME
 
@@ -167,6 +178,13 @@ class BaseHook:
         self.include_regex = include_regex
         self.collection_manager = collection_manager
         self.init_step = init_step
+
+        # The written_tensor_name_for_step dictionary stores
+        # the names of each tensor saved for every step.
+        # This is to detect name clashes.
+        # If a name clash is detected, it is avoided by appending
+        # an index to the tensor name.
+        self.written_tensor_name_for_step = defaultdict(int)
 
         self.logger = logger
 
@@ -416,6 +434,22 @@ class BaseHook:
     def _initialize_writers(self) -> None:
         if self.dry_run:
             return
+        if self.first_process is False:
+            return
+        elif self.first_process is None:
+            if self._get_num_workers() == 1:
+                if is_first_process(self.out_dir):
+                    self.first_process = True
+                    self.logger.info(f"Hook is writing from the hook with pid: {os.getpid()}\n")
+                else:
+                    self.first_process = False
+                    self.logger.warn(
+                        f"Unsupported Distributed Training Strategy Detected.\n\
+                        Sagemaker-Debugger will only write from one process.\n\
+                        The process with pid: {os.getpid()} will not be writing any data. \n"
+                    )
+                    return
+
         if self.save_all_workers is False:
             if self.worker != self.chief_worker:
                 return
@@ -494,6 +528,8 @@ class BaseHook:
             self.metrics_writer.close()
 
         training_has_ended(self.out_dir)
+        if self.first_process is True:
+            remove_claim_file(self.out_dir)
 
     def _increment_step(self):
         # Update the last_state to the last step number that was saved or seen
@@ -501,6 +537,7 @@ class BaseHook:
 
         self.step += 1
         self.mode_steps[self.mode] += 1
+        self.written_tensor_name_for_step.clear()
 
         # Increment Global step number irrespective of what mode it is
         if self.mode != ModeKeys.GLOBAL:
@@ -895,10 +932,18 @@ class CallbackHook(BaseHook):
         return idx
 
     def _write_inputs(self, name, inputs):
-        self._write(name, inputs, CallbackHook.INPUT_TENSOR_SUFFIX, idx=0)
+        tensor_name = name + CallbackHook.INPUT_TENSOR_SUFFIX
+        idx = self.written_tensor_name_for_step.get(tensor_name, 0)
+        self.written_tensor_name_for_step[tensor_name] = self._write(
+            name, inputs, CallbackHook.INPUT_TENSOR_SUFFIX, idx=idx
+        )
 
     def _write_outputs(self, name, outputs):
-        self._write(name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=0)
+        tensor_name = name + CallbackHook.OUTPUT_TENSOR_SUFFIX
+        idx = self.written_tensor_name_for_step.get(tensor_name, 0)
+        self.written_tensor_name_for_step[tensor_name] = self._write(
+            name, outputs, CallbackHook.OUTPUT_TENSOR_SUFFIX, idx=idx
+        )
 
     @abstractmethod
     def _export_model(self):
