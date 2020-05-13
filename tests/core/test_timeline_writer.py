@@ -13,8 +13,8 @@ def test_create_timeline_file(out_dir, monkeypatch):
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
-    timeline_writer.write_trace_events(tensor_name="test_file_creation", step_num=0)
-    timeline_writer.write_trace_events(tensor_name="test_file_creation", step_num=1)
+    timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name="event1", step_num=0)
+    timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name="event2", step_num=1)
 
     timeline_writer.flush()
     timeline_writer.close()
@@ -27,10 +27,14 @@ def test_create_timeline_file(out_dir, monkeypatch):
 
 def run(rank, timeline_writer):
     timeline_writer.write_trace_events(
-        tensor_name="test_multiprocessing", step_num=0, worker=os.getpid(), process_rank=rank
+        tensor_name="MultiProcessTest",
+        op_name="event1",
+        step_num=0,
+        worker=os.getpid(),
+        process_rank=rank,
     )
     timeline_writer.write_trace_events(
-        tensor_name="test_multiprocessing", step_num=1, worker=os.getpid()
+        tensor_name="MultiProcessTest", op_name="event2", step_num=1, worker=os.getpid()
     )
     timeline_writer.flush()
 
