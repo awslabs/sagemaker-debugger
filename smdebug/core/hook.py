@@ -1,6 +1,5 @@
 # Standard Library
 import atexit
-import os
 import re as _re
 import time
 from abc import ABCMeta, abstractmethod
@@ -38,17 +37,8 @@ from smdebug.core.reductions import get_reduction_tensor_name
 from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
-from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
-from smdebug.core.utils import (
-    flatten,
-    get_tb_worker,
-    is_first_process,
-    match_inc,
-    remove_claim_file,
-    size_and_shape,
-)
+from smdebug.core.utils import flatten, get_tb_worker, match_inc, size_and_shape
 from smdebug.core.writer import FileWriter
-from smdebug.core.config_constants import SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH
 from smdebug.exceptions import InvalidCollectionConfiguration
 
 try:
@@ -223,12 +213,6 @@ class BaseHook:
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
-
-        # TODO: kannanva: Don't access env var here. Make timeline writer implementation
-        # similar to tb writer.
-        self.timeline_writer = TimelineWriter(os.getenv(
-            SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH
-        ))
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
@@ -416,10 +400,6 @@ class BaseHook:
             self.writer.close()
             self.writer = None
 
-        if self.timeline_writer is not None:
-            self.timeline_writer.flush()
-            self.timeline_writer.close()
-
         to_delete_writers = []
 
         # Delete all the tb writers
@@ -454,9 +434,6 @@ class BaseHook:
             if self.worker != self.chief_worker:
                 return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
-        self.timeline_writer = FileWriter(
-            trial_dir=self.out_dir, step=self.step, worker=self.worker, wtype="trace"
-        )
 
     def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
@@ -492,23 +469,6 @@ class BaseHook:
                 mode=self.mode,
             )
             return self.tb_writers[self.mode]
-
-    def _maybe_get_timeline_writer(self) -> Optional[FileWriter]:
-        """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
-
-        Creates a writer if does not exist.
-        """
-        if not self.timeline_writer:
-            # s = self.step
-            # if s < 0: s = 0
-            self.timeline_writer = FileWriter(
-                trial_dir=self.out_dir,
-                step=self.step,
-                worker=get_tb_worker(),
-                wtype="trace",
-                mode=self.mode,
-            )
-        return self.timeline_writer
 
     def _close_tb_writer(self):
         if self.dry_run:

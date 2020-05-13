@@ -28,16 +28,10 @@ from smdebug.core.tfevent.summary import (
     make_numpy_array,
     scalar_summary,
 )
-from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local
-from .locations import (
-    IndexFileLocationUtils,
-    TensorboardFileLocation,
-    TensorFileLocation,
-    TraceFileLocation,
-)
+from .locations import IndexFileLocationUtils, TensorboardFileLocation, TensorFileLocation
 from .logger import get_logger
 from .modes import ModeKeys
 
@@ -96,11 +90,6 @@ class FileWriter:
             )
             event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
-        # elif wtype == "trace":
-        #     el = TraceFileLocation(step_num=self.step, worker_name=self.worker, mode=self.mode)
-        #     event_file_path = el.get_file_location(base_dir=self.trial_dir)
-        #     self.timeline_writer = TimelineWriter(event_file_path)
-        #     self.index_writer = None
         else:
             assert False, "Writer type not supported: {}".format(wtype)
 
@@ -162,15 +151,6 @@ class FileWriter:
 
     def write_summary(self, summ, global_step, timestamp: float = None):
         self._writer.write_summary(summ, global_step, timestamp=timestamp)
-
-    # def write_event(self, tensor_name="", step_num=0, timestamp=None, duration=1):
-    #     args = {
-    #         "duration": duration,
-    #         "start_timestamp": timestamp - duration if timestamp else time.time() - duration,
-    #         "end_timestamp": timestamp if timestamp else time.time(),
-    #         "step number": step_num,
-    #     }
-    #     self._writer.write
 
     def write_histogram_summary(self, tdata, tname, global_step, bins="default"):
         """Add histogram data to the event file.

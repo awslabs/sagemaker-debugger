@@ -727,10 +727,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.train_layer_forward_times.append(self.layer_forward_times)
             self.reset_layer_forward_times()
 
-        # timeline_writer = self._maybe_get_timeline_writer()
-        self.timeline_writer.write_trace_event(
-            tensor_name="Step time", step_num=self.step, timestamp=None, duration=step_time, worker=self.worker
-        )
         self.train_step_times.append(step_time)
         self.avg_train_step_time = (step_time + (batch * self.avg_train_step_time)) / (batch + 1)
         # Time for train_step = backward_end_time - batch_begin_time
