@@ -25,6 +25,7 @@ class SMTFProfilerEvents(TraceEventParser):
             if "start_time_since_epoch_in_micros" in event_args:
                 self._start_timestamp = event_args["start_time_since_epoch_in_micros"]
                 self._start_time_known = True
+                self.logger.info(f"Start time for events = {self._start_timestamp}")
 
     # TODO implementation of below would be changed to support streaming file and incomplete json file
     def read_trace_file(self):
@@ -32,8 +33,9 @@ class SMTFProfilerEvents(TraceEventParser):
             with open(self._trace_json_file) as json_data:
                 trace_json_data = json.load(json_data)
         except Exception as e:
-            # TODO log
-            print(f"Can't open TF trace file {self._trace_json_file}: Exception {str(e)} ")
+            self.logger.error(
+                f"Can't open TF trace file {self._trace_json_file}: Exception {str(e)}"
+            )
             return
 
         for event in trace_json_data:
@@ -53,7 +55,9 @@ class TFProfilerEvents(TraceEventParser):
             t_id = event["tid"]
             pid = event["pid"]
             if pid not in self._processes:
-                # log
+                self.logger.warn(
+                    f"Did not find matching process for pid {pid}. Creating a process with name 'Unknown'"
+                )
                 self._processes[pid] = ProcessInfo(pid, "Unknown")
             self._processes[pid].add_thread(t_id, name)
 
@@ -66,18 +70,26 @@ class TFProfilerEvents(TraceEventParser):
             with open(self._trace_json_file) as json_data:
                 trace_json_data = json.load(json_data)
         except Exception as e:
-            # TODO log
-            print(f"Can't open TF trace file {self._trace_json_file}: Exception {str(e)} ")
+            self.logger.error(
+                f"Can't open TF trace file {self._trace_json_file}: Exception {str(e)} "
+            )
             return
         if "traceEvents" not in trace_json_data:
-            # TODO log
+            self.logger.error(
+                f"The TF trace file {self._trace_json_file} does not contain traceEvents"
+            )
             return
         trace_events_json = trace_json_data["traceEvents"]
 
         if "displayTimeUnit" in trace_json_data:
-            # TODO log, displayTimeUnit reset
             self._timescale_multiplier_for_ns = TIMESCALE_MULTIPLIER[
                 trace_json_data["displayTimeUnit"]
             ]
+            self.logger.info(
+                f"Found displayTimeUnit specified in the trace file. The timescale multiplier value is "
+                f"reset to {self._timescale_multiplier_for_ns} for displayTimeUnit="
+                f"{trace_json_data['displayTimeUnit']}"
+            )
+
         for event in trace_events_json:
             self._read_event(event)

@@ -1,3 +1,6 @@
+# First Party
+from smdebug.core.logger import get_logger
+
 TIMESCALE_MULTIPLIER = {"ns": 1000, "us": 1, "ms": 0.001, "s": 0.000001}
 
 
@@ -38,6 +41,7 @@ class TraceEventParser:
         self._start_timestamp = start_timestamp
         self._start_time_known = False
         self._timescale_multiplier_for_ns = timescale_multiplier_for_ns
+        self.logger = get_logger("smdebug-profiler")
 
     def read_trace_file(self):
         pass
@@ -56,7 +60,7 @@ class TraceEventParser:
 
     def _read_event(self, event):
         if "ph" not in event:
-            # TODO log
+            self.logger.error(f"In correctly formatted trace file. The 'ph' field is not present")
             return
         phase_type = event["ph"]
         if phase_type == "M":

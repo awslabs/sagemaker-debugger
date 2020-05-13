@@ -30,3 +30,7 @@ def test_tfprofiler_events(trace_file="./tests/profiler/ip-172-31-19-241.trace.j
     end_time_for_last_event = end_time_sorted[-1].end_time
     print(f"The first event started at {end_time_for_last_event}")
     assert end_time_for_last_event == 66478760.0
+
+    processes = t_events.get_processes()
+    print(f"Number of processes = {len(processes)}")
+    assert len(processes) == 9
