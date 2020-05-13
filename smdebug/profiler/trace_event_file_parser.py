@@ -1,8 +1,6 @@
 # First Party
 from smdebug.core.logger import get_logger
 
-TIMESCALE_MULTIPLIER = {"ns": 1000, "us": 1, "ms": 0.001, "s": 0.000001}
-
 
 class ThreadInfo:
     def __init__(self, tid, thread_name):
@@ -35,12 +33,13 @@ class TraceEvent:
 
 
 class TraceEventParser:
-    def __init__(self, timescale_multiplier_for_ns=1, start_timestamp=0):
+    def __init__(self):
         self._processes = dict()
         self._trace_events = list()
-        self._start_timestamp = start_timestamp
+        self._start_timestamp = 0
         self._start_time_known = False
-        self._timescale_multiplier_for_ns = timescale_multiplier_for_ns
+        # The timestamp in trace events are in micro seconds, we multiply by 1000 to convert to ns
+        self._timescale_multiplier_for_ns = 1000
         self.logger = get_logger("smdebug-profiler")
 
     def read_trace_file(self):

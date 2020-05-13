@@ -2,19 +2,13 @@
 import json
 
 # First Party
-from smdebug.profiler.trace_event_file_parser import (
-    TIMESCALE_MULTIPLIER,
-    ProcessInfo,
-    TraceEventParser,
-)
+from smdebug.profiler.trace_event_file_parser import ProcessInfo, TraceEventParser
 
 
 class SMTFProfilerEvents(TraceEventParser):
     def __init__(self, trace_file):
         self._trace_json_file = trace_file
-        # SMTFProfile events are in micro seconds, we multiply by 1000 to convert to ns
-        self._timescale_multiplier_for_ns = TIMESCALE_MULTIPLIER["ns"]
-        super().__init__(timescale_multiplier_for_ns=TIMESCALE_MULTIPLIER["ns"])
+        super().__init__()
         self.read_trace_file()
 
     def _populate_start_time(self, event):
@@ -25,7 +19,7 @@ class SMTFProfilerEvents(TraceEventParser):
             if "start_time_since_epoch_in_micros" in event_args:
                 self._start_timestamp = event_args["start_time_since_epoch_in_micros"]
                 self._start_time_known = True
-                self.logger.info(f"Start time for events = {self._start_timestamp}")
+                self.logger.info(f"Start time for events in uSeconds = {self._start_timestamp}")
 
     # TODO implementation of below would be changed to support streaming file and incomplete json file
     def read_trace_file(self):
@@ -45,8 +39,7 @@ class SMTFProfilerEvents(TraceEventParser):
 class TFProfilerEvents(TraceEventParser):
     def __init__(self, trace_file):
         self._trace_json_file = trace_file
-        # TFProiler events in are in displayed in ns
-        super().__init__(timescale_multiplier_for_ns=TIMESCALE_MULTIPLIER["ns"])
+        super().__init__()
         self.read_trace_file()
 
     def _populate_thread_info_for_metaevent(self, event):
@@ -80,16 +73,6 @@ class TFProfilerEvents(TraceEventParser):
             )
             return
         trace_events_json = trace_json_data["traceEvents"]
-
-        if "displayTimeUnit" in trace_json_data:
-            self._timescale_multiplier_for_ns = TIMESCALE_MULTIPLIER[
-                trace_json_data["displayTimeUnit"]
-            ]
-            self.logger.info(
-                f"Found displayTimeUnit specified in the trace file. The timescale multiplier value is "
-                f"reset to {self._timescale_multiplier_for_ns} for displayTimeUnit="
-                f"{trace_json_data['displayTimeUnit']}"
-            )
 
         for event in trace_events_json:
             self._read_event(event)
