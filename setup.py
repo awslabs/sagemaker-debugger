@@ -95,12 +95,11 @@ def scan_git_secrets():
     git("secrets", "--register-aws")
     return git("secrets", "--scan", "-r")
 
-'''
 if scan_git_secrets() != 0:
     import sys
 
     sys.exit(1)
-'''
+
 
 def detect_smdebug_version():
     if "--release" in sys.argv:

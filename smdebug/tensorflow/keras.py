@@ -575,7 +575,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_metrics(batch=batch, logs=logs, force_save=True)
         # TODO note that this may miss the cases where there is no epoch end calls
         # We may need to move this call at end of train_batch_end_time , test_batch_end_time, predict_batch_end_time
-        self.save_profiling_tensors(True)
+		if (is_tf_version_2x() and tf.executing_eagerly()):
+        	self.save_profiling_tensors(True)
         self._close_writers()
 
     def _on_any_mode_begin(self, mode):
