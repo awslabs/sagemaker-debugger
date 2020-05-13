@@ -1,5 +1,6 @@
 # Standard Library
 import json
+import os
 import time
 
 # First Party
@@ -26,7 +27,7 @@ class TimelineWriter(object):
             self.writer = TSAccessS3(bucket_name, key_name, binary=False)
         else:
             self.writer = TSAccessFile(self.file_path, "a+")
-        self.writer.write("[")
+        self.writer.write("[\n")
 
         # TODO: kannanva: probably have a write_metadata()
         args = {
@@ -73,6 +74,9 @@ class TimelineWriter(object):
     def close(self):
         """Closes the record writer."""
         if self.writer is not None:
+            self.writer._accessor.seek(self.writer._accessor.tell() - 2)
+            self.writer._accessor.truncate()
+            self.writer.write("\n]")
             self.flush()
             self.writer.close()
             self.writer = None
@@ -104,7 +108,7 @@ class Event:
             "ts": self.timestamp - self.start_time_since_epoch_in_micros
             if self.timestamp
             else int(round(time.time() * 1000000)) - self.start_time_since_epoch_in_micros,
-            "pid": self.worker,  # TODO: kannanva: pid should be tensor index. For now, it is worker name.
+            "pid": os.getpid(),  # TODO: kannanva: pid should be tensor index. For now, it is worker name.
             "dur": self.duration,
         }
         if self.args:
@@ -120,11 +124,7 @@ class MetaData:
         self.args = args
 
     def to_json(self):
-        json_dict = {
-            "name": self.name,
-            "ph": "M",
-            "pid": self.worker,  # TODO: kannanva: pid should be tensor index. For now, it is worker name.
-        }
+        json_dict = {"name": self.name, "ph": "M", "pid": os.getpid()}
         if self.args:
             json_dict["args"] = self.args
 
