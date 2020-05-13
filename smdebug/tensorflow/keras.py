@@ -730,7 +730,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # timeline_writer = self._maybe_get_timeline_writer()
         if self.timeline_writer:
             self.timeline_writer.write_trace_event(
-                tensor_name="on_train_batch_end()::step_time",
+                tensor_name="Step time",
                 step_num=self.step,
                 timestamp=None,
                 duration=step_time,
@@ -753,14 +753,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # for this batch, record all forward calls that were made
             self.test_layer_forward_times.append(self.layer_forward_times)
             self.reset_layer_forward_times()
-        if self.timeline_writer:
-            self.timeline_writer.write_trace_event(
-                tensor_name="on_test_batch_end()::step_time",
-                step_num=self.step,
-                timestamp=None,
-                duration=test_step_time,
-                worker=self.worker,
-            )
         self.test_step_times.append(test_step_time)
         self.avg_test_step_time = (test_step_time + (batch * self.avg_test_step_time)) / (batch + 1)
         self._on_any_batch_end(batch, ModeKeys.EVAL, logs=logs)

@@ -525,7 +525,7 @@ class BaseHook:
             self.metrics_writer.close()
 
         if self.timeline_writer is not None:
-            # flush has already been called in close writers
+            self.timeline_writer.flush()
             self.timeline_writer.close()
 
         training_has_ended(self.out_dir)
