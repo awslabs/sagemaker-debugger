@@ -28,6 +28,7 @@ from smdebug.core.tfevent.summary import (
     make_numpy_array,
     scalar_summary,
 )
+from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local

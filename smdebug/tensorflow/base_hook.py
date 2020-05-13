@@ -353,6 +353,7 @@ class TensorflowBaseHook(BaseHook):
 
         if self.timeline_writer is not None:
             self.timeline_writer.flush()
+            self.timeline_writer.close()
 
         # Delete all the dist training writers
         to_delete_writers = []
