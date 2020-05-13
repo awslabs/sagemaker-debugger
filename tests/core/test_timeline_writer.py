@@ -27,7 +27,7 @@ def test_create_timeline_file(out_dir, monkeypatch):
 
 def run(rank, timeline_writer):
     timeline_writer.write_trace_events(
-        tensor_name="test_multiprocessing", step_num=0, worker=os.getpid()
+        tensor_name="test_multiprocessing", step_num=0, worker=os.getpid(), process_rank=rank
     )
     timeline_writer.write_trace_events(
         tensor_name="test_multiprocessing", step_num=1, worker=os.getpid()

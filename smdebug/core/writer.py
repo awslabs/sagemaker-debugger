@@ -166,11 +166,12 @@ class FileWriter:
         self._writer.write_summary(summ, global_step, timestamp=timestamp)
 
     def write_trace_events(
-        self, tensor_name="", step_num=0, timestamp=None, duration=1, worker="0", *args
+        self, tensor_name="", step_num=0, timestamp=None, duration=1, worker="0", **kwargs
     ):
         if not isinstance(self._writer, TimelineWriter):
             return
         other_args = {"step number": step_num}
+        other_args.update(kwargs)
         self._writer.write_trace_events(
             tensor_name=tensor_name,
             timestamp=timestamp,
