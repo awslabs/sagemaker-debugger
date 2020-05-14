@@ -13,11 +13,11 @@ def test_tfprofiler_events(trace_file="./tests/profiler/ip-172-31-19-241.trace.j
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 256
 
-    event_list = t_events.get_events_at(15013686)  # nanoseconds
+    event_list = t_events.get_events_at_timestamp_in_seconds(0.015013686)
     print(f"Number of events at 15013686 are {len(event_list)}")
     assert len(event_list) == 3
 
-    completed_event_list = t_events.get_events_within_range(0, 15013686)  # nanoseconds
+    completed_event_list = t_events.get_events_within_time_range(0, 0.015013686)  # nanoseconds
     print(f"Number of events occurred between 0 and 15013686 are {len(completed_event_list)}")
     assert len(completed_event_list) == 253
 

@@ -13,11 +13,11 @@ def test_horovodprofiler_events(trace_file="./tests/profiler/horovod_timeline_sm
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 306
 
-    event_list = t_events.get_events_at(8990000000)  # nanoseconds
+    event_list = t_events.get_events_at_timestamp_in_seconds(8.990000000)  # nanoseconds
     print(f"Number of events at 8990000000 are {len(event_list)}")
     assert len(event_list) == 90
 
-    completed_event_list = t_events.get_events_within_range(0, 8990000000)  # nanoseconds
+    completed_event_list = t_events.get_events_within_time_range(0, 8.990000000)  # nanoseconds
     print(f"Number of events occurred between 0 and 8990000000 are {len(completed_event_list)}")
     assert len(completed_event_list) == 113
 

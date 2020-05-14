@@ -1,5 +1,6 @@
 # Standard Library
 import json
+from datetime import datetime
 
 # First Party
 from smdebug.profiler.trace_event_file_parser import TraceEventParser
@@ -34,6 +35,30 @@ class SMTFProfilerEvents(TraceEventParser):
 
         for event in trace_json_data:
             self._read_event(event)
+
+    """
+    Return the events that are in progress at the specified timestamp.
+    The timestamp can accept the datetime object.
+    Performance of this function can be improved by implementing interval tree.
+    """
+
+    def get_events_at_time(self, timestamp_datetime: datetime):
+        if timestamp_datetime.__class__ is datetime:
+            timestamp_in_seconds = timestamp_datetime.timestamp()
+            return self.get_events_at_timestamp_in_seconds(timestamp_in_seconds)
+
+    """
+    Return the events that have started and completed within the given start and end time boundaries.
+    The start and end time can be specified datetime objects.
+    The events that are in progress during these boundaries are not included.
+    """
+
+    def get_events_within_range(self, start_time: datetime, end_time: datetime):
+        if start_time.__class__ is datetime:
+            start_time_seconds = start_time.timestamp()
+        if end_time.__class__ is datetime:
+            end_time_seconds = end_time.timestamp()
+        return self.get_events_within_time_range(start_time_seconds, end_time_seconds)
 
 
 class TFProfilerEvents(TraceEventParser):

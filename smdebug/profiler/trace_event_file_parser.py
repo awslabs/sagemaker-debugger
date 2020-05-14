@@ -1,4 +1,7 @@
 # First Party
+# Standard Library
+import datetime
+
 from smdebug.core.logger import get_logger
 
 
@@ -154,7 +157,8 @@ class TraceEventParser:
     Performance of this function can be improved by implementing interval tree.
     """
 
-    def get_events_at(self, timestamp_in_nanoseconds):
+    def get_events_at_timestamp_in_seconds(self, timestamps_in_seconds):
+        timestamp_in_nanoseconds = timestamps_in_seconds * 1000000000
         result_events = list()
         for x_event in self._trace_events:
             if x_event.start_time <= timestamp_in_nanoseconds <= x_event.end_time:
@@ -162,16 +166,38 @@ class TraceEventParser:
         return result_events
 
     """
+    The TraceEvent class can not support retrieving events at given datetime object.
+    This is because only smdebug based tracefile store the timestamps based on unix epoch timestamp.
+    """
+
+    def get_events_at_time(self, timestamp_datetime: datetime):
+        return None
+
+    """
     Return the events that have started and completed within the given start and end time boundaries.
+    The start and end time are in seconds.
     The events that are in progress during these boundaries are not included.
     """
 
-    def get_events_within_range(self, start_time, end_time):
+    def get_events_within_time_range(self, start_time_seconds, end_time_seconds):
+        start_time_nanoseconds = start_time_seconds * 1000000000
+        end_time_nanoseconds = end_time_seconds * 1000000000
         result_events = list()
         for x_event in self._trace_events:
-            if start_time <= x_event.start_time and end_time >= x_event.end_time:
+            if (
+                start_time_nanoseconds <= x_event.start_time
+                and end_time_nanoseconds >= x_event.end_time
+            ):
                 result_events.append(x_event)
         return result_events
+
+    """
+    The TraceEvent class can not support retrieving events based on given datetime objects.
+    This is because only smdebug based tracefile store the timestamps based on unix epoch timestamp.
+    """
+
+    def get_events_within_range(self, start_time: datetime, end_time: datetime):
+        return None
 
     def get_process_info(self, process_id):
         return self._processes[process_id]
