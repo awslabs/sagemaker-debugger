@@ -66,7 +66,16 @@ class TraceEventParser:
             self._processes[id] = ProcessInfo(id, name)
 
     def _populate_thread_info_for_metaevent(self, event):
-        pass
+        if event["name"] == "thread_name":
+            name = event["args"]["name"]
+            t_id = event["tid"]
+            pid = event["pid"]
+            if pid not in self._processes:
+                self.logger.warn(
+                    f"Did not find matching process for pid {pid}. Creating a process with name 'Unknown'"
+                )
+                self._processes[pid] = ProcessInfo(pid, "Unknown")
+            self._processes[pid].add_thread(t_id, name)
 
     def _populate_start_time(self, event):
         pass

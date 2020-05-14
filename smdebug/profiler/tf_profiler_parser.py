@@ -2,7 +2,7 @@
 import json
 
 # First Party
-from smdebug.profiler.trace_event_file_parser import ProcessInfo, TraceEventParser
+from smdebug.profiler.trace_event_file_parser import TraceEventParser
 
 
 class SMTFProfilerEvents(TraceEventParser):
@@ -28,7 +28,7 @@ class SMTFProfilerEvents(TraceEventParser):
                 trace_json_data = json.load(json_data)
         except Exception as e:
             self.logger.error(
-                f"Can't open TF trace file {self._trace_json_file}: Exception {str(e)}"
+                f"Can't open SMTF trace file {self._trace_json_file}: Exception {str(e)}"
             )
             return
 
@@ -41,18 +41,6 @@ class TFProfilerEvents(TraceEventParser):
         self._trace_json_file = trace_file
         super().__init__()
         self.read_trace_file()
-
-    def _populate_thread_info_for_metaevent(self, event):
-        if event["name"] == "thread_name":
-            name = event["args"]["name"]
-            t_id = event["tid"]
-            pid = event["pid"]
-            if pid not in self._processes:
-                self.logger.warn(
-                    f"Did not find matching process for pid {pid}. Creating a process with name 'Unknown'"
-                )
-                self._processes[pid] = ProcessInfo(pid, "Unknown")
-            self._processes[pid].add_thread(t_id, name)
 
     def _populate_start_time(self, event):
         # TODO, not sure if we can implement this right now
@@ -84,18 +72,6 @@ class HorovodProfilerEvents(TraceEventParser):
         super().__init__()
         self._base_timestamp_initialized = False
         self.read_trace_file()
-
-    def _populate_thread_info_for_metaevent(self, event):
-        if event["name"] == "thread_name":
-            name = event["args"]["name"]
-            t_id = event["tid"]
-            pid = event["pid"]
-            if pid not in self._processes:
-                self.logger.warn(
-                    f"Did not find matching process for pid {pid}. Creating a process with name 'Unknown'"
-                )
-                self._processes[pid] = ProcessInfo(pid, "Unknown")
-            self._processes[pid].add_thread(t_id, name)
 
     def _populate_start_time(self, event):
         # TODO, populate the self._start_timestamp when we make changes to horovod to record the unix epoch based

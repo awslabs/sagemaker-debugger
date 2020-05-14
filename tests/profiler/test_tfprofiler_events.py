@@ -28,9 +28,17 @@ def test_tfprofiler_events(trace_file="./tests/profiler/ip-172-31-19-241.trace.j
 
     end_time_sorted = t_events.get_events_end_time_sorted()
     end_time_for_last_event = end_time_sorted[-1].end_time
+    pid_last_event = end_time_sorted[-1].pid
+    tid_last_event = end_time_sorted[-1].tid
     print(f"The first event started at {end_time_for_last_event}")
     assert end_time_for_last_event == 64045679.0
 
     processes = t_events.get_processes()
     print(f"Number of processes = {len(processes)}")
     assert len(processes) == 9
+
+    process_info = t_events.get_process_info(pid_last_event)
+    print(f"Process Name = {process_info.name}  Process Id = {process_info.id}")
+
+    thread_info = process_info.get_thread_info(tid_last_event)
+    print(f"Thread name = {thread_info.thread_name} Thread id = {thread_info.tid}")
