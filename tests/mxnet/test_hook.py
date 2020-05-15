@@ -1,7 +1,9 @@
 # Standard Library
+import json
 import os
 import shutil
 from datetime import datetime
+from pathlib import Path
 
 # First Party
 from smdebug import SaveConfig
@@ -51,3 +53,33 @@ def test_hook_from_json_config_full():
         hook=hook, num_steps_train=10, num_steps_eval=10, register_to_loss_block=True
     )
     shutil.rmtree(out_dir, True)
+
+
+def test_hook_timeline_file_write(out_dir):
+    """
+    This test is meant to test TimelineFileWriter through a MXNet hook.
+    TODO: Wrap _write_trace_event_summary with a better API
+    """
+    hook = t_hook(out_dir=out_dir)
+
+    for i in range(1, 11):
+        n = "event" + str(i)
+        hook._write_trace_event_summary(
+            training_phase="MXNet_TimelineFileWriteTest", op_name=n, step_num=i
+        )
+
+    # need to explicitly close hook for the test here so that the JSON file is written and
+    # can be read back below.
+    # In training scripts, this is not necessary as _cleanup will take care of closing the trace file.
+    hook.close()
+
+    files = []
+    for path in Path(out_dir + "/framework/pevents").rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    with open(files[0]) as timeline_file:
+        events_dict = json.load(timeline_file)
+
+    assert events_dict
