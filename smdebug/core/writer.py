@@ -42,7 +42,6 @@ from .logger import get_logger
 from .modes import ModeKeys
 
 logger = get_logger()
-timeline_writer = None
 
 
 class FileWriter:
@@ -105,14 +104,9 @@ class FileWriter:
             assert False, "Writer type not supported: {}".format(wtype)
 
         if wtype == "trace":
-            global timeline_writer
-            if not timeline_writer:
-                self._writer = TimelineFileWriter(
-                    path=event_file_path, flush_secs=flush_secs, max_queue=max_queue
-                )
-                timeline_writer = self._writer
-            else:
-                self._writer = timeline_writer
+            self._writer = TimelineFileWriter(
+                path=event_file_path, flush_secs=flush_secs, max_queue=max_queue
+            )
         else:
             self._writer = EventFileWriter(
                 path=event_file_path,
