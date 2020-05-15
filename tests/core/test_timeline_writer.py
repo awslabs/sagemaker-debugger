@@ -2,6 +2,7 @@
 import json
 import multiprocessing as mp
 import os
+import time
 
 # First Party
 from smdebug.core.config_constants import SM_PROFILER_FILE_PATH_ENV_STR
@@ -13,8 +14,9 @@ def test_create_timeline_file(out_dir, monkeypatch):
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
-    timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name="event1", step_num=0)
-    timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name="event2", step_num=1)
+    for i in range(1, 11):
+        n = "event" + str(i)
+        timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name=n, step_num=i)
 
     timeline_writer.flush()
     timeline_writer.close()
@@ -55,6 +57,30 @@ def test_multiprocess_write(out_dir, monkeypatch):
     for p in processes:
         p.join()
 
+    timeline_writer.close()
+
+    with open(out_dir + "/test_timeline.json") as timeline_file:
+        events_dict = json.load(timeline_file)
+
+    assert events_dict
+
+
+def test_duration_events(out_dir, monkeypatch):
+    monkeypatch.setenv(SM_PROFILER_FILE_PATH_ENV_STR, out_dir + "/test_timeline.json")
+    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    assert timeline_writer
+
+    for i in range(1, 11):
+        n = "event" + str(i)
+        timeline_writer.write_trace_events(
+            tensor_name="DurationEventTest", op_name=n, step_num=i, phase="B"
+        )
+        time.sleep(0.5)
+        timeline_writer.write_trace_events(
+            tensor_name="DurationEventTest", op_name=n, step_num=i, phase="E"
+        )
+
+    timeline_writer.flush()
     timeline_writer.close()
 
     with open(out_dir + "/test_timeline.json") as timeline_file:
