@@ -650,15 +650,28 @@ class BaseHook:
                     )
                     break
 
-    def _write_trace_event_summary(self, tensor_name, duration, timestamp, step_num, worker):
+    def _write_trace_event_summary(
+        self,
+        tensor_name="",
+        op_name="",
+        phase="X",
+        step_num=0,
+        timestamp=None,
+        duration=1,
+        worker="0",
+        **kwargs,
+    ):
         timeline_writer = self._maybe_get_timeline_writer()
         if timeline_writer:
             timeline_writer.write_trace_events(
                 tensor_name=tensor_name,
+                op_name=op_name,
+                phase=phase,
                 step_num=step_num,
                 timestamp=timestamp,
                 duration=duration,
                 worker=worker,
+                **kwargs,
             )
 
     def _write_scalars(self):
