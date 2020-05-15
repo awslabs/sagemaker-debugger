@@ -67,7 +67,7 @@ class TimelineFileWriter:
     def write_trace_events(
         self, training_phase="", op_name="", phase="X", timestamp=None, duration=1, args=None
     ):
-        duration_in_us = int(duration * 100000)  # convert to micro seconds
+        duration_in_us = int(duration * 1000000)  # convert to micro seconds
         event = TimelineRecord(
             training_phase=training_phase,
             operator_name=op_name,
@@ -93,7 +93,6 @@ class TimelineFileWriter:
         """Flushes the trace event file to disk and close the file.
         """
         self.write_event(self._sentinel_event)
-        self.flush()
         self._worker.join()
         self._ev_writer.close()
 
@@ -143,11 +142,8 @@ class _TimelineLoggerThread(threading.Thread):
                     file_path = path[1].split("/")[1]
                     file_timestamp = int(file_path.split("_")[0])
 
-                    # get the current timestamp
-                    current_time = time.time()
-
                     # find the difference between the 2 times (in seconds)
-                    diff_in_seconds = int(round(current_time - file_timestamp))
+                    diff_in_seconds = int(round(now - file_timestamp))
 
                     # get the file size of the current directory
                     file_size = os.path.getsize(file_name + ".tmp")  # in bytes

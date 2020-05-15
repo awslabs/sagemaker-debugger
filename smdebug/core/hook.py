@@ -646,22 +646,13 @@ class BaseHook:
                     break
 
     def _write_trace_event_summary(
-        self,
-        training_phase="",
-        op_name="",
-        phase="X",
-        step_num=0,
-        timestamp=None,
-        duration=1,
-        worker="0",
-        **kwargs,
+        self, training_phase="", op_name="", phase="X", timestamp=None, duration=1, **kwargs
     ):
         """
         Write trace events to the timeline.
         :param training_phase: strings like, data_iterating, forward, backward, operations etc
         :param op_name: more details about phase like whether dataset or iterator
         :param phase: this is defaulted to 'X'
-        :param step_num: step number currently being executed
         :param timestamp: start_time for the event
         :param duration: any duration manually computed (in seconds)
         :param kwargs: can be process id and thread id
@@ -672,7 +663,6 @@ class BaseHook:
                 training_phase=training_phase,
                 op_name=op_name,
                 phase=phase,
-                step_num=step_num,
                 timestamp=timestamp,
                 duration=duration,
                 **kwargs,
