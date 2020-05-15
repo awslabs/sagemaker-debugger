@@ -43,7 +43,7 @@ This library `smdebug` itself supports versions other than the ones listed above
 | [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15 |
 | Keras (with TensorFlow backend) | 2.3 |
 | [MXNet](mxnet.md) | 1.4, 1.5, 1.6 |
-| [PyTorch](pytorch.md) | 1.2, 1.3 |
+| [PyTorch](pytorch.md) | 1.2, 1.3, 1.4, 1.5 |
 | [XGBoost](xgboost.md) | [As Framework](xgboost.md#use-xgboost-as-a-framework) |
 
 #### Setting up SageMaker Debugger with your script on your container
