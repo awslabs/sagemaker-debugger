@@ -12,12 +12,19 @@ from smdebug.core.writer import FileWriter
 
 
 def test_create_timeline_file(out_dir):
+    """
+    This test is meant to test successful creation of the timeline file according to file path specification.
+    $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
+    {$ENV_NODE_ID_4digits0padded}_pythontimeline.json
+
+    It reads backs the file contents to make sure it is in valid JSON format.
+    """
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     for i in range(1, 11):
         n = "event" + str(i)
-        timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name=n, step_num=i)
+        timeline_writer.write_trace_events(training_phase="FileCreationTest", op_name=n, step_num=i)
 
     timeline_writer.flush()
     timeline_writer.close()
@@ -36,21 +43,20 @@ def test_create_timeline_file(out_dir):
 
 def run(rank, timeline_writer):
     timeline_writer.write_trace_events(
-        tensor_name="MultiProcessTest",
+        training_phase="MultiProcessTest",
         op_name="event1",
         step_num=0,
         worker=os.getpid(),
         process_rank=rank,
     )
     timeline_writer.write_trace_events(
-        tensor_name="MultiProcessTest", op_name="event2", step_num=1, worker=os.getpid()
+        training_phase="MultiProcessTest", op_name="event2", step_num=1, worker=os.getpid()
     )
     timeline_writer.flush()
 
 
 @pytest.mark.skip
-def test_multiprocess_write(out_dir, monkeypatch):
-    # monkeypatch.setenv(SM_PROFILER_FILE_PATH_ENV_STR, out_dir + "/test_timeline.json")
+def test_multiprocess_write(out_dir):
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
@@ -80,16 +86,20 @@ def test_multiprocess_write(out_dir, monkeypatch):
 
 
 def test_duration_events(out_dir):
+    """
+    This test is meant to test duration events. By default, write_trace_events records complete events.
+    TODO: Make TimelineWriter automatically calculate duration while recording "E" event
+    """
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     for i in range(1, 11):
         n = "event" + str(i)
         timeline_writer.write_trace_events(
-            tensor_name="DurationEventTest", op_name=n, step_num=i, phase="B"
+            training_phase="DurationEventTest", op_name=n, step_num=i, phase="B"
         )
         timeline_writer.write_trace_events(
-            tensor_name="DurationEventTest", op_name=n, step_num=i, phase="E"
+            training_phase="DurationEventTest", op_name=n, step_num=i, phase="E"
         )
 
     timeline_writer.flush()
@@ -109,6 +119,12 @@ def test_duration_events(out_dir):
 
 @pytest.mark.parametrize("policy", ["file_size", "file_interval"])
 def test_rotation_policy(out_dir, monkeypatch, policy):
+    """
+    This test is meant to test if files are being closed and open correctly according to the 2 rotation policies -
+    file_size -> close file if it exceeds certain size and open a new file
+    file_interval -> close file if the file's folder was created before a certain time period and open a new file in a new folder
+    :param policy: file_size or file_interval
+    """
     if policy == "file_size":
         monkeypatch.setenv("ENV_MAX_FILE_SIZE", "350")
     elif policy == "file_interval":
@@ -120,7 +136,9 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
 
     for i in range(1, 11):
         n = "event" + str(i)
-        timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name=n, step_num=i)
+        timeline_writer.write_trace_events(
+            training_phase=f"RotationPolicyTest_{policy}", op_name=n, step_num=i
+        )
 
     timeline_writer.flush()
     timeline_writer.close()

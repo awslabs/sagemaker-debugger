@@ -107,6 +107,10 @@ class TensorboardFileLocation(EventFileLocation):
 
 
 class TraceFileLocation:
+    # File path generated based on
+    # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
+    # {$ENV_NODE_ID_4digits0padded}_pythontimeline.json
+    # TODO: Get Node ID
     @staticmethod
     def get_file_location(base_dir=""):
         env_base_location = os.getenv("ENV_BASE_FOLDER", base_dir)

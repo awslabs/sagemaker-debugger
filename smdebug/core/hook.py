@@ -22,12 +22,10 @@ from smdebug.core.collection import (
 )
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
-    DEFAULT_SAGEMAKER_PROFILER_PATH,
     DEFAULT_WORKER_NAME,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
-    SM_PROFILER_FILE_PATH_ENV_STR,
     TRAINING_RUN,
 )
 from smdebug.core.hook_utils import get_tensorboard_dir, verify_and_get_out_dir
@@ -486,16 +484,13 @@ class BaseHook:
 
     def _maybe_get_timeline_writer(self) -> Optional[FileWriter]:
         """ Returns a FileWriter object if timeline_writer has been created, else creates a file at the
-        location specified by the environment variable SM_PROFILER_FILE_PATH and returns the FileWriter.
-
+        location specified by $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
+        {$ENV_NODE_ID_4digits0padded}_pythontimeline.json and returns the FileWriter.
+        TODO: Get Node ID for the file path
         """
         if not self.timeline_writer:
             self.timeline_writer = FileWriter(
-                trial_dir=self.out_dir,
-                step=self.step,
-                worker=get_tb_worker(),
-                wtype="trace",
-                mode=self.mode,
+                trial_dir=self.out_dir, worker=get_tb_worker(), wtype="trace"
             )
         return self.timeline_writer
 
@@ -652,7 +647,7 @@ class BaseHook:
 
     def _write_trace_event_summary(
         self,
-        tensor_name="",
+        training_phase="",
         op_name="",
         phase="X",
         step_num=0,
@@ -661,16 +656,25 @@ class BaseHook:
         worker="0",
         **kwargs,
     ):
+        """
+        Write trace events to the timeline.
+        :param training_phase: strings like, data_iterating, forward, backward, operations etc
+        :param op_name: more details about phase like whether dataset or iterator
+        :param phase: this is defaulted to 'X'
+        :param step_num: step number currently being executed
+        :param timestamp: start_time for the event
+        :param duration: any duration manually computed (in seconds)
+        :param kwargs: can be process id and thread id
+        """
         timeline_writer = self._maybe_get_timeline_writer()
         if timeline_writer:
             timeline_writer.write_trace_events(
-                tensor_name=tensor_name,
+                training_phase=training_phase,
                 op_name=op_name,
                 phase=phase,
                 step_num=step_num,
                 timestamp=timestamp,
                 duration=duration,
-                worker=worker,
                 **kwargs,
             )
 
