@@ -1,10 +1,10 @@
 # Standard Library
 import os
 import re
+import time
 from abc import ABC, abstractmethod
 
 # Local
-from .config_constants import DEFAULT_SAGEMAKER_PROFILER_PATH, SM_PROFILER_FILE_PATH_ENV_STR
 from .logger import get_logger
 from .utils import get_immediate_subdirectories
 
@@ -107,12 +107,16 @@ class TensorboardFileLocation(EventFileLocation):
 
 
 class TraceFileLocation:
-    def __init__(self, mode=None):
-        self.mode = mode
-
-    @property
-    def get_file_location(self):
-        return os.getenv(SM_PROFILER_FILE_PATH_ENV_STR, DEFAULT_SAGEMAKER_PROFILER_PATH)
+    @staticmethod
+    def get_file_location(base_dir=""):
+        env_base_location = os.getenv("ENV_BASE_FOLDER", base_dir)
+        date_hour = time.strftime("%y%m%d%H")
+        timestamp = int(round(time.time()))
+        file_path = os.path.join(
+            env_base_location,
+            "framework/pevents/" + date_hour + "/" + str(timestamp) + "_pythontimeline.json",
+        )
+        return file_path
 
 
 class IndexFileLocationUtils:
