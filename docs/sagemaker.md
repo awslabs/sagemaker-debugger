@@ -27,9 +27,9 @@ Here's a list of frameworks and versions which support this experience.
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](tensorflow.md) | 1.15 |
+| [TensorFlow](tensorflow.md) | 1.15, 2.1 |
 | [MXNet](mxnet.md) | 1.6 |
-| [PyTorch](pytorch.md) | 1.3 |
+| [PyTorch](pytorch.md) | 1.3, 1.4 |
 | [XGBoost](xgboost.md) | >=0.90-2 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|
 
 More details for the deep learning frameworks on which containers these are can be found here: [SageMaker Framework Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html) and [AWS Deep Learning Containers](https://aws.amazon.com/machine-learning/containers/). You do not have to specify any training container image if you want to use them on SageMaker. You only need to specify the version above to use these containers.
@@ -40,7 +40,7 @@ This library `smdebug` itself supports versions other than the ones listed above
 
 | Framework | Versions |
 | --- | --- |
-| [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15 |
+| [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15, 2.1, 2.2 |
 | Keras (with TensorFlow backend) | 2.3 |
 | [MXNet](mxnet.md) | 1.4, 1.5, 1.6 |
 | [PyTorch](pytorch.md) | 1.2, 1.3, 1.4, 1.5 |
