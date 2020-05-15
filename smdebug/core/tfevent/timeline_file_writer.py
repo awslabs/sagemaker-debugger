@@ -1,154 +1,153 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Writes events to disk in a trial dir."""
+
 # Standard Library
-import collections
-import json
+import threading
 import time
 
+# Third Party
+import six
+
 # First Party
-from smdebug.core.access_layer.file import TSAccessFile
-from smdebug.core.access_layer.s3 import TSAccessS3
-from smdebug.core.utils import is_s3
+from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
 
 
-class TimelineWriter(object):
-    def __init__(self, file_path):
-        """ Writer is initialized upon adding the first index. """
-        self.file_path = file_path
-        self.event_payload = []
-        self.writer = None
-        self.is_first = True
-        self.tensor_table = collections.defaultdict(int)
-        self.start_time_since_epoch_in_micros = int(round(time.time() * 1000000))
-        self._init_writer()
-        self.writer.write("[\n")
+def size_and_shape(t):
+    if type(t) == bytes or type(t) == str:
+        return (len(t), [len(t)])
+    return (t.nbytes, t.shape)
 
-    def __exit__(self):
-        self.close()
 
-    def _init_writer(self):
-        s3, bucket_name, key_name = is_s3(self.file_path)
-        if s3:
-            self.writer = TSAccessS3(bucket_name, key_name, binary=False)
-        else:
-            self.writer = TSAccessFile(self.file_path, "a+")
+def _get_sentinel_event():
+    """Generate a sentinel event for terminating worker."""
+    return TimelineRecord()
+
+
+class TimelineFileWriter:
+    """This class is adapted from EventFileWriter in Tensorflow:
+    https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py
+    Writes `Event` protocol buffers to an event file.
+    The `EventFileWriter` class creates an event file in the specified directory,
+    and asynchronously writes Event protocol buffers to the file. The Event file
+    is encoded using the tfrecord format, which is similar to RecordIO.
+    """
+
+    def __init__(
+        self,
+        path,
+        max_queue=10,
+        flush_secs=120,
+        index_writer=None,
+        verbose=False,
+        write_checksum=False,
+    ):
+        """Creates a `EventFileWriter` and an event file to write to.
+        On construction the summary writer creates a new event file in `logdir`.
+        This event file will contain `Event` protocol buffers, which are written to
+        disk via the add_event method.
+        The other arguments to the constructor control the asynchronous writes to
+        the event file:
+        """
+        self._path = path
+        self._event_queue = six.moves.queue.Queue(max_queue)
+        self._ev_writer = TimelineWriter(path=self._path)
+        self._ev_writer.init()
+        self._flush_secs = flush_secs
+        self._sentinel_event = _get_sentinel_event()
+        self._worker = _TimelineLoggerThread(
+            queue=self._event_queue,
+            ev_writer=self._ev_writer,
+            flush_secs=self._flush_secs,
+            sentinel_event=self._sentinel_event,
+        )
+        self._worker.start()
 
     def write_trace_events(
-        self, tensor_name="", op_name="", timestamp=None, duration=1, worker=0, args=None
+        self, tensor_name="", op_name="", phase="X", timestamp=None, duration=1, worker=0, args=None
     ):
-        # args = {
-        #     # "start_timestamp": timestamp - duration if timestamp else time.time() - duration,
-        #     # "end_timestamp": timestamp if timestamp else time.time(),
-        #     "step number": step_num
-        # }
-        # args["start_timestamp"] = int(args["start_timestamp"] * 100000)
-        # args["end_timestamp"] = int(args["end_timestamp"] * 100000)
         duration_in_us = int(duration * 100000)
-        event = Event(
+        event = TimelineRecord(
             tensor_name=tensor_name,
-            op_name=op_name,
+            operator_name=op_name,
+            phase=phase,
             timestamp=timestamp,
             args=args,
             duration=duration_in_us,
-            start_time_since_epoch=self.start_time_since_epoch_in_micros,
         )
-        self.add_event(event)
+        self.write_event(event)
 
-    def add_event(self, event):
-        if not self.writer:
-            self._init_writer()
-        self.event_payload.append(event)
+    def write_event(self, event):
+        """Adds an event to the event file."""
+        self._event_queue.put(event)
 
     def flush(self):
-        """Flushes the event string to file."""
-        if not self.writer:
-            return
-
-        for event in self.event_payload:
-            if self.tensor_table[event.tensor_name] == 0:
-                tensor_idx = len(self.tensor_table)
-                self.tensor_table[event.tensor_name] = tensor_idx
-                if self.is_first:
-                    args = {
-                        "name": "start_time_since_epoch_in_micros",
-                        "value": self.start_time_since_epoch_in_micros,
-                    }
-                    metadata = MetaData(name="process_name", args=args, tensor_idx=0)
-                    self.writer.write(metadata.to_json() + ",\n")
-
-                    args = {"sort_index": 0}
-                    metadata = MetaData(name="process_sort_index", args=args, tensor_idx=0)
-                    self.writer.write(metadata.to_json() + ",\n")
-
-                args = {"name": event.tensor_name}
-                metadata = MetaData(name="process_name", args=args, tensor_idx=tensor_idx)
-                self.writer.write(metadata.to_json() + ",\n")
-
-                args = {"sort_index": tensor_idx}
-                metadata = MetaData(name="process_sort_index", args=args, tensor_idx=tensor_idx)
-                self.writer.write(metadata.to_json() + ",\n")
-
-                self.is_first = False
-
-            event.pid = self.tensor_table[event.tensor_name]
-            self.writer.write(event.to_json() + ",\n")
-        self.writer.flush()
-        self.event_payload = []
+        """Flushes the event file to disk.
+        Call this method to make sure that all pending events have been written to disk.
+        """
+        self._event_queue.join()
+        self._ev_writer.flush()
 
     def close(self):
-        """Closes the timeline writer."""
-        if self.writer is not None:
-            self.writer._accessor.seek(self.writer._accessor.tell() - 2)
-            self.writer._accessor.truncate()
-            self.writer.write("\n]")
-            self.flush()
-            self.writer.close()
-            self.writer = None
+        """Flushes the event file to disk and close the file.
+        Call this method when you do not need the summary writer anymore.
+        """
+        self.write_event(self._sentinel_event)
+        self.flush()
+        self._worker.join()
+        self._ev_writer.close()
+
+    def name(self):
+        return self._ev_writer.name()
 
 
-class Event:
-    def __init__(
-        self,
-        tensor_name="",
-        op_name="",
-        phase="X",
-        args=None,
-        timestamp=None,
-        duration=1,
-        start_time_since_epoch=0,
-    ):
-        self.tensor_name = tensor_name
-        self.op_name = op_name
-        self.phase = phase
-        self.pid = 0
-        self.args = args
-        self.timestamp = timestamp
-        self.duration = duration
-        self.start_time_since_epoch_in_micros = start_time_since_epoch
+class _TimelineLoggerThread(threading.Thread):
+    """Thread that logs events. Copied from
+    https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py#L133"""
 
-    def to_json(self):
-        json_dict = {
-            "name": self.op_name,
-            "ph": self.phase,
-            "ts": self.timestamp - self.start_time_since_epoch_in_micros
-            if self.timestamp
-            else int(round(time.time() * 1000000)) - self.start_time_since_epoch_in_micros,
-            "pid": self.pid,
-            "dur": self.duration,
-        }
-        if self.args:
-            json_dict["args"] = self.args
+    def __init__(self, queue, ev_writer, flush_secs, sentinel_event):
+        """Creates an _EventLoggerThread."""
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self._queue = queue
+        self._ev_writer = ev_writer
+        self._flush_secs = flush_secs
+        # The first event will be flushed immediately.
+        self._next_event_flush_time = 0
+        self._sentinel_event = sentinel_event
 
-        return json.dumps(json_dict)
+    def run(self):
+        while True:
+            event = self._queue.get()
 
+            if event is self._sentinel_event:
+                self._queue.task_done()
+                break
 
-class MetaData:
-    def __init__(self, name="", tensor_idx=0, args=None):
-        self.name = name
-        self.tensor_idx = tensor_idx
-        self.args = args
+            try:
+                # write event
+                _ = self._ev_writer.write_event(event)
 
-    def to_json(self):
-        json_dict = {"name": self.name, "ph": "M", "pid": self.tensor_idx}
-        if self.args:
-            json_dict["args"] = self.args
-
-        return json.dumps(json_dict)
+                # Flush the event writer every so often.
+                now = time.time()
+                if now > self._next_event_flush_time:
+                    self._ev_writer.flush()
+                    # Do it again in two minutes.
+                    self._next_event_flush_time = now + self._flush_secs
+            finally:
+                self._queue.task_done()

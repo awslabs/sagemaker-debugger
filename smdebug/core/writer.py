@@ -28,7 +28,7 @@ from smdebug.core.tfevent.summary import (
     make_numpy_array,
     scalar_summary,
 )
-from smdebug.core.tfevent.timeline_file_writer import TimelineWriter
+from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local
@@ -42,6 +42,7 @@ from .logger import get_logger
 from .modes import ModeKeys
 
 logger = get_logger()
+timeline_writer = None
 
 
 class FileWriter:
@@ -104,7 +105,12 @@ class FileWriter:
             assert False, "Writer type not supported: {}".format(wtype)
 
         if wtype == "trace":
-            self._writer = TimelineWriter(event_file_path)
+            global timeline_writer
+            if not timeline_writer:
+                self._writer = TimelineFileWriter(event_file_path)
+                timeline_writer = self._writer
+            else:
+                self._writer = timeline_writer
         else:
             self._writer = EventFileWriter(
                 path=event_file_path,
@@ -169,19 +175,21 @@ class FileWriter:
         self,
         tensor_name="",
         op_name="",
+        phase="X",
         step_num=0,
         timestamp=None,
         duration=1,
         worker="0",
         **kwargs,
     ):
-        if not isinstance(self._writer, TimelineWriter):
+        if not isinstance(self._writer, TimelineFileWriter):
             return
         other_args = {"step number": step_num}
         other_args.update(kwargs)
         self._writer.write_trace_events(
             tensor_name=tensor_name,
             op_name=op_name,
+            phase=phase,
             timestamp=timestamp,
             duration=duration,
             worker=worker,
