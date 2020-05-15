@@ -98,8 +98,8 @@ class FileWriter:
             event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
         elif wtype == "trace":
-            el = TraceFileLocation(mode=self.mode)
-            event_file_path = el.get_file_location
+            el = TraceFileLocation()
+            event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
         else:
             assert False, "Writer type not supported: {}".format(wtype)

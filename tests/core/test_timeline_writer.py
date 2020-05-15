@@ -3,6 +3,7 @@ import json
 import multiprocessing as mp
 import os
 import time
+from pathlib import Path
 
 # First Party
 from smdebug.core.config_constants import SM_PROFILER_FILE_PATH_ENV_STR
@@ -21,7 +22,13 @@ def test_create_timeline_file(out_dir, monkeypatch):
     timeline_writer.flush()
     timeline_writer.close()
 
-    with open(out_dir + "/test_timeline.json") as timeline_file:
+    files = []
+    for path in Path(out_dir + "/framework/pevents").rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    with open(files[0]) as timeline_file:
         events_dict = json.load(timeline_file)
 
     assert events_dict
@@ -83,7 +90,13 @@ def test_duration_events(out_dir, monkeypatch):
     timeline_writer.flush()
     timeline_writer.close()
 
-    with open(out_dir + "/test_timeline.json") as timeline_file:
+    files = []
+    for path in Path(out_dir + "/framework/pevents").rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    with open(files[0]) as timeline_file:
         events_dict = json.load(timeline_file)
 
     assert events_dict
