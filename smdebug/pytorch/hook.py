@@ -16,7 +16,6 @@ from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
-
 class Hook(CallbackHook):
     def __init__(
         self,
@@ -31,7 +30,7 @@ class Hook(CallbackHook):
         save_all=False,
         include_workers="one",
         profiler_enabled="True",
-        profiler_steps=[0,1,2]
+        profiler_steps=[0,1,2,3,4,5]
     ):
         collection_manager = CollectionManager()
         super().__init__(
@@ -64,6 +63,7 @@ class Hook(CallbackHook):
         self.profiler_enabled = profiler_enabled
         self.profiler_steps = profiler_steps
         self.autograd_profiler_enabled = False
+        timeline_writer = self._maybe_get_timeline_writer() 
 
     def _get_num_workers(self):
         """Check horovod and torch.distributed."""
@@ -130,23 +130,43 @@ class Hook(CallbackHook):
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
         if self.profiler_enabled and self.forward_start != 0:
-            if "forward" not in self.buffer:
-               self.buffer["forward"] = []
-               self.buffer["backward"] = []
-            self.buffer["forward"].append([self.forward_start, self.forward_end])
-            self.buffer["backward"].append([self.backward_start, self.backward_end])
+            self.timeline_writer.write_trace_events(
+               op_name="forward",
+               #timestamp=time.time(),
+               duration=self.forward_end-self.forward_start,
+               step_num=self.step)
+            self.timeline_writer.write_trace_events(
+               op_name="backward",
+               #timestamp=time.time(),
+               duration=self.backward_end-self.backward_start,
+               step_num=self.step)
+            self.timeline_writer.flush()
             if self.step in self.profiler_steps:
                 if not self.autograd_profiler_enabled:
                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(torch.autograd.ProfilerState.CUDA, False))
                    self.autograd_profiler_enabled = True
+                   self.start_profiler = time.time() * 1000000
             else:
                 if self.autograd_profiler_enabled:
                     records = torch.autograd._disable_profiler()
                     self.function_events = torch.autograd.profiler.EventList(torch.autograd.profiler.parse_cpu_trace(records), use_cuda=True)
-                    for event in self.function_events.key_averages():
-                        if event.key not in self.buffer:
-                            self.buffer[event.key] = []
-                        self.buffer[event.key].append([event.cpu_time_total, event.cuda_time_total])
+                    for index, event in enumerate(self.function_events):
+                        self.timeline_writer.write_trace_events(
+                           phase='X',
+                           op_name=event.name,
+                           timestamp=event.cpu_interval.start + self.start_profiler,
+                           duration=event.cpu_interval.elapsed_us(),
+                           tid=event.thread,
+                           step_num=self.step) 
+                        for k in event.kernels:
+                            self.timeline_writer.write_trace_events(
+                                op_name=k.name,
+                                phase='X',
+                                timestamp=k.interval.start + self.start_profiler,
+                                duration=k.interval.elapsed_us(),
+                                tid=k.device,
+                                step_num=self.step) 
+                    self.timeline_writer.flush()
                     self.autograd_profiler_enabled = False
             self.backward_start = 0
         
@@ -166,9 +186,6 @@ class Hook(CallbackHook):
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
             self._log_params(module)
-            for sync_metric in self.buffer:
-                self._write_raw_tensor_simple("profiler_" + sync_metric, tensor_value=np.array(self.buffer[sync_metric]))
-            self.buffer = {}
         if self.last_saved_step is not None and not self.exported_collections:
             self.export_collections()
             self.exported_collections = True
@@ -215,7 +232,6 @@ class Hook(CallbackHook):
               if self.backward_start == 0:
                   self.backward_start = time.time()
               self.backward_end = time.time()
-
             
             if self._get_collections_to_save_for_step():
                 if grad is not None:
