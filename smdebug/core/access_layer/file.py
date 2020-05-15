@@ -50,10 +50,14 @@ class TSAccessFile(TSAccessBase):
         """Close the file and move it from /tmp to a permanent directory."""
         self._accessor.close()
         if self.mode in WRITE_MODES:
-            shutil.move(self.temp_path, self.path)
-            self.logger.debug(
-                f"Sagemaker-Debugger: Wrote {os.path.getsize(self.path)} bytes to file {self.path}"
-            )
+            if os.path.getsize(self.temp_path) > 0:
+                shutil.move(self.temp_path, self.path)
+                self.logger.debug(
+                    f"Sagemaker-Debugger: Wrote {os.path.getsize(self.path)} bytes to file {self.path}"
+                )
+            else:
+                os.remove(self.temp_path)
+                self.logger.debug(f"Sagemaker-Debugger: Deleted empty file {self.temp_path}")
 
     def ingest_all(self):
         self._data = self._accessor.read()
