@@ -64,6 +64,16 @@ class TimelineRecordWriter:
 
     def __init__(self, path, write_checksum, start_time_in_us):
         self.write_checksum = write_checksum
+        self._writer = None
+        self.start_time_in_us = start_time_in_us
+        self.tensor_table = collections.defaultdict(int)
+        self.is_first = True
+        self.open(path, start_time_in_us)
+
+    def __del__(self):
+        self.close()
+
+    def open(self, path, start_time_in_us):
         s3, bucket_name, key_name = is_s3(path)
         try:
             if s3:
@@ -72,13 +82,10 @@ class TimelineRecordWriter:
                 self._writer = TSAccessFile(path, "a+")
         except (OSError, IOError) as err:
             raise ValueError("failed to open {}: {}".format(path, str(err)))
-        self.is_first = True
-        self.tensor_table = collections.defaultdict(int)
         self.start_time_in_us = start_time_in_us
+        self.tensor_table = collections.defaultdict(int)
+        self.is_first = True
         self._writer.write("[\n")
-
-    def __del__(self):
-        self.close()
 
     def write_record(self, timeline_record):
         """Writes a serialized event to file."""
@@ -141,6 +148,11 @@ class TimelineWriter:
 
     def __del__(self):
         self.close()
+
+    def open(self, path):
+        if self.tlrecord_writer is None:
+            return
+        self.tlrecord_writer.open(path, self.start_time_since_epoch_in_micros)
 
     def _init_if_needed(self):
         if self.tlrecord_writer is not None:

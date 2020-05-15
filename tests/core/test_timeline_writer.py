@@ -5,13 +5,14 @@ import os
 import time
 from pathlib import Path
 
+# Third Party
+import pytest
+
 # First Party
-from smdebug.core.config_constants import SM_PROFILER_FILE_PATH_ENV_STR
 from smdebug.core.writer import FileWriter
 
 
-def test_create_timeline_file(out_dir, monkeypatch):
-    monkeypatch.setenv(SM_PROFILER_FILE_PATH_ENV_STR, out_dir + "/test_timeline.json")
+def test_create_timeline_file(out_dir):
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
@@ -48,8 +49,9 @@ def run(rank, timeline_writer):
     timeline_writer.flush()
 
 
+@pytest.mark.skip
 def test_multiprocess_write(out_dir, monkeypatch):
-    monkeypatch.setenv(SM_PROFILER_FILE_PATH_ENV_STR, out_dir + "/test_timeline.json")
+    # monkeypatch.setenv(SM_PROFILER_FILE_PATH_ENV_STR, out_dir + "/test_timeline.json")
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
@@ -66,14 +68,20 @@ def test_multiprocess_write(out_dir, monkeypatch):
 
     timeline_writer.close()
 
-    with open(out_dir + "/test_timeline.json") as timeline_file:
+    files = []
+    for path in Path(out_dir + "/framework/pevents").rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    with open(files[0]) as timeline_file:
         events_dict = json.load(timeline_file)
 
     assert events_dict
 
 
-def test_duration_events(out_dir, monkeypatch):
-    monkeypatch.setenv(SM_PROFILER_FILE_PATH_ENV_STR, out_dir + "/test_timeline.json")
+@pytest.mark.slow
+def test_duration_events(out_dir):
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
@@ -82,10 +90,41 @@ def test_duration_events(out_dir, monkeypatch):
         timeline_writer.write_trace_events(
             tensor_name="DurationEventTest", op_name=n, step_num=i, phase="B"
         )
-        time.sleep(0.5)
+        time.sleep(0.1)
         timeline_writer.write_trace_events(
             tensor_name="DurationEventTest", op_name=n, step_num=i, phase="E"
         )
+
+    timeline_writer.flush()
+    timeline_writer.close()
+
+    files = []
+    for path in Path(out_dir + "/framework/pevents").rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    with open(files[0]) as timeline_file:
+        events_dict = json.load(timeline_file)
+
+    assert events_dict
+
+
+@pytest.mark.parametrize("policy", ["file_interval"])
+def test_rotation_policy(out_dir, monkeypatch, policy):
+    if policy == "file_size":
+        monkeypatch.setenv("ENV_MAX_FILE_SIZE", "350")
+    elif policy == "file_interval":
+        monkeypatch.setenv("ENV_CLOSE_FILE_INTERVAL", "1")
+    monkeypatch.setenv("SM_PROFILER_FILE_PATH_ENV_STR", out_dir + "/test_timeline.json")
+    timeline_writer = FileWriter(
+        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", flush_secs=1
+    )
+    assert timeline_writer
+
+    for i in range(1, 11):
+        n = "event" + str(i)
+        timeline_writer.write_trace_events(tensor_name="FileCreationTest", op_name=n, step_num=i)
 
     timeline_writer.flush()
     timeline_writer.close()
