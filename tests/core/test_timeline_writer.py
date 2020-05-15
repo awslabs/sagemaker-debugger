@@ -2,7 +2,6 @@
 import json
 import multiprocessing as mp
 import os
-import time
 from pathlib import Path
 
 # Third Party
@@ -80,7 +79,6 @@ def test_multiprocess_write(out_dir, monkeypatch):
     assert events_dict
 
 
-@pytest.mark.slow
 def test_duration_events(out_dir):
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
@@ -90,7 +88,6 @@ def test_duration_events(out_dir):
         timeline_writer.write_trace_events(
             tensor_name="DurationEventTest", op_name=n, step_num=i, phase="B"
         )
-        time.sleep(0.1)
         timeline_writer.write_trace_events(
             tensor_name="DurationEventTest", op_name=n, step_num=i, phase="E"
         )
@@ -110,13 +107,12 @@ def test_duration_events(out_dir):
     assert events_dict
 
 
-@pytest.mark.parametrize("policy", ["file_interval"])
+@pytest.mark.parametrize("policy", ["file_size", "file_interval"])
 def test_rotation_policy(out_dir, monkeypatch, policy):
     if policy == "file_size":
         monkeypatch.setenv("ENV_MAX_FILE_SIZE", "350")
     elif policy == "file_interval":
         monkeypatch.setenv("ENV_CLOSE_FILE_INTERVAL", "1")
-    monkeypatch.setenv("SM_PROFILER_FILE_PATH_ENV_STR", out_dir + "/test_timeline.json")
     timeline_writer = FileWriter(
         trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", flush_secs=1
     )
