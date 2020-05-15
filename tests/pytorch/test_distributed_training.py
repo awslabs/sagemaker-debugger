@@ -9,6 +9,7 @@ The key methods are
 # Standard Library
 import os
 import shutil
+import time
 
 # Third Party
 import numpy as nn
@@ -83,6 +84,15 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
 
     for epoch in range(num_epochs):
         epoch_loss = 0.0
+        start_time = time.time()
+        hook._write_trace_event_summary(
+            training_phase="Training",
+            op_name="TrainingEpochStart",
+            phase="B",
+            timestamp=start_time,
+            rank=rank,
+            epoch=epoch,
+        )
         for _ in range(num_batches):
             optimizer.zero_grad()
             data, target = dataset(batch_size)
@@ -92,6 +102,16 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
             loss.backward()
             average_gradients(model)
             optimizer.step()
+        end_time = time.time()
+        hook._write_trace_event_summary(
+            training_phase="Training",
+            op_name="TrainingEpochEnd",
+            phase="E",
+            timestamp=end_time,
+            rank=rank,
+            duration=end_time - start_time,
+            epoch=epoch,
+        )
         # print(f"Rank {dist.get_rank()}, epoch {epoch}: {epoch_loss / num_batches}")
 
     assert hook._get_worker_name() == f"worker_{dist.get_rank()}"

@@ -17,14 +17,7 @@ TimelineRecord represents one trace event that ill be written into a trace event
 
 class TimelineRecord:
     def __init__(
-        self,
-        training_phase="",
-        phase="X",
-        operator_name="",
-        args=None,
-        timestamp=0,
-        duration=0,
-        start_since_epoch=0,
+        self, training_phase="", phase="X", operator_name="", args=None, timestamp=0, duration=0
     ):
         """
 
@@ -34,27 +27,20 @@ class TimelineRecord:
         :param args: other information to be added as args
         :param timestamp: start_time for the event
         :param duration: any duration manually computed (in seconds)
-        :param start_since_epoch: start time to be added to file header as metadata. All event times are relative to this.
         """
         self.training_phase = training_phase
         self.phase = phase
         self.op_name = operator_name
         self.args = args
-        self.ts_micros = timestamp
+        self.ts_micros = (
+            int(timestamp * 1000000) if timestamp else int(round(time.time() * 1000000))
+        )
         self.duration = duration
         self.pid = 0
         self.tid = 0
-        self.start_since_epoch_in_us = start_since_epoch
 
     def to_json(self):
-        json_dict = {
-            "name": self.op_name,
-            "pid": self.pid,
-            "ph": self.phase,
-            "ts": self.ts_micros - self.start_since_epoch_in_us
-            if self.ts_micros
-            else int(round(time.time() * 1000000)) - self.start_since_epoch_in_us,
-        }
+        json_dict = {"name": self.op_name, "pid": self.pid, "ph": self.phase, "ts": self.ts_micros}
         if self.phase == "X":
             json_dict.update({"dur": self.duration})
 
@@ -121,7 +107,7 @@ class TimelineRecordWriter:
 
             self.is_first = False
 
-        timeline_record.start_since_epoch_in_us = self.start_time_in_us
+        timeline_record.ts_micros -= self.start_time_in_us
         timeline_record.pid = self.tensor_table[timeline_record.training_phase]
 
         # write the trace event record

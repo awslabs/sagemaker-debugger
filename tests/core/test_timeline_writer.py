@@ -25,7 +25,13 @@ def test_create_timeline_file(out_dir):
 
     for i in range(1, 11):
         n = "event" + str(i)
-        timeline_writer.write_trace_events(training_phase="FileCreationTest", op_name=n, step_num=i)
+        timestamp = None
+        # setting timestamp half the time
+        if i % 2 == 0:
+            timestamp = time.time()
+        timeline_writer.write_trace_events(
+            training_phase="FileCreationTest", op_name=n, step_num=i, timestamp=timestamp
+        )
 
     timeline_writer.flush()
     timeline_writer.close()
