@@ -2,6 +2,7 @@
 import json
 import multiprocessing as mp
 import os
+import time
 from pathlib import Path
 
 # Third Party
@@ -117,6 +118,7 @@ def test_duration_events(out_dir):
     assert events_dict
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("policy", ["file_size", "file_interval"])
 def test_rotation_policy(out_dir, monkeypatch, policy):
     """
@@ -126,16 +128,21 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
     :param policy: file_size or file_interval
     """
     if policy == "file_size":
-        monkeypatch.setenv("ENV_MAX_FILE_SIZE", "350")
+        monkeypatch.setenv("ENV_MAX_FILE_SIZE", "300")  # rotate file if size > 300 bytes
     elif policy == "file_interval":
-        monkeypatch.setenv("ENV_CLOSE_FILE_INTERVAL", "1")
+        monkeypatch.setenv(
+            "ENV_CLOSE_FILE_INTERVAL", "1"
+        )  # rotate file if file interval > 1 second
+
     timeline_writer = FileWriter(
         trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", flush_secs=1
     )
     assert timeline_writer
 
-    for i in range(1, 11):
+    for i in range(1, 5):
         n = "event" + str(i)
+        # adding a sleep here to trigger rotation policy
+        time.sleep(1)
         timeline_writer.write_trace_events(
             training_phase=f"RotationPolicyTest_{policy}", op_name=n, step_num=i
         )
@@ -147,9 +154,17 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
     for path in Path(out_dir + "/framework/pevents").rglob("*.json"):
         files.append(path)
 
-    assert len(files) == 1
+    # rotate by file_size, gives 4 files - 1 per event
+    # rotate by file_interval, gives 2 files
+    assert len(files) >= 2
 
-    with open(files[0]) as timeline_file:
-        events_dict = json.load(timeline_file)
+    # count the number of event JSON strings. This is to ensure all events have been written.
+    event_ctr = 0
+    for file_name in files:
+        with open(file_name) as timeline_file:
+            events_dict = json.load(timeline_file)
+            for e in events_dict:
+                if e["name"].startswith("event"):
+                    event_ctr += 1
 
-    assert events_dict
+    assert event_ctr == 4

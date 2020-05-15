@@ -136,9 +136,11 @@ class TimelineRecordWriter:
         """Closes the record writer."""
         if self._writer is not None:
             # seeking the last ',' and replacing with ']' to mark EOF
-            self._writer._accessor.seek(self._writer._accessor.tell() - 2)
+            file_seek_pos = self._writer._accessor.tell()
+            self._writer._accessor.seek(file_seek_pos - 2)
             self._writer._accessor.truncate()
-            self._writer.write("\n]")
+            if file_seek_pos > 2:
+                self._writer.write("\n]")
 
             self.flush()
             self._writer.close()
@@ -164,9 +166,11 @@ class TimelineWriter:
         self.close()
 
     def open(self, path):
-        if self.tlrecord_writer is None:
-            return
-        self.tlrecord_writer.open(path, self.start_time_since_epoch_in_micros)
+        self.start_time_since_epoch_in_micros = int(round(time.time() * 1000000))
+        self.tlrecord_writer = TimelineRecordWriter(
+            path, self.write_checksum, self.start_time_since_epoch_in_micros
+        )
+        self._filename = path
 
     def _init_if_needed(self):
         if self.tlrecord_writer is not None:

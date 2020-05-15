@@ -139,28 +139,25 @@ class _TimelineLoggerThread(threading.Thread):
                     file_name = self._ev_writer.name()
                     path = file_name.split("framework/pevents/")
 
-                    # get the date and hour of the current file's folder
-                    date_hour_path = path[1].split("/")[0]
-                    current_file_datehour = time.strptime(date_hour_path, "%y%m%d%H")
+                    # get the timestamp of the current file's folder
+                    file_path = path[1].split("/")[1]
+                    file_timestamp = int(file_path.split("_")[0])
 
-                    # get the date and hour now
-                    current_time = time.localtime()
+                    # get the current timestamp
+                    current_time = time.time()
 
-                    # find the difference between the 2 times
-                    diff_in_minutes = int(
-                        round(
-                            (time.mktime(current_time) - time.mktime(current_file_datehour)) // 60
-                        )
-                    )
+                    # find the difference between the 2 times (in seconds)
+                    diff_in_seconds = int(round(current_time - file_timestamp))
 
                     # get the file size of the current directory
                     file_size = os.path.getsize(file_name + ".tmp")  # in bytes
 
                     # check if any of the rotation policies have been satisfied. close the existing
                     # trace file and open a new one
+                    # TODO: what is the default max_file_size and close_file_interval?
                     if file_size > int(
                         os.getenv("ENV_MAX_FILE_SIZE", file_size)
-                    ) or diff_in_minutes > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 60)):
+                    ) or diff_in_seconds > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 3600)):
                         self._ev_writer.close()
                         el = TraceFileLocation()
                         new_file_path = el.get_file_location(base_dir=path[0])
