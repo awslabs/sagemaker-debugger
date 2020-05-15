@@ -28,7 +28,7 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
-        - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets
+        - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets pytest-cov
 
   pre_build:
     commands:
