@@ -97,17 +97,17 @@ class FileWriter:
             event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
         elif wtype == "trace":
+            # Create TimelineFileWriter to record trace events
             el = TraceFileLocation()
             event_file_path = el.get_file_location(base_dir=self.trial_dir)
+            self._writer = TimelineFileWriter(
+                path=event_file_path, flush_secs=flush_secs, max_queue=max_queue
+            )
             self.index_writer = None
         else:
             assert False, "Writer type not supported: {}".format(wtype)
 
-        if wtype == "trace":
-            self._writer = TimelineFileWriter(
-                path=event_file_path, flush_secs=flush_secs, max_queue=max_queue
-            )
-        else:
+        if wtype != "trace":
             self._writer = EventFileWriter(
                 path=event_file_path,
                 index_writer=self.index_writer,
@@ -169,13 +169,12 @@ class FileWriter:
 
     def write_trace_events(
         self,
-        tensor_name="",
+        training_phase="",
         op_name="",
         phase="X",
         step_num=0,
         timestamp=None,
         duration=1,
-        worker="0",
         **kwargs,
     ):
         if not isinstance(self._writer, TimelineFileWriter):
@@ -183,12 +182,11 @@ class FileWriter:
         other_args = {"step number": step_num}
         other_args.update(kwargs)
         self._writer.write_trace_events(
-            tensor_name=tensor_name,
+            training_phase=training_phase,
             op_name=op_name,
             phase=phase,
             timestamp=timestamp,
             duration=duration,
-            worker=worker,
             args=other_args,
         )
 

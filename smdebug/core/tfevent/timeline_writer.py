@@ -10,10 +10,15 @@ from smdebug.core.logger import get_logger
 from smdebug.core.utils import is_s3
 
 
+"""
+TimelineRecord represents one trace event that ill be written into a trace event JSON file.
+"""
+
+
 class TimelineRecord:
     def __init__(
         self,
-        tensor_name="",
+        training_phase="",
         phase="X",
         operator_name="",
         args=None,
@@ -21,7 +26,17 @@ class TimelineRecord:
         duration=0,
         start_since_epoch=0,
     ):
-        self.tensor_name = tensor_name
+        """
+
+        :param training_phase: strings like, data_iterating, forward, backward, operations etc
+        :param phase: Trace event phases. Example "X", "B", "E", "M"
+        :param operator_name: more details about phase like whether dataset or iterator
+        :param args: other information to be added as args
+        :param timestamp: start_time for the event
+        :param duration: any duration manually computed (in seconds)
+        :param start_since_epoch: start time to be added to file header as metadata. All event times are relative to this.
+        """
+        self.training_phase = training_phase
         self.phase = phase
         self.op_name = operator_name
         self.args = args
@@ -50,17 +65,7 @@ class TimelineRecord:
 
 
 class TimelineRecordWriter:
-    """Write records in the following format for a single record event_str:
-    uint64 len(event_str)
-    uint32 masked crc of len(event_str)
-    byte event_str
-    uint32 masked crc of event_str
-    The implementation is ported from
-    https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/lib/io/record_writer.cc
-    Here we simply define a byte string _dest to buffer the record to be written to files.
-    The flush and close mechanism is totally controlled in this class.
-    In TensorFlow, _dest is a object instance of ZlibOutputBuffer (C++) which has its own flush
-    and close mechanism defined."""
+    """Write records in the following format for a single TimelineRecord"""
 
     def __init__(self, path, write_checksum, start_time_in_us):
         self.write_checksum = write_checksum
@@ -74,6 +79,9 @@ class TimelineRecordWriter:
         self.close()
 
     def open(self, path, start_time_in_us):
+        """
+        Open the trace event file either from init or when closing and opening a file based on rotation policy
+        """
         s3, bucket_name, key_name = is_s3(path)
         try:
             if s3:
@@ -88,10 +96,12 @@ class TimelineRecordWriter:
         self._writer.write("[\n")
 
     def write_record(self, timeline_record):
-        """Writes a serialized event to file."""
-        if self.tensor_table[timeline_record.tensor_name] == 0:
+        """Writes a TimelineRecord to file."""
+        if self.tensor_table[timeline_record.training_phase] == 0:
             tensor_idx = len(self.tensor_table)
-            self.tensor_table[timeline_record.tensor_name] = tensor_idx
+            self.tensor_table[timeline_record.training_phase] = tensor_idx
+
+            # First writing a metadata event
             if self.is_first:
                 args = {"name": "start_time_since_epoch_in_micros", "value": self.start_time_in_us}
                 json_dict = {"name": "process_name", "ph": "M", "pid": 0, "args": args}
@@ -101,7 +111,7 @@ class TimelineRecordWriter:
                 json_dict = {"name": "process_sort_index", "ph": "M", "pid": 0, "args": args}
                 self._writer.write(json.dumps(json_dict) + ",\n")
 
-            args = {"name": timeline_record.tensor_name}
+            args = {"name": timeline_record.training_phase}
             json_dict = {"name": "process_name", "ph": "M", "pid": tensor_idx, "args": args}
             self._writer.write(json.dumps(json_dict) + ",\n")
 
@@ -112,27 +122,31 @@ class TimelineRecordWriter:
             self.is_first = False
 
         timeline_record.start_since_epoch_in_us = self.start_time_in_us
-        timeline_record.pid = self.tensor_table[timeline_record.tensor_name]
+        timeline_record.pid = self.tensor_table[timeline_record.training_phase]
+
+        # write the trace event record
         return self._writer.write(timeline_record.to_json() + ",\n")
 
     def flush(self):
-        """Flushes the event string to file."""
+        """Flushes the TimelineRecord string to file."""
         assert self._writer is not None
         self._writer.flush()
 
     def close(self):
         """Closes the record writer."""
         if self._writer is not None:
+            # seeking the last ',' and replacing with ']' to mark EOF
             self._writer._accessor.seek(self._writer._accessor.tell() - 2)
             self._writer._accessor.truncate()
             self._writer.write("\n]")
+
             self.flush()
             self._writer.close()
             self._writer = None
 
 
 class TimelineWriter:
-    """Writes `Event` protocol buffers to an event file. This class is ported from
+    """Writes TimelineRecord to a trace event file. This class is ported from
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
@@ -165,8 +179,8 @@ class TimelineWriter:
         self._init_if_needed()
 
     def write_event(self, record):
-        """Appends event to the file."""
-        # Check if event is of type event_pb2.Event proto.
+        """Appends trace event to the file."""
+        # Check if event is of type TimelineRecord.
         if not isinstance(record, TimelineRecord):
             raise TypeError("expected a TimelineRecord, " " but got %s" % type(record))
         if self.tlrecord_writer is None:
@@ -176,7 +190,7 @@ class TimelineWriter:
         return position_and_length_of_record
 
     def flush(self):
-        """Flushes the event file to disk."""
+        """Flushes the trace event file to disk."""
         if self._num_outstanding_events == 0 or self.tlrecord_writer is None:
             return
         self.tlrecord_writer.flush()

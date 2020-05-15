@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Writes events to disk in a trial dir."""
+"""Writes trace events to disk in trial dir or user-specified dir."""
 
 # Standard Library
 import os
@@ -30,31 +30,23 @@ from smdebug.core.locations import TraceFileLocation
 from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
 
 
-def size_and_shape(t):
-    if type(t) == bytes or type(t) == str:
-        return (len(t), [len(t)])
-    return (t.nbytes, t.shape)
-
-
 def _get_sentinel_event():
-    """Generate a sentinel event for terminating worker."""
+    """Generate a sentinel trace event for terminating worker."""
     return TimelineRecord()
 
 
 class TimelineFileWriter:
     """This class is adapted from EventFileWriter in Tensorflow:
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py
-    Writes `Event` protocol buffers to an event file.
-    The `EventFileWriter` class creates an event file in the specified directory,
-    and asynchronously writes Event protocol buffers to the file. The Event file
-    is encoded using the tfrecord format, which is similar to RecordIO.
+    Writes TimelineRecord to a JSON trace file.
+    The `TimelineFileWriter` class creates a timeline JSON file in the specified directory,
+    and asynchronously writes TimelineRecord to the file.
     """
 
     def __init__(self, path, max_queue=10, flush_secs=120):
-        """Creates a `EventFileWriter` and an event file to write to.
-        On construction the summary writer creates a new event file in `logdir`.
-        This event file will contain `Event` protocol buffers, which are written to
-        disk via the add_event method.
+        """Creates a `TimelineFileWriter` and a trace event file to write to.
+        This event file will contain TimelineRecord as JSON strings, which are written to
+        disk via the write_record method.
         The other arguments to the constructor control the asynchronous writes to
         the event file:
         """
@@ -73,11 +65,11 @@ class TimelineFileWriter:
         self._worker.start()
 
     def write_trace_events(
-        self, tensor_name="", op_name="", phase="X", timestamp=None, duration=1, worker=0, args=None
+        self, training_phase="", op_name="", phase="X", timestamp=None, duration=1, args=None
     ):
-        duration_in_us = int(duration * 100000)
+        duration_in_us = int(duration * 100000)  # convert to micro seconds
         event = TimelineRecord(
-            tensor_name=tensor_name,
+            training_phase=training_phase,
             operator_name=op_name,
             phase=phase,
             timestamp=timestamp,
@@ -87,19 +79,18 @@ class TimelineFileWriter:
         self.write_event(event)
 
     def write_event(self, event):
-        """Adds an event to the event file."""
+        """Adds a trace event to the JSON file."""
         self._event_queue.put(event)
 
     def flush(self):
-        """Flushes the event file to disk.
+        """Flushes the trace event file to disk.
         Call this method to make sure that all pending events have been written to disk.
         """
         self._event_queue.join()
         self._ev_writer.flush()
 
     def close(self):
-        """Flushes the event file to disk and close the file.
-        Call this method when you do not need the summary writer anymore.
+        """Flushes the trace event file to disk and close the file.
         """
         self.write_event(self._sentinel_event)
         self.flush()
@@ -115,7 +106,7 @@ class _TimelineLoggerThread(threading.Thread):
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py#L133"""
 
     def __init__(self, queue, ev_writer, flush_secs, sentinel_event):
-        """Creates an _EventLoggerThread."""
+        """Creates a _TimelineLoggerThread."""
         threading.Thread.__init__(self)
         self.daemon = True
         self._queue = queue
@@ -140,17 +131,33 @@ class _TimelineLoggerThread(threading.Thread):
                 # Flush the event writer every so often.
                 now = time.time()
                 if now > self._next_event_flush_time:
+                    """
+                    Rotation policy:
+                    Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
+                    $ENV_CLOSE_FILE_INTERVAL time duration.
+                    """
                     file_name = self._ev_writer.name()
                     path = file_name.split("framework/pevents/")
+
+                    # get the date and hour of the current file's folder
                     date_hour_path = path[1].split("/")[0]
                     current_file_datehour = time.strptime(date_hour_path, "%y%m%d%H")
+
+                    # get the date and hour now
                     current_time = time.localtime()
+
+                    # find the difference between the 2 times
                     diff_in_minutes = int(
                         round(
                             (time.mktime(current_time) - time.mktime(current_file_datehour)) // 60
                         )
                     )
+
+                    # get the file size of the current directory
                     file_size = os.path.getsize(file_name + ".tmp")  # in bytes
+
+                    # check if any of the rotation policies have been satisfied. close the existing
+                    # trace file and open a new one
                     if file_size > int(
                         os.getenv("ENV_MAX_FILE_SIZE", file_size)
                     ) or diff_in_minutes > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 60)):
@@ -159,7 +166,7 @@ class _TimelineLoggerThread(threading.Thread):
                         new_file_path = el.get_file_location(base_dir=path[0])
                         self._ev_writer.open(path=new_file_path)
                     self._ev_writer.flush()
-                    # Do it again in two minutes.
+                    # Do it again in _flush_secs time.
                     self._next_event_flush_time = now + self._flush_secs
             finally:
                 self._queue.task_done()
