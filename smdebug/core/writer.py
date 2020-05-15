@@ -107,7 +107,9 @@ class FileWriter:
         if wtype == "trace":
             global timeline_writer
             if not timeline_writer:
-                self._writer = TimelineFileWriter(event_file_path)
+                self._writer = TimelineFileWriter(
+                    path=event_file_path, flush_secs=flush_secs, max_queue=max_queue
+                )
                 timeline_writer = self._writer
             else:
                 self._writer = timeline_writer

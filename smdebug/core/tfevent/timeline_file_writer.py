@@ -18,6 +18,7 @@
 """Writes events to disk in a trial dir."""
 
 # Standard Library
+import os
 import threading
 import time
 
@@ -25,6 +26,7 @@ import time
 import six
 
 # First Party
+from smdebug.core.locations import TraceFileLocation
 from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
 
 
@@ -48,15 +50,7 @@ class TimelineFileWriter:
     is encoded using the tfrecord format, which is similar to RecordIO.
     """
 
-    def __init__(
-        self,
-        path,
-        max_queue=10,
-        flush_secs=120,
-        index_writer=None,
-        verbose=False,
-        write_checksum=False,
-    ):
+    def __init__(self, path, max_queue=10, flush_secs=120):
         """Creates a `EventFileWriter` and an event file to write to.
         On construction the summary writer creates a new event file in `logdir`.
         This event file will contain `Event` protocol buffers, which are written to
@@ -146,6 +140,24 @@ class _TimelineLoggerThread(threading.Thread):
                 # Flush the event writer every so often.
                 now = time.time()
                 if now > self._next_event_flush_time:
+                    file_name = self._ev_writer.name()
+                    path = file_name.split("framework/pevents/")
+                    date_hour_path = path[1].split("/")[0]
+                    current_file_datehour = time.strptime(date_hour_path, "%y%m%d%H")
+                    current_time = time.localtime()
+                    diff_in_minutes = int(
+                        round(
+                            (time.mktime(current_time) - time.mktime(current_file_datehour)) // 60
+                        )
+                    )
+                    file_size = os.path.getsize(file_name + ".tmp")  # in bytes
+                    if file_size > int(
+                        os.getenv("ENV_MAX_FILE_SIZE", file_size)
+                    ) or diff_in_minutes > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 60)):
+                        self._ev_writer.close()
+                        el = TraceFileLocation()
+                        new_file_path = el.get_file_location(base_dir=path[0])
+                        self._ev_writer.open(path=new_file_path)
                     self._ev_writer.flush()
                     # Do it again in two minutes.
                     self._next_event_flush_time = now + self._flush_secs
