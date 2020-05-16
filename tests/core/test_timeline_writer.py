@@ -100,7 +100,7 @@ def test_multiprocess_write(out_dir):
                 if e["name"].startswith("event"):
                     event_ctr += 1
 
-    assert event_ctr == 20
+    assert event_ctr == cpu_count * 5
 
 
 def test_duration_events(out_dir):
