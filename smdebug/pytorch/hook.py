@@ -59,7 +59,6 @@ class Hook(CallbackHook):
 
         self.forward_start = 0
         self.backward_start = 0
-        self.buffer = {}
         self.profiler_enabled = profiler_enabled
         self.profiler_steps = profiler_steps
         self.autograd_profiler_enabled = False
@@ -132,7 +131,7 @@ class Hook(CallbackHook):
         if self.profiler_enabled and self.forward_start != 0:
             self.timeline_writer.write_trace_events(
                op_name="forward",
-               #timestamp=time.time(),
+               timestamp=time.time(),
                duration=self.forward_end-self.forward_start,
                step_num=self.step)
             self.timeline_writer.write_trace_events(
@@ -140,7 +139,6 @@ class Hook(CallbackHook):
                #timestamp=time.time(),
                duration=self.backward_end-self.backward_start,
                step_num=self.step)
-            self.timeline_writer.flush()
             if self.step in self.profiler_steps:
                 if not self.autograd_profiler_enabled:
                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(torch.autograd.ProfilerState.CUDA, False))
@@ -166,7 +164,6 @@ class Hook(CallbackHook):
                                 duration=k.interval.elapsed_us(),
                                 tid=k.device,
                                 step_num=self.step) 
-                    self.timeline_writer.flush()
                     self.autograd_profiler_enabled = False
             self.backward_start = 0
         
