@@ -48,48 +48,59 @@ def test_create_timeline_file(out_dir):
     assert events_dict
 
 
-def run(rank, timeline_writer):
-    timeline_writer.write_trace_events(
-        training_phase="MultiProcessTest",
-        op_name="event1",
-        step_num=0,
-        worker=os.getpid(),
-        process_rank=rank,
-    )
-    timeline_writer.write_trace_events(
-        training_phase="MultiProcessTest", op_name="event2", step_num=1, worker=os.getpid()
-    )
-    timeline_writer.flush()
-
-
-@pytest.mark.skip
-def test_multiprocess_write(out_dir):
+def run(rank, out_dir):
     timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
+    for i in range(1, 6):
+        n = "event" + str(i)
+        timeline_writer.write_trace_events(
+            training_phase="MultiProcessTest",
+            op_name=n,
+            step_num=0,
+            worker=os.getpid(),
+            process_rank=rank,
+        )
+
+    timeline_writer.flush()
+    timeline_writer.close()
+
+
+def test_multiprocess_write(out_dir):
+    """
+    This test is meant to test timeline events written multiple processes. Each process or worker, will have its own trace file.
+    """
     cpu_count = mp.cpu_count()
 
     processes = []
     for rank in range(cpu_count):
-        p = mp.Process(target=run, args=(rank, timeline_writer))
+        p = mp.Process(target=run, args=(rank, out_dir))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     for p in processes:
         p.join()
 
-    timeline_writer.close()
-
     files = []
     for path in Path(out_dir + "/framework/pevents").rglob("*.json"):
         files.append(path)
 
-    assert len(files) == 1
+    assert len(files) == cpu_count
 
     with open(files[0]) as timeline_file:
         events_dict = json.load(timeline_file)
 
     assert events_dict
+
+    event_ctr = 0
+    for file_name in files:
+        with open(file_name) as timeline_file:
+            events_dict = json.load(timeline_file)
+            for e in events_dict:
+                if e["name"].startswith("event"):
+                    event_ctr += 1
+
+    assert event_ctr == 20
 
 
 def test_duration_events(out_dir):
