@@ -35,7 +35,7 @@ class TimelineRecord:
         self.ts_micros = (
             int(timestamp * 1000000) if timestamp else int(round(time.time() * 1000000))
         )
-        self.duration = duration
+        self.duration = duration if duration else int(round(time.time() * 1000000) - self.ts_micros)
         self.pid = 0
         self.tid = 0
 
