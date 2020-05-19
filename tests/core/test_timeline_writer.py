@@ -12,6 +12,7 @@ from tests.analysis.utils import delete_s3_prefix
 
 # First Party
 from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
+from smdebug.core.config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
 from smdebug.core.s3_utils import list_s3_objects
 from smdebug.core.utils import load_json_as_dict
 from smdebug.core.writer import FileWriter
@@ -65,7 +66,7 @@ def test_create_timeline_file(out_dir, file_path):
     if file_path == "s3":
         files, _ = list_s3_objects(bucket=bucket, prefix=prefix)
     else:
-        for path in Path(trial_dir + "/framework/pevents").rglob("*.json"):
+        for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
             files.append(path)
 
     assert len(files) == 1
@@ -130,7 +131,7 @@ def test_multiprocess_write(out_dir, file_path):
     if file_path == "s3":
         files, _ = list_s3_objects(bucket=bucket, prefix=prefix)
     else:
-        for path in Path(trial_dir + "/framework/pevents").rglob("*.json"):
+        for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
             files.append(path)
 
     assert len(files) == cpu_count
@@ -193,7 +194,7 @@ def test_duration_events(out_dir, file_path):
     if file_path == "s3":
         files, _ = list_s3_objects(bucket=bucket, prefix=prefix)
     else:
-        for path in Path(trial_dir + "/framework/pevents").rglob("*.json"):
+        for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
             files.append(path)
 
     assert len(files) == 1
@@ -257,7 +258,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
     if file_path == "s3":
         files, _ = list_s3_objects(bucket=bucket, prefix=prefix)
     else:
-        for path in Path(trial_dir + "/framework/pevents").rglob("*.json"):
+        for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
             files.append(path)
 
     # rotate by file_size, gives 4 files - 1 per event

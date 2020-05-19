@@ -5,6 +5,7 @@ import time
 from abc import ABC, abstractmethod
 
 # Local
+from .config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
 from .logger import get_logger
 from .utils import get_immediate_subdirectories, get_tb_worker
 
@@ -119,7 +120,7 @@ class TraceFileLocation:
         worker_id = get_tb_worker()
         file_path = os.path.join(
             env_base_location,
-            "framework/pevents/"
+            SM_PROFILER_TRACE_FILE_PATH_CONST_STR
             + date_hour
             + "/"
             + str(timestamp)
