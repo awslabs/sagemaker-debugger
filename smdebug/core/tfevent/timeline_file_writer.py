@@ -28,11 +28,26 @@ import six
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
+from smdebug.core.utils import is_s3
 
 
 def _get_sentinel_event():
     """Generate a sentinel trace event for terminating worker."""
     return TimelineRecord()
+
+
+def _get_size_and_timestamp(file_path, ev_writer):
+    s3, bucket_name, key_name = is_s3(file_path)
+    path = file_path.split("framework/pevents/")
+    # get the timestamp of the current file's folder
+    fpath = path[1].split("/")[1]
+    file_timestamp = int(fpath.split("_")[0])
+    if s3:
+        file_size = ev_writer.tlrecord_writer._writer.get_file_size()
+    else:
+        file_size = os.path.getsize(file_path + ".tmp")  # in bytes
+
+    return file_size, file_timestamp
 
 
 class TimelineFileWriter:
@@ -138,15 +153,13 @@ class _TimelineLoggerThread(threading.Thread):
                     file_name = self._ev_writer.name()
                     path = file_name.split("framework/pevents/")
 
-                    # get the timestamp of the current file's folder
-                    file_path = path[1].split("/")[1]
-                    file_timestamp = int(file_path.split("_")[0])
+                    # get the file size of the current directory
+                    file_size, file_timestamp = _get_size_and_timestamp(
+                        file_name, ev_writer=self._ev_writer
+                    )
 
                     # find the difference between the 2 times (in seconds)
                     diff_in_seconds = int(round(now - file_timestamp))
-
-                    # get the file size of the current directory
-                    file_size = os.path.getsize(file_name + ".tmp")  # in bytes
 
                     # check if any of the rotation policies have been satisfied. close the existing
                     # trace file and open a new one
