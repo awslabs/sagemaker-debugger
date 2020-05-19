@@ -48,6 +48,9 @@ class TSAccessS3(TSAccessBase):
         else:
             self.data = ""
 
+    def get_file_size(self):
+        return len(self.data)
+
     def open(self, bucket_name, mode):
         raise NotImplementedError
 
@@ -58,32 +61,36 @@ class TSAccessS3(TSAccessBase):
         length = len(_data)
         return [start, length]
 
-    def close(self):
+    def close(self, delete_if_empty=False):
         if self.flushed:
             return
-        if self.binary:
-            self.logger.debug(
-                f"Sagemaker-Debugger: Writing binary data to s3://{os.path.join(self.bucket_name, self.key_name)}"
-            )
-            self.s3_client.upload_fileobj(
-                io.BytesIO(self.data), self.bucket_name, self.key_name, Config=self.transfer_config
-            )
-        else:
-            f = tempfile.NamedTemporaryFile(mode="w+")
-            self.logger.debug(
-                f"Sagemaker-Debugger: Writing string data to s3://{os.path.join(self.bucket_name, self.key_name)}"
-            )
+        if len(self.data) > 0 or not delete_if_empty:
+            if self.binary:
+                self.logger.debug(
+                    f"Sagemaker-Debugger: Writing binary data to s3://{os.path.join(self.bucket_name, self.key_name)}"
+                )
+                self.s3_client.upload_fileobj(
+                    io.BytesIO(self.data),
+                    self.bucket_name,
+                    self.key_name,
+                    Config=self.transfer_config,
+                )
+            else:
+                f = tempfile.NamedTemporaryFile(mode="w+")
+                self.logger.debug(
+                    f"Sagemaker-Debugger: Writing string data to s3://{os.path.join(self.bucket_name, self.key_name)}"
+                )
 
-            f.write(self.data)
-            f.flush()
-            self.s3_client.upload_file(
-                f.name, self.bucket_name, self.key_name, Config=self.transfer_config
-            )
+                f.write(self.data)
+                f.flush()
+                self.s3_client.upload_file(
+                    f.name, self.bucket_name, self.key_name, Config=self.transfer_config
+                )
 
-        self.logger.debug(
-            f"Sagemaker-Debugger: Wrote {len(self.data)} bytes to file "
-            f"s3://{os.path.join(self.bucket_name, self.key_name)}"
-        )
+            self.logger.debug(
+                f"Sagemaker-Debugger: Wrote {len(self.data)} bytes to file "
+                f"s3://{os.path.join(self.bucket_name, self.key_name)}"
+            )
         self._init_data()
         self.flushed = True
 

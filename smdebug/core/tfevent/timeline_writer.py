@@ -71,7 +71,7 @@ class TimelineRecordWriter:
         s3, bucket_name, key_name = is_s3(path)
         try:
             if s3:
-                self._writer = TSAccessS3(bucket_name, key_name)
+                self._writer = TSAccessS3(bucket_name, key_name, binary=False)
             else:
                 self._writer = TSAccessFile(path, "a+")
         except (OSError, IOError) as err:
@@ -122,9 +122,14 @@ class TimelineRecordWriter:
         """Closes the record writer."""
         if self._writer is not None:
             # seeking the last ',' and replacing with ']' to mark EOF
-            file_seek_pos = self._writer._accessor.tell()
-            self._writer._accessor.seek(file_seek_pos - 2)
-            self._writer._accessor.truncate()
+            if isinstance(self._writer, TSAccessFile):
+                file_seek_pos = self._writer._accessor.tell()
+                self._writer._accessor.seek(file_seek_pos - 2)
+                self._writer._accessor.truncate()
+            else:
+                file_seek_pos = len(self._writer.data)
+                self._writer.data = self._writer.data[:-2]
+
             if file_seek_pos > 2:
                 self._writer.write("\n]")
 
