@@ -21,11 +21,13 @@
 import os
 import threading
 import time
+from datetime import datetime
 
 # Third Party
 import six
 
 # First Party
+from smdebug.core.config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
 from smdebug.core.utils import is_s3
@@ -38,7 +40,7 @@ def _get_sentinel_event():
 
 def _get_size_and_timestamp(file_path, ev_writer):
     s3, bucket_name, key_name = is_s3(file_path)
-    path = file_path.split("framework/pevents/")
+    path = file_path.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
     # get the timestamp of the current file's folder
     fpath = path[1].split("/")[1]
     file_timestamp = int(fpath.split("_")[0])
@@ -151,7 +153,7 @@ class _TimelineLoggerThread(threading.Thread):
                     $ENV_CLOSE_FILE_INTERVAL time duration.
                     """
                     file_name = self._ev_writer.name()
-                    path = file_name.split("framework/pevents/")
+                    path = file_name.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
 
                     # get the file size of the current directory
                     file_size, file_timestamp = _get_size_and_timestamp(
@@ -161,12 +163,24 @@ class _TimelineLoggerThread(threading.Thread):
                     # find the difference between the 2 times (in seconds)
                     diff_in_seconds = int(round(now - file_timestamp))
 
+                    current_file_datehour = datetime.fromtimestamp(file_timestamp)
+                    now_datehour = datetime.fromtimestamp(now)
+
+                    # check if the flush is going to happen in the next hour, if so,
+                    # close the file, create a new directory for the next hour and write to file there
+                    diff_in_hours = abs(now_datehour.hour - current_file_datehour.hour)
+
                     # check if any of the rotation policies have been satisfied. close the existing
                     # trace file and open a new one
+                    # policy 1: if file size exceeds specified max_size
+                    # policy 2: if same file has been written to for close_interval time
+                    # policy 3: if a write is being made in the next hour, create a new directory
                     # TODO: what is the default max_file_size and close_file_interval?
-                    if file_size > int(
-                        os.getenv("ENV_MAX_FILE_SIZE", file_size)
-                    ) or diff_in_seconds > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 3600)):
+                    if (
+                        file_size > int(os.getenv("ENV_MAX_FILE_SIZE", file_size))
+                        or diff_in_seconds > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 3600))
+                        or diff_in_hours != 0
+                    ):
                         self._ev_writer.close()
                         el = TraceFileLocation()
                         new_file_path = el.get_file_location(base_dir=path[0])
