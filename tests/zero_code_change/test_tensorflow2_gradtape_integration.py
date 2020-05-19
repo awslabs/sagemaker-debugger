@@ -100,6 +100,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             hook = smd.get_hook()
             if not is_tf_2_2():
                 assert not hook  # only supported on TF 2.2 and greater
+                return
             assert hook
             hook.close()
             # Check that hook created and tensors saved
