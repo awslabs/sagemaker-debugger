@@ -12,6 +12,7 @@ import argparse
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -97,8 +98,8 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
-            if not hook:
-                return  # for backwards compatibility
+            if not is_tf_2_2():
+                assert not hook  # only supported on TF 2.2 and greater
             assert hook
             hook.close()
             # Check that hook created and tensors saved
