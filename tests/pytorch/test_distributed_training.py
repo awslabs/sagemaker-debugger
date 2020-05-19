@@ -85,7 +85,7 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
     for epoch in range(num_epochs):
         epoch_loss = 0.0
         start_time = time.time()
-        hook._write_trace_event_summary(
+        hook.record_trace_events(
             training_phase="Training",
             op_name="TrainingEpochStart",
             phase="B",
@@ -103,7 +103,7 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
             average_gradients(model)
             optimizer.step()
         end_time = time.time()
-        hook._write_trace_event_summary(
+        hook.record_trace_events(
             training_phase="Training",
             op_name="TrainingEpochEnd",
             phase="E",

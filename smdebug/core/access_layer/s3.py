@@ -48,9 +48,6 @@ class TSAccessS3(TSAccessBase):
         else:
             self.data = ""
 
-    def get_file_size(self):
-        return len(self.data)
-
     def open(self, bucket_name, mode):
         raise NotImplementedError
 

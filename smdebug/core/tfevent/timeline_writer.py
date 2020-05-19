@@ -1,11 +1,13 @@
 # Standard Library
 import collections
 import json
+import os
 import time
 
 # First Party
 from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
+from smdebug.core.config_constants import CONVERT_TO_MICROSECS
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import is_s3
 
@@ -33,9 +35,15 @@ class TimelineRecord:
         self.op_name = operator_name
         self.args = args
         self.ts_micros = (
-            int(timestamp * 1000000) if timestamp else int(round(time.time() * 1000000))
+            int(timestamp * CONVERT_TO_MICROSECS)
+            if timestamp
+            else int(round(time.time() * CONVERT_TO_MICROSECS))
         )
-        self.duration = duration if duration else int(round(time.time() * 1000000) - self.ts_micros)
+        self.duration = (
+            duration
+            if duration
+            else int(round(time.time() * CONVERT_TO_MICROSECS) - self.ts_micros)
+        )
         self.pid = 0
         self.tid = 0
 
@@ -53,8 +61,7 @@ class TimelineRecord:
 class TimelineRecordWriter:
     """Write records in the following format for a single TimelineRecord"""
 
-    def __init__(self, path, write_checksum, start_time_in_us):
-        self.write_checksum = write_checksum
+    def __init__(self, path, start_time_in_us):
         self._writer = None
         self.start_time_in_us = start_time_in_us
         self.tensor_table = collections.defaultdict(int)
@@ -137,37 +144,40 @@ class TimelineRecordWriter:
             self._writer.close(delete_if_empty=True)
             self._writer = None
 
+    def file_size(self, file_path):
+        if isinstance(self._writer, TSAccessFile):
+            return os.path.getsize(file_path + ".tmp")  # in bytes
+        else:
+            return len(self._writer.data)
+
 
 class TimelineWriter:
     """Writes TimelineRecord to a trace event file. This class is ported from
     EventsWriter defined in
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
-    def __init__(self, path, index_writer=None, verbose=False, write_checksum=False):
+    def __init__(self, path, index_writer=None, verbose=False):
         self._filename = path
         self.tlrecord_writer = None
         self.verbose = verbose
         self._num_outstanding_events = 0
         self._logger = get_logger()
-        self.write_checksum = write_checksum
         self.index_writer = index_writer
-        self.start_time_since_epoch_in_micros = int(round(time.time() * 1000000))
+        self.start_time_since_epoch_in_micros = int(round(time.time() * CONVERT_TO_MICROSECS))
 
     def __del__(self):
         self.close()
 
     def open(self, path):
-        self.start_time_since_epoch_in_micros = int(round(time.time() * 1000000))
-        self.tlrecord_writer = TimelineRecordWriter(
-            path, self.write_checksum, self.start_time_since_epoch_in_micros
-        )
+        self.start_time_since_epoch_in_micros = int(round(time.time() * CONVERT_TO_MICROSECS))
+        self.tlrecord_writer = TimelineRecordWriter(path, self.start_time_since_epoch_in_micros)
         self._filename = path
 
     def _init_if_needed(self):
         if self.tlrecord_writer is not None:
             return
         self.tlrecord_writer = TimelineRecordWriter(
-            self._filename, self.write_checksum, self.start_time_since_epoch_in_micros
+            self._filename, self.start_time_since_epoch_in_micros
         )
 
     def init(self):
@@ -206,3 +216,6 @@ class TimelineWriter:
 
     def name(self):
         return self._filename
+
+    def file_size(self):
+        return self.tlrecord_writer.file_size(self._filename)
