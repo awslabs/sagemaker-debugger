@@ -482,14 +482,14 @@ class BaseHook:
             )
             return self.tb_writers[self.mode]
 
-    def _maybe_get_timeline_writer(self) -> Optional[FileWriter]:
+    def _maybe_get_timeline_writer(self, timestamp=None) -> Optional[FileWriter]:
         """ Returns a FileWriter object if timeline_writer has been created, else creates a file at the
         location specified by $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
         {$ENV_NODE_ID_4digits0padded}_pythontimeline.json and returns the FileWriter.
         """
         if not self.timeline_writer:
             self.timeline_writer = FileWriter(
-                trial_dir=self.out_dir, worker=get_tb_worker(), wtype="trace"
+                trial_dir=self.out_dir, worker=get_tb_worker(), wtype="trace", timestamp=timestamp
             )
         return self.timeline_writer
 
@@ -656,7 +656,7 @@ class BaseHook:
         :param duration: any duration manually computed (in seconds)
         :param kwargs: can be process id and thread id
         """
-        timeline_writer = self._maybe_get_timeline_writer()
+        timeline_writer = self._maybe_get_timeline_writer(timestamp=timestamp)
         if timeline_writer:
             timeline_writer.write_trace_events(
                 training_phase=training_phase,

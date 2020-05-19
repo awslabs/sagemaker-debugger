@@ -51,12 +51,8 @@ def test_create_timeline_file(out_dir, file_path):
 
     for i in range(1, 11):
         n = "event" + str(i)
-        timestamp = None
-        # setting timestamp half the time
-        if i % 2 == 0:
-            timestamp = time.time()
         timeline_writer.write_trace_events(
-            training_phase="FileCreationTest", op_name=n, step_num=i, timestamp=timestamp
+            training_phase="FileCreationTest", op_name=n, step_num=i, timestamp=time.time()
         )
 
     timeline_writer.flush()
@@ -98,6 +94,7 @@ def run(rank, out_dir):
             step_num=0,
             worker=os.getpid(),
             process_rank=rank,
+            timestamp=time.time(),
         )
 
     timeline_writer.flush()
@@ -181,10 +178,18 @@ def test_duration_events(out_dir, file_path):
     for i in range(1, 11):
         n = "event" + str(i)
         timeline_writer.write_trace_events(
-            training_phase="DurationEventTest", op_name=n, step_num=i, phase="B"
+            training_phase="DurationEventTest",
+            op_name=n,
+            step_num=i,
+            phase="B",
+            timestamp=time.time(),
         )
         timeline_writer.write_trace_events(
-            training_phase="DurationEventTest", op_name=n, step_num=i, phase="E"
+            training_phase="DurationEventTest",
+            op_name=n,
+            step_num=i,
+            phase="E",
+            timestamp=time.time(),
         )
 
     timeline_writer.flush()
@@ -248,7 +253,10 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
         # adding a sleep here to trigger rotation policy
         time.sleep(1)
         timeline_writer.write_trace_events(
-            training_phase=f"RotationPolicyTest_{policy}", op_name=n, step_num=i
+            training_phase=f"RotationPolicyTest_{policy}",
+            op_name=n,
+            step_num=i,
+            timestamp=time.time(),
         )
 
     timeline_writer.flush()

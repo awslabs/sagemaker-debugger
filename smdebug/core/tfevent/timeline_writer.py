@@ -7,7 +7,10 @@ import time
 # First Party
 from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
-from smdebug.core.config_constants import CONVERT_TO_MICROSECS
+from smdebug.core.config_constants import (
+    CONVERT_TO_MICROSECS,
+    SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
+)
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import is_s3
 
@@ -19,26 +22,21 @@ TimelineRecord represents one trace event that ill be written into a trace event
 
 class TimelineRecord:
     def __init__(
-        self, training_phase="", phase="X", operator_name="", args=None, timestamp=0, duration=0
+        self, timestamp, training_phase="", phase="X", operator_name="", args=None, duration=0
     ):
         """
-
+        :param timestamp: Mandatory field. start_time for the event
         :param training_phase: strings like, data_iterating, forward, backward, operations etc
         :param phase: Trace event phases. Example "X", "B", "E", "M"
         :param operator_name: more details about phase like whether dataset or iterator
         :param args: other information to be added as args
-        :param timestamp: start_time for the event
         :param duration: any duration manually computed (in seconds)
         """
         self.training_phase = training_phase
         self.phase = phase
         self.op_name = operator_name
         self.args = args
-        self.ts_micros = (
-            int(timestamp * CONVERT_TO_MICROSECS)
-            if timestamp
-            else int(round(time.time() * CONVERT_TO_MICROSECS))
-        )
+        self.ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
         self.duration = (
             duration
             if duration
@@ -96,7 +94,7 @@ class TimelineRecordWriter:
 
             # First writing a metadata event
             if self.is_first:
-                args = {"name": "start_time_since_epoch_in_micros", "value": self.start_time_in_us}
+                args = {"start_time_since_epoch_in_micros": self.start_time_in_us}
                 json_dict = {"name": "process_name", "ph": "M", "pid": 0, "args": args}
                 self._writer.write(json.dumps(json_dict) + ",\n")
 
@@ -169,7 +167,6 @@ class TimelineWriter:
         self.close()
 
     def open(self, path):
-        self.start_time_since_epoch_in_micros = int(round(time.time() * CONVERT_TO_MICROSECS))
         self.tlrecord_writer = TimelineRecordWriter(path, self.start_time_since_epoch_in_micros)
         self._filename = path
 

@@ -37,7 +37,7 @@ from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
 
 def _get_sentinel_event():
     """Generate a sentinel trace event for terminating worker."""
-    return TimelineRecord()
+    return TimelineRecord(timestamp=time.time())
 
 
 def _get_size_and_timestamp(file_path, ev_writer):
@@ -186,7 +186,7 @@ class _TimelineLoggerThread(threading.Thread):
                     ):
                         self._ev_writer.close()
                         el = TraceFileLocation()
-                        new_file_path = el.get_file_location(base_dir=base_dir)
+                        new_file_path = el.get_file_location(base_dir=base_dir, timestamp=now)
                         self._ev_writer.open(path=new_file_path)
                     self._ev_writer.flush()
                     # Do it again in _flush_secs time.

@@ -56,6 +56,7 @@ class FileWriter:
         flush_secs=120,
         verbose=False,
         write_checksum=False,
+        timestamp=None,
     ):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `trial_dir`.
@@ -76,6 +77,8 @@ class FileWriter:
                 How often, in seconds, to flush the pending events and summaries to disk.
             verbose : bool
                 Determines whether to print logging messages.
+            timestamp : float
+                Trace event timestamp to be used to create timeline file
         """
         self.trial_dir = trial_dir
         self.step = step
@@ -99,7 +102,7 @@ class FileWriter:
         elif wtype == "trace":
             # Create TimelineFileWriter to record trace events
             el = TraceFileLocation()
-            event_file_path = el.get_file_location(base_dir=self.trial_dir)
+            event_file_path = el.get_file_location(base_dir=self.trial_dir, timestamp=timestamp)
             self._writer = TimelineFileWriter(
                 path=event_file_path, flush_secs=flush_secs, max_queue=max_queue
             )
