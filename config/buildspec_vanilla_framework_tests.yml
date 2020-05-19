@@ -1,0 +1,32 @@
+version: 0.2
+env:
+  variables:
+    run_pytest_pytorch: "enable"
+    run_pytest_mxnet: "enable"
+    run_pytest_tensorflow: "enable"
+    run_pytest_xgboost: "enable"
+    run_integration_pytest_pytorch: "enable"
+    run_integration_pytest_mxnet: "enable"
+    run_integration_pytest_tensorflow: "enable"
+    run_integration_pytest_xgboost: "enable"
+    zero_code_change_test: "disable"
+phases:
+  install:
+    commands:
+        - apt-get update
+        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
+        - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
+        - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+        - pip install --upgrade pip==19.3.1
+        - pip install -q pytest pytest-cov wheel pyYaml pytest-html keras==2.3.1 mxnet torch xgboost pre-commit tensorflow_datasets torchvision
+        - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh;
+
+  build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh
+      - cd $CODEBUILD_SRC_DIR_RULES && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh
+
+  post_build:
+    commands:
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
