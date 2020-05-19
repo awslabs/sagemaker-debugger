@@ -59,13 +59,12 @@ def test_hook_from_json_config_full():
 def test_hook_timeline_file_write(out_dir):
     """
     This test is meant to test TimelineFileWriter through a MXNet hook.
-    TODO: Wrap _write_trace_event_summary with a better API
     """
     hook = t_hook(out_dir=out_dir)
 
     for i in range(1, 11):
         n = "event" + str(i)
-        hook._write_trace_event_summary(
+        hook.record_trace_events(
             training_phase="MXNet_TimelineFileWriteTest", op_name=n, step_num=i
         )
 

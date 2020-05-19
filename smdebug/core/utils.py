@@ -292,6 +292,12 @@ def get_tb_worker():
     return f"{os.getpid()}_{socket.gethostname()}"
 
 
+def get_node_id():
+    """Gets current node ID from an env variable. If env variable is not set, returns 0"""
+    node_id = os.getenv("ENV_NODE_ID", "0")
+    return f"{os.getpid()}_{node_id.zfill(4)}"
+
+
 def remove_file_if_exists(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)

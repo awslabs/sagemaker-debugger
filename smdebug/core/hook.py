@@ -486,7 +486,6 @@ class BaseHook:
         """ Returns a FileWriter object if timeline_writer has been created, else creates a file at the
         location specified by $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
         {$ENV_NODE_ID_4digits0padded}_pythontimeline.json and returns the FileWriter.
-        TODO: Get Node ID for the file path
         """
         if not self.timeline_writer:
             self.timeline_writer = FileWriter(
@@ -645,7 +644,7 @@ class BaseHook:
                     )
                     break
 
-    def _write_trace_event_summary(
+    def record_trace_events(
         self, training_phase="", op_name="", phase="X", timestamp=None, duration=1, **kwargs
     ):
         """

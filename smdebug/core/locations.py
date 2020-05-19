@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 # Local
 from .config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
 from .logger import get_logger
-from .utils import get_immediate_subdirectories, get_tb_worker
+from .utils import get_immediate_subdirectories, get_node_id
 
 logger = get_logger()
 
@@ -111,13 +111,12 @@ class TraceFileLocation:
     # File path generated based on
     # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
     # {$ENV_NODE_ID_4digits0padded}_pythontimeline.json
-    # TODO: Get Node ID
     @staticmethod
     def get_file_location(base_dir=""):
         env_base_location = os.getenv("ENV_BASE_FOLDER", base_dir)
         date_hour = time.strftime("%y%m%d%H")
         timestamp = int(round(time.time()))
-        worker_id = get_tb_worker()
+        worker_id = get_node_id()
         file_path = os.path.join(
             env_base_location,
             SM_PROFILER_TRACE_FILE_PATH_CONST_STR
