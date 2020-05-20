@@ -12,6 +12,9 @@ class SMTFProfilerEvents(TraceEventParser):
         super().__init__()
         self.read_trace_file()
 
+    def __init__(self):
+        super().__init__()
+
     def _populate_start_time(self, event):
         event_args = event["args"] if "args" in event else None
         if self._start_time_known is False:
@@ -33,6 +36,9 @@ class SMTFProfilerEvents(TraceEventParser):
             )
             return
 
+        self.read_events_from_json_data(trace_json_data)
+
+    def read_events_from_json_data(self, trace_json_data):
         for event in trace_json_data:
             self._read_event(event)
 
