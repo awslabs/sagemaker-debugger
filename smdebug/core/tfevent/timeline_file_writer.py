@@ -59,8 +59,8 @@ def _get_rotation_info(ev_writer, now):
     # find the difference between the 2 times (in seconds)
     diff_in_seconds = int(round(now - file_timestamp))
 
-    current_file_datehour = datetime.fromtimestamp(file_timestamp)
-    now_datehour = datetime.fromtimestamp(now)
+    current_file_datehour = datetime.utcfromtimestamp(file_timestamp)
+    now_datehour = datetime.utcfromtimestamp(now)
 
     # check if the flush is going to happen in the next hour, if so,
     # close the file, create a new directory for the next hour and write to file there
@@ -87,7 +87,6 @@ class TimelineFileWriter:
         self._path = path
         self._event_queue = six.moves.queue.Queue(max_queue)
         self._ev_writer = TimelineWriter(path=self._path)
-        self._ev_writer.init()
         self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()
         self._worker = _TimelineLoggerThread(

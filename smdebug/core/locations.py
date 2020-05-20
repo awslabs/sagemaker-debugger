@@ -114,7 +114,7 @@ class TraceFileLocation:
     @staticmethod
     def get_file_location(base_dir="", timestamp=None):
         env_base_location = os.getenv("ENV_BASE_FOLDER", base_dir)
-        date_hour = time.strftime("%y%m%d%H")
+        date_hour = time.strftime("%y%m%d%H", time.gmtime())
         timestamp = int(round(timestamp)) if timestamp else int(round(time.time()))
         worker_id = get_node_id()
         file_path = os.path.join(
