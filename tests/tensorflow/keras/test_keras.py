@@ -213,6 +213,7 @@ def exhaustive_check(out_dir, use_tf_keras):
         assert len(tr.tensor(opt_var_name).steps(ModeKeys.EVAL)) == 0
 
 
+@pytest.mark.skip_if_py37
 @pytest.mark.slow  # 0:08 to run
 def test_keras(out_dir):
     exhaustive_check(out_dir, False)
