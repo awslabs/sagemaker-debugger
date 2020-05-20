@@ -1,6 +1,7 @@
 # First Party
 # Standard Library
 import datetime
+import json
 
 from smdebug.core.logger import get_logger
 
@@ -212,6 +213,16 @@ class TraceEventParser:
 
     def get_processes(self):
         return self._processes
+
+    def update_events_from_file(self, tracefile):
+        try:
+            with open(tracefile) as json_data:
+                trace_json_data = json.load(json_data)
+        except Exception as e:
+            self.logger.error(f"Can't open trace file {tracefile}: Exception {str(e)}")
+            return
+
+        self.read_events_from_json_data(trace_json_data)
 
     # TODO
     def get_events_for_process(self, pid, start_time, end_time):

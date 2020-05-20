@@ -1,17 +1,20 @@
 # Standard Library
 
 import json
+import os
 from datetime import datetime
 
 # First Party
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler
 from smdebug.core.logger import get_logger
+from smdebug.core.utils import list_files_in_directory
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.profiler.tf_profiler_parser import SMTFProfilerEvents
 
 
-class TraceTrial:
+class MetricsReader:
     def __init__(self):
-        self.prefix = "framework/pevents"
+        self.prefix = DEFAULT_PREFIX
         self.hr_to_event_map = dict()
         self.logger = get_logger("smdebug-profiler")
 
@@ -51,14 +54,7 @@ class TraceTrial:
         return range_events
 
     def parse_event_files(self, event_files):
-        traceParser = SMTFProfilerEvents()
-        for event_file in event_files:
-            file_read_request = ReadObjectRequest(path=event_file)
-            event_data = S3Handler.get_object(file_read_request)
-            event_string = event_data.decode("utf-8")
-            json_data = json.loads(event_string)
-            traceParser.read_events_from_json_data(json_data)
-        return traceParser
+        pass
 
     def get_trace_files_in_the_range(self, start_time_seconds, end_time_seconds):
         start_dt = datetime.utcfromtimestamp(start_time_seconds)
@@ -74,7 +70,7 @@ class TraceTrial:
         return event_files
 
 
-class LocalTraceTrial(TraceTrial):
+class LocalMetricsReader(MetricsReader):
     def __init__(self, trace_root_folder):
         self.trace_root_folder = trace_root_folder
         super().__init__()
@@ -84,15 +80,29 @@ class LocalTraceTrial(TraceTrial):
     """
 
     def load_event_file_list(self):
-        pass
+        path = os.path.expanduser(self.trace_root_folder)
+        event_dir = os.path.join(path, DEFAULT_PREFIX, "")
+        event_regex = r"(.+)\.(json|csv)$"
+        event_files = list_files_in_directory(event_dir, file_regex=event_regex)
+        for event_file in event_files:
+            dirs = event_file.split("/")
+            dirs.pop()
+            hr = int(dirs.pop())
+            if hr not in self.hr_to_event_map:
+                self.hr_to_event_map[hr] = list()
+            self.hr_to_event_map[hr].append(event_file)
+
+    def parse_event_files(self, event_files):
+        traceParser = SMTFProfilerEvents()
+        for event_file in event_files:
+            traceParser.update_events_from_file(event_file)
+        return traceParser
 
 
-class S3TraceTrial(TraceTrial):
+class S3MetricsReader(MetricsReader):
     def __init__(self, bucket_name):
         super().__init__()
         self.bucket_name = bucket_name
-        self.prefix = "framework/pevents"
-        self.hr_to_event_map = dict()
 
     def parse_event_files(self, event_files):
         traceParser = SMTFProfilerEvents()
