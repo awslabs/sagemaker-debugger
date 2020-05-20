@@ -409,9 +409,6 @@ class BaseHook:
             self.writer.close()
             self.writer = None
 
-        if self.timeline_writer is not None:
-            self.timeline_writer.flush()
-
         to_delete_writers = []
 
         # Delete all the tb writers
@@ -657,15 +654,14 @@ class BaseHook:
         :param kwargs: can be process id and thread id
         """
         timeline_writer = self._maybe_get_timeline_writer(timestamp=timestamp)
-        if timeline_writer:
-            timeline_writer.write_trace_events(
-                training_phase=training_phase,
-                op_name=op_name,
-                phase=phase,
-                timestamp=timestamp,
-                duration=duration,
-                **kwargs,
-            )
+        timeline_writer.write_trace_events(
+            training_phase=training_phase,
+            op_name=op_name,
+            phase=phase,
+            timestamp=timestamp,
+            duration=duration,
+            **kwargs,
+        )
 
     def _write_scalars(self):
         """

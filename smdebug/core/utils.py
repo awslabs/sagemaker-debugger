@@ -293,7 +293,9 @@ def get_tb_worker():
 
 
 def get_node_id():
-    """Gets current node ID from an env variable. If env variable is not set, returns 0"""
+    """Gets current node ID from an env variable. If env variable is not set, returns 0."""
+    # TODO: Get node ID from SageMaker's config json and create a node ID similar ot what is used in
+    #       smdebug distributed training
     node_id = os.getenv("ENV_NODE_ID", "0")
     return f"{os.getpid()}_{node_id.zfill(4)}"
 

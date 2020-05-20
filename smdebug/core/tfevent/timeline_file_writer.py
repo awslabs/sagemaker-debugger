@@ -18,55 +18,20 @@
 """Writes trace events to disk in trial dir or user-specified dir."""
 
 # Standard Library
-import os
 import threading
 import time
-from datetime import datetime
 
 # Third Party
 import six
 
 # First Party
-from smdebug.core.config_constants import (
-    CONVERT_TO_MICROSECS,
-    SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
-)
-from smdebug.core.locations import TraceFileLocation
+from smdebug.core.config_constants import CONVERT_TO_MICROSECS
 from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
 
 
 def _get_sentinel_event():
     """Generate a sentinel trace event for terminating worker."""
     return TimelineRecord(timestamp=time.time())
-
-
-def _get_size_and_timestamp(file_path, ev_writer):
-    path = file_path.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
-    # get the timestamp of the current file
-    fpath = path[1].split("/")[1]
-    file_timestamp = int(fpath.split("_")[0])
-    file_size = ev_writer.file_size()
-
-    return path[0], file_size, file_timestamp
-
-
-def _get_rotation_info(ev_writer, now):
-    file_name = ev_writer.name()
-
-    # get the file size and timestamp of the current file
-    base_dir, file_size, file_timestamp = _get_size_and_timestamp(file_name, ev_writer=ev_writer)
-
-    # find the difference between the 2 times (in seconds)
-    diff_in_seconds = int(round(now - file_timestamp))
-
-    current_file_datehour = datetime.utcfromtimestamp(file_timestamp)
-    now_datehour = datetime.utcfromtimestamp(now)
-
-    # check if the flush is going to happen in the next hour, if so,
-    # close the file, create a new directory for the next hour and write to file there
-    diff_in_hours = abs(now_datehour.hour - current_file_datehour.hour)
-
-    return base_dir, file_size, diff_in_seconds, diff_in_hours
 
 
 class TimelineFileWriter:
@@ -163,32 +128,9 @@ class _TimelineLoggerThread(threading.Thread):
                 # Flush the event writer every so often.
                 now = time.time()
                 if now > self._next_event_flush_time:
-                    """
-                    Rotation policy:
-                    Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
-                    $ENV_CLOSE_FILE_INTERVAL time duration.
-                    """
-                    base_dir, file_size, diff_in_seconds, diff_in_hours = _get_rotation_info(
-                        self._ev_writer, now
-                    )
-
-                    # check if any of the rotation policies have been satisfied. close the existing
-                    # trace file and open a new one
-                    # policy 1: if file size exceeds specified max_size
-                    # policy 2: if same file has been written to for close_interval time
-                    # policy 3: if a write is being made in the next hour, create a new directory
-                    # TODO: what is the default max_file_size and close_file_interval?
-                    if (
-                        file_size > int(os.getenv("ENV_MAX_FILE_SIZE", file_size))
-                        or diff_in_seconds > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 3600))
-                        or diff_in_hours != 0
-                    ):
-                        self._ev_writer.close()
-                        el = TraceFileLocation()
-                        new_file_path = el.get_file_location(base_dir=base_dir, timestamp=now)
-                        self._ev_writer.open(path=new_file_path)
                     self._ev_writer.flush()
                     # Do it again in _flush_secs time.
                     self._next_event_flush_time = now + self._flush_secs
             finally:
                 self._queue.task_done()
+            time.sleep(0)

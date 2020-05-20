@@ -3,6 +3,7 @@ import collections
 import json
 import os
 import time
+from datetime import datetime
 
 # First Party
 from smdebug.core.access_layer.file import TSAccessFile
@@ -11,6 +12,7 @@ from smdebug.core.config_constants import (
     CONVERT_TO_MICROSECS,
     SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
 )
+from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import is_s3
 
@@ -26,7 +28,7 @@ class TimelineRecord:
     ):
         """
         :param timestamp: Mandatory field. start_time for the event
-        :param training_phase: strings like, data_iterating, forward, backward, operations etc
+        :param training_phase: strings like, train_step_time , test_step_time etc
         :param phase: Trace event phases. Example "X", "B", "E", "M"
         :param operator_name: more details about phase like whether dataset or iterator
         :param args: other information to be added as args
@@ -92,12 +94,62 @@ class TimelineWriter:
         self._writer.write("[\n")
         self._filename = path
 
+    def _get_size_and_timestamp(self):
+        file_path = self.name()
+        path = file_path.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
+        # get the timestamp of the current file
+        fpath = path[1].split("/")[1]
+        file_timestamp = int(fpath.split("_")[0])
+        file_size = self.file_size()
+
+        return path[0], file_size, file_timestamp
+
+    def _get_rotation_info(self, now):
+        # get the file size and timestamp of the current file
+        base_dir, file_size, file_timestamp = self._get_size_and_timestamp()
+
+        # find the difference between the 2 times (in seconds)
+        diff_in_seconds = int(round(now - file_timestamp))
+
+        current_file_datehour = datetime.utcfromtimestamp(file_timestamp)
+        now_datehour = datetime.utcfromtimestamp(now)
+
+        # check if the flush is going to happen in the next hour, if so,
+        # close the file, create a new directory for the next hour and write to file there
+        diff_in_hours = abs(now_datehour.hour - current_file_datehour.hour)
+
+        return base_dir, file_size, diff_in_seconds, diff_in_hours
+
     def write_event(self, record):
         """Appends trace event to the file."""
         # Check if event is of type TimelineRecord.
         if not isinstance(record, TimelineRecord):
             raise TypeError("expected a TimelineRecord, " " but got %s" % type(record))
         self._num_outstanding_events += 1
+
+        """
+        Rotation policy:
+        Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
+        $ENV_CLOSE_FILE_INTERVAL time duration.
+        """
+        now = record.ts_micros // CONVERT_TO_MICROSECS  # convert back to secs
+        base_dir, file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
+
+        # check if any of the rotation policies have been satisfied. close the existing
+        # trace file and open a new one
+        # policy 1: if file size exceeds specified max_size
+        # policy 2: if same file has been written to for close_interval time
+        # policy 3: if a write is being made in the next hour, create a new directory
+        # TODO: what is the default max_file_size and close_file_interval?
+        if (
+            file_size > int(os.getenv("ENV_MAX_FILE_SIZE", file_size))
+            or diff_in_seconds > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 3600))
+            or diff_in_hours != 0
+        ):
+            self.close()
+            el = TraceFileLocation()
+            new_file_path = el.get_file_location(base_dir=base_dir, timestamp=now)
+            self.open(path=new_file_path)
 
         if self.tensor_table[record.training_phase] == 0:
             tensor_idx = len(self.tensor_table)
@@ -146,7 +198,6 @@ class TimelineWriter:
 
     def close(self):
         """Flushes the pending events and closes the writer after it is done."""
-        self.flush()
         if self._writer is not None:
             # seeking the last ',' and replacing with ']' to mark EOF
             if isinstance(self._writer, TSAccessFile):

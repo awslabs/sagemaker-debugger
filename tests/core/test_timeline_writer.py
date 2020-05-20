@@ -45,7 +45,7 @@ def test_create_timeline_file(out_dir, file_path):
     else:
         trial_dir = out_dir
     timeline_writer = FileWriter(
-        trial_dir=trial_dir, step=0, worker=str(os.getpid()), wtype="trace"
+        trial_dir=trial_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
     )
     assert timeline_writer
 
@@ -83,7 +83,9 @@ def test_create_timeline_file(out_dir, file_path):
 
 
 def run(rank, out_dir):
-    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    timeline_writer = FileWriter(
+        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
+    )
     assert timeline_writer
 
     for i in range(1, 6):
@@ -171,7 +173,7 @@ def test_duration_events(out_dir, file_path):
     else:
         trial_dir = out_dir
     timeline_writer = FileWriter(
-        trial_dir=trial_dir, step=0, worker=str(os.getpid()), wtype="trace"
+        trial_dir=trial_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
     )
     assert timeline_writer
 
@@ -244,7 +246,12 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
         )  # rotate file if file interval > 1 second
 
     timeline_writer = FileWriter(
-        trial_dir=trial_dir, step=0, worker=str(os.getpid()), wtype="trace", flush_secs=1
+        trial_dir=trial_dir,
+        step=0,
+        worker=str(os.getpid()),
+        wtype="trace",
+        flush_secs=1,
+        timestamp=time.time(),
     )
     assert timeline_writer
 
