@@ -70,7 +70,12 @@ def helper_keras_fit(
     opt = tf.keras.optimizers.Adam()
 
     opt = hook.wrap_optimizer(opt)
-    model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    model.compile(
+        optimizer=opt,
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+        run_eagerly=eager,
+    )
     hooks = []
     if add_callbacks:
         if "tensorboard" in add_callbacks:
