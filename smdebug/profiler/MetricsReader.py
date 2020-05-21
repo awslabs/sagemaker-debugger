@@ -9,7 +9,7 @@ from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, 
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import list_files_in_directory
 from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
-from smdebug.profiler.tf_profiler_parser import SMTFProfilerEvents
+from smdebug.profiler.tf_profiler_parser import SMProfilerEvents
 
 
 class MetricsReader:
@@ -93,9 +93,9 @@ class LocalMetricsReader(MetricsReader):
             self.hr_to_event_map[hr].append(event_file)
 
     def parse_event_files(self, event_files):
-        traceParser = SMTFProfilerEvents()
+        traceParser = SMProfilerEvents()
         for event_file in event_files:
-            traceParser.update_events_from_file(event_file)
+            traceParser.read_events_from_file(event_file)
         return traceParser
 
 
@@ -105,7 +105,7 @@ class S3MetricsReader(MetricsReader):
         self.bucket_name = bucket_name
 
     def parse_event_files(self, event_files):
-        traceParser = SMTFProfilerEvents()
+        traceParser = SMProfilerEvents()
         for event_file in event_files:
             file_read_request = ReadObjectRequest(path=event_file)
             event_data = S3Handler.get_object(file_read_request)

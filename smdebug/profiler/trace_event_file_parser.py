@@ -214,7 +214,8 @@ class TraceEventParser:
     def get_processes(self):
         return self._processes
 
-    def update_events_from_file(self, tracefile):
+    # TODO implementation of below would be changed to support streaming file and incomplete json file
+    def read_events_from_file(self, tracefile):
         try:
             with open(tracefile) as json_data:
                 trace_json_data = json.load(json_data)
@@ -223,6 +224,10 @@ class TraceEventParser:
             return
 
         self.read_events_from_json_data(trace_json_data)
+
+    def read_events_from_json_data(self, trace_json_data):
+        for event in trace_json_data:
+            self._read_event(event)
 
     # TODO
     def get_events_for_process(self, pid, start_time, end_time):

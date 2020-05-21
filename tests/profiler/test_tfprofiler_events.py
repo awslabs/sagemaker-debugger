@@ -1,11 +1,11 @@
 # First Party
-from smdebug.profiler import TFProfilerEvents
+from smdebug.profiler import TensorboardProfilerEvents
 
 
-def test_tfprofiler_events(trace_file="./tests/profiler/ip-172-31-19-241.trace.json"):
+def test_tensorboardprofiler_events(trace_file="./tests/profiler/ip-172-31-19-241.trace.json"):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")
-    t_events = TFProfilerEvents(trace_json_file)
+    t_events = TensorboardProfilerEvents(trace_json_file)
 
     all_trace_events = t_events.get_all_events()
     num_trace_events = len(all_trace_events)

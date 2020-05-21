@@ -2,13 +2,14 @@
 # Standard Library
 from datetime import datetime
 
-from smdebug.profiler import SMTFProfilerEvents
+from smdebug.profiler import SMProfilerEvents
 
 
-def test_smtfprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json"):
+def test_smprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json"):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")
-    t_events = SMTFProfilerEvents(trace_json_file)
+    t_events = SMProfilerEvents()
+    t_events.read_events_from_file(trace_json_file)
 
     all_trace_events = t_events.get_all_events()
     num_trace_events = len(all_trace_events)
