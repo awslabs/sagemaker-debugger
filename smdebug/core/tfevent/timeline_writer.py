@@ -68,7 +68,8 @@ class TimelineWriter:
         self.verbose = verbose
         self._num_outstanding_events = 0
         self._logger = get_logger()
-        self.start_time_since_epoch_in_micros = int(round(time.time() * CONVERT_TO_MICROSECS))
+        _, file_timestamp = self._get_file_timestamp()
+        self.start_time_since_epoch_in_micros = int(file_timestamp * CONVERT_TO_MICROSECS)
         self._writer = None
         self.tensor_table = collections.defaultdict(int)
         self.is_first = True
@@ -94,19 +95,19 @@ class TimelineWriter:
         self._writer.write("[\n")
         self._filename = path
 
-    def _get_size_and_timestamp(self):
+    def _get_file_timestamp(self):
         file_path = self.name()
         path = file_path.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
         # get the timestamp of the current file
         fpath = path[1].split("/")[1]
         file_timestamp = int(fpath.split("_")[0])
-        file_size = self.file_size()
 
-        return path[0], file_size, file_timestamp
+        return path[0], file_timestamp
 
     def _get_rotation_info(self, now):
         # get the file size and timestamp of the current file
-        base_dir, file_size, file_timestamp = self._get_size_and_timestamp()
+        base_dir, file_timestamp = self._get_file_timestamp()
+        file_size = self.file_size()
 
         # find the difference between the 2 times (in seconds)
         diff_in_seconds = int(round(now - file_timestamp))
