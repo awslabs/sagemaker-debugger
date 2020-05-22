@@ -42,7 +42,7 @@ class TimelineFileWriter:
     and asynchronously writes TimelineRecord to the file.
     """
 
-    def __init__(self, path, max_queue=10, flush_secs=120):
+    def __init__(self, path, max_queue=100, flush_secs=30):
         """Creates a `TimelineFileWriter` and a trace event file to write to.
         This event file will contain TimelineRecord as JSON strings, which are written to
         disk via the write_record method.

@@ -102,6 +102,8 @@ class TimelineWriter:
         fpath = path[1].split("/")[1]
         file_timestamp = int(fpath.split("_")[0])
 
+        # returning base directory where the trace files exist (path[0])
+        # and timestamp from file name
         return path[0], file_timestamp
 
     def _get_rotation_info(self, now):
