@@ -233,7 +233,8 @@ def test_tf_keras(out_dir, tf_eager_mode, include_workers="all"):
 
 
 @pytest.mark.slow
-def test_save_all(out_dir, tf_eager_mode):
+@pytest.mark.parametrize("workers", ["one", "all"])
+def test_save_all(out_dir, tf_eager_mode, workers):
     strategy = train_model(
         out_dir,
         include_collections=None,
@@ -241,6 +242,7 @@ def test_save_all(out_dir, tf_eager_mode):
         save_config=SaveConfig(save_steps=[5]),
         steps=["train"],
         eager=tf_eager_mode,
+        include_workers=workers,
     )
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
@@ -260,6 +262,10 @@ def test_save_all(out_dir, tf_eager_mode):
         )
         # weights, grads, optimizer_variables, metrics, losses, outputs
     assert len(tr.steps()) == 3
+    for tname in tr.tensor_names():
+        assert len(tr.tensor(tname).workers(0)) == (
+            1 if workers == "one" else strategy.num_replicas_in_sync
+        )
 
 
 @pytest.mark.slow
