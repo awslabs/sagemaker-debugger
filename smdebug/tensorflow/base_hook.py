@@ -290,6 +290,8 @@ class TensorflowBaseHook(BaseHook):
                     else:
                         return [self.writer_map[self.device_map[self.chief_worker]]]
                 elif self.save_all_workers or worker == self.chief_worker:
+                    # import pdb
+                    # pdb.set_trace()
                     return [self.writer_map[self.device_map[worker]]]
             elif self.writer:
                 # training on CPU when all device strings have cpu

@@ -390,12 +390,13 @@ def test_training_end(out_dir, tf_eager_mode):
 
 
 @pytest.mark.slow
-def test_include_regex(out_dir, tf_eager_mode):
+@pytest.mark.parametrize("workers", ["one", "all"])
+def test_include_regex(out_dir, tf_eager_mode, workers):
     hook = KerasHook(
         out_dir=out_dir,
         save_config=SaveConfig(save_interval=9),
         include_collections=["custom_coll"],
-        include_workers="all",
+        include_workers=workers,
     )
     hook.get_collection("custom_coll").include("dense")
     strategy = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
@@ -405,6 +406,31 @@ def test_include_regex(out_dir, tf_eager_mode):
 
     if tf_eager_mode:
         assert len(tnames) == 4
+    else:
+        assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
+    for tname in tnames:
+        assert tr.tensor(tname).value(0) is not None
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("workers", ["one", "all"])
+def test_include_regex_save_all(out_dir, tf_eager_mode, workers):
+    include_collections = ["custom_optimizer_variables"]
+    save_config = SaveConfig(save_interval=3)
+    hook = KerasHook(
+        out_dir=out_dir,
+        save_config=save_config,
+        include_collections=include_collections,
+        include_workers=workers,
+    )
+    hook.get_collection("custom_optimizer_variables").include("Adam")
+    strategy = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
+
+    tr = create_trial_fast_refresh(out_dir)
+    tnames = tr.tensor_names(collection="custom_optimizer_variables")
+
+    if tf_eager_mode:
+        assert len(tnames) == 5 * (1 if workers == "one" else strategy.num_replicas_in_sync)
     else:
         assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
     for tname in tnames:
