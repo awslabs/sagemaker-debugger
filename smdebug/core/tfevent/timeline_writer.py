@@ -10,6 +10,8 @@ from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.config_constants import (
     CONVERT_TO_MICROSECS,
+    ENV_CLOSE_FILE_INTERVAL_DEFAULT,
+    ENV_MAX_FILE_SIZE_DEFAULT,
     SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
 )
 from smdebug.core.locations import TraceFileLocation
@@ -149,10 +151,10 @@ class TimelineWriter:
         # policy 1: if file size exceeds specified max_size
         # policy 2: if same file has been written to for close_interval time
         # policy 3: if a write is being made in the next hour, create a new directory
-        # TODO: what is the default max_file_size and close_file_interval?
         if (
-            file_size > int(os.getenv("ENV_MAX_FILE_SIZE", file_size))
-            or diff_in_seconds > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", 3600))
+            file_size > int(os.getenv("ENV_MAX_FILE_SIZE", ENV_MAX_FILE_SIZE_DEFAULT))
+            or diff_in_seconds
+            > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", ENV_CLOSE_FILE_INTERVAL_DEFAULT))
             or diff_in_hours != 0
         ):
             self.close()
