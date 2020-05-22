@@ -410,6 +410,9 @@ def test_include_regex(out_dir, tf_eager_mode, workers):
         assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
+        assert len(tr.tensor(tname).workers(0)) == (
+            1 if workers == "one" else strategy.num_replicas_in_sync
+        )
 
 
 @pytest.mark.slow
@@ -430,11 +433,14 @@ def test_include_regex_opt_var(out_dir, tf_eager_mode, workers):
     tnames = tr.tensor_names(collection="custom_optimizer_variables")
 
     if tf_eager_mode:
-        assert len(tnames) == 5 * (1 if workers == "one" else strategy.num_replicas_in_sync)
+        assert len(tnames) == 5
     else:
         assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
+        assert len(tr.tensor(tname).workers(0)) == (
+            1 if workers == "one" else strategy.num_replicas_in_sync
+        )
 
 
 @pytest.mark.skip_if_non_eager

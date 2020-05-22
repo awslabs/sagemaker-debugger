@@ -571,9 +571,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if len(collections_to_save):
                 self._initialize_writers(only_initialize_if_missing=True)
                 tensor = tensor_ref.tf_obj
-                self._save_for_tensor(
-                    tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
-                )
+                self._add_to_device_map(tensor)
+                tf_names = get_tf_names(tensor)
+                for name in tf_names:
+                    self._save_for_tensor(
+                        tensor_name=name, tensor_value=tensor.value(), check_before_write=False
+                    )
 
     def _on_any_batch_end(self, batch, mode, logs=None):
         if self._is_not_supported():
