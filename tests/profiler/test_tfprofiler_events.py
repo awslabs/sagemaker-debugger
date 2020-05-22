@@ -1,11 +1,13 @@
 # First Party
 from smdebug.profiler import TensorboardProfilerEvents
+from smdebug.profiler.utils import TimeUnits
 
 
 def test_tensorboardprofiler_events(trace_file="./tests/profiler/ip-172-31-19-241.trace.json"):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")
-    t_events = TensorboardProfilerEvents(trace_json_file)
+    t_events = TensorboardProfilerEvents()
+    t_events.read_events_from_file(trace_json_file)
 
     all_trace_events = t_events.get_all_events()
     num_trace_events = len(all_trace_events)
@@ -13,11 +15,13 @@ def test_tensorboardprofiler_events(trace_file="./tests/profiler/ip-172-31-19-24
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 256
 
-    event_list = t_events.get_events_at_timestamp_in_seconds(0.015013686)
+    event_list = t_events.get_events_at_timestamp(0.015013686, unit=TimeUnits.SECONDS)
     print(f"Number of events at 15013686 are {len(event_list)}")
     assert len(event_list) == 3
 
-    completed_event_list = t_events.get_events_within_time_range(0, 0.015013686)  # nanoseconds
+    completed_event_list = t_events.get_events_within_time_range(
+        0, 0.015013686, unit=TimeUnits.SECONDS
+    )
     print(f"Number of events occurred between 0 and 15013686 are {len(completed_event_list)}")
     assert len(completed_event_list) == 253
 

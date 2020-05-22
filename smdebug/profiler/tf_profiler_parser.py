@@ -4,6 +4,7 @@ from datetime import datetime
 
 # First Party
 from smdebug.profiler.trace_event_file_parser import TraceEventParser
+from smdebug.profiler.utils import TimeUnits, convert_utc_datetime_to_nanoseconds
 
 
 class SMProfilerEvents(TraceEventParser):
@@ -28,8 +29,10 @@ class SMProfilerEvents(TraceEventParser):
 
     def get_events_at_time(self, timestamp_datetime: datetime):
         if timestamp_datetime.__class__ is datetime:
-            timestamp_in_seconds = timestamp_datetime.timestamp()
-            return self.get_events_at_timestamp_in_seconds(timestamp_in_seconds)
+            timestamp_in_nanoseconds = convert_utc_datetime_to_nanoseconds(timestamp_datetime)
+            return self.get_events_at_timestamp(
+                timestamp_in_nanoseconds, unit=TimeUnits.NANOSECONDS
+            )
 
     """
     Return the events that have started and completed within the given start and end time boundaries.
@@ -39,17 +42,17 @@ class SMProfilerEvents(TraceEventParser):
 
     def get_events_within_range(self, start_time: datetime, end_time: datetime):
         if start_time.__class__ is datetime:
-            start_time_seconds = start_time.timestamp()
+            start_time_nanoseconds = convert_utc_datetime_to_nanoseconds(start_time)
         if end_time.__class__ is datetime:
-            end_time_seconds = end_time.timestamp()
-        return self.get_events_within_time_range(start_time_seconds, end_time_seconds)
+            end_time_nanoseconds = convert_utc_datetime_to_nanoseconds(end_time)
+        return self.get_events_within_time_range(
+            start_time_nanoseconds, end_time_nanoseconds, unit=TimeUnits.NANOSECONDS
+        )
 
 
 class TensorboardProfilerEvents(TraceEventParser):
-    def __init__(self, trace_file):
-        self._trace_json_file = trace_file
+    def __init__(self):
         super().__init__()
-        self.read_events_from_file(self._trace_json_file)
 
     def _populate_start_time(self, event):
         # TODO, not sure if we can implement this right now
@@ -57,13 +60,13 @@ class TensorboardProfilerEvents(TraceEventParser):
 
     def read_events_from_file(self, tracefile):
         try:
-            with open(self.tracefile) as json_data:
+            with open(tracefile) as json_data:
                 trace_json_data = json.load(json_data)
         except Exception as e:
-            self.logger.error(f"Can't open TF trace file {self.tracefile}: Exception {str(e)} ")
+            self.logger.error(f"Can't open TF trace file {tracefile}: Exception {str(e)} ")
             return
         if "traceEvents" not in trace_json_data:
-            self.logger.error(f"The TF trace file {self.tracefile} does not contain traceEvents")
+            self.logger.error(f"The TF trace file {tracefile} does not contain traceEvents")
             return
         trace_events_json = trace_json_data["traceEvents"]
 
@@ -72,11 +75,9 @@ class TensorboardProfilerEvents(TraceEventParser):
 
 
 class HorovodProfilerEvents(TraceEventParser):
-    def __init__(self, trace_file):
-        self._trace_json_file = trace_file
+    def __init__(self):
         super().__init__()
         self._base_timestamp_initialized = False
-        self.read_events_from_file(self._trace_json_file)
 
     def _populate_start_time(self, event):
         # TODO, populate the self._start_timestamp when we make changes to horovod to record the unix epoch based

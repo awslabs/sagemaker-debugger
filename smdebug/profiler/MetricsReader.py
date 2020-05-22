@@ -8,8 +8,19 @@ from datetime import datetime
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import list_files_in_directory
-from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
-from smdebug.profiler.tf_profiler_parser import SMProfilerEvents
+from smdebug.profiler.profiler_constants import (
+    DEFAULT_PREFIX,
+    HOROVODTIMELINE_PREFIX,
+    MODELTIMELINE_PREFIX,
+    PYTHONTIMELINE_PREFIX,
+    TENSORBOARDTIMELINE_PREFIX,
+)
+from smdebug.profiler.tf_profiler_parser import (
+    HorovodProfilerEvents,
+    SMProfilerEvents,
+    TensorboardProfilerEvents,
+)
+from smdebug.profiler.utils import TimeUnits, convert_utc_timestamp_to_microseconds
 
 
 class MetricsReader:
@@ -17,22 +28,58 @@ class MetricsReader:
         self.prefix = DEFAULT_PREFIX
         self.hr_to_event_map = dict()
         self.logger = get_logger("smdebug-profiler")
+        self._SMEventsParser = SMProfilerEvents()
+        self._TBEventsParser = TensorboardProfilerEvents()
+        self._HorovordEventsParser = HorovodProfilerEvents()
 
-    def get_start_timestamp_from_file(self, filename):
+    def _get_start_timestamp_from_file(self, filename):
         return filename.split("_")[0]
 
     """
     Get the tracefiles in the given hour directory that would contain the events corresponding to start and ent
-    timestamps
+    timestamps in microseconds
     """
 
-    def get_event_files(self, hr_directory, start_time_seconds, end_time_seconds):
+    def _get_event_files(self, hr_directory, start_time_microseconds, end_time_microseconds):
         files = []
         for event_file in self.hr_to_event_map[hr_directory]:
-            event_file_stamp = int(self.get_start_timestamp_from_file(event_file.split("/")[-1]))
-            if start_time_seconds <= event_file_stamp <= end_time_seconds:
+            event_file_stamp = int(self._get_start_timestamp_from_file(event_file.split("/")[-1]))
+            if start_time_microseconds <= event_file_stamp <= end_time_microseconds:
                 files.append(event_file)
         return files
+
+    def _get_trace_files_in_the_range(self, start_time_microseconds, end_time_microseconds):
+        start_dt = datetime.utcfromtimestamp(start_time_microseconds / 1000000)
+        end_dt = datetime.utcfromtimestamp(end_time_microseconds / 1000000)
+        start_dt_dir = int(start_dt.strftime("%y%m%d%H"))
+        end_dt_dir = int(end_dt.strftime("%y%m%d%H"))
+
+        # Get the event files for the range of time
+        event_files = list()
+        for hr in sorted(self.hr_to_event_map.keys()):
+            if start_dt_dir <= hr <= end_dt_dir:
+                event_files.extend(
+                    self._get_event_files(hr, start_time_microseconds, end_time_microseconds)
+                )
+        return event_files
+
+    """
+    The function returns the right event parser for given file name
+    1. For Filename containing 'pythontimeline.json'  -> SMEventsParser
+    2. For Filename containing 'model_timeline.json'  -> SMEventsParser
+    3. For Filename containing 'tensorboard' (TBD) -> TensorboardProfilerEvents
+    4. For Filename containing 'Horovod' (TBD) -> 'HorovodProfilerEvents
+    """
+
+    def _get_event_parser(self, filename):
+        if PYTHONTIMELINE_PREFIX in filename:
+            return self._SMEventsParser
+        if MODELTIMELINE_PREFIX in filename:
+            return self._SMEventsParser
+        if TENSORBOARDTIMELINE_PREFIX in filename:
+            return self._TBEventsParser
+        if HorovodProfilerEvents in filename:
+            return self._HorovordEventsParser
 
     """
     Create a map of timestamp to filename
@@ -41,33 +88,39 @@ class MetricsReader:
     def load_event_file_list(self):
         pass
 
-    def get_events(self, start_time_seconds, end_time_seconds):
+    """
+    The function returns the events that have recorded within the given time range.
+    This is currently non-blocking call. The function will download (or parse) the tracefiles that are available
+    for the given time range. It is possible that events are recorded during training but are not available for
+    download.
+    TODO: Implement caching to avoid repeat download
+    TODO: Implement blocking call to wait for files to be available for download.
+    """
+
+    def get_events(self, start_time, end_time, unit=TimeUnits.MICROSECONDS):
         self.load_event_file_list()
-        event_files = self.get_trace_files_in_the_range(start_time_seconds, end_time_seconds)
+        start_time = convert_utc_timestamp_to_microseconds(start_time, unit)
+        end_time = convert_utc_timestamp_to_microseconds(end_time, unit)
+        event_files = self._get_trace_files_in_the_range(start_time, end_time)
 
         # Download files and parse the events
-        traceParser = self.parse_event_files(event_files)
+        self.parse_event_files(event_files)
 
-        range_events = traceParser.get_events_within_time_range(
-            start_time_seconds, end_time_seconds
-        )
-        return range_events
+        """
+        We might have recorded events from different sources within this timerange.
+        we will get the events from the relevant event parsers and merge them before returning.
+        """
+        result = []
+        for eventParser in [self._SMEventsParser, self._TBEventsParser, self._HorovordEventsParser]:
+            range_events = eventParser.get_events_within_time_range(
+                start_time, end_time, unit=TimeUnits.MICROSECONDS
+            )
+            result.extend(range_events)
+
+        return result
 
     def parse_event_files(self, event_files):
         pass
-
-    def get_trace_files_in_the_range(self, start_time_seconds, end_time_seconds):
-        start_dt = datetime.utcfromtimestamp(start_time_seconds)
-        end_dt = datetime.utcfromtimestamp(end_time_seconds)
-        start_dt_dir = int(start_dt.strftime("%y%m%d%H"))
-        end_dt_dir = int(end_dt.strftime("%y%m%d%H"))
-
-        # Get the event files for the range of time
-        event_files = list()
-        for hr in sorted(self.hr_to_event_map.keys()):
-            if start_dt_dir <= hr <= end_dt_dir:
-                event_files.extend(self.get_event_files(hr, start_time_seconds, end_time_seconds))
-        return event_files
 
 
 class LocalMetricsReader(MetricsReader):
@@ -93,10 +146,8 @@ class LocalMetricsReader(MetricsReader):
             self.hr_to_event_map[hr].append(event_file)
 
     def parse_event_files(self, event_files):
-        traceParser = SMProfilerEvents()
         for event_file in event_files:
-            traceParser.read_events_from_file(event_file)
-        return traceParser
+            self._get_event_parser(event_file).read_events_from_file(event_file)
 
 
 class S3MetricsReader(MetricsReader):
@@ -105,14 +156,12 @@ class S3MetricsReader(MetricsReader):
         self.bucket_name = bucket_name
 
     def parse_event_files(self, event_files):
-        traceParser = SMProfilerEvents()
         for event_file in event_files:
             file_read_request = ReadObjectRequest(path=event_file)
             event_data = S3Handler.get_object(file_read_request)
             event_string = event_data.decode("utf-8")
             json_data = json.loads(event_string)
-            traceParser.read_events_from_json_data(json_data)
-        return traceParser
+            self._get_event_parser(event_file).read_events_from_json_data(json_data)
 
     """
     Create a map of timestamp to filename
