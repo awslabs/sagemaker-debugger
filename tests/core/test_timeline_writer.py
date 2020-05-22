@@ -1,4 +1,5 @@
 # Standard Library
+import calendar
 import json
 import multiprocessing as mp
 import os
@@ -12,7 +13,10 @@ from tests.analysis.utils import delete_s3_prefix
 
 # First Party
 from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
-from smdebug.core.config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
+from smdebug.core.config_constants import (
+    CONVERT_TO_MICROSECS,
+    SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
+)
 from smdebug.core.s3_utils import list_s3_objects
 from smdebug.core.utils import load_json_as_dict
 from smdebug.core.writer import FileWriter
@@ -303,3 +307,64 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
 
     if file_path == "s3":
         delete_s3_prefix(bucket=bucket, prefix=prefix)
+
+
+@pytest.mark.parametrize("timezone", ["Europe/Dublin", "Australia/Melbourne", "US/Eastern"])
+def test_utc_timestamp(out_dir, monkeypatch, timezone):
+    """
+    This test is meant to set to create files/events in different timezones and check if timeline writer stores
+    them in UTC.
+    """
+    monkeypatch.setenv("TZ", timezone)
+    time.tzset()
+    time_in_timezone = event_time_in_timezone = time.mktime(time.localtime())
+    time_in_utc = event_time_in_utc = calendar.timegm(time.gmtime())
+
+    timeline_writer = FileWriter(
+        trial_dir=out_dir,
+        step=0,
+        worker=str(os.getpid()),
+        wtype="trace",
+        flush_secs=1,
+        timestamp=time_in_timezone,
+    )
+    assert timeline_writer
+
+    event_times_in_utc = []
+    for i in range(1, 3):
+        event_times_in_utc.append(event_time_in_utc)
+        timeline_writer.write_trace_events(
+            training_phase=f"TimestampTest",
+            op_name="event_in_" + timezone + str(i),
+            timestamp=event_time_in_timezone,
+        )
+        event_time_in_timezone = time.mktime(time.localtime())
+        event_time_in_utc = calendar.timegm(time.gmtime())
+
+    timeline_writer.flush()
+    timeline_writer.close()
+
+    files = []
+    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+        files.append(path)
+
+    file_path = files[0]
+    path = file_path.name.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
+    file_timestamp = int(path[0].split("_")[0])
+
+    assert time_in_utc == file_timestamp
+
+    start_time_since_epoch = 0
+    idx = 0
+    for file_name in files:
+        with open(file_name) as timeline_file:
+            events_dict = json.load(timeline_file)
+            for e in events_dict:
+                if "args" in e and "start_time_since_epoch_in_micros" in e["args"]:
+                    start_time_since_epoch = int(e["args"]["start_time_since_epoch_in_micros"])
+                if "event" in e["name"]:
+                    assert (
+                        e["ts"] + start_time_since_epoch
+                        == event_times_in_utc[idx] * CONVERT_TO_MICROSECS
+                    )
+                    idx += 1
