@@ -69,9 +69,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     "TF 2.x eager doesn't provide gradient and optimizer variable values."
                     "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
                 )
-            if (
-                not is_tf_version_2x()
-                and tf.executing_eagerly()
+            if not is_tf_version_2x() and (
+                tf.executing_eagerly()
                 or (hasattr(self.model, "run_eagerly") and self.model.run_eagerly)
             ):
                 self.logger.info(

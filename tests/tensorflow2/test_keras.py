@@ -33,6 +33,7 @@ def helper_keras_fit(
     eager=True,
     steps=None,
     add_callbacks=None,
+    run_eagerly=None,
 ):
     if not eager:
         tf.compat.v1.disable_eager_execution()
@@ -70,7 +71,12 @@ def helper_keras_fit(
     opt = tf.keras.optimizers.Adam()
 
     opt = hook.wrap_optimizer(opt)
-    model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    model.compile(
+        optimizer=opt,
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+        run_eagerly=run_eagerly,
+    )
     hooks = []
     if add_callbacks:
         if "tensorboard" in add_callbacks:
@@ -619,3 +625,18 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
+
+
+@pytest.mark.skip_if_non_eager
+def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
+    """
+    Test save all and save default collection in fit() pure eager mode
+    """
+    hook = smd.KerasHook(out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=3))
+    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
+
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
