@@ -31,6 +31,8 @@ class MetricsReader:
         self._SMEventsParser = SMProfilerEvents()
         self._TBEventsParser = TensorboardProfilerEvents()
         self._HorovordEventsParser = HorovodProfilerEvents()
+        # This is a set of parsed event files. The entry is made into this file only if the complete file is read.
+        self._parsed_files = set()
 
     def _get_start_timestamp_from_file(self, filename):
         return filename.split("_")[0]
@@ -142,12 +144,19 @@ class LocalMetricsReader(MetricsReader):
             dirs.pop()
             hr = int(dirs.pop())
             if hr not in self.hr_to_event_map:
-                self.hr_to_event_map[hr] = list()
-            self.hr_to_event_map[hr].append(event_file)
+                self.hr_to_event_map[hr] = set()
+            self.hr_to_event_map[hr].add(event_file)
+
+    """
+    The function opens and reads the event files if they are not already parsed.
+    For local metrics reader, we are currently assuming that the downloaded event file is a complete file.
+    """
 
     def parse_event_files(self, event_files):
         for event_file in event_files:
-            self._get_event_parser(event_file).read_events_from_file(event_file)
+            if event_file not in self._parsed_files:
+                self._get_event_parser(event_file).read_events_from_file(event_file)
+                self._parsed_files.add(event_file)
 
 
 class S3MetricsReader(MetricsReader):
@@ -155,13 +164,24 @@ class S3MetricsReader(MetricsReader):
         super().__init__()
         self.bucket_name = bucket_name
 
+    """
+    The function opens and reads the event files if they are not already parsed.
+    For S3 metrics reader, we are currently downloading the entire event file. Currently, we will add this file to a
+    _parsed_file set assuming that the file is complete and it won't be updated on S3 later. However it is
+    possible that the event file has not reached it's maximum size and will be updated later.
+    TODO: Check the downloaded size and add the file to _parsed_files only if the file with maximum size is
+    downloaded and parsed.
+    """
+
     def parse_event_files(self, event_files):
         for event_file in event_files:
-            file_read_request = ReadObjectRequest(path=event_file)
-            event_data = S3Handler.get_object(file_read_request)
-            event_string = event_data.decode("utf-8")
-            json_data = json.loads(event_string)
-            self._get_event_parser(event_file).read_events_from_json_data(json_data)
+            if event_file not in self._parsed_files:
+                file_read_request = ReadObjectRequest(path=event_file)
+                event_data = S3Handler.get_object(file_read_request)
+                event_string = event_data.decode("utf-8")
+                json_data = json.loads(event_string)
+                self._get_event_parser(event_file).read_events_from_json_data(json_data)
+                self._parsed_files.add(event_file)
 
     """
     Create a map of timestamp to filename
@@ -176,5 +196,5 @@ class S3MetricsReader(MetricsReader):
             dirs.pop()
             hr = int(dirs.pop())
             if hr not in self.hr_to_event_map:
-                self.hr_to_event_map[hr] = list()
-            self.hr_to_event_map[hr].append(f"s3://{self.bucket_name}/{event_file}")
+                self.hr_to_event_map[hr] = set()
+            self.hr_to_event_map[hr].add(f"s3://{self.bucket_name}/{event_file}")
