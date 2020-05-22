@@ -38,17 +38,23 @@ class TimelineRecord:
         self.phase = phase
         self.op_name = operator_name
         self.args = args
-        self.ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
+        self.rel_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
+        self.abs_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
         self.duration = (
             duration
             if duration
-            else int(round(time.time() * CONVERT_TO_MICROSECS) - self.ts_micros)
+            else int(round(time.time() * CONVERT_TO_MICROSECS) - self.abs_ts_micros)
         )
         self.pid = 0
         self.tid = 0
 
     def to_json(self):
-        json_dict = {"name": self.op_name, "pid": self.pid, "ph": self.phase, "ts": self.ts_micros}
+        json_dict = {
+            "name": self.op_name,
+            "pid": self.pid,
+            "ph": self.phase,
+            "ts": self.rel_ts_micros,
+        }
         if self.phase == "X":
             json_dict.update({"dur": self.duration})
 
@@ -135,7 +141,7 @@ class TimelineWriter:
         Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
         $ENV_CLOSE_FILE_INTERVAL time duration.
         """
-        now = record.ts_micros // CONVERT_TO_MICROSECS  # convert back to secs
+        now = record.abs_ts_micros / CONVERT_TO_MICROSECS  # convert back to secs
         base_dir, file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
 
         # check if any of the rotation policies have been satisfied. close the existing
@@ -178,7 +184,7 @@ class TimelineWriter:
 
             self.is_first = False
 
-        record.ts_micros -= self.start_time_since_epoch_in_micros
+        record.rel_ts_micros -= self.start_time_since_epoch_in_micros
         record.pid = self.tensor_table[record.training_phase]
 
         # write the trace event record
