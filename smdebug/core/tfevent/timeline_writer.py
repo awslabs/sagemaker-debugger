@@ -213,7 +213,7 @@ class TimelineWriter:
                 self._writer.write("\n]")
 
             self.flush()
-            self._writer.close(delete_if_empty=True)
+            self._writer.close()
             self._writer = None
 
     def name(self):
