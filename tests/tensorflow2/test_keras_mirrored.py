@@ -269,61 +269,6 @@ def test_save_all(out_dir, tf_eager_mode, workers):
 
 
 @pytest.mark.slow
-def test_save_one_worker(out_dir, tf_eager_mode):
-    strategy = train_model(
-        out_dir,
-        include_collections=None,
-        save_all=True,
-        save_config=SaveConfig(save_steps=[5]),
-        steps=["train"],
-        include_workers="one",
-        eager=tf_eager_mode,
-    )
-    tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.workers()) == 1
-    assert len(tr.steps())
-    assert len(tr.tensor_names(collection="weights"))
-    assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(5)) == 1
-    assert len(tr.tensor_names(collection="biases"))
-    assert len(tr.tensor(tr.tensor_names(collection="biases")[0]).workers(5)) == 1
-
-
-@pytest.mark.slow
-def test_save_all_workers(out_dir, tf_eager_mode):
-    # Skip if no GPUS
-    if get_available_gpus() == 0:
-        return
-    strategy = train_model(
-        out_dir,
-        include_collections=None,
-        save_all=True,
-        save_config=SaveConfig(save_steps=[5]),
-        steps=["train"],
-        include_workers="all",
-        eager=tf_eager_mode,
-    )
-    tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.workers()) == get_available_gpus()
-    assert len(tr.tensor_names(collection="weights"))
-    assert (
-        len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(5))
-        == strategy.num_replicas_in_sync
-    )
-
-    assert "conv2d/weights/conv2d/kernel:0" in tr.tensor_names(collection="weights")
-    assert (
-        len(tr.tensor("conv2d/weights/conv2d/kernel:0").workers(5)) == strategy.num_replicas_in_sync
-    )
-
-    assert len(tr.tensor_names(collection="biases"))
-    assert "conv2d/weights/conv2d/bias:0" in tr.tensor_names(collection="biases")
-    assert (
-        len(tr.tensor(tr.tensor_names(collection="biases")[0]).workers(5))
-        == strategy.num_replicas_in_sync
-    )
-
-
-@pytest.mark.slow
 def test_base_reductions(out_dir, tf_eager_mode):
     train_model(
         out_dir,
