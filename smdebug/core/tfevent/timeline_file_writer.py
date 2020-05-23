@@ -63,7 +63,7 @@ class TimelineFileWriter:
         self._worker.start()
 
     def write_trace_events(
-        self, training_phase="", op_name="", phase="X", timestamp=None, duration=1, args=None
+        self, training_phase="", op_name="", phase="X", timestamp=None, duration=0, args=None
     ):
         duration_in_us = int(duration * CONVERT_TO_MICROSECS)  # convert to micro seconds
         event = TimelineRecord(

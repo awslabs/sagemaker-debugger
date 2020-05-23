@@ -12,6 +12,7 @@ from smdebug.core.config_constants import (
     CONVERT_TO_MICROSECS,
     ENV_CLOSE_FILE_INTERVAL_DEFAULT,
     ENV_MAX_FILE_SIZE_DEFAULT,
+    FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
 )
 from smdebug.core.locations import TraceFileLocation
@@ -72,16 +73,18 @@ class TimelineWriter:
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/events_writer.cc"""
 
     def __init__(self, path, verbose=False):
-        self._filename = path
+        self._filename = None
+        self.base_dir = path
         self.verbose = verbose
         self._num_outstanding_events = 0
         self._logger = get_logger()
-        _, file_timestamp = self._get_file_timestamp()
-        self.start_time_since_epoch_in_micros = int(file_timestamp * CONVERT_TO_MICROSECS)
         self._writer = None
+        self.start_time_since_epoch_in_micros = int(round(time.time()))
         self.tensor_table = collections.defaultdict(int)
+        self.continuous_fail_count = 0
         self.is_first = True
-        self.open(path)
+        self.last_timestamp = 0
+        # self.open(path)
 
     def __del__(self):
         self.close()
@@ -97,7 +100,8 @@ class TimelineWriter:
             else:
                 self._writer = TSAccessFile(path, "a+")
         except (OSError, IOError) as err:
-            raise ValueError("failed to open {}: {}".format(path, str(err)))
+            self._logger.debug(f"Sagemaker-Debugger: failed to open {path}: {str(err)}")
+            return
         self.tensor_table = collections.defaultdict(int)
         self.is_first = True
         self._writer.write("[\n")
@@ -110,13 +114,13 @@ class TimelineWriter:
         fpath = path[1].split("/")[1]
         file_timestamp = int(fpath.split("_")[0])
 
-        # returning base directory where the trace files exist (path[0])
-        # and timestamp from file name
-        return path[0], file_timestamp
+        # returning timestamp from file name
+        return file_timestamp
 
     def _get_rotation_info(self, now):
         # get the file size and timestamp of the current file
-        base_dir, file_timestamp = self._get_file_timestamp()
+        file_timestamp = self._get_file_timestamp()
+
         file_size = self.file_size()
 
         # find the difference between the 2 times (in seconds)
@@ -129,7 +133,23 @@ class TimelineWriter:
         # close the file, create a new directory for the next hour and write to file there
         diff_in_hours = abs(now_datehour.hour - current_file_datehour.hour)
 
-        return base_dir, file_size, diff_in_seconds, diff_in_hours
+        return file_size, diff_in_seconds, diff_in_hours
+
+    def _should_rotate_now(self, now):
+        file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
+
+        if diff_in_hours != 0:
+            return True
+
+        if diff_in_seconds > float(
+            os.getenv("ENV_CLOSE_FILE_INTERVAL", ENV_CLOSE_FILE_INTERVAL_DEFAULT)
+        ):
+            return True
+
+        if file_size > float(os.getenv("ENV_MAX_FILE_SIZE", ENV_MAX_FILE_SIZE_DEFAULT)):
+            return True
+
+        return False
 
     def write_event(self, record):
         """Appends trace event to the file."""
@@ -143,24 +163,50 @@ class TimelineWriter:
         Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
         $ENV_CLOSE_FILE_INTERVAL time duration.
         """
-        now = record.abs_ts_micros / CONVERT_TO_MICROSECS  # convert back to secs
-        base_dir, file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
+        now = (
+            record.abs_ts_micros + record.duration
+        ) / CONVERT_TO_MICROSECS  # convert back to secs
 
         # check if any of the rotation policies have been satisfied. close the existing
         # trace file and open a new one
         # policy 1: if file size exceeds specified max_size
         # policy 2: if same file has been written to for close_interval time
         # policy 3: if a write is being made in the next hour, create a new directory
-        if (
-            file_size > int(os.getenv("ENV_MAX_FILE_SIZE", ENV_MAX_FILE_SIZE_DEFAULT))
-            or diff_in_seconds
-            > int(os.getenv("ENV_CLOSE_FILE_INTERVAL", ENV_CLOSE_FILE_INTERVAL_DEFAULT))
-            or diff_in_hours != 0
-        ):
+        if self._writer and self._should_rotate_now(now):
             self.close()
-            el = TraceFileLocation()
-            new_file_path = el.get_file_location(base_dir=base_dir, timestamp=now)
+            self.last_timestamp = now
+
+        el = TraceFileLocation()
+        new_file_path = el.get_file_location(base_dir=self.base_dir, timestamp=now)
+
+        #  if file has not been created yet, create now
+        if not self._writer:
             self.open(path=new_file_path)
+            if not self._writer:
+                self.continuous_fail_count += 1
+
+                if self.continuous_fail_count >= int(
+                    os.getenv("FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
+                ):
+                    self._logger.warning(
+                        "Encountered {} number of continuous failures while trying to open the file. "
+                        "Empty the record queue and mark the writer unhealthy.".format(
+                            str(
+                                os.getenv(
+                                    "FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT
+                                )
+                            )
+                        )
+                    )
+                    return
+
+        if self._writer and now > self.last_timestamp:
+            if isinstance(self._writer, TSAccessFile):
+                os.rename(self._filename + ".tmp", new_file_path + ".tmp")
+            elif isinstance(self._writer, TSAccessS3):
+                s3, bucket_name, key_name = is_s3(new_file_path)
+                self._writer.rename(key_name=key_name)
+            self.last_timestamp = now
 
         if self.tensor_table[record.training_phase] == 0:
             tensor_idx = len(self.tensor_table)

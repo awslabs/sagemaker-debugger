@@ -110,3 +110,6 @@ class TSAccessS3(TSAccessBase):
 
     def __exit(self, exc_type, exc_value, traceback):
         self.close()
+
+    def rename(self, key_name):
+        self.key_name = key_name

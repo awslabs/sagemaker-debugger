@@ -25,7 +25,7 @@ from smdebug.core.writer import FileWriter
 def helper_get_trial_dir(trial_dir, file_path="local"):
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "smdebug-testing"
+        bucket = "kannanva-smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
 
@@ -43,7 +43,7 @@ def test_create_timeline_file(out_dir, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "smdebug-testing"
+        bucket = "kannanva-smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
@@ -114,7 +114,7 @@ def test_multiprocess_write(out_dir, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "smdebug-testing"
+        bucket = "kannanva-smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
@@ -171,7 +171,7 @@ def test_duration_events(out_dir, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "smdebug-testing"
+        bucket = "kannanva-smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
@@ -237,7 +237,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "smdebug-testing"
+        bucket = "kannanva-smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
@@ -246,8 +246,8 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
         monkeypatch.setenv("ENV_MAX_FILE_SIZE", "300")  # rotate file if size > 300 bytes
     elif policy == "file_interval":
         monkeypatch.setenv(
-            "ENV_CLOSE_FILE_INTERVAL", "1"
-        )  # rotate file if file interval > 1 second
+            "ENV_CLOSE_FILE_INTERVAL", "0.5"
+        )  # rotate file if file interval > 0.5 second
 
     timeline_writer = FileWriter(
         trial_dir=trial_dir,
@@ -337,6 +337,7 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
             training_phase=f"TimestampTest",
             op_name="event_in_" + timezone + str(i),
             timestamp=event_time_in_timezone,
+            duration=20,
         )
         event_time_in_timezone = time.mktime(time.localtime())
         event_time_in_utc = calendar.timegm(time.gmtime())
@@ -352,7 +353,8 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
     path = file_path.name.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
     file_timestamp = int(path[0].split("_")[0])
 
-    assert time_in_utc == file_timestamp
+    # file timestamp uses end of event
+    assert (time_in_utc + 20) == file_timestamp
 
     start_time_since_epoch = 0
     idx = 0

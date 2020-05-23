@@ -222,7 +222,9 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        self.timeline_writer = None
+        self.timeline_writer = FileWriter(
+            trial_dir=self.out_dir, worker=get_tb_worker(), wtype="trace"
+        )
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
