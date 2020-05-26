@@ -277,3 +277,31 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
                         == event_times_in_utc[idx] * CONVERT_TO_MICROSECS
                     )
                     idx += 1
+
+
+def test_file_open_fail(monkeypatch):
+    monkeypatch.setenv("FILE_OPEN_FAIL_THRESHOLD", "2")
+
+    # writing to an invalid path to trigger file open failure
+    timeline_writer = FileWriter(
+        trial_dir="/tmp\\test",
+        worker=str(os.getpid()),
+        wtype="trace",
+        flush_secs=1,
+        timestamp=time.time(),
+    )
+    assert timeline_writer
+
+    for i in range(1, 5):
+        n = "event" + str(i)
+        # Adding a sleep here to slow down event queuing
+        time.sleep(0.001)
+        timeline_writer.write_trace_events(
+            training_phase=f"FileOpenTest", op_name=n, step_num=i, timestamp=time.time()
+        )
+
+    timeline_writer.flush()
+    timeline_writer.close()
+
+    # hacky way to check if the test passes
+    assert not timeline_writer._writer._ev_writer._healthy
