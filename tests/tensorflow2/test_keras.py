@@ -6,6 +6,9 @@ before pushing to master.
 This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
+# Standard Library
+import time
+
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
@@ -394,6 +397,10 @@ def test_gradtape_persistent(out_dir, saveall):
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_fit(out_dir, tf_eager_mode, saveall):
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
+    ts = time.time()
+    hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
+    scalars_to_be_saved = dict()
+    scalars_to_be_saved["scalar/foobar"] = (ts, 0)
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
@@ -403,9 +410,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x eager mode
-    if saveall:  # save losses, metrics, weights, biases
+    if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+            assert len(trial.tensor_names()) == (13 if is_tf_2_2() else 14)
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -421,11 +428,13 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
             "No Optimizer Variables Should be Saved in EVAL Mode",
         )
     else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
+        assert len(trial.tensor_names()) == (4 if is_tf_2_2() and tf_eager_mode else 5)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
+    for tname in trial.tensor_names():
+        assert trial.tensor(tname).value(0) is not None
 
 
 @pytest.mark.slow

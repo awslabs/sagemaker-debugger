@@ -3,12 +3,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # Standard Library
 import os
+import time
 
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
+from tests.core.utils import verify_files
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
 
@@ -119,6 +121,10 @@ def train_model(
             )
 
     hooks.append(hook)
+    scalars_to_be_saved = dict()
+    ts = time.time()
+    scalars_to_be_saved["scalar/foobar"] = (ts, steps)
+    hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
 
     if steps is None:
         steps = ["train"]
@@ -131,7 +137,7 @@ def train_model(
             model.predict(train_dataset, steps=4, callbacks=hooks, verbose=0)
 
     smd.get_hook().close()
-    return strategy
+    return strategy, scalars_to_be_saved
 
 
 def exhaustive_check(trial_dir, include_workers="one", eager=True):
@@ -144,7 +150,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
         CollectionKeys.METRICS,
         CollectionKeys.OPTIMIZER_VARIABLES,
     ]
-    strategy = train_model(
+    strategy, _ = train_model(
         trial_dir,
         include_collections=include_collections,
         steps=["train", "eval", "predict", "train"],
@@ -158,9 +164,11 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     if include_workers == "all":
         assert len(tr.workers()) == strategy.num_replicas_in_sync
         if eager:
-            assert len(tr.tensor_names()) == (6 + 1 + 2 + 5 if is_tf_2_2() else 6 + 1 + 3 + 5)
-            # 6 weights, 1 loss, 3 metrics, 5 optimizer variables for Tf 2.1
-            # 6 weights, 1 loss, 2 metrics, 5 optimizer variables for Tf 2.2
+            assert len(tr.tensor_names()) == (
+                6 + 1 + 2 + 5 + 1 if is_tf_2_2() else 6 + 1 + 3 + 5 + 1
+            )
+            # 6 weights, 1 loss, 3 metrics, 5 optimizer variables for Tf 2.1, 1 scalar
+            # 6 weights, 1 loss, 2 metrics, 5 optimizer variables for Tf 2.2, 1 scalar
         else:
             assert len(tr.tensor_names()) == (6 + 6 + 1 + 3 + strategy.num_replicas_in_sync * 3 + 5)
     else:
@@ -235,11 +243,12 @@ def test_tf_keras(out_dir, tf_eager_mode, include_workers="all"):
 @pytest.mark.slow
 @pytest.mark.parametrize("workers", ["one", "all"])
 def test_save_all(out_dir, tf_eager_mode, workers):
-    strategy = train_model(
+    save_config = SaveConfig(save_steps=[5])
+    strategy, saved_scalars = train_model(
         out_dir,
         include_collections=None,
         save_all=True,
-        save_config=SaveConfig(save_steps=[5]),
+        save_config=save_config,
         steps=["train"],
         eager=tf_eager_mode,
         include_workers=workers,
@@ -247,8 +256,8 @@ def test_save_all(out_dir, tf_eager_mode, workers):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        assert len(tr.tensor_names()) == (6 + 2 + 1 + 5 if is_tf_2_2() else 6 + 3 + 1 + 5)
-        # weights, metrics, losses, optimizer variables
+        assert len(tr.tensor_names()) == (6 + 2 + 1 + 5 + 1 if is_tf_2_2() else 6 + 3 + 1 + 5 + 1)
+        # weights, metrics, losses, optimizer variables, scalar
     else:
         assert (
             len(tr.tensor_names())
@@ -266,6 +275,7 @@ def test_save_all(out_dir, tf_eager_mode, workers):
         assert len(tr.tensor(tname).workers(0)) == (
             1 if workers == "one" else strategy.num_replicas_in_sync
         )
+    verify_files(out_dir, save_config, saved_scalars)
 
 
 @pytest.mark.slow
@@ -350,7 +360,7 @@ def test_include_regex(out_dir, tf_eager_mode, workers):
         include_workers=workers,
     )
     hook.get_collection("custom_coll").include("dense")
-    strategy = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
+    strategy, _ = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
@@ -378,7 +388,7 @@ def test_include_regex_opt_var(out_dir, tf_eager_mode, workers):
         include_workers=workers,
     )
     hook.get_collection("custom_optimizer_variables").include("Adam")
-    strategy = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
+    strategy, _ = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_optimizer_variables")
@@ -411,11 +421,11 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensor_names()) == (9 if is_tf_2_2() else 10)
+    assert len(tr.tensor_names()) == (10 if is_tf_2_2() else 11)
 
 
 def test_one_device(out_dir, tf_eager_mode):
-    strategy = train_model(
+    strategy, _ = train_model(
         out_dir,
         include_collections=[
             CollectionKeys.WEIGHTS,
