@@ -25,7 +25,7 @@ from smdebug.core.writer import FileWriter
 def helper_get_trial_dir(trial_dir, file_path="local"):
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "kannanva-smdebug-testing"
+        bucket = "smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
 
@@ -43,7 +43,7 @@ def test_create_timeline_file(out_dir, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "kannanva-smdebug-testing"
+        bucket = "smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
@@ -114,7 +114,7 @@ def test_multiprocess_write(out_dir, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "kannanva-smdebug-testing"
+        bucket = "smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
@@ -171,7 +171,7 @@ def test_duration_events(out_dir, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "kannanva-smdebug-testing"
+        bucket = "smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
@@ -237,7 +237,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
     """
     if file_path == "s3":
         trial_name = str(uuid.uuid4())
-        bucket = "kannanva-smdebug-testing"
+        bucket = "smdebug-testing"
         prefix = "outputs/" + trial_name
         trial_dir = "s3://" + os.path.join(bucket, prefix)
     else:
