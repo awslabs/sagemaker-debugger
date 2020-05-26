@@ -82,6 +82,7 @@ class TimelineWriter:
         self.continuous_fail_count = 0
         self.is_first = True
         self.last_timestamp = 0
+        self._healthy = True
         # self.open(path)
 
     def __del__(self):
@@ -95,11 +96,14 @@ class TimelineWriter:
             self._writer = TSAccessFile(path, "a+")
         except (OSError, IOError) as err:
             self._logger.debug(f"Sagemaker-Debugger: failed to open {path}: {str(err)}")
-            return
+            self.continuous_fail_count += 1
+            return False
         self.tensor_table = collections.defaultdict(int)
         self.is_first = True
         self._writer.write("[\n")
         self._filename = path
+        self._healthy = True
+        return True
 
     def _get_file_timestamp(self):
         file_path = self.name()
@@ -175,16 +179,14 @@ class TimelineWriter:
 
         #  if file has not been created yet, create now
         if not self._writer:
-            self.open(path=new_file_path)
-            if not self._writer:
-                self.continuous_fail_count += 1
-
+            file_opened = self.open(path=new_file_path)
+            if not file_opened:
                 if self.continuous_fail_count >= int(
                     os.getenv("FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
                 ):
                     self._logger.warning(
                         "Encountered {} number of continuous failures while trying to open the file. "
-                        "Empty the record queue and mark the writer unhealthy.".format(
+                        "Marking the writer unhealthy.".format(
                             str(
                                 os.getenv(
                                     "FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT
@@ -192,7 +194,8 @@ class TimelineWriter:
                             )
                         )
                     )
-                    return
+                    self._healthy = False
+                return
 
         if self._writer and now > self.last_timestamp:
             os.rename(self._filename + ".tmp", new_file_path + ".tmp")
@@ -233,15 +236,15 @@ class TimelineWriter:
         """Flushes the trace event file to disk."""
         if self._num_outstanding_events == 0:
             return
-        assert self._writer is not None
-        self._writer.flush()
-        if self.verbose and self._logger is not None:
-            self._logger.debug(
-                "wrote %d %s to disk",
-                self._num_outstanding_events,
-                "event" if self._num_outstanding_events == 1 else "events",
-            )
-        self._num_outstanding_events = 0
+        if self._writer is not None:
+            self._writer.flush()
+            if self.verbose and self._logger is not None:
+                self._logger.debug(
+                    "wrote %d %s to disk",
+                    self._num_outstanding_events,
+                    "event" if self._num_outstanding_events == 1 else "events",
+                )
+            self._num_outstanding_events = 0
 
     def close(self):
         """Flushes the pending events and closes the writer after it is done."""

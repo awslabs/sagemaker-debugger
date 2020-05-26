@@ -26,6 +26,7 @@ import six
 
 # First Party
 from smdebug.core.config_constants import CONVERT_TO_MICROSECS
+from smdebug.core.logger import get_logger
 from smdebug.core.tfevent.timeline_writer import TimelineRecord, TimelineWriter
 
 
@@ -60,11 +61,15 @@ class TimelineFileWriter:
             flush_secs=self._flush_secs,
             sentinel_event=self._sentinel_event,
         )
+        self._logger = get_logger()
         self._worker.start()
 
     def write_trace_events(
         self, training_phase="", op_name="", phase="X", timestamp=None, duration=0, args=None
     ):
+        if not self._ev_writer._healthy:
+            self._logger.warning("SMDebug timeline writer is unhealthy. Dropping the current event")
+            return
         duration_in_us = int(duration * CONVERT_TO_MICROSECS)  # convert to micro seconds
         event = TimelineRecord(
             training_phase=training_phase,
@@ -117,7 +122,7 @@ class _TimelineLoggerThread(threading.Thread):
         while True:
             event = self._queue.get()
 
-            if event is self._sentinel_event:
+            if not self._ev_writer._healthy or event is self._sentinel_event:
                 self._queue.task_done()
                 break
 

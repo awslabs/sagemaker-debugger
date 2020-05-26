@@ -25,9 +25,8 @@ def test_create_timeline_file(out_dir):
 
     It reads backs the file contents to make sure it is in valid JSON format.
     """
-    trial_dir = out_dir
     timeline_writer = FileWriter(
-        trial_dir=trial_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
+        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
     )
     assert timeline_writer
 
@@ -41,7 +40,7 @@ def test_create_timeline_file(out_dir):
     timeline_writer.close()
 
     files = []
-    for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
         files.append(path)
 
     assert len(files) == 1
@@ -77,12 +76,11 @@ def test_multiprocess_write(out_dir):
     """
     This test is meant to test timeline events written multiple processes. Each process or worker, will have its own trace file.
     """
-    trial_dir = out_dir
     cpu_count = mp.cpu_count()
 
     processes = []
     for rank in range(cpu_count):
-        p = mp.Process(target=run, args=(rank, trial_dir))
+        p = mp.Process(target=run, args=(rank, out_dir))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
@@ -90,7 +88,7 @@ def test_multiprocess_write(out_dir):
         p.join()
 
     files = []
-    for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
         files.append(path)
 
     assert len(files) == cpu_count
@@ -111,9 +109,8 @@ def test_duration_events(out_dir):
     This test is meant to test duration events. By default, write_trace_events records complete events.
     TODO: Make TimelineWriter automatically calculate duration while recording "E" event
     """
-    trial_dir = out_dir
     timeline_writer = FileWriter(
-        trial_dir=trial_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
+        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
     )
     assert timeline_writer
 
@@ -138,7 +135,7 @@ def test_duration_events(out_dir):
     timeline_writer.close()
 
     files = []
-    for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
         files.append(path)
 
     assert len(files) == 1
@@ -158,7 +155,6 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
     file_interval -> close file if the file's folder was created before a certain time period and open a new file in a new folder
     :param policy: file_size or file_interval
     """
-    trial_dir = out_dir
     if policy == "file_size":
         monkeypatch.setenv("ENV_MAX_FILE_SIZE", "300")  # rotate file if size > 300 bytes
     elif policy == "file_interval":
@@ -167,7 +163,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
         )  # rotate file if file interval > 0.5 second
 
     timeline_writer = FileWriter(
-        trial_dir=trial_dir,
+        trial_dir=out_dir,
         step=0,
         worker=str(os.getpid()),
         wtype="trace",
@@ -191,7 +187,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
     timeline_writer.close()
 
     files = []
-    for path in Path(trial_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
         files.append(path)
 
     # rotate by file_size, gives 4 files - 1 per event
