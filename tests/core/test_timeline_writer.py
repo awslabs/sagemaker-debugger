@@ -285,22 +285,41 @@ def test_rotation_policy(out_dir, monkeypatch, policy, file_path):
     assert len(files) >= 2
 
     # count the number of event JSON strings. This is to ensure all events have been written.
+    # also check if the timestamp of all events in a file are <= filename timestamp
     event_ctr = 0
+    start_time_since_epoch = 0
     if file_path == "s3":
         for file_name in files:
+            path = file_name.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
+            fpath = path[1].split("/")[1]
+            file_timestamp = int(fpath.split("_")[0])
             request = ReadObjectRequest("s3://" + os.path.join(bucket, file_name))
             obj_data = S3Handler.get_object(request)
             obj_data = obj_data.decode("utf-8")
             events_dict = load_json_as_dict(obj_data)
             for e in events_dict:
+                if "args" in e and "start_time_since_epoch_in_micros" in e["args"]:
+                    start_time_since_epoch = int(e["args"]["start_time_since_epoch_in_micros"])
                 if e["name"].startswith("event"):
+                    assert (
+                        int(e["ts"] + start_time_since_epoch)
+                        <= file_timestamp * CONVERT_TO_MICROSECS
+                    )
                     event_ctr += 1
     else:
         for file_name in files:
+            path = file_name.name.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
+            file_timestamp = int(path[0].split("_")[0])
             with open(file_name) as timeline_file:
                 events_dict = json.load(timeline_file)
                 for e in events_dict:
+                    if "args" in e and "start_time_since_epoch_in_micros" in e["args"]:
+                        start_time_since_epoch = int(e["args"]["start_time_since_epoch_in_micros"])
                     if e["name"].startswith("event"):
+                        assert (
+                            int(e["ts"] + start_time_since_epoch)
+                            <= file_timestamp * CONVERT_TO_MICROSECS
+                        )
                         event_ctr += 1
 
     assert event_ctr == 4
