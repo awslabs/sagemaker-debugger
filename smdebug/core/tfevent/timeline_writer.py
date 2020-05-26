@@ -7,7 +7,6 @@ from datetime import datetime
 
 # First Party
 from smdebug.core.access_layer.file import TSAccessFile
-from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.config_constants import (
     CONVERT_TO_MICROSECS,
     ENV_CLOSE_FILE_INTERVAL_DEFAULT,
@@ -17,7 +16,6 @@ from smdebug.core.config_constants import (
 )
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import is_s3
 
 
 """
@@ -93,12 +91,8 @@ class TimelineWriter:
         """
         Open the trace event file either from init or when closing and opening a file based on rotation policy
         """
-        s3, bucket_name, key_name = is_s3(path)
         try:
-            if s3:
-                self._writer = TSAccessS3(bucket_name, key_name, binary=False)
-            else:
-                self._writer = TSAccessFile(path, "a+")
+            self._writer = TSAccessFile(path, "a+")
         except (OSError, IOError) as err:
             self._logger.debug(f"Sagemaker-Debugger: failed to open {path}: {str(err)}")
             return
@@ -201,11 +195,7 @@ class TimelineWriter:
                     return
 
         if self._writer and now > self.last_timestamp:
-            if isinstance(self._writer, TSAccessFile):
-                os.rename(self._filename + ".tmp", new_file_path + ".tmp")
-            elif isinstance(self._writer, TSAccessS3):
-                s3, bucket_name, key_name = is_s3(new_file_path)
-                self._writer.rename(key_name=key_name)
+            os.rename(self._filename + ".tmp", new_file_path + ".tmp")
             self.last_timestamp = now
 
         if self.tensor_table[record.training_phase] == 0:
@@ -257,13 +247,9 @@ class TimelineWriter:
         """Flushes the pending events and closes the writer after it is done."""
         if self._writer is not None:
             # seeking the last ',' and replacing with ']' to mark EOF
-            if isinstance(self._writer, TSAccessFile):
-                file_seek_pos = self._writer._accessor.tell()
-                self._writer._accessor.seek(file_seek_pos - 2)
-                self._writer._accessor.truncate()
-            else:
-                file_seek_pos = len(self._writer.data)
-                self._writer.data = self._writer.data[:-2]
+            file_seek_pos = self._writer._accessor.tell()
+            self._writer._accessor.seek(file_seek_pos - 2)
+            self._writer._accessor.truncate()
 
             if file_seek_pos > 2:
                 self._writer.write("\n]")
@@ -276,7 +262,4 @@ class TimelineWriter:
         return self._filename
 
     def file_size(self):
-        if isinstance(self._writer, TSAccessFile):
-            return os.path.getsize(self._filename + ".tmp")  # in bytes
-        else:
-            return len(self._writer.data)
+        return os.path.getsize(self._filename + ".tmp")  # in bytes
