@@ -39,6 +39,7 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.utils import (
     flatten,
+    get_node_id,
     get_tb_worker,
     is_first_process,
     match_inc,
@@ -223,7 +224,7 @@ class BaseHook:
         self.writer = None
 
         self.timeline_writer = FileWriter(
-            trial_dir=self.out_dir, worker=get_tb_worker(), wtype="trace"
+            trial_dir=self.out_dir, worker=get_node_id(), wtype="trace"
         )
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
@@ -481,17 +482,6 @@ class BaseHook:
             )
             return self.tb_writers[self.mode]
 
-    def _maybe_get_timeline_writer(self, timestamp=None) -> Optional[FileWriter]:
-        """ Returns a FileWriter object if timeline_writer has been created, else creates a file at the
-        location specified by $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
-        {$ENV_NODE_ID_4digits0padded}_pythontimeline.json and returns the FileWriter.
-        """
-        if not self.timeline_writer:
-            self.timeline_writer = FileWriter(
-                trial_dir=self.out_dir, worker=get_tb_worker(), wtype="trace", timestamp=timestamp
-            )
-        return self.timeline_writer
-
     def _close_tb_writer(self):
         if self.dry_run:
             return
@@ -509,9 +499,7 @@ class BaseHook:
         if self.metrics_writer:
             self.metrics_writer.close()
 
-        if self.timeline_writer is not None:
-            # flush has already been called in close writers
-            self.timeline_writer.close()
+        self.timeline_writer.close()
 
         training_has_ended(self.out_dir)
         if self.first_process is True:
@@ -655,8 +643,7 @@ class BaseHook:
         :param duration: any duration manually computed (in seconds)
         :param kwargs: can be process id and thread id
         """
-        timeline_writer = self._maybe_get_timeline_writer(timestamp=timestamp)
-        timeline_writer.write_trace_events(
+        self.timeline_writer.write_trace_events(
             training_phase=training_phase,
             op_name=op_name,
             phase=phase,
