@@ -1,6 +1,5 @@
 # First Party
 from smdebug.profiler import HorovodProfilerEvents
-from smdebug.profiler.utils import TimeUnits
 
 
 def test_horovodprofiler_events(trace_file="./tests/profiler/horovod_timeline_small.json"):
@@ -14,10 +13,6 @@ def test_horovodprofiler_events(trace_file="./tests/profiler/horovod_timeline_sm
 
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 306
-
-    event_list = t_events.get_events_at_timestamp(8.990000000, unit=TimeUnits.SECONDS)
-    print(f"Number of events at 8990000000 are {len(event_list)}")
-    assert len(event_list) == 90
 
     completed_event_list = t_events.get_events_within_time_range(0, 8990000)  # microseconds
     print(f"Number of events occurred between 0 and 8990000000 are {len(completed_event_list)}")

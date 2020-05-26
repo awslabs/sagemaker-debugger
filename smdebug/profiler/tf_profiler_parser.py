@@ -22,19 +22,6 @@ class SMProfilerEvents(TraceEventParser):
                 self.logger.info(f"Start time for events in uSeconds = {self._start_timestamp}")
 
     """
-    Return the events that are in progress at the specified timestamp.
-    The timestamp can accept the datetime object.
-    Performance of this function can be improved by implementing interval tree.
-    """
-
-    def get_events_at_time(self, timestamp_datetime: datetime):
-        if timestamp_datetime.__class__ is datetime:
-            timestamp_in_nanoseconds = convert_utc_datetime_to_nanoseconds(timestamp_datetime)
-            return self.get_events_at_timestamp(
-                timestamp_in_nanoseconds, unit=TimeUnits.NANOSECONDS
-            )
-
-    """
     Return the events that have started and completed within the given start and end time boundaries.
     The start and end time can be specified datetime objects.
     The events that are in progress during these boundaries are not included.

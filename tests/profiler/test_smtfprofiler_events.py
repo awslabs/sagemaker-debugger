@@ -18,15 +18,6 @@ def test_smprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 49
 
-    event_list = t_events.get_events_at_timestamp(1589314018.4588, unit=TimeUnits.SECONDS)
-    print(f"Number of events at 1589314018458800000 are {len(event_list)}")
-    assert len(event_list) == 1
-
-    current_dt = datetime.fromtimestamp(1589314018.4588)
-    event_list = t_events.get_events_at_time(current_dt)
-    print(f"Number of events at {current_dt} are {len(event_list)}")
-    assert len(event_list) == 1
-
     completed_event_list = t_events.get_events_within_time_range(
         0, 1589314018.4700, unit=TimeUnits.SECONDS
     )

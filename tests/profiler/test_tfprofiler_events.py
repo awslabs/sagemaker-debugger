@@ -15,10 +15,6 @@ def test_tensorboardprofiler_events(trace_file="./tests/profiler/ip-172-31-19-24
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 256
 
-    event_list = t_events.get_events_at_timestamp(0.015013686, unit=TimeUnits.SECONDS)
-    print(f"Number of events at 15013686 are {len(event_list)}")
-    assert len(event_list) == 3
-
     completed_event_list = t_events.get_events_within_time_range(
         0, 0.015013686, unit=TimeUnits.SECONDS
     )

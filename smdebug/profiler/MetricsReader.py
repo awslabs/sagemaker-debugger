@@ -14,6 +14,8 @@ from smdebug.profiler.profiler_constants import (
     MODELTIMELINE_PREFIX,
     PYTHONTIMELINE_PREFIX,
     TENSORBOARDTIMELINE_PREFIX,
+    TIME_BUFFER,
+    TRACE_DIRECTORY_FORMAT,
 )
 from smdebug.profiler.tf_profiler_parser import (
     HorovodProfilerEvents,
@@ -38,7 +40,7 @@ class MetricsReader:
         return filename.split("_")[0]
 
     """
-    Get the tracefiles in the given hour directory that would contain the events corresponding to start and ent
+    Get the tracefiles in the given hour directory that would contain the events corresponding to start and end
     timestamps in microseconds
     """
 
@@ -50,11 +52,27 @@ class MetricsReader:
                 files.append(event_file)
         return files
 
-    def _get_trace_files_in_the_range(self, start_time_microseconds, end_time_microseconds):
+    """
+    Return the tracefiles that were written during the given range. If use_buffer is True, we will consider adding a
+    buffer of TIME_BUFFER microseconds to increase the time range. This is done because the events are written to the file
+    after they end. It is possible that an event would have stared within the window of start and end, however it
+    did not complete at or before 'end' time. Hence the event will not appear in the tracefile that corresponds to
+    'end' timestamp. It will appear in the future event file.
+    We will also add a buffer for the 'start' i.e. we will look for tracefiles that were written prior to 'start'.
+    Those files might contain 'B' type events that had started prior to 'start'
+    """
+
+    def _get_trace_files_in_the_range(
+        self, start_time_microseconds, end_time_microseconds, use_buffer=True
+    ):
+        # increase the time range using TIME_BUFFER
+        if use_buffer:
+            start_time_microseconds = start_time_microseconds - TIME_BUFFER
+            end_time_microseconds = end_time_microseconds + TIME_BUFFER
         start_dt = datetime.utcfromtimestamp(start_time_microseconds / 1000000)
         end_dt = datetime.utcfromtimestamp(end_time_microseconds / 1000000)
-        start_dt_dir = int(start_dt.strftime("%y%m%d%H"))
-        end_dt_dir = int(end_dt.strftime("%y%m%d%H"))
+        start_dt_dir = int(start_dt.strftime(TRACE_DIRECTORY_FORMAT))
+        end_dt_dir = int(end_dt.strftime(TRACE_DIRECTORY_FORMAT))
 
         # Get the event files for the range of time
         event_files = list()
