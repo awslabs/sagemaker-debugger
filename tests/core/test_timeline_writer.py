@@ -163,12 +163,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
         )  # rotate file if file interval > 0.5 second
 
     timeline_writer = FileWriter(
-        trial_dir=out_dir,
-        step=0,
-        worker=str(os.getpid()),
-        wtype="trace",
-        flush_secs=1,
-        timestamp=time.time(),
+        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
     )
     assert timeline_writer
 
@@ -232,7 +227,6 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
         step=0,
         worker=str(os.getpid()),
         wtype="trace",
-        flush_secs=1,
         timestamp=time_in_timezone,
     )
     assert timeline_writer
@@ -284,11 +278,7 @@ def test_file_open_fail(monkeypatch):
 
     # writing to an invalid path to trigger file open failure
     timeline_writer = FileWriter(
-        trial_dir="/tmp\\test",
-        worker=str(os.getpid()),
-        wtype="trace",
-        flush_secs=1,
-        timestamp=time.time(),
+        trial_dir="/tmp\\test", worker=str(os.getpid()), wtype="trace", timestamp=time.time()
     )
     assert timeline_writer
 

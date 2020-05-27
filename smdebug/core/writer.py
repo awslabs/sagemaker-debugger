@@ -104,12 +104,8 @@ class FileWriter:
             self.index_writer = None
         elif wtype == "trace":
             # Create TimelineFileWriter to record trace events
-            # el = TraceFileLocation()
-            # event_file_path = el.get_file_location(base_dir=self.trial_dir, timestamp=timestamp)
             self._writer = TimelineFileWriter(
-                path=os.getenv("ENV_BASE_FOLDER", self.trial_dir),
-                flush_secs=flush_secs,
-                max_queue=max_queue,
+                path=os.getenv("ENV_BASE_FOLDER", self.trial_dir), max_queue=max_queue
             )
             self.index_writer = None
         else:

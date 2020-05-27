@@ -43,7 +43,7 @@ class TimelineFileWriter:
     and asynchronously writes TimelineRecord to the file.
     """
 
-    def __init__(self, path, max_queue=100, flush_secs=30):
+    def __init__(self, path, max_queue=100):
         """Creates a `TimelineFileWriter` and a trace event file to write to.
         This event file will contain TimelineRecord as JSON strings, which are written to
         disk via the write_record method.
@@ -53,13 +53,9 @@ class TimelineFileWriter:
         self._path = path
         self._event_queue = six.moves.queue.Queue(max_queue)
         self._ev_writer = TimelineWriter(path=self._path)
-        self._flush_secs = flush_secs
         self._sentinel_event = _get_sentinel_event()
         self._worker = _TimelineLoggerThread(
-            queue=self._event_queue,
-            ev_writer=self._ev_writer,
-            flush_secs=self._flush_secs,
-            sentinel_event=self._sentinel_event,
+            queue=self._event_queue, ev_writer=self._ev_writer, sentinel_event=self._sentinel_event
         )
         self._logger = get_logger()
         self._worker.start()
@@ -107,15 +103,12 @@ class _TimelineLoggerThread(threading.Thread):
     """Thread that logs events. Copied from
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py#L133"""
 
-    def __init__(self, queue, ev_writer, flush_secs, sentinel_event):
+    def __init__(self, queue, ev_writer, sentinel_event):
         """Creates a _TimelineLoggerThread."""
         threading.Thread.__init__(self)
         self.daemon = True
         self._queue = queue
         self._ev_writer = ev_writer
-        self._flush_secs = flush_secs
-        # The first event will be flushed immediately.
-        self._next_event_flush_time = 0
         self._sentinel_event = sentinel_event
 
     def run(self):
@@ -129,13 +122,6 @@ class _TimelineLoggerThread(threading.Thread):
             try:
                 # write event
                 _ = self._ev_writer.write_event(event)
-
-                # Flush the event writer every so often.
-                now = time.time()
-                if now > self._next_event_flush_time:
-                    self._ev_writer.flush()
-                    # Do it again in _flush_secs time.
-                    self._next_event_flush_time = now + self._flush_secs
             finally:
                 self._queue.task_done()
             time.sleep(0)

@@ -83,7 +83,6 @@ class TimelineWriter:
         self.is_first = True
         self.last_timestamp = 0
         self._healthy = True
-        # self.open(path)
 
     def __del__(self):
         self.close()
