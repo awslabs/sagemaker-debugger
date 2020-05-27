@@ -294,4 +294,4 @@ def test_file_open_fail(monkeypatch):
     timeline_writer.close()
 
     # hacky way to check if the test passes
-    assert not timeline_writer._writer._ev_writer._healthy
+    assert not timeline_writer._writer._worker._healthy
