@@ -41,9 +41,9 @@ from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
 
 
-def _get_sentinel_event():
+def _get_sentinel_event(base_start_time):
     """Generate a sentinel trace event for terminating worker."""
-    return TimelineRecord(timestamp=time.time())
+    return TimelineRecord(timestamp=time.time(), base_start_time=base_start_time)
 
 
 """
@@ -53,7 +53,14 @@ TimelineRecord represents one trace event that ill be written into a trace event
 
 class TimelineRecord:
     def __init__(
-        self, timestamp, training_phase="", phase="X", operator_name="", args=None, duration=0
+        self,
+        timestamp,
+        base_start_time,
+        training_phase="",
+        phase="X",
+        operator_name="",
+        args=None,
+        duration=0,
     ):
         """
         :param timestamp: Mandatory field. start_time for the event
@@ -67,7 +74,8 @@ class TimelineRecord:
         self.phase = phase
         self.op_name = operator_name
         self.args = args
-        self.rel_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
+        self.base_start_time = base_start_time
+        self.rel_ts_micros = int(timestamp * CONVERT_TO_MICROSECS) - self.base_start_time
         self.abs_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
         self.duration = (
             duration
@@ -108,9 +116,10 @@ class TimelineFileWriter:
         The other arguments to the constructor control the asynchronous writes to
         the event file:
         """
+        self.start_time_since_epoch_in_micros = int(round(time.time() * CONVERT_TO_MICROSECS))
         self._path = path
         self._event_queue = six.moves.queue.Queue(max_queue)
-        self._sentinel_event = _get_sentinel_event()
+        self._sentinel_event = _get_sentinel_event(self.start_time_since_epoch_in_micros)
         self._worker = _TimelineLoggerThread(
             queue=self._event_queue, sentinel_event=self._sentinel_event, path=path
         )
@@ -131,6 +140,7 @@ class TimelineFileWriter:
             timestamp=timestamp,
             args=args,
             duration=duration_in_us,
+            base_start_time=self.start_time_since_epoch_in_micros,
         )
         self.write_event(event)
 
@@ -172,7 +182,6 @@ class _TimelineLoggerThread(threading.Thread):
         self._logger = get_logger()
         self._writer = None
         self.verbose = verbose
-        self.start_time_since_epoch_in_micros = int(round(time.time()))
         self.tensor_table = collections.defaultdict(int)
         self.continuous_fail_count = 0
         self.is_first = True
@@ -313,7 +322,7 @@ class _TimelineLoggerThread(threading.Thread):
 
             # First writing a metadata event
             if self.is_first:
-                args = {"start_time_since_epoch_in_micros": self.start_time_since_epoch_in_micros}
+                args = {"start_time_since_epoch_in_micros": record.base_start_time}
                 json_dict = {"name": "process_name", "ph": "M", "pid": 0, "args": args}
                 self._writer.write(json.dumps(json_dict) + ",\n")
 
@@ -331,7 +340,6 @@ class _TimelineLoggerThread(threading.Thread):
 
             self.is_first = False
 
-        record.rel_ts_micros -= self.start_time_since_epoch_in_micros
         record.pid = self.tensor_table[record.training_phase]
 
         # write the trace event record
