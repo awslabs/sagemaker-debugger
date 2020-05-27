@@ -1,8 +1,8 @@
 # Standard Library
 
+import bisect
 import json
 import os
-from datetime import datetime
 
 # First Party
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler
@@ -15,7 +15,6 @@ from smdebug.profiler.profiler_constants import (
     PYTHONTIMELINE_PREFIX,
     TENSORBOARDTIMELINE_PREFIX,
     TIME_BUFFER,
-    TRACE_DIRECTORY_FORMAT,
 )
 from smdebug.profiler.tf_profiler_parser import (
     HorovodProfilerEvents,
@@ -28,31 +27,17 @@ from smdebug.profiler.utils import TimeUnits, convert_utc_timestamp_to_microseco
 class MetricsReader:
     def __init__(self):
         self.prefix = DEFAULT_PREFIX
-        self.hr_to_event_map = dict()
         self.logger = get_logger("smdebug-profiler")
         self._SMEventsParser = SMProfilerEvents()
         self._TBEventsParser = TensorboardProfilerEvents()
         self._HorovordEventsParser = HorovodProfilerEvents()
         # This is a set of parsed event files. The entry is made into this file only if the complete file is read.
         self._parsed_files = set()
+        self._timestamp_to_filename = dict()
 
     def _get_end_timestamp_from_filename(self, filename):
-        return filename.split("_")[0]
-
-    """
-    Get the tracefiles in the given hour directory that would contain the events corresponding to start and end
-    timestamps in microseconds. The function assumes that the start and end timestamp are extended by pre-defined
-    buffer time. Any trace file that is contains events before the start_time_microseconds or after end_time_microseconds
-    will not be considered.
-    """
-
-    def _get_event_files(self, hr_directory, start_time_microseconds, end_time_microseconds):
-        files = []
-        for event_file in self.hr_to_event_map[hr_directory]:
-            event_file_stamp = int(self._get_end_timestamp_from_filename(event_file.split("/")[-1]))
-            if start_time_microseconds <= event_file_stamp <= end_time_microseconds:
-                files.append(event_file)
-        return files
+        filename = filename.split("/")[-1]
+        return int(filename.split("_")[0])
 
     """
     Return the tracefiles that were written during the given range. If use_buffer is True, we will consider adding a
@@ -71,18 +56,28 @@ class MetricsReader:
         if use_buffer:
             start_time_microseconds = start_time_microseconds - TIME_BUFFER
             end_time_microseconds = end_time_microseconds + TIME_BUFFER
-        start_dt = datetime.utcfromtimestamp(start_time_microseconds / 1000000)
-        end_dt = datetime.utcfromtimestamp(end_time_microseconds / 1000000)
-        start_dt_dir = int(start_dt.strftime(TRACE_DIRECTORY_FORMAT))
-        end_dt_dir = int(end_dt.strftime(TRACE_DIRECTORY_FORMAT))
 
-        # Get the event files for the range of time
+        timestamps = sorted(self._timestamp_to_filename.keys())
+
+        # Find the timestamp that is greater than or equal start_time_microseconds. The tracefile corresponding to
+        # that timestamp will contain events that are active during start_time_microseconds
+        lower_bound_timestamp = bisect.bisect_left(timestamps, start_time_microseconds)
+
+        # Find the timestamp that is immediate right to the end_time_microseconds. The tracefile corresponding to
+        # that timestamp will contain events that are active during end_time_microseconds. We will cap the
+        # upper_bound_timestamp to length of timestamps list
+        upper_bound_timestamp = bisect.bisect_right(timestamps, end_time_microseconds)
+        if lower_bound_timestamp == len(timestamps) or upper_bound_timestamp == 0:
+            self.logger.warning(
+                "No suitable event files present that can contain events within the given timerange"
+            )
+
+        if upper_bound_timestamp != len(timestamps):
+            upper_bound_timestamp += 1
+
         event_files = list()
-        for hr in sorted(self.hr_to_event_map.keys()):
-            if start_dt_dir <= hr <= end_dt_dir:
-                event_files.extend(
-                    self._get_event_files(hr, start_time_microseconds, end_time_microseconds)
-                )
+        for index in timestamps[lower_bound_timestamp:upper_bound_timestamp]:
+            event_files.append(self._timestamp_to_filename[index])
         return event_files
 
     """
@@ -160,12 +155,8 @@ class LocalMetricsReader(MetricsReader):
         event_regex = r"(.+)\.(json|csv)$"
         event_files = list_files_in_directory(event_dir, file_regex=event_regex)
         for event_file in event_files:
-            dirs = event_file.split("/")
-            dirs.pop()
-            hr = int(dirs.pop())
-            if hr not in self.hr_to_event_map:
-                self.hr_to_event_map[hr] = set()
-            self.hr_to_event_map[hr].add(event_file)
+            timestamp = self._get_end_timestamp_from_filename(event_file)
+            self._timestamp_to_filename[timestamp] = event_file
 
     """
     The function opens and reads the event files if they are not already parsed.
@@ -212,9 +203,5 @@ class S3MetricsReader(MetricsReader):
 
         event_files = [x for x in S3Handler.list_prefix(list_dir) if "json" in x]
         for event_file in event_files:
-            dirs = event_file.split("/")
-            dirs.pop()
-            hr = int(dirs.pop())
-            if hr not in self.hr_to_event_map:
-                self.hr_to_event_map[hr] = set()
-            self.hr_to_event_map[hr].add(f"s3://{self.bucket_name}/{event_file}")
+            timestamp = self._get_end_timestamp_from_filename(event_file)
+            self._timestamp_to_filename[timestamp] = f"s3://{self.bucket_name}/{event_file}"
