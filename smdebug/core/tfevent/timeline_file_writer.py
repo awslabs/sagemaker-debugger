@@ -29,16 +29,17 @@ from datetime import datetime
 import six
 
 # First Party
-from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.config_constants import (
     CONVERT_TO_MICROSECS,
     ENV_CLOSE_FILE_INTERVAL_DEFAULT,
     ENV_MAX_FILE_SIZE_DEFAULT,
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
-    SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
 )
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
+from smdebug.core.utils import ensure_dir
+
+logger = get_logger()
 
 
 def _get_sentinel_event(base_start_time):
@@ -75,13 +76,14 @@ class TimelineRecord:
         self.op_name = operator_name
         self.args = args
         self.base_start_time = base_start_time
-        self.rel_ts_micros = int(timestamp * CONVERT_TO_MICROSECS) - self.base_start_time
         self.abs_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
+        self.rel_ts_micros = self.abs_ts_micros - self.base_start_time
         self.duration = (
             duration
             if duration
             else int(round(time.time() * CONVERT_TO_MICROSECS) - self.abs_ts_micros)
         )
+        self.event_end_ts_micros = self.abs_ts_micros + self.duration
         self.pid = 0
         self.tid = 0
 
@@ -121,16 +123,17 @@ class TimelineFileWriter:
         self._event_queue = six.moves.queue.Queue(max_queue)
         self._sentinel_event = _get_sentinel_event(self.start_time_since_epoch_in_micros)
         self._worker = _TimelineLoggerThread(
-            queue=self._event_queue, sentinel_event=self._sentinel_event, path=path
+            queue=self._event_queue,
+            sentinel_event=self._sentinel_event,
+            path=path,
+            base_start_time=self.start_time_since_epoch_in_micros,
         )
-        self._logger = get_logger()
         self._worker.start()
 
     def write_trace_events(
         self, timestamp, training_phase="", op_name="", phase="X", duration=0, args=None
     ):
         if not self._worker._healthy:
-            self._logger.warning("SMDebug timeline writer is unhealthy. Dropping the current event")
             return
         duration_in_us = int(duration * CONVERT_TO_MICROSECS)  # convert to micro seconds
         event = TimelineRecord(
@@ -162,30 +165,30 @@ class TimelineFileWriter:
         self._worker.join()
         self._worker.close()
 
-    def name(self):
-        return self._worker.name()
-
 
 class _TimelineLoggerThread(threading.Thread):
     """Thread that logs events. Copied from
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py#L133"""
 
-    def __init__(self, queue, sentinel_event, path, verbose=False):
+    def __init__(self, queue, sentinel_event, path, base_start_time, verbose=False):
         """Creates a _TimelineLoggerThread."""
         threading.Thread.__init__(self)
-        self.daemon = True
+        self.daemon = False
         self._queue = queue
         self._sentinel_event = sentinel_event
-        self._filename = None
         self.base_dir = path
         self._num_outstanding_events = 0
-        self._logger = get_logger()
         self._writer = None
         self.verbose = verbose
         self.tensor_table = collections.defaultdict(int)
         self.continuous_fail_count = 0
         self.is_first = True
-        self.last_timestamp = 0
+        self.last_event_end_time = int(round(base_start_time / CONVERT_TO_MICROSECS))
+        self.last_file_close_time = self.last_event_end_time
+        self.cur_hour = datetime.utcfromtimestamp(self.last_file_close_time).hour
+        self._filename = TraceFileLocation().get_file_location(
+            base_dir=self.base_dir, timestamp=self.last_event_end_time
+        )
         self._healthy = True
 
         self.file_close_interval = float(
@@ -216,43 +219,30 @@ class _TimelineLoggerThread(threading.Thread):
         Open the trace event file either from init or when closing and opening a file based on rotation policy
         """
         try:
-            self._writer = TSAccessFile(path, "a+")
+            ensure_dir(path)
+            self._writer = open(path, "a+")
         except (OSError, IOError) as err:
-            self._logger.debug(f"Sagemaker-Debugger: failed to open {path}: {str(err)}")
+            logger.debug(f"Sagemaker-Debugger: failed to open {path}: {str(err)}")
             self.continuous_fail_count += 1
             return False
         self.tensor_table = collections.defaultdict(int)
         self.is_first = True
         self._writer.write("[\n")
-        self._filename = path
+        # self._filename = path
         self._healthy = True
         return True
 
-    def _get_file_timestamp(self):
-        file_path = self.name()
-        path = file_path.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
-        # get the timestamp of the current file
-        fpath = path[1].split("/")[1]
-        file_timestamp = int(fpath.split("_")[0])
-
-        # returning timestamp from file name
-        return file_timestamp
-
     def _get_rotation_info(self, now):
-        # get the file size and timestamp of the current file
-        file_timestamp = self._get_file_timestamp()
-
         file_size = self.file_size()
 
         # find the difference between the 2 times (in seconds)
-        diff_in_seconds = int(round(now - file_timestamp))
+        diff_in_seconds = int(round(now - self.last_file_close_time))
 
-        current_file_datehour = datetime.utcfromtimestamp(file_timestamp)
         now_datehour = datetime.utcfromtimestamp(now)
 
         # check if the flush is going to happen in the next hour, if so,
         # close the file, create a new directory for the next hour and write to file there
-        diff_in_hours = abs(now_datehour.hour - current_file_datehour.hour)
+        diff_in_hours = abs(now_datehour.hour - self.cur_hour)
 
         return file_size, diff_in_seconds, diff_in_hours
 
@@ -260,6 +250,7 @@ class _TimelineLoggerThread(threading.Thread):
         file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
 
         if diff_in_hours != 0:
+            self.cur_hour = datetime.utcfromtimestamp(now).hour
             return True
 
         if diff_in_seconds > self.file_close_interval:
@@ -282,37 +273,32 @@ class _TimelineLoggerThread(threading.Thread):
         Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
         $ENV_CLOSE_FILE_INTERVAL time duration.
         """
-        now = (
-            record.abs_ts_micros + record.duration
-        ) / CONVERT_TO_MICROSECS  # convert back to secs
+        end_time_for_event = (
+            record.event_end_ts_micros / CONVERT_TO_MICROSECS
+        )  # convert back to secs
 
         # check if any of the rotation policies have been satisfied. close the existing
         # trace file and open a new one
         # policy 1: if file size exceeds specified max_size
         # policy 2: if same file has been written to for close_interval time
         # policy 3: if a write is being made in the next hour, create a new directory
-        if self._writer and self._should_rotate_now(now):
+        if self._writer and self._should_rotate_now(end_time_for_event):
             self.close()
-            self.last_timestamp = now
-
-        el = TraceFileLocation()
-        new_file_path = el.get_file_location(base_dir=self.base_dir, timestamp=now)
+            self.last_file_close_time = self.last_event_end_time
 
         #  if file has not been created yet, create now
         if not self._writer:
-            file_opened = self.open(path=new_file_path)
+            file_opened = self.open(path=self._filename)
             if not file_opened:
                 if self.continuous_fail_count >= self.file_open_fail_threshold:
-                    self._logger.warning(
+                    logger.warning(
                         "Encountered {} number of continuous failures while trying to open the file. "
-                        "Marking the writer unhealthy.".format(str(self.file_open_fail_threshold))
+                        "Marking the writer unhealthy. All future events will be dropped.".format(
+                            str(self.file_open_fail_threshold)
+                        )
                     )
                     self._healthy = False
                 return
-
-        if self._writer and now > self.last_timestamp:
-            os.rename(self._filename + ".tmp", new_file_path + ".tmp")
-            self.last_timestamp = now
 
         if self.tensor_table[record.training_phase] == 0:
             tensor_idx = len(self.tensor_table)
@@ -342,6 +328,8 @@ class _TimelineLoggerThread(threading.Thread):
 
         # write the trace event record
         position_and_length_of_record = self._writer.write(record.to_json() + ",\n")
+        self.flush()
+        self.last_event_end_time = int(round(end_time_for_event))
         return position_and_length_of_record
 
     def flush(self):
@@ -350,8 +338,8 @@ class _TimelineLoggerThread(threading.Thread):
             return
         if self._writer is not None:
             self._writer.flush()
-            if self.verbose and self._logger is not None:
-                self._logger.debug(
+            if self.verbose and logger is not None:
+                logger.debug(
                     "wrote %d %s to disk",
                     self._num_outstanding_events,
                     "event" if self._num_outstanding_events == 1 else "events",
@@ -362,19 +350,25 @@ class _TimelineLoggerThread(threading.Thread):
         """Flushes the pending events and closes the writer after it is done."""
         if self._writer is not None:
             # seeking the last ',' and replacing with ']' to mark EOF
-            file_seek_pos = self._writer._accessor.tell()
-            self._writer._accessor.seek(file_seek_pos - 2)
-            self._writer._accessor.truncate()
+            file_seek_pos = self._writer.tell()
+            self._writer.seek(file_seek_pos - 2)
+            self._writer.truncate()
 
             if file_seek_pos > 2:
                 self._writer.write("\n]")
 
             self.flush()
             self._writer.close()
+            os.rename(
+                self._filename,
+                TraceFileLocation().get_file_location(
+                    base_dir=self.base_dir, timestamp=self.last_event_end_time
+                ),
+            )
             self._writer = None
 
     def name(self):
         return self._filename
 
     def file_size(self):
-        return os.path.getsize(self._filename + ".tmp")  # in bytes
+        return os.path.getsize(self._filename)  # in bytes

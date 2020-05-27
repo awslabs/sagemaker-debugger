@@ -201,12 +201,12 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
             for e in events_dict:
                 if "args" in e and "start_time_since_epoch_in_micros" in e["args"]:
                     start_time_since_epoch = int(e["args"]["start_time_since_epoch_in_micros"])
-                if e["name"].startswith("event"):
-                    assert (
-                        int(e["ts"] + start_time_since_epoch)
-                        <= file_timestamp * CONVERT_TO_MICROSECS
-                    )
+                if "event" in e["name"]:
                     event_ctr += 1
+                    assert (
+                        int(round(e["ts"] + start_time_since_epoch) / CONVERT_TO_MICROSECS)
+                        <= file_timestamp
+                    )
 
     assert event_ctr == 4
 
