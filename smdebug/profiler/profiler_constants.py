@@ -9,4 +9,4 @@ TENSORBOARDTIMELINE_PREFIX = "tensorboard_timeline.json"
 HOROVODTIMELINE_PREFIX = "horovod_timeline.json"
 # In order to look for events occurred within a window, we will add a buffer of 3 minutes on each side (start and
 # time) to look for trace files.
-TIME_BUFFER = 3 * 60 * 1000 * 1000 * 1000  # 3 minutes
+TIME_BUFFER = 3 * 60 * 1000 * 1000  # 3 minutes
