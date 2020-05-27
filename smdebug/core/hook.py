@@ -632,7 +632,7 @@ class BaseHook:
                     break
 
     def record_trace_events(
-        self, training_phase="", op_name="", phase="X", timestamp=None, duration=1, **kwargs
+        self, timestamp, training_phase="", op_name="", phase="X", duration=1, **kwargs
     ):
         """
         Write trace events to the timeline.

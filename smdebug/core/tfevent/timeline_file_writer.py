@@ -65,7 +65,7 @@ class TimelineFileWriter:
         self._worker.start()
 
     def write_trace_events(
-        self, training_phase="", op_name="", phase="X", timestamp=None, duration=0, args=None
+        self, timestamp, training_phase="", op_name="", phase="X", duration=0, args=None
     ):
         if not self._ev_writer._healthy:
             self._logger.warning("SMDebug timeline writer is unhealthy. Dropping the current event")

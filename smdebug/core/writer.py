@@ -176,7 +176,7 @@ class FileWriter:
         self._writer.write_summary(summ, global_step, timestamp=timestamp)
 
     def write_trace_events(
-        self, training_phase="", op_name="", phase="X", timestamp=None, duration=1, **kwargs
+        self, timestamp, training_phase="", op_name="", phase="X", duration=1, **kwargs
     ):
         if not isinstance(self._writer, TimelineFileWriter):
             return
