@@ -2,6 +2,7 @@
 import json
 import os
 import shutil
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -65,7 +66,10 @@ def test_hook_timeline_file_write(out_dir):
     for i in range(1, 11):
         n = "event" + str(i)
         hook.record_trace_events(
-            training_phase="MXNet_TimelineFileWriteTest", op_name=n, step_num=i
+            training_phase="MXNet_TimelineFileWriteTest",
+            op_name=n,
+            step_num=i,
+            timestamp=time.time(),
         )
 
     # need to explicitly close hook for the test here so that the JSON file is written and
