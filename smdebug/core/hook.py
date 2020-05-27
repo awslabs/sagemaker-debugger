@@ -636,6 +636,9 @@ class BaseHook:
         If sm_metric is set to True for certain scalars, then that scalar is written to
         SageMaker as well. By default, loss values are sm_metric.
         """
+        if self._is_not_supported():
+            # Do not log scalars if smdebug hook is not supported
+            return
         for scalar_obj in self.scalar_cache:
             scalar_name = scalar_obj.name
             scalar_val = scalar_obj.value
