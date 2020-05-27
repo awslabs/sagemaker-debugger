@@ -36,18 +36,20 @@ class MetricsReader:
         # This is a set of parsed event files. The entry is made into this file only if the complete file is read.
         self._parsed_files = set()
 
-    def _get_start_timestamp_from_file(self, filename):
+    def _get_end_timestamp_from_filename(self, filename):
         return filename.split("_")[0]
 
     """
     Get the tracefiles in the given hour directory that would contain the events corresponding to start and end
-    timestamps in microseconds
+    timestamps in microseconds. The function assumes that the start and end timestamp are extended by pre-defined
+    buffer time. Any trace file that is contains events before the start_time_microseconds or after end_time_microseconds
+    will not be considered.
     """
 
     def _get_event_files(self, hr_directory, start_time_microseconds, end_time_microseconds):
         files = []
         for event_file in self.hr_to_event_map[hr_directory]:
-            event_file_stamp = int(self._get_start_timestamp_from_file(event_file.split("/")[-1]))
+            event_file_stamp = int(self._get_end_timestamp_from_filename(event_file.split("/")[-1]))
             if start_time_microseconds <= event_file_stamp <= end_time_microseconds:
                 files.append(event_file)
         return files
