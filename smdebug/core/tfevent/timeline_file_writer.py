@@ -188,6 +188,14 @@ class _TimelineLoggerThread(threading.Thread):
         self.last_timestamp = 0
         self._healthy = True
 
+        self.file_close_interval = float(
+            os.getenv("ENV_CLOSE_FILE_INTERVAL", ENV_CLOSE_FILE_INTERVAL_DEFAULT)
+        )
+        self.file_max_size = float(os.getenv("ENV_MAX_FILE_SIZE", ENV_MAX_FILE_SIZE_DEFAULT))
+        self.file_open_fail_threshold = int(
+            os.getenv("FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
+        )
+
     def run(self):
         while True:
             event = self._queue.get()
@@ -254,12 +262,10 @@ class _TimelineLoggerThread(threading.Thread):
         if diff_in_hours != 0:
             return True
 
-        if diff_in_seconds > float(
-            os.getenv("ENV_CLOSE_FILE_INTERVAL", ENV_CLOSE_FILE_INTERVAL_DEFAULT)
-        ):
+        if diff_in_seconds > self.file_close_interval:
             return True
 
-        if file_size > float(os.getenv("ENV_MAX_FILE_SIZE", ENV_MAX_FILE_SIZE_DEFAULT)):
+        if file_size > self.file_max_size:
             return True
 
         return False
@@ -296,18 +302,10 @@ class _TimelineLoggerThread(threading.Thread):
         if not self._writer:
             file_opened = self.open(path=new_file_path)
             if not file_opened:
-                if self.continuous_fail_count >= int(
-                    os.getenv("FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
-                ):
+                if self.continuous_fail_count >= self.file_open_fail_threshold:
                     self._logger.warning(
                         "Encountered {} number of continuous failures while trying to open the file. "
-                        "Marking the writer unhealthy.".format(
-                            str(
-                                os.getenv(
-                                    "FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT
-                                )
-                            )
-                        )
+                        "Marking the writer unhealthy.".format(str(self.file_open_fail_threshold))
                     )
                     self._healthy = False
                 return
