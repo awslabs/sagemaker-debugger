@@ -20,6 +20,7 @@
 import os
 
 # First Party
+from smdebug.core.config_constants import ENV_BASE_FOLDER_DEFAULT
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter
 from smdebug.core.tfevent.index_file_writer import IndexWriter
@@ -35,12 +36,7 @@ from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local
-from .locations import (
-    IndexFileLocationUtils,
-    TensorboardFileLocation,
-    TensorFileLocation,
-    TraceFileLocation,
-)
+from .locations import IndexFileLocationUtils, TensorboardFileLocation, TensorFileLocation
 from .logger import get_logger
 from .modes import ModeKeys
 
@@ -59,7 +55,6 @@ class FileWriter:
         flush_secs=120,
         verbose=False,
         write_checksum=False,
-        timestamp=None,
     ):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `trial_dir`.
@@ -80,8 +75,6 @@ class FileWriter:
                 How often, in seconds, to flush the pending events and summaries to disk.
             verbose : bool
                 Determines whether to print logging messages.
-            timestamp : float
-                Trace event timestamp to be used to create timeline file
         """
         self.trial_dir = trial_dir
         self.step = step
@@ -105,7 +98,7 @@ class FileWriter:
         elif wtype == "trace":
             # Create TimelineFileWriter to record trace events
             self._writer = TimelineFileWriter(
-                path=os.getenv("ENV_BASE_FOLDER", self.trial_dir), max_queue=max_queue
+                path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT), max_queue=max_queue
             )
             self.index_writer = None
         else:

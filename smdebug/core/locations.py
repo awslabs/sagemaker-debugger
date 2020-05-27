@@ -112,8 +112,8 @@ class TraceFileLocation:
     # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
     # {$ENV_NODE_ID_4digits0padded}_pythontimeline.json
     @staticmethod
-    def get_file_location(timestamp, base_dir=""):
-        env_base_location = os.getenv("ENV_BASE_FOLDER", base_dir)
+    def get_file_location(timestamp, base_dir):
+        env_base_location = base_dir
         date_hour = time.strftime("%Y%m%d%H", time.gmtime(timestamp))
         timestamp = int(round(timestamp))
         worker_id = get_node_id()

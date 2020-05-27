@@ -76,14 +76,12 @@ class TimelineRecord:
         self.op_name = operator_name
         self.args = args
         self.base_start_time = base_start_time
-        self.abs_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
-        self.rel_ts_micros = self.abs_ts_micros - self.base_start_time
+        abs_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
+        self.rel_ts_micros = abs_ts_micros - self.base_start_time
         self.duration = (
-            duration
-            if duration
-            else int(round(time.time() * CONVERT_TO_MICROSECS) - self.abs_ts_micros)
+            duration if duration else int(round(time.time() * CONVERT_TO_MICROSECS) - abs_ts_micros)
         )
-        self.event_end_ts_micros = self.abs_ts_micros + self.duration
+        self.event_end_ts_micros = abs_ts_micros + self.duration
         self.pid = 0
         self.tid = 0
 
@@ -228,7 +226,6 @@ class _TimelineLoggerThread(threading.Thread):
         self.tensor_table = collections.defaultdict(int)
         self.is_first = True
         self._writer.write("[\n")
-        # self._filename = path
         self._healthy = True
         return True
 

@@ -17,7 +17,7 @@ from smdebug.core.config_constants import (
 from smdebug.core.writer import FileWriter
 
 
-def test_create_timeline_file(out_dir):
+def test_create_timeline_file(out_dir, monkeypatch):
     """
     This test is meant to test successful creation of the timeline file according to file path specification.
     $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
@@ -25,9 +25,8 @@ def test_create_timeline_file(out_dir):
 
     It reads backs the file contents to make sure it is in valid JSON format.
     """
-    timeline_writer = FileWriter(
-        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
-    )
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
+    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     for i in range(1, 11):
@@ -52,9 +51,7 @@ def test_create_timeline_file(out_dir):
 
 
 def run(rank, out_dir):
-    timeline_writer = FileWriter(
-        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
-    )
+    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     for i in range(1, 6):
@@ -72,10 +69,11 @@ def run(rank, out_dir):
     timeline_writer.close()
 
 
-def test_multiprocess_write(out_dir):
+def test_multiprocess_write(out_dir, monkeypatch):
     """
     This test is meant to test timeline events written multiple processes. Each process or worker, will have its own trace file.
     """
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     cpu_count = mp.cpu_count()
 
     processes = []
@@ -104,14 +102,13 @@ def test_multiprocess_write(out_dir):
     assert event_ctr == cpu_count * 5
 
 
-def test_duration_events(out_dir):
+def test_duration_events(out_dir, monkeypatch):
     """
     This test is meant to test duration events. By default, write_trace_events records complete events.
     TODO: Make TimelineWriter automatically calculate duration while recording "E" event
     """
-    timeline_writer = FileWriter(
-        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
-    )
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
+    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     for i in range(1, 11):
@@ -155,6 +152,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
     file_interval -> close file if the file's folder was created before a certain time period and open a new file in a new folder
     :param policy: file_size or file_interval
     """
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     if policy == "file_size":
         monkeypatch.setenv("ENV_MAX_FILE_SIZE", "300")  # rotate file if size > 300 bytes
     elif policy == "file_interval":
@@ -162,9 +160,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
             "ENV_CLOSE_FILE_INTERVAL", "0.5"
         )  # rotate file if file interval > 0.5 second
 
-    timeline_writer = FileWriter(
-        trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace", timestamp=time.time()
-    )
+    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     for i in range(1, 5):
@@ -217,18 +213,13 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
     This test is meant to set to create files/events in different timezones and check if timeline writer stores
     them in UTC.
     """
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     monkeypatch.setenv("TZ", timezone)
     time.tzset()
     time_in_timezone = event_time_in_timezone = time.mktime(time.localtime())
     time_in_utc = event_time_in_utc = calendar.timegm(time.gmtime())
 
-    timeline_writer = FileWriter(
-        trial_dir=out_dir,
-        step=0,
-        worker=str(os.getpid()),
-        wtype="trace",
-        timestamp=time_in_timezone,
-    )
+    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     event_times_in_utc = []
@@ -274,12 +265,11 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
 
 
 def test_file_open_fail(monkeypatch):
+    monkeypatch.setenv("ENV_BASE_FOLDER", "/tmp\\test")
     monkeypatch.setenv("FILE_OPEN_FAIL_THRESHOLD", "2")
 
     # writing to an invalid path to trigger file open failure
-    timeline_writer = FileWriter(
-        trial_dir="/tmp\\test", worker=str(os.getpid()), wtype="trace", timestamp=time.time()
-    )
+    timeline_writer = FileWriter(trial_dir="/tmp\\test", worker=str(os.getpid()), wtype="trace")
     assert timeline_writer
 
     for i in range(1, 5):
