@@ -638,6 +638,8 @@ class BaseHook:
         """
         if self._is_not_supported():
             # Do not log scalars if smdebug hook is not supported
+            # by training method
+            self.scalar_cache = []
             return
         for scalar_obj in self.scalar_cache:
             scalar_name = scalar_obj.name
@@ -676,10 +678,6 @@ class BaseHook:
         :param sm_metric: True/False. If set to True, the scalar value will be written to
         SageMaker
         """
-        if self._is_not_supported():
-            # Do not log scalars if smdebug hook is not supported
-            # by the training strategy.
-            return
         name = CallbackHook.SCALAR_PREFIX + name
         val = self._make_numpy_array(value)
         if val.size != 1:
