@@ -35,9 +35,25 @@ class MetricsReader:
         self._parsed_files = set()
         self._timestamp_to_filename = dict()
 
+    def _get_node_id_from_filename(self, filename):
+        filename = filename.split("/")[-1]
+        return int(filename.split("_")[1])
+
     def _get_end_timestamp_from_filename(self, filename):
         filename = filename.split("/")[-1]
         return int(filename.split("_")[0])
+
+    """
+    The function returns the timestamp of last available file.
+    This timestamp indicates users can query the events up to this timestamp to gauge
+    """
+
+    def get_timestamp_of_latest_available_file(self):
+        return (
+            sorted(self._timestamp_to_filename.keys())[-1]
+            if len(self._timestamp_to_filename) > 0
+            else 0
+        )
 
     """
     Return the tracefiles that were written during the given range. If use_buffer is True, we will consider adding a
@@ -56,6 +72,11 @@ class MetricsReader:
         if use_buffer:
             start_time_microseconds = start_time_microseconds - TIME_BUFFER
             end_time_microseconds = end_time_microseconds + TIME_BUFFER
+
+        # If the end_time_microseconds is less than the timestamp of the latest available tracefile, we do not need
+        # to poll for new event files and refresh the list from directory or S3 bucket.
+        if self.get_timestamp_of_latest_available_file() <= end_time_microseconds:
+            self.refresh_event_file_list()
 
         timestamps = sorted(self._timestamp_to_filename.keys())
 
@@ -91,10 +112,11 @@ class MetricsReader:
             return self._HorovordEventsParser
 
     """
-    Create a map of timestamp to filename
+    This function queries the files that are currently available in the directory (for local mode) or in S3 for download.
+    It rebuilds the map of timestamp to filename.
     """
 
-    def load_event_file_list(self):
+    def refresh_event_file_list(self):
         pass
 
     """
@@ -107,9 +129,9 @@ class MetricsReader:
     """
 
     def get_events(self, start_time, end_time, unit=TimeUnits.MICROSECONDS):
-        self.load_event_file_list()
         start_time = convert_utc_timestamp_to_microseconds(start_time, unit)
         end_time = convert_utc_timestamp_to_microseconds(end_time, unit)
+
         event_files = self._get_trace_files_in_the_range(start_time, end_time)
 
         # Download files and parse the events
@@ -141,7 +163,7 @@ class LocalMetricsReader(MetricsReader):
     Create a map of timestamp to filename
     """
 
-    def load_event_file_list(self):
+    def refresh_event_file_list(self):
         path = os.path.expanduser(self.trace_root_folder)
         event_dir = os.path.join(path, DEFAULT_PREFIX, "")
         event_regex = r"(.+)\.(json|csv)$"
@@ -190,7 +212,7 @@ class S3MetricsReader(MetricsReader):
     Create a map of timestamp to filename
     """
 
-    def load_event_file_list(self):
+    def refresh_event_file_list(self):
         list_dir = ListRequest(Bucket=self.bucket_name, Prefix=self.prefix, StartAfter=self.prefix)
 
         event_files = [x for x in S3Handler.list_prefix(list_dir) if "json" in x]
