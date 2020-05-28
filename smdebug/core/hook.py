@@ -294,6 +294,10 @@ class BaseHook:
     def _get_num_workers(self):
         pass
 
+    @abstractmethod
+    def _is_not_supported(self):
+        pass
+
     #### Save Manager methods ####
 
     def _should_collection_be_saved(self, coll_name: str) -> bool:
@@ -418,7 +422,10 @@ class BaseHook:
         for mode in to_delete_writers:
             del self.tb_writers[mode]
 
-    def _initialize_writers(self) -> None:
+    def _initialize_writers(self, only_initialize_if_missing=False) -> None:
+        # Function is overridden in smdebug/tensorflow/base_hook.py
+        if only_initialize_if_missing and self.writer:
+            return
         if self.dry_run:
             return
         if self.first_process is False:
@@ -630,6 +637,11 @@ class BaseHook:
         If sm_metric is set to True for certain scalars, then that scalar is written to
         SageMaker as well. By default, loss values are sm_metric.
         """
+        if self._is_not_supported():
+            # Do not log scalars if smdebug hook is not supported
+            # Like when TFDistributionStrategy.UNSUPPORTED
+            self.scalar_cache = []
+            return
         for scalar_obj in self.scalar_cache:
             scalar_name = scalar_obj.name
             scalar_val = scalar_obj.value
@@ -652,8 +664,7 @@ class BaseHook:
                         scalar_name, scalar_val, self.step, timestamp=timestamp
                     )
             if write_event:
-                if self.writer is None:
-                    self._initialize_writers()
+                self._initialize_writers(only_initialize_if_missing=True)
                 self._write_raw_tensor_simple(scalar_name, scalar_val, timestamp=timestamp)
 
         self.scalar_cache = []
