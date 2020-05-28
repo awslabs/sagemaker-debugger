@@ -423,6 +423,7 @@ class BaseHook:
             del self.tb_writers[mode]
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
+        # Function is overridden in smdebug/tensorflow/base_hook.py
         if only_initialize_if_missing and self.writer:
             return
         if self.dry_run:
@@ -638,7 +639,7 @@ class BaseHook:
         """
         if self._is_not_supported():
             # Do not log scalars if smdebug hook is not supported
-            # by training method
+            # Like when TFDistributionStrategy.UNSUPPORTED
             self.scalar_cache = []
             return
         for scalar_obj in self.scalar_cache:
