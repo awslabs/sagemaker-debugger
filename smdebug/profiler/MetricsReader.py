@@ -64,16 +64,8 @@ class MetricsReader:
         lower_bound_timestamp = bisect.bisect_left(timestamps, start_time_microseconds)
 
         # Find the timestamp that is immediate right to the end_time_microseconds. The tracefile corresponding to
-        # that timestamp will contain events that are active during end_time_microseconds. We will cap the
-        # upper_bound_timestamp to length of timestamps list
+        # that timestamp will contain events that are active during end_time_microseconds.
         upper_bound_timestamp = bisect.bisect_right(timestamps, end_time_microseconds)
-        if lower_bound_timestamp == len(timestamps) or upper_bound_timestamp == 0:
-            self.logger.warning(
-                "No suitable event files present that can contain events within the given timerange"
-            )
-
-        if upper_bound_timestamp != len(timestamps):
-            upper_bound_timestamp += 1
 
         event_files = list()
         for index in timestamps[lower_bound_timestamp:upper_bound_timestamp]:
