@@ -437,11 +437,6 @@ class BaseHook:
                     self.logger.info(f"Hook is writing from the hook with pid: {os.getpid()}\n")
                 else:
                     self.first_process = False
-                    self.logger.warn(
-                        f"Unsupported Distributed Training Strategy Detected.\n\
-                        Sagemaker-Debugger will only write from one process.\n\
-                        The process with pid: {os.getpid()} will not be writing any data. \n"
-                    )
                     return
 
         if self.save_all_workers is False:
@@ -546,6 +541,8 @@ class BaseHook:
 
     def export_collections(self):
         num_workers = self._get_num_workers()
+        if num_workers == 1 and self.first_process is False:
+            return
         if self.save_all_workers is False:
             if self.chief_worker != self.worker:
                 return
