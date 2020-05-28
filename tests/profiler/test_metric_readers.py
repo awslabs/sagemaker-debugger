@@ -4,9 +4,9 @@ from smdebug.profiler.utils import TimeUnits
 
 
 def test_S3MetricsReader():
-    bucket_name = "tornasole-dev"
+    bucket_name = "s3://tornasole-dev/Base_folder"
     tt = S3MetricsReader(bucket_name)
-    events = tt.get_events(1589930980, 1589930995, unit=TimeUnits.SECONDS)
+    events = tt.get_events(1590461127873222, 1590461139949971)
     print(f"Number of events {len(events)}")
 
 

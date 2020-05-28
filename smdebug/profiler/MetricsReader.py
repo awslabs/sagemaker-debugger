@@ -5,15 +5,15 @@ import json
 import os
 
 # First Party
-from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler
+from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler, is_s3
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import list_files_in_directory
 from smdebug.profiler.profiler_constants import (
     DEFAULT_PREFIX,
     HOROVODTIMELINE_PREFIX,
-    MODELTIMELINE_PREFIX,
-    PYTHONTIMELINE_PREFIX,
-    TENSORBOARDTIMELINE_PREFIX,
+    MODELTIMELINE_SUFFIX,
+    PYTHONTIMELINE_SUFFIX,
+    TENSORBOARDTIMELINE_SUFFIX,
     TIME_BUFFER,
 )
 from smdebug.profiler.tf_profiler_parser import (
@@ -102,11 +102,11 @@ class MetricsReader:
     """
 
     def _get_event_parser(self, filename):
-        if PYTHONTIMELINE_PREFIX in filename:
+        if PYTHONTIMELINE_SUFFIX in filename:
             return self._SMEventsParser
-        if MODELTIMELINE_PREFIX in filename:
+        if MODELTIMELINE_SUFFIX in filename:
             return self._SMEventsParser
-        if TENSORBOARDTIMELINE_PREFIX in filename:
+        if TENSORBOARDTIMELINE_SUFFIX in filename:
             return self._TBEventsParser
         if HorovodProfilerEvents in filename:
             return self._HorovordEventsParser
@@ -185,9 +185,22 @@ class LocalMetricsReader(MetricsReader):
 
 
 class S3MetricsReader(MetricsReader):
-    def __init__(self, bucket_name):
+    """
+    The s3_trial_path points to a s3 folder in which the tracefiles are stored. e.g.
+    s3://my_bucket/experiment_base_folder
+    """
+
+    def __init__(self, s3_trial_path):
         super().__init__()
-        self.bucket_name = bucket_name
+        s3, bucket_name, base_folder = is_s3(s3_trial_path)
+        if not s3:
+            self.logger.error(
+                "The trial path is expected to be S3 path e.g. s3://bucket_name/trial_folder"
+            )
+        else:
+            self.bucket_name = bucket_name
+            self.base_folder = base_folder
+            self.prefix = os.path.join(self.base_folder, self.prefix, "")
 
     """
     The function opens and reads the event files if they are not already parsed.

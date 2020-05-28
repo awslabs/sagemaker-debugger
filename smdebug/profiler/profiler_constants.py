@@ -3,9 +3,9 @@
 # $ENV_NODE_ID_4digits0padded}_model_timeline.json
 DEFAULT_PREFIX = "framework/pevents"
 TRACE_DIRECTORY_FORMAT = "%Y%m%d%H"
-PYTHONTIMELINE_PREFIX = "pythontimeline.json"
-MODELTIMELINE_PREFIX = "model_timeline.json"
-TENSORBOARDTIMELINE_PREFIX = "tensorboard_timeline.json"
+PYTHONTIMELINE_SUFFIX = "pythontimeline.json"
+MODELTIMELINE_SUFFIX = "model_timeline.json"
+TENSORBOARDTIMELINE_SUFFIX = "tensorboard_timeline.json"
 HOROVODTIMELINE_PREFIX = "horovod_timeline.json"
 # In order to look for events occurred within a window, we will add a buffer of 3 minutes on each side (start and
 # time) to look for trace files.
