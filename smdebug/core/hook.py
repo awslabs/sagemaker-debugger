@@ -678,6 +678,7 @@ class BaseHook:
         """
         if self._is_not_supported():
             # Do not log scalars if smdebug hook is not supported
+            # by the training strategy.
             return
         name = CallbackHook.SCALAR_PREFIX + name
         val = self._make_numpy_array(value)
