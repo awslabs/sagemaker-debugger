@@ -7,9 +7,11 @@ The key methods are
     torch.distributed.get_rank() - when manually spawning processes
 """
 # Standard Library
+import json
 import os
 import shutil
 import time
+from pathlib import Path
 
 # Third Party
 import numpy as nn
@@ -24,6 +26,7 @@ from torch.multiprocessing import Process
 
 # First Party
 import smdebug.pytorch as smd
+from smdebug.core.config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
 from smdebug.trials import create_trial
 
 out_dir = "/tmp/run"
@@ -64,7 +67,15 @@ def train(model, device, optimizer, num_steps=10):
         optimizer.step()
 
 
-def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_batches=10):
+def run(
+    rank,
+    size,
+    include_workers="one",
+    test_timeline=False,
+    num_epochs=10,
+    batch_size=128,
+    num_batches=10,
+):
     """Distributed function to be implemented later."""
     torch.manual_seed(1234)
     device = torch.device("cpu")
@@ -85,14 +96,15 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
     for epoch in range(num_epochs):
         epoch_loss = 0.0
         start_time = time.time()
-        hook.record_trace_events(
-            training_phase="Training",
-            op_name="TrainingEpochStart",
-            phase="B",
-            timestamp=start_time,
-            rank=rank,
-            epoch=epoch,
-        )
+        if test_timeline:
+            hook.record_trace_events(
+                training_phase="Training",
+                op_name="TrainingEpochStart",
+                phase="B",
+                timestamp=start_time,
+                rank=rank,
+                epoch=epoch,
+            )
         for _ in range(num_batches):
             optimizer.zero_grad()
             data, target = dataset(batch_size)
@@ -103,15 +115,16 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
             average_gradients(model)
             optimizer.step()
         end_time = time.time()
-        hook.record_trace_events(
-            training_phase="Training",
-            op_name="TrainingEpochEnd",
-            phase="E",
-            timestamp=end_time,
-            rank=rank,
-            duration=end_time - start_time,
-            epoch=epoch,
-        )
+        if test_timeline:
+            hook.record_trace_events(
+                training_phase="Training",
+                op_name="TrainingEpochEnd",
+                phase="E",
+                timestamp=end_time,
+                rank=rank,
+                duration=end_time - start_time,
+                epoch=epoch,
+            )
         # print(f"Rank {dist.get_rank()}, epoch {epoch}: {epoch_loss / num_batches}")
 
     assert hook._get_worker_name() == f"worker_{dist.get_rank()}"
@@ -131,15 +144,15 @@ def average_gradients(model):
         param.grad.data /= size
 
 
-def init_processes(rank, size, include_workers, fn, backend="gloo"):
+def init_processes(rank, size, include_workers, test_timeline, fn, backend="gloo"):
     """Initialize the distributed environment."""
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
-    fn(rank, size, include_workers)
+    fn(rank, size, include_workers, test_timeline)
 
 
-def _run_net_distributed(include_workers="one"):
+def _run_net_distributed(include_workers="one", test_timeline=False):
     """Runs a single linear layer on 2 processes."""
     # torch.distributed is empty on Mac on Torch <= 1.2
     if not hasattr(dist, "is_initialized"):
@@ -148,7 +161,7 @@ def _run_net_distributed(include_workers="one"):
     size = 2
     processes = []
     for rank in range(size):
-        p = Process(target=init_processes, args=(rank, size, include_workers, run))
+        p = Process(target=init_processes, args=(rank, size, include_workers, test_timeline, run))
         p.start()
         processes.append(p)
 
@@ -199,3 +212,27 @@ def test_run_net_distributed_save_one_worker():
     trial = _run_net_distributed(include_workers="one")
     assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+
+@pytest.mark.slow
+def test_run_net_distributed_save_all_test_timeline(monkeypatch):
+    """
+    This test checks if any of the timestamps recorded are negative
+    """
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
+    trial = _run_net_distributed(include_workers="all", test_timeline=True)
+    assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
+    assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+    files = []
+    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+        files.append(path)
+
+    assert len(files) >= 2
+
+    for file_name in files:
+        with open(file_name) as timeline_file:
+            events_dict = json.load(timeline_file)
+            for e in events_dict:
+                if e["name"].startswith("event"):
+                    assert int(e["ts"]) >= 0

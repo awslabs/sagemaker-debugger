@@ -171,7 +171,7 @@ class _TimelineLoggerThread(threading.Thread):
     def __init__(self, queue, sentinel_event, path, base_start_time, verbose=False):
         """Creates a _TimelineLoggerThread."""
         threading.Thread.__init__(self)
-        self.daemon = False
+        self.daemon = True
         self._queue = queue
         self._sentinel_event = sentinel_event
         self.base_dir = path
