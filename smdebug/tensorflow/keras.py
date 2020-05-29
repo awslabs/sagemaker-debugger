@@ -359,6 +359,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # TODO
         pass
 
+    def set_y_pred(self, y_pred):
+        self.collection_manager.get(CollectionKeys.OUTPUTS).add_for_mode(y_pred, ModeKeys.TRAIN)
+
     def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
         if metric_name in self.tensor_to_collections:
             return
@@ -608,6 +611,24 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
         collections_to_save = self._get_collections_to_save_for_step()
         for tensor_ref in optimizer_collections.get_tensors(mode=ModeKeys.TRAIN):
+            tensor = tensor_ref.tf_obj
+            collections_to_save = self._get_collections_with_tensor(tensor.name).intersection(
+                collections_to_save
+            )
+            if len(collections_to_save):
+                self._initialize_writers(only_initialize_if_missing=True)
+                tensor = tensor_ref.tf_obj
+                self._add_to_device_map(tensor)
+                tf_names = get_tf_names(tensor)
+                for name in tf_names:
+                    self._save_for_tensor(
+                        tensor_name=name, tensor_value=tensor.value(), check_before_write=False
+                    )
+
+    def _write_y_pred(self):
+        model_outputs = self.collection_manager.get(CollectionKeys.OUTPUTS)
+        collections_to_save = self._get_collections_to_save_for_step()
+        for tensor_ref in model_outputs.get_tensors(mode=ModeKeys.TRAIN):
             tensor = tensor_ref.tf_obj
             collections_to_save = self._get_collections_with_tensor(tensor.name).intersection(
                 collections_to_save
