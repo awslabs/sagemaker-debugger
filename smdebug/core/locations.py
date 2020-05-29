@@ -1,11 +1,19 @@
 # Standard Library
 import os
 import re
+import time
 from abc import ABC, abstractmethod
+
+# First Party
+from smdebug.profiler.profiler_constants import (
+    DEFAULT_PREFIX,
+    PYTHONTIMELINE_SUFFIX,
+    TRACE_DIRECTORY_FORMAT,
+)
 
 # Local
 from .logger import get_logger
-from .utils import get_immediate_subdirectories
+from .utils import get_immediate_subdirectories, get_node_id
 
 logger = get_logger()
 
@@ -103,6 +111,31 @@ class TensorboardFileLocation(EventFileLocation):
             event_key_prefix = os.path.join(self.type, self.mode.name)
 
         return os.path.join(event_key_prefix, self.get_filename())
+
+
+class TraceFileLocation:
+    # File path generated based on
+    # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/
+    # $FILEEVENTENDTIMEUTCINEPOCH_{$ENV_NODE_ID}_model_timeline.json
+    @staticmethod
+    def get_file_location(timestamp, base_dir):
+        env_base_location = base_dir
+        date_hour = time.strftime(TRACE_DIRECTORY_FORMAT, time.gmtime(timestamp))
+        timestamp = int(round(timestamp))
+        worker_id = get_node_id()
+        file_path = os.path.join(
+            env_base_location,
+            DEFAULT_PREFIX
+            + "/"
+            + date_hour
+            + "/"
+            + str(timestamp)
+            + "_"
+            + worker_id
+            + "_"
+            + PYTHONTIMELINE_SUFFIX,
+        )
+        return file_path
 
 
 class IndexFileLocationUtils:

@@ -39,6 +39,7 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.utils import (
     flatten,
+    get_node_id,
     get_tb_worker,
     is_first_process,
     match_inc,
@@ -221,6 +222,10 @@ class BaseHook:
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
+
+        self.timeline_writer = FileWriter(
+            trial_dir=self.out_dir, worker=get_node_id(), wtype="trace"
+        )
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
@@ -494,6 +499,8 @@ class BaseHook:
         if self.metrics_writer:
             self.metrics_writer.close()
 
+        self.timeline_writer.close()
+
         training_has_ended(self.out_dir)
         if self.first_process is True:
             remove_claim_file(self.out_dir)
@@ -623,6 +630,27 @@ class BaseHook:
                         tdata=np_value, tname=hist_name, global_step=self.step
                     )
                     break
+
+    def record_trace_events(
+        self, timestamp, training_phase="", op_name="", phase="X", duration=1, **kwargs
+    ):
+        """
+        Write trace events to the timeline.
+        :param training_phase: strings like, data_iterating, forward, backward, operations etc
+        :param op_name: more details about phase like whether dataset or iterator
+        :param phase: this is defaulted to 'X'
+        :param timestamp: start_time for the event
+        :param duration: any duration manually computed (in seconds)
+        :param kwargs: can be process id and thread id
+        """
+        self.timeline_writer.write_trace_events(
+            training_phase=training_phase,
+            op_name=op_name,
+            phase=phase,
+            timestamp=timestamp,
+            duration=duration,
+            **kwargs,
+        )
 
     def _write_scalars(self):
         """
