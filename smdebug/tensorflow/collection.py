@@ -58,7 +58,7 @@ class Collection(BaseCollection):
     def add_aggregating_variable(self, arg, name=None, mode=None):
         return self.add_variable(arg.get(), name, mode=mode)
 
-    def add_tensor(self, arg, name=None, mode=None):
+    def add_tensor(self, arg, name=None, mode=None, type=None):
         # in keras we need to store the mode and only get tensors by mode
         return self._store_tensor_ref(TensorRef.from_tensor(arg, name, mode=mode))
 

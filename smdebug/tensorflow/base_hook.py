@@ -437,7 +437,7 @@ class TensorflowBaseHook(BaseHook):
 
         # this tensor_name is tf tensor name, need to convert to export_name
         tensor_ref = self._get_tensor_ref(tensor_name, save_collections=save_collections)
-        if tensor_ref:
+        if tensor_ref is not None:
             name = tensor_ref.export_name
             super()._write_for_tensor(
                 name, tensor_value, save_collections=save_collections, tensor_ref=tensor_ref
