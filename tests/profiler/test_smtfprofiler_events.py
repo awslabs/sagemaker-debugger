@@ -1,11 +1,16 @@
 # First Party
-from smdebug.profiler import SMTFProfilerEvents
+# Standard Library
+from datetime import datetime
+
+from smdebug.profiler import SMProfilerEvents
+from smdebug.profiler.utils import TimeUnits
 
 
-def test_smtfprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json"):
+def test_smprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json"):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")
-    t_events = SMTFProfilerEvents(trace_json_file)
+    t_events = SMProfilerEvents()
+    t_events.read_events_from_file(trace_json_file)
 
     all_trace_events = t_events.get_all_events()
     num_trace_events = len(all_trace_events)
@@ -13,12 +18,20 @@ def test_smtfprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.js
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 49
 
-    event_list = t_events.get_events_at(1589314018458800000)  # nanoseconds
-    print(f"Number of events at 15013686 are {len(event_list)}")
-    assert len(event_list) == 1
+    completed_event_list = t_events.get_events_within_time_range(
+        0, 1589314018.4700, unit=TimeUnits.SECONDS
+    )
+    print(
+        f"Number of events occurred between 0 and 1589314018.4700 are {len(completed_event_list)}"
+    )
+    assert len(completed_event_list) == 34
 
-    completed_event_list = t_events.get_events_within_range(0, 1589314018470000000)  # nanoseconds
-    print(f"Number of events occurred between 0 and 15013686 are {len(completed_event_list)}")
+    start_dt = datetime.fromtimestamp(0)
+    end_dt = datetime.fromtimestamp(1589314018.4700)
+    completed_event_list = t_events.get_events_within_range(start_dt, end_dt)
+    print(
+        f"Number of events occurred between {start_dt} and {end_dt} are {len(completed_event_list)}"
+    )
     assert len(completed_event_list) == 34
 
     start_time_sorted = t_events.get_events_start_time_sorted()
