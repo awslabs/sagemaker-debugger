@@ -10,11 +10,9 @@ from pathlib import Path
 import pytest
 
 # First Party
-from smdebug.core.config_constants import (
-    CONVERT_TO_MICROSECS,
-    SM_PROFILER_TRACE_FILE_PATH_CONST_STR,
-)
+from smdebug.core.config_constants import CONVERT_TO_MICROSECS
 from smdebug.core.writer import FileWriter
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 
 
 def test_create_timeline_file(out_dir, monkeypatch):
@@ -39,7 +37,7 @@ def test_create_timeline_file(out_dir, monkeypatch):
     timeline_writer.close()
 
     files = []
-    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
     assert len(files) == 1
@@ -86,7 +84,7 @@ def test_multiprocess_write(out_dir, monkeypatch):
         p.join()
 
     files = []
-    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
     assert len(files) == cpu_count
@@ -132,7 +130,7 @@ def test_duration_events(out_dir, monkeypatch):
     timeline_writer.close()
 
     files = []
-    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
     assert len(files) == 1
@@ -178,7 +176,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
     timeline_writer.close()
 
     files = []
-    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
     # rotate by file_size, gives 4 files - 1 per event
@@ -190,7 +188,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
     event_ctr = 0
     start_time_since_epoch = 0
     for file_name in files:
-        path = file_name.name.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
+        path = file_name.name.split(DEFAULT_PREFIX)
         file_timestamp = int(path[0].split("_")[0])
         with open(file_name) as timeline_file:
             events_dict = json.load(timeline_file)
@@ -238,11 +236,11 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
     timeline_writer.close()
 
     files = []
-    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
     file_path = files[0]
-    path = file_path.name.split(SM_PROFILER_TRACE_FILE_PATH_CONST_STR)
+    path = file_path.name.split(DEFAULT_PREFIX)
     file_timestamp = int(path[0].split("_")[0])
 
     # file timestamp uses end of event

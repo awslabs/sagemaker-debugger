@@ -9,9 +9,9 @@ from pathlib import Path
 # First Party
 from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.core.config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.mxnet.hook import Hook as t_hook
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
@@ -78,7 +78,7 @@ def test_hook_timeline_file_write(out_dir):
     hook.close()
 
     files = []
-    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
     assert len(files) == 1

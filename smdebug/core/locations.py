@@ -4,8 +4,14 @@ import re
 import time
 from abc import ABC, abstractmethod
 
+# First Party
+from smdebug.profiler.profiler_constants import (
+    DEFAULT_PREFIX,
+    PYTHONTIMELINE_SUFFIX,
+    TRACE_DIRECTORY_FORMAT,
+)
+
 # Local
-from .config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
 from .logger import get_logger
 from .utils import get_immediate_subdirectories, get_node_id
 
@@ -109,23 +115,25 @@ class TensorboardFileLocation(EventFileLocation):
 
 class TraceFileLocation:
     # File path generated based on
-    # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
-    # {$ENV_NODE_ID_4digits0padded}_pythontimeline.json
+    # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/
+    # $FILEEVENTENDTIMEUTCINEPOCH_{$ENV_NODE_ID}_model_timeline.json
     @staticmethod
     def get_file_location(timestamp, base_dir):
         env_base_location = base_dir
-        date_hour = time.strftime("%Y%m%d%H", time.gmtime(timestamp))
+        date_hour = time.strftime(TRACE_DIRECTORY_FORMAT, time.gmtime(timestamp))
         timestamp = int(round(timestamp))
         worker_id = get_node_id()
         file_path = os.path.join(
             env_base_location,
-            SM_PROFILER_TRACE_FILE_PATH_CONST_STR
+            DEFAULT_PREFIX
+            + "/"
             + date_hour
             + "/"
             + str(timestamp)
             + "_"
             + worker_id
-            + "_pythontimeline.json",
+            + "_"
+            + PYTHONTIMELINE_SUFFIX,
         )
         return file_path
 

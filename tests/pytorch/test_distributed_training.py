@@ -26,7 +26,7 @@ from torch.multiprocessing import Process
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.core.config_constants import SM_PROFILER_TRACE_FILE_PATH_CONST_STR
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.trials import create_trial
 
 out_dir = "/tmp/run"
@@ -225,7 +225,7 @@ def test_run_net_distributed_save_all_test_timeline(monkeypatch):
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
     files = []
-    for path in Path(out_dir + "/" + SM_PROFILER_TRACE_FILE_PATH_CONST_STR).rglob("*.json"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
     assert len(files) >= 2
