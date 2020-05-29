@@ -35,9 +35,10 @@ class MetricsReader:
         self._parsed_files = set()
         self._timestamp_to_filename = dict()
 
+    # TODO: The following needs to the same function as that of tracefile writer.
     def _get_node_id_from_filename(self, filename):
         filename = filename.split("/")[-1]
-        return int(filename.split("_")[1])
+        return filename.split("_")[1]
 
     def _get_end_timestamp_from_filename(self, filename):
         filename = filename.split("/")[-1]
@@ -54,6 +55,15 @@ class MetricsReader:
             if len(self._timestamp_to_filename) > 0
             else 0
         )
+
+    """
+    The following function returns the time range for which the tracefiles are currently available in S3 or local
+    directory. Users can still query for events for the window greater than this range. In that case, the reader will query S3 or local directory to check the tracefiles are available.
+    """
+
+    def get_current_time_range_for_event_query(self):
+        timestamps = self._timestamp_to_filename.keys()
+        return (timestamps[0], timestamps[-1]) if len(timestamps) > 0 else (0, 0)
 
     """
     Return the tracefiles that were written during the given range. If use_buffer is True, we will consider adding a
@@ -73,10 +83,17 @@ class MetricsReader:
             start_time_microseconds = start_time_microseconds - TIME_BUFFER
             end_time_microseconds = end_time_microseconds + TIME_BUFFER
 
-        # If the end_time_microseconds is less than the timestamp of the latest available tracefile, we do not need
-        # to poll for new event files and refresh the list from directory or S3 bucket.
-        if self.get_timestamp_of_latest_available_file() <= end_time_microseconds:
-            self.refresh_event_file_list()
+        """
+        TODO:
+        We need to intelligently detect whether we need to refresh the list of available event files.
+        Approach 1: Keep the start prefix for S3, 'x' minutes (say 5) lagging behind the last available timestamp.
+        This will cover for the case where a node or writer is not efficient enough to upload the files to S3
+        immediately. For local mode we may have to walk the directory every time.
+
+        Approach 2: If we can know the expected number of files per node and per writer, we can intelligently wait
+        for that type of file for certain amount of time.
+        """
+        self.refresh_event_file_list()
 
         timestamps = sorted(self._timestamp_to_filename.keys())
 
@@ -86,10 +103,10 @@ class MetricsReader:
 
         # Find the timestamp that is immediate right to the end_time_microseconds. The tracefile corresponding to
         # that timestamp will contain events that are active during end_time_microseconds.
-        upper_bound_timestamp = bisect.bisect_right(timestamps, end_time_microseconds)
+        upper_bound_timestamp = bisect.bisect_left(timestamps, end_time_microseconds)
 
         event_files = list()
-        for index in timestamps[lower_bound_timestamp:upper_bound_timestamp]:
+        for index in timestamps[lower_bound_timestamp : upper_bound_timestamp + 1]:
             event_files.append(self._timestamp_to_filename[index])
         return event_files
 
