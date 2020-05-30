@@ -283,3 +283,33 @@ def test_file_open_fail(monkeypatch):
 
     # hacky way to check if the test passes
     assert not timeline_writer._writer._worker._healthy
+
+
+def test_events_far_apart(out_dir, monkeypatch):
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
+    monkeypatch.setenv("ENV_CLOSE_FILE_INTERVAL", "0.5")  # rotate file if file interval > 1 second
+
+    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    assert timeline_writer
+
+    event_time_now = time.time()
+    event_time_after_2hours = event_time_now + 120
+
+    timeline_writer.write_trace_events(
+        training_phase=f"FileOpenTest", op_name="event1", timestamp=event_time_now
+    )
+    time.sleep(2)
+    timeline_writer.write_trace_events(
+        training_phase=f"FileOpenTest", op_name="event2", timestamp=event_time_after_2hours
+    )
+
+    timeline_writer.flush()
+    timeline_writer.close()
+
+    files = []
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
+        files.append(path)
+
+    # rotate by file_size, gives 4 files - 1 per event
+    # rotate by file_interval, gives 2 files
+    assert len(files) == 2

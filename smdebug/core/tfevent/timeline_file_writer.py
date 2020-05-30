@@ -29,6 +29,7 @@ from datetime import datetime
 import six
 
 # First Party
+from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX
 from smdebug.core.config_constants import (
     CONVERT_TO_MICROSECS,
     ENV_CLOSE_FILE_INTERVAL_DEFAULT,
@@ -37,7 +38,7 @@ from smdebug.core.config_constants import (
 )
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import ensure_dir
+from smdebug.core.utils import ensure_dir, get_node_id
 
 logger = get_logger()
 
@@ -184,9 +185,7 @@ class _TimelineLoggerThread(threading.Thread):
         self.last_event_end_time = int(round(base_start_time / CONVERT_TO_MICROSECS))
         self.last_file_close_time = self.last_event_end_time
         self.cur_hour = datetime.utcfromtimestamp(self.last_file_close_time).hour
-        self._filename = TraceFileLocation().get_file_location(
-            base_dir=self.base_dir, timestamp=self.last_event_end_time
-        )
+        self._filename = self.base_dir + "/" + get_node_id() + SMDEBUG_TEMP_PATH_SUFFIX
         self._healthy = True
 
         self.file_close_interval = float(
@@ -199,6 +198,12 @@ class _TimelineLoggerThread(threading.Thread):
 
     def run(self):
         while True:
+            # if there is long interval between 2 events, just keep checking if
+            # the file is still open. if it is open for too long and a new event
+            # has not occurred, close the open file based on rotation policy.
+            if self._writer and self._should_rotate_now(time.time()):
+                self.close()
+
             event = self._queue.get()
 
             if not self._healthy or event is self._sentinel_event:
@@ -212,7 +217,7 @@ class _TimelineLoggerThread(threading.Thread):
                 self._queue.task_done()
             time.sleep(0)
 
-    def open(self, path):
+    def open(self, path, cur_event_end_time):
         """
         Open the trace event file either from init or when closing and opening a file based on rotation policy
         """
@@ -227,12 +232,13 @@ class _TimelineLoggerThread(threading.Thread):
         self.is_first = True
         self._writer.write("[\n")
         self._healthy = True
+        self.cur_hour = datetime.utcfromtimestamp(cur_event_end_time).hour
         return True
 
     def _get_rotation_info(self, now):
         file_size = self.file_size()
 
-        # find the difference between the 2 times (in seconds)
+        # find the difference between the now and last file closed time (in seconds)
         diff_in_seconds = int(round(now - self.last_file_close_time))
 
         now_datehour = datetime.utcfromtimestamp(now)
@@ -247,7 +253,6 @@ class _TimelineLoggerThread(threading.Thread):
         file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
 
         if diff_in_hours != 0:
-            self.cur_hour = datetime.utcfromtimestamp(now).hour
             return True
 
         if diff_in_seconds > self.file_close_interval:
@@ -281,11 +286,10 @@ class _TimelineLoggerThread(threading.Thread):
         # policy 3: if a write is being made in the next hour, create a new directory
         if self._writer and self._should_rotate_now(end_time_for_event):
             self.close()
-            self.last_file_close_time = self.last_event_end_time
 
         #  if file has not been created yet, create now
         if not self._writer:
-            file_opened = self.open(path=self._filename)
+            file_opened = self.open(path=self._filename, cur_event_end_time=end_time_for_event)
             if not file_opened:
                 if self.continuous_fail_count >= self.file_open_fail_threshold:
                     logger.warning(
@@ -356,13 +360,17 @@ class _TimelineLoggerThread(threading.Thread):
 
             self.flush()
             self._writer.close()
-            os.rename(
-                self._filename,
-                TraceFileLocation().get_file_location(
-                    base_dir=self.base_dir, timestamp=self.last_event_end_time
-                ),
+
+            # ensure that there's a directory for the new file name
+            new_file_name = TraceFileLocation().get_file_location(
+                base_dir=self.base_dir, timestamp=self.last_event_end_time
             )
+            ensure_dir(new_file_name)
+            os.rename(self._filename, new_file_name)
+
             self._writer = None
+            self.last_file_close_time = time.time()
+
 
     def name(self):
         return self._filename
