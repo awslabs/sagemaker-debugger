@@ -1,5 +1,7 @@
 # Standard Library
 import functools
+import time
+import os
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -508,6 +510,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
+        self.start = time.time()
         if self._is_not_supported():
             return
 
@@ -573,6 +576,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
 
     def _on_any_batch_end(self, batch, mode, logs=None):
+        self.record_trace_events(
+                training_phase="Step:" + str(mode),
+                op_name=str(self.mode_steps[self.mode]) ,
+                phase="X",
+                timestamp=self.start, # this is start time for step
+                duration=time.time()-self.start,
+                args= "\"pid\":\"" + str(os.getpid()) + "\""
+        )
         if self._is_not_supported():
             return
 
