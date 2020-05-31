@@ -657,6 +657,8 @@ def test_keras_to_estimator(out_dir, tf_eager_mode):
         tf.compat.v1.disable_eager_execution()
         tf.compat.v1.reset_default_graph()
 
+    tf.keras.backend.clear_session()
+
     model = tf.keras.models.Sequential(
         [
             tf.keras.layers.Dense(16, activation="relu", input_shape=(4,)),
