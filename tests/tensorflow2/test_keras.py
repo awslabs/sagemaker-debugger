@@ -6,6 +6,10 @@ before pushing to master.
 This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
+# Standard Library
+import json
+from pathlib import Path
+
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
@@ -20,6 +24,7 @@ from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.tensorflow import ReductionConfig, SaveConfig
 
 
@@ -619,3 +624,20 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
+
+
+def test_hook_timeline_file_write(out_dir, tf_eager_mode, monkeypatch):
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
+    hook = smd.KerasHook(out_dir=out_dir, save_all=False)
+    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, steps=["train", "eval"])
+
+    files = []
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    with open(files[0]) as timeline_file:
+        events_dict = json.load(timeline_file)
+
+    assert events_dict

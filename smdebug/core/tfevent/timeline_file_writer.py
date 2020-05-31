@@ -371,7 +371,6 @@ class _TimelineLoggerThread(threading.Thread):
             self._writer = None
             self.last_file_close_time = time.time()
 
-
     def name(self):
         return self._filename
 

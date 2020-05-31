@@ -57,10 +57,11 @@ def test_hook_from_json_config_full():
     shutil.rmtree(out_dir, True)
 
 
-def test_hook_timeline_file_write(out_dir):
+def test_hook_timeline_file_write(out_dir, monkeypatch):
     """
     This test is meant to test TimelineFileWriter through a MXNet hook.
     """
+    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     hook = t_hook(out_dir=out_dir)
 
     for i in range(1, 11):
