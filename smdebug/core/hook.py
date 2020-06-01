@@ -23,6 +23,7 @@ from smdebug.core.collection import (
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
     DEFAULT_WORKER_NAME,
+    ENV_BASE_FOLDER_DEFAULT,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
@@ -37,9 +38,9 @@ from smdebug.core.reductions import get_reduction_tensor_name
 from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
+from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.utils import (
     flatten,
-    get_node_id,
     get_tb_worker,
     is_first_process,
     match_inc,
@@ -223,8 +224,8 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        self.timeline_writer = FileWriter(
-            trial_dir=self.out_dir, worker=get_node_id(), wtype="trace"
+        self.timeline_writer = TimelineFileWriter(
+            path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT)
         )
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:

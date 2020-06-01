@@ -16,11 +16,7 @@
 # under the License.
 
 """APIs for logging data in the event file."""
-# Standard Library
-import os
-
 # First Party
-from smdebug.core.config_constants import ENV_BASE_FOLDER_DEFAULT
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter
 from smdebug.core.tfevent.index_file_writer import IndexWriter
@@ -32,7 +28,6 @@ from smdebug.core.tfevent.summary import (
     make_numpy_array,
     scalar_summary,
 )
-from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local
@@ -95,24 +90,17 @@ class FileWriter:
             )
             event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
-        elif wtype == "trace":
-            # Create TimelineFileWriter to record trace events
-            self._writer = TimelineFileWriter(
-                path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT), max_queue=max_queue
-            )
-            self.index_writer = None
         else:
             assert False, "Writer type not supported: {}".format(wtype)
 
-        if wtype != "trace":
-            self._writer = EventFileWriter(
-                path=event_file_path,
-                index_writer=self.index_writer,
-                max_queue=max_queue,
-                flush_secs=flush_secs,
-                verbose=verbose,
-                write_checksum=write_checksum,
-            )
+        self._writer = EventFileWriter(
+            path=event_file_path,
+            index_writer=self.index_writer,
+            max_queue=max_queue,
+            flush_secs=flush_secs,
+            verbose=verbose,
+            write_checksum=write_checksum,
+        )
         self._default_bins = _get_default_bins()
 
     def __enter__(self):
@@ -163,21 +151,6 @@ class FileWriter:
 
     def write_summary(self, summ, global_step, timestamp: float = None):
         self._writer.write_summary(summ, global_step, timestamp=timestamp)
-
-    def write_trace_events(
-        self, timestamp, training_phase="", op_name="", phase="X", duration=1, **kwargs
-    ):
-        if not isinstance(self._writer, TimelineFileWriter):
-            return
-        other_args = {**kwargs}
-        self._writer.write_trace_events(
-            training_phase=training_phase,
-            op_name=op_name,
-            phase=phase,
-            timestamp=timestamp,
-            duration=duration,
-            args=other_args,
-        )
 
     def write_histogram_summary(self, tdata, tname, global_step, bins="default"):
         """Add histogram data to the event file.

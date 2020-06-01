@@ -130,11 +130,12 @@ class TimelineFileWriter:
         self._worker.start()
 
     def write_trace_events(
-        self, timestamp, training_phase="", op_name="", phase="X", duration=0, args=None
+        self, timestamp, training_phase="", op_name="", phase="X", duration=0, **kwargs
     ):
         if not self._worker._healthy:
             return
         duration_in_us = int(duration * CONVERT_TO_MICROSECS)  # convert to micro seconds
+        args = {**kwargs}
         event = TimelineRecord(
             training_phase=training_phase,
             operator_name=op_name,

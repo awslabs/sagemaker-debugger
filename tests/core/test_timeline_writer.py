@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 
 # First Party
-from smdebug.core.config_constants import CONVERT_TO_MICROSECS
-from smdebug.core.writer import FileWriter
+from smdebug.core.config_constants import CONVERT_TO_MICROSECS, ENV_BASE_FOLDER_DEFAULT
+from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 
 
@@ -24,7 +24,7 @@ def test_create_timeline_file(out_dir, monkeypatch):
     It reads backs the file contents to make sure it is in valid JSON format.
     """
     monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
-    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
     assert timeline_writer
 
     for i in range(1, 11):
@@ -49,7 +49,7 @@ def test_create_timeline_file(out_dir, monkeypatch):
 
 
 def run(rank, out_dir):
-    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
     assert timeline_writer
 
     for i in range(1, 6):
@@ -106,7 +106,7 @@ def test_duration_events(out_dir, monkeypatch):
     TODO: Make TimelineWriter automatically calculate duration while recording "E" event
     """
     monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
-    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
     assert timeline_writer
 
     for i in range(1, 11):
@@ -158,7 +158,7 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
             "ENV_CLOSE_FILE_INTERVAL", "0.5"
         )  # rotate file if file interval > 0.5 second
 
-    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
     assert timeline_writer
 
     for i in range(1, 5):
@@ -214,10 +214,10 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
     monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     monkeypatch.setenv("TZ", timezone)
     time.tzset()
-    time_in_timezone = event_time_in_timezone = time.mktime(time.localtime())
+    event_time_in_timezone = time.mktime(time.localtime())
     time_in_utc = event_time_in_utc = calendar.timegm(time.gmtime())
 
-    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
     assert timeline_writer
 
     event_times_in_utc = []
@@ -267,7 +267,7 @@ def test_file_open_fail(monkeypatch):
     monkeypatch.setenv("FILE_OPEN_FAIL_THRESHOLD", "2")
 
     # writing to an invalid path to trigger file open failure
-    timeline_writer = FileWriter(trial_dir="/tmp\\test", worker=str(os.getpid()), wtype="trace")
+    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
     assert timeline_writer
 
     for i in range(1, 5):
@@ -282,14 +282,14 @@ def test_file_open_fail(monkeypatch):
     timeline_writer.close()
 
     # hacky way to check if the test passes
-    assert not timeline_writer._writer._worker._healthy
+    assert not timeline_writer._worker._healthy
 
 
 def test_events_far_apart(out_dir, monkeypatch):
     monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     monkeypatch.setenv("ENV_CLOSE_FILE_INTERVAL", "0.5")  # rotate file if file interval > 1 second
 
-    timeline_writer = FileWriter(trial_dir=out_dir, step=0, worker=str(os.getpid()), wtype="trace")
+    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
     assert timeline_writer
 
     event_time_now = time.time()
