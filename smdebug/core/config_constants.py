@@ -47,3 +47,5 @@ ENV_MAX_FILE_SIZE_DEFAULT = 10000000  # default 10MB
 ENV_CLOSE_FILE_INTERVAL_DEFAULT = 60  # default 60 seconds
 FILE_OPEN_FAIL_THRESHOLD_DEFAULT = 50
 ENV_BASE_FOLDER_DEFAULT = "/var/opt/im/metrics/"
+
+DEFAULT_RESOURCE_CONFIG_FILE = "/opt/ml/input/config/resourceconfig.json"
