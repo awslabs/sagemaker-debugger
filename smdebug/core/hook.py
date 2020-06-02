@@ -240,6 +240,10 @@ class BaseHook:
         self.training_run = 0
         self._initialize_to_last_saved_state()
 
+    # This will avoid pickling of BaseHook object
+    def __getstate__(self):
+        return {}
+
     def _initialize_to_last_saved_state(self):
         self.state_store = StateStore()
         last_state = self.state_store.get_last_saved_state()
