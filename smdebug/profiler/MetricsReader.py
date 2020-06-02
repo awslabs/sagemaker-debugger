@@ -7,7 +7,11 @@ import os
 # First Party
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler, is_s3
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import list_files_in_directory
+from smdebug.core.utils import (
+    get_node_id_from_tracefilename,
+    get_timestamp_from_tracefilename,
+    list_files_in_directory,
+)
 from smdebug.profiler.profiler_constants import (
     DEFAULT_PREFIX,
     HOROVODTIMELINE_PREFIX,
@@ -34,15 +38,6 @@ class MetricsReader:
         # This is a set of parsed event files. The entry is made into this file only if the complete file is read.
         self._parsed_files = set()
         self._timestamp_to_filename = dict()
-
-    # TODO: The following needs to the same function as that of tracefile writer.
-    def _get_node_id_from_filename(self, filename):
-        filename = filename.split("/")[-1]
-        return filename.split("_")[1]
-
-    def _get_end_timestamp_from_filename(self, filename):
-        filename = filename.split("/")[-1]
-        return int(filename.split("_")[0])
 
     """
     The function returns the timestamp of last available file.
@@ -186,7 +181,7 @@ class LocalMetricsReader(MetricsReader):
         event_regex = r"(.+)\.(json|csv)$"
         event_files = list_files_in_directory(event_dir, file_regex=event_regex)
         for event_file in event_files:
-            timestamp = self._get_end_timestamp_from_filename(event_file)
+            timestamp = get_timestamp_from_tracefilename(event_file)
             self._timestamp_to_filename[timestamp] = event_file
 
     """
@@ -238,7 +233,8 @@ class S3MetricsReader(MetricsReader):
         for event_data, event_file in zip(event_data_list, event_files):
             event_string = event_data.decode("utf-8")
             json_data = json.loads(event_string)
-            self._get_event_parser(event_file).read_events_from_json_data(json_data)
+            node_id = get_node_id_from_tracefilename(event_file)
+            self._get_event_parser(event_file).read_events_from_json_data(json_data, node_id)
             self._parsed_files.add(event_file)
 
     """
@@ -250,5 +246,5 @@ class S3MetricsReader(MetricsReader):
 
         event_files = [x for x in S3Handler.list_prefix(list_dir) if "json" in x]
         for event_file in event_files:
-            timestamp = self._get_end_timestamp_from_filename(event_file)
+            timestamp = get_timestamp_from_tracefilename(event_file)
             self._timestamp_to_filename[timestamp] = f"s3://{self.bucket_name}/{event_file}"

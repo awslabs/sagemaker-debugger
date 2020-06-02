@@ -4,6 +4,7 @@ import datetime
 import json
 
 from smdebug.core.logger import get_logger
+from smdebug.core.utils import get_node_id_from_tracefilename
 from smdebug.profiler.utils import TimeUnits, convert_utc_timestamp_to_nanoseconds
 
 
@@ -27,7 +28,7 @@ class ProcessInfo:
 
 
 class TraceEvent:
-    def __init__(self, ts, name, dur, pid, tid, event_args):
+    def __init__(self, ts, name, dur, pid, tid, event_args, node_id):
         self.start_time = ts
         self.event_name = name
         self.duration = dur
@@ -35,6 +36,7 @@ class TraceEvent:
         self.pid = pid
         self.tid = tid
         self.event_args = event_args
+        self.node_id = node_id
 
 
 class TraceEventParser:
@@ -85,7 +87,7 @@ class TraceEventParser:
     def _populate_start_time(self, event):
         pass
 
-    def _read_event(self, event):
+    def _read_event(self, event, node_id=""):
         if "ph" not in event:
             self.logger.error(f"In correctly formatted trace file. The 'ph' field is not present")
             return
@@ -111,7 +113,7 @@ class TraceEventParser:
             id = event["pid"]
             tid = event["tid"] if "tid" in event else "0"
             event_args = event["args"] if "args" in event else None
-            t_event = TraceEvent(start_time, name, dur, id, tid, event_args)
+            t_event = TraceEvent(start_time, name, dur, id, tid, event_args, node_id)
             self._trace_events.append(t_event)
         if phase_type == "B":
             pid = event["pid"]
@@ -142,7 +144,7 @@ class TraceEventParser:
                 tid = b_event["tid"] if "tid" in event else "0"
                 name = b_event["name"]
                 event_args = event["args"] if "args" in event else None
-                t_event = TraceEvent(start_time, name, duration, pid, tid, event_args)
+                t_event = TraceEvent(start_time, name, duration, pid, tid, event_args, node_id)
                 self._trace_events.append(t_event)
 
     def get_all_events(self):
@@ -204,12 +206,12 @@ class TraceEventParser:
         except Exception as e:
             self.logger.error(f"Can't open trace file {tracefile}: Exception {str(e)}")
             return
+        node_id = get_node_id_from_tracefilename(tracefile)
+        self.read_events_from_json_data(trace_json_data, node_id)
 
-        self.read_events_from_json_data(trace_json_data)
-
-    def read_events_from_json_data(self, trace_json_data):
+    def read_events_from_json_data(self, trace_json_data, node_id):
         for event in trace_json_data:
-            self._read_event(event)
+            self._read_event(event, node_id)
 
     # TODO
     def get_events_for_process(self, pid, start_time, end_time):

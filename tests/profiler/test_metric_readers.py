@@ -23,3 +23,4 @@ def test_LocalMetricsReader_Model_timeline(tracefolder="./tests/profiler/model_t
 
     print(f"Number of events {len(events)}")
     assert len(events) == 54
+    assert events[0].node_id == "0001"

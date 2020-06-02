@@ -2,11 +2,14 @@
 # Standard Library
 from datetime import datetime
 
+from smdebug.core.utils import get_node_id_from_tracefilename
 from smdebug.profiler import SMProfilerEvents
 from smdebug.profiler.utils import TimeUnits
 
 
-def test_smprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json"):
+def test_smprofiler_events(
+    trace_file="./tests/profiler/1589314018481947000_1234-testhost_model_timeline.json"
+):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")
     t_events = SMProfilerEvents()
@@ -18,13 +21,17 @@ def test_smprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json
     print(f"Number of events read = {num_trace_events}")
     assert num_trace_events == 49
 
+    node_id_from_file = get_node_id_from_tracefilename(trace_json_file)
+    node_id_from_event = all_trace_events[10].node_id
+    assert node_id_from_event == node_id_from_file
+
     completed_event_list = t_events.get_events_within_time_range(
         0, 1589314018.4700, unit=TimeUnits.SECONDS
     )
     print(
         f"Number of events occurred between 0 and 1589314018.4700 are {len(completed_event_list)}"
     )
-    assert len(completed_event_list) == 34
+    assert len(completed_event_list) == 39
 
     start_dt = datetime.fromtimestamp(0)
     end_dt = datetime.fromtimestamp(1589314018.4700)
@@ -32,7 +39,7 @@ def test_smprofiler_events(trace_file="./tests/profiler/smtf_profiler_trace.json
     print(
         f"Number of events occurred between {start_dt} and {end_dt} are {len(completed_event_list)}"
     )
-    assert len(completed_event_list) == 34
+    assert len(completed_event_list) == 39
 
     start_time_sorted = t_events.get_events_start_time_sorted()
     start_time_for_first_event = start_time_sorted[0].start_time

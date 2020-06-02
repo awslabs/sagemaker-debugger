@@ -386,3 +386,26 @@ class ScriptSimulator(object):
         shutil.rmtree(self.out_dir, ignore_errors=True)
         if self.tensorboard_dir:
             shutil.rmtree(self.tensorboard_dir, ignore_errors=True)
+
+
+def get_node_id_from_tracefilename(filename: str) -> str:
+    """
+    The tracefile has a file name format:
+    $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/$FILEEVENTENDTIMEUTCINEPOCH_{$ENV_NODE_ID}_model_timeline.json
+
+    The function extracts and returns the {$ENV_NODE_ID} from file.
+    """
+    filename = filename.split("/")[-1]
+    return filename.split("_")[1]
+
+
+def get_timestamp_from_tracefilename(filename) -> int:
+    """
+    The tracefile has a file name format:
+    $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/$FILEEVENTENDTIMEUTCINEPOCH_{$ENV_NODE_ID}_model_timeline.json
+
+    The function extracts and returns the $FILEEVENTENDTIMEUTCINEPOCH from file. The $FILEEVENTENDTIMEUTCINEPOCH
+    represents the timestamp of last event written to the tracefile.
+    """
+    filename = filename.split("/")[-1]
+    return int(filename.split("_")[0])
