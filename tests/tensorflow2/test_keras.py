@@ -412,7 +412,7 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 17)
+            assert len(trial.tensor_names()) == (15 if is_tf_2_2() else 16)
         else:
             assert len(trial.tensor_names()) == 24
         assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
@@ -593,7 +593,7 @@ def test_include_collections(out_dir, tf_eager_mode):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     if tf_eager_mode:
-        assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+        assert len(trial.tensor_names()) == (14 if is_tf_2_2() else 15)
     else:
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
@@ -654,7 +654,7 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
 
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+    assert len(trial.tensor_names()) == (14 if is_tf_2_2() else 15)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5

@@ -256,8 +256,10 @@ def test_save_all(out_dir, tf_eager_mode, workers):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        assert len(tr.tensor_names()) == (6 + 2 + 1 + 5 + 1 if is_tf_2_2() else 6 + 3 + 1 + 5 + 1)
-        # weights, metrics, losses, optimizer variables, scalar
+        assert len(tr.tensor_names()) == (
+            6 + 2 + 1 + 5 + 1 + 2 if is_tf_2_2() else 6 + 3 + 1 + 5 + 1 + 2
+        )
+        # weights, metrics, losses, optimizer variables, scalar, model outputs
     else:
         assert (
             len(tr.tensor_names())
