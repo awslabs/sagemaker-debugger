@@ -165,10 +165,10 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
         assert len(tr.workers()) == strategy.num_replicas_in_sync
         if eager:
             assert len(tr.tensor_names()) == (
-                6 + 1 + 2 + 5 + 1 if is_tf_2_2() else 6 + 1 + 3 + 5 + 1
+                6 + 1 + 2 + 5 + 1 + 2 if is_tf_2_2() else 6 + 1 + 3 + 5 + 1 + 2
             )
-            # 6 weights, 1 loss, 3 metrics, 5 optimizer variables for Tf 2.1, 1 scalar
-            # 6 weights, 1 loss, 2 metrics, 5 optimizer variables for Tf 2.2, 1 scalar
+            # 6 weights, 1 loss, 3 metrics, 5 optimizer variables for Tf 2.1, 1 scalar, 2 model outputs
+            # 6 weights, 1 loss, 2 metrics, 5 optimizer variables for Tf 2.2, 1 scalar, 2 model outputs
         else:
             assert len(tr.tensor_names()) == (6 + 6 + 1 + 3 + strategy.num_replicas_in_sync * 3 + 5)
     else:
