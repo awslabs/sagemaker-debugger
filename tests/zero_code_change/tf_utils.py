@@ -231,7 +231,9 @@ def get_train_op_and_placeholders():
 
 
 def get_data() -> "tf.contrib.learn.python.learn.datasets.base.Datasets":
-    mnist = tf.keras.datasets.mnist.load_data()
+    from tensorflow.examples.tutorials.mnist import input_data
+
+    mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
     return mnist
 
 

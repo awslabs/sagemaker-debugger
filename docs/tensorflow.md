@@ -18,9 +18,14 @@
 - This library itself supports the following versions when you use our API which requires a few minimal changes to your training script: TensorFlow 1.14, 1.15, 2.0.1, 2.1.0. Keras 2.3.
 
 ### Interfaces
-- [Estimator](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/estimator)
-- [tf.keras](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/keras)
-- [MonitoredSession](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/train/MonitoredSession?hl=en)
+- TF 1.x:
+    - [Estimator](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/estimator)
+    - [tf.keras](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/keras)
+    - [MonitoredSession](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/train/MonitoredSession?hl=en)
+- TF 2.x:
+    - [Estimator](https://www.tensorflow.org/versions/r2.1/api_docs/python/tf/estimator)
+    - [tf.keras](https://www.tensorflow.org/versions/r2.1/api_docs/python/tf/keras)
+
 
 ### Distributed training
 - [MirroredStrategy](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/distribute/MirroredStrategy) or [Contrib MirroredStrategy](https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/contrib/distribute/MirroredStrategy)
