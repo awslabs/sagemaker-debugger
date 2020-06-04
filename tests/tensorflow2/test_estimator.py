@@ -19,7 +19,7 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
     train_input_fn, eval_input_fn = get_input_fns()
 
     # Train and evaluate
-    train_steps, eval_steps = 80, 20
+    train_steps, eval_steps = 8, 2
     hook = smd.EstimatorHook(out_dir=out_dir, save_all=saveall)
     hook.set_mode(mode=smd.modes.TRAIN)
     mnist_classifier.train(input_fn=train_input_fn, steps=train_steps, hooks=[hook])
@@ -28,10 +28,9 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
 
     # Check that hook created and tensors saved
     trial = smd.create_trial(path=out_dir)
-    assert smd.get_hook() is not None, "Hook was not created."
-    assert len(trial.steps()) > 0, "Nothing saved at any step."
-    assert len(trial.tensor_names()) > 0, "Tensors were not saved."
-    assert trial.steps() == [0, train_steps], "Wrong step count for trial."
+    tnames = trial.tensor_names()
+    assert len(trial.steps()) > 0
+    assert len(tnames) == 301 if saveall else len(tnames) == 1
 
 
 @pytest.mark.parametrize("saveall", [True, False])
@@ -47,10 +46,10 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
         feature_columns=[x_feature], model_dir="/tmp/mnist_linear_classifier", n_classes=10
     )
     hook = smd.EstimatorHook(out_dir=out_dir, save_all=saveall)
-    estimator.train(input_fn=train_input_fn, steps=100, hooks=[hook])
+    estimator.train(input_fn=train_input_fn, steps=10, hooks=[hook])
 
     # Check that hook created and tensors saved
     trial = smd.create_trial(path=out_dir)
-    assert smd.get_hook() is not None, "Hook was not created."
-    assert len(trial.steps()) > 0, "Nothing saved at any step."
-    assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+    tnames = trial.tensor_names()
+    assert len(trial.steps()) > 0
+    assert len(tnames) == 224 if saveall else len(tnames) == 2
