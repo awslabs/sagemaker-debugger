@@ -31,7 +31,7 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
     tnames = trial.tensor_names()
     assert len(trial.steps()) > 0
     if saveall:
-        assert len(tnames) == 301
+        assert len(tnames) >= 301
     else:
         assert len(tnames) == 1
 
@@ -56,6 +56,6 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
     tnames = trial.tensor_names()
     assert len(trial.steps()) > 0
     if saveall:
-        assert len(tnames) == 224
+        assert len(tnames) >= 224
     else:
         assert len(tnames) == 2
