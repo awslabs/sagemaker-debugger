@@ -15,6 +15,7 @@ from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
+    ModelOutput,
     TFDistributionStrategy,
     get_export_name_for_keras,
     get_keras_layer_inputs,
@@ -371,11 +372,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
 
         if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS):
-            export_names = {"y_pred": "train_output/y_pred", "y": "train_output/y"}
+            export_names = {
+                ModelOutput.Y_PRED: "train_output/y_pred",
+                ModelOutput.Y: "train_output/y",
+            }
             self._initialize_writers(only_initialize_if_missing=True)
             output_collection = self.collection_manager.get(CollectionKeys.OUTPUTS)
             for key in logs:
-                if key in ["y", "y_pred"]:
+                if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
                     tensor_ref = TensorRef.from_non_graph_var(export_names[key])
                     output_collection.set_tensor_ref(tensor_ref)
                     self.tensor_to_collections[export_names[key]] = {output_collection}
@@ -390,7 +394,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             logs["batch"] = batch
             for key in logs:
-                if key in ["loss", "val_loss", "outputs", "y", "y_pred"]:
+                if key in ["loss", "val_loss", "outputs", ModelOutput.Y, ModelOutput.Y_PRED]:
                     # outputs is saved differently through outputs collection
                     continue
                 self._add_metric(metric_name=key)
@@ -495,7 +499,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
         self._save_metrics(batch=batch, logs=logs, force_save=True)
-        self._save_model_outputs(logs=logs)
         self._close_writers()
 
     def _on_any_mode_begin(self, mode):

@@ -12,6 +12,11 @@ from tensorflow.python.distribute import values
 from smdebug.core.modes import ModeKeys
 
 
+class ModelOutput:
+    Y = "y"
+    Y_PRED = "y_pred"
+
+
 class TFDistributionStrategy(Enum):
     NONE = 0
     HOROVOD = 1
