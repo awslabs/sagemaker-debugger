@@ -22,6 +22,7 @@ from smdebug.core.collection import CollectionKeys
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.core.utils import ModelOutput
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
 
@@ -396,7 +397,8 @@ def test_gradtape_persistent(out_dir, saveall):
 @pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_fit(out_dir, tf_eager_mode, saveall):
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
+    save_config = SaveConfig(save_interval=1) if saveall else None
+    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=save_config)
     ts = time.time()
     hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
     scalars_to_be_saved = dict()
@@ -411,6 +413,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
+        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 20
+        assert len(trial.steps(mode=ModeKeys.EVAL)) == 10
+        assert len(trial.steps(mode=ModeKeys.PREDICT)) == 4
         if tf_eager_mode:
             assert len(trial.tensor_names()) == (15 if is_tf_2_2() else 16)
         else:
@@ -434,8 +439,14 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
         )
         for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
             output = trial.tensor(tname)
-            assert tname in ["train_output/y_pred", "train_output/y", "predict_output"]
+            assert tname in [ModelOutput.Y_PRED, ModelOutput.Y]
             assert output.value(0) is not None
+            assert output.steps() == trial.steps(mode=ModeKeys.TRAIN)
+        # Check the shape of output tensors
+        assert trial.tensor(ModelOutput.Y).value(0).shape[1] == 1  # label
+        assert (
+            trial.tensor(ModelOutput.Y_PRED).value(0).shape[1] == 10
+        )  # Output probability for each class
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (4 if is_tf_2_2() and tf_eager_mode else 5)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
