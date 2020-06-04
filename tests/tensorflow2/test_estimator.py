@@ -30,7 +30,10 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
     trial = smd.create_trial(path=out_dir)
     tnames = trial.tensor_names()
     assert len(trial.steps()) > 0
-    assert len(tnames) == 301 if saveall else len(tnames) == 1
+    if saveall:
+        assert len(tnames) == 301
+    else:
+        assert len(tnames) == 1
 
 
 @pytest.mark.parametrize("saveall", [True, False])
@@ -52,4 +55,7 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
     trial = smd.create_trial(path=out_dir)
     tnames = trial.tensor_names()
     assert len(trial.steps()) > 0
-    assert len(tnames) == 224 if saveall else len(tnames) == 2
+    if saveall:
+        assert len(tnames) == 224
+    else:
+        assert len(tnames) == 2
