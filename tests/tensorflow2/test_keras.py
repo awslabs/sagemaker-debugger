@@ -22,9 +22,9 @@ from smdebug.core.collection import CollectionKeys
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from smdebug.core.utils import ModelOutput
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
+from smdebug.tensorflow.utils import ModelOutput
 
 
 def helper_keras_fit(
