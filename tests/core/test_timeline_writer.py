@@ -10,12 +10,46 @@ from pathlib import Path
 import pytest
 
 # First Party
-from smdebug.core.config_constants import CONVERT_TO_MICROSECS, ENV_BASE_FOLDER_DEFAULT
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
-from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS, DEFAULT_PREFIX
 
 
-def test_create_timeline_file(out_dir, monkeypatch):
+@pytest.fixture
+def config_folder():
+    """Path to folder used for storing different config artifacts for testing timeline writer and
+    profiler config parser.
+    """
+    return "tests/core/json_configs"
+
+
+@pytest.fixture
+def current_step():
+    return 1
+
+
+@pytest.fixture()
+def simple_profiler_config_parser(config_folder, monkeypatch, current_step):
+    config_path = os.path.join(config_folder, "simple_profiler_config_parser.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser(current_step)
+
+
+@pytest.fixture()
+def complete_profiler_config_parser(config_folder, monkeypatch, current_step):
+    config_path = os.path.join(config_folder, "complete_profiler_config_parser.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser(current_step)
+
+
+@pytest.fixture()
+def file_open_fail_profiler_config_parser(config_folder, monkeypatch, current_step):
+    config_path = os.path.join(config_folder, "file_open_fail_profiler_config_parser.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser(current_step)
+
+
+def test_create_timeline_file(simple_profiler_config_parser, out_dir):
     """
     This test is meant to test successful creation of the timeline file according to file path specification.
     $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_
@@ -23,8 +57,9 @@ def test_create_timeline_file(out_dir, monkeypatch):
 
     It reads backs the file contents to make sure it is in valid JSON format.
     """
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
-    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
+    assert simple_profiler_config_parser.enabled
+
+    timeline_writer = TimelineFileWriter(profiler_config_parser=simple_profiler_config_parser)
     assert timeline_writer
 
     for i in range(1, 11):
@@ -48,8 +83,8 @@ def test_create_timeline_file(out_dir, monkeypatch):
     assert events_dict
 
 
-def run(rank, out_dir):
-    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
+def run(rank, profiler_config_parser):
+    timeline_writer = TimelineFileWriter(profiler_config_parser=profiler_config_parser)
     assert timeline_writer
 
     for i in range(1, 6):
@@ -67,16 +102,17 @@ def run(rank, out_dir):
     timeline_writer.close()
 
 
-def test_multiprocess_write(out_dir, monkeypatch):
+def test_multiprocess_write(simple_profiler_config_parser, out_dir):
     """
     This test is meant to test timeline events written multiple processes. Each process or worker, will have its own trace file.
     """
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
+    assert simple_profiler_config_parser.enabled
+
     cpu_count = mp.cpu_count()
 
     processes = []
     for rank in range(cpu_count):
-        p = mp.Process(target=run, args=(rank, out_dir))
+        p = mp.Process(target=run, args=(rank, simple_profiler_config_parser))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
@@ -100,13 +136,16 @@ def test_multiprocess_write(out_dir, monkeypatch):
     assert event_ctr == cpu_count * 5
 
 
-def test_duration_events(out_dir, monkeypatch):
+def test_duration_events(simple_profiler_config_parser, out_dir):
     """
     This test is meant to test duration events. By default, write_trace_events records complete events.
     TODO: Make TimelineWriter automatically calculate duration while recording "E" event
     """
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
-    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
+    assert simple_profiler_config_parser.enabled
+
+    timeline_writer = timeline_writer = TimelineFileWriter(
+        profiler_config_parser=simple_profiler_config_parser
+    )
     assert timeline_writer
 
     for i in range(1, 11):
@@ -143,22 +182,16 @@ def test_duration_events(out_dir, monkeypatch):
 
 @pytest.mark.slow
 @pytest.mark.parametrize("policy", ["file_size", "file_interval"])
-def test_rotation_policy(out_dir, monkeypatch, policy):
+def test_complete_policy(complete_profiler_config_parser, policy, out_dir):
     """
     This test is meant to test if files are being closed and open correctly according to the 2 rotation policies -
     file_size -> close file if it exceeds certain size and open a new file
     file_interval -> close file if the file's folder was created before a certain time period and open a new file in a new folder
     :param policy: file_size or file_interval
     """
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
-    if policy == "file_size":
-        monkeypatch.setenv("ENV_MAX_FILE_SIZE", "300")  # rotate file if size > 300 bytes
-    elif policy == "file_interval":
-        monkeypatch.setenv(
-            "ENV_CLOSE_FILE_INTERVAL", "0.5"
-        )  # rotate file if file interval > 0.5 second
+    assert complete_profiler_config_parser.enabled
 
-    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
+    timeline_writer = TimelineFileWriter(profiler_config_parser=complete_profiler_config_parser)
     assert timeline_writer
 
     for i in range(1, 5):
@@ -206,18 +239,18 @@ def test_rotation_policy(out_dir, monkeypatch, policy):
 
 
 @pytest.mark.parametrize("timezone", ["Europe/Dublin", "Australia/Melbourne", "US/Eastern"])
-def test_utc_timestamp(out_dir, monkeypatch, timezone):
+def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
     """
     This test is meant to set to create files/events in different timezones and check if timeline writer stores
     them in UTC.
     """
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
-    monkeypatch.setenv("TZ", timezone)
+    assert simple_profiler_config_parser.enabled
+
     time.tzset()
     event_time_in_timezone = time.mktime(time.localtime())
     time_in_utc = event_time_in_utc = calendar.timegm(time.gmtime())
 
-    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
+    timeline_writer = TimelineFileWriter(profiler_config_parser=simple_profiler_config_parser)
     assert timeline_writer
 
     event_times_in_utc = []
@@ -262,12 +295,13 @@ def test_utc_timestamp(out_dir, monkeypatch, timezone):
                     idx += 1
 
 
-def test_file_open_fail(monkeypatch):
-    monkeypatch.setenv("ENV_BASE_FOLDER", "/tmp\\test")
-    monkeypatch.setenv("FILE_OPEN_FAIL_THRESHOLD", "2")
+def test_file_open_fail(file_open_fail_profiler_config_parser):
+    assert file_open_fail_profiler_config_parser.enabled
 
     # writing to an invalid path to trigger file open failure
-    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
+    timeline_writer = TimelineFileWriter(
+        profiler_config_parser=file_open_fail_profiler_config_parser
+    )
     assert timeline_writer
 
     for i in range(1, 5):
@@ -285,11 +319,10 @@ def test_file_open_fail(monkeypatch):
     assert not timeline_writer._worker._healthy
 
 
-def test_events_far_apart(out_dir, monkeypatch):
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
-    monkeypatch.setenv("ENV_CLOSE_FILE_INTERVAL", "0.5")  # rotate file if file interval > 1 second
+def test_events_far_apart(complete_profiler_config_parser, out_dir):
+    assert complete_profiler_config_parser.enabled
 
-    timeline_writer = TimelineFileWriter(path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT))
+    timeline_writer = TimelineFileWriter(profiler_config_parser=complete_profiler_config_parser)
     assert timeline_writer
 
     event_time_now = time.time()

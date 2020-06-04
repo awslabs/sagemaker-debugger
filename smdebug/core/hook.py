@@ -23,7 +23,6 @@ from smdebug.core.collection import (
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
     DEFAULT_WORKER_NAME,
-    ENV_BASE_FOLDER_DEFAULT,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
@@ -49,6 +48,7 @@ from smdebug.core.utils import (
 )
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 try:
     from smexperiments.metrics import SageMakerFileMetricsWriter
@@ -224,8 +224,9 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
+        self.profiler_config_parser = ProfilerConfigParser(self.step)
         self.timeline_writer = TimelineFileWriter(
-            path=os.getenv("ENV_BASE_FOLDER", ENV_BASE_FOLDER_DEFAULT)
+            profiler_config_parser=self.profiler_config_parser
         )
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:

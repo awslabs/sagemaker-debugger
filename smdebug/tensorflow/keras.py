@@ -60,6 +60,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._fetches_added = set()
         self.callable_cache = CallableCache()
 
+        # Profile range vars
+        if self.profiler_config_parser.enabled:
+            profile_range = self.profiler_config_parser.config.profile_range
+            self._profiling_start = profile_range.profiler_start
+            self._profiling_end = profile_range.profiler_end
+
     def _is_not_supported(self):
         if self.distribution_strategy is None:
             self.distribution_strategy = self._get_distribution_strategy()

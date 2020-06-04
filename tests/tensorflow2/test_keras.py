@@ -28,6 +28,12 @@ from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.tensorflow import ReductionConfig, SaveConfig
 
 
+@pytest.fixture(autouse=True)
+def set_up_smprofiler_config_path(monkeypatch):
+    config_path = "tests/core/json_configs/simple_profiler_config_parser.json"
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+
+
 def helper_keras_fit(
     trial_dir,
     save_all=False,

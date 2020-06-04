@@ -6,6 +6,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+# Third Party
+import pytest
+
 # First Party
 from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
@@ -15,6 +18,12 @@ from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
+
+
+@pytest.fixture(autouse=True)
+def set_up_smprofiler_config_path(monkeypatch):
+    config_path = "tests/core/json_configs/simple_profiler_config_parser.json"
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
 
 
 def test_hook():

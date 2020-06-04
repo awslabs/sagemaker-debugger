@@ -30,15 +30,10 @@ import six
 
 # First Party
 from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX
-from smdebug.core.config_constants import (
-    CONVERT_TO_MICROSECS,
-    ENV_CLOSE_FILE_INTERVAL_DEFAULT,
-    ENV_MAX_FILE_SIZE_DEFAULT,
-    FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
-)
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import ensure_dir, get_node_id
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 
 logger = get_logger()
 
@@ -110,29 +105,30 @@ class TimelineFileWriter:
     and asynchronously writes TimelineRecord to the file.
     """
 
-    def __init__(self, path, max_queue=100):
+    def __init__(self, profiler_config_parser, max_queue=100):
         """Creates a `TimelineFileWriter` and a trace event file to write to.
         This event file will contain TimelineRecord as JSON strings, which are written to
         disk via the write_record method.
+        If the profiler is not enabled, trace events will not be written to the file.
         The other arguments to the constructor control the asynchronous writes to
         the event file:
         """
         self.start_time_since_epoch_in_micros = int(round(time.time() * CONVERT_TO_MICROSECS))
-        self._path = path
+        self._profiler_config_parser = profiler_config_parser
         self._event_queue = six.moves.queue.Queue(max_queue)
         self._sentinel_event = _get_sentinel_event(self.start_time_since_epoch_in_micros)
         self._worker = _TimelineLoggerThread(
             queue=self._event_queue,
             sentinel_event=self._sentinel_event,
-            path=path,
             base_start_time=self.start_time_since_epoch_in_micros,
+            profiler_config_parser=self._profiler_config_parser,
         )
         self._worker.start()
 
     def write_trace_events(
         self, timestamp, training_phase="", op_name="", phase="X", duration=0, **kwargs
     ):
-        if not self._worker._healthy:
+        if not self._worker._healthy or not self._profiler_config_parser.enabled:
             return
         duration_in_us = int(duration * CONVERT_TO_MICROSECS)  # convert to micro seconds
         args = {**kwargs}
@@ -170,13 +166,14 @@ class _TimelineLoggerThread(threading.Thread):
     """Thread that logs events. Copied from
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py#L133"""
 
-    def __init__(self, queue, sentinel_event, path, base_start_time, verbose=False):
+    def __init__(
+        self, queue, sentinel_event, base_start_time, profiler_config_parser, verbose=False
+    ):
         """Creates a _TimelineLoggerThread."""
         threading.Thread.__init__(self)
         self.daemon = True
         self._queue = queue
         self._sentinel_event = sentinel_event
-        self.base_dir = path
         self._num_outstanding_events = 0
         self._writer = None
         self.verbose = verbose
@@ -186,16 +183,9 @@ class _TimelineLoggerThread(threading.Thread):
         self.last_event_end_time = int(round(base_start_time / CONVERT_TO_MICROSECS))
         self.last_file_close_time = self.last_event_end_time
         self.cur_hour = datetime.utcfromtimestamp(self.last_file_close_time).hour
-        self._filename = self.base_dir + "/" + get_node_id() + SMDEBUG_TEMP_PATH_SUFFIX
         self._healthy = True
-
-        self.file_close_interval = float(
-            os.getenv("ENV_CLOSE_FILE_INTERVAL", ENV_CLOSE_FILE_INTERVAL_DEFAULT)
-        )
-        self.file_max_size = float(os.getenv("ENV_MAX_FILE_SIZE", ENV_MAX_FILE_SIZE_DEFAULT))
-        self.file_open_fail_threshold = int(
-            os.getenv("FILE_OPEN_FAIL_THRESHOLD", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
-        )
+        self._profiler_config_parser = profiler_config_parser
+        self.node_id = get_node_id()
 
     def run(self):
         while True:
@@ -207,7 +197,11 @@ class _TimelineLoggerThread(threading.Thread):
 
             event = self._queue.get()
 
-            if not self._healthy or event is self._sentinel_event:
+            if (
+                not self._healthy
+                or not self._profiler_config_parser.enabled
+                or event is self._sentinel_event
+            ):
                 self._queue.task_done()
                 break
 
@@ -252,14 +246,15 @@ class _TimelineLoggerThread(threading.Thread):
 
     def _should_rotate_now(self, now):
         file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
+        rotation_policy = self._profiler_config_parser.config.trace_file.rotation_policy
 
         if diff_in_hours != 0:
             return True
 
-        if diff_in_seconds > self.file_close_interval:
+        if diff_in_seconds > rotation_policy.file_close_interval:
             return True
 
-        if file_size > self.file_max_size:
+        if file_size > rotation_policy.file_max_size:
             return True
 
         return False
@@ -290,13 +285,16 @@ class _TimelineLoggerThread(threading.Thread):
 
         #  if file has not been created yet, create now
         if not self._writer:
-            file_opened = self.open(path=self._filename, cur_event_end_time=end_time_for_event)
+            file_opened = self.open(path=self.name(), cur_event_end_time=end_time_for_event)
             if not file_opened:
-                if self.continuous_fail_count >= self.file_open_fail_threshold:
+                file_open_fail_threshold = (
+                    self._profiler_config_parser.config.trace_file.file_open_fail_threshold
+                )
+                if self.continuous_fail_count >= file_open_fail_threshold:
                     logger.warning(
                         "Encountered {} number of continuous failures while trying to open the file. "
                         "Marking the writer unhealthy. All future events will be dropped.".format(
-                            str(self.file_open_fail_threshold)
+                            str(file_open_fail_threshold)
                         )
                     )
                     self._healthy = False
@@ -362,18 +360,25 @@ class _TimelineLoggerThread(threading.Thread):
             self.flush()
             self._writer.close()
 
-            # ensure that there's a directory for the new file name
-            new_file_name = TraceFileLocation().get_file_location(
-                base_dir=self.base_dir, timestamp=self.last_event_end_time
-            )
-            ensure_dir(new_file_name)
-            os.rename(self._filename, new_file_name)
+            if self._profiler_config_parser.enabled:
+                # ensure that there's a directory for the new file name
+                new_file_name = TraceFileLocation().get_file_location(
+                    base_dir=self._profiler_config_parser.config.local_path,
+                    timestamp=self.last_event_end_time,
+                )
+                ensure_dir(new_file_name)
+                os.rename(self.name(), new_file_name)
 
             self._writer = None
             self.last_file_close_time = time.time()
 
     def name(self):
-        return self._filename
+        return (
+            self._profiler_config_parser.config.local_path
+            + "/"
+            + self.node_id
+            + SMDEBUG_TEMP_PATH_SUFFIX
+        )
 
     def file_size(self):
-        return os.path.getsize(self._filename)  # in bytes
+        return os.path.getsize(self.name())  # in bytes
