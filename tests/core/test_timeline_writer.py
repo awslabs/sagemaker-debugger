@@ -277,7 +277,7 @@ def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
     file_timestamp = int(path[0].split("_")[0])
 
     # file timestamp uses end of event
-    assert (time_in_utc + 20) == file_timestamp
+    assert (time_in_utc + 20) * CONVERT_TO_MICROSECS == file_timestamp
 
     start_time_since_epoch = 0
     idx = 0
