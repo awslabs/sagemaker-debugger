@@ -6,9 +6,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# Third Party
-import pytest
-
 # First Party
 from smdebug import SaveConfig
 from smdebug.core.access_layer.utils import has_training_ended
@@ -18,12 +15,6 @@ from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 
 # Local
 from .mnist_gluon_model import run_mnist_gluon_model
-
-
-@pytest.fixture(autouse=True)
-def set_up_smprofiler_config_path(monkeypatch):
-    config_path = "tests/core/json_configs/simple_profiler_config_parser.json"
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
 
 
 def test_hook():
@@ -66,11 +57,10 @@ def test_hook_from_json_config_full():
     shutil.rmtree(out_dir, True)
 
 
-def test_hook_timeline_file_write(out_dir, monkeypatch):
+def test_hook_timeline_file_write(set_up_smprofiler_config_path, out_dir):
     """
     This test is meant to test TimelineFileWriter through a MXNet hook.
     """
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     hook = t_hook(out_dir=out_dir)
 
     for i in range(1, 11):

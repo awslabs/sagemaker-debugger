@@ -1,8 +1,10 @@
 # Standard Library
+import json
 import os
 
 # Third Party
 import pytest
+from tests.profiler.profiler_config_parser_utils import current_step, detailed_profiling_test_cases
 
 # First Party
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
@@ -15,37 +17,59 @@ from smdebug.profiler.profiler_constants import (
 
 
 @pytest.fixture
-def config_folder():
-    """Path to folder used for storing different config artifacts for testing timeline writer and
-    profiler config parser.
-    """
-    return "tests/core/json_configs"
-
-
-@pytest.fixture
-def current_step():
-    return 1
-
-
-@pytest.fixture()
-def simple_profiler_config_parser(config_folder, monkeypatch, current_step):
-    config_path = os.path.join(config_folder, "simple_profiler_config_parser.json")
+def detailed_profiler_config_path(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "detailed_profiler_config.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return ProfilerConfigParser(current_step)
+    yield config_path
+    if os.path.isfile(config_path):
+        os.remove(config_path)
 
 
 @pytest.fixture
-def missing_config_profiler_config_parser(config_folder, monkeypatch, current_step):
+def missing_config_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "missing_profile_config_parser.json")  # doesn't exist
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
     return ProfilerConfigParser(current_step)
 
 
 @pytest.fixture
-def user_disabled_profiler_config_parser(config_folder, monkeypatch, current_step):
+def user_disabled_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "user_disabled_profile_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
     return ProfilerConfigParser(current_step)
+
+
+@pytest.mark.parametrize("test_case", detailed_profiling_test_cases)
+def test_profiling_ranges(detailed_profiler_config_path, test_case):
+    detailed_profiling_parameters, expected_values = test_case
+    start_step, num_steps, start_time, duration = detailed_profiling_parameters
+    detailed_profiler_config = {}
+    if start_step:
+        detailed_profiler_config.update(StartStep=start_step)
+    if num_steps:
+        detailed_profiler_config.update(NumSteps=num_steps)
+    if start_time:
+        detailed_profiler_config.update(StartTime=start_time)
+    if duration:
+        detailed_profiler_config.update(Duration=duration)
+
+    full_config = {
+        "ProfilingParameters": {
+            "ProfilerEnabled": True,
+            "DetailedProfilingConfig": detailed_profiler_config,
+        }
+    }
+
+    with open(detailed_profiler_config_path, "w") as f:
+        json.dump(full_config, f)
+
+    profiler_config_parser = ProfilerConfigParser(current_step)
+    profile_range = profiler_config_parser.config.profile_range
+    expected_profiler_start, expected_profiler_end, expected_can_profile = expected_values
+
+    assert profile_range.profiler_start == expected_profiler_start
+    assert profile_range.profiler_end == expected_profiler_end
+    assert profile_range.can_enable_profiling(current_step) == expected_can_profile
 
 
 def test_disabled_profiler(

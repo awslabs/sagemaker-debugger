@@ -1,7 +1,6 @@
 # Standard Library
 import json
 import os
-import time
 from enum import Enum
 
 # First Party
@@ -82,25 +81,27 @@ class ProfilerConfigParser:
         has_step_var = "StartStep" in profile_range or "NumSteps" in profile_range
         has_time_var = "StartTime" in profile_range or "Duration" in profile_range
 
+        profile_type, profiler_start, profile_length, profiler_end = None, None, None, None
+
         if has_step_var and has_time_var:
-            self.logger.error("User must not specify both step and time fields for profile range!")
-            return
-
-        profile_type, profiler_start, profiler_end = None, None, None
-
-        if has_step_var:
+            self.logger.error(
+                "User must not specify both step and time fields for profile range! No profiling will occur."
+            )
+        elif has_step_var:
             profile_type = "steps"
             profiler_start = profile_range.get("StartStep", current_step)
-            profiler_end = profiler_start + profile_range.get(
-                "NumSteps", PROFILER_NUM_STEPS_DEFAULT
-            )
+            profile_length = profile_range.get("NumSteps", PROFILER_NUM_STEPS_DEFAULT)
+            profiler_end = profiler_start + profile_length
         elif has_time_var:
             profile_type = "time"
-            profiler_start = profile_range.get("StartTime", time.time())
-            duration = profile_range.get("Duration", None)
-            profiler_end = (
-                profiler_start + duration if duration else PROFILER_DURATION_DEFAULT
-            )  # profile until next step if duration not defined.
+            profiler_start = profile_range.get("StartTime", None)  # profile immediately by default
+            profile_length = profile_range.get(
+                "Duration", PROFILER_DURATION_DEFAULT
+            )  # profile until next step by default
+            if profiler_start:
+                profiler_end = profiler_start + profile_length
+        else:
+            self.logger.error("No detailed profiler config provided! No profiling will occur.")
 
         self.config = ProfilerConfig(
             local_path,
@@ -109,5 +110,6 @@ class ProfilerConfigParser:
             file_open_fail_threshold,
             profile_type,
             profiler_start,
+            profile_length,
             profiler_end,
         )

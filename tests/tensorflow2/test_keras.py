@@ -28,12 +28,6 @@ from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.tensorflow import ReductionConfig, SaveConfig
 
 
-@pytest.fixture(autouse=True)
-def set_up_smprofiler_config_path(monkeypatch):
-    config_path = "tests/core/json_configs/simple_profiler_config_parser.json"
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-
-
 def helper_keras_fit(
     trial_dir,
     save_all=False,
@@ -632,8 +626,7 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
     )
 
 
-def test_hook_timeline_file_write(out_dir, tf_eager_mode, monkeypatch):
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
+def test_hook_timeline_file_write(set_up_smprofiler_config_path, out_dir, tf_eager_mode):
     hook = smd.KerasHook(out_dir=out_dir, save_all=False)
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, steps=["train", "eval"])
 

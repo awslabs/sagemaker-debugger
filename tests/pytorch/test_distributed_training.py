@@ -29,13 +29,6 @@ import smdebug.pytorch as smd
 from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.trials import create_trial
 
-
-@pytest.fixture(autouse=True)
-def set_up_smprofiler_config_path(monkeypatch):
-    config_path = "tests/core/json_configs/simple_profiler_config_parser.json"
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-
-
 out_dir = "/tmp/run"
 
 
@@ -222,11 +215,10 @@ def test_run_net_distributed_save_one_worker():
 
 
 @pytest.mark.slow
-def test_run_net_distributed_save_all_test_timeline(monkeypatch):
+def test_run_net_distributed_save_all_test_timeline(set_up_smprofiler_config_path):
     """
     This test checks if any of the timestamps recorded are negative
     """
-    monkeypatch.setenv("ENV_BASE_FOLDER", out_dir)
     trial = _run_net_distributed(include_workers="all", test_timeline=True)
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"

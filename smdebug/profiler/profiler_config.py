@@ -1,3 +1,12 @@
+# Standard library
+# Standard Library
+import time
+
+# First Party
+# First party
+from smdebug.profiler.profiler_constants import PROFILER_DURATION_DEFAULT
+
+
 class RotationPolicy:
     """Configuration corresponding to rotation policy of trace event files.
     """
@@ -20,10 +29,25 @@ class ProfileRange:
     """Configuration corresponding to what batches to profile..
     """
 
-    def __init__(self, profiler_type, profiler_start, profiler_end):
+    def __init__(self, profiler_type, profiler_start, profile_length, profiler_end):
         self.profile_type = profiler_type
         self.profiler_start = profiler_start
+        self.profile_length = profile_length
         self.profiler_end = profiler_end
+
+    def can_enable_profiling(self, current_step):
+        if self.profile_type == "steps":
+            return current_step >= self.profiler_start and current_step <= self.profiler_end
+        elif self.profile_type == "time":
+            current_time = time.time()
+            if not self.profiler_start:
+                self.profiler_start = current_time
+                self.profiler_end = self.profiler_start + self.profile_length
+            return current_time >= self.profiler_start and current_time <= self.profiler_end
+        return False
+
+    def can_disable_profiling(self, current_step):
+        return not self.can_enable_profiling() or self.profiler_end != PROFILER_DURATION_DEFAULT
 
 
 class ProfilerConfig:
@@ -38,6 +62,7 @@ class ProfilerConfig:
         file_open_fail_threshold,
         profile_type,
         profiler_start,
+        profile_length,
         profiler_end,
     ):
         """
@@ -47,8 +72,11 @@ class ProfilerConfig:
         :param file_open_fail_threshold
         :param profile_type Type of profile range to profile. Must be "steps" or "time" (or None if no profiling will take place).
         :param profiler_start The step/time that profiling should start.
+        :param profile_length The length of profiling in steps or time.
         :param profiler_end The step/time that profiling should end.
         """
         self.local_path = local_path
         self.trace_file = TraceFile(file_max_size, file_close_interval, file_open_fail_threshold)
-        self.profile_range = ProfileRange(profile_type, profiler_start, profiler_end)
+        self.profile_range = ProfileRange(
+            profile_type, profiler_start, profile_length, profiler_end
+        )

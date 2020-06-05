@@ -9,6 +9,10 @@ import shutil
 
 # Third Party
 import pytest
+from tests.profiler.profiler_config_parser_utils import current_step
+
+# First Party
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 
 def pytest_addoption(parser):
@@ -49,6 +53,25 @@ def out_dir():
     out_dir = "/tmp/test"
     shutil.rmtree(out_dir, ignore_errors=True)
     return out_dir
+
+
+@pytest.fixture
+def config_folder():
+    """Path to folder used for storing different config artifacts for testing timeline writer and
+    profiler config parser.
+    """
+    return "tests/core/json_configs"
+
+
+@pytest.fixture()
+def set_up_smprofiler_config_path(monkeypatch):
+    config_path = "tests/core/json_configs/simple_profiler_config_parser.json"
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+
+
+@pytest.fixture()
+def simple_profiler_config_parser(set_up_smprofiler_config_path):
+    return ProfilerConfigParser(current_step)
 
 
 # In TF, once we disable eager execution, we cannot re-enable eager execution.
