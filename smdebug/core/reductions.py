@@ -13,7 +13,6 @@ REDUCTIONS_PREFIX = "smdebug/reductions/"
 def get_numpy_reduction(reduction_name, numpy_data, abs=False):
     if reduction_name not in ALLOWED_REDUCTIONS and reduction_name not in ALLOWED_NORMS:
         raise ValueError("Invalid reduction type %s" % reduction_name)
-
     if abs:
         numpy_data = np.absolute(numpy_data)
     return get_basic_numpy_reduction(reduction_name, numpy_data)
@@ -32,11 +31,11 @@ def get_basic_numpy_reduction(reduction_name, numpy_data):
             ord = int(reduction_name[1])
         else:
             ord = None
-
-        if abs:
-            rv = np.linalg.norm(np.absolute(numpy_data), ord=ord)
-        else:
-            rv = np.linalg.norm(numpy_data, ord=ord)
+        if np.isscalar(numpy_data):
+            # np.linalg.norm expects array-like inputs
+            # but numpy_data can sometimes be a scalar value
+            numpy_data = [numpy_data]
+        rv = np.linalg.norm(numpy_data, ord=ord)
         return rv
     return None
 

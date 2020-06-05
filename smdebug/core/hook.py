@@ -240,10 +240,6 @@ class BaseHook:
         self.training_run = 0
         self._initialize_to_last_saved_state()
 
-    # This will avoid pickling of BaseHook object
-    def __getstate__(self):
-        return {}
-
     def _initialize_to_last_saved_state(self):
         self.state_store = StateStore()
         last_state = self.state_store.get_last_saved_state()
@@ -296,10 +292,6 @@ class BaseHook:
 
     @abstractmethod
     def _get_num_workers(self):
-        pass
-
-    @abstractmethod
-    def _is_not_supported(self):
         pass
 
     #### Save Manager methods ####
@@ -426,10 +418,7 @@ class BaseHook:
         for mode in to_delete_writers:
             del self.tb_writers[mode]
 
-    def _initialize_writers(self, only_initialize_if_missing=False) -> None:
-        # Function is overridden in smdebug/tensorflow/base_hook.py
-        if only_initialize_if_missing and self.writer:
-            return
+    def _initialize_writers(self) -> None:
         if self.dry_run:
             return
         if self.first_process is False:
@@ -440,13 +429,12 @@ class BaseHook:
                     self.first_process = True
                     self.logger.info(f"Hook is writing from the hook with pid: {os.getpid()}\n")
                 else:
-                    if self.first_process is None:
-                        self.logger.warn(
-                            f"Unsupported Distributed Training Strategy Detected. \
-                            Sagemaker-Debugger will only write from one process. \
-                            The process with pid: {os.getpid()} will not be writing any data. \n"
-                        )
                     self.first_process = False
+                    self.logger.warn(
+                        f"Unsupported Distributed Training Strategy Detected.\n\
+                        Sagemaker-Debugger will only write from one process.\n\
+                        The process with pid: {os.getpid()} will not be writing any data. \n"
+                    )
                     return
 
         if self.save_all_workers is False:
@@ -551,13 +539,6 @@ class BaseHook:
 
     def export_collections(self):
         num_workers = self._get_num_workers()
-        if num_workers == 1 and self.first_process is False:
-            self.logger.warn(
-                f"Unsupported Distributed Training Strategy Detected. \
-                Sagemaker-Debugger will only write from one process. \
-                The process with pid: {os.getpid()} will not be writing any data. \n"
-            )
-            return
         if self.save_all_workers is False:
             if self.chief_worker != self.worker:
                 return
@@ -649,11 +630,6 @@ class BaseHook:
         If sm_metric is set to True for certain scalars, then that scalar is written to
         SageMaker as well. By default, loss values are sm_metric.
         """
-        if self._is_not_supported():
-            # Do not log scalars if smdebug hook is not supported
-            # Like when TFDistributionStrategy.UNSUPPORTED
-            self.scalar_cache = []
-            return
         for scalar_obj in self.scalar_cache:
             scalar_name = scalar_obj.name
             scalar_val = scalar_obj.value
@@ -676,7 +652,8 @@ class BaseHook:
                         scalar_name, scalar_val, self.step, timestamp=timestamp
                     )
             if write_event:
-                self._initialize_writers(only_initialize_if_missing=True)
+                if self.writer is None:
+                    self._initialize_writers()
                 self._write_raw_tensor_simple(scalar_name, scalar_val, timestamp=timestamp)
 
         self.scalar_cache = []
