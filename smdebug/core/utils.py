@@ -388,6 +388,22 @@ class ScriptSimulator(object):
             shutil.rmtree(self.tensorboard_dir, ignore_errors=True)
 
 
+def is_valid_tracefilename(filename: str) -> bool:
+    """
+    Ensure that the tracefilename has a valid format.
+    $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/$FILEEVENTENDTIMEUTCINEPOCH_{$ENV_NODE_ID}_model_timeline.json
+
+    The filename should have extension .json
+    The filename should have minimum 3 fields viz. $FILEEVENTENDTIMEUTCINEPOCH, {$ENV_NODE_ID} and filetype.
+
+    """
+    if filename.endswith(".json"):
+        if len(filename.split("_")) >= 3:
+            return True
+    logger.error(f"The file {filename} is not a valid tracefile.")
+    return False
+
+
 def get_node_id_from_tracefilename(filename: str) -> str:
     """
     The tracefile has a file name format:
@@ -396,7 +412,7 @@ def get_node_id_from_tracefilename(filename: str) -> str:
     The function extracts and returns the {$ENV_NODE_ID} from file.
     """
     filename = filename.split("/")[-1]
-    return filename.split("_")[1]
+    return filename.split("_")[1] if is_valid_tracefilename(filename) else ""
 
 
 def get_timestamp_from_tracefilename(filename) -> int:
@@ -406,6 +422,8 @@ def get_timestamp_from_tracefilename(filename) -> int:
 
     The function extracts and returns the $FILEEVENTENDTIMEUTCINEPOCH from file. The $FILEEVENTENDTIMEUTCINEPOCH
     represents the timestamp of last event written to the tracefile.
+    The timestamps are used to determine whether an event is available in this this file. If the file name is not
+    valid, we will written timestamp as 0.
     """
     filename = filename.split("/")[-1]
-    return int(filename.split("_")[0])
+    return int(filename.split("_")[0] if is_valid_tracefilename(filename) else "0")

@@ -14,11 +14,14 @@ from smdebug.core.utils import (
 )
 from smdebug.profiler.profiler_constants import (
     DEFAULT_PREFIX,
+    ENV_TIME_BUFFER,
+    ENV_TRAIILING_DURATION,
     HOROVODTIMELINE_PREFIX,
     MODELTIMELINE_SUFFIX,
     PYTHONTIMELINE_SUFFIX,
     TENSORBOARDTIMELINE_SUFFIX,
-    TIME_BUFFER,
+    TIME_BUFFER_DEFAULT,
+    TRAILING_DURATION_DEFAULT,
 )
 from smdebug.profiler.tf_profiler_parser import (
     HorovodProfilerEvents,
@@ -39,6 +42,13 @@ class MetricsReader:
         self._parsed_files = set()
         self._timestamp_to_filename = dict()
 
+        # The startAfter_prefix is used in ListPrefix call to poll for available tracefiles in the S3 bucket. The
+        # prefix lags behind the last polled tracefile by tunable trailing duration. This is to ensure that we do not
+        # miss a
+        # tracefile corresponding to timestamp earlier than last polled timestamp but arrived after we had polled.
+
+        self._startAfter_prefix = ""
+
     """
     The function returns the timestamp of last available file.
     This timestamp indicates users can query the events up to this timestamp to gauge
@@ -53,7 +63,8 @@ class MetricsReader:
 
     """
     The following function returns the time range for which the tracefiles are currently available in S3 or local
-    directory. Users can still query for events for the window greater than this range. In that case, the reader will query S3 or local directory to check the tracefiles are available.
+    directory. Users can still query for events for the window greater than this range. In that case, the reader will
+    query S3 or local directory to check the tracefiles are available.
     """
 
     def get_current_time_range_for_event_query(self):
@@ -62,8 +73,8 @@ class MetricsReader:
 
     """
     Return the tracefiles that were written during the given range. If use_buffer is True, we will consider adding a
-    buffer of TIME_BUFFER microseconds to increase the time range. This is done because the events are written to the file
-    after they end. It is possible that an event would have stared within the window of start and end, however it
+    buffer of TIME_BUFFER_DEFAULT microseconds to increase the time range. This is done because the events are written to the
+    file after they end. It is possible that an event would have stared within the window of start and end, however it
     did not complete at or before 'end' time. Hence the event will not appear in the tracefile that corresponds to
     'end' timestamp. It will appear in the future event file.
     We will also add a buffer for the 'start' i.e. we will look for tracefiles that were written prior to 'start'.
@@ -73,22 +84,34 @@ class MetricsReader:
     def _get_trace_files_in_the_range(
         self, start_time_microseconds, end_time_microseconds, use_buffer=True
     ):
-        # increase the time range using TIME_BUFFER
+        # increase the time range using TIME_BUFFER_DEFAULT
         if use_buffer:
-            start_time_microseconds = start_time_microseconds - TIME_BUFFER
-            end_time_microseconds = end_time_microseconds + TIME_BUFFER
+            time_buffer = os.getenv(ENV_TIME_BUFFER, TIME_BUFFER_DEFAULT)
+            start_time_microseconds = start_time_microseconds - time_buffer
+            end_time_microseconds = end_time_microseconds + time_buffer
 
         """
-        TODO:
         We need to intelligently detect whether we need to refresh the list of available event files.
         Approach 1: Keep the start prefix for S3, 'x' minutes (say 5) lagging behind the last available timestamp.
         This will cover for the case where a node or writer is not efficient enough to upload the files to S3
         immediately. For local mode we may have to walk the directory every time.
-
+        This is currently implemented by computing the start prefix and TRAILING DURATION.
+        TODO:
         Approach 2: If we can know the expected number of files per node and per writer, we can intelligently wait
         for that type of file for certain amount of time.
         """
-        self.refresh_event_file_list()
+
+        """
+        In case of S3, we will refresh the event file list if the requested end timestamp is less than the timestamp
+        of _startAfterPrefix.
+        In case of local mode, the event file list will be refreshed if the end timestamp is not less than the last
+        available timestamp
+        """
+
+        if end_time_microseconds >= self.get_timestamp_of_latest_available_file() or end_time_microseconds >= get_timestamp_from_tracefilename(
+            self._startAfter_prefix
+        ):
+            self.refresh_event_file_list()
 
         timestamps = sorted(self._timestamp_to_filename.keys())
 
@@ -133,10 +156,9 @@ class MetricsReader:
 
     """
     The function returns the events that have recorded within the given time range.
-    This is currently non-blocking call. The function will download (or parse) the tracefiles that are available
+    The function will download (or parse) the tracefiles that are available
     for the given time range. It is possible that events are recorded during training but are not available for
     download.
-    TODO: Implement caching to avoid repeat download
     TODO: Implement blocking call to wait for files to be available for download.
     """
 
@@ -170,6 +192,8 @@ class LocalMetricsReader(MetricsReader):
     def __init__(self, trace_root_folder):
         self.trace_root_folder = trace_root_folder
         super().__init__()
+        # Pre-build the file list so that user can query get_timestamp_of_latest_available_file() and get_current_time_range_for_event_query
+        self.refresh_event_file_list()
 
     """
     Create a map of timestamp to filename
@@ -213,6 +237,8 @@ class S3MetricsReader(MetricsReader):
             self.bucket_name = bucket_name
             self.base_folder = base_folder
             self.prefix = os.path.join(self.base_folder, self.prefix, "")
+        # Pre-build the file list so that user can query get_timestamp_of_latest_available_file() and get_current_time_range_for_event_query
+        self.refresh_event_file_list()
 
     """
     The function opens and reads the event files if they are not already parsed.
@@ -242,9 +268,33 @@ class S3MetricsReader(MetricsReader):
     """
 
     def refresh_event_file_list(self):
-        list_dir = ListRequest(Bucket=self.bucket_name, Prefix=self.prefix, StartAfter=self.prefix)
-
+        list_dir = ListRequest(
+            Bucket=self.bucket_name,
+            Prefix=self.prefix,
+            StartAfter=self._startAfter_prefix if self._startAfter_prefix else self.prefix,
+        )
         event_files = [x for x in S3Handler.list_prefix(list_dir) if "json" in x]
         for event_file in event_files:
             timestamp = get_timestamp_from_tracefilename(event_file)
             self._timestamp_to_filename[timestamp] = f"s3://{self.bucket_name}/{event_file}"
+        self.update_start_after_prefix()
+
+    """
+    It is possible that tracefiles from different nodes to arrive in S3 in different order. For example, Even if t1
+    > t2, a tracefile with timestamp "t1" can arrive in S3 before the tracefile with timestamp "t2". If we list the
+    prefix only on the basis of last arrived file (i.e. t1) we will miss the file for t2. Therefore, we will set the
+    start prefix to a timestamp that is trailing behind the last timestamp by 'trailing duration'. This will ensure
+    that we will attempt to get tracefiles with older timestamp even if they arrive late.
+    """
+
+    def update_start_after_prefix(self):
+        trailiing_duration = os.getenv(ENV_TRAIILING_DURATION, TRAILING_DURATION_DEFAULT)
+        sorted_timestamps = sorted(self._timestamp_to_filename.keys())
+        last_timestamp_available = sorted_timestamps[-1]
+        trailing_timestamp = last_timestamp_available - trailiing_duration
+        # Get the timestamp that is closely matching the trailing_timestamp
+        trailing_timestamp = sorted_timestamps[
+            bisect.bisect_left(sorted_timestamps, trailing_timestamp)
+        ]
+        self._startAfter_prefix = self._timestamp_to_filename[trailing_timestamp]
+        s3, bucket_name, self._startAfter_prefix = is_s3(self._startAfter_prefix)

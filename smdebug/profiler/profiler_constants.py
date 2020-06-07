@@ -7,9 +7,39 @@ PYTHONTIMELINE_SUFFIX = "pythontimeline.json"
 MODELTIMELINE_SUFFIX = "model_timeline.json"
 TENSORBOARDTIMELINE_SUFFIX = "tensorboard_timeline.json"
 HOROVODTIMELINE_PREFIX = "horovod_timeline.json"
+
+"""
+When users query the events within certain time range, the value TIME BUFFER_SECONDS is used to extend the time range.
+This is done so that we can find the candidate tracefiles that can potentially contain the events that might have
+started within the given range but not completed by the given 'end' timestamp. Such events will be reported in the
+tracefile corresponding to timestamp later than the given 'end' timestamp.
+"""
+# Environment variable to set the time buffer in seconds.
+ENV_TIME_BUFFER = "TIME_BUFFER_MICROSECONDS"
 # In order to look for events occurred within a window, we will add a buffer of 3 minutes on each side (start and
 # time) to look for trace files.
-TIME_BUFFER = 3 * 60 * 1000 * 1000  # 3 minutes
+TIME_BUFFER_DEFAULT = 3 * 60 * 1000 * 1000  # 3 minutes
+
+"""
+The S3MetricReader obtains the list of prefixes (i.e. the list of tracefiles available in S3 bucket) using
+‘list_objects_v2’ API and providing the ‘start_prefix’. The ‘start_prefix’  indicates ‘list_object_v2’
+API to return the prefixes that are after the ‘start_prefix’.
+If we set the 'start_prefix' equivalent to the latest available tracefile obtained in the previous ‘list_object_v2’,
+we may miss the files that have timestamps less than latest available timestamp but arrived later (after the previous
+invocation of 'list_object_v2').
+For example, assume that the latest available file contains the end timestamp to be ‘T_n’.  It is possible that in
+one of the nodes in distributed training, there exists a file ‘T_m’ (where T_m < Tn) that is closed but not yet
+uploaded to S3. If we set ‘start_prefix’ to be ‘T_n’ for subsequent  ‘list_objects_v2’, we will never enumerate ‘T_m’
+file and hence we will never report events from that file.
+In order to handle such cases, we set the ‘start_prefix’  to be trailing behind the last available
+timestamp. The environment variable "TRAILING_DURATION_SECONDS" controls how far the start_prefix is trailing behind
+the latests tracefile available. The default value for this duration is 5 minutes.
+This means that we expect that if the file is closed on the node, we will wait for 5 minutes for it to be uploaded to S3.
+"""
+# Environment variable to set the trailing duration in seconds.
+ENV_TRAIILING_DURATION = "TRAILING_DURATION_MICROSECONDS"
+# This is a duration used for computing the start after prefix.
+TRAILING_DURATION_DEFAULT = 5 * 60 * 1000 * 1000  # 5 minutes
 
 CONFIG_PATH_DEFAULT = "/opt/ml/input/config/profilerconfig.json"
 CONVERT_TO_MICROSECS = 1000000
