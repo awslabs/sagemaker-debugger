@@ -380,8 +380,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             output_collection = self.collection_manager.get(CollectionKeys.OUTPUTS)
             for key in logs:
                 if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
-                    tensor_ref = TensorRef.from_non_graph_var(export_names[key])
-                    output_collection.set_tensor_ref(tensor_ref)
+                    tensor_value = logs[key]
+                    if isinstance(tensor_value, values.PerReplica):
+                        output_collection.add(tensor_value)
+                    else:
+                        tensor_ref = TensorRef.from_non_graph_var(export_names[key])
+                        output_collection.set_tensor_ref(tensor_ref)
                     self.tensor_to_collections[export_names[key]] = {output_collection}
                     self._save_for_tensor(export_names[key], logs[key], check_before_write=False)
 
