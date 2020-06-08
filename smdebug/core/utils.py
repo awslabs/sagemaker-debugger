@@ -299,7 +299,8 @@ def get_node_id():
     from smdebug.core.json_config import get_node_id_from_resource_config  # prevent circular import
 
     node_id = get_node_id_from_resource_config()
-    return f"{os.getpid()}-{node_id}" if node_id else get_tb_worker().replace("_", "-")
+    node_id = f"{os.getpid()}-{node_id}" if node_id else get_tb_worker()
+    return node_id.replace("_", "-")
 
 
 def remove_file_if_exists(file_path):
