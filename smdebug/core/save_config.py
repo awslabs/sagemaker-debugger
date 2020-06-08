@@ -3,7 +3,7 @@ import json
 from typing import Any, Dict, List, Union
 
 # First Party
-from smdebug.core.modes import ModeKeys
+from smdebug.core.modes import ModeKeys, str_to_mode_keys
 from smdebug.core.utils import step_in_range
 
 DEFAULT_SAVE_CONFIG_INTERVAL = 500
@@ -83,6 +83,8 @@ class SaveConfig:
         self.mode_save_configs[mode] = save_config_mode
 
     def should_save_step(self, mode, step_num) -> bool:
+        if isinstance(mode, str):
+            mode = str_to_mode_keys(mode)
         return self.get_save_config(mode).should_save_step(step_num)
 
     def to_json_dict(self) -> Dict:
