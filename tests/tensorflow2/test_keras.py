@@ -441,7 +441,7 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
             output = trial.tensor(tname)
             assert tname in ["train_output/y", "train_output/y_pred"]
             assert output.value(0) is not None
-            assert output.steps() == trial.steps(mode=ModeKeys.TRAIN)
+            assert output.steps(mode=ModeKeys.TRAIN) == trial.steps(mode=ModeKeys.TRAIN)
         # Check the shape of output tensors
         assert trial.tensor(ModelOutput.Y).value(0).shape[1] == 1  # label
         assert (
