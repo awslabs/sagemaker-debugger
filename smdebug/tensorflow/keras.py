@@ -382,7 +382,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
                     tensor_value = logs[key]
                     if isinstance(tensor_value, values.PerReplica):
-                        output_collection.add(tensor_value)
+                        output_collection.add_distributed_variable(
+                            tensor_value, export_names=export_names[key]
+                        )
                     else:
                         tensor_ref = TensorRef.from_non_graph_var(export_names[key])
                         output_collection.set_tensor_ref(tensor_ref)
