@@ -385,11 +385,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     if isinstance(tensor_value, values.PerReplica):
                         for t in tensor_value._values:
                             tensor_ref = TensorRef.from_non_graph_var(export_names[key])
-                            tensor_refs.append(tensor_ref, t)
+                            tensor_refs.append((tensor_ref, t))
 
                     else:
                         tensor_ref = TensorRef.from_non_graph_var(export_names[key])
-                        tensor_refs.append(tensor_ref, logs[key])
+                        tensor_refs.append((tensor_ref, logs[key]))
                     for tensor_ref, t in tensor_refs:
                         output_collection.set_tensor_ref(tensor_ref)
                         self._save_for_tensor(export_names[key], t, check_before_write=False)
