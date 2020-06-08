@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 # First Party
 from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
     DEFAULT_PREFIX,
     PYTHONTIMELINE_SUFFIX,
     TRACE_DIRECTORY_FORMAT,
@@ -120,7 +121,9 @@ class TraceFileLocation:
     @staticmethod
     def get_file_location(timestamp, base_dir):
         env_base_location = base_dir
-        date_hour = time.strftime(TRACE_DIRECTORY_FORMAT, time.gmtime(timestamp))
+        date_hour = time.strftime(
+            TRACE_DIRECTORY_FORMAT, time.gmtime(timestamp / CONVERT_TO_MICROSECS)
+        )
         timestamp = int(round(timestamp))
         worker_id = get_node_id()
         file_path = os.path.join(

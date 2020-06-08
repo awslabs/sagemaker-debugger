@@ -4,6 +4,7 @@ import json
 import multiprocessing as mp
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 
 # Third Party
@@ -13,7 +14,11 @@ from tests.profiler.profiler_config_parser_utils import current_step
 # First Party
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
-from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS, DEFAULT_PREFIX
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    DEFAULT_PREFIX,
+    TRACE_DIRECTORY_FORMAT,
+)
 
 
 @pytest.fixture()
@@ -57,6 +62,15 @@ def test_create_timeline_file(simple_profiler_config_parser, out_dir):
         files.append(path)
 
     assert len(files) == 1
+
+    file_ts = files[0].name.split("_")[0]
+    folder_name = files[0].parent.name
+    assert folder_name == time.strftime(
+        TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
+    )
+    assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
+        TRACE_DIRECTORY_FORMAT
+    )
 
     with open(files[0]) as timeline_file:
         events_dict = json.load(timeline_file)

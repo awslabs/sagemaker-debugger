@@ -180,9 +180,11 @@ class _TimelineLoggerThread(threading.Thread):
         self.tensor_table = collections.defaultdict(int)
         self.continuous_fail_count = 0
         self.is_first = True
-        self.last_event_end_time = int(round(base_start_time / CONVERT_TO_MICROSECS))
+        self.last_event_end_time = int(round(base_start_time))
         self.last_file_close_time = self.last_event_end_time
-        self.cur_hour = datetime.utcfromtimestamp(self.last_file_close_time).hour
+        self.cur_hour = datetime.utcfromtimestamp(
+            self.last_file_close_time / CONVERT_TO_MICROSECS
+        ).hour
         self._healthy = True
         self._profiler_config_parser = profiler_config_parser
         self.node_id = get_node_id()
@@ -192,7 +194,7 @@ class _TimelineLoggerThread(threading.Thread):
             # if there is long interval between 2 events, just keep checking if
             # the file is still open. if it is open for too long and a new event
             # has not occurred, close the open file based on rotation policy.
-            if self._writer and self._should_rotate_now(time.time()):
+            if self._writer and self._should_rotate_now(time.time() * CONVERT_TO_MICROSECS):
                 self.close()
 
             event = self._queue.get()
@@ -227,14 +229,15 @@ class _TimelineLoggerThread(threading.Thread):
         self.is_first = True
         self._writer.write("[\n")
         self._healthy = True
-        self.cur_hour = datetime.utcfromtimestamp(cur_event_end_time).hour
+        self.cur_hour = datetime.utcfromtimestamp(cur_event_end_time / CONVERT_TO_MICROSECS).hour
         return True
 
     def _get_rotation_info(self, now):
         file_size = self.file_size()
+        now = now / CONVERT_TO_MICROSECS
 
         # find the difference between the now and last file closed time (in seconds)
-        diff_in_seconds = int(round(now - self.last_file_close_time))
+        diff_in_seconds = int(round(now - (self.last_file_close_time / CONVERT_TO_MICROSECS)))
 
         now_datehour = datetime.utcfromtimestamp(now)
 
@@ -271,9 +274,7 @@ class _TimelineLoggerThread(threading.Thread):
         Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
         $ENV_CLOSE_FILE_INTERVAL time duration.
         """
-        end_time_for_event = (
-            record.event_end_ts_micros / CONVERT_TO_MICROSECS
-        )  # convert back to secs
+        end_time_for_event = record.event_end_ts_micros
 
         # check if any of the rotation policies have been satisfied. close the existing
         # trace file and open a new one
@@ -329,7 +330,7 @@ class _TimelineLoggerThread(threading.Thread):
         # write the trace event record
         position_and_length_of_record = self._writer.write(record.to_json() + ",\n")
         self.flush()
-        self.last_event_end_time = int(round(record.event_end_ts_micros / CONVERT_TO_MICROSECS))
+        self.last_event_end_time = record.event_end_ts_micros
         return position_and_length_of_record
 
     def flush(self):
