@@ -24,7 +24,6 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
-from smdebug.tensorflow.utils import ModelOutput
 
 
 def helper_keras_fit(
@@ -443,9 +442,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
             assert output.value(0) is not None
             assert output.steps(mode=ModeKeys.TRAIN) == trial.steps(mode=ModeKeys.TRAIN)
         # Check the shape of output tensors
-        assert trial.tensor(ModelOutput.Y).value(0).shape[1] == 1  # label
+        assert trial.tensor("train_output/y").value(0).shape[1] == 1  # label
         assert (
-            trial.tensor(ModelOutput.Y_PRED).value(0).shape[1] == 10
+            trial.tensor("train_output/y_pred").value(0).shape[1] == 10
         )  # Output probability for each class
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (4 if is_tf_2_2() and tf_eager_mode else 5)
