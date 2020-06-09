@@ -320,6 +320,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for coll in [
             self.get_collection(name=CollectionKeys.OPTIMIZER_VARIABLES),
             self.get_collection(name=CollectionKeys.GRADIENTS),
+            self.get_collection(name=CollectionKeys.OUTPUTS),
         ]:
             for tensor_ref in coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
@@ -376,29 +377,24 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for key in logs:
             if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
                 collections_to_save = self._get_collections_to_save_for_step()
-                collections_to_save = self._get_collections_with_tensor(
-                    export_names[key]
-                ).intersection(collections_to_save)
-
-                self._initialize_writers(only_initialize_if_missing=True)
-                tensor_value = logs[key]
-                tensor_refs = []
-                if isinstance(tensor_value, values.PerReplica):
-                    for t in tensor_value._values:
+                output_collection = self.get_collection(CollectionKeys.OUTPUTS)
+                if output_collection in collections_to_save:
+                    self._initialize_writers(only_initialize_if_missing=True)
+                    tensor_value = logs[key]
+                    tensor_refs = []
+                    if isinstance(tensor_value, values.PerReplica):
+                        for t in tensor_value._values:
+                            tensor_ref = TensorRef.from_non_graph_var(export_names[key])
+                            tensor_refs.append((tensor_ref, t))
+                    else:
                         tensor_ref = TensorRef.from_non_graph_var(export_names[key])
-                        tensor_refs.append((tensor_ref, t))
-                else:
-                    tensor_ref = TensorRef.from_non_graph_var(export_names[key])
-                    tensor_refs.append((tensor_ref, logs[key]))
+                        tensor_refs.append((tensor_ref, logs[key]))
 
-                for collection in collections_to_save:
                     for tensor_ref, t in tensor_refs:
-                        collection.set_tensor_ref(tensor_ref)
+                        output_collection.set_tensor_ref(tensor_ref)
                         self._save_for_tensor(export_names[key], t, check_before_write=False)
                         if export_names[key] not in self.tensor_to_collections:
-                            self.tensor_to_collections[export_names[key]] = {collection}
-                        else:
-                            self.tensor_to_collections[export_names[key]].add(collection)
+                            self.tensor_to_collections[export_names[key]] = {output_collection}
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
@@ -619,13 +615,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
             self._remove_fetches_and_callbacks(mode)
 
+        self._save_tensors_post_step(batch, logs)
         if is_tf_version_2x() and tf.executing_eagerly():
             # Need to prepare non layer tensors again since
             # some tensors only become available on  batch end
             self._prepare_non_layer_tensors()
             self._write_optimizer_variables()
-
-        self._save_tensors_post_step(batch, logs)
 
         if self._prepared_tensors[mode]:
             if self._exported_collections is False:
