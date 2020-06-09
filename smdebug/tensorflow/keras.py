@@ -6,7 +6,7 @@ import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
-from smdebug.core.modes import ModeKeys
+from smdebug.core.modes import ModeKeys, str_to_mode_keys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
 
@@ -95,6 +95,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
                 self._hook_supported = False
         return not self._hook_supported
+
+    def should_save_global_step_for_mode(self, mode: str):
+        mode = str_to_mode_keys(mode)
+        mode_step = self.mode_steps[mode]
+        return self.save_config.should_save_step(mode, mode_step)
 
     def _get_matching_collections(
         self, mode, tensor, tensor_type, ts_name, is_input_to_model=False, is_output_of_model=False
