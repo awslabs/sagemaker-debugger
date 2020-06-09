@@ -23,6 +23,7 @@ class LastStatus(Enum):
 
     START = "START"
     CONFIG_NOT_FOUND = "CONFIG_NOT_FOUND"
+    INVALID_CONFIG = "INVALID_CONFIG"
     PROFILER_DISABLED = "PROFILER_DISABLED"
     PROFILER_ENABLED = "PROFILER_ENABLED"
 
@@ -51,7 +52,13 @@ class ProfilerConfigParser:
 
         if os.path.isfile(config_path):
             with open(config_path) as json_data:
-                config = json.load(json_data).get("ProfilingParameters")
+                try:
+                    config = json.load(json_data).get("ProfilingParameters")
+                except:
+                    if self.last_status != LastStatus.INVALID_CONFIG:
+                        self.logger.error(f"Error parsing config at {config_path}.")
+                        self.last_status = LastStatus.INVALID_CONFIG
+                    return
             if config.get("ProfilerEnabled", True):
                 if self.last_status != LastStatus.PROFILER_ENABLED:
                     self.logger.info(f"Using config at {config_path}.")
