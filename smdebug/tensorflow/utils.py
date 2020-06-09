@@ -19,7 +19,7 @@ class ModelOutput:
     VAL_Y_PRED = "val_smdebug_y"
 
 
-ModelOutputs = [ModelOutput.Y, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED]
+ModelOutputs = [ModelOutput.Y, ModelOutput.Y_PRED, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED]
 
 
 class TFDistributionStrategy(Enum):
