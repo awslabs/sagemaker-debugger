@@ -371,29 +371,34 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if logs is None:
             return
 
-        if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS):
-            export_names = {
-                ModelOutput.Y_PRED: "train_output/y_pred",
-                ModelOutput.Y: "train_output/y",
-            }
-            self._initialize_writers(only_initialize_if_missing=True)
-            output_collection = self.collection_manager.get(CollectionKeys.OUTPUTS)
-            for key in logs:
-                if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
-                    tensor_value = logs[key]
-                    tensor_refs = []
-                    if isinstance(tensor_value, values.PerReplica):
-                        for t in tensor_value._values:
-                            tensor_ref = TensorRef.from_non_graph_var(export_names[key])
-                            tensor_refs.append((tensor_ref, t))
+        export_names = {ModelOutput.Y_PRED: "train_output/y_pred", ModelOutput.Y: "train_output/y"}
 
-                    else:
+        for key in logs:
+            if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
+                collections_to_save = self._get_collections_to_save_for_step()
+                collections_to_save = self._get_collections_with_tensor(
+                    export_names[key]
+                ).intersection(collections_to_save)
+
+                self._initialize_writers(only_initialize_if_missing=True)
+                tensor_value = logs[key]
+                tensor_refs = []
+                if isinstance(tensor_value, values.PerReplica):
+                    for t in tensor_value._values:
                         tensor_ref = TensorRef.from_non_graph_var(export_names[key])
-                        tensor_refs.append((tensor_ref, logs[key]))
+                        tensor_refs.append((tensor_ref, t))
+                else:
+                    tensor_ref = TensorRef.from_non_graph_var(export_names[key])
+                    tensor_refs.append((tensor_ref, logs[key]))
+
+                for collection in collections_to_save:
                     for tensor_ref, t in tensor_refs:
-                        output_collection.set_tensor_ref(tensor_ref)
+                        collection.set_tensor_ref(tensor_ref)
                         self._save_for_tensor(export_names[key], t, check_before_write=False)
-                    self.tensor_to_collections[export_names[key]] = {output_collection}
+                        if export_names[key] not in self.tensor_to_collections:
+                            self.tensor_to_collections[export_names[key]] = {collection}
+                        else:
+                            self.tensor_to_collections[export_names[key]].add(collection)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
