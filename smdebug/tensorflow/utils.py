@@ -15,6 +15,11 @@ from smdebug.core.modes import ModeKeys
 class ModelOutput:
     Y = "smdebug_y"
     Y_PRED = "smdebug_y_pred"
+    VAL_Y = "val_smdebug_y"
+    VAL_Y_PRED = "val_smdebug_y"
+
+
+ModelOutputs = [ModelOutput.Y, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED]
 
 
 class TFDistributionStrategy(Enum):

@@ -16,6 +16,7 @@ from .collection import CollectionKeys
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
     ModelOutput,
+    ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
     get_keras_layer_inputs,
@@ -377,7 +378,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if logs is None:
             return
 
-        export_names = {ModelOutput.Y_PRED: "train_output/y_pred", ModelOutput.Y: "train_output/y"}
+        export_names = {
+            ModelOutput.Y_PRED: "y_pred",
+            ModelOutput.Y: "y",
+            ModelOutput.VAL_Y: "val_y",
+            ModelOutput.VAL_Y_PRED: "val_y_pred",
+        }
 
         for key in logs:
             if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
@@ -413,7 +419,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             logs["batch"] = batch
             for key in logs:
-                if key in ["loss", "val_loss", "outputs", ModelOutput.Y, ModelOutput.Y_PRED]:
+                if key in ["loss", "val_loss", "outputs"].extend(ModelOutputs):
                     # outputs is saved differently through outputs collection
                     continue
                 self._add_metric(metric_name=key)
