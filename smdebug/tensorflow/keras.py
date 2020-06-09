@@ -589,7 +589,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             timestamp=self.start,  # this is start time for step
             duration=time.time() - self.start,
             pid=os.getpid(),
-            step_num=str(self.mode_steps[mode])
+            step_num=str(self.mode_steps[mode]),
         )
         if self._is_not_supported():
             return
