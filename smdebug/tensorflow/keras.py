@@ -379,6 +379,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 collections_to_save = self._get_collections_to_save_for_step()
                 output_collection = self.get_collection(CollectionKeys.OUTPUTS)
                 if output_collection in collections_to_save:
+                    collections_to_write = {output_collection}
+                    for collection in collections_to_save:
+                        if match_inc(export_names[key], collection.include_regex):
+                            collections_to_write.add(collection)
                     self._initialize_writers(only_initialize_if_missing=True)
                     tensor_value = logs[key]
                     tensor_refs = []
@@ -391,10 +395,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         tensor_refs.append((tensor_ref, logs[key]))
 
                     for tensor_ref, t in tensor_refs:
-                        output_collection.set_tensor_ref(tensor_ref)
+                        for collection in collections_to_write:
+                            collection.set_tensor_ref(tensor_ref)
                         self._save_for_tensor(export_names[key], t, check_before_write=False)
-                        if export_names[key] not in self.tensor_to_collections:
-                            self.tensor_to_collections[export_names[key]] = {output_collection}
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
