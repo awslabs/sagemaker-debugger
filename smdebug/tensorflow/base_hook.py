@@ -527,6 +527,9 @@ class TensorflowBaseHook(BaseHook):
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        if tensor_name == "conv2d/weights/conv2d/kernel:0" and reduction_name == "l1":
+            import pdb
+            pdb.set_trace()
         if hasattr(tensor_value, "numpy"):
             tensor_value = tensor_value.numpy()
         return get_numpy_reduction(reduction_name, tensor_value, abs)
