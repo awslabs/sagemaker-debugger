@@ -16,7 +16,7 @@ class ModelOutput:
     Y = "smdebug_y"
     Y_PRED = "smdebug_y_pred"
     VAL_Y = "val_smdebug_y"
-    VAL_Y_PRED = "val_smdebug_y"
+    VAL_Y_PRED = "val_smdebug_y_pred"
 
 
 ModelOutputs = [ModelOutput.Y, ModelOutput.Y_PRED, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED]
