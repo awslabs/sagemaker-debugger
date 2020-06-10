@@ -363,23 +363,27 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if input_collection in collections_to_save:
                     collections_to_write = {input_collection}
                     for collection in collections_to_save:
-                        if match_inc(input_collection[key], collection.include_regex):
+                        if match_inc(key, collection.include_regex):
                             collections_to_write.add(collection)
                     self._initialize_writers(only_initialize_if_missing=True)
-                    tensor_value = logs[key]
-                    tensor_refs = []
-                    if isinstance(tensor_value, values.PerReplica):
-                        for t in tensor_value._values:
-                            tensor_ref = TensorRef.from_non_graph_var("model_input")
-                            tensor_refs.append((tensor_ref, t))
-                    else:
-                        tensor_ref = TensorRef.from_non_graph_var("model_input")
-                        tensor_refs.append((tensor_ref, logs[key]))
+                    for tensor_value in logs[key]:
+                        tensor_id = 0
+                        tensor_refs = []
+                        if isinstance(tensor_value, values.PerReplica):
+                            for t in tensor_value._values:
+                                tensor_ref = TensorRef.from_non_graph_var(
+                                    f"model_input:{tensor_id}"
+                                )
+                                tensor_refs.append((tensor_ref, t))
+                        else:
+                            tensor_ref = TensorRef.from_non_graph_var(f"model_input:{tensor_id}")
+                            tensor_refs.append((tensor_ref, tensor_value))
 
-                    for tensor_ref, t in tensor_refs:
-                        for collection in collections_to_write:
-                            collection.set_tensor_ref(tensor_ref)
-                        self._save_for_tensor("model_input", t, check_before_write=False)
+                        for tensor_ref, t in tensor_refs:
+                            for collection in collections_to_write:
+                                collection.set_tensor_ref(tensor_ref)
+                            self._save_for_tensor("model_input", t, check_before_write=False)
+                        tensor_id += 1
 
     def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
         if metric_name in self.tensor_to_collections:
@@ -459,6 +463,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
         self._save_model_outputs(logs)
+        self._save_inputs(logs)
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
@@ -466,9 +471,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._save_for_tensor(
                     tensor_name=tensor.name, tensor_value=tensor.value(), check_before_write=False
                 )
-
-        if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS):
-            self._save_inputs(logs)
 
     def _get_exec_function(self, mode):
         # exec_function is None in 2.X; self.model exists but has no train_function, test_function, etc.
