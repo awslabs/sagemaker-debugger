@@ -4,7 +4,7 @@ from smdebug.profiler.utils import TimeUnits
 
 
 def test_S3MetricsReader():
-    bucket_name = "s3://tornasole-dev/Base_folder"
+    bucket_name = "s3://smdebug-testing/resources/model_timeline_traces"
     tt = S3MetricsReader(bucket_name)
     events = tt.get_events(1590461127873222, 1590461139949971)
     print(f"Number of events {len(events)}")

@@ -19,7 +19,7 @@ def test_tensorboardprofiler_events(trace_file="./tests/profiler/ip-172-31-19-24
         0, 0.015013686, unit=TimeUnits.SECONDS
     )
     print(f"Number of events occurred between 0 and 15013686 are {len(completed_event_list)}")
-    assert len(completed_event_list) == 253
+    assert len(completed_event_list) == 256
 
     start_time_sorted = t_events.get_events_start_time_sorted()
     start_time_for_first_event = start_time_sorted[0].start_time

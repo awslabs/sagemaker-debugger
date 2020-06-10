@@ -29,8 +29,6 @@ import smdebug.pytorch as smd
 from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.trials import create_trial
 
-out_dir = "/tmp/run"
-
 
 class Net(nn.Module):
     """Returns f(x) = sigmoid(w*x + b)"""
@@ -68,6 +66,7 @@ def train(model, device, optimizer, num_steps=10):
 
 
 def run(
+    out_dir,
     rank,
     size,
     include_workers="one",
@@ -144,15 +143,15 @@ def average_gradients(model):
         param.grad.data /= size
 
 
-def init_processes(rank, size, include_workers, test_timeline, fn, backend="gloo"):
+def init_processes(out_dir, rank, size, include_workers, test_timeline, fn, backend="gloo"):
     """Initialize the distributed environment."""
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
-    fn(rank, size, include_workers, test_timeline)
+    fn(out_dir, rank, size, include_workers, test_timeline)
 
 
-def _run_net_distributed(include_workers="one", test_timeline=False):
+def _run_net_distributed(out_dir, include_workers="one", test_timeline=False):
     """Runs a single linear layer on 2 processes."""
     # torch.distributed is empty on Mac on Torch <= 1.2
     if not hasattr(dist, "is_initialized"):
@@ -161,7 +160,9 @@ def _run_net_distributed(include_workers="one", test_timeline=False):
     size = 2
     processes = []
     for rank in range(size):
-        p = Process(target=init_processes, args=(rank, size, include_workers, test_timeline, run))
+        p = Process(
+            target=init_processes, args=(out_dir, rank, size, include_workers, test_timeline, run)
+        )
         p.start()
         processes.append(p)
 
@@ -172,13 +173,12 @@ def _run_net_distributed(include_workers="one", test_timeline=False):
     # https://stackoverflow.com/questions/13400546/py-test-how-to-automatically-detect-an-exception-in-a-child-process
     assert all([not p.exitcode for p in processes]), f"Some processes failed. processes={processes}"
 
-    out_dir = "/tmp/run"
     trial = create_trial(path=out_dir)
     return trial
 
 
 @pytest.mark.slow  # 0:05 to run
-def test_run_net_single_process():
+def test_run_net_single_process(out_dir):
     """Runs a single linear layer."""
     device = torch.device("cpu")
     model = Net().to(device)
@@ -201,25 +201,25 @@ def test_run_net_single_process():
 
 
 @pytest.mark.slow  # 0:07 to run
-def test_run_net_distributed_save_all_workers():
-    trial = _run_net_distributed(include_workers="all")
+def test_run_net_distributed_save_all_workers(out_dir):
+    trial = _run_net_distributed(out_dir, include_workers="all")
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
 
 @pytest.mark.slow  # 0:07 to run
-def test_run_net_distributed_save_one_worker():
-    trial = _run_net_distributed(include_workers="one")
+def test_run_net_distributed_save_one_worker(out_dir):
+    trial = _run_net_distributed(out_dir, include_workers="one")
     assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
 
 @pytest.mark.slow
-def test_run_net_distributed_save_all_test_timeline(set_up_smprofiler_config_path):
+def test_run_net_distributed_save_all_test_timeline(set_up_smprofiler_config_path, out_dir):
     """
     This test checks if any of the timestamps recorded are negative
     """
-    trial = _run_net_distributed(include_workers="all", test_timeline=True)
+    trial = _run_net_distributed(out_dir, include_workers="all", test_timeline=True)
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
