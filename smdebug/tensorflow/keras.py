@@ -383,7 +383,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         for tensor_ref, t in tensor_refs:
                             for collection in collections_to_write:
                                 collection.set_tensor_ref(tensor_ref)
-                            self._save_for_tensor("model_input", t, check_before_write=False)
+                            self._save_for_tensor(
+                                f"model_input:{tensor_id}", t, check_before_write=False
+                            )
                         tensor_id += 1
 
     def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
