@@ -355,9 +355,31 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             non_input_tensors = set(coll.get_tensors(mode=mode)).difference(input_tensors_set)
             self.tensor_refs_to_save_this_step.update(non_input_tensors)
 
-    def _save_inputs(self, check_before_write=True):
-        # TODO
-        pass
+    def _save_inputs(self, logs):
+        for key in logs:
+            if key in ["smdebug_input"]:
+                collections_to_save = self._get_collections_to_save_for_step()
+                input_collection = self.get_collection(CollectionKeys.INPUTS)
+                if input_collection in collections_to_save:
+                    collections_to_write = {input_collection}
+                    for collection in collections_to_save:
+                        if match_inc(input_collection[key], collection.include_regex):
+                            collections_to_write.add(collection)
+                    self._initialize_writers(only_initialize_if_missing=True)
+                    tensor_value = logs[key]
+                    tensor_refs = []
+                    if isinstance(tensor_value, values.PerReplica):
+                        for t in tensor_value._values:
+                            tensor_ref = TensorRef.from_non_graph_var("model_input")
+                            tensor_refs.append((tensor_ref, t))
+                    else:
+                        tensor_ref = TensorRef.from_non_graph_var("model_input")
+                        tensor_refs.append((tensor_ref, logs[key]))
+
+                    for tensor_ref, t in tensor_refs:
+                        for collection in collections_to_write:
+                            collection.set_tensor_ref(tensor_ref)
+                        self._save_for_tensor("model_input", t, check_before_write=False)
 
     def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
         if metric_name in self.tensor_to_collections:
@@ -446,7 +468,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
 
         if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS):
-            self._save_inputs(check_before_write=False)
+            self._save_inputs(logs)
 
     def _get_exec_function(self, mode):
         # exec_function is None in 2.X; self.model exists but has no train_function, test_function, etc.
