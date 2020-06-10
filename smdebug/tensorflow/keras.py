@@ -357,7 +357,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _save_inputs(self, logs):
         for key in logs:
-            if key in ["smdebug_input"]:
+            if key in ["smdebug_model_input"]:
                 collections_to_save = self._get_collections_to_save_for_step()
                 input_collection = self.get_collection(CollectionKeys.INPUTS)
                 if input_collection in collections_to_save:
@@ -441,7 +441,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             logs["batch"] = batch
             for key in logs:
-                if key in ["loss", "val_loss", "outputs"] + ModelOutputs:
+                if key in ["loss", "val_loss", "outputs", "smdebug_model_input"] + ModelOutputs:
                     # outputs is saved differently through outputs collection
                     continue
                 self._add_metric(metric_name=key)
