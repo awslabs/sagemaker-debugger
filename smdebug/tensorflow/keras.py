@@ -327,6 +327,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.get_collection(name=CollectionKeys.OPTIMIZER_VARIABLES),
             self.get_collection(name=CollectionKeys.GRADIENTS),
             self.get_collection(name=CollectionKeys.OUTPUTS),
+            self.get_collection(name=CollectionKeys.INPUTS),
         ]:
             for tensor_ref in coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
