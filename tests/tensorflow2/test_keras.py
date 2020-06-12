@@ -12,7 +12,6 @@ import time
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
-import tensorflow_datasets as tfds
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
 
@@ -650,47 +649,3 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-
-
-def test_keras_to_estimator(out_dir, tf_eager_mode):
-    if not tf_eager_mode:
-        tf.compat.v1.disable_eager_execution()
-        tf.compat.v1.reset_default_graph()
-
-    tf.keras.backend.clear_session()
-
-    model = tf.keras.models.Sequential(
-        [
-            tf.keras.layers.Dense(16, activation="relu", input_shape=(4,)),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(1, activation="sigmoid"),
-        ]
-    )
-
-    def input_fn():
-        split = tfds.Split.TRAIN
-        dataset = tfds.load("iris", split=split, as_supervised=True)
-        dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
-        dataset = dataset.batch(32).repeat()
-        return dataset
-
-    model.compile(loss="categorical_crossentropy", optimizer="adam")
-    model.summary()
-
-    keras_estimator = tf.keras.estimator.model_to_estimator(keras_model=model, model_dir=out_dir)
-
-    hook = smd.EstimatorHook(out_dir)
-
-    hook.set_mode(smd.modes.TRAIN)
-    keras_estimator.train(input_fn=input_fn, steps=25, hooks=[hook])
-
-    hook.set_mode(smd.modes.EVAL)
-    eval_result = keras_estimator.evaluate(input_fn=input_fn, steps=10, hooks=[hook])
-
-    from smdebug.trials import create_trial
-
-    tr = create_trial(out_dir)
-    assert len(tr.tensor_names()) == 1
-    assert len(tr.steps()) == 2
-    assert len(tr.steps(smd.modes.TRAIN)) == 1
-    assert len(tr.steps(smd.modes.EVAL)) == 1

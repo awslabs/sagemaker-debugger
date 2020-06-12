@@ -148,6 +148,9 @@ class CollectionManager(BaseCollectionManager):
                 self.create_collection(n)
             if is_tf_version_2x() and tf.executing_eagerly():
                 self.get(CollectionKeys.BIASES).include("^(?!gradient).*bias")
+                self.get(CollectionKeys.WEIGHTS).include("^weights/.*/((?!bias).)*$")
+                self.get(CollectionKeys.LOSSES).include(".*loss.*")
+                self.get(CollectionKeys.GRADIENTS).include("^gradient")
             else:
                 self.get(CollectionKeys.BIASES).include("bias")
 
