@@ -66,12 +66,12 @@ class ProfilerConfig:
         profiler_end,
     ):
         """
-        :param local_path:
-        :param file_max_size: Timestamp in UTC for when profiling should start.
-        :param file_close_interval: Duration in seconds for how long profiling should be done.
-        :param file_open_fail_threshold
+        :param local_path: path where profiler events have to be saved.
+        :param file_max_size: Max size a trace file can be, before being rotated.
+        :param file_close_interval: Interval in seconds from the last close, before being rotated.
+        :param file_open_fail_threshold: Number of times to attempt to open a trace fail before marking the writer as unhealthy.
         :param profile_type Type of profile range to profile. Must be "steps" or "time" (or None if no profiling will take place).
-        :param profiler_start The step/time that profiling should start.
+        :param profiler_start The step/time that profiling should start. Time in seconds (UTC).
         :param profile_length The length of profiling in steps or time.
         :param profiler_end The step/time that profiling should end.
         """

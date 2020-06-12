@@ -43,7 +43,7 @@ class ProfilerConfigParser:
         self.load_config(current_step)
 
     def load_config(self, current_step):
-        """Load the config file (if it exists) from $PROFILER_CONFIG_PATH.
+        """Load the config file (if it exists) from $SMPROFILER_CONFIG_PATH.
         Set the provided values for the specified variables and default values for the rest.
         General profiler variables are set as environment variables, while TF profiler specfic
             variables are retrieved in a separate function.

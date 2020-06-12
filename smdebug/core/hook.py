@@ -641,7 +641,7 @@ class BaseHook:
         :param training_phase: strings like, data_iterating, forward, backward, operations etc
         :param op_name: more details about phase like whether dataset or iterator
         :param phase: this is defaulted to 'X'
-        :param timestamp: start_time for the event
+        :param timestamp: start_time for the event (in seconds)
         :param duration: any duration manually computed (in seconds)
         :param kwargs: can be process id and thread id
         """

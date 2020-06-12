@@ -60,7 +60,7 @@ class TimelineRecord:
         duration=0,
     ):
         """
-        :param timestamp: Mandatory field. start_time for the event
+        :param timestamp: Mandatory field. Absolute start_time for the event in seconds.
         :param training_phase: strings like, train_step_time , test_step_time etc
         :param phase: Trace event phases. Example "X", "B", "E", "M"
         :param operator_name: more details about phase like whether dataset or iterator
