@@ -394,8 +394,9 @@ def test_gradtape_persistent(out_dir, saveall):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("saveall", [True, False])
-def test_keras_fit(out_dir, tf_eager_mode, saveall):
+@pytest.mark.parametrize("saveall", [True])
+def test_keras_fit(out_dir, saveall):
+    tf_eager_mode = True
     save_config = SaveConfig(save_interval=1) if saveall else None
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=save_config)
     ts = time.time()
