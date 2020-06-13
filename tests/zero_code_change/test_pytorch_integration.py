@@ -15,11 +15,11 @@ import pytest
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from tests.utils import SagemakerSimulator, ScriptSimulator
 from tests.zero_code_change.pt_utils import Net, get_dataloaders
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
 @pytest.mark.parametrize("script_mode", [False])

@@ -1,6 +1,8 @@
 # First Party
+# Third Party
+from tests.utils import SagemakerSimulator
+
 import smdebug.tensorflow as smd
-from smdebug.core.utils import SagemakerSimulator
 
 
 def test_sagemaker():

@@ -23,6 +23,7 @@ import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 from tests.tensorflow.hooks.test_mirrored_strategy import test_basic
 from tests.tensorflow.keras.test_keras_mirrored import test_tf_keras
+from tests.utils import SagemakerSimulator
 from tests.zero_code_change.tf_utils import (
     get_data,
     get_estimator,
@@ -34,7 +35,6 @@ from tests.zero_code_change.tf_utils import (
 
 # First Party
 import smdebug.tensorflow as smd
-from smdebug.core.utils import SagemakerSimulator
 
 
 @pytest.mark.parametrize("script_mode", [False])

@@ -6,6 +6,7 @@ from multiprocessing import Manager, Process
 from os import makedirs
 
 import pytest
+from tests.utils import SagemakerSimulator, is_first_process, is_s3
 
 # First Party
 from smdebug.core.access_layer import check_dir_exists
@@ -19,7 +20,6 @@ from smdebug.core.json_config import (
     get_json_config_as_dict,
 )
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import SagemakerSimulator, is_first_process, is_s3
 
 
 def test_normal():
