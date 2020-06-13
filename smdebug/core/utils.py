@@ -301,6 +301,7 @@ class SagemakerSimulator(object):
     """
     Creates an environment variable pointing to a JSON config file, and creates the config file.
     Used for integration testing with zero-code-change.
+
     If `disable=True`, then we still create the `out_dir` directory, but ignore the config file.
     """
 
