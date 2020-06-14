@@ -19,7 +19,28 @@ class ModelOutput:
     VAL_Y_PRED = "val_smdebug_y_pred"
 
 
-ModelOutputs = [ModelOutput.Y, ModelOutput.Y_PRED, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED]
+ModelOutputs = {ModelOutput.Y, ModelOutput.Y_PRED, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED}
+
+
+def get_model_output_export_name(key):
+    export_names = {
+        ModelOutput.Y_PRED: "y_pred",
+        ModelOutput.Y: "y",
+        ModelOutput.VAL_Y: "val_y",
+        ModelOutput.VAL_Y_PRED: "val_y_pred",
+    }
+    return export_names[key]
+
+
+class ModelInput:
+    X = "smdebug_model_input"
+
+
+ModelInputs = {ModelInput.X}
+
+
+def get_model_input_export_name(tensor_id):
+    return f"model_input:{tensor_id}"
 
 
 class TFDistributionStrategy(Enum):

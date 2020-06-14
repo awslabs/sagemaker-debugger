@@ -15,6 +15,8 @@ from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
+    ModelInput,
+    ModelInputs,
     ModelOutput,
     ModelOutputs,
     TFDistributionStrategy,
@@ -22,6 +24,8 @@ from .utils import (
     get_keras_layer_inputs,
     get_keras_layer_outputs,
     get_keras_mode,
+    get_model_input_export_name,
+    get_model_output_export_name,
     is_keras_optimizer,
     is_tf_version_2x,
 )
@@ -407,37 +411,39 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if logs is None:
             return
 
-        export_names = {
-            ModelOutput.Y_PRED: "y_pred",
-            ModelOutput.Y: "y",
-            ModelOutput.VAL_Y: "val_y",
-            ModelOutput.VAL_Y_PRED: "val_y_pred",
-        }
+        model_input_tensor_id = 0
 
         for key in logs:
-            if key in [ModelOutput.Y, ModelOutput.Y_PRED]:
+            if key in ModelOutputs.union(ModelInputs):
                 collections_to_save = self._get_collections_to_save_for_step()
-                output_collection = self.get_collection(CollectionKeys.OUTPUTS)
-                if output_collection in collections_to_save:
-                    collections_to_write = {output_collection}
+                if key in ModelOutputs:
+                    key_collection = self.get_collection(CollectionKeys.OUTPUTS)
+                    export_name = get_model_output_export_name(key)
+                else:
+                    key_collection = self.get_collection(CollectionKeys.INPUTS)
+                    export_name = get_model_input_export_name(model_input_tensor_id)
+                    model_input_tensor_id += 1
+
+                if key_collection in collections_to_save:
+                    collections_to_write = {key_collection}
                     for collection in collections_to_save:
-                        if match_inc(export_names[key], collection.include_regex):
+                        if match_inc(export_name, collection.include_regex):
                             collections_to_write.add(collection)
                     self._initialize_writers(only_initialize_if_missing=True)
                     tensor_value = logs[key]
                     tensor_refs = []
                     if isinstance(tensor_value, values.PerReplica):
                         for t in tensor_value._values:
-                            tensor_ref = TensorRef.from_non_graph_var(export_names[key])
+                            tensor_ref = TensorRef.from_non_graph_var(export_name)
                             tensor_refs.append((tensor_ref, t))
                     else:
-                        tensor_ref = TensorRef.from_non_graph_var(export_names[key])
+                        tensor_ref = TensorRef.from_non_graph_var(export_name)
                         tensor_refs.append((tensor_ref, logs[key]))
 
                     for tensor_ref, t in tensor_refs:
                         for collection in collections_to_write:
                             collection.set_tensor_ref(tensor_ref)
-                        self._save_for_tensor(export_names[key], t, check_before_write=False)
+                        self._save_for_tensor(export_name, t, check_before_write=False)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
@@ -448,7 +454,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             logs["batch"] = batch
             for key in logs:
-                if key in ["loss", "val_loss", "outputs", "smdebug_model_input"] + ModelOutputs:
+                if (
+                    key
+                    in ["loss", "val_loss", "outputs", "smdebug_model_input"] + ModelInputOutputs
+                ):
                     # outputs is saved differently through outputs collection
                     continue
                 self._add_metric(metric_name=key)
@@ -466,7 +475,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
         self._save_model_outputs(logs)
-        self._save_inputs(logs)
+        # self._save_inputs(logs)
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
