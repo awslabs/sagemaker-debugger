@@ -395,8 +395,33 @@ def test_gradtape_persistent(out_dir, saveall):
 
 @pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True])
-def test_keras_fit(out_dir, saveall):
-    tf_eager_mode = True
+def test_model_inputs_and_outputs(out_dir, tf_eager_mode, saveall):
+    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
+    if saveall is False:
+        # explicitly save INPUTS and OUTPUTS
+        hook.get_collection(CollectionKeys.OUTPUTS)
+        hook.get_collection(CollectionKeys.INPUTS)
+    helper_keras_fit(
+        trial_dir=out_dir,
+        hook=hook,
+        eager=tf_eager_mode,
+        steps=["train", "eval", "predict", "train"],
+    )
+
+    trial = smd.create_trial(path=out_dir)
+    if saveall:
+        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 17
+        assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+    else:
+        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 17
+        assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("saveall", [True])
+def test_keras_fit(out_dir, tf_eager_mode, saveall):
     save_config = SaveConfig(save_interval=1) if saveall else None
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=save_config)
     ts = time.time()
@@ -417,7 +442,7 @@ def test_keras_fit(out_dir, saveall):
         assert len(trial.steps(mode=ModeKeys.EVAL)) == 10
         assert len(trial.steps(mode=ModeKeys.PREDICT)) == 4
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (15 if is_tf_2_2() else 16)
+            assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 17)
         else:
             assert len(trial.tensor_names()) == 24
         assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
@@ -663,7 +688,7 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
 
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (14 if is_tf_2_2() else 15)
+    assert len(trial.tensor_names()) == (15 if is_tf_2_2() else 16)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
