@@ -414,9 +414,18 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode, saveall):
         assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
     else:
-        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 17
+        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
         assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+
+    for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
+        output = trial.tensor(tname)
+        assert tname in ["y", "y_pred"]
+        assert output.value(0) is not None
+        assert output.steps(mode=ModeKeys.TRAIN) == trial.steps(mode=ModeKeys.TRAIN)
+    # Check the shape of output tensors
+    assert trial.tensor("y").value(0).shape[1] == 1  # label
+    assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
 
 
 @pytest.mark.slow
@@ -462,14 +471,6 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
             == 0,
             "No Optimizer Variables Should be Saved in EVAL Mode",
         )
-        for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
-            output = trial.tensor(tname)
-            assert tname in ["y", "y_pred"]
-            assert output.value(0) is not None
-            assert output.steps(mode=ModeKeys.TRAIN) == trial.steps(mode=ModeKeys.TRAIN)
-        # Check the shape of output tensors
-        assert trial.tensor("y").value(0).shape[1] == 1  # label
-        assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (4 if is_tf_2_2() and tf_eager_mode else 5)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
