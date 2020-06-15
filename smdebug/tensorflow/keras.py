@@ -15,9 +15,7 @@ from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
-    ModelInput,
     ModelInputs,
-    ModelOutput,
     ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
