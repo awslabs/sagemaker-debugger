@@ -454,10 +454,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             logs["batch"] = batch
             for key in logs:
-                if (
-                    key
-                    in ["loss", "val_loss", "outputs", "smdebug_model_input"] + ModelInputOutputs
-                ):
+                if key in {"loss", "val_loss", "outputs"}.union(ModelOutputs).union(ModelInputs):
                     # outputs is saved differently through outputs collection
                     continue
                 self._add_metric(metric_name=key)
