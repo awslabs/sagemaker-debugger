@@ -360,38 +360,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             non_input_tensors = set(coll.get_tensors(mode=mode)).difference(input_tensors_set)
             self.tensor_refs_to_save_this_step.update(non_input_tensors)
 
-    def _save_inputs(self, logs):
-        for key in logs:
-            if key in ["smdebug_model_input"]:
-                collections_to_save = self._get_collections_to_save_for_step()
-                input_collection = self.get_collection(CollectionKeys.INPUTS)
-                if input_collection in collections_to_save:
-                    collections_to_write = {input_collection}
-                    for collection in collections_to_save:
-                        if match_inc(key, collection.include_regex):
-                            collections_to_write.add(collection)
-                    self._initialize_writers(only_initialize_if_missing=True)
-                    for tensor_value in logs[key]:
-                        tensor_id = 0
-                        tensor_refs = []
-                        if isinstance(tensor_value, values.PerReplica):
-                            for t in tensor_value._values:
-                                tensor_ref = TensorRef.from_non_graph_var(
-                                    f"model_input:{tensor_id}"
-                                )
-                                tensor_refs.append((tensor_ref, t))
-                        else:
-                            tensor_ref = TensorRef.from_non_graph_var(f"model_input:{tensor_id}")
-                            tensor_refs.append((tensor_ref, tensor_value))
-
-                        for tensor_ref, t in tensor_refs:
-                            for collection in collections_to_write:
-                                collection.set_tensor_ref(tensor_ref)
-                            self._save_for_tensor(
-                                f"model_input:{tensor_id}", t, check_before_write=False
-                            )
-                        tensor_id += 1
-
     def _add_metric(self, metric_name, metric_value: tf.Tensor = None):
         if metric_name in self.tensor_to_collections:
             return

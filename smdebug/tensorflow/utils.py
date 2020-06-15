@@ -33,7 +33,7 @@ def get_model_output_export_name(key):
 
 
 class ModelInput:
-    X = "smdebug_model_input"
+    X = "smdebug_x"
 
 
 ModelInputs = {ModelInput.X}

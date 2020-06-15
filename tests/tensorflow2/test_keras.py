@@ -395,10 +395,10 @@ def test_gradtape_persistent(out_dir, saveall):
 
 @pytest.mark.slow
 def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
-    hook = smd.KerasHook(out_dir=out_dir)
     # explicitly save INPUTS and OUTPUTS
-    hook.get_collection(CollectionKeys.OUTPUTS)
-    hook.get_collection(CollectionKeys.INPUTS)
+    include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
+    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
@@ -415,7 +415,6 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
         output = trial.tensor(tname)
         assert tname in ["y", "y_pred"]
         assert output.value(0) is not None
-        assert output.steps(mode=ModeKeys.TRAIN) == trial.steps(mode=ModeKeys.TRAIN)
     # Check the shape of output tensors
     assert trial.tensor("y").value(0).shape[1] == 1  # label
     assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
