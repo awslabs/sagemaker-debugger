@@ -375,7 +375,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
-    def _save_model_outputs(self, logs):
+    def _save_model_inputs_and_outputs(self, logs):
         if logs is None:
             return
 
@@ -439,7 +439,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # some tensors available as value from within hook are saved here
         # weights, metrics
         self._save_metrics(batch, logs)
-        self._save_model_outputs(logs)
+        self._save_model_inputs_and_outputs(logs)
         # self._save_inputs(logs)
 
         if is_tf_version_2x() and tf.executing_eagerly():
