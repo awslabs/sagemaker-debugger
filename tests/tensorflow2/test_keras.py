@@ -394,13 +394,11 @@ def test_gradtape_persistent(out_dir, saveall):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("saveall", [True])
-def test_model_inputs_and_outputs(out_dir, tf_eager_mode, saveall):
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
-    if saveall is False:
-        # explicitly save INPUTS and OUTPUTS
-        hook.get_collection(CollectionKeys.OUTPUTS)
-        hook.get_collection(CollectionKeys.INPUTS)
+def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
+    hook = smd.KerasHook(out_dir=out_dir)
+    # explicitly save INPUTS and OUTPUTS
+    hook.get_collection(CollectionKeys.OUTPUTS)
+    hook.get_collection(CollectionKeys.INPUTS)
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
@@ -409,14 +407,9 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode, saveall):
     )
 
     trial = smd.create_trial(path=out_dir)
-    if saveall:
-        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 17
-        assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
-    else:
-        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
-        assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
 
     for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
         output = trial.tensor(tname)
