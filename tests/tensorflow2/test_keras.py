@@ -394,37 +394,9 @@ def test_gradtape_persistent(out_dir, saveall):
 
 
 @pytest.mark.slow
-def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
-    # explicitly save INPUTS and OUTPUTS
-    include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
-    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
-
-    helper_keras_fit(
-        trial_dir=out_dir,
-        hook=hook,
-        eager=tf_eager_mode,
-        steps=["train", "eval", "predict", "train"],
-    )
-
-    trial = smd.create_trial(path=out_dir)
-    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
-
-    for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
-        output = trial.tensor(tname)
-        assert tname in ["y", "y_pred"]
-        assert output.value(0) is not None
-    # Check the shape of output tensors
-    assert trial.tensor("y").value(0).shape[1] == 1  # label
-    assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("saveall", [True])
+@pytest.mark.parametrize("saveall", [True, False])
 def test_keras_fit(out_dir, tf_eager_mode, saveall):
-    save_config = SaveConfig(save_interval=1) if saveall else None
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=save_config)
+    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
     ts = time.time()
     hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
     scalars_to_be_saved = dict()
@@ -439,18 +411,10 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
-        assert len(trial.steps(mode=ModeKeys.TRAIN)) == 20
-        assert len(trial.steps(mode=ModeKeys.EVAL)) == 10
-        assert len(trial.steps(mode=ModeKeys.PREDICT)) == 4
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 17)
+            assert len(trial.tensor_names()) == (13 if is_tf_2_2() else 14)
         else:
-            assert len(trial.tensor_names()) == 24
-        assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
-        assert (
-            len(trial.tensor_names(collection=CollectionKeys.OUTPUTS, mode=ModeKeys.PREDICT)) == 0
-        )  # bug:
-        assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS, mode=ModeKeys.TRAIN)) == 2
+            assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
@@ -620,7 +584,7 @@ def test_include_collections(out_dir, tf_eager_mode):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     if tf_eager_mode:
-        assert len(trial.tensor_names()) == (14 if is_tf_2_2() else 15)
+        assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
     else:
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
@@ -681,7 +645,34 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
 
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (15 if is_tf_2_2() else 16)
+    assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+
+
+@pytest.mark.skip  # skip until aws tf update
+def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
+    # explicitly save INPUTS and OUTPUTS
+    include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
+    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+
+    helper_keras_fit(
+        trial_dir=out_dir,
+        hook=hook,
+        eager=tf_eager_mode,
+        steps=["train", "eval", "predict", "train"],
+    )
+
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+
+    for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
+        output = trial.tensor(tname)
+        assert tname in ["y", "y_pred"]
+        assert output.value(0) is not None
+    # Check the shape of output tensors
+    assert trial.tensor("y").value(0).shape[1] == 1  # label
+    assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
