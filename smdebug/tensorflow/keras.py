@@ -61,6 +61,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
+        self.custom_tensors_to_save = dict()
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -373,7 +374,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
-    def save_tensor(self, tensor_name, tensor_value, collections_to_write):
+    def save_custom_tensor(self, tensor_name, tensor_value, collections_to_write):
+        self.custom_tensors_to_save[tensor_name] = (tensor_value, collections_to_write)
+
+    def _save_custom_tensors_post_step(self):
+        for tensor_name in self.custom_tensors_to_save:
+            tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
+            collections = [self.get_collection(c) for c in collection_names]
+            self._save_tensor(tensor_name, tensor_value, collections)
+
+    def _save_tensor(self, tensor_name, tensor_value, collections_to_write):
         tensor_refs = []
         if isinstance(tensor_value, values.PerReplica):
             for t in tensor_value._values:
@@ -412,7 +422,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                             collections_to_write.add(collection)
                     self._initialize_writers(only_initialize_if_missing=True)
                     tensor_value = logs[key]
-                    self.save_tensor(export_name, tensor_value, collections_to_write)
+                    self._save_tensor(export_name, tensor_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
@@ -441,6 +451,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
         self._save_model_inputs_and_outputs(logs)
+        self._save_custom_tensors_post_step()
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:

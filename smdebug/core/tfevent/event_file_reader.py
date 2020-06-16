@@ -39,6 +39,7 @@ def as_dtype(t):
         types_pb2.DT_STRING: np.str,
         types_pb2.DT_BOOL: np.bool,
         types_pb2.DT_UINT8: np.uint8,
+        types_pb2.DT_COMPLEX128: np.complex128,
     }
     return _INTERN_TABLE[t]
 
