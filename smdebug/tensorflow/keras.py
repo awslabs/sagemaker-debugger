@@ -6,8 +6,10 @@ import time
 # Third Party
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
+from tensorflow.python.profiler import profiler_v2 as profiler
 
 # First Party
+from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
@@ -60,11 +62,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._fetches_added = set()
         self.callable_cache = CallableCache()
 
-        # Profile range vars
-        if self.profiler_config_parser.enabled:
-            profile_range = self.profiler_config_parser.config.profile_range
-            self._profiling_start = profile_range.profiler_start
-            self._profiling_end = profile_range.profiler_end
+        # Profiling vars
+        self._log_dir = None
+        self.is_profiling = False
+        self.warm_up_completed = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -504,6 +505,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_test_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
+    def on_train_end(self, logs=None):
+        if self.is_profiling:
+            self.logger.info("Disabling profiler, reached end of training.")
+            profiler.stop()
+            self.is_profiling = False
+
     # throws error in keras if this fn is absent
     def on_test_end(self, logs=None):
         pass
@@ -561,6 +568,28 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
 
+        if not self.is_profiling and self.profiler_config_parser.can_start_detailed_profiling(
+            self.mode_steps[ModeKeys.TRAIN]
+        ):
+            self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
+                self.profiler_config_parser.config.local_path,
+                "tensorflow",
+                self.mode_steps[ModeKeys.TRAIN],
+            )
+            self.logger.info(f"Enabling profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}")
+            if not self.warm_up_completed:
+                # warming up profiler before it will be profiling.
+                profiler.warmup()
+                self.warm_up_completed = True
+            profiler.start(self._log_dir)
+            self.is_profiling = True
+        elif self.is_profiling and not self.profiler_config_parser.can_start_detailed_profiling(
+            self.mode_steps[ModeKeys.TRAIN]
+        ):
+            self.logger.info(f"Disabling profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}")
+            profiler.stop()
+            self.is_profiling = False
+
     def on_test_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.EVAL, logs=logs)
 
@@ -582,6 +611,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
 
     def _on_any_batch_end(self, batch, mode, logs=None):
+        if self._is_not_supported():
+            return
+
         self.record_trace_events(
             training_phase="Step:" + str(mode),
             op_name="Step:" + str(mode),
@@ -591,8 +623,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             pid=os.getpid(),
             step_num=str(self.mode_steps[mode]),
         )
-        if self._is_not_supported():
-            return
 
         if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
             self._remove_fetches_and_callbacks(mode)

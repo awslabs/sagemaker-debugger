@@ -9,7 +9,6 @@ import shutil
 
 # Third Party
 import pytest
-from tests.profiler.profiler_config_parser_utils import current_step
 
 # First Party
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
@@ -71,7 +70,7 @@ def set_up_smprofiler_config_path(monkeypatch):
 
 @pytest.fixture()
 def simple_profiler_config_parser(set_up_smprofiler_config_path):
-    return ProfilerConfigParser(current_step)
+    return ProfilerConfigParser()
 
 
 # In TF, once we disable eager execution, we cannot re-enable eager execution.

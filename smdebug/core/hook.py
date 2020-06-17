@@ -224,7 +224,7 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        self.profiler_config_parser = ProfilerConfigParser(self.step)
+        self.profiler_config_parser = ProfilerConfigParser()
         self.timeline_writer = TimelineFileWriter(
             profiler_config_parser=self.profiler_config_parser
         )

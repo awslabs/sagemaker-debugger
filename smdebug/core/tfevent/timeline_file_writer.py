@@ -128,7 +128,7 @@ class TimelineFileWriter:
     def write_trace_events(
         self, timestamp, training_phase="", op_name="", phase="X", duration=0, **kwargs
     ):
-        if not self._worker._healthy or not self._profiler_config_parser.enabled:
+        if not self._worker._healthy or not self._profiler_config_parser.profiling_enabled:
             return
         duration_in_us = int(duration * CONVERT_TO_MICROSECS)  # convert to micro seconds
         args = {**kwargs}
@@ -201,7 +201,7 @@ class _TimelineLoggerThread(threading.Thread):
 
             if (
                 not self._healthy
-                or not self._profiler_config_parser.enabled
+                or not self._profiler_config_parser.profiling_enabled
                 or event is self._sentinel_event
             ):
                 self._queue.task_done()
@@ -361,7 +361,7 @@ class _TimelineLoggerThread(threading.Thread):
             self.flush()
             self._writer.close()
 
-            if self._profiler_config_parser.enabled:
+            if self._profiler_config_parser.profiling_enabled:
                 # ensure that there's a directory for the new file name
                 new_file_name = TraceFileLocation().get_file_location(
                     base_dir=self._profiler_config_parser.config.local_path,

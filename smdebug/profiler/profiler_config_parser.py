@@ -12,13 +12,11 @@ from smdebug.profiler.profiler_constants import (
     CONFIG_PATH_DEFAULT,
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
-    PROFILER_DURATION_DEFAULT,
-    PROFILER_NUM_STEPS_DEFAULT,
 )
 
 
-class LastStatus(Enum):
-    """Enum to track last status so that we log for any changes
+class LastProfilingStatus(Enum):
+    """Enum to track last profiling status so that we log for any changes
     """
 
     START = "START"
@@ -26,6 +24,8 @@ class LastStatus(Enum):
     INVALID_CONFIG = "INVALID_CONFIG"
     PROFILER_DISABLED = "PROFILER_DISABLED"
     PROFILER_ENABLED = "PROFILER_ENABLED"
+    INVALID_DETAILED_CONFIG = "INVALID_DETAILED_CONFIG"
+    DETAILED_CONFIG_NOT_FOUND = "DETAILED_CONFIG_NOT_FOUND"
 
 
 class ProfilerConfigParser:
@@ -35,18 +35,19 @@ class ProfilerConfigParser:
     TODO: Poll for changes in the config by repeatedly calling `load_config`.
     """
 
-    def __init__(self, current_step):
-        """Set up the logger and load the config."""
-        self.logger = get_logger("smdebug-profiler")
-        self.enabled = False
-        self.last_status = LastStatus.START
-        self.load_config(current_step)
+    def __init__(self):
+        """Initialize the parser to be disabled for profiling and detailed profiling.
+        """
+        self.config = None
+        self.profiling_enabled = False
+        self.detailed_profiling_enabled = False
+        self.last_status = LastProfilingStatus.START
+        self.load_config()
 
-    def load_config(self, current_step):
+    def load_config(self):
         """Load the config file (if it exists) from $SMPROFILER_CONFIG_PATH.
         Set the provided values for the specified variables and default values for the rest.
-        General profiler variables are set as environment variables, while TF profiler specfic
-            variables are retrieved in a separate function.
+        Validate the detailed profiling config (if it exists).
         """
         config_path = os.environ.get("SMPROFILER_CONFIG_PATH", CONFIG_PATH_DEFAULT)
 
@@ -55,24 +56,31 @@ class ProfilerConfigParser:
                 try:
                     config = json.load(json_data).get("ProfilingParameters")
                 except:
-                    if self.last_status != LastStatus.INVALID_CONFIG:
-                        self.logger.error(f"Error parsing config at {config_path}.")
-                        self.last_status = LastStatus.INVALID_CONFIG
+                    if self.last_status != LastProfilingStatus.INVALID_CONFIG:
+                        get_logger("smdebug-profiler").error(
+                            f"Error parsing config at {config_path}."
+                        )
+                        self.last_status = LastProfilingStatus.INVALID_CONFIG
+                    self.profiling_enabled = False
                     return
             if config.get("ProfilerEnabled", True):
-                if self.last_status != LastStatus.PROFILER_ENABLED:
-                    self.logger.info(f"Using config at {config_path}.")
-                    self.last_status = LastStatus.PROFILER_ENABLED
-                self.enabled = True
+                if self.last_status != LastProfilingStatus.PROFILER_ENABLED:
+                    get_logger("smdebug-profiler").info(f"Using config at {config_path}.")
+                    self.last_status = LastProfilingStatus.PROFILER_ENABLED
+                self.profiling_enabled = True
             else:
-                if self.last_status != LastStatus.PROFILER_DISABLED:
-                    self.logger.info(f"User has disabled profiler.")
-                    self.last_status = LastStatus.PROFILER_DISABLED
+                if self.last_status != LastProfilingStatus.PROFILER_DISABLED:
+                    get_logger("smdebug-profiler").info(f"User has disabled profiler.")
+                    self.last_status = LastProfilingStatus.PROFILER_DISABLED
+                self.profiling_enabled = False
                 return
         else:
-            if self.last_status != LastStatus.CONFIG_NOT_FOUND:
-                self.logger.info(f"Unable to find config at {config_path}. Profiler is disabled.")
-                self.last_status = LastStatus.CONFIG_NOT_FOUND
+            if self.last_status != LastProfilingStatus.CONFIG_NOT_FOUND:
+                get_logger("smdebug-profiler").info(
+                    f"Unable to find config at {config_path}. Profiler is disabled."
+                )
+                self.last_status = LastProfilingStatus.CONFIG_NOT_FOUND
+            self.profiling_enabled = False
             return
 
         local_path = config.get("LocalPath", BASE_FOLDER_DEFAULT)
@@ -85,38 +93,42 @@ class ProfilerConfigParser:
         )
         profile_range = config.get("DetailedProfilingConfig", {})
 
-        has_step_var = "StartStep" in profile_range or "NumSteps" in profile_range
-        has_time_var = "StartTime" in profile_range or "Duration" in profile_range
-
-        profile_type, profiler_start, profile_length, profiler_end = None, None, None, None
-
-        if has_step_var and has_time_var:
-            self.logger.error(
-                "User must not specify both step and time fields for profile range! No profiling will occur."
-            )
-        elif has_step_var:
-            profile_type = "steps"
-            profiler_start = profile_range.get("StartStep", current_step)
-            profile_length = profile_range.get("NumSteps", PROFILER_NUM_STEPS_DEFAULT)
-            profiler_end = profiler_start + profile_length
-        elif has_time_var:
-            profile_type = "time"
-            profiler_start = profile_range.get("StartTime", None)  # profile immediately by default
-            profile_length = profile_range.get(
-                "Duration", PROFILER_DURATION_DEFAULT
-            )  # profile until next step by default
-            if profiler_start:
-                profiler_end = profiler_start + profile_length
-        else:
-            self.logger.error("No detailed profiler config provided! No profiling will occur.")
-
         self.config = ProfilerConfig(
-            local_path,
-            file_max_size,
-            file_close_interval,
-            file_open_fail_threshold,
-            profile_type,
-            profiler_start,
-            profile_length,
-            profiler_end,
+            local_path, file_max_size, file_close_interval, file_open_fail_threshold, profile_range
+        )
+
+        if (
+            self.config.profile_range.has_step_range()
+            and self.config.profile_range.has_time_range()
+        ):
+            if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG:
+                get_logger("smdebug-profiler").error(
+                    "User must not specify both step and time fields for profile range! No sync metrics will be logged."
+                )
+                self.last_status = LastProfilingStatus.INVALID_DETAILED_CONFIG
+            self.detailed_profiling_enabled = False
+            return
+
+        elif (
+            not self.config.profile_range.has_step_range()
+            and not self.config.profile_range.has_time_range()
+        ):
+            if self.last_status != LastProfilingStatus.DETAILED_CONFIG_NOT_FOUND:
+                get_logger("smdebug-profiler").debug(
+                    "No detailed profiler config provided! No sync metrics will be logged."
+                )
+                self.last_status = LastProfilingStatus.DETAILED_CONFIG_NOT_FOUND
+            self.detailed_profiling_enabled = False
+            return
+
+        self.detailed_profiling_enabled = True
+
+    def can_start_detailed_profiling(self, current_step):
+        """Higher level check to make sure that profiler is enabled AND that detailed profiling is enabled
+        AND the config values are valid for detailed profiling.
+        """
+        return (
+            self.profiling_enabled
+            and self.detailed_profiling_enabled
+            and self.config.profile_range.can_start_detailed_profiling(current_step)
         )

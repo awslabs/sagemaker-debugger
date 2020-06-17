@@ -1,10 +1,8 @@
-# Standard library
 # Standard Library
 import time
 
 # First Party
-# First party
-from smdebug.profiler.profiler_constants import PROFILER_DURATION_DEFAULT
+from smdebug.profiler.profiler_constants import PROFILER_NUM_STEPS_DEFAULT
 
 
 class RotationPolicy:
@@ -26,28 +24,51 @@ class TraceFile:
 
 
 class ProfileRange:
-    """Configuration corresponding to what batches to profile..
+    """Configuration corresponding to the detailed profiling config.
+    Assigns each field from the dictionary, (or `None` if it doesn't exist)
     """
 
-    def __init__(self, profiler_type, profiler_start, profile_length, profiler_end):
-        self.profile_type = profiler_type
-        self.profiler_start = profiler_start
-        self.profile_length = profile_length
-        self.profiler_end = profiler_end
+    def __init__(self, profile_range):
+        # step range
+        self.start_step = profile_range.get("StartStep")
+        self.num_steps = profile_range.get("NumSteps")
+        self.end_step = None
 
-    def can_enable_profiling(self, current_step):
-        if self.profile_type == "steps":
-            return current_step >= self.profiler_start and current_step <= self.profiler_end
-        elif self.profile_type == "time":
-            current_time = time.time()
-            if not self.profiler_start:
-                self.profiler_start = current_time
-                self.profiler_end = self.profiler_start + self.profile_length
-            return current_time >= self.profiler_start and current_time <= self.profiler_end
+        # time range
+        self.start_time = profile_range.get("StartTime")
+        self.duration = profile_range.get("Duration")
+        self.end_time = None
+
+    def has_step_range(self):
+        return self.start_step or self.num_steps
+
+    def has_time_range(self):
+        return self.start_time or self.duration
+
+    def can_start_detailed_profiling(self, current_step, current_time=time.time()):
+        """Determine whether the values from the config are valid for detailed profiling.
+        """
+        if self.has_step_range():
+            if not self.start_step:
+                self.start_step = current_step
+            if not self.num_steps:
+                self.num_steps = PROFILER_NUM_STEPS_DEFAULT
+            if not self.end_step:
+                self.end_step = self.start_step + self.num_steps
+            return self.start_step <= current_step < self.end_step
+        elif self.has_time_range():
+            if not self.start_time:
+                self.start_time = current_time
+            if self.duration:
+                if not self.end_time:
+                    self.end_time = self.start_time + self.duration
+                return self.start_time <= current_time < self.end_time
+            else:
+                if self.start_time <= current_time:
+                    if not self.end_step:
+                        self.end_step = current_step + 1
+                    return current_step < self.end_step
         return False
-
-    def can_disable_profiling(self, current_step):
-        return not self.can_enable_profiling() or self.profiler_end != PROFILER_DURATION_DEFAULT
 
 
 class ProfilerConfig:
@@ -60,23 +81,15 @@ class ProfilerConfig:
         file_max_size,
         file_close_interval,
         file_open_fail_threshold,
-        profile_type,
-        profiler_start,
-        profile_length,
-        profiler_end,
+        profile_range,
     ):
         """
         :param local_path: path where profiler events have to be saved.
         :param file_max_size: Max size a trace file can be, before being rotated.
         :param file_close_interval: Interval in seconds from the last close, before being rotated.
         :param file_open_fail_threshold: Number of times to attempt to open a trace fail before marking the writer as unhealthy.
-        :param profile_type Type of profile range to profile. Must be "steps" or "time" (or None if no profiling will take place).
-        :param profiler_start The step/time that profiling should start. Time in seconds (UTC).
-        :param profile_length The length of profiling in steps or time.
-        :param profiler_end The step/time that profiling should end.
+        :param profile_range Dictionary holding the detailed profiling config.
         """
         self.local_path = local_path
         self.trace_file = TraceFile(file_max_size, file_close_interval, file_open_fail_threshold)
-        self.profile_range = ProfileRange(
-            profile_type, profiler_start, profile_length, profiler_end
-        )
+        self.profile_range = ProfileRange(profile_range)

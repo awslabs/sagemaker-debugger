@@ -9,7 +9,6 @@ from pathlib import Path
 
 # Third Party
 import pytest
-from tests.profiler.profiler_config_parser_utils import current_step
 
 # First Party
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
@@ -25,14 +24,14 @@ from smdebug.profiler.profiler_constants import (
 def complete_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "complete_profiler_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return ProfilerConfigParser(current_step)
+    return ProfilerConfigParser()
 
 
 @pytest.fixture()
 def file_open_fail_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "file_open_fail_profiler_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return ProfilerConfigParser(current_step)
+    return ProfilerConfigParser()
 
 
 def test_create_timeline_file(simple_profiler_config_parser, out_dir):
@@ -43,7 +42,7 @@ def test_create_timeline_file(simple_profiler_config_parser, out_dir):
 
     It reads backs the file contents to make sure it is in valid JSON format.
     """
-    assert simple_profiler_config_parser.enabled
+    assert simple_profiler_config_parser.profiling_enabled
 
     timeline_writer = TimelineFileWriter(profiler_config_parser=simple_profiler_config_parser)
     assert timeline_writer
@@ -101,7 +100,7 @@ def test_multiprocess_write(simple_profiler_config_parser, out_dir):
     """
     This test is meant to test timeline events written multiple processes. Each process or worker, will have its own trace file.
     """
-    assert simple_profiler_config_parser.enabled
+    assert simple_profiler_config_parser.profiling_enabled
 
     cpu_count = mp.cpu_count()
 
@@ -136,7 +135,7 @@ def test_duration_events(simple_profiler_config_parser, out_dir):
     This test is meant to test duration events. By default, write_trace_events records complete events.
     TODO: Make TimelineWriter automatically calculate duration while recording "E" event
     """
-    assert simple_profiler_config_parser.enabled
+    assert simple_profiler_config_parser.profiling_enabled
 
     timeline_writer = timeline_writer = TimelineFileWriter(
         profiler_config_parser=simple_profiler_config_parser
@@ -184,7 +183,7 @@ def test_complete_policy(complete_profiler_config_parser, policy, out_dir):
     file_interval -> close file if the file's folder was created before a certain time period and open a new file in a new folder
     :param policy: file_size or file_interval
     """
-    assert complete_profiler_config_parser.enabled
+    assert complete_profiler_config_parser.profiling_enabled
 
     timeline_writer = TimelineFileWriter(profiler_config_parser=complete_profiler_config_parser)
     assert timeline_writer
@@ -239,7 +238,7 @@ def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
     This test is meant to set to create files/events in different timezones and check if timeline writer stores
     them in UTC.
     """
-    assert simple_profiler_config_parser.enabled
+    assert simple_profiler_config_parser.profiling_enabled
 
     time.tzset()
     event_time_in_timezone = time.mktime(time.localtime())
@@ -291,7 +290,7 @@ def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
 
 
 def test_file_open_fail(file_open_fail_profiler_config_parser):
-    assert file_open_fail_profiler_config_parser.enabled
+    assert file_open_fail_profiler_config_parser.profiling_enabled
 
     # writing to an invalid path to trigger file open failure
     timeline_writer = TimelineFileWriter(
@@ -315,7 +314,7 @@ def test_file_open_fail(file_open_fail_profiler_config_parser):
 
 
 def test_events_far_apart(complete_profiler_config_parser, out_dir):
-    assert complete_profiler_config_parser.enabled
+    assert complete_profiler_config_parser.profiling_enabled
 
     timeline_writer = TimelineFileWriter(profiler_config_parser=complete_profiler_config_parser)
     assert timeline_writer

@@ -50,3 +50,5 @@ BASE_FOLDER_DEFAULT = "/opt/ml/output/profiler"
 
 PROFILER_NUM_STEPS_DEFAULT = 1
 PROFILER_DURATION_DEFAULT = float("inf")
+
+TF_METRICS_PREFIX = "aws_marker-"

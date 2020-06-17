@@ -89,7 +89,6 @@ class TraceEventParser:
 
     def _read_event(self, event, node_id=""):
         if "ph" not in event:
-            self.logger.error(f"In correctly formatted trace file. The 'ph' field is not present")
             return
         phase_type = event["ph"]
         if "ts" in event and not self._base_timestamp_initialized:

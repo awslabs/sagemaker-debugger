@@ -3,6 +3,7 @@ import os
 import re
 import time
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 # First Party
 from smdebug.profiler.profiler_constants import (
@@ -14,7 +15,7 @@ from smdebug.profiler.profiler_constants import (
 
 # Local
 from .logger import get_logger
-from .utils import get_immediate_subdirectories, get_node_id
+from .utils import ensure_dir, get_immediate_subdirectories, get_node_id
 
 logger = get_logger()
 
@@ -139,6 +140,21 @@ class TraceFileLocation:
             + PYTHONTIMELINE_SUFFIX,
         )
         return file_path
+
+    @staticmethod
+    def get_detailed_profiling_log_dir(base_folder, framework, current_step):
+        current_time = datetime.today().strftime("%Y%m%d%H")
+        padded_start_step = str(current_step).zfill(9)
+        log_dir = os.path.join(
+            base_folder,
+            "framework",
+            framework,
+            "detailed_profiling",
+            current_time,
+            padded_start_step,
+        )
+        ensure_dir(log_dir, is_file=False)
+        return log_dir
 
 
 class IndexFileLocationUtils:
