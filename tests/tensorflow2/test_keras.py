@@ -677,6 +677,32 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
     assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
 
 
+@pytest.mark.skip  # skip until aws tf update
+def test_save_gradients(out_dir, tf_eager_mode):
+    # explicitly save INPUTS and OUTPUTS
+    include_collections = [CollectionKeys.GRADIENTS]
+    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+
+    helper_keras_fit(
+        trial_dir=out_dir,
+        hook=hook,
+        eager=tf_eager_mode,
+        steps=["train", "eval", "predict", "train"],
+    )
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+
+    for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
+        output = trial.tensor(tname)
+        assert tname in ["y", "y_pred"]
+        assert output.value(0) is not None
+    # Check the shape of output tensors
+    assert trial.tensor("y").value(0).shape[1] == 1  # label
+    assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
+
+
 def test_save_custom_tensors(out_dir, tf_eager_mode):
     include_collections = ["custom_coll"]
     hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)

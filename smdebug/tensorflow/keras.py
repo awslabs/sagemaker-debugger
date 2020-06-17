@@ -405,18 +405,25 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         model_input_tensor_id = 0
 
         for key in logs:
+            tensors_to_save = []
             if key in ModelOutputs.union(ModelInputs).union({"smdebug_gradients"}):
                 collections_to_save = self._get_collections_to_save_for_step()
                 if key in ModelOutputs:
                     key_collection = self.get_collection(CollectionKeys.OUTPUTS)
                     export_name = get_model_output_export_name(key)
+                    tensors_to_save.append((export_name, logs[key]))
                 elif key == "smdebug_gradients":
                     key_collection = self.get_collection(CollectionKeys.GRADIENTS)
-                    # save gradient here
+                    gradients = logs[key]
+                    for g, v in zip(gradients, self.model.trainable_variables):
+                        layer = v.name.split(":")[0]
+                        export_name = "gradients/" + layer + "Grad"
+                        tensors_to_save.append((export_name, g))
                 else:
                     key_collection = self.get_collection(CollectionKeys.INPUTS)
                     export_name = get_model_input_export_name(model_input_tensor_id)
                     model_input_tensor_id += 1
+                    tensors_to_save.append((export_name, logs[key]))
 
                 if key_collection in collections_to_save:
                     collections_to_write = {key_collection}
@@ -424,8 +431,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         if match_inc(export_name, collection.include_regex):
                             collections_to_write.add(collection)
                     self._initialize_writers(only_initialize_if_missing=True)
-                    tensor_value = logs[key]
-                    self._save_tensor(export_name, tensor_value, collections_to_write)
+                    for t_name, t_value in tensors_to_save:
+                        self._save_tensor(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
