@@ -6,12 +6,16 @@ from datetime import datetime
 import horovod.tensorflow.keras as hvd
 import tensorflow.compat.v2 as tf
 
-# Horovod: pin GPU to be used to process local rank (one GPU per process)
-gpus = tf.config.experimental.list_physical_devices("GPU")
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-if gpus:
-    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 def get_data(batch_size):
@@ -49,7 +53,10 @@ def train(model, dataset, epoch):
     # Horovod: Specify `experimental_run_tf_function=False` to ensure TensorFlow
     # uses hvd.DistributedOptimizer() to compute gradients.
     model.compile(
-        loss=tf.losses.SparseCategoricalCrossentropy(), optimizer=opt, metrics=["accuracy"]
+        loss=tf.losses.SparseCategoricalCrossentropy(),
+        optimizer=opt,
+        metrics=["accuracy"],
+        experimental_run_tf_function=False,
     )
 
     # Create a TensorBoard callback
@@ -76,7 +83,7 @@ def train(model, dataset, epoch):
     ]
     # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
     if hvd.rank() == 0:
-        callbacks.append(tf.keras.callbacks.ModelCheckpoint("chkpnts/checkpoint-{epoch}.h5"))
+        callbacks.append(tf.keras.callbacks.ModelCheckpoint("checkpoint-{epoch}.h5"))
 
     # Horovod: write logs on worker 0.
     verbose = 1 if hvd.rank() == 0 else 0
@@ -95,18 +102,25 @@ def train(model, dataset, epoch):
 if __name__ == "__main__":
     # Training settings
     parser = argparse.ArgumentParser(description="Tensorflow2 MNIST Example")
-    parser.add_argument(
-        "--epochs", type=int, default=1, metavar="N", help="number of epochs to train (default: 1)"
-    )
-    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--use_only_cpu", type=str2bool, default=False)
+    parser.add_argument("--num_epochs", type=int, default=1, help="Number of epochs to train for")
+    parser.add_argument("--model_dir", type=str, default="/tmp/mnist_model")
 
     args = parser.parse_args()
 
     # constants
     lr = 0.001
+    batch_size = 64
 
     # Horovod: initialize library.
     hvd.init()
+
+    # Horovod: pin GPU to be used to process local rank (one GPU per process)
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    if gpus:
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
 
     # Horovod: adjust learning rate based on number of GPUs.
     opt = tf.optimizers.Adam(lr * hvd.size())
@@ -114,7 +128,7 @@ if __name__ == "__main__":
     # Horovod: add Horovod DistributedOptimizer.
     opt = hvd.DistributedOptimizer(opt)
 
-    dataset = get_data(args.batch_size)
+    dataset = get_data(batch_size)
     mnist_model = get_model()
 
-    train(model=mnist_model, dataset=dataset, epoch=args.epoch)
+    train(model=mnist_model, dataset=dataset, epoch=args.num_epochs)
