@@ -180,10 +180,10 @@ class _TimelineLoggerThread(threading.Thread):
         self.tensor_table = collections.defaultdict(int)
         self.continuous_fail_count = 0
         self.is_first = True
-        self.last_event_end_time = int(round(base_start_time))
-        self.last_file_close_time = self.last_event_end_time
+        self.last_event_end_time_in_us = int(round(base_start_time))
+        self.last_file_close_time_in_us = self.last_event_end_time_in_us
         self.cur_hour = datetime.utcfromtimestamp(
-            self.last_file_close_time / CONVERT_TO_MICROSECS
+            self.last_file_close_time_in_us / CONVERT_TO_MICROSECS
         ).hour
         self._healthy = True
         self._profiler_config_parser = profiler_config_parser
@@ -232,12 +232,12 @@ class _TimelineLoggerThread(threading.Thread):
         self.cur_hour = datetime.utcfromtimestamp(cur_event_end_time / CONVERT_TO_MICROSECS).hour
         return True
 
-    def _get_rotation_info(self, now):
+    def _get_rotation_info(self, now_in_us):
         file_size = self.file_size()
-        now = now / CONVERT_TO_MICROSECS
+        now = now_in_us / CONVERT_TO_MICROSECS  # convert to seconds
 
         # find the difference between the now and last file closed time (in seconds)
-        diff_in_seconds = int(round(now - (self.last_file_close_time / CONVERT_TO_MICROSECS)))
+        diff_in_seconds = int(round(now - (self.last_file_close_time_in_us / CONVERT_TO_MICROSECS)))
 
         now_datehour = datetime.utcfromtimestamp(now)
 
@@ -247,8 +247,8 @@ class _TimelineLoggerThread(threading.Thread):
 
         return file_size, diff_in_seconds, diff_in_hours
 
-    def _should_rotate_now(self, now):
-        file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now)
+    def _should_rotate_now(self, now_in_us):
+        file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now_in_us)
         rotation_policy = self._profiler_config_parser.config.trace_file.rotation_policy
 
         if diff_in_hours != 0:
@@ -274,19 +274,19 @@ class _TimelineLoggerThread(threading.Thread):
         Close file if file size exceeds $ENV_MAX_FILE_SIZE or folder was created more than
         $ENV_CLOSE_FILE_INTERVAL time duration.
         """
-        end_time_for_event = record.event_end_ts_micros
+        end_time_for_event_in_us = record.event_end_ts_micros
 
         # check if any of the rotation policies have been satisfied. close the existing
         # trace file and open a new one
         # policy 1: if file size exceeds specified max_size
         # policy 2: if same file has been written to for close_interval time
         # policy 3: if a write is being made in the next hour, create a new directory
-        if self._writer and self._should_rotate_now(end_time_for_event):
+        if self._writer and self._should_rotate_now(end_time_for_event_in_us):
             self.close()
 
         #  if file has not been created yet, create now
         if not self._writer:
-            file_opened = self.open(path=self.name(), cur_event_end_time=end_time_for_event)
+            file_opened = self.open(path=self.name(), cur_event_end_time=end_time_for_event_in_us)
             if not file_opened:
                 file_open_fail_threshold = (
                     self._profiler_config_parser.config.trace_file.file_open_fail_threshold
@@ -330,7 +330,7 @@ class _TimelineLoggerThread(threading.Thread):
         # write the trace event record
         position_and_length_of_record = self._writer.write(record.to_json() + ",\n")
         self.flush()
-        self.last_event_end_time = record.event_end_ts_micros
+        self.last_event_end_time_in_us = record.event_end_ts_micros
         return position_and_length_of_record
 
     def flush(self):
@@ -365,18 +365,18 @@ class _TimelineLoggerThread(threading.Thread):
                 # ensure that there's a directory for the new file name
                 new_file_name = TraceFileLocation().get_file_location(
                     base_dir=self._profiler_config_parser.config.local_path,
-                    timestamp=self.last_event_end_time,
+                    timestamp=self.last_event_end_time_in_us,
                 )
                 ensure_dir(new_file_name)
                 os.rename(self.name(), new_file_name)
 
             self._writer = None
-            self.last_file_close_time = time.time()
+            self.last_file_close_time_in_us = time.time() * CONVERT_TO_MICROSECS
 
     def name(self):
         return (
             self._profiler_config_parser.config.local_path
-            + "/"
+            + "/framework/"
             + self.node_id
             + SMDEBUG_TEMP_PATH_SUFFIX
         )

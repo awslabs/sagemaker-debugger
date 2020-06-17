@@ -34,6 +34,20 @@ def file_open_fail_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser()
 
 
+@pytest.fixture()
+def rotation_profiler_config_parser(config_folder, monkeypatch):
+    def _choose_config(rotation_policy=None):
+        nonlocal config_folder
+        nonlocal monkeypatch
+        config_path = os.path.join(
+            config_folder, rotation_policy + "_rotation_profiler_config_parser.json"
+        )
+        monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+        return ProfilerConfigParser()
+
+    return _choose_config
+
+
 def test_create_timeline_file(simple_profiler_config_parser, out_dir):
     """
     This test is meant to test successful creation of the timeline file according to file path specification.
@@ -176,22 +190,23 @@ def test_duration_events(simple_profiler_config_parser, out_dir):
 
 @pytest.mark.slow
 @pytest.mark.parametrize("policy", ["file_size", "file_interval"])
-def test_complete_policy(complete_profiler_config_parser, policy, out_dir):
+def test_rotation_policy(rotation_profiler_config_parser, policy, out_dir):
     """
     This test is meant to test if files are being closed and open correctly according to the 2 rotation policies -
     file_size -> close file if it exceeds certain size and open a new file
     file_interval -> close file if the file's folder was created before a certain time period and open a new file in a new folder
     :param policy: file_size or file_interval
     """
-    assert complete_profiler_config_parser.profiling_enabled
+    rotation_profiler_config = rotation_profiler_config_parser(policy)
+    assert rotation_profiler_config.profiling_enabled
 
-    timeline_writer = TimelineFileWriter(profiler_config_parser=complete_profiler_config_parser)
+    timeline_writer = TimelineFileWriter(profiler_config_parser=rotation_profiler_config)
     assert timeline_writer
 
-    for i in range(1, 5):
+    for i in range(1, 100):
         n = "event" + str(i)
         # adding a sleep here to trigger rotation policy
-        time.sleep(1)
+        time.sleep(0.05)
         timeline_writer.write_trace_events(
             training_phase=f"RotationPolicyTest_{policy}",
             op_name=n,
@@ -206,30 +221,50 @@ def test_complete_policy(complete_profiler_config_parser, policy, out_dir):
     for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
-    # rotate by file_size, gives 4 files - 1 per event
-    # rotate by file_interval, gives 2 files
-    assert len(files) >= 2
+    # check if files have been generated
+    assert files
 
     # count the number of event JSON strings. This is to ensure all events have been written.
     # also check if the timestamp of all events in a file are <= filename timestamp
     event_ctr = 0
     start_time_since_epoch = 0
+    file_details = []
     for file_name in files:
+        if policy == "file_size":
+            file_details.append(os.path.getsize(file_name))
+        else:
+            file_details.append(os.path.getmtime(file_name))
         path = file_name.name.split(DEFAULT_PREFIX)
         file_timestamp = int(path[0].split("_")[0])
+        num_events_in_file = 0
         with open(file_name) as timeline_file:
             events_dict = json.load(timeline_file)
             for e in events_dict:
                 if "args" in e and "start_time_since_epoch_in_micros" in e["args"]:
                     start_time_since_epoch = int(e["args"]["start_time_since_epoch_in_micros"])
                 if "event" in e["name"]:
+                    num_events_in_file += 1
                     event_ctr += 1
                     assert (
                         int(round(e["ts"] + start_time_since_epoch) / CONVERT_TO_MICROSECS)
                         <= file_timestamp
                     )
+            # if rotation occurs too often, there might be only 1 event per file
+            # the below assertion checks for this
+            assert num_events_in_file >= 2
 
-    assert event_ctr == 4
+    if policy == "file_size":
+        # assuming rotation max file size if 800 bytes, check if all the files are in the
+        # range +- 60 bytes
+        assert [pytest.approx(800, 60) == x for x in file_details]
+    else:
+        # assuming rotation file close interval is 0.5 seconds, check if the close time
+        # difference between consecutive files is at least 0.5 seconds
+        sorted(file_details)
+        res = [j - i for i, j in zip(file_details[:-1], file_details[1:])]
+        assert [x >= 0.5 for x in res]
+
+    assert event_ctr == 99
 
 
 @pytest.mark.parametrize("timezone", ["Europe/Dublin", "Australia/Melbourne", "US/Eastern"])
