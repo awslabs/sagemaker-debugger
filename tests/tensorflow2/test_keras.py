@@ -655,7 +655,7 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
 def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
     # explicitly save INPUTS and OUTPUTS
     include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
-    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections, save_all=True)
 
     helper_keras_fit(
         trial_dir=out_dir,
@@ -663,7 +663,6 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
         eager=tf_eager_mode,
         steps=["train", "eval", "predict", "train"],
     )
-
     trial = smd.create_trial(path=out_dir)
     assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
     assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2

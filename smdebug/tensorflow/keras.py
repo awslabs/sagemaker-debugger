@@ -398,18 +398,21 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 collection.set_tensor_ref(tensor_ref)
             self._save_for_tensor(tensor_name, t, check_before_write=False)
 
-    def _save_model_inputs_and_outputs(self, logs):
+    def _smdebug_logs(self, logs):
         if logs is None:
             return
 
         model_input_tensor_id = 0
 
         for key in logs:
-            if key in ModelOutputs.union(ModelInputs):
+            if key in ModelOutputs.union(ModelInputs).union({"smdebug_gradients"}):
                 collections_to_save = self._get_collections_to_save_for_step()
                 if key in ModelOutputs:
                     key_collection = self.get_collection(CollectionKeys.OUTPUTS)
                     export_name = get_model_output_export_name(key)
+                elif key == "smdebug_gradients":
+                    key_collection = self.get_collection(CollectionKeys.GRADIENTS)
+                    # save gradient here
                 else:
                     key_collection = self.get_collection(CollectionKeys.INPUTS)
                     export_name = get_model_input_export_name(model_input_tensor_id)
@@ -450,7 +453,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # some tensors available as value from within hook are saved here
         # weights, metrics
         self._save_metrics(batch, logs)
-        self._save_model_inputs_and_outputs(logs)
+        self._smdebug_logs(logs)
         self._save_custom_tensors_post_step()
 
         if is_tf_version_2x() and tf.executing_eagerly():
