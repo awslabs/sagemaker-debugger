@@ -690,7 +690,6 @@ def test_save_gradients(out_dir, tf_eager_mode):
         steps=["train", "eval", "predict", "train"],
     )
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
 
     for tname in trial.tensor_names(collection=CollectionKeys.GRADIENTS):
