@@ -415,10 +415,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 elif key == "smdebug_gradients":
                     key_collection = self.get_collection(CollectionKeys.GRADIENTS)
                     gradients = logs[key]
-                    for g, v in zip(gradients, self.model.trainable_variables):
-                        layer = v.name.split(":")[0]
-                        export_name = "gradients/" + layer + "Grad"
-                        tensors_to_save.append((export_name, g))
+                    if gradients is not None:
+                        for g, v in zip(gradients, self.model.trainable_variables):
+                            layer = v.name.split(":")[0]
+                            export_name = "gradients/" + layer + "Grad"
+                            tensors_to_save.append((export_name, g))
                 else:
                     key_collection = self.get_collection(CollectionKeys.INPUTS)
                     export_name = get_model_input_export_name(model_input_tensor_id)
