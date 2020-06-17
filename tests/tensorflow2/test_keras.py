@@ -655,7 +655,7 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
 def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
     # explicitly save INPUTS and OUTPUTS
     include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
-    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections, save_all=True)
+    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
 
     helper_keras_fit(
         trial_dir=out_dir,
@@ -690,17 +690,12 @@ def test_save_gradients(out_dir, tf_eager_mode):
         steps=["train", "eval", "predict", "train"],
     )
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 4
+    assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
 
-    for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
+    for tname in trial.tensor_names(collection=CollectionKeys.GRADIENTS):
         output = trial.tensor(tname)
-        assert tname in ["y", "y_pred"]
         assert output.value(0) is not None
-    # Check the shape of output tensors
-    assert trial.tensor("y").value(0).shape[1] == 1  # label
-    assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
 
 
 def test_save_custom_tensors(out_dir, tf_eager_mode):
