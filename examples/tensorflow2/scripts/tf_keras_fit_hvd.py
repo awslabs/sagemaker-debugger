@@ -1,3 +1,15 @@
+"""
+This script is a simple MNIST training script which uses Horovod and Tensorflow 2.x Keras interface.
+It is designed to be used with SageMaker Debugger in an official SageMaker Framework container (i.e. AWS Deep Learning Container).
+You will notice that this script looks exactly like a normal TensorFlow training script.
+The hook needed by SageMaker Debugger to save tensors during training will be automatically added in those environments.
+The hook will load configuration from json configuration that SageMaker will put in the training container from the
+configuration provided using the SageMaker python SDK when creating a job.
+For more information, please refer to https://github.com/awslabs/sagemaker-debugger/blob/master/docs/sagemaker.md
+
+This script has been adapted from an example in Horovod repository https://github.com/uber/horovod
+"""
+
 # Standard Library
 import argparse
 from datetime import datetime
