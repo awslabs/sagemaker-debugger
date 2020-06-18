@@ -36,7 +36,7 @@ def get_data(batch_size):
 def get_model():
     mnist_model = tf.keras.Sequential(
         [
-            tf.keras.layers.Conv2D(32, [3, 3], activation="relu"),
+            tf.keras.layers.Conv2D(32, [3, 3], activation="relu", input_shape=(28, 28, 1)),
             tf.keras.layers.Conv2D(64, [3, 3], activation="relu"),
             tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
             tf.keras.layers.Dropout(0.25),
