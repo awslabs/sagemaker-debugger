@@ -2,6 +2,7 @@
 # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/$FILEEVENTSTARTTIMEUTCINEPOCH_{
 # $ENV_NODE_ID_4digits0padded}_model_timeline.json
 DEFAULT_PREFIX = "framework/pevents"
+DEFAULT_SYSTEM_PROFILER_PREFIX = "system"
 TRACE_DIRECTORY_FORMAT = "%Y%m%d%H"
 PYTHONTIMELINE_SUFFIX = "pythontimeline.json"
 MODELTIMELINE_SUFFIX = "model_timeline.json"

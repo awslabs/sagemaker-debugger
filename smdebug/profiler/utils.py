@@ -41,6 +41,17 @@ def convert_utc_timestamp_to_microseconds(timestamp, unit=TimeUnits.MICROSECONDS
         return timestamp / 1000
 
 
+def convert_utc_timestamp_to_seconds(timestamp, unit=TimeUnits.MICROSECONDS):
+    if unit == TimeUnits.SECONDS:
+        return int(timestamp)
+    if unit == TimeUnits.MILLISECONDS:
+        return int(timestamp / 1000)
+    if unit == TimeUnits.MICROSECONDS:
+        return int(timestamp / 1000 / 1000)
+    if unit == TimeUnits.NANOSECONDS:
+        return timestamp / 1000 / 1000 / 1000
+
+
 """
 The function assumes that the object of datetime is provided.
 """

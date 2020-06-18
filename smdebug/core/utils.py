@@ -416,6 +416,20 @@ def get_node_id_from_tracefilename(filename: str) -> str:
     return filename.split("_")[1] if is_valid_tracefilename(filename) else ""
 
 
+def get_node_id_from_system_profiler_filename(filename: str) -> str:
+    """
+    The system metric has a file name format:
+    /profiler-output/system/incremental/{$TIMESTAMP}.${NODE_ID}.json
+    Example: /profiler-output/system/incremental/2020060500/1591160699.algo-1.json
+
+    The function extracts and returns the {$NODE_ID} from file.
+    """
+    if validate_system_profiler_file(filename):
+        filename = filename.split("/")[-1]
+        return filename.split(".")[1]
+    return None
+
+
 def get_timestamp_from_tracefilename(filename) -> int:
     """
     The tracefile has a file name format:
@@ -428,3 +442,26 @@ def get_timestamp_from_tracefilename(filename) -> int:
     """
     filename = filename.split("/")[-1]
     return int(filename.split("_")[0] if is_valid_tracefilename(filename) else "0")
+
+
+def get_utctimestamp_us_since_epoch_from_system_profiler_file(filename) -> int:
+    """
+    The system metric file has a file name format:
+    <training job name>/profiler-output/system/incremental/<timestamp of full minute>.<algo-n>.json
+    Example: /profiler-output/system/incremental/2020060500/1591160699.algo-1.json
+
+    The function extracts and returns the <timestamp of full minute> in microseconds from filename.
+    """
+    if validate_system_profiler_file(filename):
+        filename = filename.split("/")[-1]
+        return int(filename.split(".")[0]) * 1000 * 1000
+    return None
+
+
+def validate_system_profiler_file(filename) -> bool:
+    filename_regex = re.compile(".+/system/.+/(\d{10}).algo-\d+.json")
+    stamp = re.match(filename_regex, filename)
+    if stamp is None:
+        logger.debug(f"Invalid System Profiler File Found: {filename}, not able to get timestamp.")
+        return False
+    return True
