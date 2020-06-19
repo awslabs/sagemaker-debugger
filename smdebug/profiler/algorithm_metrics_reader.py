@@ -6,8 +6,7 @@ import os
 
 # First Party
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler, is_s3
-from smdebug.core.utils import get_node_id_from_tracefilename, get_timestamp_from_tracefilename
-from smdebug.profiler.MetricsReaderBase import MetricsReaderBase
+from smdebug.profiler.metrics_reader_base import MetricsReaderBase
 from smdebug.profiler.profiler_constants import (
     DEFAULT_PREFIX,
     ENV_TIME_BUFFER,
@@ -22,18 +21,24 @@ from smdebug.profiler.tf_profiler_parser import (
     SMProfilerEvents,
     TensorboardProfilerEvents,
 )
+from smdebug.profiler.utils import get_node_id_from_tracefilename, get_timestamp_from_tracefilename
 
 
 class AlgorithmMetricsReader(MetricsReaderBase):
-    def __init__(self):
-        super().__init__()
+    # cache the fetched events in memory
+    # if you have enough available memory subsequent fetch will be faster
+    # if there is not enough memory, use use_in_memory_cache to use S3 or disk as cache
+    def __init__(self, use_in_memory_cache=False):
+        super().__init__(use_in_memory_cache)
         self.prefix = DEFAULT_PREFIX
         self._SMEventsParser = SMProfilerEvents()
         self._TBEventsParser = TensorboardProfilerEvents()
         self._HorovordEventsParser = HorovodProfilerEvents()
-
-    def _get_all_event_parsers(self):
-        return [self._SMEventsParser, self._TBEventsParser, self._HorovordEventsParser]
+        self._event_parsers = [
+            self._SMEventsParser,
+            self._TBEventsParser,
+            self._HorovordEventsParser,
+        ]
 
     """
     The following function returns the time range for which the tracefiles are currently available in S3 or local
@@ -132,9 +137,9 @@ class LocalAlgorithmMetricsReader(AlgorithmMetricsReader):
     The metrics reader is created with root folder in which the tracefiles are stored.
     """
 
-    def __init__(self, trace_root_folder):
+    def __init__(self, trace_root_folder, use_in_memory_cache=False):
         self.trace_root_folder = trace_root_folder
-        super().__init__()
+        super().__init__(use_in_memory_cache)
         # Pre-build the file list so that user can query get_timestamp_of_latest_available_file() and get_current_time_range_for_event_query
         self.refresh_event_file_list()
 
@@ -155,8 +160,8 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
     s3://my_bucket/experiment_base_folder
     """
 
-    def __init__(self, s3_trial_path):
-        super().__init__()
+    def __init__(self, s3_trial_path, use_in_memory_cache=False):
+        super().__init__(use_in_memory_cache)
         s3, bucket_name, base_folder = is_s3(s3_trial_path)
         if not s3:
             self.logger.error(

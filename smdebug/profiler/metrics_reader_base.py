@@ -13,8 +13,10 @@ from smdebug.profiler.utils import TimeUnits, convert_utc_timestamp_to_microseco
 
 
 class MetricsReaderBase:
-    def __init__(self):
+    def __init__(self, use_in_memory_cache=False):
         self.logger = get_logger("smdebug-profiler")
+
+        self._event_parsers = []
 
         # This is a list of timestamp -> [event_file] mapping
         self._timestamp_to_filename = dict()
@@ -29,6 +31,10 @@ class MetricsReaderBase:
 
         self._startAfter_prefix = ""
         self.prefix = ""
+        self._cache_events_in_memory = use_in_memory_cache
+
+    def get_all_event_parsers(self):
+        return self._event_parsers
 
     """
     The function returns the timestamp of last available file.
@@ -54,9 +60,6 @@ class MetricsReaderBase:
         pass
 
     def _get_event_parser(self, filename):
-        pass
-
-    def _get_all_event_parsers(self):
         pass
 
     def _get_event_file_regex(self):
@@ -99,9 +102,9 @@ class MetricsReaderBase:
         we will get the events from the relevant event parsers and merge them before returning.
         """
         result = []
-        event_parses = self._get_all_event_parsers()
+        event_parsers = self.get_all_event_parsers()
         # Not all event parsers support event_type as input, only system_profiler_file_parser accepts it
-        for eventParser in event_parses:
+        for eventParser in event_parsers:
             if event_type is not None:
                 result.extend(
                     eventParser.get_events_within_time_range(
@@ -114,6 +117,11 @@ class MetricsReaderBase:
                         start_time, end_time, TimeUnits.MICROSECONDS
                     )
                 )
+                if not self._cache_events_in_memory:
+                    # clear eventParser events
+                    eventParser.clear_events()
+                    # cleanup parsed files set to force the reading of files again
+                    self._parsed_files = set()
 
         return result
 

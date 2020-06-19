@@ -19,13 +19,7 @@ from smdebug.core.json_config import (
     get_json_config_as_dict,
 )
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import (
-    SagemakerSimulator,
-    get_node_id_from_system_profiler_filename,
-    get_utctimestamp_us_since_epoch_from_system_profiler_file,
-    is_first_process,
-    is_s3,
-)
+from smdebug.core.utils import SagemakerSimulator, is_first_process, is_s3
 
 
 def test_normal():
@@ -206,19 +200,3 @@ def helper_test_is_first_process(dir):
         p.join()
 
     assert results.count(True) == 1, f"Failed for path: {path}"
-
-
-def test_get_node_id_from_system_profiler_filename():
-    filename = "job-name/profiler-output/system/incremental/2020060500/1591160699.algo-1.json"
-    node_id = get_node_id_from_system_profiler_filename(filename)
-    assert node_id == "algo-1"
-
-
-def test_get_utctimestamp_us_since_epoch_from_system_profiler_file():
-    filename = "job-name/profiler-output/system/incremental/2020060500/1591160699.algo-1.json"
-    timestamp = get_utctimestamp_us_since_epoch_from_system_profiler_file(filename)
-    assert timestamp == 1591160699000000
-
-    filename = "job-name/profiler-output/system/incremental/2020060500/1591160699.lgo-1.json"
-    timestamp = get_utctimestamp_us_since_epoch_from_system_profiler_file(filename)
-    assert timestamp is None

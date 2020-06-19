@@ -6,24 +6,22 @@ import os
 
 # First Party
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler, is_s3
-from smdebug.core.utils import get_utctimestamp_us_since_epoch_from_system_profiler_file
-from smdebug.profiler.MetricsReaderBase import MetricsReaderBase
+from smdebug.profiler.metrics_reader_base import MetricsReaderBase
 from smdebug.profiler.profiler_constants import (
     DEFAULT_SYSTEM_PROFILER_PREFIX,
     ENV_TIME_BUFFER,
     TIME_BUFFER_DEFAULT,
 )
 from smdebug.profiler.system_profiler_file_parser import ProfilerSystemEvents
+from smdebug.profiler.utils import get_utctimestamp_us_since_epoch_from_system_profiler_file
 
 
 class SystemMetricsReader(MetricsReaderBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, use_in_memory_cache=False):
+        super().__init__(use_in_memory_cache)
         self.prefix = DEFAULT_SYSTEM_PROFILER_PREFIX
         self._SystemProfilerEventParser = ProfilerSystemEvents()
-
-    def _get_all_event_parsers(self):
-        return [self._SystemProfilerEventParser]
+        self._event_parsers = [self._SystemProfilerEventParser]
 
     """
     Return the profiler system event files that were written during the given range. If use_buffer is True, we will consider adding a
@@ -103,9 +101,9 @@ class LocalSystemMetricsReader(SystemMetricsReader):
     The metrics reader is created with root folder in which the system event files are stored.
     """
 
-    def __init__(self, trace_root_folder):
+    def __init__(self, trace_root_folder, use_in_memory_cache=False):
         self.trace_root_folder = trace_root_folder
-        super().__init__()
+        super().__init__(use_in_memory_cache)
         # Pre-build the file list so that user can query get_timestamp_of_latest_available_file()
         # and get_current_time_range_for_event_query
         self.refresh_event_file_list()
@@ -127,8 +125,8 @@ class S3SystemMetricsReader(SystemMetricsReader):
     s3://my_bucket/experiment_base_folder
     """
 
-    def __init__(self, s3_trial_path):
-        super().__init__()
+    def __init__(self, s3_trial_path, use_in_memory_cache=False):
+        super().__init__(use_in_memory_cache)
         s3, bucket_name, base_folder = is_s3(s3_trial_path)
         if not s3:
             self.logger.error(

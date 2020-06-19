@@ -1,10 +1,14 @@
 # First Party
-from smdebug.profiler.SystemMetricsReader import LocalSystemMetricsReader, S3SystemMetricsReader
+# Third Party
+import pytest
+
+from smdebug.profiler.system_metrics_reader import LocalSystemMetricsReader, S3SystemMetricsReader
 from smdebug.profiler.utils import TimeUnits
 
 
-def test_SystemLocalMetricsReader(metricfolder="./tests/profiler/test_traces"):
-    lt = LocalSystemMetricsReader(metricfolder)
+@pytest.mark.parametrize("use_in_memory_cache", [True, False])
+def test_SystemLocalMetricsReader(use_in_memory_cache, metricfolder="./tests/profiler/test_traces"):
+    lt = LocalSystemMetricsReader(metricfolder, use_in_memory_cache=use_in_memory_cache)
     events = lt.get_events(1591100000, 1692300000, unit=TimeUnits.SECONDS)
 
     print(f"Number of events {len(events)}")
@@ -26,9 +30,10 @@ def test_SystemLocalMetricsReader(metricfolder="./tests/profiler/test_traces"):
     assert len(events) == 32
 
 
-def test_SystemS3MetricsReaser():
+@pytest.mark.parametrize("use_in_memory_cache", [True, False])
+def test_SystemS3MetricsReader(use_in_memory_cache):
     bucket_name = "s3://smdebug-testing/resources/trainingjob_name/profiler-output"
-    tt = S3SystemMetricsReader(bucket_name)
+    tt = S3SystemMetricsReader(bucket_name, use_in_memory_cache=use_in_memory_cache)
     events = tt.get_events(1591100000, 1692300000, unit=TimeUnits.SECONDS)
 
     print(f"Number of events {len(events)}")
@@ -45,9 +50,10 @@ def test_SystemS3MetricsReaser():
     assert len(events) == 10
 
 
-def test_SystemS3MetricsReaser_2():
+@pytest.mark.parametrize("use_in_memory_cache", [True, False])
+def test_SystemS3MetricsReader_2(use_in_memory_cache):
     bucket_name = "s3://smdebug-testing/resources/trainingjob_name2/profiler-output"
-    tt = S3SystemMetricsReader(bucket_name)
+    tt = S3SystemMetricsReader(bucket_name, use_in_memory_cache=use_in_memory_cache)
     events = tt.get_events(1591748000, 1591749000, unit=TimeUnits.SECONDS)
 
     print(f"Number of events {len(events)}")
@@ -75,9 +81,10 @@ def test_SystemS3MetricsReaser_2():
     assert len(events) == 64
 
 
-def test_SystemS3MetricsReader_updateStartAfterPrefix():
+@pytest.mark.parametrize("use_in_memory_cache", [True, False])
+def test_SystemS3MetricsReader_updateStartAfterPrefix(use_in_memory_cache):
     bucket_name = "s3://smdebug-testing/resources/trainingjob_name/profiler-output"
-    tt = S3SystemMetricsReader(bucket_name)
+    tt = S3SystemMetricsReader(bucket_name, use_in_memory_cache=use_in_memory_cache)
     tt.get_events(1591100000, 1692300000, unit=TimeUnits.SECONDS)
     print(f"Start after prefix is {tt._startAfter_prefix}")
     assert (

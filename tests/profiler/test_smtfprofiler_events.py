@@ -2,9 +2,8 @@
 # Standard Library
 from datetime import datetime
 
-from smdebug.core.utils import get_node_id_from_tracefilename
 from smdebug.profiler import SMProfilerEvents
-from smdebug.profiler.utils import TimeUnits
+from smdebug.profiler.utils import TimeUnits, get_node_id_from_tracefilename
 
 
 def test_smprofiler_events(

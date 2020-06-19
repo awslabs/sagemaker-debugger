@@ -4,8 +4,11 @@ import datetime
 import json
 
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import get_node_id_from_tracefilename
-from smdebug.profiler.utils import TimeUnits, convert_utc_timestamp_to_nanoseconds
+from smdebug.profiler.utils import (
+    TimeUnits,
+    convert_utc_timestamp_to_nanoseconds,
+    get_node_id_from_tracefilename,
+)
 
 
 class ThreadInfo:
@@ -42,7 +45,7 @@ class TraceEvent:
 class TraceEventParser:
     def __init__(self):
         self._processes = dict()
-        self._trace_events = list()
+        self._trace_events = []
         """
         The _pid_stacks maintain the directory of stacks indexed using pid. The stack contains 'B' type events.
         The stack will be popped as we process the 'E' events for the same pid.
@@ -219,3 +222,6 @@ class TraceEventParser:
     # TODO
     def get_events_for_thread(self, tid, start_time, end_time):
         pass
+
+    def clear_events(self):
+        self._trace_events = []
