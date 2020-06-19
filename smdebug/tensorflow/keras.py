@@ -9,13 +9,14 @@ from tensorflow.python.distribute import values
 from smdebug.core.modes import ModeKeys, str_to_mode_keys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
+from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
 # Local
 from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
+from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
-    ModelInputs,
     ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
@@ -62,6 +63,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._fetches_added = set()
         self.callable_cache = CallableCache()
         self.custom_tensors_to_save = dict()
+        self.saved_layers = dict()
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -262,12 +264,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         return get_distributed_model(self.model, get_keras_mode(mode))
 
-    def _is_input_layer(self, mode, layer_inputs):
-        model_inputs = []
+    def _get_model(self, mode):
         if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             model = self._get_distributed_model(mode)
         else:
             model = self.model
+        return model
+
+    def _is_input_layer(self, mode, layer_inputs):
+        model_inputs = []
+        model = self._get_model(mode)
         # when in mirrored strategy
         if hasattr(model, "values"):
             for per_replica_model in model.values:
@@ -278,10 +284,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _is_output_layer(self, mode, layer_outputs):
         model_outputs = []
-        if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
-            model = self._get_distributed_model(mode)
-        else:
-            model = self.model
+        model = self._get_model(mode)
         # when in mirrored strategy
         if hasattr(model, "values"):
             for per_replica_model in model.values:
@@ -375,15 +378,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_to_collections[metric_name] = {coll}
 
     def save_custom_tensor(self, tensor_name, tensor_value, collections_to_write):
-        self.custom_tensors_to_save[tensor_name] = (tensor_value, collections_to_write)
+        for collection in collections_to_write:
+            self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
     def _save_custom_tensors_post_step(self):
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
-            collections = [self.get_collection(c) for c in collection_names]
-            self._save_tensor(tensor_name, tensor_value, collections)
+            self._save_tensor(tensor_name, tensor_value, collection_names)
 
     def _save_tensor(self, tensor_name, tensor_value, collections_to_write):
+        if isinstance(collections_to_write, set) is False:
+            collections_to_write = {collections_to_write}
+        collections_to_save = self._get_collections_to_save_for_step()
+        for collection in collections_to_save:
+            if match_inc(tensor_name, collection.include_regex):
+                collections_to_write.add(collection)
+        self._initialize_writers(only_initialize_if_missing=True)
         tensor_refs = []
         if isinstance(tensor_value, values.PerReplica):
             for t in tensor_value._values:
@@ -405,33 +415,50 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         model_input_tensor_id = 0
 
         for key in logs:
-            tensors_to_save = []
-            if key in ModelOutputs.union(ModelInputs).union({"smdebug_gradients"}):
-                collections_to_save = self._get_collections_to_save_for_step()
+            if "smdebug_" in key:
                 if key in ModelOutputs:
-                    key_collection = self.get_collection(CollectionKeys.OUTPUTS)
+                    tensors_to_save = []
                     export_name = get_model_output_export_name(key)
                     tensors_to_save.append((export_name, logs[key]))
-                elif key == "smdebug_gradients":
-                    key_collection = self.get_collection(CollectionKeys.GRADIENTS)
+                    collections_to_write = {self.get_collection(CollectionKeys.OUTPUTS)}
+                    for t_name, t_value in tensors_to_save:
+                        self._save_tensor(t_name, t_value, collections_to_write)
+                elif key == SMDEBUG_GRADIENTS_KEY:
+                    tensors_to_save = []
                     gradients = logs[key]
                     if gradients is not None:
                         for g, v in zip(gradients, self.model.trainable_variables):
                             layer = v.name.split(":")[0]
                             export_name = "gradients/" + layer + "Grad"
                             tensors_to_save.append((export_name, g))
+                        collections_to_write = {self.get_collection(CollectionKeys.GRADIENTS)}
+                        for t_name, t_value in tensors_to_save:
+                            self._save_tensor(t_name, t_value, collections_to_write)
+                elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
+                    layer_outputs = logs[key]
+                    if layer_outputs is not None:
+                        tensors_to_save = []
+                        collections_to_write = {self.get_collection(CollectionKeys.OUTPUTS)}
+                        # run the loop backwards to save layer outputs
+                        for o, l in zip(layer_outputs, self.model.layers):
+                            export_name = get_export_name_for_keras(l.name, "output")
+                            tensors_to_save.append((export_name, o))
+                        for t_name, t_value in tensors_to_save:
+                            self._save_tensor(t_name, t_value, collections_to_write)
+                        tensors_to_save = []
+                        collections_to_write = {self.get_collection(CollectionKeys.INPUTS)}
+                        # run the loop backwards to save layer inputs
+                        for i, l in zip(reversed(layer_outputs), reversed(self.model.layers)):
+                            export_name = get_export_name_for_keras(l.name, "input")
+                            tensors_to_save.append((export_name, i))
+                        for t_name, t_value in tensors_to_save:
+                            self._save_tensor(t_name, t_value, collections_to_write)
                 else:
-                    key_collection = self.get_collection(CollectionKeys.INPUTS)
+                    tensors_to_save = []
                     export_name = get_model_input_export_name(model_input_tensor_id)
                     model_input_tensor_id += 1
                     tensors_to_save.append((export_name, logs[key]))
-
-                if key_collection in collections_to_save:
-                    collections_to_write = {key_collection}
-                    for collection in collections_to_save:
-                        if match_inc(export_name, collection.include_regex):
-                            collections_to_write.add(collection)
-                    self._initialize_writers(only_initialize_if_missing=True)
+                    collections_to_write = {self.get_collection(CollectionKeys.INPUTS)}
                     for t_name, t_value in tensors_to_save:
                         self._save_tensor(t_name, t_value, collections_to_write)
 
@@ -444,9 +471,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             logs["batch"] = batch
             for key in logs:
-                if key in {"loss", "val_loss", "outputs", "smdebug_gradients"}.union(
-                    ModelOutputs
-                ).union(ModelInputs):
+                if key in {"loss", "val_loss", "outputs"} or "smdebug_" in key:
                     # outputs is saved differently through outputs collection
                     continue
                 self._add_metric(metric_name=key)
@@ -459,11 +484,30 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._add_metric(metric_name=key)
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
+    def _save_layer_input_and_outputs(self):
+        if self.model.run_eagerly is False:
+            # This function only works when the run_eagerly is True
+            return
+        for layer_name in self.saved_layers:
+            # Save Input
+            tensor = self.saved_layers[layer_name].layer_input
+            export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
+            self._save_tensor(
+                export_name, tensor.numpy(), self.get_collection(CollectionKeys.INPUTS)
+            )
+            # Save Output
+            tensor = self.saved_layers[layer_name].layer_output
+            export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
+            self._save_tensor(
+                export_name, tensor.numpy(), self.get_collection(CollectionKeys.OUTPUTS)
+            )
+
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
         # weights, metrics
         self._save_metrics(batch, logs)
         self._smdebug_logs(logs)
+        self._save_layer_input_and_outputs()
         self._save_custom_tensors_post_step()
 
         if is_tf_version_2x() and tf.executing_eagerly():
@@ -578,6 +622,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_predict_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
+    def _wrap_model_with_input_output_saver(self):
+        for layer in self.model.layers:
+            layer._hooks = []
+            layer.call = get_layer_call_fn(layer)
+            layer.register_hook = lambda hook: layer._hooks.append(hook)
+            saver = InputOutputSaver()
+            layer.register_hook(saver)
+            self.saved_layers[layer.name] = saver
+
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
             return
@@ -600,6 +653,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
+                self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepared_tensors[mode] = True
