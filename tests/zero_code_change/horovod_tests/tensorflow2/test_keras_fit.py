@@ -1,5 +1,6 @@
 # First Party
 # Third Party
+from tests.tensorflow2.utils import is_tf_2_2
 from tests.zero_code_change.horovod_tests.constants import (
     HOROVOD_KERAS_TEST_SCRIPT_ARGS,
     HOROVOD_TF2_TEST_MNIST_SCRIPT,
@@ -30,7 +31,7 @@ def basic_test(out_dir, mode):
     tr = create_trial(out_dir)
     print(tr.tensor_names())
     assert len(tr.workers()) == 1
-    assert len(tr.tensor_names()) == 14
+    assert len(tr.tensor_names()) == (13 if is_tf_2_2() else 14)
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
 
 
@@ -59,7 +60,7 @@ def mode_allworkers(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) == 14
+    assert len(tr.tensor_names()) == (13 if is_tf_2_2() else 14)
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
 
 
@@ -91,7 +92,7 @@ def mode_allworkers_saveall(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) == 18
+    assert len(tr.tensor_names()) == (17 if is_tf_2_2() else 18)
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
     assert len(tr.tensor("loss").workers(0)) == num_workers
 
