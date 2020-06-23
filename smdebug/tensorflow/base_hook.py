@@ -282,7 +282,10 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 # else is for metrics in Keras
-                worker = tensor_ref.tf_obj.device if tensor_ref.tf_obj is not None else "CPU"
+                if tensor_ref is not None and tensor_ref.tf_obj is not None:
+                    worker = tensor_ref.tf_obj.device
+                else:
+                    worker = "CPU"
                 # if device str is empty or cpu in worker
                 if not bool(worker) or "CPU" in worker:
                     if self.save_all_workers:
@@ -524,6 +527,8 @@ class TensorflowBaseHook(BaseHook):
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        if hasattr(tensor_value, "numpy"):
+            tensor_value = tensor_value.numpy()
         return get_numpy_reduction(reduction_name, tensor_value, abs)
 
     def add_to_collection(self, collection_name, variable):

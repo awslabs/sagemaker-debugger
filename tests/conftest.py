@@ -6,6 +6,7 @@ For CI, we will always run the full test suite.
 
 # Standard Library
 import shutil
+import sys
 
 # Third Party
 import pytest
@@ -87,3 +88,10 @@ def skip_if_non_eager(request):
     if request.node.get_closest_marker("skip_if_non_eager"):
         if request.config.getoption("--non-eager"):
             pytest.skip("Skipping because this test cannot be executed in non-eager mode")
+
+
+@pytest.fixture(autouse=True)
+def skip_if_py37(request):
+    if request.node.get_closest_marker("skip_if_py37"):
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 7:
+            pytest.skip("Skipping because this test cannot be executed with Python 3.7+")
