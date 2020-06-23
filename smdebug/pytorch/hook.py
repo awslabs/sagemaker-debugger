@@ -1,4 +1,5 @@
 # Standard Library
+import time
 
 # Third Party
 import torch
@@ -8,6 +9,7 @@ import torch.distributed as dist
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
@@ -53,6 +55,13 @@ class Hook(CallbackHook):
         self.has_registered_loss_module = False
         self.worker = self._get_worker_name()
         set_hook(self)
+
+        self.autograd_profiler_enabled = False
+        self.profiler = (
+            torch.autograd.ProfilerState.CUDA
+            if torch.cuda.is_available()
+            else torch.autograd.ProfilerState.CPU
+        )
 
     def _get_num_workers(self):
         """Check horovod and torch.distributed."""
@@ -118,6 +127,38 @@ class Hook(CallbackHook):
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
+        if self.profiler_config_parser.can_start_detailed_profiling(self.step):
+            if not self.autograd_profiler_enabled:
+                torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
+                self.autograd_profiler_enabled = True
+                self.start_profiler = time.time() * CONVERT_TO_MICROSECS
+        else:
+            if self.autograd_profiler_enabled:
+                records = torch.autograd._disable_profiler()
+                self.function_events = torch.autograd.profiler.EventList(
+                    torch.autograd.profiler.parse_cpu_trace(records), use_cuda=True
+                )
+                for index, event in enumerate(self.function_events):
+                    self.record_trace_events(
+                        phase="X",
+                        op_name=event.name,
+                        timestamp=(event.cpu_interval.start + self.start_profiler)
+                        / float(CONVERT_TO_MICROSECS),
+                        duration=event.cpu_interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
+                        tid=event.thread,
+                        step_num=self.step,
+                    )
+                for k in event.kernels:
+                    self.record_trace_events(
+                        op_name=k.name,
+                        phase="X",
+                        timestamp=(k.interval.start + self.start_profiler)
+                        / float(CONVERT_TO_MICROSECS),
+                        duration=k.interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
+                        tid=k.device,
+                        step_num=self.step,
+                    )
+                self.autograd_profiler_enabled = False
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
             self._close_writers()
