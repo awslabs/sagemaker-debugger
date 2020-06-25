@@ -527,6 +527,8 @@ class TensorflowBaseHook(BaseHook):
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        if hasattr(tensor_value, "numpy"):
+            tensor_value = tensor_value.numpy()
         return get_numpy_reduction(reduction_name, tensor_value, abs)
 
     def add_to_collection(self, collection_name, variable):
