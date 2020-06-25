@@ -7,7 +7,7 @@ from smdebug.profiler.utils import TimeUnits, get_node_id_from_tracefilename
 
 
 def test_smprofiler_events(
-    trace_file="./tests/profiler/1589314018481947000_1234-testhost_model_timeline.json"
+    trace_file="./tests/profiler/resources/1589314018481947000_1234-testhost_model_timeline.json"
 ):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")

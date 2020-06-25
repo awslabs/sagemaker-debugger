@@ -3,7 +3,9 @@ from smdebug.profiler import TensorboardProfilerEvents
 from smdebug.profiler.utils import TimeUnits
 
 
-def test_tensorboardprofiler_events(trace_file="./tests/profiler/ip-172-31-19-241.trace.json"):
+def test_tensorboardprofiler_events(
+    trace_file="./tests/profiler/resources/ip-172-31-19-241.trace.json"
+):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")
     t_events = TensorboardProfilerEvents()

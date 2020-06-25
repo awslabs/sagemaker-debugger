@@ -7,7 +7,9 @@ from smdebug.profiler.utils import TimeUnits
 
 
 @pytest.mark.parametrize("use_in_memory_cache", [True, False])
-def test_SystemLocalMetricsReader(use_in_memory_cache, metricfolder="./tests/profiler/test_traces"):
+def test_SystemLocalMetricsReader(
+    use_in_memory_cache, metricfolder="./tests/profiler/resources/test_traces"
+):
     lt = LocalSystemMetricsReader(metricfolder, use_in_memory_cache=use_in_memory_cache)
     events = lt.get_events(1591100000, 1692300000, unit=TimeUnits.SECONDS)
 

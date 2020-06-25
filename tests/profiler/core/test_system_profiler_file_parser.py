@@ -3,7 +3,7 @@ from smdebug.profiler.system_profiler_file_parser import ProfilerSystemEvents
 from smdebug.profiler.utils import TimeUnits
 
 
-def test_profiler_system_events(file_path="./tests/profiler/1591160699.algo-1.json"):
+def test_profiler_system_events(file_path="./tests/profiler/resources/1591160699.algo-1.json"):
     event_json_file = file_path
     print(f"Reading the profiler system event file {event_json_file}")
     events = ProfilerSystemEvents()

@@ -4,7 +4,7 @@ import os
 
 # Third Party
 import pytest
-from tests.profiler.profiler_config_parser_utils import (
+from tests.profiler.resources.profiler_config_parser_utils import (
     current_step,
     current_time,
     detailed_profiling_test_cases,

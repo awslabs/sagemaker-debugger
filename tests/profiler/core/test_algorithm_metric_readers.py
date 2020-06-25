@@ -18,7 +18,9 @@ def test_S3MetricsReader(use_in_memory_cache):
 
 
 @pytest.mark.parametrize("use_in_memory_cache", [True, False])
-def test_LocalMetricsReader(use_in_memory_cache, tracefolder="./tests/profiler/test_traces"):
+def test_LocalMetricsReader(
+    use_in_memory_cache, tracefolder="./tests/profiler/resources/test_traces"
+):
     lt = LocalAlgorithmMetricsReader(tracefolder, use_in_memory_cache=use_in_memory_cache)
     events = lt.get_events(1589930980, 1589930995, unit=TimeUnits.SECONDS)
     print(f"Number of events {len(events)}")
@@ -27,7 +29,7 @@ def test_LocalMetricsReader(use_in_memory_cache, tracefolder="./tests/profiler/t
 
 @pytest.mark.parametrize("use_in_memory_cache", [True, False])
 def test_LocalMetricsReader_Model_timeline(
-    use_in_memory_cache, tracefolder="./tests/profiler/model_timeline_traces"
+    use_in_memory_cache, tracefolder="./tests/profiler/resources/model_timeline_traces"
 ):
     lt = LocalAlgorithmMetricsReader(tracefolder, use_in_memory_cache=use_in_memory_cache)
     events = lt.get_events(1590461127873222, 1590461139949971)

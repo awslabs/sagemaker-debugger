@@ -2,7 +2,9 @@
 from smdebug.profiler import HorovodProfilerEvents
 
 
-def test_horovodprofiler_events(trace_file="./tests/profiler/horovod_timeline_small.json"):
+def test_horovodprofiler_events(
+    trace_file="./tests/profiler/resources/horovod_timeline_small.json"
+):
     trace_json_file = trace_file
     print(f"Reading the trace file {trace_json_file}")
     t_events = HorovodProfilerEvents()
