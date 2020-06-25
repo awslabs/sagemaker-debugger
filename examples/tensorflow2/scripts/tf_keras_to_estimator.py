@@ -9,49 +9,39 @@ When you want to run this script in SageMaker, it is recommended to create the h
 import argparse
 
 # Third Party
-import numpy as np
 import tensorflow.compat.v2 as tf
+import tensorflow_datasets as tfds
 from tensorflow.keras.applications.resnet50 import ResNet50
-from tensorflow.keras.datasets import cifar10
-from tensorflow.keras.utils import to_categorical
 
 # First Party
 import smdebug.tensorflow as smd
 
 
 def train(classifier, batch_size, epoch, model, hook):
-    (X_train, y_train), (X_valid, y_valid) = cifar10.load_data()
+    def input_fn(training=True):
+        datasets, info = tfds.load(name="cifar10", with_info=True, as_supervised=True)
+        cifar10_train, cifar10_test = datasets["train"], datasets["test"]
 
-    Y_train = to_categorical(y_train, 10)
-    Y_valid = to_categorical(y_valid, 10)
+        def scale(image, label):
+            image = tf.cast(image, tf.float32)
+            image /= 255.0
 
-    X_train = X_train.astype("float32")
-    X_valid = X_valid.astype("float32")
+            return image, label
 
-    mean_image = np.mean(X_train, axis=0)
-    X_train -= mean_image
-    X_valid -= mean_image
-    X_train /= 128.0
-    X_valid /= 128.0
-
-    train_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": X_train}, y=Y_train, batch_size=batch_size, num_epochs=epoch, shuffle=True
-    )
-
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": X_valid}, y=Y_valid, num_epochs=epoch, shuffle=False
-    )
+        data = cifar10_test.map(scale)
+        if training:
+            data = cifar10_train.map(scale).shuffle(10000).repeat()
+        return data.batch(batch_size)
 
     # save_scalar() API can be used to save arbitrary scalar values that may
     # or may not be related to training.
     # Ref: https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api
     hook.save_scalar("epoch", epoch, sm_metric=True)
 
-    # tf.estimator.train_and_evaluate(classifier, train_input_fn, eval_input_fn)
     hook.set_mode(mode=smd.modes.TRAIN)
-    classifier.train(input_fn=train_input_fn, hooks=[hook])
+    classifier.train(input_fn=lambda: input_fn(training=True), steps=25, hooks=[hook])
     hook.set_mode(mode=smd.modes.EVAL)
-    classifier.evaluate(input_fn=eval_input_fn, hooks=[hook])
+    classifier.evaluate(input_fn=lambda: input_fn(training=False), hooks=[hook])
 
     hook.save_scalar("batch_size", batch_size, sm_metric=True)
 
@@ -70,7 +60,8 @@ def main():
 
     ##### Enabling SageMaker Debugger ###########
     # wrap the optimizer so the hook can identify the gradients
-    model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"])
+    loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
+    model.compile(loss=loss, optimizer=optimizer, metrics=["accuracy"])
 
     ##### Enabling SageMaker Debugger ###########
     # creating hook
@@ -82,9 +73,7 @@ def main():
     )
 
     # Create the Estimator
-    classifier = tf.keras.estimator.model_to_estimator(
-        keras_model=model, model_dir=opt.model_dir
-    )
+    classifier = tf.keras.estimator.model_to_estimator(keras_model=model, model_dir=opt.model_dir)
 
     # start the training.
     train(classifier, opt.batch_size, opt.epoch, model, hook)
