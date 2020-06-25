@@ -716,6 +716,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # at this point we need all collections to be ready
                 # this may not be the case at creation of hook
                 # as user's code after hook might add collections
+                self.collection_manager.get(CollectionKeys.WEIGHTS).include(
+                    "^weights/.*/((?!bias).)*$"
+                )
+                self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
+                self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
                 self._prepare_collections()
                 self.prepared_collections = True
 
