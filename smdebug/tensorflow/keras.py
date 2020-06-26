@@ -381,7 +381,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for collection in collections_to_write:
             self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
-    def _save_custom_tensors_pos_save_custom_tensors_post_stept_step(self):
+    def _save_custom_tensors_post_step(self):
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             self._save_tensor(tensor_name, tensor_value, collection_names)
