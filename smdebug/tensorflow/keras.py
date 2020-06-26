@@ -495,7 +495,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             input_collection = (
                 {self.get_collection(CollectionKeys.OUTPUTS)}
                 if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
-                else {}
+                else set()
             )
             self._save_tensor(export_name, tensor.numpy(), input_collection)
             # Save Output
@@ -505,7 +505,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             output_collection = (
                 {self.get_collection(CollectionKeys.OUTPUTS)}
                 if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
-                else {}
+                else set()
             )
             self._save_tensor(export_name, tensor.numpy(), output_collection)
 
