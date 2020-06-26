@@ -493,7 +493,7 @@ def test_include_regex(out_dir, tf_eager_mode):
     hook = smd.KerasHook(
         out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
     )
-    hook.get_collection("custom_coll").include("dense")
+    hook.get_collection("custom_coll").include("dense_1")
     helper_keras_fit(
         out_dir,
         hook=hook,
