@@ -411,6 +411,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _smdebug_logs(self, logs):
         if logs is None:
             return
+        if is_tf_version_2x() is False or tf.executing_eagerly() is False:
+            return
 
         model_input_tensor_id = 0
 

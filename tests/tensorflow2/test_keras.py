@@ -413,7 +413,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (13 if is_tf_2_2() else 14)
+            assert len(trial.tensor_names()) == (21 if is_tf_2_2() else 22)
+            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
+            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -705,7 +707,7 @@ def test_save_gradients(out_dir, tf_eager_mode):
         assert output.value(0) is not None
 
 
-@pytest.mark.parametrize("tf_eager_mode", [True, False])
+@pytest.mark.skip_if_non_eager
 def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
     # explicitly save INPUTS and OUTPUTS
     include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
