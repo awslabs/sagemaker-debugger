@@ -492,7 +492,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self, grad_tape=False):
-        if is_tf_version_2x() is False or (self.model.run_eagerly is False and grad_tape is False):
+        if is_tf_version_2x() is False or (grad_tape is False and self.model.run_eagerly is False):
             # This function only works when the run_eagerly is True
             return
         for layer_name in self.saved_layers:
