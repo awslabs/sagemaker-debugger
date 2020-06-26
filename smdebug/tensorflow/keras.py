@@ -410,7 +410,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 collection.set_tensor_ref(tensor_ref)
             self._save_for_tensor(tensor_name, t, check_before_write=False)
 
-    def _smdebug_logs(self, logs):
+    def save_smdebug_logs(self, logs):
         if logs is None:
             return
 
@@ -515,7 +515,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # some tensors available as value from within hook are saved here
         # weights, metrics
         self._save_metrics(batch, logs)
-        self._smdebug_logs(logs)
+        self.save_smdebug_logs(logs)
         self._save_layer_input_and_outputs()
         self._save_custom_tensors_post_step()
 
