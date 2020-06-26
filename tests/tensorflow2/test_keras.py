@@ -493,7 +493,7 @@ def test_include_regex(out_dir, tf_eager_mode):
     hook = smd.KerasHook(
         out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
     )
-    hook.get_collection("custom_coll").include("dense_1")
+    hook.get_collection("custom_coll").include("dense")
     helper_keras_fit(
         out_dir,
         hook=hook,
@@ -506,7 +506,7 @@ def test_include_regex(out_dir, tf_eager_mode):
     tnames = tr.tensor_names(collection="custom_coll")
 
     if tf_eager_mode:
-        assert len(tnames) == 4
+        assert len(tnames) == 8
     else:
         assert len(tnames) == 8
     for tname in tnames:
@@ -572,7 +572,6 @@ def test_include_collections(out_dir, tf_eager_mode):
         CollectionKeys.BIASES,
         CollectionKeys.GRADIENTS,
         CollectionKeys.LOSSES,
-        CollectionKeys.OUTPUTS,
         CollectionKeys.METRICS,
         CollectionKeys.OPTIMIZER_VARIABLES,
         "custom_optimizer_variables",
@@ -655,10 +654,12 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
 
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+    assert len(trial.tensor_names()) == (20 if is_tf_2_2() else 21)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
 
 
 @pytest.mark.skip  # skip until aws tf update
@@ -716,7 +717,7 @@ def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
-        eager=tf_eager_mode,
+        run_eagerly=tf_eager_mode,
         steps=["train", "eval", "predict", "train"],
     )
     trial = smd.create_trial(path=out_dir)
