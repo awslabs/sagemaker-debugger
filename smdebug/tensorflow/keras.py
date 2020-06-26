@@ -4,6 +4,7 @@ import functools
 # Third Party
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
+from tensorflow.python.framework.indexed_slices import IndexedSlices
 
 # First Party
 from smdebug.core.modes import ModeKeys, str_to_mode_keys
@@ -433,30 +434,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         for g, v in zip(gradients, self.model.trainable_variables):
                             layer = v.name.split(":")[0]
                             export_name = "gradients/" + layer + "Grad"
+                            if isinstance(g, IndexedSlices):
+                                # This class is a simple wrapper for a pair of Tensor objects
+                                # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
+                                g = g.values
                             tensors_to_save.append((export_name, g))
                         collections_to_write = {self.get_collection(CollectionKeys.GRADIENTS)}
                         for t_name, t_value in tensors_to_save:
                             self._save_tensor(t_name, t_value, collections_to_write)
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
                     layer_outputs = logs[key]
-                    if layer_outputs is not None:
-                        tensors_to_save = []
-                        collections_to_write = {self.get_collection(CollectionKeys.OUTPUTS)}
-                        # run the loop forwards to save layer outputs
-                        for o, l in zip(layer_outputs, self.model.layers):
-                            export_name = get_export_name_for_keras(l.name, "output")
-                            tensors_to_save.append((export_name, o))
-                        for t_name, t_value in tensors_to_save:
-                            self._save_tensor(t_name, t_value, collections_to_write)
-                        tensors_to_save = []
-                        collections_to_write = {self.get_collection(CollectionKeys.INPUTS)}
-                        # run the loop backwards to save layer inputs
-                        modified_layer_outputs = [logs[ModelInput.X]] + layer_outputs
-                        for i, l in zip(modified_layer_outputs, self.model.layers):
-                            export_name = get_export_name_for_keras(l.name, "input")
-                            tensors_to_save.append((export_name, i))
-                        for t_name, t_value in tensors_to_save:
-                            self._save_tensor(t_name, t_value, collections_to_write)
+                    self.save_layer_outputs(layer_outputs)
+                    self.save_layer_inputs(logs[ModelInput.X], layer_outputs)
                 else:
                     tensors_to_save = []
                     export_name = get_model_input_export_name(model_input_tensor_id)
@@ -693,6 +682,33 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
+
+    def _save_layer_values(self, layer_outputs, collection, model=None, inputs=None):
+        if model is None:
+            if self.model:
+                model = self.model
+            else:
+                return
+        if layer_outputs is not None:
+            tensors_to_save = []
+            collections_to_write = {collection}
+            tensor_suffix = "output"
+            if inputs is not None:
+                layer_outputs = [inputs] + layer_outputs
+                tensor_suffix = "input"
+            for o, l in zip(layer_outputs, model.layers):
+                export_name = get_export_name_for_keras(l.name, tensor_suffix)
+                tensors_to_save.append((export_name, o))
+            for t_name, t_value in tensors_to_save:
+                self._save_tensor(t_name, t_value, collections_to_write)
+
+    def save_layer_outputs(self, layer_outputs, model=None):
+        self._save_layer_values(layer_outputs, self.get_collection(CollectionKeys.OUTPUTS), model)
+
+    def save_layer_inputs(self, x, layer_outputs, model=None):
+        self._save_layer_values(
+            layer_outputs, self.get_collection(CollectionKeys.INPUTS), model, inputs=x
+        )
 
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
