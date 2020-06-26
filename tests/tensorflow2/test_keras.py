@@ -708,37 +708,6 @@ def test_save_gradients(out_dir, tf_eager_mode):
         assert output.value(0) is not None
 
 
-@pytest.mark.skip_if_non_eager
-def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
-    # explicitly save INPUTS and OUTPUTS
-    include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
-    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
-
-    helper_keras_fit(
-        trial_dir=out_dir,
-        hook=hook,
-        run_eagerly=tf_eager_mode,
-        steps=["train", "eval", "predict", "train"],
-    )
-    trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
-
-    # Check that output of layer is equal to the input of the next
-    boolean_matrix = trial.tensor("flatten/outputs").value(0) == trial.tensor("dense/inputs").value(
-        0
-    )
-    assert boolean_matrix.all()
-    boolean_matrix = trial.tensor("dense/outputs").value(0) == trial.tensor("dropout/inputs").value(
-        0
-    )
-    assert boolean_matrix.all()
-    boolean_matrix = trial.tensor("dropout/outputs").value(0) == trial.tensor(
-        "dense_1/inputs"
-    ).value(0)
-    assert boolean_matrix.all()
-
-
 def test_save_custom_tensors(out_dir, tf_eager_mode):
     include_collections = ["custom_coll"]
     hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
@@ -803,3 +772,34 @@ def test_keras_to_estimator(out_dir, tf_eager_mode):
     assert len(tr.steps()) == 2
     assert len(tr.steps(smd.modes.TRAIN)) == 1
     assert len(tr.steps(smd.modes.EVAL)) == 1
+
+
+@pytest.mark.skip_if_non_eager
+def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
+    # explicitly save INPUTS and OUTPUTS
+    include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
+    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+
+    helper_keras_fit(
+        trial_dir=out_dir,
+        hook=hook,
+        run_eagerly=tf_eager_mode,
+        steps=["train", "eval", "predict", "train"],
+    )
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
+
+    # Check that output of layer is equal to the input of the next
+    boolean_matrix = trial.tensor("flatten/outputs").value(0) == trial.tensor("dense/inputs").value(
+        0
+    )
+    assert boolean_matrix.all()
+    boolean_matrix = trial.tensor("dense/outputs").value(0) == trial.tensor("dropout/inputs").value(
+        0
+    )
+    assert boolean_matrix.all()
+    boolean_matrix = trial.tensor("dropout/outputs").value(0) == trial.tensor(
+        "dense_1/inputs"
+    ).value(0)
+    assert boolean_matrix.all()
