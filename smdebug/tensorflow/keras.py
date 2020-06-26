@@ -17,6 +17,7 @@ from .collection import CollectionKeys
 from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
+    ModelInput,
     ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
@@ -441,7 +442,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     if layer_outputs is not None:
                         tensors_to_save = []
                         collections_to_write = {self.get_collection(CollectionKeys.OUTPUTS)}
-                        # run the loop backwards to save layer outputs
+                        # run the loop forwards to save layer outputs
                         for o, l in zip(layer_outputs, self.model.layers):
                             export_name = get_export_name_for_keras(l.name, "output")
                             tensors_to_save.append((export_name, o))
@@ -450,7 +451,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         tensors_to_save = []
                         collections_to_write = {self.get_collection(CollectionKeys.INPUTS)}
                         # run the loop backwards to save layer inputs
-                        for i, l in zip(reversed(layer_outputs), reversed(self.model.layers)):
+                        modified_layer_outputs = [logs[ModelInput.X]] + layer_outputs
+                        for i, l in zip(modified_layer_outputs, self.model.layers):
                             export_name = get_export_name_for_keras(l.name, "input")
                             tensors_to_save.append((export_name, i))
                         for t_name, t_value in tensors_to_save:
