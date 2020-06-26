@@ -326,7 +326,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
-    def _prepare_non_layer_tensors(self):
+    def _prepare_tensors_available_post_step(self):
         # for gradients, optimizer_variables
         custom_collections, _ = self._get_custom_and_default_collections()
         for coll in [
@@ -664,7 +664,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ):
                 self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
-                self._prepare_non_layer_tensors()
+                self._prepare_tensors_available_post_step()
                 self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
                 # so we know that device map is populated
@@ -721,7 +721,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x() and tf.executing_eagerly():
             # Need to prepare non layer tensors again since
             # some tensors only become available on  batch end
-            self._prepare_non_layer_tensors()
+            self._prepare_tensors_available_post_step()
             self._write_optimizer_variables()
 
         if self._prepared_tensors[mode]:
