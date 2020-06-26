@@ -411,8 +411,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _smdebug_logs(self, logs):
         if logs is None:
             return
-        if is_tf_version_2x() is False or tf.executing_eagerly() is False:
-            return
 
         model_input_tensor_id = 0
 
@@ -494,15 +492,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # Save Input
             tensor = self.saved_layers[layer_name].layer_input
             export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
-            self._save_tensor(
-                export_name, tensor.numpy(), self.get_collection(CollectionKeys.INPUTS)
+            input_collection = (
+                {self.get_collection(CollectionKeys.OUTPUTS)}
+                if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
+                else {}
             )
+            self._save_tensor(export_name, tensor.numpy(), input_collection)
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
-            self._save_tensor(
-                export_name, tensor.numpy(), self.get_collection(CollectionKeys.OUTPUTS)
+            self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+            output_collection = (
+                {self.get_collection(CollectionKeys.OUTPUTS)}
+                if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+                else {}
             )
+            self._save_tensor(export_name, tensor.numpy(), output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here

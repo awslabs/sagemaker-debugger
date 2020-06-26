@@ -440,7 +440,7 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
     for tname in trial.tensor_names():
-        assert trial.tensor(tname).value(0) is not None
+        assert trial.tensor(tname).value(1) is not None
 
 
 @pytest.mark.slow
