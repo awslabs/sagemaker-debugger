@@ -74,6 +74,7 @@ def helper_keras_gradtape(
 
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
+    hook.register_model(model)  # Can be skipped in ZCC
 
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
@@ -87,8 +88,6 @@ def helper_keras_gradtape(
                 logits, layer_outputs = model(data, training=True, layer_outputs=True)
                 loss_value = cce(labels, logits)
             grads = tape.gradient(loss_value, model.variables)
-            hook.save_layer_outputs(layer_outputs, model)
-            hook.save_layer_inputs(data, layer_outputs, model)
 
             # By default, the resources held by a GradientTape are released as
             # soon as GradientTape.gradient() method is called. To compute

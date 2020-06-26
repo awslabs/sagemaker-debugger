@@ -66,6 +66,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.callable_cache = CallableCache()
         self.custom_tensors_to_save = dict()
         self.saved_layers = dict()
+        self.has_registered_model = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -108,6 +109,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         mode = str_to_mode_keys(mode)
         mode_step = self.mode_steps[mode]
         return self.save_config.should_save_step(mode, mode_step)
+
+    def register_model(self, model):
+        self.model = model
+        self._wrap_model_with_input_output_saver()
+        self.has_registered_model = True
 
     def _get_matching_collections(
         self, mode, tensor, tensor_type, ts_name, is_input_to_model=False, is_output_of_model=False
@@ -424,7 +430,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     tensors_to_save = []
                     export_name = get_model_output_export_name(key)
                     tensors_to_save.append((export_name, logs[key]))
-                    collections_to_write = {self.get_collection(CollectionKeys.OUTPUTS)}
+                    collections_to_write = (
+                        {self.get_collection(CollectionKeys.OUTPUTS)}
+                        if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+                        else set()
+                    )
                     for t_name, t_value in tensors_to_save:
                         self._save_tensor(t_name, t_value, collections_to_write)
                 elif key == SMDEBUG_GRADIENTS_KEY:
@@ -451,7 +461,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     export_name = get_model_input_export_name(model_input_tensor_id)
                     model_input_tensor_id += 1
                     tensors_to_save.append((export_name, logs[key]))
-                    collections_to_write = {self.get_collection(CollectionKeys.INPUTS)}
+                    collections_to_write = (
+                        {self.get_collection(CollectionKeys.OUTPUTS)}
+                        if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+                        else set()
+                    )
                     for t_name, t_value in tensors_to_save:
                         self._save_tensor(t_name, t_value, collections_to_write)
 
@@ -477,8 +491,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._add_metric(metric_name=key)
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
-    def _save_layer_input_and_outputs(self):
-        if is_tf_version_2x() is False or self.model.run_eagerly is False:
+    def _save_layer_input_and_outputs(self, grad_tape=False):
+        if is_tf_version_2x() is False or (self.model.run_eagerly is False and grad_tape is False):
             # This function only works when the run_eagerly is True
             return
         for layer_name in self.saved_layers:
@@ -623,6 +637,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
+        if self.has_registered_model:
+            return
         for layer in self.model.layers:
             layer._hooks = []
             layer.call = get_layer_call_fn(layer)
@@ -691,7 +707,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return
         if layer_outputs is not None:
             tensors_to_save = []
-            collections_to_write = {collection}
+            step_collections = self._get_collections_to_save_for_step()
+            collections_to_write = {collection} if collection in step_collections else set()
             tensor_suffix = "output"
             if inputs is not None:
                 layer_outputs = [inputs] + layer_outputs
@@ -933,9 +950,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         check_before_write=True,
                     )
 
+            self._write_optimizer_variables()
+            self._save_layer_input_and_outputs(grad_tape=True)
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
-            self._write_optimizer_variables()
             self._add_metric(metric_name="loss", metric_value=loss)
             if self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
                 self._initialize_writers(only_initialize_if_missing=True)
