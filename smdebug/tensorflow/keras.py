@@ -462,8 +462,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     model_input_tensor_id += 1
                     tensors_to_save.append((export_name, logs[key]))
                     collections_to_write = (
-                        {self.get_collection(CollectionKeys.OUTPUTS)}
-                        if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+                        {self.get_collection(CollectionKeys.INPUTS)}
+                        if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
                         else set()
                     )
                     for t_name, t_value in tensors_to_save:
