@@ -4,7 +4,7 @@ from bokeh.io import output_notebook, push_notebook, show
 from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure, show
 
-output_notebook()
+output_notebook(hide_banner=True)
 
 
 class StepHistogram:

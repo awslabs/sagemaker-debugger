@@ -12,7 +12,7 @@ from bokeh.plotting import figure, show
 # First Party
 from smdebug.profiler.utils import TimeUnits
 
-output_notebook()
+output_notebook(hide_banner=True)
 
 
 class TimelineCharts:

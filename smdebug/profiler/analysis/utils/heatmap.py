@@ -9,7 +9,7 @@ from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.models.glyphs import Image
 from bokeh.plotting import figure, show
 
-output_notebook()
+output_notebook(hide_banner=True)
 
 
 class Heatmap:
