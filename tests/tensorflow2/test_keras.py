@@ -774,7 +774,7 @@ def test_keras_to_estimator(out_dir, tf_eager_mode):
     assert len(tr.steps(smd.modes.EVAL)) == 1
 
 
-@pytest.mark.skip_if_non_eager
+@pytest.mark.skip
 def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
     # explicitly save INPUTS and OUTPUTS
     include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
@@ -783,7 +783,7 @@ def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
-        run_eagerly=tf_eager_mode,
+        eager=tf_eager_mode,
         steps=["train", "eval", "predict", "train"],
     )
     trial = smd.create_trial(path=out_dir)
