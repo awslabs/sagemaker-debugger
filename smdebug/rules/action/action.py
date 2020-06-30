@@ -78,6 +78,6 @@ class Actions:
                     )
 
     def invoke(self):
-        self._logger.invoke("Invoking actions")
+        self._logger.info("Invoking actions")
         for action in self._actions:
             action.invoke()
