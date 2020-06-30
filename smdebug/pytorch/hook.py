@@ -1,4 +1,5 @@
 # Standard Library
+import os
 import time
 
 # Third Party
@@ -19,6 +20,27 @@ DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
 class Hook(CallbackHook):
+    """
+    The _TraceEventData is similar to a structure that contains the event data to be written in the event file.
+    It contains the following metadata:
+    training_phase such as "X", "M", "I" etc.
+    start time, duration and end time in microseconds
+    pid is the process id that wants to record this event.
+    and event arguments.
+    """
+
+    class _TraceEventData:
+        def __init__(self, phase, op_name, start_time, dur, pid, **kwargs):
+            self.training_phase = phase
+            self.end_time = start_time + dur
+            self.start_time = start_time
+            self.op_name = op_name
+            self.pid = pid
+            self.kwargs = kwargs
+
+        def update_end_time(self, end_time=time.time()):
+            self.end_time = end_time
+
     def __init__(
         self,
         out_dir=None,
@@ -62,13 +84,55 @@ class Hook(CallbackHook):
             self.hvd_reader = HvdTraceFileRotation(self.profiler_config_parser)
 
         set_hook(self)
-
+        self.parent_forward_event = None
+        self.parent_backward_event = None
+        self.forward_modules_profile_stats = []
+        self.backward_modules_profile_stats = []
         self.autograd_profiler_enabled = False
         self.profiler = (
             torch.autograd.ProfilerState.CUDA
             if torch.cuda.is_available()
             else torch.autograd.ProfilerState.CPU
         )
+
+    def log_trace_event(self, event):
+        self.record_trace_events(
+            training_phase=event.training_phase,
+            op_name=event.op_name,
+            phase="X",
+            timestamp=event.start_time,
+            duration=event.end_time - event.start_time,
+            **(event.kwargs),
+        )
+
+    def reset_forward_module_profile_stats(self):
+        self.parent_forward_event = None
+        self.forward_modules_profile_stats = []
+
+    def reset_backward_module_profile_stats(self):
+        self.parent_backward_event = None
+        self.backward_modules_profile_stats = []
+
+    def log_outstanding_timeline_metrics(self):
+        self.log_outstanding_forward_stats_and_reset()
+        self.log_outstanding_backward_stats_and_reset()
+
+    def log_outstanding_forward_stats_and_reset(self):
+        if self.parent_forward_event:
+            self.log_trace_event(self.parent_forward_event)
+
+        # we need to skip the last event for submodules because that is usually the parent event
+        # and already recorded above
+        for i in range(len(self.forward_modules_profile_stats) - 1):
+            event = self.log_trace_event(self.forward_modules_profile_stats[i])
+        self.reset_forward_module_profile_stats()
+
+    def log_outstanding_backward_stats_and_reset(self):
+        if self.parent_backward_event:
+            self.log_trace_event(self.parent_backward_event)
+        for i in range(len(self.backward_modules_profile_stats)):
+            event = self.log_trace_event(self.backward_modules_profile_stats[i])
+        self.reset_backward_module_profile_stats()
 
     def _get_num_workers(self):
         """Check horovod and torch.distributed."""
@@ -188,6 +252,22 @@ class Hook(CallbackHook):
             self.export_collections()
             self.exported_collections = True
 
+        ## prepararing for step metrics
+        # last operation can be forward( eval loop is running or multiple forward for example RNN can have multiple call to forward of module)
+        # or last operation can be backward (train backward loop just finished and we are at forward again)
+
+        # we will log all outstanding forward and backward events
+        self.log_outstanding_timeline_metrics()
+        self.parent_forward_event = self._TraceEventData(
+            phase="Forward",
+            op_name="Step:" + str(self.step),
+            start_time=time.time(),
+            dur=0,
+            pid=os.getpid(),
+            layer_name=module._module_name,
+            step_num=str(self.step),
+        )
+
     def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
         """Used for registering functional directly, such as F.mse_loss()."""
         assert isinstance(
@@ -198,6 +278,29 @@ class Hook(CallbackHook):
 
     # This hook is invoked by trainer after running the forward pass.
     def forward_hook(self, module, inputs, outputs):
+        # if this is first forward we will use start time of parent as start time, and end time as now
+        cur_time = time.time()
+        child_start_time = cur_time
+        if self.parent_forward_event is not None:
+            self.parent_forward_event.update_end_time(time.time())
+            # if this is first forward we will use start time of parent as start time, and end time as now
+            child_start_time = self.parent_forward_event.start_time
+
+        if len(self.forward_modules_profile_stats) > 0:
+            # this child start_time is approcximated as last child end time
+            child_start_time = self.forward_modules_profile_stats[-1].end_time
+
+        event = self._TraceEventData(
+            phase="Forward-SubModuleInternal",
+            op_name="Step:" + str(self.step),
+            start_time=child_start_time,
+            dur=cur_time - child_start_time,
+            pid=os.getpid(),
+            layer_name=module._module_name,
+            step_num=str(self.step),
+        )
+        self.forward_modules_profile_stats.append(event)
+
         if not self._get_collections_to_save_for_step():
             return
 
@@ -242,6 +345,49 @@ class Hook(CallbackHook):
         # for compatibility with ZCC patches which call this
         self.register_module(module)
 
+    def bhook(self, module, grad_input, grad_output):
+        now = time.time()
+        backward_st_time = now
+        if self.parent_forward_event is not None:
+            # note that we are approximating backward start_time here
+            backward_st_time = self.parent_forward_event.end_time
+            self.log_outstanding_forward_stats_and_reset()
+            # if this is first backward hook call, we will create backward event with start_Ts as last_forward_end_ts
+            if self.parent_backward_event is None:
+                self.parent_backward_event = self._TraceEventData(
+                    phase="Backward",
+                    op_name="Step:" + str(self.step),
+                    start_time=backward_st_time,
+                    dur=now - backward_st_time,
+                    pid=os.getpid(),
+                    layer_name=module._module_name,
+                    step_num=str(self.step),
+                )
+
+        if self.parent_backward_event:
+            self.parent_backward_event.update_end_time(now)
+
+        # if this is first forward we will use start time of parent as start time, and end time as now
+        if len(self.backward_modules_profile_stats) > 0:
+            # this child start_time is approcximated as last child end time
+            child_start_time = self.backward_modules_profile_stats[-1].end_time
+        else:
+            child_start_time = backward_st_time
+
+        event = self._TraceEventData(
+            phase="Backward-SubModuleInternal",
+            op_name=str(self.step),
+            start_time=child_start_time,
+            dur=now - child_start_time,
+            pid=os.getpid(),
+            layer_name=module._module_name,
+            step_num=str(self.step),
+        )
+        self.backward_modules_profile_stats.append(event)
+
+    def _closure_for_registering_backward_hook(self, module):
+        module.register_backward_hook(self.bhook)
+
     def register_module(self, module):
         """
         This function registers the forward hook. If user wants to register the hook
@@ -274,6 +420,7 @@ class Hook(CallbackHook):
 
         # Capture the gradient for each parameter in the net
         self._backward_apply(module)
+        module.apply(self._closure_for_registering_backward_hook)
 
         self.has_registered_module = True
 

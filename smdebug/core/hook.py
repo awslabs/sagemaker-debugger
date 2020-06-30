@@ -508,12 +508,15 @@ class BaseHook:
     def close(self):
         self._cleanup()
 
+    def log_outstanding_timeline_metrics(self):
+        pass
+
     def _cleanup(self):
         self._close_writers()
 
         if self.metrics_writer:
             self.metrics_writer.close()
-
+        self.log_outstanding_timeline_metrics()
         self.timeline_writer.close()
 
         # close the Horovod file reader thread if it has been enabled
