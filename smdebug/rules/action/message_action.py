@@ -62,6 +62,7 @@ class MessageAction:
                 ep = sub_dict["Endpoint"]
                 topic = sub_dict["TopicArn"]
                 if proto == protocol and topic == topic_arn and ep == endpoint:
+                    self._logger.info(f"Existing Subscription found: {sub_dict}")
                     return True
             if "NextToken" in subs:
                 next_token = subs["NextToken"]
