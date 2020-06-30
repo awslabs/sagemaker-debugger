@@ -19,7 +19,6 @@ class StopTrainingAction:
         self._sm_client = boto3.client("sagemaker", region_name=env_region_name)
         self._rule_name = rule_name
         self._found_jobs = self._get_sm_tj_jobs_with_prefix(training_job_prefix)
-        # TODO log debug topic arn , protocol, mesg endpoint
 
     def _get_sm_tj_jobs_with_prefix(self):
         found_jobs = []
