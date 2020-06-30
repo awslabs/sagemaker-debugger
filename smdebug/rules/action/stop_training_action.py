@@ -11,14 +11,14 @@ from smdebug.core.logger import get_logger
 class StopTrainingAction:
     def __init__(self, rule_name, training_job_prefix):
         self._training_job_prefix = training_job_prefix
-        env_region_name = os.environ["AWS_REGION"] or "us-east-1"
+        env_region_name = os.getenv("AWS_REGION", "us-east-1")
         self._logger = get_logger()
         self._logger.info(
             f"StopTrainingAction created with training_job_prefix:{training_job_prefix} and region:{env_region_name}"
         )
         self._sm_client = boto3.client("sagemaker", region_name=env_region_name)
         self._rule_name = rule_name
-        self._found_jobs = self._get_sm_tj_jobs_with_prefix(training_job_prefix)
+        self._found_jobs = self._get_sm_tj_jobs_with_prefix()
 
     def _get_sm_tj_jobs_with_prefix(self):
         found_jobs = []
@@ -57,4 +57,4 @@ class StopTrainingAction:
             self._logger.info(f"Got exception while stopping training job{self._found_jobs[0]}:{e}")
 
     def invoke(self, message=None):
-        self._stop_training_job(self._found_jobs)
+        self._stop_training_job()
