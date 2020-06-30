@@ -11,9 +11,12 @@ from smdebug.core.logger import get_logger
 class StopTrainingAction:
     def __init__(self, rule_name, training_job_prefix):
         self._training_job_prefix = training_job_prefix
-        env_region_name = os.environ["AWS_REGION"]
-        self._sm_client = boto3.client("sns", region_name=env_region_name)
+        env_region_name = os.environ["AWS_REGION"] or "us-east-1"
         self._logger = get_logger()
+        self._logger.info(
+            f"StopTrainingAction created with training_job_prefix:{training_job_prefix} and region:{env_region_name}"
+        )
+        self._sm_client = boto3.client("sagemaker", region_name=env_region_name)
         self._rule_name = rule_name
         self._found_jobs = self._get_sm_tj_jobs_with_prefix(training_job_prefix)
         # TODO log debug topic arn , protocol, mesg endpoint

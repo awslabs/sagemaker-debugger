@@ -25,12 +25,11 @@ class MessageAction:
         self._topic_arn = self._create_sns_topic_if_not_exists()
 
         self._subscribe_mesgtype_endpoint()
-        # TODO log debug topic arn , protocol, mesg endpoint
+        env_region_name = os.environ["AWS_REGION"] or "us-east-1"
         self._logger.info(
-            f"Registering MessageAction with protocol:{self._protocol} endpoint:{self._message_endpoint} and topic_arn:{self._topic_arn} "
+            f"Registering MessageAction with protocol:{self._protocol} endpoint:{self._message_endpoint} and topic_arn:{self._topic_arn} region:{env_region_name}"
         )
 
-        env_region_name = os.environ["AWS_REGION"]
         self._sns_client = boto3.client("sns", region_name=env_region_name)
         self._rule_name = rule_name
 
