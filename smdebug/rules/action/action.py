@@ -15,10 +15,11 @@ class Actions:
     def __init__(self, action_str="", rule_name=""):
         self._actions = []
         self._logger = get_logger()
-        if action_str is None:
+        action_str = action_str.strip() if action_str is not None else ""
+        if action_str == "":
             self._logger.info(f"No action specified. Action str is {action_str}")
             return
-        self._register_actions(action_str)
+        self._register_actions(action_str, rule_name)
 
     def _register_actions(self, action_str="", rule_name=""):
 
