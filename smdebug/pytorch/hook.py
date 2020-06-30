@@ -9,6 +9,7 @@ import torch.distributed as dist
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
+from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
@@ -54,6 +55,12 @@ class Hook(CallbackHook):
         self.has_registered_module = False
         self.has_registered_loss_module = False
         self.worker = self._get_worker_name()
+
+        # Only the chief worker will read the Horovod timeline file
+        # if HOROVOD_TIMELINE is a valid file and SM Profiler is enabled
+        if not self.hvd_reader and self.worker == self.chief_worker:
+            self.hvd_reader = HvdTraceFileRotation(self.profiler_config_parser)
+
         set_hook(self)
 
         self.autograd_profiler_enabled = False

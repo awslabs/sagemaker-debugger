@@ -7,7 +7,7 @@ TRACE_DIRECTORY_FORMAT = "%Y%m%d%H"
 PYTHONTIMELINE_SUFFIX = "pythontimeline.json"
 MODELTIMELINE_SUFFIX = "model_timeline.json"
 TENSORBOARDTIMELINE_SUFFIX = "tensorboard_timeline.json"
-HOROVODTIMELINE_PREFIX = "horovod_timeline.json"
+HOROVODTIMELINE_SUFFIX = "horovod_timeline.json"
 
 """
 When users query the events within certain time range, the value TIME BUFFER_SECONDS is used to extend the time range.

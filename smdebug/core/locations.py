@@ -120,7 +120,7 @@ class TraceFileLocation:
     # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/
     # $FILEEVENTENDTIMEUTCINEPOCH_{$ENV_NODE_ID}_model_timeline.json
     @staticmethod
-    def get_file_location(timestamp, base_dir):
+    def get_file_location(timestamp, base_dir, suffix=PYTHONTIMELINE_SUFFIX):
         env_base_location = base_dir
         date_hour = time.strftime(
             TRACE_DIRECTORY_FORMAT, time.gmtime(timestamp / CONVERT_TO_MICROSECS)
@@ -137,7 +137,7 @@ class TraceFileLocation:
             + "_"
             + worker_id
             + "_"
-            + PYTHONTIMELINE_SUFFIX,
+            + suffix,
         )
         return file_path
 

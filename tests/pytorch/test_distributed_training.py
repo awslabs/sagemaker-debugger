@@ -26,7 +26,7 @@ from torch.multiprocessing import Process
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX, HOROVODTIMELINE_SUFFIX
 from smdebug.trials import create_trial
 
 
@@ -235,3 +235,11 @@ def test_run_net_distributed_save_all_test_timeline(set_up_smprofiler_config_pat
             for e in events_dict:
                 if e["name"].startswith("event"):
                     assert int(e["ts"]) >= 0
+
+    # ensure that no horovod timeline files are written to when horovod is
+    # not used
+    files = []
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(f"*{HOROVODTIMELINE_SUFFIX}"):
+        files.append(path)
+
+    assert not files

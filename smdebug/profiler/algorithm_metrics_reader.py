@@ -10,7 +10,7 @@ from smdebug.profiler.metrics_reader_base import MetricsReaderBase
 from smdebug.profiler.profiler_constants import (
     DEFAULT_PREFIX,
     ENV_TIME_BUFFER,
-    HOROVODTIMELINE_PREFIX,
+    HOROVODTIMELINE_SUFFIX,
     MODELTIMELINE_SUFFIX,
     PYTHONTIMELINE_SUFFIX,
     TENSORBOARDTIMELINE_SUFFIX,
@@ -122,7 +122,7 @@ class AlgorithmMetricsReader(MetricsReaderBase):
             return self._SMEventsParser
         if TENSORBOARDTIMELINE_SUFFIX in filename:
             return self._TBEventsParser
-        if HOROVODTIMELINE_PREFIX in filename:
+        if HOROVODTIMELINE_SUFFIX in filename:
             return self._HorovordEventsParser
 
     def _get_timestamp_from_filename(self, event_file):

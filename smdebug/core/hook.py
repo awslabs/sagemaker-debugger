@@ -228,6 +228,7 @@ class BaseHook:
         self.timeline_writer = TimelineFileWriter(
             profiler_config_parser=self.profiler_config_parser
         )
+        self.hvd_reader = None
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
@@ -514,6 +515,10 @@ class BaseHook:
             self.metrics_writer.close()
 
         self.timeline_writer.close()
+
+        # close the Horovod file reader thread if it has been enabled
+        if self.hvd_reader and self.hvd_reader.enabled:
+            self.hvd_reader.close()
 
         training_has_ended(self.out_dir)
         if self.first_process is True:

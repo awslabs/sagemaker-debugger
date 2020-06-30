@@ -1,5 +1,5 @@
+# First Party
 # Standard Library
-
 import json
 import os
 from collections import defaultdict
@@ -7,31 +7,30 @@ from pathlib import Path
 
 # Third Party
 import pytest
-from tests.zero_code_change.horovod_tests.constants import HOROVOD_PYTORCH_TEST_MNIST_SCRIPT
+from tests.tensorflow2.utils import is_tf_2_2
+from tests.zero_code_change.horovod_tests.constants import (
+    HOROVOD_KERAS_TEST_SCRIPT_ARGS,
+    HOROVOD_TF2_TEST_MNIST_SCRIPT,
+)
+from tests.zero_code_change.horovod_tests.tf_utils import get_available_gpus
 from tests.zero_code_change.horovod_tests.utils import launch_horovod_job
 from tests.zero_code_change.utils import build_json
-from torch.cuda import device_count
 
-# First Party
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.profiler.profiler_constants import DEFAULT_PREFIX, HOROVODTIMELINE_SUFFIX
 from smdebug.trials import create_trial
 
-"""
-Tested on current DLAMI p3.8xlarge when run from the main directory
-"""
 
-HOROVOD_MNIST_SCRIPT_NAME = "horovod_mnist.py"
-
-
-def mode_one_worker(out_dir, mode):
-    path = build_json(out_dir, include_workers="one", include_collections=["weights", "gradients"])
-    num_workers = device_count()
-    mode_args = []
+def basic_test(out_dir, mode):
+    path = build_json(
+        out_dir, include_workers="one", include_collections=["weights", "optimizer_variables"]
+    )
+    num_workers = len(get_available_gpus())
+    mode_args = list(HOROVOD_KERAS_TEST_SCRIPT_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=HOROVOD_PYTORCH_TEST_MNIST_SCRIPT,
+        script_file_path=HOROVOD_TF2_TEST_MNIST_SCRIPT,
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -39,29 +38,30 @@ def mode_one_worker(out_dir, mode):
     )
 
     tr = create_trial(out_dir)
-    assert len(tr.workers()) == 1  # We expect only one worker because
-    # it has been configured so in HOROVOD_MNIST_SCRIPT_NAME
-    assert len(tr.tensor_names()) == 13
+    print(tr.tensor_names())
+    assert len(tr.workers()) == 1
+    assert len(tr.tensor_names()) == (13 if is_tf_2_2() else 14)
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
-    assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == 1
 
 
 def test_cpu(out_dir):
-    mode_one_worker(out_dir, "cpu")
+    basic_test(out_dir, "cpu")
 
 
 def test_gpu(out_dir):
-    mode_one_worker(out_dir, "gpu")
+    basic_test(out_dir, "gpu")
 
 
 def mode_allworkers(out_dir, mode):
-    path = build_json(out_dir, include_workers="all", include_collections=["weights", "gradients"])
-    num_workers = 1 if bool(device_count()) is False else device_count()
-    mode_args = []
+    path = build_json(
+        out_dir, include_workers="all", include_collections=["weights", "optimizer_variables"]
+    )
+    num_workers = len(get_available_gpus())
+    mode_args = list(HOROVOD_KERAS_TEST_SCRIPT_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=HOROVOD_PYTORCH_TEST_MNIST_SCRIPT,
+        script_file_path=HOROVOD_TF2_TEST_MNIST_SCRIPT,
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -69,7 +69,7 @@ def mode_allworkers(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) == 13
+    assert len(tr.tensor_names()) == (13 if is_tf_2_2() else 14)
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
 
 
@@ -82,13 +82,18 @@ def test_gpu_allworkers(out_dir):
 
 
 def mode_allworkers_saveall(out_dir, mode):
-    path = build_json(out_dir, include_workers="all", save_all=True)
-    num_workers = 1 if bool(device_count()) is False else device_count()
-    mode_args = []
+    path = build_json(
+        out_dir,
+        include_workers="all",
+        save_all=True,
+        include_collections=["weights", "optimizer_variables"],
+    )
+    num_workers = len(get_available_gpus())
+    mode_args = list(HOROVOD_KERAS_TEST_SCRIPT_ARGS) + ["--model_dir", out_dir]
     if mode == "cpu":
         mode_args += ["--use_only_cpu", "true"]
     launch_horovod_job(
-        script_file_path=HOROVOD_PYTORCH_TEST_MNIST_SCRIPT,
+        script_file_path=HOROVOD_TF2_TEST_MNIST_SCRIPT,
         script_args=mode_args,
         num_workers=num_workers,
         config_file_path=path,
@@ -96,9 +101,9 @@ def mode_allworkers_saveall(out_dir, mode):
     )
     tr = create_trial(out_dir)
     assert len(tr.workers()) == num_workers
-    assert len(tr.tensor_names()) > 25
+    assert len(tr.tensor_names()) == (17 if is_tf_2_2() else 18)
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
-    assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == num_workers
+    assert len(tr.tensor("loss").workers(0)) == num_workers
 
 
 def test_gpu_allworkers_saveall(out_dir):
@@ -115,13 +120,6 @@ HVD event file rotation tests
 
 
 @pytest.fixture
-def user_disabled_profiler_config_parser(config_folder, monkeypatch):
-    config_path = os.path.join(config_folder, "user_disabled_profile_config_parser.json")
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return ProfilerConfigParser()
-
-
-@pytest.fixture
 def hvd_rotation_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "hvd_rotation_profiler_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
@@ -129,16 +127,16 @@ def hvd_rotation_profiler_config_parser(config_folder, monkeypatch):
 
 
 @pytest.mark.parametrize("mode", ["cpu", "gpu"])
-@pytest.mark.parametrize("worker_function", [mode_one_worker, mode_allworkers])
+@pytest.mark.parametrize("worker_function", [basic_test, mode_allworkers])
 def test_mode_workers_event_file_rotation(
     out_dir, monkeypatch, hvd_rotation_profiler_config_parser, mode, worker_function
 ):
     """
-    This test is meant to verify the working of the Horovod trace file reader with
-    Horovod and PyTorch.
-    :param hvd_rotation_profiler_config_parser: Profiler Config Parser
-    :param mode: cpu or gpu
-    :param worker_function: one worker or all workers
+        This test is meant to verify the working of the Horovod trace file reader with
+        Horovod and Tensorflow 2.x.
+        :param hvd_rotation_profiler_config_parser: Profiler Config Parser
+        :param mode: cpu or gpu
+        :param worker_function: basic test (one worker) or all workers
     """
     # check if Profiler config has been parsed and is enabled
     assert hvd_rotation_profiler_config_parser.profiling_enabled
@@ -150,11 +148,11 @@ def test_mode_workers_event_file_rotation(
     # start the training job
     worker_function(out_dir, mode)
 
+    # check if files have been split
     files = []
     for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(f"*{HOROVODTIMELINE_SUFFIX}"):
         files.append(path)
 
-    # check if files have been split
     assert files
 
     # after the training completes, read the Horovod timeline file and make note of all
@@ -204,42 +202,3 @@ def test_mode_workers_event_file_rotation(
     # based on the time of rotation.
     for key in hvd_event_dict:
         assert len(rotated_event_dict[key]) >= len(hvd_event_dict[key])
-
-
-def test_event_file_rotation_profiler_disabled(
-    user_disabled_profiler_config_parser, out_dir, monkeypatch
-):
-    """
-    Test that timeline file rotation is disabled when profiler is disabled
-    """
-    assert not user_disabled_profiler_config_parser.profiling_enabled
-
-    hvd_file = out_dir + "/hvd_timeline.json"
-    monkeypatch.setenv("HOROVOD_TIMELINE", hvd_file)
-
-    # start training
-    mode_one_worker(out_dir, "gpu")
-
-    files = []
-    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(f"*{HOROVODTIMELINE_SUFFIX}"):
-        files.append(path)
-
-    # ensure that no horovod_timeline files have been generated
-    assert not files
-
-
-def test_event_file_rotation_hvd_timeline_disabled(simple_profiler_config_parser, out_dir):
-    """
-    Test that timeline file rotation is disabled when HOROVOD_TIMELINE file is not written to
-    """
-    assert simple_profiler_config_parser.profiling_enabled
-
-    # start training
-    mode_one_worker(out_dir, "gpu")
-
-    files = []
-    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(f"*{HOROVODTIMELINE_SUFFIX}"):
-        files.append(path)
-
-    # ensure that no horovod_timeline files have been generated
-    assert not files

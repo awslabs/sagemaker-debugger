@@ -33,7 +33,7 @@ from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import ensure_dir, get_node_id
-from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS, PYTHONTIMELINE_SUFFIX
 
 logger = get_logger()
 
@@ -88,7 +88,18 @@ class TimelineRecord:
             "ph": self.phase,
             "ts": self.rel_ts_micros,
         }
-        if self.phase == "X":
+
+        # handle Instant event
+        if self.phase == "i":
+            if self.args:
+                # Instant events have a field unique to them called scope.
+                # scope can be "g" - global, "p" - process, "t" - thread.
+                # parsing this value that is being passed as args.
+                s = self.args["s"] if "s" in self.args else "t"
+                json_dict.update({"s": s})
+                if "s" in self.args:
+                    self.args.pop("s")
+        elif self.phase == "X":
             json_dict.update({"dur": self.duration})
 
         if self.args:
@@ -105,7 +116,7 @@ class TimelineFileWriter:
     and asynchronously writes TimelineRecord to the file.
     """
 
-    def __init__(self, profiler_config_parser, max_queue=100):
+    def __init__(self, profiler_config_parser, max_queue=100, suffix=PYTHONTIMELINE_SUFFIX):
         """Creates a `TimelineFileWriter` and a trace event file to write to.
         This event file will contain TimelineRecord as JSON strings, which are written to
         disk via the write_record method.
@@ -120,14 +131,34 @@ class TimelineFileWriter:
         self._worker = _TimelineLoggerThread(
             queue=self._event_queue,
             sentinel_event=self._sentinel_event,
-            base_start_time=self.start_time_since_epoch_in_micros,
+            base_start_time_in_us=self.start_time_since_epoch_in_micros,
             profiler_config_parser=self._profiler_config_parser,
+            suffix=suffix,
         )
         self._worker.start()
+
+    def _update_base_start_time(self, base_start_time_in_us):
+        """
+        Some trace files such as the Horovod trace file may start before this timeline
+        writer is initialized. In such case, use this function to update the start time
+        since epoch in micros.
+        """
+        if base_start_time_in_us != self.start_time_since_epoch_in_micros:
+            self.start_time_since_epoch_in_micros = base_start_time_in_us
+            self._worker._update_base_start_time(base_start_time_in_us)
 
     def write_trace_events(
         self, timestamp, training_phase="", op_name="", phase="X", duration=0, **kwargs
     ):
+        """
+        Creates TimelineRecord from the details passed as parameters, and enqueues an event for write.
+        :param timestamp:start_time for the event (in seconds)
+        :param training_phase: strings like, data_iteration, forward, backward, operations etc
+        :param op_name: more details about phase like whether dataset or iterator
+        :param phase: phase of trace event. default is 'X'
+        :param duration: any duration manually computed (in seconds)
+        :param kwargs: other params. can be process id and thread id
+        """
         if not self._worker._healthy or not self._profiler_config_parser.profiling_enabled:
             return
         duration_in_us = int(duration * CONVERT_TO_MICROSECS)  # convert to micro seconds
@@ -167,7 +198,13 @@ class _TimelineLoggerThread(threading.Thread):
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/summary/writer/event_file_writer.py#L133"""
 
     def __init__(
-        self, queue, sentinel_event, base_start_time, profiler_config_parser, verbose=False
+        self,
+        queue,
+        sentinel_event,
+        base_start_time_in_us,
+        profiler_config_parser,
+        verbose=False,
+        suffix=PYTHONTIMELINE_SUFFIX,
     ):
         """Creates a _TimelineLoggerThread."""
         threading.Thread.__init__(self)
@@ -180,14 +217,23 @@ class _TimelineLoggerThread(threading.Thread):
         self.tensor_table = collections.defaultdict(int)
         self.continuous_fail_count = 0
         self.is_first = True
-        self.last_event_end_time_in_us = int(round(base_start_time))
+        self._update_base_start_time(base_start_time_in_us)
+        self._healthy = True
+        self._profiler_config_parser = profiler_config_parser
+        self.node_id = get_node_id()
+        self.suffix = suffix
+
+    def _update_base_start_time(self, base_start_time_in_us):
+        """
+        Some trace files such as the Horovod trace file may start before this timeline
+        writer is initialized. In such case, use this function to update the start time
+        since epoch in micros.
+        """
+        self.last_event_end_time_in_us = int(round(base_start_time_in_us))
         self.last_file_close_time_in_us = self.last_event_end_time_in_us
         self.cur_hour = datetime.utcfromtimestamp(
             self.last_file_close_time_in_us / CONVERT_TO_MICROSECS
         ).hour
-        self._healthy = True
-        self._profiler_config_parser = profiler_config_parser
-        self.node_id = get_node_id()
 
     def run(self):
         while True:
@@ -315,13 +361,20 @@ class _TimelineLoggerThread(threading.Thread):
                 json_dict = {"name": "process_sort_index", "ph": "M", "pid": 0, "args": args}
                 self._writer.write(json.dumps(json_dict) + ",\n")
 
-            args = {"name": record.training_phase}
-            json_dict = {"name": "process_name", "ph": "M", "pid": tensor_idx, "args": args}
-            self._writer.write(json.dumps(json_dict) + ",\n")
+            # Instant events don't have a training phase
+            if record.phase != "i":
+                args = {"name": record.training_phase}
+                json_dict = {"name": "process_name", "ph": "M", "pid": tensor_idx, "args": args}
+                self._writer.write(json.dumps(json_dict) + ",\n")
 
-            args = {"sort_index": tensor_idx}
-            json_dict = {"name": "process_sort_index", "ph": "M", "pid": tensor_idx, "args": args}
-            self._writer.write(json.dumps(json_dict) + ",\n")
+                args = {"sort_index": tensor_idx}
+                json_dict = {
+                    "name": "process_sort_index",
+                    "ph": "M",
+                    "pid": tensor_idx,
+                    "args": args,
+                }
+                self._writer.write(json.dumps(json_dict) + ",\n")
 
             self.is_first = False
 
@@ -366,6 +419,7 @@ class _TimelineLoggerThread(threading.Thread):
                 new_file_name = TraceFileLocation().get_file_location(
                     base_dir=self._profiler_config_parser.config.local_path,
                     timestamp=self.last_event_end_time_in_us,
+                    suffix=self.suffix,
                 )
                 ensure_dir(new_file_name)
                 os.rename(self.name(), new_file_name)
@@ -378,6 +432,8 @@ class _TimelineLoggerThread(threading.Thread):
             self._profiler_config_parser.config.local_path
             + "/framework/"
             + self.node_id
+            + "_"
+            + self.suffix
             + SMDEBUG_TEMP_PATH_SUFFIX
         )
 

@@ -12,6 +12,7 @@ from tensorflow.python.profiler import profiler_v2 as profiler
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
+from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.tensorflow.callable_cache import CallableCache
 
 # Local
@@ -494,6 +495,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
         self.worker = self._get_worker_name()
+
+        # Only the chief worker will read the Horovod timeline file
+        # if HOROVOD_TIMELINE is a valid file and SM Profiler is enabled
+        if not self.hvd_reader and self.worker == self.chief_worker:
+            self.hvd_reader = HvdTraceFileRotation(self.profiler_config_parser)
+
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
