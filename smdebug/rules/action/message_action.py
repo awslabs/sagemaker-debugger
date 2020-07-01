@@ -44,33 +44,43 @@ class MessageAction:
         self._rule_name = rule_name
 
     def _create_sns_topic_if_not_exists(self):
-        topic = self._sns_client.create_topic(Name=self._topic_name)
-        self._logger.info(
-            f"topic_name: {self._topic_name} , creating topic returned response:{topic}"
-        )
-        if topic:
-            return topic["TopicArn"]
+        try:
+            topic = self._sns_client.create_topic(Name=self._topic_name)
+            self._logger.info(
+                f"topic_name: {self._topic_name} , creating topic returned response:{topic}"
+            )
+            if topic:
+                return topic["TopicArn"]
+        except Exception as e:
+            self._logger.info(
+                f"Caught exception while creating topic:{self._topic_name} exception is: \n {e}"
+            )
         return None
 
     def _check_subscriptions(self, topic_arn, protocol, endpoint):
-        next_token = "random"
-        subs = self._sns_client.list_subscriptions()
-        sub_array = subs["Subscriptions"]
-        while next_token is not None:
-            for sub_dict in sub_array:
-                proto = sub_dict["Protocol"]
-                ep = sub_dict["Endpoint"]
-                topic = sub_dict["TopicArn"]
-                if proto == protocol and topic == topic_arn and ep == endpoint:
-                    self._logger.info(f"Existing Subscription found: {sub_dict}")
-                    return True
-            if "NextToken" in subs:
-                next_token = subs["NextToken"]
-                subs = self._sns_client.list_subscriptions(NextToken=next_token)
-                sub_array = subs["Subscriptions"]
-                continue
-            else:
-                next_token = None
+        try:
+            next_token = "random"
+            subs = self._sns_client.list_subscriptions()
+            sub_array = subs["Subscriptions"]
+            while next_token is not None:
+                for sub_dict in sub_array:
+                    proto = sub_dict["Protocol"]
+                    ep = sub_dict["Endpoint"]
+                    topic = sub_dict["TopicArn"]
+                    if proto == protocol and topic == topic_arn and ep == endpoint:
+                        self._logger.info(f"Existing Subscription found: {sub_dict}")
+                        return True
+                if "NextToken" in subs:
+                    next_token = subs["NextToken"]
+                    subs = self._sns_client.list_subscriptions(NextToken=next_token)
+                    sub_array = subs["Subscriptions"]
+                    continue
+                else:
+                    next_token = None
+        except Exception as e:
+            self._logger.info(
+                f"Caught exception while list subscription topic:{self._topic_name} exception is: \n {e}"
+            )
         return False
 
     def _subscribe_mesgtype_endpoint(self):
