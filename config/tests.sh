@@ -52,6 +52,7 @@ python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --
 
 run_for_framework core
 run_for_framework profiler
+run_for_framework rules
 
 if [ "$run_pytest_xgboost" = "enable" ] ; then
     run_for_framework xgboost
