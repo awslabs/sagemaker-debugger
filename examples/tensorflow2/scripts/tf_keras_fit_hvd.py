@@ -127,12 +127,17 @@ if __name__ == "__main__":
     # Horovod: initialize library.
     hvd.init()
 
-    # Horovod: pin GPU to be used to process local rank (one GPU per process)
-    gpus = tf.config.experimental.list_physical_devices("GPU")
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
-    if gpus:
-        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
+    if not args.use_only_cpu:
+        # Horovod: pin GPU to be used to process local rank (one GPU per process)
+        gpus = tf.config.experimental.list_physical_devices("GPU")
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        if gpus:
+            tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
+    else:
+        cpus = tf.config.experimental.list_physical_devices("CPU")
+        if cpus:
+            tf.config.experimental.set_visible_devices(cpus, "CPU")
 
     # Horovod: adjust learning rate based on number of GPUs.
     opt = tf.optimizers.Adam(lr * hvd.size())
