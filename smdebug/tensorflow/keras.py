@@ -416,7 +416,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if isinstance(collection, str):
                     collection = self.get_collection(collection)
                 collection.set_tensor_ref(tensor_ref)
-            self._save_for_tensor(tensor_name, t, check_before_write=False)
+            self._save_for_tensor(tensor_name, t, check_before_write=True)
 
     def save_smdebug_logs(self, logs):
         if logs is None:
