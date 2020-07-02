@@ -5,3 +5,5 @@ HOROVOD_ESTIMATOR_TEST_SCRIPT_PATH = "horovod_estimator_mnist.py"
 HOROVOD_ESTIMATOR_TEST_SCRIPT_ARGS = ["--num_steps", "1000"]
 
 HOROVOD_PYTORCH_TEST_MNIST_SCRIPT = "examples/pytorch/zero_code_change_examples/horovod_mnist.py"
+
+HOROVOD_TF2_TEST_MNIST_SCRIPT = "examples/tensorflow2/scripts/tf_keras_fit_hvd.py"
