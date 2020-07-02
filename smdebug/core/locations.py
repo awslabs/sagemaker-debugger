@@ -156,6 +156,22 @@ class TraceFileLocation:
         ensure_dir(log_dir, is_file=False)
         return log_dir
 
+    @staticmethod
+    def get_python_profiling_stats_dir(
+        base_folder,
+        framework,
+        step,
+        start_time_since_epoch_in_micros,
+        end_time_since_epoch_in_micros,
+    ):
+        node_id = get_node_id()
+        folder_name = "{0}_{1}_{2}_{3}".format(
+            start_time_since_epoch_in_micros, end_time_since_epoch_in_micros, node_id, step
+        )
+        stats_dir = os.path.join(base_folder, "framework", framework, "python_profile", folder_name)
+        ensure_dir(stats_dir, is_file=False)
+        return stats_dir
+
 
 class IndexFileLocationUtils:
     # These functions are common to index reader and index writer

@@ -6,13 +6,15 @@ import time
 # Third Party
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
-from tensorflow.python.profiler import profiler_v2 as profiler
+from tensorflow.python.profiler import profiler_v2 as tf_profiler
 
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.tensorflow.callable_cache import CallableCache
 
 # Local
@@ -28,6 +30,14 @@ from .utils import (
     is_keras_optimizer,
     is_tf_version_2x,
 )
+
+python_profiler = None
+
+# Enable python profiling if profiling is enabled.
+profiler_config_parser = ProfilerConfigParser()
+if profiler_config_parser.profiling_enabled:
+    python_profiler = PythonProfiler(profiler_config_parser.config.local_path, "tensorflow")
+    python_profiler.start_profiling()
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -516,7 +526,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         if self.is_profiling:
             self.logger.info("Disabling profiler, reached end of training.")
-            profiler.stop()
+            tf_profiler.stop()
+            if python_profiler:
+                python_profiler.stop_profiling()
             self.is_profiling = False
 
     # throws error in keras if this fn is absent
@@ -576,26 +588,33 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
 
-        if not self.is_profiling and self.profiler_config_parser.can_start_detailed_profiling(
+        if python_profiler:
+            python_profiler.stop_profiling()
+
+        if self.profiler_config_parser.can_start_detailed_profiling(
             self.mode_steps[ModeKeys.TRAIN]
         ):
-            self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
-                self.profiler_config_parser.config.local_path,
-                "tensorflow",
-                self.mode_steps[ModeKeys.TRAIN],
-            )
-            self.logger.info(f"Enabling profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}")
-            if not self.warm_up_completed:
-                # warming up profiler before it will be profiling.
-                profiler.warmup()
-                self.warm_up_completed = True
-            profiler.start(self._log_dir)
-            self.is_profiling = True
-        elif self.is_profiling and not self.profiler_config_parser.can_start_detailed_profiling(
-            self.mode_steps[ModeKeys.TRAIN]
-        ):
-            self.logger.info(f"Disabling profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}")
-            profiler.stop()
+            if python_profiler:
+                python_profiler.start_profiling(start_step=self.mode_steps[ModeKeys.TRAIN])
+
+            if not self.is_profiling:
+                self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
+                    self.profiler_config_parser.config.local_path,
+                    "tensorflow",
+                    self.mode_steps[ModeKeys.TRAIN],
+                )
+                self.logger.info(
+                    f"Enabling TF profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}"
+                )
+                if not self.warm_up_completed:
+                    # warming up profiler before it will be profiling.
+                    tf_profiler.warmup()
+                    self.warm_up_completed = True
+                tf_profiler.start(self._log_dir)
+                self.is_profiling = True
+        elif self.is_profiling:
+            self.logger.info(f"Disabling TF profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}")
+            tf_profiler.stop()
             self.is_profiling = False
 
     def on_test_batch_begin(self, batch, logs=None):
@@ -871,6 +890,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :return: Wrapped tape of same type as passed.
             This tape should be used for training
         """
+        # Disable python profiling, because now we are starting wrap tape.
+        if python_profiler:
+            python_profiler.stop_profiling()
+
         from tensorflow.python.eager.backprop import GradientTape
 
         if isinstance(tape, GradientTape):
