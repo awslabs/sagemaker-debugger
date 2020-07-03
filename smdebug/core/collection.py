@@ -26,6 +26,7 @@ class CollectionKeys:
     GRADIENTS = "gradients"
     LOSSES = "losses"
     BIASES = "biases"
+    LAYERS = "layers"
 
     # Use this collection to log scalars other than losses/metrics to SageMaker.
     # Mainly for Tensorflow. For all other frameworks, call save_scalar() API
@@ -287,3 +288,4 @@ class Collection:
             and self.save_config == other.save_config
             and self.save_histogram == other.save_histogram
         )
+

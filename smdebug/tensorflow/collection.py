@@ -87,6 +87,8 @@ class Collection(BaseCollection):
         elif isinstance(arg, values.AggregatingVariable):
             return self.add_aggregating_variable(arg, mode=mode)
         else:
+            import pdb
+            pdb.set_trace()
             logger.warning(
                 f"Could not add {arg} of type {arg.__class__} to collection {self.name}."
                 "Add can only take tf.Operation, tf.Variable, tf.Tensor, "
