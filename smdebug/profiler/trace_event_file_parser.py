@@ -1,11 +1,12 @@
 # First Party
 # Standard Library
-import datetime
 import json
+from datetime import datetime
 
 from smdebug.core.logger import get_logger
 from smdebug.profiler.utils import (
     TimeUnits,
+    convert_utc_datetime_to_nanoseconds,
     convert_utc_timestamp_to_nanoseconds,
     get_node_id_from_tracefilename,
 )
@@ -53,15 +54,6 @@ class TraceEventParser:
         self._pid_stacks = dict()
         self._start_timestamp = 0
         self._start_time_known = False
-        """
-        In horovod trace, the 'ts' timestamps for events are relative to the first 'ts' timestamp included in the
-        first event. We will consider this timestamp as base_timestamp and subtract it from the 'ts' values read
-        from the subsequent events. It will give us 0-based timestamps for rest of the events. Please note that
-        this base_timestamp is not related to unix epoch based timestamp. We would still have to add absolute start time
-        (self._start_timestamp) to obtain the absolute start time of any event.
-        """
-        self._base_timestamp = 0
-        self._base_timestamp_initialized = True
         # The timestamp in trace events are in micro seconds, we multiply by 1000 to convert to ns
         self._timescale_multiplier_for_ns = 1000
         self.logger = get_logger("smdebug-profiler")
@@ -88,27 +80,26 @@ class TraceEventParser:
             self._processes[pid].add_thread(t_id, name)
 
     def _populate_start_time(self, event):
-        pass
+        event_args = event["args"] if "args" in event else None
+        if self._start_time_known is False:
+            if event_args is None:
+                return
+            if "start_time_since_epoch_in_micros" in event_args:
+                self._start_timestamp = event_args["start_time_since_epoch_in_micros"]
+                self._start_time_known = True
+                self.logger.info(f"Start time for events in uSeconds = {self._start_timestamp}")
 
     def _read_event(self, event, node_id=""):
         if "ph" not in event:
             return
         phase_type = event["ph"]
-        if "ts" in event and not self._base_timestamp_initialized:
-            self._base_timestamp = event["ts"]
-            self.logger.info(
-                f"The base timestamp in horovod trace file for future events is {self._base_timestamp}"
-            )
-            self._base_timestamp_initialized = True
         if phase_type == "M":
             self._populate_process_info_for_metaevent(event)
             self._populate_thread_info_for_metaevent(event)
             self._populate_start_time(event)
         if phase_type == "X":
             # In nano seconds
-            start_time = (
-                event["ts"] - self._base_timestamp + self._start_timestamp
-            ) * self._timescale_multiplier_for_ns
+            start_time = (event["ts"] + self._start_timestamp) * self._timescale_multiplier_for_ns
             # In nano seconds
             dur = event["dur"] * self._timescale_multiplier_for_ns
             name = event["name"]
@@ -130,11 +121,9 @@ class TraceEventParser:
                 b_event = self._pid_stacks[pid][-1]
                 self._pid_stacks[pid].pop()
                 start_time = (
-                    b_event["ts"] - self._base_timestamp + self._start_timestamp
+                    b_event["ts"] + self._start_timestamp
                 ) * self._timescale_multiplier_for_ns
-                end_time = (
-                    event["ts"] - self._base_timestamp + self._start_timestamp
-                ) * self._timescale_multiplier_for_ns
+                end_time = (event["ts"] + self._start_timestamp) * self._timescale_multiplier_for_ns
                 duration = end_time - start_time
                 if duration < 0:
                     self.logger.error(
@@ -192,7 +181,19 @@ class TraceEventParser:
     """
 
     def get_events_within_range(self, start_time: datetime, end_time: datetime):
-        return None
+        """
+        Return the events that have started and completed within the given start and end time boundaries.
+        The start and end time can be specified datetime objects.
+        The events that are in progress during these boundaries are not included.
+        """
+        start_time_nanoseconds = end_time_nanoseconds = 0
+        if start_time.__class__ is datetime:
+            start_time_nanoseconds = convert_utc_datetime_to_nanoseconds(start_time)
+        if end_time.__class__ is datetime:
+            end_time_nanoseconds = convert_utc_datetime_to_nanoseconds(end_time)
+        return self.get_events_within_time_range(
+            start_time_nanoseconds, end_time_nanoseconds, unit=TimeUnits.NANOSECONDS
+        )
 
     def get_process_info(self, process_id):
         return self._processes[process_id]

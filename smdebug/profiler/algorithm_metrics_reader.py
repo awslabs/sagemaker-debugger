@@ -112,7 +112,7 @@ class AlgorithmMetricsReader(MetricsReaderBase):
     1. For Filename containing 'pythontimeline.json'  -> SMEventsParser
     2. For Filename containing 'model_timeline.json'  -> SMEventsParser
     3. For Filename containing 'tensorboard' (TBD) -> TensorboardProfilerEvents
-    4. For Filename containing 'Horovod' (TBD) -> 'HorovodProfilerEvents
+    4. For Filename containing 'horovod_timeline.json' -> 'HorovodProfilerEvents
     """
 
     def _get_event_parser(self, filename):

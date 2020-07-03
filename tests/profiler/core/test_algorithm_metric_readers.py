@@ -37,3 +37,14 @@ def test_LocalMetricsReader_Model_timeline(
     print(f"Number of events {len(events)}")
     assert len(events) == 54
     assert events[0].node_id == "0001"
+
+
+@pytest.mark.parametrize("use_in_memory_cache", [True, False])
+def test_LocalMetricsReader_Horovod_timeline(
+    use_in_memory_cache, tracefolder="./tests/profiler/resources/horovod_timeline_traces"
+):
+    lt = LocalAlgorithmMetricsReader(tracefolder, use_in_memory_cache=use_in_memory_cache)
+    events = lt.get_events(1593673051472800, 1593673051473100)
+
+    print(f"Number of events {len(events)}")
+    assert len(events) == 15

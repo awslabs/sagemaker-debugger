@@ -71,7 +71,7 @@ class HvdTraceFileRotation:
         )
 
         # make a note of duration if present
-        duration = event.get("dur", 0)
+        duration_in_secs = event.get("dur", 0) / CONVERT_TO_MICROSECS
 
         # make a note of args if present
         args = event.get("args", {})
@@ -83,7 +83,7 @@ class HvdTraceFileRotation:
         # get the operation name from the event string
         op_name = event.get("name", "")
 
-        return op_name, timestamp_in_secs, duration, args
+        return op_name, timestamp_in_secs, duration_in_secs, args
 
     def _convert_monotonic_to_epoch_time(self, timestamp_in_us):
         """
