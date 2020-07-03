@@ -397,6 +397,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _save_tensor(self, tensor_name, tensor_value, collections_to_write):
         if isinstance(collections_to_write, set) is False:
             collections_to_write = {collections_to_write}
+        # Since this function modifies the set, there is a possibility
+        # of bugs if calling functions attempt to re-use the set passed
+        # to this function
+        collections_to_write = collections_to_write.copy()
         collections_to_save = self._get_collections_to_save_for_step()
         for collection in collections_to_save:
             if match_inc(tensor_name, collection.include_regex):
@@ -500,18 +504,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             tensor = self.saved_layers[layer_name].layer_input
             export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
             input_collection = (
-                {self.get_collection(CollectionKeys.INPUTS)}
-                if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
+                {self.get_collection(CollectionKeys.LAYERS)}
+                if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
             self._save_tensor(export_name, tensor.numpy(), input_collection)
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
-            self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+            self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
             output_collection = (
-                {self.get_collection(CollectionKeys.OUTPUTS)}
-                if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+                {self.get_collection(CollectionKeys.LAYERS)}
+                if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
             self._save_tensor(export_name, tensor.numpy(), output_collection)
@@ -720,11 +724,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._save_tensor(t_name, t_value, collections_to_write)
 
     def save_layer_outputs(self, layer_outputs, model=None):
-        self._save_layer_values(layer_outputs, self.get_collection(CollectionKeys.OUTPUTS), model)
+        self._save_layer_values(layer_outputs, self.get_collection(CollectionKeys.LAYERS), model)
 
     def save_layer_inputs(self, x, layer_outputs, model=None):
         self._save_layer_values(
-            layer_outputs, self.get_collection(CollectionKeys.INPUTS), model, inputs=x
+            layer_outputs, self.get_collection(CollectionKeys.LAYERS), model, inputs=x
         )
 
     def _write_optimizer_variables(self):
