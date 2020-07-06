@@ -1,5 +1,8 @@
 # Standard Library
+import glob
+import gzip
 import json
+import os
 from datetime import datetime
 
 # First Party
@@ -21,17 +24,43 @@ class TensorboardProfilerEvents(TraceEventParser):
         # TODO, not sure if we can implement this right now
         return
 
-    def read_events_from_file(self, tracefile):
+    def _get_trace_events_json(self, tracefile):
         try:
             with open(tracefile) as json_data:
                 trace_json_data = json.load(json_data)
         except Exception as e:
             self.logger.error(f"Can't open TF trace file {tracefile}: Exception {str(e)} ")
-            return
+            return None
         if "traceEvents" not in trace_json_data:
             self.logger.error(f"The TF trace file {tracefile} does not contain traceEvents")
-            return
+            return None
         trace_events_json = trace_json_data["traceEvents"]
+        return trace_events_json
+
+    def _get_trace_file(self, log_dir):
+        # file is dumped as .gz file. Extract the json file
+        latest_dir = max(
+            glob.glob(os.path.join(log_dir + "/plugins/profile", "*/")), key=os.path.getmtime
+        )
+
+        trace_json_file_gz = ""
+        for file in os.listdir(latest_dir):
+
+            if file.endswith(".gz"):
+                trace_json_file_gz = os.path.join(latest_dir, file)
+                break
+
+        trace_json_file = os.path.join(log_dir, "trace_file.json")
+
+        decompressedFile = gzip.GzipFile(trace_json_file_gz, "rb")
+        with open(trace_json_file, "w+") as outfile:
+            outfile.write(decompressedFile.read().decode("utf-8"))
+        outfile.close()
+
+        return trace_json_file
+
+    def read_events_from_file(self, tracefile):
+        trace_events_json = self._get_trace_events_json(tracefile)
 
         for event in trace_events_json:
             self._read_event(event)
@@ -131,30 +160,8 @@ def parse_tf_native_profiler_trace_json(log_dir):
             The value is list of list. Each list is [opname, ts, duration]
 
     """
-    import os
-    import glob
-
-    # file is dumped as .gz file. Extract the json file
-    latest_dir = max(
-        glob.glob(os.path.join(log_dir + "/plugins/profile", "*/")), key=os.path.getmtime
-    )
-
-    trace_json_file_gz = ""
-    for file in os.listdir(latest_dir):
-
-        if file.endswith(".gz"):
-            trace_json_file_gz = os.path.join(latest_dir, file)
-            break
-
-    trace_json_file = os.path.join(log_dir, "trace_file.json")
-    import gzip
-
-    decompressedFile = gzip.GzipFile(trace_json_file_gz, "rb")
-    with open(trace_json_file, "w+") as outfile:
-        outfile.write(decompressedFile.read().decode("utf-8"))
-    outfile.close()
-
     pf_events_obj = TensorboardProfilerEvents()
+    trace_json_file = pf_events_obj._get_trace_file(log_dir)
     training_info = pf_events_obj.get_training_info(trace_json_file)
 
     # Dump gathered data into trace_json_file
