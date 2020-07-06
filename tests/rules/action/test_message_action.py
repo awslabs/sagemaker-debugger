@@ -6,19 +6,19 @@ from smdebug.rules.action.stop_training_action import StopTrainingAction
 
 def test_action_stop_training_job():
     action_str = '{"name": "stoptraining" , "training_job_prefix":"training_prefix"}'
-    action = Actions(action_str=action_str)
+    action = Actions(actions_str=action_str)
     action.invoke()
 
 
 def test_action_stop_training_job_invalid_params():
     action_str = '{"name": "stoptraining" , "invalid_job_prefix":"training_prefix"}'
-    action = Actions(action_str=action_str)
+    action = Actions(actions_str=action_str)
     action.invoke()
 
 
 def test_action_sms():
     action_str = '{"name": "sms" , "endpoint":"+11234567890"}'
-    action = Actions(action_str=action_str, rule_name="test_rule")
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     action.invoke()
     sms_action = action._actions[0]
     assert sms_action._last_subscription_response is not None
@@ -27,13 +27,13 @@ def test_action_sms():
 
 def test_action_sms_invalid_params():
     action_str = '{"name": "sms" , "invalid":"+11234567890"}'
-    action = Actions(action_str=action_str, rule_name="test_rule")
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     action.invoke()
 
 
 def test_action_email():
     action_str = '{"name": "email" , "endpoint":"abc@abc.com"}'
-    action = Actions(action_str=action_str, rule_name="test_rule")
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     action.invoke()
     email_action = action._actions[0]
     assert email_action._last_subscription_response is not None
@@ -42,13 +42,13 @@ def test_action_email():
 
 def test_action_email_invalid_params():
     action_str = '{"name": "email" , "invalid":"abc@abc.com"}'
-    action = Actions(action_str=action_str, rule_name="test_rule")
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     action.invoke()
 
 
 def test_invalid_message_action():
     action_str = '{"name": "invalid" , "invalid":"abc@abc.com"}'
-    action = Actions(action_str=action_str, rule_name="test_rule")
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     action.invoke()
 
 
@@ -57,7 +57,7 @@ def test_action_multiple():
         '[{"name": "stoptraining" , "training_job_prefix":"training_prefix"}, {"name": "email" , '
         '"endpoint":"abc@abc.com"}] '
     )
-    action = Actions(action_str=action_str, rule_name="test_rule")
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     actions = action._actions
     assert len(actions) == 2
     stop_action = actions[0]

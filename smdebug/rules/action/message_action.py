@@ -128,8 +128,6 @@ class MessageAction:
                 }
             response = self._sns_client.publish(
                 TopicArn=self._topic_arn,
-                # TargetArn='string',  # this or Topic or Phone
-                # PhoneNumber='string',
                 Message=message,
                 Subject=f"SMDebugRule:{self._rule_name} fired",
                 # MessageStructure='json',

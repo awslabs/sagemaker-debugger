@@ -12,20 +12,20 @@ ALLOWED_ACTIONS = ["stoptraining", "sms", "email"]
 
 
 class Actions:
-    def __init__(self, action_str="", rule_name=""):
+    def __init__(self, actions_str="", rule_name=""):
         self._actions = []
         self._logger = get_logger()
-        action_str = action_str.strip() if action_str is not None else ""
-        if action_str == "":
-            self._logger.info(f"No action specified. Action str is {action_str}")
+        actions_str = actions_str.strip() if actions_str is not None else ""
+        if actions_str == "":
+            self._logger.info(f"No action specified. Action str is {actions_str}")
             return
-        self._register_actions(action_str, rule_name)
+        self._register_actions(actions_str, rule_name)
 
-    def _register_actions(self, action_str="", rule_name=""):
+    def _register_actions(self, actions_str="", rule_name=""):
 
-        action_str = action_str.lower()
-        self._logger.info(f"Action string: {action_str} and rule_name:{rule_name}")
-        action_json = json.loads(action_str)
+        actions_str = actions_str.lower()
+        self._logger.info(f"Action string: {actions_str} and rule_name:{rule_name}")
+        action_json = json.loads(actions_str)
         actions_list = []
         if isinstance(action_json, dict):
             actions_list.append(action_json)
@@ -33,7 +33,7 @@ class Actions:
             actions_list = action_json
         else:
             self._logger.info(
-                f"Action string: {action_str}, expected either a list of dict or dict. Skipping action registering"
+                f"Action string: {actions_str}, expected either a list of dict or dict. Skipping action registering"
             )
             return
 
