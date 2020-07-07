@@ -25,9 +25,9 @@ ModelOutputs = {ModelOutput.Y, ModelOutput.Y_PRED, ModelOutput.VAL_Y, ModelOutpu
 
 def get_model_output_export_name(key):
     export_names = {
-        ModelOutput.Y_PRED: "y_pred",
-        ModelOutput.Y: "y",
-        ModelOutput.VAL_Y: "val_y",
+        ModelOutput.Y_PRED: "y_predictions",
+        ModelOutput.Y: "y_labels",
+        ModelOutput.VAL_Y: "val_y_;an",
         ModelOutput.VAL_Y_PRED: "val_y_pred",
     }
     return export_names[key]
