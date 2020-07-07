@@ -105,6 +105,7 @@ class Hook(CallbackHook):
             if torch.cuda.is_available()
             else torch.autograd.ProfilerState.CPU
         )
+        self.use_cuda = torch.cuda.is_available()
 
     def log_trace_event(self, event):
         self.record_trace_events(
@@ -224,7 +225,7 @@ class Hook(CallbackHook):
         elif self.autograd_profiler_enabled:
             records = torch.autograd._disable_profiler()
             self.function_events = torch.autograd.profiler.EventList(
-                torch.autograd.profiler.parse_cpu_trace(records), use_cuda=True
+                torch.autograd.profiler.parse_cpu_trace(records), use_cuda=self.use_cuda
             )
             for index, event in enumerate(self.function_events):
                 self.record_trace_events(
@@ -237,17 +238,16 @@ class Hook(CallbackHook):
                     tid=event.thread,
                     step_num=self.step,
                 )
-            for k in event.kernels:
-                self.record_trace_events(
-                    op_name=k.name,
-                    phase="X",
-                    # k.interval.start is in microseconds
-                    timestamp=(k.interval.start + self.start_profiler_time_us)
-                    / float(CONVERT_TO_MICROSECS),
-                    duration=k.interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
-                    tid=k.device,
-                    step_num=self.step,
-                )
+                for k in event.kernels:
+                    self.record_trace_events(
+                        op_name=k.name,
+                        phase="X",
+                        timestamp=(k.interval.start + self.start_profiler_time_us)
+                        / float(CONVERT_TO_MICROSECS),
+                        duration=k.interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
+                        tid=k.device,
+                        step_num=self.step,
+                    )
             self.autograd_profiler_enabled = False
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
@@ -419,7 +419,15 @@ class Hook(CallbackHook):
             raise ValueError(
                 f"Module type {module.__class__.__name__} must be type torch.nn.Module"
             )
-
+        # in case GPU is available but model has been loaded on CPU
+        for parameter in module.parameters():
+            self.profiler = (
+                torch.autograd.ProfilerState.CUDA
+                if parameter.is_cuda
+                else torch.autograd.ProfilerState.CPU
+            )
+            self.use_cuda = parameter.is_cuda
+            break
         # Create an attribute and store the module name in the object
         # So that it is available in the forward hook.
 
