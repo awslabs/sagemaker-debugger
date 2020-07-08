@@ -38,9 +38,12 @@ phases:
 
   build:
     commands:
-      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - pip show smdebug
+      - pip show smdebug_rules
       - echo 'Uploading Coverage to CodeCov'
       - bash $CODEBUILD_SRC_DIR/config/codecov.sh
       - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
