@@ -112,6 +112,7 @@ def test_keras_gradtape(out_dir):
         CollectionKeys.WEIGHTS,
         CollectionKeys.BIASES,
         CollectionKeys.GRADIENTS,
+        CollectionKeys.LAYERS,
         CollectionKeys.LOSSES,
         CollectionKeys.INPUTS,
         CollectionKeys.OUTPUTS,

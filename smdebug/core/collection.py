@@ -76,6 +76,7 @@ DEFAULT_TF_COLLECTIONS = {
     CollectionKeys.METRICS,
     CollectionKeys.INPUTS,
     CollectionKeys.OUTPUTS,
+    CollectionKeys.LAYERS,
     CollectionKeys.SM_METRICS,
     CollectionKeys.OPTIMIZER_VARIABLES,
 }
