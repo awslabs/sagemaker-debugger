@@ -21,7 +21,7 @@ logger = get_logger()
 def training_has_ended(trial_prefix):
     # Emit the end of training file only if the job is not running under SageMaker.
     if is_sagemaker_job():
-        logger.info(
+        logger.debug(
             f"The end of training job file will not be written for jobs running under SageMaker."
         )
         return

@@ -6,14 +6,12 @@ from tests.zero_code_change.horovod_tests.constants import (
     HOROVOD_ESTIMATOR_TEST_SCRIPT_ARGS,
     HOROVOD_ESTIMATOR_TEST_SCRIPT_PATH,
 )
+from tests.zero_code_change.horovod_tests.tf_utils import get_available_gpus
 from tests.zero_code_change.horovod_tests.utils import launch_horovod_job
 from tests.zero_code_change.utils import build_json
 
 # First Party
 from smdebug.trials import create_trial
-
-# Local
-from .utils import get_available_gpus
 
 
 """
