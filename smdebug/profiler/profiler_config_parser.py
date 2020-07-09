@@ -84,12 +84,12 @@ class ProfilerConfigParser:
             return
 
         local_path = config.get("LocalPath", BASE_FOLDER_DEFAULT)
-        file_max_size = config.get("RotateMaxFileSizeInBytes", MAX_FILE_SIZE_DEFAULT)
-        file_close_interval = config.get(
-            "RotateFileCloseIntervalInSeconds", CLOSE_FILE_INTERVAL_DEFAULT
+        file_max_size = int(config.get("RotateMaxFileSizeInBytes", MAX_FILE_SIZE_DEFAULT))
+        file_close_interval = int(
+            config.get("RotateFileCloseIntervalInSeconds", CLOSE_FILE_INTERVAL_DEFAULT)
         )
-        file_open_fail_threshold = config.get(
-            "FileOpenFailThreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT
+        file_open_fail_threshold = int(
+            config.get("FileOpenFailThreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
         )
         profile_range = config.get("DetailedProfilingConfig", {})
 
