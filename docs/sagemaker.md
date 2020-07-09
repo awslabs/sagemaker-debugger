@@ -27,7 +27,7 @@ Here's a list of frameworks and versions which support this experience.
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](tensorflow.md) | 1.15, 2.1 |
+| [TensorFlow](tensorflow.md) | 1.15, 2.1, 2.2 |
 | [MXNet](mxnet.md) | 1.6 |
 | [PyTorch](pytorch.md) | 1.4, 1.5 |
 | [XGBoost](xgboost.md) | >=0.90-2 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|

@@ -5,7 +5,6 @@ import typing as Tuple
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
-from tensorflow.examples.tutorials.mnist import input_data
 
 tfds.disable_progress_bar()
 
@@ -232,6 +231,8 @@ def get_train_op_and_placeholders():
 
 
 def get_data() -> "tf.contrib.learn.python.learn.datasets.base.Datasets":
+    from tensorflow.examples.tutorials.mnist import input_data
+
     mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
     return mnist
 
