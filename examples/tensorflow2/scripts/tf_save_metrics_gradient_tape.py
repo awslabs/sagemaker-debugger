@@ -85,8 +85,9 @@ def helper_keras_gradtape(
             dataset_labels = labels
             labels = tf.one_hot(labels, depth=10)
             with hook.wrap_tape(tf.GradientTape(persistent=persistent)) as tape:
-                logits, layer_outputs = model(data, training=True, layer_outputs=True)
+                logits = model(data, training=True)
                 loss_value = cce(labels, logits)
+            hook.save_custom_tensor("y_labels", labels, 'outputs')
             grads = tape.gradient(loss_value, model.variables)
 
             # By default, the resources held by a GradientTape are released as
@@ -130,8 +131,9 @@ def test_keras_gradtape(out_dir):
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
+    assert len(trial.tensor_names(collection=CollectionKeys.LAYERS)) == 8
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
 

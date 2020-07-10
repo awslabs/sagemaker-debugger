@@ -386,6 +386,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_to_collections[metric_name] = {coll}
 
     def save_custom_tensor(self, tensor_name, tensor_value, collections_to_write):
+        if isinstance(collections_to_write, str):
+            collections_to_write = [collections_to_write]
         for collection in collections_to_write:
             self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
@@ -956,6 +958,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self._write_optimizer_variables()
             self._save_layer_input_and_outputs(grad_tape=True)
+            self._save_custom_tensors_post_step()
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
             self._add_metric(metric_name="loss", metric_value=loss)
