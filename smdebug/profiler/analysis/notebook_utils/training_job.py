@@ -1,7 +1,6 @@
 # Standard Library
 import os
 import time
-from datetime import datetime
 
 # Third Party
 import boto3
@@ -9,21 +8,7 @@ import boto3
 # First Party
 from smdebug.profiler.algorithm_metrics_reader import S3AlgorithmMetricsReader
 from smdebug.profiler.system_metrics_reader import S3SystemMetricsReader
-
-MICROS = 1e6
-
-
-def convert_us_since_epoch_to_datetime(us_since_epoch):
-    secs = us_since_epoch / MICROS
-    dt = datetime.fromtimestamp(secs)
-    return dt
-
-
-def us_since_epoch_to_human_readable_time(us_since_epoch):
-    dt = convert_us_since_epoch_to_datetime(us_since_epoch)
-    s = dt.strftime("%Y-%m-%dT%H:%M:%S")
-    s += "." + str(int(us_since_epoch % MICROS)).zfill(6)
-    return s
+from smdebug.profiler.utils import us_since_epoch_to_human_readable_time
 
 
 class TrainingJob:

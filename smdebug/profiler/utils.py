@@ -145,3 +145,8 @@ def validate_system_profiler_file(filename) -> bool:
         logger.debug(f"Invalid System Profiler File Found: {filename}, not able to get timestamp.")
         return False
     return True
+
+
+def us_since_epoch_to_human_readable_time(us_since_epoch):
+    dt = datetime.fromtimestamp(us_since_epoch / 1e6)
+    return dt.strftime("%Y-%m-%dT%H:%M:%S:%f")
