@@ -107,5 +107,5 @@ def test_get_custom_and_default_collections():
 
     assert len(custom_collections) == 1
     assert (
-        len(default_collections) == 8 + 3
+        len(default_collections) == 8 + 4
     )  # Addtional three collections are: all, default and sm_metrics
