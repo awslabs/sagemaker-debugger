@@ -40,8 +40,8 @@ class ModelInput:
 ModelInputs = {ModelInput.X}
 
 
-def get_model_input_export_name(tensor_id):
-    return f"model_input:{tensor_id}"
+def get_model_input_export_name():
+    return f"model_input"
 
 
 class TFDistributionStrategy(Enum):
