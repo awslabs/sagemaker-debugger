@@ -414,8 +414,8 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
             assert len(trial.tensor_names()) == (21 if is_tf_2_2() else 22)
-            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
-            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
+            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
+            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -658,8 +658,8 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
 
 
 @pytest.mark.skip  # skip until aws tf update
