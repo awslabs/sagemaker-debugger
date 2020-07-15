@@ -1,0 +1,30 @@
+# Build Spec for AWS CodeBuild CI
+
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - apt-get update
+      - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
+      - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
+      - pip install --upgrade pip==19.3.1
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh && cd ..
+      - pip install -q pytest wheel pyYaml pytest-html pre-commit awscli pytest-cov
+      - mkdir -p smprofiler-setup-files
+      - aws s3 cp --recursive s3://sm-profiler-external-preview/sdk/ smprofiler-setup-files
+      - pip install smprofiler-setup-files/sagemaker-1.60.3.dev0.tar.gz -q
+      # The following command will enable the SDK to use new profiler configs in the API
+      - aws configure add-model --service-model file://smprofiler-setup-files/sagemaker-2017-07-24.normal.json --service-name sagemaker
+
+  build:
+    commands:
+      # build pip wheel of the latest smdebug
+      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+      # Runs the smprofiler sagemaker integration tests
+      - cd $CODEBUILD_SRC_DIR  && python -m pytest -v -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/sagemaker/
+
+  post_build:
+    commands:
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi

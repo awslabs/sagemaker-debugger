@@ -1,0 +1,136 @@
+- values:
+  - [mnist_cpu.py: &mnist_cpu
+      tests/sagemaker/scripts/mnist/mnist_cpu.py,
+     mnist_gpu.py: &mnist_gpu
+      tests/sagemaker/scripts/mnist/mnist_gpu.py,
+     keras_resnet_hvd.py: &keras_resnet_hvd
+      tests/sagemaker/scripts/resnet/keras_resnet_hvd.py,
+     keras_resnet_mirrored.py: &keras_resnet_mirrored
+      tests/sagemaker/scripts/resnet/keras_resnet_mirrored.py,
+     Enable: &Enable # enable the test case
+      True,
+     Disable: &Disable # disable the test case
+      False,
+    ]
+
+- cpu_jobs:
+  -
+    - smprofiler-IT-mnist-keras-cpu-default
+    - *Enable
+    - *mnist_cpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.c5.4xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "True"
+  -
+    - smprofiler-IT-mnist-keras-cpu-disabled
+    - *Enable
+    - *mnist_cpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.c5.4xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "False"
+  -
+    - smprofiler-IT-mnist-keras-cpu-absent
+    - *Enable
+    - *mnist_cpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.c5.4xlarge
+    - 1
+    - profiler_params:
+  -
+    - smprofiler-IT-mnist-keras-cpu-custom
+    - *Enable
+    - *mnist_cpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.c5.4xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "True"
+  -
+    - smprofiler-IT-keras-resnet-cpu-hvd-multinode
+    - *Disable
+    - *keras_resnet_hvd
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.c5.4xlarge
+    - 2
+    - profiler_params:
+        RotateMaxFileSizeInBytes: "15485760"
+        RotateFileCloseIntervalInSeconds: "100"
+        FileOpenFailThreshold: "35"
+        ProfilerEnabled: "True"
+
+- gpu_jobs:
+  -
+    - smprofiler-IT-keras-resnet-gpu-hvd
+    - *Enable
+    - *keras_resnet_hvd
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "True"
+  -
+    - smprofiler-IT-keras-resnet-gpu-mirrored
+    - *Enable
+    - *keras_resnet_mirrored
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "True"
+  -
+    - smprofiler-IT-mnist-keras-gpu-default
+    - *Enable
+    - *mnist_gpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "True"
+  -
+    - smprofiler-IT-mnist-keras-gpu-disabled
+    - *Enable
+    - *mnist_gpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "False"
+  -
+    - smprofiler-IT-mnist-keras-gpu-absent
+    - *Enable
+    - *mnist_gpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 1
+    - profiler_params:
+  -
+    - smprofiler-IT-mnist-keras-gpu-custom
+    - *Enable
+    - *mnist_gpu
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 1
+    - profiler_params:
+        ProfilerEnabled: "True"
+  -
+    - smprofiler-IT-keras-resnet-gpu-hvd-multinode
+    - *Enable
+    - *keras_resnet_hvd
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 2
+    - profiler_params:
+        ProfilerEnabled: "True"
+  -
+    - smprofiler-IT-keras-resnet-gpu-mirrored
+    - *Disable
+    - *keras_resnet_mirrored
+    - AmazonSageMaker-ExecutionRole-20200205T150348
+    - ml.p2.8xlarge
+    - 2
+    - profiler_params:
+        ProfilerEnabled: "True"
