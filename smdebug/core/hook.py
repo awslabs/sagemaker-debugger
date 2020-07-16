@@ -880,6 +880,7 @@ class CallbackHook(BaseHook):
         )
         self.exported_collections = False
         self.data_type_name = data_type_name
+        self.custom_tensors_to_save = dict()
 
     def _cleanup(self):
         if not self.exported_collections:
@@ -904,6 +905,21 @@ class CallbackHook(BaseHook):
                 f"module_name:{module_name} {var.__class__.__name__}"
             )
         return idx
+
+    def save_tensor(self, tensor_name, tensor_value, collections_to_write=None):
+        if collections_to_write is None:
+            collections_to_write = CollectionKeys.DEFAULT
+        if isinstance(collections_to_write, str):
+            collections_to_write = [collections_to_write]
+        for collection in collections_to_write:
+            self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
+
+    def _save_custom_tensors_post_step(self):
+        for tensor_name in self.custom_tensors_to_save:
+            tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
+            c = self.collection_manager.get(collection_names, create=True)
+            c.add_tensor_name(tensor_name)
+            self._write_raw_tensor(tensor_name, tensor_value, [c])
 
     def _write_inputs(self, name, inputs):
         tensor_name = name + CallbackHook.INPUT_TENSOR_SUFFIX

@@ -169,6 +169,7 @@ class Hook(CallbackHook):
 
         # Output output tensors
         self._write_outputs(block_name, outputs)
+        self._save_custom_tensors_post_step()
 
         self.last_saved_step = self.step
 

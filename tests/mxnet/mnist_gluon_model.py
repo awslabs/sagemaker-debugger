@@ -28,6 +28,7 @@ def run_mnist_gluon_model(
     make_input_zero=False,
     normalize_mean=0.13,
     normalize_std=0.31,
+    save_custom_tensor=False,
 ):
     batch_size = 4
     if make_input_zero:
@@ -103,6 +104,8 @@ def run_mnist_gluon_model(
         eval_acc_name = "loss_acc"
 
     # Start the training.
+    if save_custom_tensor:
+        hook.save_tensor("custom_tensor", mx.nd.array([1, 2, 3]))
     for epoch in range(1):
         train_loss, train_acc, valid_acc = 0.0, 0.0, 0.0
         tic = time.time()

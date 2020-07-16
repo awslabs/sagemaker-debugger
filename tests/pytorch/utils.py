@@ -35,12 +35,14 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=1)
 
 
-def train(model, hook, device, optimizer, num_steps=500, set_modes=False):
+def train(model, hook, device, optimizer, num_steps=500, set_modes=False, save_custom_tensor=False):
     if set_modes:
         hook.set_mode(modes.TRAIN)
 
     model.train()
     # for batch_idx, (data, target) in enumerate(train_loader):
+    if save_custom_tensor:
+        hook.save_tensor("custom_tensor", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
     for i in range(num_steps):
         batch_size = 32
         data, target = torch.rand(batch_size, 1, 28, 28), torch.rand(batch_size).long()
