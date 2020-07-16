@@ -132,12 +132,8 @@ def test_keras_fit_eager(out_dir, tf_eager_mode=True):
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-    assert (
-        len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 5
-    )  # 1 Model Input + 4 Layer Inputs
-    assert (
-        len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 6
-    )  # 2 Model outputs + 4 Layer OUTPUTS
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1  # 1 Model Input
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2  # 2 Model outputs
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
 
     # We assert that all the tensors saved have a valid value
@@ -187,12 +183,8 @@ def test_keras_fit_false(out_dir, tf_eager_mode=False):
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-    assert (
-        len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 5
-    )  # 1 Model Input + 4 Layer Inputs
-    assert (
-        len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 6
-    )  # 2 Model outputs + 4 Layer OUTPUTS
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1  # 1 Model Input
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2  # 2 Model outputs
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
 
     # We assert that all the tensors saved have a valid value
