@@ -114,6 +114,7 @@ def test_keras_fit_eager(out_dir, tf_eager_mode=True):
         CollectionKeys.GRADIENTS,
         CollectionKeys.INPUTS,
         CollectionKeys.OUTPUTS,
+        CollectionKeys.LAYERS,
         CollectionKeys.OPTIMIZER_VARIABLES,
     ]
     hook = smd.KerasHook(out_dir=out_dir, include_collections=test_include_collections)
@@ -165,6 +166,7 @@ def test_keras_fit_false(out_dir, tf_eager_mode=False):
         CollectionKeys.GRADIENTS,
         CollectionKeys.INPUTS,
         CollectionKeys.OUTPUTS,
+        CollectionKeys.LAYERS,
         CollectionKeys.OPTIMIZER_VARIABLES,
     ]
     hook = smd.KerasHook(out_dir=out_dir, include_collections=test_include_collections)
