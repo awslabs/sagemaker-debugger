@@ -5,6 +5,7 @@ The Enum will indicate the unit in which timestamp is provided.
 # Standard Library
 import re
 from datetime import datetime
+from distutils.util import strtobool
 from enum import Enum
 
 # First Party
@@ -145,6 +146,13 @@ def validate_system_profiler_file(filename) -> bool:
         logger.debug(f"Invalid System Profiler File Found: {filename}, not able to get timestamp.")
         return False
     return True
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    else:
+        return bool(strtobool(v))
 
 
 def us_since_epoch_to_human_readable_time(us_since_epoch):

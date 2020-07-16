@@ -42,6 +42,20 @@ def user_disabled_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser()
 
 
+@pytest.fixture
+def string_data_profiler_config_parser(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "string_data_profiler_config_parser.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser()
+
+
+@pytest.fixture
+def invalid_string_data_profiler_config_parser(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "invalid_string_data_profiler_config_parser.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser()
+
+
 @pytest.mark.parametrize("test_case", detailed_profiling_test_cases)
 def test_profiling_ranges(detailed_profiler_config_path, test_case):
     detailed_profiling_parameters, expected_detailed_profiling_enabled, expected_can_detailed_profile, expected_values = (
@@ -54,9 +68,9 @@ def test_profiling_ranges(detailed_profiler_config_path, test_case):
     if num_steps:
         detailed_profiler_config.update(NumSteps=num_steps)
     if start_time:
-        detailed_profiler_config.update(StartTime=start_time)
+        detailed_profiler_config.update(StartTimeInSecSinceEpoch=start_time)
     if duration:
-        detailed_profiler_config.update(Duration=duration)
+        detailed_profiler_config.update(DurationInSeconds=duration)
 
     full_config = {
         "ProfilingParameters": {
@@ -84,7 +98,7 @@ def test_profiling_ranges(detailed_profiler_config_path, test_case):
         )
         assert profile_range.start_step == expected_start_step
         assert profile_range.end_step == expected_end_step
-        assert profile_range.start_time == expected_start_time
+        assert profile_range.start_time_in_sec == expected_start_time
         assert profile_range.end_time == expected_end_time
 
 
@@ -117,7 +131,66 @@ def test_default_values(simple_profiler_config_parser):
         [
             profile_range.start_step,
             profile_range.num_steps,
-            profile_range.start_time,
-            profile_range.duration,
+            profile_range.start_time_in_sec,
+            profile_range.duration_in_sec,
         ]
     )
+
+
+def test_string_data_in_config(string_data_profiler_config_parser):
+    """
+    This test is meant to test that the profiler config parser can handle string data
+    and typecast to appropriate types before use.
+    """
+    assert string_data_profiler_config_parser.profiling_enabled
+
+    assert isinstance(
+        string_data_profiler_config_parser.config.trace_file.rotation_policy.file_max_size, int
+    )
+    assert isinstance(
+        string_data_profiler_config_parser.config.trace_file.rotation_policy.file_close_interval,
+        float,
+    )
+    assert isinstance(
+        string_data_profiler_config_parser.config.trace_file.file_open_fail_threshold, int
+    )
+
+    assert isinstance(string_data_profiler_config_parser.config.profile_range.start_step, int)
+    assert isinstance(string_data_profiler_config_parser.config.profile_range.num_steps, int)
+    assert isinstance(
+        string_data_profiler_config_parser.config.profile_range.start_time_in_sec, float
+    )
+    assert isinstance(
+        string_data_profiler_config_parser.config.profile_range.duration_in_sec, float
+    )
+
+
+def test_invalid_string_data_in_config(invalid_string_data_profiler_config_parser):
+    """
+    This test is meant to test that the profiler config parser can handle invalid string data
+    and fallback gracefully.
+    """
+    # Profiler is enabled even if data is invalid
+    assert invalid_string_data_profiler_config_parser.profiling_enabled
+
+    # Fallback to default values for profiling parameters
+    assert (
+        invalid_string_data_profiler_config_parser.config.trace_file.rotation_policy.file_max_size
+        == MAX_FILE_SIZE_DEFAULT
+    )
+    assert (
+        invalid_string_data_profiler_config_parser.config.trace_file.rotation_policy.file_close_interval
+        == CLOSE_FILE_INTERVAL_DEFAULT
+    )
+    assert (
+        invalid_string_data_profiler_config_parser.config.trace_file.file_open_fail_threshold
+        == FILE_OPEN_FAIL_THRESHOLD_DEFAULT
+    )
+
+    # Disable detailed profiling config if any of the fields are invalid
+    assert not invalid_string_data_profiler_config_parser.detailed_profiling_enabled
+
+    assert not invalid_string_data_profiler_config_parser.config.profile_range.start_step
+    assert not invalid_string_data_profiler_config_parser.config.profile_range.num_steps
+    assert not invalid_string_data_profiler_config_parser.config.profile_range.start_time_in_sec
+    assert not invalid_string_data_profiler_config_parser.config.profile_range.duration_in_sec

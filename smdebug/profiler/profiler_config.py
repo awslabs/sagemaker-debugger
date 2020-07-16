@@ -2,6 +2,7 @@
 import time
 
 # First Party
+from smdebug.core.logger import get_logger
 from smdebug.profiler.profiler_constants import PROFILER_NUM_STEPS_DEFAULT
 
 
@@ -35,15 +36,31 @@ class ProfileRange:
         self.end_step = None
 
         # time range
-        self.start_time = profile_range.get("StartTime")
-        self.duration = profile_range.get("Duration")
+        self.start_time_in_sec = profile_range.get("StartTimeInSecSinceEpoch")
+        self.duration_in_sec = profile_range.get("DurationInSeconds")
         self.end_time = None
+
+        # convert to the correct type
+        try:
+            if self.start_step is not None:
+                self.start_step = int(self.start_step)
+            if self.num_steps is not None:
+                self.num_steps = int(self.num_steps)
+            if self.start_time_in_sec is not None:
+                self.start_time_in_sec = float(self.start_time_in_sec)
+            if self.duration_in_sec is not None:
+                self.duration_in_sec = float(self.duration_in_sec)
+        except ValueError as e:
+            get_logger("smdebug-profiler").info(
+                f"{e} encountered in DetailedProfilingConfig. Disabling Detailed profiling."
+            )
+            self.start_step = self.num_steps = self.start_time_in_sec = self.duration_in_sec = None
 
     def has_step_range(self):
         return self.start_step or self.num_steps
 
     def has_time_range(self):
-        return self.start_time or self.duration
+        return self.start_time_in_sec or self.duration_in_sec
 
     def can_start_detailed_profiling(self, current_step, current_time=time.time()):
         """Determine whether the values from the config are valid for detailed profiling.
@@ -57,14 +74,14 @@ class ProfileRange:
                 self.end_step = self.start_step + self.num_steps
             return self.start_step <= current_step < self.end_step
         elif self.has_time_range():
-            if not self.start_time:
-                self.start_time = current_time
-            if self.duration:
+            if not self.start_time_in_sec:
+                self.start_time_in_sec = current_time
+            if self.duration_in_sec:
                 if not self.end_time:
-                    self.end_time = self.start_time + self.duration
-                return self.start_time <= current_time < self.end_time
+                    self.end_time = self.start_time_in_sec + self.duration_in_sec
+                return self.start_time_in_sec <= current_time < self.end_time
             else:
-                if self.start_time <= current_time:
+                if self.start_time_in_sec <= current_time:
                     if not self.end_step:
                         self.end_step = current_step + 1
                     return current_step < self.end_step

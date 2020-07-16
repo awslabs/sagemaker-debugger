@@ -13,6 +13,7 @@ from smdebug.profiler.profiler_constants import (
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
 )
+from smdebug.profiler.utils import str2bool
 
 
 class LastProfilingStatus(Enum):
@@ -63,7 +64,15 @@ class ProfilerConfigParser:
                         self.last_status = LastProfilingStatus.INVALID_CONFIG
                     self.profiling_enabled = False
                     return
-            if config.get("ProfilerEnabled", True):
+            try:
+                profiler_enabled = str2bool(config.get("ProfilerEnabled", True))
+            except ValueError as e:
+                get_logger("smdebug-profiler").info(
+                    f"{e} in ProfilingParameters. Enabling profiling with default "
+                    f"parameter values."
+                )
+                profiler_enabled = True
+            if profiler_enabled is True:
                 if self.last_status != LastProfilingStatus.PROFILER_ENABLED:
                     get_logger("smdebug-profiler").info(f"Using config at {config_path}.")
                     self.last_status = LastProfilingStatus.PROFILER_ENABLED
@@ -83,14 +92,24 @@ class ProfilerConfigParser:
             self.profiling_enabled = False
             return
 
-        local_path = config.get("LocalPath", BASE_FOLDER_DEFAULT)
-        file_max_size = int(config.get("RotateMaxFileSizeInBytes", MAX_FILE_SIZE_DEFAULT))
-        file_close_interval = int(
-            config.get("RotateFileCloseIntervalInSeconds", CLOSE_FILE_INTERVAL_DEFAULT)
-        )
-        file_open_fail_threshold = int(
-            config.get("FileOpenFailThreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
-        )
+        try:
+            local_path = config.get("LocalPath", BASE_FOLDER_DEFAULT)
+            file_max_size = int(config.get("RotateMaxFileSizeInBytes", MAX_FILE_SIZE_DEFAULT))
+            file_close_interval = float(
+                config.get("RotateFileCloseIntervalInSeconds", CLOSE_FILE_INTERVAL_DEFAULT)
+            )
+            file_open_fail_threshold = int(
+                config.get("FileOpenFailThreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
+            )
+        except ValueError as e:
+            get_logger("smdebug-profiler").info(
+                f"{e} in ProfilingParameters. Enabling profiling with default " f"parameter values."
+            )
+            local_path = BASE_FOLDER_DEFAULT
+            file_max_size = MAX_FILE_SIZE_DEFAULT
+            file_close_interval = CLOSE_FILE_INTERVAL_DEFAULT
+            file_open_fail_threshold = FILE_OPEN_FAIL_THRESHOLD_DEFAULT
+
         profile_range = config.get("DetailedProfilingConfig", {})
 
         self.config = ProfilerConfig(
