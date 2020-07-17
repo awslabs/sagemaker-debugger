@@ -98,6 +98,7 @@ class ProfilerConfig:
         file_max_size,
         file_close_interval,
         file_open_fail_threshold,
+        use_pyinstrument,
         profile_range,
     ):
         """
@@ -105,8 +106,10 @@ class ProfilerConfig:
         :param file_max_size: Max size a trace file can be, before being rotated.
         :param file_close_interval: Interval in seconds from the last close, before being rotated.
         :param file_open_fail_threshold: Number of times to attempt to open a trace fail before marking the writer as unhealthy.
+        :param use_pyinstrument: Boolean for whether pyinstrument should be used for python profiling over cProfile.
         :param profile_range Dictionary holding the detailed profiling config.
         """
         self.local_path = local_path
         self.trace_file = TraceFile(file_max_size, file_close_interval, file_open_fail_threshold)
+        self.use_pyinstrument = use_pyinstrument
         self.profile_range = ProfileRange(profile_range)

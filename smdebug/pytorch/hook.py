@@ -26,7 +26,10 @@ python_profiler = None
 # Enable python profiling if profiling is enabled.
 profiler_config_parser = ProfilerConfigParser()
 if profiler_config_parser.profiling_enabled:
-    python_profiler = PythonProfiler(profiler_config_parser.config.local_path, "pytorch")
+    config = profiler_config_parser.config
+    python_profiler = PythonProfiler.get_python_profiler(
+        config.use_pyinstrument, config.local_path, "pytorch"
+    )
     python_profiler.start_profiling()
 
 
