@@ -433,9 +433,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
 
         for key in logs:
+            tensors_to_save = []
+            collections_to_write = set()
             if "smdebug_" in key:
+                # Save Model Outputs
                 if key in ModelOutputs:
-                    tensors_to_save = []
                     export_name = get_model_output_export_name(key)
                     tensors_to_save.append((export_name, logs[key]))
                     collections_to_write = (
@@ -443,10 +445,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
                         else set()
                     )
-                    for t_name, t_value in tensors_to_save:
-                        self._save_tensor(t_name, t_value, collections_to_write)
+                # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
-                    tensors_to_save = []
                     gradients = logs[key]
                     if gradients is not None:
                         for g, v in zip(gradients, self.model.trainable_variables):
@@ -458,14 +458,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                                 g = g.values
                             tensors_to_save.append((export_name, g))
                         collections_to_write = {self.get_collection(CollectionKeys.GRADIENTS)}
-                        for t_name, t_value in tensors_to_save:
-                            self._save_tensor(t_name, t_value, collections_to_write)
+                # Save Intermediate Layers
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
                     layer_outputs = logs[key]
                     self.save_layer_outputs(layer_outputs)
                     self.save_layer_inputs(logs[ModelInput.X], layer_outputs)
-                else:
-                    tensors_to_save = []
+                # Save Model Inputs
+                elif key in ModelInput:
                     export_name = get_model_input_export_name()
                     tensors_to_save.append((export_name, logs[key]))
                     collections_to_write = (
@@ -473,8 +472,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
                         else set()
                     )
-                    for t_name, t_value in tensors_to_save:
-                        self._save_tensor(t_name, t_value, collections_to_write)
+                for t_name, t_value in tensors_to_save:
+                    self._save_tensor(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
