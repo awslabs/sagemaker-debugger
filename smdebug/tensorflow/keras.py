@@ -106,11 +106,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         return not self._hook_supported
 
     def should_save_global_step_for_mode(self, mode: str):
+        # This function is called by the hook in the AWS TF codebase
         mode = str_to_mode_keys(mode)
         mode_step = self.mode_steps[mode]
         return self.save_config.should_save_step(mode, mode_step)
 
     def register_model(self, model):
+        # This function is called by the hook in the AWS TF codebase
         self.model = model
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
@@ -395,18 +397,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             self._save_tensor(tensor_name, tensor_value, collection_names)
+        # Clear saved custom tensors
+        self.custom_tensors_to_save.clear()
 
-    def _save_tensor(self, tensor_name, tensor_value, collections_to_write):
-        if isinstance(collections_to_write, set) is False:
-            collections_to_write = {collections_to_write}
+    def _save_tensor(self, tensor_name, tensor_value, collections):
+        if isinstance(collections, set) is False:
+            collections = {collections}
         # Since this function modifies the set, there is a possibility
         # of bugs if calling functions attempt to re-use the set passed
         # to this function
-        collections_to_write = collections_to_write.copy()
+        collections_to_write = collections.copy()
         collections_to_save = self._get_collections_to_save_for_step()
-        for collection in collections_to_save:
-            if match_inc(tensor_name, collection.include_regex):
-                collections_to_write.add(collection)
+        for c in collections_to_save:
+            if match_inc(tensor_name, c.include_regex):
+                collections_to_write.add(c)
         self._initialize_writers(only_initialize_if_missing=True)
         tensor_refs = []
         if isinstance(tensor_value, values.PerReplica):
@@ -427,8 +431,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
-
-        model_input_tensor_id = 0
 
         for key in logs:
             if "smdebug_" in key:
@@ -465,7 +467,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 else:
                     tensors_to_save = []
                     export_name = get_model_input_export_name()
-                    model_input_tensor_id += 1
                     tensors_to_save.append((export_name, logs[key]))
                     collections_to_write = (
                         {self.get_collection(CollectionKeys.INPUTS)}
