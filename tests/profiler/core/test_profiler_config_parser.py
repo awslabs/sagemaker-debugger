@@ -56,21 +56,30 @@ def invalid_string_data_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser()
 
 
+def _convert_to_string(item):
+    return '"{0}"'.format(item) if isinstance(item, str) else item
+
+
+def _convert_key_and_value(key, value):
+    return "{0}: {1}, ".format(_convert_to_string(key), _convert_to_string(value))
+
+
 @pytest.mark.parametrize("test_case", detailed_profiling_test_cases)
 def test_profiling_ranges(detailed_profiler_config_path, test_case):
     detailed_profiling_parameters, expected_detailed_profiling_enabled, expected_can_detailed_profile, expected_values = (
         test_case
     )
     start_step, num_steps, start_time, duration = detailed_profiling_parameters
-    detailed_profiler_config = {}
+    detailed_profiler_config = "{"
     if start_step:
-        detailed_profiler_config.update(StartStep=start_step)
+        detailed_profiler_config += _convert_key_and_value("StartStep", start_step)
     if num_steps:
-        detailed_profiler_config.update(NumSteps=num_steps)
+        detailed_profiler_config += _convert_key_and_value("NumSteps", num_steps)
     if start_time:
-        detailed_profiler_config.update(StartTimeInSecSinceEpoch=start_time)
+        detailed_profiler_config += _convert_key_and_value("StartTimeInSecSinceEpoch", start_time)
     if duration:
-        detailed_profiler_config.update(DurationInSeconds=duration)
+        detailed_profiler_config += _convert_key_and_value("DurationInSeconds", duration)
+    detailed_profiler_config += "}"
 
     full_config = {
         "ProfilingParameters": {
@@ -83,12 +92,11 @@ def test_profiling_ranges(detailed_profiler_config_path, test_case):
         json.dump(full_config, f)
 
     profiler_config_parser = ProfilerConfigParser()
-    profile_range = profiler_config_parser.config.profile_range
-
     assert profiler_config_parser.profiling_enabled
     assert profiler_config_parser.detailed_profiling_enabled == expected_detailed_profiling_enabled
 
     if profiler_config_parser.detailed_profiling_enabled:
+        profile_range = profiler_config_parser.config.profile_range
         assert (
             profile_range.can_start_detailed_profiling(current_step, current_time)
             == expected_can_detailed_profile

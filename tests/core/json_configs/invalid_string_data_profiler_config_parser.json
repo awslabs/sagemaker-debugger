@@ -5,11 +5,6 @@
         "RotateMaxFileSizeInBytes": "None",
         "RotateFileCloseIntervalInSeconds": "None",
         "FileOpenFailThreshold": "None",
-        "DetailedProfilingConfig": {
-            "StartStep": "None",
-            "NumSteps": "None",
-            "StartTimeInSecSinceEpoch": "None",
-            "DurationInSeconds": "None"
-        }
+        "DetailedProfilingConfig": "{\"StartStep\": \"None\", \"NumSteps\": \"None\", \"StartTimeInSecSinceEpoch\": \"None\", \"DurationInSeconds\": \"None\"}"
     }
 }

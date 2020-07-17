@@ -2,8 +2,6 @@
     "ProfilingParameters": {
         "ProfilerEnabled": true,
         "LocalPath": "/tmp/test",
-        "DetailedProfilingConfig": {
-            "DurationInSeconds": 0.1
-        }
+        "DetailedProfilingConfig": "{\"DurationInSeconds\": 0.1}"
     }
 }

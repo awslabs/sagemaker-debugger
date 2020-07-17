@@ -26,6 +26,7 @@ class LastProfilingStatus(Enum):
     PROFILER_DISABLED = "PROFILER_DISABLED"
     PROFILER_ENABLED = "PROFILER_ENABLED"
     INVALID_DETAILED_CONFIG = "INVALID_DETAILED_CONFIG"
+    INVALID_DETAILED_CONFIG_FIELDS = "INVALID_DETAILED_CONFIG_FIELDS"
     DETAILED_CONFIG_NOT_FOUND = "DETAILED_CONFIG_NOT_FOUND"
 
 
@@ -112,7 +113,14 @@ class ProfilerConfigParser:
             file_open_fail_threshold = FILE_OPEN_FAIL_THRESHOLD_DEFAULT
             use_pyinstrument = False
 
-        profile_range = config.get("DetailedProfilingConfig", {})
+        try:
+            profile_range = eval(config.get("DetailedProfilingConfig", "{}"))
+        except:
+            if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG:
+                get_logger("smdebug-profiler").error("Error parsing detailed profiling config.")
+                self.last_status = LastProfilingStatus.INVALID_DETAILED_CONFIG
+            self.profiling_enabled = False
+            return
 
         self.config = ProfilerConfig(
             local_path,
@@ -127,11 +135,11 @@ class ProfilerConfigParser:
             self.config.profile_range.has_step_range()
             and self.config.profile_range.has_time_range()
         ):
-            if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG:
+            if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG_FIELDS:
                 get_logger("smdebug-profiler").error(
                     "User must not specify both step and time fields for profile range! No sync metrics will be logged."
                 )
-                self.last_status = LastProfilingStatus.INVALID_DETAILED_CONFIG
+                self.last_status = LastProfilingStatus.INVALID_DETAILED_CONFIG_FIELDS
             self.detailed_profiling_enabled = False
             return
 
