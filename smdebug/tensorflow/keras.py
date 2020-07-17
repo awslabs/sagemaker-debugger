@@ -19,6 +19,7 @@ from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
     ModelInput,
+    ModelInputs,
     ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
@@ -464,7 +465,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self.save_layer_outputs(layer_outputs)
                     self.save_layer_inputs(logs[ModelInput.X], layer_outputs)
                 # Save Model Inputs
-                elif key in ModelInput:
+                elif key in ModelInputs:
                     export_name = get_model_input_export_name()
                     tensors_to_save.append((export_name, logs[key]))
                     collections_to_write = (
