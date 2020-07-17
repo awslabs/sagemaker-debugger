@@ -24,6 +24,7 @@ phases:
       - echo "Build GPU image"
       - container_id=`docker run -di ${PREVIEW_REGISTRY_GPU}`
       - docker cp $CODEBUILD_SRC_DIR/dist/*.whl ${container_id}:/
+      - docker exec ${container_id} pip install --force-reinstall tensorflow_datasets
       - docker exec ${container_id} pip uninstall -y smdebug
       - docker exec ${container_id} pip install --force-reinstall ${pip_name}
       # Check if smdebug has been installed
@@ -42,6 +43,7 @@ phases:
       - echo "Build CPU image"
       - container_id=`docker run -di ${PREVIEW_REGISTRY_CPU}`
       - docker cp $CODEBUILD_SRC_DIR/dist/*.whl ${container_id}:/
+      - docker exec ${container_id} pip install --force-reinstall tensorflow_datasets
       - docker exec ${container_id} pip uninstall -y smdebug
       - docker exec ${container_id} pip install --force-reinstall ${pip_name}
       # Check if smdebug has been installed
