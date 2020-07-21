@@ -13,10 +13,10 @@ import argparse
 import pytest
 import tensorflow.compat.v2 as tf
 from tests.tensorflow2.utils import is_tf_2_2
+from tests.utils import SagemakerSimulator
 
 # First Party
 import smdebug.tensorflow as smd
-from smdebug.core.utils import SagemakerSimulator
 
 
 def get_keras_data():

@@ -1,9 +1,11 @@
 # Standard Library
 import os
 
+# Third Party
+from tests.utils import SagemakerSimulator, ScriptSimulator
+
 # First Party
 import smdebug.pytorch as smd
-from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
 def test_tensorboard_dir_sagemaker():

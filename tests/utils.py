@@ -78,3 +78,20 @@ class SagemakerSimulator(object):
                 del os.environ["TRAINING_JOB_NAME"]
             if TENSORBOARD_CONFIG_FILE_PATH_ENV_STR in os.environ:
                 del os.environ[TENSORBOARD_CONFIG_FILE_PATH_ENV_STR]
+
+
+class ScriptSimulator(object):
+    def __init__(self, out_dir="/tmp/test", tensorboard_dir=None):
+        self.out_dir = out_dir
+        self.tensorboard_dir = tensorboard_dir
+
+    def __enter__(self):
+        shutil.rmtree(self.out_dir, ignore_errors=True)
+        if self.tensorboard_dir:
+            shutil.rmtree(self.tensorboard_dir, ignore_errors=True)
+        return self
+
+    def __exit__(self, *args):
+        shutil.rmtree(self.out_dir, ignore_errors=True)
+        if self.tensorboard_dir:
+            shutil.rmtree(self.tensorboard_dir, ignore_errors=True)

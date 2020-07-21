@@ -7,9 +7,7 @@ import mxnet as mx
 import numpy as np
 from mxnet import autograd, gluon
 from mxnet.gluon import nn
-
-# First Party
-from smdebug.core.utils import SagemakerSimulator
+from tests.utils import SagemakerSimulator
 
 
 def parse_args():

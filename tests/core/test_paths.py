@@ -3,11 +3,13 @@ import os
 import uuid
 from tempfile import TemporaryDirectory
 
+# Third Party
+from tests.utils import SagemakerSimulator, ScriptSimulator
+
 # First Party
 from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX, get_temp_path
 from smdebug.core.access_layer.utils import training_has_ended
 from smdebug.core.hook_utils import verify_and_get_out_dir
-from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 from smdebug.trials import create_trial
 
 # Local
