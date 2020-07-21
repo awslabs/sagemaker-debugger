@@ -22,7 +22,7 @@ phases:
       # build pip wheel of the latest smdebug
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
       # Runs the smprofiler sagemaker integration tests
-      - cd $CODEBUILD_SRC_DIR  && python -m pytest -v -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/sagemaker/
+      - cd $CODEBUILD_SRC_DIR  && python -m pytest -v -s -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/sagemaker/
 
   post_build:
     commands:

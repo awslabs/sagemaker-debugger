@@ -20,47 +20,65 @@
     - *mnist_cpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 1
+        framework_trace_file_count: 13
   -
     - smprofiler-IT-mnist-keras-cpu-disabled
     - *Enable
     - *mnist_cpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "False"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 0
+        framework_trace_file_count: 0
   -
     - smprofiler-IT-mnist-keras-cpu-absent
     - *Enable
     - *mnist_cpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 0
+        framework_trace_file_count: 0
   -
     - smprofiler-IT-mnist-keras-cpu-custom
     - *Enable
     - *mnist_cpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
+        RotateMaxFileSizeInBytes: "12485760.34"
+        RotateFileCloseIntervalInSeconds: "100.45"
+        FileOpenFailThreshold: "35"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 1
+        framework_trace_file_count: 11
   -
     - smprofiler-IT-keras-resnet-cpu-hvd-multinode
     - *Disable
     - *keras_resnet_hvd
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
-    - 2
+    - instance_count: 2
     - profiler_params:
         RotateMaxFileSizeInBytes: "15485760"
         RotateFileCloseIntervalInSeconds: "100"
         FileOpenFailThreshold: "35"
         ProfilerEnabled: "True"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 2
+        framework_trace_file_count: 4
 
 - gpu_jobs:
   -
@@ -69,68 +87,104 @@
     - *keras_resnet_hvd
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 1
+        framework_trace_file_count: 3
   -
     - smprofiler-IT-keras-resnet-gpu-mirrored
     - *Enable
     - *keras_resnet_mirrored
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
+        RotateMaxFileSizeInBytes: "20485760"
+        RotateFileCloseIntervalInSeconds: "100"
+        FileOpenFailThreshold: "35"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 1
+        framework_trace_file_count: 7
   -
     - smprofiler-IT-mnist-keras-gpu-default
     - *Enable
     - *mnist_gpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 1
+        framework_trace_file_count: 2
   -
     - smprofiler-IT-mnist-keras-gpu-disabled
     - *Enable
     - *mnist_gpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "False"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 0
+        framework_trace_file_count: 0
   -
     - smprofiler-IT-mnist-keras-gpu-absent
     - *Enable
     - *mnist_gpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 0
+        framework_trace_file_count: 0
   -
     - smprofiler-IT-mnist-keras-gpu-custom
     - *Enable
     - *mnist_gpu
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 1
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
+        RotateMaxFileSizeInBytes: "5485760"
+        RotateFileCloseIntervalInSeconds: "50"
+        FileOpenFailThreshold: "35"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 1
+        framework_trace_file_count: 2
   -
     - smprofiler-IT-keras-resnet-gpu-hvd-multinode
     - *Enable
     - *keras_resnet_hvd
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 2
+    - instance_count: 2
     - profiler_params:
         ProfilerEnabled: "True"
+        RotateMaxFileSizeInBytes: "15485760"
+        RotateFileCloseIntervalInSeconds: "100"
+        FileOpenFailThreshold: "35"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 2
+        framework_trace_file_count: 4
   -
     - smprofiler-IT-keras-resnet-gpu-mirrored
     - *Disable
     - *keras_resnet_mirrored
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
-    - 2
+    - instance_count: 2
     - profiler_params:
         ProfilerEnabled: "True"
+        RotateMaxFileSizeInBytes: "20485760"
+        RotateFileCloseIntervalInSeconds: "100"
+        FileOpenFailThreshold: "35"
+    - expected_values_in_test_artifacts:
+        python_trace_file_count: 2
+        framework_trace_file_count: 14
