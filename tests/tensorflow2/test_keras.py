@@ -193,7 +193,7 @@ def test_keras_gradtape(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 15
+        assert len(trial.tensor_names()) == 25
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
@@ -273,7 +273,7 @@ def test_gradtape_include_regex(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
 
-    assert len(tnames) == 8
+    assert len(tnames) == 12
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
@@ -341,7 +341,7 @@ def test_gradtape_include_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 15
+    assert len(trial.tensor_names()) == 16
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -386,7 +386,7 @@ def test_gradtape_persistent(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 15
+        assert len(trial.tensor_names()) == 25
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
@@ -415,9 +415,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (21 if is_tf_2_2() else 22)
-            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
-            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
+            assert len(trial.tensor_names()) == (28 if is_tf_2_2() else 27)
+            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -508,7 +508,7 @@ def test_include_regex(out_dir, tf_eager_mode):
     tnames = tr.tensor_names(collection="custom_coll")
 
     if tf_eager_mode:
-        assert len(tnames) == 8
+        assert len(tnames) == 12
     else:
         assert len(tnames) == 8
     for tname in tnames:
@@ -593,7 +593,7 @@ def test_include_collections(out_dir, tf_eager_mode):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     if tf_eager_mode:
-        assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+        assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 17)
     else:
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
@@ -656,12 +656,12 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
 
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (20 if is_tf_2_2() else 21)
+    assert len(trial.tensor_names()) == (27 if is_tf_2_2() else 28)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
 
 
 @pytest.mark.skip  # skip until aws tf update
