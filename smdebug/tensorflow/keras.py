@@ -405,7 +405,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for collection in collections_to_write:
             self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
-    def _save_tensors_post_step(self):
+    def _save_custom_tensors_post_step(self):
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             self._save_tensor(tensor_name, tensor_value, collection_names)
@@ -541,7 +541,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_metrics(batch, logs)
         self.save_smdebug_logs(logs)
         self._save_layer_input_and_outputs()
-        self._save_tensors_post_step()
+        self._save_custom_tensors_post_step()
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
@@ -971,7 +971,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self._write_optimizer_variables()
             self._save_layer_input_and_outputs(grad_tape=True)
-            self._save_tensors_post_step()
+            self._save_custom_tensors_post_step()
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
             self._add_metric(metric_name="loss", metric_value=loss)
