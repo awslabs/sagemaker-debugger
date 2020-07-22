@@ -409,6 +409,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
     def _save_custom_tensors_post_step(self):
+        # This saves all the values of custom tensors
+        # that the user has saved with the save_tensor api
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             self._save_tensor(tensor_name, tensor_value, collection_names)
@@ -465,8 +467,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     gradients = logs[key]
                     if gradients is not None:
                         for g, v in zip(gradients, self.model.trainable_variables):
-                            layer = v.name.split(":")[0]
-                            export_name = "gradients/" + layer + "Grad"
+                            layer_name = v.name
+                            if layer_name.split(":") > 1:
+                                layer_name = layer_name.split(":")[0]
+                            export_name = "gradients/" + layer_name + "Grad"
                             if isinstance(g, IndexedSlices):
                                 # This class is a simple wrapper for a pair of Tensor objects
                                 # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
