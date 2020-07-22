@@ -292,14 +292,47 @@ def get_tb_worker():
     return f"{os.getpid()}_{socket.gethostname()}"
 
 
+def get_distributed_worker():
+    """Get the rank for horovod or torch distributed. If none of them are being used,
+    return None"""
+    rank = None
+    try:
+        import torch.distributed as dist
+    except (ImportError, ModuleNotFoundError):
+        dist = None
+    rank = None
+    if dist and hasattr(dist, "is_initialized") and dist.is_initialized():
+        rank = dist.get_rank()
+    else:
+        try:
+            import horovod.torch as hvd
+
+            if hvd.size():
+                rank = hvd.rank()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
+
+        try:
+            import horovod.tensorflow as hvd
+
+            if hvd.size():
+                rank = hvd.rank()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
+    return rank
+
+
 def get_node_id():
     """Gets current host ID from SM config and set node ID as pid-hostID.
     If config is not available, use pid-hostname.
     """
     from smdebug.core.json_config import get_node_id_from_resource_config  # prevent circular import
 
+    rank = get_distributed_worker()
+
     node_id = get_node_id_from_resource_config()
-    node_id = f"{os.getpid()}-{node_id}" if node_id else get_tb_worker()
+    rank = rank if rank is not None else os.getpid()
+    node_id = f"{rank}-{node_id}" if node_id else f"{rank}_{socket.gethostname()}"
     return node_id.replace("_", "-")
 
 
