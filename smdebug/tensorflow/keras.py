@@ -6,7 +6,6 @@ import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 
 # First Party
-from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
@@ -67,12 +66,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if is_tf_version_2x() and tf.executing_eagerly():
                 self.logger.info(
                     "Executing in TF2.x eager mode."
-                    "TF 2.x eager doesn't provide gradient and optimizer variable values."
-                    "SageMaker Debugger will not be saving gradients and optimizer variables in this case"
+                    "SageMaker Debugger will not be saving gradients"
                 )
-            if (
-                not is_tf_version_2x()
-                and tf.executing_eagerly()
+            if not is_tf_version_2x() and (
+                tf.executing_eagerly()
                 or (hasattr(self.model, "run_eagerly") and self.model.run_eagerly)
             ):
                 self.logger.info(
@@ -214,7 +211,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         )
                     elif isinstance(tensor, tf.Tensor):
                         tensor_refs.append(coll.add_tensor(tensor, name=export_name, mode=mode))
-                    elif isinstance(tensor, values.DistributedVariable):
+                    elif isinstance(tensor, values.DistributedValues):
                         tensor_refs.extend(
                             coll.add_distributed_variable(
                                 tensor, export_name=export_name, mode=mode
@@ -318,21 +315,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_non_layer_tensors(self):
         # for gradients, optimizer_variables
-        custom_collections = set()
-        default_tf_collection = set()
-
-        for coll in self.collection_manager.get_collections().values():
-            if coll.name not in DEFAULT_TF_COLLECTIONS:
-                custom_collections.add(coll)
-            else:
-                default_tf_collection.add(coll)
-
-        for default_coll in default_tf_collection:
-            for tensor_ref in default_coll.get_tensors():
+        custom_collections, _ = self._get_custom_and_default_collections()
+        for coll in [
+            self.get_collection(name=CollectionKeys.OPTIMIZER_VARIABLES),
+            self.get_collection(name=CollectionKeys.GRADIENTS),
+        ]:
+            for tensor_ref in coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
-                    self.tensor_to_collections[tensor_ref.name] = {default_coll}
-                elif default_coll not in self.tensor_to_collections[tensor_ref.name]:
-                    self.tensor_to_collections[tensor_ref.name].add(default_coll)
+                    self.tensor_to_collections[tensor_ref.name] = {coll}
+                elif coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(coll)
 
                 # Add tensor to custom collections
                 for custom_coll in custom_collections:
@@ -569,15 +561,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
-        collections = self._get_collections_to_save_for_step()
-        for tensor_ref in optimizer_collections.get_tensors(self.mode):
-            for coll in collections:
-                if coll in self.tensor_to_collections[tensor_ref.name]:
-                    tensor = tensor_ref.tf_obj
+        collections_to_save = self._get_collections_to_save_for_step()
+        for tensor_ref in optimizer_collections.get_tensors(mode=ModeKeys.TRAIN):
+            tensor = tensor_ref.tf_obj
+            collections_to_save = self._get_collections_with_tensor(tensor.name).intersection(
+                collections_to_save
+            )
+            if len(collections_to_save):
+                self._initialize_writers(only_initialize_if_missing=True)
+                tensor = tensor_ref.tf_obj
+                self._add_to_device_map(tensor)
+                tf_names = get_tf_names(tensor)
+                for name in tf_names:
                     self._save_for_tensor(
-                        tensor_name=tensor.name,
-                        tensor_value=tensor.value(),
-                        check_before_write=False,
+                        tensor_name=name, tensor_value=tensor.value(), check_before_write=False
                     )
 
     def _on_any_batch_end(self, batch, mode, logs=None):
@@ -719,6 +716,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # at this point we need all collections to be ready
                 # this may not be the case at creation of hook
                 # as user's code after hook might add collections
+                self.collection_manager.get(CollectionKeys.WEIGHTS).include(
+                    "^weights/.*/((?!bias).)*$"
+                )
+                self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
+                self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
                 self._prepare_collections()
                 self.prepared_collections = True
 
@@ -783,7 +785,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
-
+            self._write_optimizer_variables()
             self._add_metric(metric_name="loss", metric_value=loss)
             if self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
                 self._initialize_writers(only_initialize_if_missing=True)

@@ -1,7 +1,7 @@
 # Standard Library
 import os
 from abc import ABCMeta
-from typing import List, Set
+from typing import List, Set, Tuple
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -79,6 +79,8 @@ class TensorflowBaseHook(BaseHook):
             include_workers=include_workers,
         )
         self.optimizer = None
+        self._custom_collections = None
+        self._default_collections = None
         self._gradients_set = False
         """self.device_map is a mapping between a tf device string to a serialized (filename-friendly) device string
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
@@ -215,6 +217,18 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
+    def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
+        if self._custom_collections is None:
+            self._custom_collections = set()
+            self._default_collections = set()
+            for coll in self.collection_manager.get_collections().values():
+                if coll.name not in DEFAULT_TF_COLLECTIONS:
+                    self._custom_collections.add(coll)
+                else:
+                    self._default_collections.add(coll)
+
+        return self._custom_collections, self._default_collections
+
     def _get_num_workers(self):
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
@@ -268,7 +282,10 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 # else is for metrics in Keras
-                worker = tensor_ref.tf_obj.device if tensor_ref.tf_obj is not None else "CPU"
+                if tensor_ref is not None and tensor_ref.tf_obj is not None:
+                    worker = tensor_ref.tf_obj.device
+                else:
+                    worker = "CPU"
                 # if device str is empty or cpu in worker
                 if not bool(worker) or "CPU" in worker:
                     if self.save_all_workers:
@@ -377,7 +394,7 @@ class TensorflowBaseHook(BaseHook):
         if is_tf_version_2x() and tf.executing_eagerly():
             from tensorflow.python.distribute import values
 
-            if isinstance(tensor, values.DistributedVariable):
+            if isinstance(tensor, values.DistributedValues):
                 tensors = [t for t in tensor._values]
         else:
             tensors = [tensor]
@@ -491,7 +508,7 @@ class TensorflowBaseHook(BaseHook):
         # But in TF 2.1, only ops.executing_eagerly_outside_functions() is valid
         # since this is done for each variable at a time for keras, not checking if set already
         self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES).add_for_mode(
-            optimizer_variables, self.mode
+            optimizer_variables, ModeKeys.TRAIN
         )
 
     @staticmethod
@@ -510,6 +527,8 @@ class TensorflowBaseHook(BaseHook):
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        if hasattr(tensor_value, "numpy"):
+            tensor_value = tensor_value.numpy()
         return get_numpy_reduction(reduction_name, tensor_value, abs)
 
     def add_to_collection(self, collection_name, variable):

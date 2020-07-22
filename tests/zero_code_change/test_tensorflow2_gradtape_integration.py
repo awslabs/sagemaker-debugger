@@ -10,7 +10,9 @@ Here in the test suite we delete the hook after every script.
 import argparse
 
 # Third Party
+import pytest
 import tensorflow.compat.v2 as tf
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -79,7 +81,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
         else:
-            # ZCC doesn't support yet (as of smdebug v0.7.2)
+            # ZCC support added from smdebug v0.8.0)
             for epoch in range(n_epochs):
                 print("Epoch %d/%d" % (epoch + 1, n_epochs))
                 for data, labels in dataset:
@@ -96,15 +98,26 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
-            assert not hook
+            if not is_tf_2_2():
+                assert not hook  # only supported on TF 2.2 and greater
+                return
+            assert hook
+            hook.close()
+            # Check that hook created and tensors saved
+            trial = smd.create_trial(path=sim.out_dir)
+            assert len(trial.steps()) > 0, "Nothing saved at any step."
+            assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+            assert len(trial.tensor_names(collection="losses")) > 0
 
 
-def test_keras_v2_default(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_keras_v2_default(script_mode):
     # Test default ZCC behavior
     helper_test_keras_v2_gradienttape(script_mode=script_mode)
 
 
-def test_keras_v2_multi_collections(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_keras_v2_multi_collections(script_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
             {
@@ -138,7 +151,8 @@ def test_keras_v2_multi_collections(script_mode: bool = False):
     )
 
 
-def test_keras_v2_save_all(script_mode: bool = False):
+@pytest.mark.parametrize("script_mode", [False])
+def test_keras_v2_save_all(script_mode):
     # Test save all through hook config
     json_file_contents = """
             {
@@ -158,7 +172,10 @@ def test_keras_v2_save_all(script_mode: bool = False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--script-mode", help="Manually create hooks instead of relying on ZCC", action="store_true"
+        "--script-mode",
+        help="Manually create hooks instead of relying on ZCC",
+        action="store_true",
+        default=False,
     )
     args = parser.parse_args()
     script_mode = args.script_mode

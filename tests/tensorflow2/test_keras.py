@@ -6,9 +6,13 @@ before pushing to master.
 This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
+# Standard Library
+import time
+
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
+import tensorflow_datasets as tfds
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
 
@@ -33,6 +37,7 @@ def helper_keras_fit(
     eager=True,
     steps=None,
     add_callbacks=None,
+    run_eagerly=None,
 ):
     if not eager:
         tf.compat.v1.disable_eager_execution()
@@ -70,7 +75,12 @@ def helper_keras_fit(
     opt = tf.keras.optimizers.Adam()
 
     opt = hook.wrap_optimizer(opt)
-    model.compile(optimizer=opt, loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    model.compile(
+        optimizer=opt,
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+        run_eagerly=run_eagerly,
+    )
     hooks = []
     if add_callbacks:
         if "tensorboard" in add_callbacks:
@@ -139,6 +149,7 @@ def helper_keras_gradtape(
                     hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
     opt = tf.keras.optimizers.Adam()
+    hook.wrap_optimizer(opt)
 
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
@@ -180,9 +191,10 @@ def test_keras_gradtape(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 10
+        assert len(trial.tensor_names()) == 15
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -327,9 +339,9 @@ def test_gradtape_include_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 10
+    assert len(trial.tensor_names()) == 15
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -372,9 +384,10 @@ def test_gradtape_persistent(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 10
+        assert len(trial.tensor_names()) == 15
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
@@ -385,6 +398,10 @@ def test_gradtape_persistent(out_dir, saveall):
 @pytest.mark.parametrize("saveall", [True, False])
 def test_keras_fit(out_dir, tf_eager_mode, saveall):
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
+    ts = time.time()
+    hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
+    scalars_to_be_saved = dict()
+    scalars_to_be_saved["scalar/foobar"] = (ts, 0)
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
@@ -394,9 +411,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x eager mode
-    if saveall:  # save losses, metrics, weights, biases
+    if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+            assert len(trial.tensor_names()) == (13 if is_tf_2_2() else 14)
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -412,11 +429,13 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
             "No Optimizer Variables Should be Saved in EVAL Mode",
         )
     else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == (3 if is_tf_2_2() and tf_eager_mode else 4)
+        assert len(trial.tensor_names()) == (4 if is_tf_2_2() and tf_eager_mode else 5)
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
+    for tname in trial.tensor_names():
+        assert trial.tensor(tname).value(0) is not None
 
 
 @pytest.mark.slow
@@ -616,3 +635,62 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
         2 if is_tf_2_2() and tf_eager_mode else 3
     )
+
+
+@pytest.mark.skip_if_non_eager
+def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
+    """
+    Test save all and save default collection in fit() pure eager mode
+    """
+    hook = smd.KerasHook(out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=3))
+    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
+
+    trial = smd.create_trial(path=out_dir)
+    assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+
+
+def test_keras_to_estimator(out_dir, tf_eager_mode):
+    if not tf_eager_mode:
+        tf.compat.v1.disable_eager_execution()
+        tf.compat.v1.reset_default_graph()
+
+    tf.keras.backend.clear_session()
+
+    model = tf.keras.models.Sequential(
+        [
+            tf.keras.layers.Dense(16, activation="relu", input_shape=(4,)),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(1, activation="sigmoid"),
+        ]
+    )
+
+    def input_fn():
+        split = tfds.Split.TRAIN
+        dataset = tfds.load("iris", split=split, as_supervised=True)
+        dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
+        dataset = dataset.batch(32).repeat()
+        return dataset
+
+    model.compile(loss="categorical_crossentropy", optimizer="adam")
+    model.summary()
+
+    keras_estimator = tf.keras.estimator.model_to_estimator(keras_model=model, model_dir=out_dir)
+
+    hook = smd.EstimatorHook(out_dir)
+
+    hook.set_mode(smd.modes.TRAIN)
+    keras_estimator.train(input_fn=input_fn, steps=25, hooks=[hook])
+
+    hook.set_mode(smd.modes.EVAL)
+    eval_result = keras_estimator.evaluate(input_fn=input_fn, steps=10, hooks=[hook])
+
+    from smdebug.trials import create_trial
+
+    tr = create_trial(out_dir)
+    assert len(tr.tensor_names()) == 1
+    assert len(tr.steps()) == 2
+    assert len(tr.steps(smd.modes.TRAIN)) == 1
+    assert len(tr.steps(smd.modes.EVAL)) == 1

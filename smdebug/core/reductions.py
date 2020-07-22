@@ -29,14 +29,15 @@ def get_basic_numpy_reduction(reduction_name, numpy_data):
             return getattr(np, reduction_name)(numpy_data)
     elif reduction_name in ALLOWED_NORMS:
         if reduction_name in ["l1", "l2"]:
-            ord = int(reduction_name[1])
+            order = int(reduction_name[1])
         else:
-            ord = None
+            order = None
 
-        if abs:
-            rv = np.linalg.norm(np.absolute(numpy_data), ord=ord)
-        else:
-            rv = np.linalg.norm(numpy_data, ord=ord)
+        if np.isscalar(numpy_data):
+            # np.linalg.norm expects array-like inputs
+            # but numpy_data can sometimes be a scalar value
+            numpy_data = [numpy_data]
+        rv = np.linalg.norm(numpy_data, ord=order)
         return rv
     return None
 

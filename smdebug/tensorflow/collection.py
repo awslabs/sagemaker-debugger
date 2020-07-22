@@ -82,7 +82,7 @@ class Collection(BaseCollection):
             return self.add_variable(arg, mode=mode)
         elif isinstance(arg, tf.Tensor):
             return self.add_tensor(arg, mode=mode)
-        elif isinstance(arg, values.DistributedVariable):
+        elif isinstance(arg, values.DistributedValues):
             return self.add_distributed_variable(arg, mode=mode)
         elif isinstance(arg, values.AggregatingVariable):
             return self.add_aggregating_variable(arg, mode=mode)
@@ -148,9 +148,6 @@ class CollectionManager(BaseCollectionManager):
                 self.create_collection(n)
             if is_tf_version_2x() and tf.executing_eagerly():
                 self.get(CollectionKeys.BIASES).include("^(?!gradient).*bias")
-                self.get(CollectionKeys.WEIGHTS).include("^weights/.*/((?!bias).)*$")
-                self.get(CollectionKeys.LOSSES).include(".*loss.*")
-                self.get(CollectionKeys.GRADIENTS).include("^gradient")
             else:
                 self.get(CollectionKeys.BIASES).include("bias")
 

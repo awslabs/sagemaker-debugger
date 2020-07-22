@@ -18,12 +18,13 @@ Here in the test suite we delete the hook after every script.
 import argparse
 
 # Third Party
+import pytest
 import tensorflow.compat.v2 as tf
+from tests.utils import SagemakerSimulator
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.utils import SagemakerSimulator
 
 
 def get_keras_model_v2():
@@ -51,7 +52,8 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     tf.keras.backend.clear_session()
     if not eager_mode:
         tf.compat.v1.disable_eager_execution()
-    with SagemakerSimulator() as sim:
+    enable_tb = False if tf.__version__ == "2.0.2" else True
+    with SagemakerSimulator(enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
         x_train, x_test = x_train / 255, x_test / 255
@@ -101,7 +103,8 @@ def helper_test_keras_v2_json_config(
     tf.keras.backend.clear_session()
     if not eager_mode:
         tf.compat.v1.disable_eager_execution()
-    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
+    enable_tb = False if tf.__version__ == "2.0.2" else True
+    with SagemakerSimulator(json_file_contents=json_file_contents, enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
         x_train, x_test = x_train / 255, x_test / 255
@@ -137,12 +140,16 @@ def helper_test_keras_v2_json_config(
         assert len(trial.tensor_names(collection="losses")) > 0
 
 
-def test_keras_v2_default(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_default(script_mode, eager_mode):
     # Test default ZCC behavior
     helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
 
 
-def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_multi_collections(script_mode, eager_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
             {
@@ -176,7 +183,9 @@ def test_keras_v2_multi_collections(script_mode: bool = False, eager_mode: bool 
     )
 
 
-def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True, False])
+def test_keras_v2_save_all(script_mode, eager_mode):
     # Test save all through hook config
     json_file_contents = """
             {
@@ -196,7 +205,10 @@ def test_keras_v2_save_all(script_mode: bool = False, eager_mode: bool = True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--script-mode", help="Manually create hooks instead of relying on ZCC", action="store_true"
+        "--script-mode",
+        help="Manually create hooks instead of relying on ZCC",
+        action="store_true",
+        default=False,
     )
     args = parser.parse_args()
     script_mode = args.script_mode

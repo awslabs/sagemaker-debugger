@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from smdebug.analysis.utils import no_refresh
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import RuleEvaluationConditionMet
+from smdebug.rules.action import Actions
 
 # Local
 from .req_tensors import RequiredTensors
@@ -12,7 +13,7 @@ from .req_tensors import RequiredTensors
 
 # This is Rule interface
 class Rule(ABC):
-    def __init__(self, base_trial, other_trials=None):
+    def __init__(self, base_trial, other_trials=None, action_str=""):
         self.base_trial = base_trial
         self.other_trials = other_trials
 
@@ -24,6 +25,7 @@ class Rule(ABC):
 
         self.logger = get_logger()
         self.rule_name = self.__class__.__name__
+        self._actions = Actions(actions_str=action_str, rule_name=self.rule_name)
 
     def set_required_tensors(self, step):
         pass
@@ -55,4 +57,5 @@ class Rule(ABC):
             val = self.invoke_at_step(step)
 
         if val:
+            self._actions.invoke()
             raise RuleEvaluationConditionMet(self.rule_name, step)
