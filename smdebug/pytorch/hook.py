@@ -100,6 +100,7 @@ class Hook(CallbackHook):
         set_hook(self)
         self.parent_forward_event = None
         self.parent_backward_event = None
+        self.step_event = None
         self.forward_modules_profile_stats = []
         self.backward_modules_profile_stats = []
         self.autograd_profiler_enabled = False
@@ -132,9 +133,12 @@ class Hook(CallbackHook):
         self.log_outstanding_forward_stats_and_reset()
         self.log_outstanding_backward_stats_and_reset()
 
-    def log_outstanding_forward_stats_and_reset(self):
+    def log_outstanding_forward_stats_and_reset(self, log_step_event=True):
         if self.parent_forward_event:
             self.log_trace_event(self.parent_forward_event)
+        if self.step_event and log_step_event is True:
+            self.log_trace_event(self.step_event)
+            self.step_event = None
 
         # we need to skip the last event for submodules because that is usually the parent event
         # and already recorded above
@@ -223,8 +227,8 @@ class Hook(CallbackHook):
 
             if not self.autograd_profiler_enabled:
                 torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
-                self.autograd_profiler_enabled = True
                 self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
+                self.autograd_profiler_enabled = True
         elif self.autograd_profiler_enabled:
             records = torch.autograd._disable_profiler()
             self.function_events = torch.autograd.profiler.EventList(
@@ -232,24 +236,36 @@ class Hook(CallbackHook):
             )
             for index, event in enumerate(self.function_events):
                 self.record_trace_events(
-                    phase="X",
+                    training_phase="cpu_functions",
                     op_name=event.name,
+                    phase="X",
                     # event.cpu_interval.start is in microseconds
                     timestamp=(event.cpu_interval.start + self.start_profiler_time_us)
-                    / float(CONVERT_TO_MICROSECS),
+                    / float(
+                        CONVERT_TO_MICROSECS
+                    ),  # timestamp expected is in seconds for record_trace_events
                     duration=event.cpu_interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
                     tid=event.thread,
                     step_num=self.step,
+                    device="cpu",
                 )
                 for k in event.kernels:
                     self.record_trace_events(
+                        training_phase="gpu_functions-dev:" + str(k.device),
                         op_name=k.name,
                         phase="X",
                         timestamp=(k.interval.start + self.start_profiler_time_us)
-                        / float(CONVERT_TO_MICROSECS),
+                        / float(
+                            CONVERT_TO_MICROSECS
+                        ),  # timestamp expected is in seconds for record_trace_events
                         duration=k.interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
                         tid=k.device,
                         step_num=self.step,
+                        event_name=event.name,
+                        device=k.device,
+                        start_cpu_thread=event.thread,
+                        cpu_thread_start_time=event.cpu_interval.start
+                        + self.start_profiler_time_us,
                     )
             self.autograd_profiler_enabled = False
         # Write the gradients of the past step if the writer is still available.
@@ -282,12 +298,19 @@ class Hook(CallbackHook):
         self.log_outstanding_timeline_metrics()
         self.parent_forward_event = self._TraceEventData(
             phase="Forward",
-            op_name="Step:" + str(self.step),
+            op_name=module._module_name,
             start_time=time.time(),
-            dur=0,
+            dur=0,  # end time of parent_forward_event will be updated every time a forward event is called after this
             pid=os.getpid(),
-            layer_name=module._module_name,
-            step_num=str(self.step),
+            step_num=str(self.mode_steps[self.mode]),
+        )
+        self.step_event = self._TraceEventData(
+            phase="Step:" + str(self.mode),
+            op_name="Step:" + str(self.mode),
+            start_time=time.time(),
+            dur=0,  # end time of step_event will be updated every time a forward event or backward is called after this
+            pid=os.getpid(),
+            step_num=str(self.mode_steps[self.mode]),
         )
 
     def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
@@ -304,9 +327,11 @@ class Hook(CallbackHook):
         cur_time = time.time()
         child_start_time = cur_time
         if self.parent_forward_event is not None:
-            self.parent_forward_event.update_end_time(time.time())
+            self.parent_forward_event.update_end_time(cur_time)
             # if this is first forward we will use start time of parent as start time, and end time as now
             child_start_time = self.parent_forward_event.start_time
+        if self.step_event:
+            self.step_event.update_end_time(cur_time)
 
         if len(self.forward_modules_profile_stats) > 0:
             # this child start_time is approcximated as last child end time
@@ -314,12 +339,11 @@ class Hook(CallbackHook):
 
         event = self._TraceEventData(
             phase="Forward-SubModuleInternal",
-            op_name="Step:" + str(self.step),
+            op_name=module._module_name,
             start_time=child_start_time,
             dur=cur_time - child_start_time,
             pid=os.getpid(),
-            layer_name=module._module_name,
-            step_num=str(self.step),
+            step_num=str(self.mode_steps[self.mode]),
         )
         self.forward_modules_profile_stats.append(event)
 
@@ -373,21 +397,24 @@ class Hook(CallbackHook):
         if self.parent_forward_event is not None:
             # note that we are approximating backward start_time here
             backward_st_time = self.parent_forward_event.end_time
-            self.log_outstanding_forward_stats_and_reset()
+            # we will not log step event yet, we will log step event only during forward pre-step
+            # as step is FW + Backward
+            self.log_outstanding_forward_stats_and_reset(log_step_event=False)
             # if this is first backward hook call, we will create backward event with start_Ts as last_forward_end_ts
             if self.parent_backward_event is None:
                 self.parent_backward_event = self._TraceEventData(
-                    phase="Backward",
-                    op_name="Step:" + str(self.step),
+                    phase="Backward(post-forward)",
+                    op_name=module._module_name,
                     start_time=backward_st_time,
                     dur=now - backward_st_time,
                     pid=os.getpid(),
-                    layer_name=module._module_name,
-                    step_num=str(self.step),
+                    step_num=str(self.mode_steps[self.mode]),
                 )
 
         if self.parent_backward_event:
             self.parent_backward_event.update_end_time(now)
+        if self.step_event:
+            self.step_event.update_end_time(now)
 
         # if this is first forward we will use start time of parent as start time, and end time as now
         if len(self.backward_modules_profile_stats) > 0:
@@ -398,12 +425,11 @@ class Hook(CallbackHook):
 
         event = self._TraceEventData(
             phase="Backward-SubModuleInternal",
-            op_name=str(self.step),
+            op_name=module._module_name,
             start_time=child_start_time,
             dur=now - child_start_time,
             pid=os.getpid(),
-            layer_name=module._module_name,
-            step_num=str(self.step),
+            step_num=str(self.mode_steps[self.mode]),
         )
         self.backward_modules_profile_stats.append(event)
 
