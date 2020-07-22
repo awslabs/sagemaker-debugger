@@ -468,7 +468,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     if gradients is not None:
                         for g, v in zip(gradients, self.model.trainable_variables):
                             layer_name = v.name
-                            if layer_name.split(":") > 1:
+                            if len(layer_name.split(":")) > 1:
                                 layer_name = layer_name.split(":")[0]
                             export_name = "gradients/" + layer_name + "Grad"
                             if isinstance(g, IndexedSlices):
