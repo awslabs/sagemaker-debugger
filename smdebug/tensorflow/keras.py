@@ -394,14 +394,17 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
-    def save_tensor(self, tensor_name, tensor_value, collections_to_write):
+    def save_tensor(self, tensor_name, tensor_value, collections_to_write=None):
         if (
             not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
         ) or self._is_not_supported():
             return
+        if collections_to_write is None:
+            collections_to_write = "default"
 
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
+
         for collection in collections_to_write:
             self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
@@ -896,6 +899,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.worker = self._get_worker_name()
 
             if self.writer is not None or len(self.writer_map):
+                self._save_custom_tensors_post_step()
                 self._close_writers()
 
             if not self.prepared_collections:
@@ -971,7 +975,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self._write_optimizer_variables()
             self._save_layer_input_and_outputs(grad_tape=True)
-            self._save_custom_tensors_post_step()
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
             self._add_metric(metric_name="loss", metric_value=loss)
