@@ -708,15 +708,15 @@ def test_save_gradients(out_dir, tf_eager_mode):
         assert output.value(0) is not None
 
 
-def test_save_custom_tensors(out_dir, tf_eager_mode):
+def test_save_tensors(out_dir, tf_eager_mode):
     include_collections = ["custom_coll"]
     hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
     t1 = tf.constant([0, 1, 1, 2, 3, 5, 8, 13, 21, 34])
     t2 = tf.Variable([5 + 4j, 6 + 1j])
     t3 = tf.Variable([False, False, False, True])
-    hook.save_custom_tensor("custom_tensor_1", t1, include_collections)
-    hook.save_custom_tensor("custom_tensor_2", t2, include_collections)
-    hook.save_custom_tensor("custom_tensor_3", t3, include_collections)
+    hook.save_tensor("custom_tensor_1", t1, include_collections)
+    hook.save_tensor("custom_tensor_2", t2, include_collections)
+    hook.save_tensor("custom_tensor_3", t3, include_collections)
 
     helper_keras_fit(
         trial_dir=out_dir,

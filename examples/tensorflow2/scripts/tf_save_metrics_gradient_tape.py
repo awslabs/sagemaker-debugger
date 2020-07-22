@@ -87,7 +87,7 @@ def helper_keras_gradtape(
             with hook.wrap_tape(tf.GradientTape(persistent=persistent)) as tape:
                 logits = model(data, training=True)
                 loss_value = cce(labels, logits)
-            hook.save_custom_tensor("y_labels", labels, "outputs")
+            hook.save_tensor("y_labels", labels, "outputs")
             grads = tape.gradient(loss_value, model.variables)
 
             # By default, the resources held by a GradientTape are released as

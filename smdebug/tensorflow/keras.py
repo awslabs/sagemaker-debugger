@@ -65,7 +65,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
-        self.custom_tensors_to_save = dict()
+        self.custom_tensors_to_save = (
+            dict()
+        )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
 
@@ -108,12 +110,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def should_save_global_step_for_mode(self, mode: str):
         # This function is called by the hook in the AWS TF codebase
+        # It returns a boolean value indicating to AWS TF if a step is
+        # Being saved for the step
         mode = str_to_mode_keys(mode)
         mode_step = self.mode_steps[mode]
         return self.save_config.should_save_step(mode, mode_step)
 
     def register_model(self, model):
         # This function is called by the hook in the AWS TF codebase
+        # It attaches a hook to every layer of the model to capture
+        # layer values
         self.model = model
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
@@ -388,13 +394,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
-    def save_custom_tensor(self, tensor_name, tensor_value, collections_to_write):
+    def save_tensor(self, tensor_name, tensor_value, collections_to_write):
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
         for collection in collections_to_write:
             self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
-    def _save_custom_tensors_post_step(self):
+    def _save_tensors_post_step(self):
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             self._save_tensor(tensor_name, tensor_value, collection_names)
@@ -499,6 +505,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self, grad_tape=False):
+        # Iterates over all the saved layers for input and output values
         if is_tf_version_2x() is False or (grad_tape is False and self.model.run_eagerly is False):
             # This function only works when the run_eagerly is True
             return
@@ -529,7 +536,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_metrics(batch, logs)
         self.save_smdebug_logs(logs)
         self._save_layer_input_and_outputs()
-        self._save_custom_tensors_post_step()
+        self._save_tensors_post_step()
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
@@ -959,7 +966,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self._write_optimizer_variables()
             self._save_layer_input_and_outputs(grad_tape=True)
-            self._save_custom_tensors_post_step()
+            self._save_tensors_post_step()
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
             self._add_metric(metric_name="loss", metric_value=loss)
