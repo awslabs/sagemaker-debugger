@@ -395,6 +395,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_to_collections[metric_name] = {coll}
 
     def save_tensor(self, tensor_name, tensor_value, collections_to_write):
+        if (
+            not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
+        ) or self._is_not_supported():
+            return
+
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
         for collection in collections_to_write:
@@ -1025,6 +1030,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
         ) or self._is_not_supported():
             return
+
+        self.logger.warning("This function has been deprecated. Please use the save_tensor API ")
 
         self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
