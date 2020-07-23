@@ -1004,6 +1004,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         return run
 
+    def save_tape_logs(self, model_inputs=None, outputs=None):
+        logs = {"smdebug_y": outputs, "smdebug_x": model_inputs}
+        self.save_smdebug_logs(logs)
+
     def wrap_tape(self, tape):
         """
         Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
