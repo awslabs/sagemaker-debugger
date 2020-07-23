@@ -8,7 +8,7 @@ from tensorflow.python.framework.indexed_slices import IndexedSlices
 
 # First Party
 from smdebug.core.modes import ModeKeys, str_to_mode_keys
-from smdebug.core.utils import match_inc
+from smdebug.core.utils import match_inc, validate_custom_tensor_value
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
@@ -386,6 +386,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_to_collections[metric_name] = {coll}
 
     def save_tensor(self, tensor_name, tensor_value, collections_to_write="default"):
+        if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
+            self.logger.warn("The tensor value could not be converted into a numpy value")
+            return
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
         for collection in collections_to_write:
