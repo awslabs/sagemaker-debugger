@@ -99,7 +99,7 @@ class S3PythonStatsReader(PythonStatsReader):
             with open(stats_file_path, "wb") as f:
                 f.write(object_data)
 
-            step, step_phase = _get_step_stepphase(step_phase_str)
+            step, step_phase = self._get_step_stepphase(step_phase_str)
             python_profile_stats.append(
                 StepPythonProfileStats(
                     profiler_name,
@@ -139,7 +139,7 @@ class LocalPythonStatsReader(PythonStatsReader):
         python_profile_stats = []
         for python_stat_dir in os.listdir(self.profile_dir):
             start_time, end_time, node_id, step_phase_str = python_stat_dir.split("_")
-            step, step_phase = _get_step_stepphase(step_phase_str)
+            step, step_phase = self._get_step_stepphase(step_phase_str)
 
             stats_dir = os.path.join(self.profile_dir, python_stat_dir)
             if os.path.isfile(os.path.join(stats_dir, CPROFILE_STATS_FILENAME)):
