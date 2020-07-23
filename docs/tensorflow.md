@@ -30,7 +30,7 @@ The Debugger features are all integrated into the AWS Deep Learning Containers, 
 
 ### Debugger with AWS Training Containers and Script Mode
 
-### 1. Create a hook
+#### 1. Create a hook
 
 If you want to use your own training script using the SageMaker TensorFlow framework with script mode and Debugger, the smdebug client library provides the hook constructor that you can add to the training script and retrieve tensors. To create the hook constructor, add the following code.
 
@@ -41,23 +41,35 @@ hook = smd.{hook_class}.create_from_json_file()
 
 Depending on the TensorFlow versions for your model, you need to choose a hook class. There are three hook constructor classes that you can pick and replace `{hook_class}`.
 
-* `KerasHook` - Use if you use the Keras `model.fit()` API. This is available for all frameworks and versions of Keras and TensorFlow. `KerasHook` covers the eager execution modes and the gradient tape feature that are introduced from the TensorFlow framework version 2.0. For example, you can set the Keras hook constructor by adding the following code into your training script.
+*`KerasHook`*
+
+Use if you use the Keras `model.fit()` API. This is available for all frameworks and versions of Keras and TensorFlow. `KerasHook` covers the eager execution modes and the gradient tape feature that are introduced from the TensorFlow framework version 2.0. For example, you can set the Keras hook constructor by adding the following code into your training script.
 ```
 hook = smd.KerasHook.create_from_json_file()
 ```
 Inside your model creation part where you use the gradient tapes, add `hook.wrap_tape(tf.GradientTape())`. This will collect the gradient tensors.
-    * example: https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py
-    * Note: If you use the AWS Deep Learning Containers for zero script change, Debugger collects the most of tensors regardless the eager execution modes, through its high-level API.
-* `SessionHook` - Use if your model is created in TensorFlow version 1.x with the low-level approach, not using the Keras API. This is for the TensorFlow 1.x monitored training session API, `tf.train.MonitoredSessions()`.
-    * example: https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow/sagemaker_byoc/simple.py
-    * Note: the `tf.train.MonitoredSessions()` API is deprecated in favor of favor of `tf.function()` in TF 2.0 and above. You can use `SessionHook`
-* `EstimatorHook` - Use if you have a model using the `tf.estimator()` API. Available for any TensorFlow framework versions that supports the `tf.estimator()` API.
 
-### 2. Register the hook to your model
+    * example: https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py
+
+    * Note: If you use the AWS Deep Learning Containers for zero script change, Debugger collects the most of tensors regardless the eager execution modes, through its high-level API.
+
+*`SessionHook`*
+
+Use if your model is created in TensorFlow version 1.x with the low-level approach, not using the Keras API. This is for the TensorFlow 1.x monitored training session API, `tf.train.MonitoredSessions()`.
+
+    * example: https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow/sagemaker_byoc/simple.py
+
+    * Note: the `tf.train.MonitoredSessions()` API is deprecated in favor of favor of `tf.function()` in TF 2.0 and above. You can use `SessionHook`
+
+*`EstimatorHook`*
+
+Use if you have a model using the `tf.estimator()` API. Available for any TensorFlow framework versions that supports the `tf.estimator()` API.
+
+#### 2. Register the hook to your model
 
 To collect the tensors from the hooks that you implemented, add `callbacks=[hook]` to the Keras `model.fit()` API and `hooks=[hook]` for the `MonitoredSession()`, `tf.function()`, and `tf.estimator()` APIs.
 
-### 3. Wrap the optimizer
+#### 3. Wrap the optimizer
 
 If you would like to save `gradients` from the optimizer of your model, wrap it with the hook as follows:
 ```
@@ -65,7 +77,7 @@ optimizer = hook.wrap_optimizer(optimizer)
 ```
 This does not modify your optimization logic and returns the same optimizer instance passed to the method.
 
-### 4. (Optional) Configure Collections, SaveConfig and ReductionConfig
+#### 4. (Optional) Configure Collections, SaveConfig and ReductionConfig
 
 For more information about the TensorFlow hook options, see [TensorFlow specific Hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#tensorflow-specific-hook-api)
 For more information about customizing the tensor collections, see the [smdebug API for saving tensors](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md) page for details on how to do this.
@@ -77,7 +89,7 @@ For more information about customizing the tensor collections, see the [smdebug 
 
 We have three Hooks for different interfaces of TensorFlow. The following is needed to enable SageMaker Debugger on non Zero Script Change supported containers. Refer [SageMaker training](sagemaker.md) on how to use the Zero Script Change experience.
 
-## Keras API (tf.keras)
+## Keras API (`tf.keras`)
 ### Example
 ```python
 import smdebug.tensorflow as smd
@@ -115,7 +127,7 @@ model = tf.keras.models.Sequential([ ... ])
 
 ---
 
-## Monitored Session (tf.train.MonitoredSession())
+## Monitored Session (`tf.train.MonitoredSession`)
 ### Example
 ```python
 import smdebug.tensorflow as smd
@@ -135,7 +147,7 @@ sess.run([loss, ...])
 
 ---
 
-## Estimator
+## Estimator (`tf.estimator.Estimator`)
 ### Example
 ```python
 import smdebug.tensorflow as smd
