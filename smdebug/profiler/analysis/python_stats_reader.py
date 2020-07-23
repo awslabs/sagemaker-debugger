@@ -28,6 +28,12 @@ class PythonStatsReader:
         """Load the python profile stats. To be implemented in subclass.
         """
 
+    def _get_step_stepphase(self, step_phase_str):
+        splits = step_phase_str.split("-", 1)
+        step = splits[0]
+        step_phase = step[1] if len(splits) > 1 else "full"
+        return step, step_phase
+
 
 class S3PythonStatsReader(PythonStatsReader):
     """Higher level stats reader to download python stats from s3.
@@ -57,12 +63,6 @@ class S3PythonStatsReader(PythonStatsReader):
         assert s3, "The provided s3 path should have the following format: s3://bucket_name/..."
         self.bucket_name = bucket_name
         self.prefix = os.path.join(base_folder, "framework")
-
-    def _get_step_stepphase(self, step_phase_str):
-        splits = step_phase_str.split("-", 1)
-        step = splits[0]
-        step_phase = step[1] if len(splits) > 1 else "full"
-        return step, step_phase
 
     def load_python_profile_stats(self):
         """Load the stats in by creating the profile directory, downloading each stats directory from s3 to the
