@@ -101,7 +101,7 @@ class PythonProfiler:
             current_time_since_epoch_in_micros,
             step_phase_string,
         )
-        self._dump_stats(os.path.join(stats_dir, self.stats_filename))
+        self._dump_stats(os.path.join(stats_dir, self._stats_filename()))
 
         self._reset_profiler()
 
