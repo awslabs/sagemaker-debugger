@@ -15,7 +15,6 @@ from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 
 
 class PythonProfiler:
-
     def __init__(self, base_folder, framework):
         """Higher level class to manage execution of python profiler, dumping of python stats, and retrieval
         of stats based on time or step intervals.
@@ -65,10 +64,10 @@ class PythonProfiler:
 
     def _name(self):
         return "default"
-    
-   def _stats_filename(self):
-       # this is default value
-       return "python_stats"
+
+    def _stats_filename(self):
+        # this is default value
+        return "python_stats"
 
     def start_profiling(self, start_step=-1, step_phase=""):
         """Start the python profiler with the provided start step.
@@ -77,7 +76,7 @@ class PythonProfiler:
         self._step = start_step
         self._start_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
         self._is_profiling = True
-        self._start_stepphase= step_phase
+        self._start_stepphase = step_phase
         self._enable_profiler()
 
     def stop_profiling(self, step_phase=""):
@@ -100,7 +99,7 @@ class PythonProfiler:
             self._step,
             self._start_time_since_epoch_in_micros,
             current_time_since_epoch_in_micros,
-            step_phase_string
+            step_phase_string,
         )
         self._dump_stats(os.path.join(stats_dir, self.stats_filename))
 
@@ -127,10 +126,10 @@ class cProfilePythonProfiler(PythonProfiler):
 
     def _name(self):
         return "cProfile"
-    
+
     def _stats_filename(self):
-       # this is default value
-       return "python_stats"
+        # this is default value
+        return "python_stats"
 
     def _enable_profiler(self):
         """Enable the cProfile profiler.
@@ -161,10 +160,10 @@ class PyinstrumentPythonProfiler(PythonProfiler):
 
     def _name(self):
         return "pyinstrument"
-    
+
     def _stats_filename(self):
-       return "python_stats.json"
-    
+        return "python_stats.json"
+
     def _enable_profiler(self):
         """Enable the pyinstrument profiler.
         """

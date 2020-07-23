@@ -254,8 +254,7 @@ class Hook(CallbackHook):
                     event_name=event.name,
                     device=k.device,
                     start_cpu_thread=event.thread,
-                    cpu_thread_start_time=event.cpu_interval.start
-                        + self.start_profiler_time_us,
+                    cpu_thread_start_time=event.cpu_interval.start + self.start_profiler_time_us,
                 )
 
     # This hook is invoked by trainer prior to running the forward pass.
@@ -357,7 +356,7 @@ class Hook(CallbackHook):
         )
         self.forward_modules_profile_stats.append(event)
         if len(self.forward_modules_profile_stats) == 1:
-            self.first_forward_submodule_name =  module._module_name
+            self.first_forward_submodule_name = module._module_name
         if not self._get_collections_to_save_for_step():
             return
 
