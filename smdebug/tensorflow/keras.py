@@ -394,13 +394,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
-    def save_tensor(self, tensor_name, tensor_value, collections_to_write=None):
+    def save_tensor(self, tensor_name, tensor_value, collections_to_write="default"):
         if (
             not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
         ) or self._is_not_supported():
             return
-        if collections_to_write is None:
-            collections_to_write = "default"
 
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
