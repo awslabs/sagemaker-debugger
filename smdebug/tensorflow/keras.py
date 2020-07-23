@@ -1005,6 +1005,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         return run
 
     def save_tape_logs(self, model_inputs=None, outputs=None):
+        """
+        called by AWS TF to save model inputs and outputs
+        :param model_inputs:
+        :param outputs:
+        :return:
+        """
         logs = {"smdebug_y": outputs, "smdebug_x": model_inputs}
         self.save_smdebug_logs(logs)
 
