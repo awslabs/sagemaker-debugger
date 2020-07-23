@@ -30,7 +30,7 @@ if profiler_config_parser.profiling_enabled:
     python_profiler = PythonProfiler.get_python_profiler(
         config.use_pyinstrument, config.local_path, "pytorch"
     )
-    python_profiler.start_profiling()
+    python_profiler.start_profiling(step_phase="start")
 
 
 class Hook(CallbackHook):
@@ -103,6 +103,7 @@ class Hook(CallbackHook):
         self.step_event = None
         self.forward_modules_profile_stats = []
         self.backward_modules_profile_stats = []
+        self.first_forward_submodule_name = None
         self.autograd_profiler_enabled = False
         self.profiler = (
             torch.autograd.ProfilerState.CUDA
@@ -260,8 +261,9 @@ class Hook(CallbackHook):
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
         # Disable pre-step 0 python profiling if profiling is enabled and if this is step 0.
+        # below we say step+1 because step is incremented further in this method
         if python_profiler:
-            python_profiler.stop_profiling()
+            python_profiler.stop_profiling(step_phase="startstep" + str(self.step + 1))
 
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
@@ -283,7 +285,7 @@ class Hook(CallbackHook):
         # should we re-enable profiling for this step?
         if self.profiler_config_parser.can_start_detailed_profiling(self.step):
             if python_profiler:
-                python_profiler.start_profiling(self.step)
+                python_profiler.start_profiling(self.step, step_phase="startstep" + str(self.step))
 
             if not self.autograd_profiler_enabled:
                 torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
@@ -319,6 +321,7 @@ class Hook(CallbackHook):
             pid=os.getpid(),
             step_num=str(self.mode_steps[self.mode]),
         )
+        self.first_forward_submodule_name = None
 
     def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
         """Used for registering functional directly, such as F.mse_loss()."""
@@ -353,7 +356,8 @@ class Hook(CallbackHook):
             step_num=str(self.mode_steps[self.mode]),
         )
         self.forward_modules_profile_stats.append(event)
-
+        if len(self.forward_modules_profile_stats) == 1:
+            self.first_forward_submodule_name =  module._module_name
         if not self._get_collections_to_save_for_step():
             return
 
@@ -439,6 +443,13 @@ class Hook(CallbackHook):
             step_num=str(self.mode_steps[self.mode]),
         )
         self.backward_modules_profile_stats.append(event)
+        if module._module_name == self.first_forward_submodule_name:
+            # we would stop profiling and restart from this phase
+            if python_profiler:
+                step_ph = "backwardendstep" + str(self.step)
+                python_profiler.stop_profiling(step_phase=step_ph)
+                if self.profiler_config_parser.can_start_detailed_profiling(self.step):
+                    python_profiler.start_profiling(self.step, step_phase=step_ph)
 
     def _closure_for_registering_backward_hook(self, module):
         module.register_backward_hook(self.bhook)
