@@ -10,7 +10,13 @@ import pytest
 
 # First Party
 from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
-from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS, PYTHON_STATS_FILENAME
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    CPROFILE_NAME,
+    CPROFILE_STATS_FILENAME,
+    PYINSTRUMENT_NAME,
+    PYINSTRUMENT_STATS_FILENAME,
+)
 from smdebug.profiler.python_profiler import PyinstrumentPythonProfiler, cProfilePythonProfiler
 
 
@@ -31,12 +37,12 @@ def pyinstrument_python_profiler(out_dir, test_framework):
 
 @pytest.fixture
 def cprofile_dir(out_dir, test_framework):
-    return "{0}/framework/{1}/{2}".format(out_dir, test_framework, cProfilePythonProfiler.name)
+    return "{0}/framework/{1}/{2}".format(out_dir, test_framework, CPROFILE_NAME)
 
 
 @pytest.fixture
 def pyinstrument_dir(out_dir, test_framework):
-    return "{0}/framework/{1}/{2}".format(out_dir, test_framework, PyinstrumentPythonProfiler.name)
+    return "{0}/framework/{1}/{2}".format(out_dir, test_framework, PYINSTRUMENT_NAME)
 
 
 @pytest.fixture(autouse=True)
@@ -100,7 +106,7 @@ def test_cprofile_profiling(cprofile_python_profiler, steps, cprofile_dir):
     stats_dirs = os.listdir(cprofile_dir)
     assert len(stats_dirs) == (end_step - start_step)
     for stats_dir in stats_dirs:
-        full_stats_path = os.path.join(cprofile_dir, stats_dir, PYTHON_STATS_FILENAME)
+        full_stats_path = os.path.join(cprofile_dir, stats_dir, CPROFILE_STATS_FILENAME)
         assert os.path.isfile(full_stats_path)
         assert pstats.Stats(full_stats_path)  # validate output file
 
@@ -120,7 +126,7 @@ def test_pyinstrument_profiling(pyinstrument_python_profiler, steps, pyinstrumen
     stats_dirs = os.listdir(pyinstrument_dir)
     assert len(stats_dirs) == (end_step - start_step)
     for stats_dir in stats_dirs:
-        full_stats_path = os.path.join(pyinstrument_dir, stats_dir, PYTHON_STATS_FILENAME + ".json")
+        full_stats_path = os.path.join(pyinstrument_dir, stats_dir, PYINSTRUMENT_STATS_FILENAME)
         assert os.path.isfile(full_stats_path)
         with open(full_stats_path, "r") as f:
             assert json.load(f)  # validate output file

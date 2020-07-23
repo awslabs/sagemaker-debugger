@@ -39,4 +39,4 @@ model.compile(
     metrics=["accuracy"],
 )
 
-model.fit(ds_train, epochs=1, steps_per_epoch=2, validation_data=ds_test)
+model.fit(ds_train, epochs=1, steps_per_epoch=10, validation_data=ds_test)

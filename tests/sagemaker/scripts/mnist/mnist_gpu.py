@@ -48,4 +48,4 @@ lr_scheduler_callback = tf.keras.callbacks.LearningRateScheduler(lr_decay)
 callbacks = [lr_scheduler_callback]
 
 # Train the model.
-mnist_model.fit(dataset, steps_per_epoch=2, callbacks=callbacks, epochs=1)
+mnist_model.fit(dataset, steps_per_epoch=10, callbacks=callbacks, epochs=1)

@@ -11,11 +11,12 @@ from pyinstrument.renderers import JSONRenderer
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
-from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS, PYTHON_STATS_FILENAME
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 
 
 class PythonProfiler:
     name = ""  # placeholder
+    stats_filename = ""  # placeholder
 
     def __init__(self, base_folder, framework):
         """Higher level class to manage execution of python profiler, dumping of python stats, and retrieval
@@ -92,7 +93,7 @@ class PythonProfiler:
             self._start_time_since_epoch_in_micros,
             current_time_since_epoch_in_micros,
         )
-        self._dump_stats(stats_dir)
+        self._dump_stats(os.path.join(stats_dir, self.stats_filename))
 
         self._reset_profiler()
 
@@ -110,6 +111,7 @@ class cProfilePythonProfiler(PythonProfiler):
     """
 
     name = "cProfile"
+    stats_filename = "python_stats"
 
     def _reset_profiler(self):
         """Reset profiler and corresponding attributes to defaults
@@ -127,12 +129,11 @@ class cProfilePythonProfiler(PythonProfiler):
         """
         self._profiler.disable()
 
-    def _dump_stats(self, stats_dir):
+    def _dump_stats(self, stats_file_path):
         """Dump the stats by via pstats object to a file `python_stats` in the provided directory
         """
-        stats_path = os.path.join(stats_dir, PYTHON_STATS_FILENAME)
-        get_logger("smdebug-profiler").info(f"Dumping cProfile stats to {stats_path}.")
-        pstats.Stats(self._profiler).dump_stats(stats_path)
+        get_logger("smdebug-profiler").info(f"Dumping cProfile stats to {stats_file_path}.")
+        pstats.Stats(self._profiler).dump_stats(stats_file_path)
 
 
 class PyinstrumentPythonProfiler(PythonProfiler):
@@ -140,6 +141,7 @@ class PyinstrumentPythonProfiler(PythonProfiler):
     """
 
     name = "pyinstrument"
+    stats_filename = "python_stats.json"
 
     def _reset_profiler(self):
         """Reset profiler and corresponding attributes to defaults
@@ -157,13 +159,12 @@ class PyinstrumentPythonProfiler(PythonProfiler):
         """
         self._profiler.stop()
 
-    def _dump_stats(self, stats_dir):
-        """Dump the stats as a JSON dictionary to a file `python_stats.json` in the provided directory
+    def _dump_stats(self, stats_file_path):
+        """Dump the stats as a JSON dictionary to a file `python_stats.json` with the provided file path.
         """
-        json_stats_path = os.path.join(stats_dir, PYTHON_STATS_FILENAME + ".json")
-        get_logger("smdebug-profiler").info(f"Dumping pyinstrument stats to {json_stats_path}.")
+        get_logger("smdebug-profiler").info(f"Dumping pyinstrument stats to {stats_file_path}.")
 
         session = self._profiler.last_session
         renderer = JSONRenderer()
-        with open(json_stats_path, "w") as f:
+        with open(stats_file_path, "w") as f:
             f.write(renderer.render(session))

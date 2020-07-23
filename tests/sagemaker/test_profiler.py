@@ -1,12 +1,13 @@
 # Standard Library
 import json
-import shutil
+import pstats
 import time
 from os import environ, makedirs, walk
-from os.path import abspath, dirname, exists, getsize, join
+from os.path import abspath, basename, dirname, exists, getsize, join
 
 # Third Party
 import boto3
+import pytest
 import yaml
 from sagemaker.debugger import Rule, rule_configs
 from sagemaker.profiler import ProfilerConfig
@@ -15,6 +16,9 @@ from sagemaker.tensorflow import TensorFlow
 # First Party
 from smdebug.core.logger import get_logger
 from smdebug.profiler.algorithm_metrics_reader import S3AlgorithmMetricsReader
+from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
+from smdebug.profiler.profiler_constants import CPROFILE_STATS_FILENAME, PYINSTRUMENT_STATS_FILENAME
+from smdebug.profiler.utils import str2bool
 
 # YAML files INDICES
 CPU_JOBS_INDEX = 1
@@ -46,33 +50,22 @@ DEFAULT_FILE_ROTATION_LIMIT = 60 * (10 ** 6)  # 60 seconds
 logger = get_logger()
 
 
-def _download_artifacts(s3_path):
+def _download_artifacts(s3_path, out_dir):
     bucket_name = s3_path.split("/")[S3_PATH_BUCKET_INDEX]
     directory_name = "/".join(s3_path.split("/")[S3_PATH_FOLDER_INDEX:]) + "/framework/"
 
     s3_resource = boto3.resource("s3")
     s3_bucket = s3_resource.Bucket(bucket_name)
     for obj in s3_bucket.objects.filter(Prefix=directory_name):
-        if not exists(dirname(obj.key)):
-            makedirs(dirname(obj.key))
-        s3_bucket.download_file(obj.key, obj.key)
-    print(f"Training Job artifacts are downloaded to here - {abspath(directory_name)}")
-    return abspath(directory_name)
 
+        obj_file_path = join(out_dir, obj.key)
+        if not exists(dirname(obj_file_path)):
+            makedirs(dirname(obj_file_path))
+        s3_bucket.download_file(obj.key, obj_file_path)
 
-def _cleanup_folder(dir_path):
-    print(f"Cleaning up this path - {dir_path}\n")
-    if exists(dir_path):
-        shutil.rmtree(dir_path)
-
-
-def _compare_with_tolerance(val1, val2, comparison_op, tolerance):
-    if comparison_op == "GreaterThan":
-        return val1 > (val2 + tolerance)
-    elif comparison_op == "EqualTo":
-        return abs(val1 - val2) <= tolerance
-    else:
-        raise Exception("Invalid comparison operator")
+    local_framework_dir = join(out_dir, directory_name)
+    print(f"Training Job artifacts are downloaded to here - {abspath(local_framework_dir)}")
+    return local_framework_dir
 
 
 def _get_estimator_list(index, job_type):
@@ -136,7 +129,7 @@ def _get_estimator_list(index, job_type):
             distributions=distributions,
         )
         estimator_list.append(estimator)
-    return estimator_list, profiler_params_list, expected_num_trace_file_list
+    return zip(estimator_list, profiler_params_list, expected_num_trace_file_list)
 
 
 def _validate_trace_files(tracefiles, profiler_config):
@@ -169,11 +162,9 @@ def _validate_trace_files(tracefiles, profiler_config):
         # Files are rotated when size of the current file exceeds the file_size_limit.
         # So here we check if size of the file is less than or equal to the file_size_limit + 500 bytes offset
         cur_file_size = getsize(cur_file)
-        if _compare_with_tolerance(cur_file_size, file_size_limit, "GreaterThan", FILE_SIZE_OFFSET):
-            print(
-                f"{cur_file} has file size {cur_file_size} bytes, it has exceeded file size limit {file_size_limit} bytes."
-            )
-            return False
+        assert (
+            cur_file_size <= file_size_limit + FILE_SIZE_OFFSET
+        ), f"{cur_file} has file size {cur_file_size} bytes, it has exceeded file size limit {file_size_limit} bytes."
         file_timestamp = int(cur_file.split("/")[-1].split("_")[TRACE_FILE_TIMESTAMP_INDEX])
         file_node_id = cur_file.split("/")[-1].split("_")[TRACE_FILE_NODE_ID_INDEX]
         timestamps[file_node_id] = timestamps.get(file_node_id, []) + [file_timestamp]
@@ -188,38 +179,50 @@ def _validate_trace_files(tracefiles, profiler_config):
                 continue
             event_start = start_time + item.get("ts")
             event_end = event_start + item.get("dur")
+
             # TODO : There is flakiness in some cases where there is a difference of <5 microsecond between
             # event_end time and file_timestamp. I am adding an offset of 5. But this has to be fixed on
-            # framework side. The occurence of this bug is flaky.
-            if _compare_with_tolerance(
-                event_end, file_timestamp, "GreaterThan", FILE_TIMESTAMP_OFFSET
-            ):
-                print(
-                    f"In file: {cur_file} \nfor event {item}, \nthe event end time: {event_end} exceeds the filename timestamp {file_timestamp}"
-                )
-                return False
+            # framework side. The occurrence of this bug is flaky.
+            assert (
+                event_end <= file_timestamp + FILE_TIMESTAMP_OFFSET
+            ), f"In file: {cur_file} \nfor event {item}, \nthe event end time: {event_end} exceeds the filename timestamp {file_timestamp}"
 
-    # Files are rotated when the duration of the current file exceeds the file_rotation_limit.
-    # So here we check if in each of the training nodes the difference in timestamps of two consecutive
-    # files are not greater than rotation_limit + FILE_ROTATION_OFFSET second offset
-    for k, v in timestamps.items():
-        v.sort()
-        for i in range(1, len(v)):
-            if _compare_with_tolerance(
-                (v[i] - v[i - 1]) / MICROS_FACTOR,
-                file_rotation_limit,
-                "GreaterThan",
-                FILE_ROTATION_OFFSET,
-            ):
-                print(
-                    f"Timestamps of the trace files: {timestamps}. \nFile timestamps are incorrect, it has breached the file rotation limit: {file_rotation_limit} for the timestamps: {v[i - 1]} and {v[i]}"
-                )
-                return False
-    return True
+        # Files are rotated when the duration of the current file exceeds the file_rotation_limit.
+        # So here we check if in each of the training nodes the difference in timestamps of two consecutive
+        # files are not greater than rotation_limit + FILE_ROTATION_OFFSET second offset
+        for k, v in timestamps.items():
+            v.sort()
+            for i in range(1, len(v)):
+                assert (
+                    v[i] - v[i - 1]
+                ) / MICROS_FACTOR <= file_rotation_limit + FILE_ROTATION_OFFSET, f"Timestamps of the trace files: {timestamps}. \nFile timestamps are incorrect, it has breached the file rotation limit: {file_rotation_limit} for the timestamps: {v[i - 1]} and {v[i]}"
 
 
-def _run_verify_job(estimator, profiler_config, expected_num_trace_file):
-    sagemaker_client = boto3.client("sagemaker")
+def _validate_python_stats_files(python_profile_stats):
+    """
+    For each python stats file downloaded, validate it by doing the following:
+    1. If it is a file generated by cProfile (python_stats), then load it into memory as a pStats object to ensure that
+        it is valid.
+    2. If it is a file generated by pyinstrument (python_stats.json), then load it into memory as a JSON dictionary to
+        ensure that it is valid.
+    3. Otherwise, an unexpected file was dumped and the test should fail.
+    """
+    for stats_file in python_profile_stats:
+        stats_file_path = stats_file.stats_path
+        if basename(stats_file_path) == CPROFILE_STATS_FILENAME:
+            assert pstats.Stats(
+                stats_file_path
+            ), f"cProfile stats at {stats_file_path} failed validation!"
+        elif basename(stats_file_path) == PYINSTRUMENT_STATS_FILENAME:
+            with open(stats_file_path, "r") as f:
+                assert json.load(f), f"Pyinstrument stats at {stats_file_path} failed validation!"
+        else:
+            assert (
+                False
+            ), f"Found an unexpected file when validating python stats: {stats_file_path}"
+
+
+def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir):
     estimator.fit(wait=False)
 
     job_name = estimator.latest_training_job.name
@@ -239,18 +242,19 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file):
         time.sleep(20)
 
     # If the training job has failed or been stopped, then fail the test.
-    if (
-        description["TrainingJobStatus"] == "Failed"
-        or description["TrainingJobStatus"] == "Stopped"
-    ):
-        assert False
+    assert description["TrainingJobStatus"] not in ("Failed", "Stopped")
 
     if profiler_config:
         assert path
-        dir_path = _download_artifacts(path)
+
+        framework_dir = _download_artifacts(path, out_dir)
+        pevents_dir = join(framework_dir, "pevents")
+        python_stats_dir = join(framework_dir, "tensorflow", "{profiler_name}")
+        detailed_profiling_dir = join(framework_dir, "tensorflow", "detailed_profiling")
+
         python_tracefiles = [
             join(root, name)
-            for root, _, files in walk(dir_path)
+            for root, _, files in walk(pevents_dir)
             for name in files
             if name.endswith("pythontimeline.json")
         ]
@@ -262,7 +266,7 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file):
 
         framework_tracefiles = [
             join(root, name)
-            for root, _, files in walk(dir_path)
+            for root, _, files in walk(pevents_dir)
             for name in files
             if name.endswith("model_timeline.json")
         ]
@@ -272,43 +276,49 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file):
         else:
             assert len(framework_tracefiles) > 0
 
-        try:
-            print("Validating the generated trace files...")
-            assert _validate_trace_files(python_tracefiles, profiler_config)
-            assert _validate_trace_files(framework_tracefiles, profiler_config)
-            print("SMProfiler trace files validated.")
-        except Exception as e:
-            print("Validating trace files failed with error: ", e)
-            assert False
-        finally:
-            # this will clean up all the downloaded test artifacts.
-            _cleanup_folder(dir_path[: dir_path.index("/profiler-output")])
+        python_analysis_class = (
+            PyinstrumentAnalysis
+            if str2bool(profiler_config.get("PyInstrument", "False"))
+            else cProfileAnalysis
+        )
+        python_stats_dir = python_stats_dir.format(profiler_name=python_analysis_class.name)
+        makedirs(
+            python_stats_dir, exist_ok=True
+        )  # still needs to be created if python profiling is disabled
+        python_analysis = python_analysis_class(local_profile_dir=python_stats_dir)
+        python_profile_stats = python_analysis.list_profile_stats()
+        print(f"Number of generated python stats files {len(python_profile_stats)}")
+        assert len(python_profile_stats) == expected_num_trace_file["python_stats_file_count"]
+
+        detailed_profiling_tracefiles = [
+            join(root, name) for root, _, files in walk(detailed_profiling_dir) for name in files
+        ]
+        print(f"Number of detailed profiling trace files {len(detailed_profiling_tracefiles)}")
+        if "DetailedProfilingConfig" in profiler_config:
+            assert len(detailed_profiling_tracefiles) > 0
+        else:
+            assert len(detailed_profiling_tracefiles) == 0
+
+        print("Validating the generated trace files...")
+        _validate_trace_files(python_tracefiles, profiler_config)
+        _validate_trace_files(framework_tracefiles, profiler_config)
+        _validate_python_stats_files(python_profile_stats)
+        print("SMProfiler trace files validated.")
     else:
         assert not path
 
 
-def test_cpu_jobs():
-    estimator_list, profiler_params_list, expected_values_in_test_artifacts = _get_estimator_list(
-        CPU_JOBS_INDEX, "cpu_jobs"
-    )
-
-    for estimator, profiler_params, expected_num_trace_file in zip(
-        estimator_list, profiler_params_list, expected_values_in_test_artifacts
-    ):
-        _run_verify_job(estimator, profiler_params, expected_num_trace_file)
+@pytest.mark.parametrize(
+    "cpu_estimator_and_config", _get_estimator_list(CPU_JOBS_INDEX, "cpu_jobs")
+)
+def test_cpu_jobs(cpu_estimator_and_config, out_dir):
+    estimator, profiler_params, expected_num_trace_file = cpu_estimator_and_config
+    _run_verify_job(estimator, profiler_params, expected_num_trace_file, out_dir)
 
 
-def test_gpu_jobs():
-    estimator_list, profiler_params_list, expected_values_in_test_artifacts = _get_estimator_list(
-        GPU_JOBS_INDEX, "gpu_jobs"
-    )
-
-    for estimator, profiler_params, expected_num_trace_file in zip(
-        estimator_list, profiler_params_list, expected_values_in_test_artifacts
-    ):
-        _run_verify_job(estimator, profiler_params, expected_num_trace_file)
-
-
-if __name__ == "__main__":
-    test_cpu_jobs()
-    test_gpu_jobs()
+@pytest.mark.parametrize(
+    "gpu_estimator_and_config", _get_estimator_list(GPU_JOBS_INDEX, "gpu_jobs")
+)
+def test_gpu_jobs(gpu_estimator_and_config, out_dir):
+    estimator, profiler_params, expected_num_trace_file = gpu_estimator_and_config
+    _run_verify_job(estimator, profiler_params, expected_num_trace_file, out_dir)

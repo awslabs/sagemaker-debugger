@@ -6,7 +6,12 @@ import shutil
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler, is_s3
 from smdebug.core.logger import get_logger
 from smdebug.profiler.analysis.utils.python_profile_analysis_utils import StepPythonProfileStats
-from smdebug.profiler.python_profiler import PyinstrumentPythonProfiler, cProfilePythonProfiler
+from smdebug.profiler.profiler_constants import (
+    CPROFILE_NAME,
+    CPROFILE_STATS_FILENAME,
+    PYINSTRUMENT_NAME,
+    PYINSTRUMENT_STATS_FILENAME,
+)
 
 
 class PythonStatsReader:
@@ -76,7 +81,7 @@ class S3PythonStatsReader(PythonStatsReader):
         for full_s3_filepath, object_data in zip(s3_filepaths, objects):
             stats_file = os.path.basename(full_s3_filepath)
 
-            if not stats_file.startswith("python_stats"):
+            if stats_file not in (CPROFILE_STATS_FILENAME, PYINSTRUMENT_STATS_FILENAME):
                 continue
 
             profiler_name = os.path.basename(os.path.dirname(os.path.dirname(full_s3_filepath)))
@@ -128,12 +133,12 @@ class LocalPythonStatsReader(PythonStatsReader):
         for python_stat_dir in os.listdir(self.profile_dir):
             start_time, end_time, node_id, step = python_stat_dir.split("_")
             stats_dir = os.path.join(self.profile_dir, python_stat_dir)
-            if os.path.isfile(os.path.join(stats_dir, "python_stats")):
-                profiler_name = cProfilePythonProfiler.name
-                stats_file_path = os.path.join(stats_dir, "python_stats")
-            elif os.path.isfile(os.path.join(stats_dir, "python_stats.json")):
-                profiler_name = PyinstrumentPythonProfiler.name
-                stats_file_path = os.path.join(stats_dir, "python_stats.json")
+            if os.path.isfile(os.path.join(stats_dir, CPROFILE_STATS_FILENAME)):
+                profiler_name = CPROFILE_NAME
+                stats_file_path = os.path.join(stats_dir, CPROFILE_STATS_FILENAME)
+            elif os.path.isfile(os.path.join(stats_dir, PYINSTRUMENT_STATS_FILENAME)):
+                profiler_name = PYINSTRUMENT_NAME
+                stats_file_path = os.path.join(stats_dir, PYINSTRUMENT_STATS_FILENAME)
             else:
                 get_logger("smdebug-profiler").info(
                     f"Folder {python_stat_dir} is empty, skipping..."
