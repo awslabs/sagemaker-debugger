@@ -148,23 +148,6 @@ class cProfilePythonProfiler(PythonProfiler):
         """
         get_logger("smdebug-profiler").info(f"Dumping cProfile stats to {stats_file_path}.")
         pstats.Stats(self._profiler).dump_stats(stats_file_path)
-    
-    import os
-
-    def not_cpu_time():
-        times = os.times()
-        return times.elapsed - (times.system + times.user)
-        import cProfile, pstats
-
-    def profile_not_cpu_time(f, *args, **kwargs):
-        prof = cProfile.Profile(not_cpu_time)
-        prof.runcall(f, *args, **kwargs)
-        result = pstats.Stats(prof)
-        result.sort_stats("time")
-        result.print_stats()
-
-
-
 
 class PyinstrumentPythonProfiler(PythonProfiler):
     """Higher level class to oversee profiling specific to Pyinstrument, a third party Python profiler.
