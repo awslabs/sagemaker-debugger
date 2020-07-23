@@ -28,6 +28,7 @@ class PythonStatsReader:
         """Load the python profile stats. To be implemented in subclass.
         """
 
+
 class S3PythonStatsReader(PythonStatsReader):
     """Higher level stats reader to download python stats from s3.
     """
@@ -107,7 +108,7 @@ class S3PythonStatsReader(PythonStatsReader):
                     float(end_time),
                     node_id,
                     stats_file_path,
-                    step_phase
+                    step_phase,
                 )
             )
         python_profile_stats.sort(
