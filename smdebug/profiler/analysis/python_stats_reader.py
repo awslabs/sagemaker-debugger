@@ -31,7 +31,7 @@ class PythonStatsReader:
     def _get_step_stepphase(self, step_phase_str):
         splits = step_phase_str.split("-", 1)
         step = splits[0]
-        step_phase = step[1] if len(splits) > 1 else "full"
+        step_phase = splits[1] if len(splits) > 1 else "full"
         return step, step_phase
 
 

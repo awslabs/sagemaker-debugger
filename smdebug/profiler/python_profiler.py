@@ -91,7 +91,9 @@ class PythonProfiler:
         self._disable_profiler()
 
         current_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
-        step_phase_string = f"{self._start_stepphase}-{step_phase}"
+        step_phase_string = ""
+        if self._start_stepphase != "" or step_phase != "":
+            step_phase_string = f"{self._start_stepphase}-{step_phase}"
         stats_dir = TraceFileLocation.get_python_profiling_stats_dir(
             self._base_folder,
             self._framework,
@@ -146,6 +148,22 @@ class cProfilePythonProfiler(PythonProfiler):
         """
         get_logger("smdebug-profiler").info(f"Dumping cProfile stats to {stats_file_path}.")
         pstats.Stats(self._profiler).dump_stats(stats_file_path)
+    
+    import os
+
+    def not_cpu_time():
+        times = os.times()
+        return times.elapsed - (times.system + times.user)
+        import cProfile, pstats
+
+    def profile_not_cpu_time(f, *args, **kwargs):
+        prof = cProfile.Profile(not_cpu_time)
+        prof.runcall(f, *args, **kwargs)
+        result = pstats.Stats(prof)
+        result.sort_stats("time")
+        result.print_stats()
+
+
 
 
 class PyinstrumentPythonProfiler(PythonProfiler):
