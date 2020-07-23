@@ -98,8 +98,8 @@ class S3PythonStatsReader(PythonStatsReader):
 
             with open(stats_file_path, "wb") as f:
                 f.write(object_data)
-            
-            start_time, end_time, node_id, step_phase_str = stats_dir.split("_") 
+
+            start_time, end_time, node_id, step_phase_str = stats_dir.split("_")
             step, step_phase = self._get_step_stepphase(step_phase_str)
             python_profile_stats.append(
                 StepPythonProfileStats(
