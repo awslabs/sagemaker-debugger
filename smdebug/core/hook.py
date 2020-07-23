@@ -44,6 +44,7 @@ from smdebug.core.utils import (
     match_inc,
     remove_claim_file,
     size_and_shape,
+    validate_custom_tensor_value,
 )
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
@@ -906,9 +907,10 @@ class CallbackHook(BaseHook):
             )
         return idx
 
-    def save_tensor(self, tensor_name, tensor_value, collections_to_write=None):
-        if collections_to_write is None:
-            collections_to_write = CollectionKeys.DEFAULT
+    def save_tensor(self, tensor_name, tensor_value, collections_to_write=CollectionKeys.DEFAULT):
+        if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
+            self.logger.warn("The tensor value could not be converted into a numpy value")
+            return
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
         for collection in collections_to_write:
@@ -937,4 +939,8 @@ class CallbackHook(BaseHook):
 
     @abstractmethod
     def _export_model(self):
+        pass
+
+    @staticmethod
+    def _make_numpy_array(tensor_value):
         pass
