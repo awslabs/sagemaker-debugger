@@ -233,6 +233,7 @@ The names of these collections are all lower case strings.
 | `losses` | TensorFlow, PyTorch, MXNet | Saves the loss for the model |
 | `metrics` | TensorFlow's KerasHook, XGBoost | For KerasHook, saves the metrics computed by Keras for the model. For XGBoost, the evaluation metrics computed by the algorithm. |
 | `outputs` | TensorFlow's KerasHook | Matches the outputs of the model |
+| `layers` | TensorFlow's KerasHook | Input and output of intermediate convolutional layers |
 | `sm_metrics` | TensorFlow | You can add scalars that you want to show up in SageMaker Metrics to this collection. SageMaker Debugger will save these scalars both to the out_dir of the hook, as well as to SageMaker Metric. Note that the scalars passed here will be saved on AWS servers outside of your AWS account. |
 | `optimizer_variables` | TensorFlow's KerasHook | Matches all optimizer variables, currently only supported in Keras. |
 | `hyperparameters` | XGBoost | [Booster paramameters](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html) |
