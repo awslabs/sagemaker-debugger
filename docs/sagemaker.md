@@ -14,44 +14,6 @@
 - [TensorBoard Visualization](#tensorboard-visualization)
 - [Example Notebooks](#example-notebooks)
 
-## Enabling SageMaker Debugger
-There are two ways in which you can enable SageMaker Debugger while training on SageMaker.
-
-### Zero Script Change
-We have equipped the official Framework containers on SageMaker with custom versions of supported frameworks TensorFlow, PyTorch, MXNet and XGBoost. These containers enable you to use SageMaker Debugger with no changes to your training script, by automatically adding [SageMaker Debugger's Hook](api.md#glossary).
-
-Here's a list of frameworks and versions which support this experience.
-
-| Framework | Version |
-| --- | --- |
-| [TensorFlow](tensorflow.md) | 1.15, 2.1, 2.2 |
-| [MXNet](mxnet.md) | 1.6 |
-| [PyTorch](pytorch.md) | 1.4, 1.5 |
-| [XGBoost](xgboost.md) | 0.90-2, 1.0-1 [As Built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm)|
-
-More details for the deep learning frameworks on which containers these are can be found here: [SageMaker Framework Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html) and [AWS Deep Learning Containers](https://aws.amazon.com/machine-learning/containers/). You do not have to specify any training container image if you want to use them on SageMaker. You only need to specify the version above to use these containers.
-
-### Bring your own training container
-
-This library `smdebug` itself supports versions other than the ones listed above. If you want to use SageMaker Debugger with a version different from the above, you will have to orchestrate your training script with a few lines. Before we discuss how these changes look like, let us take a look at the versions supported.
-
-| Framework | Versions |
-| --- | --- |
-| [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15, 2.1, 2.2 |
-| Keras (with TensorFlow backend) | 2.3 |
-| [MXNet](mxnet.md) | 1.4, 1.5, 1.6 |
-| [PyTorch](pytorch.md) | 1.2, 1.3, 1.4, 1.5 |
-| [XGBoost](xgboost.md) |  0.90-2, 1.0-1 |
-
-#### Setting up SageMaker Debugger with your script on your container
-
-- Ensure that you are using Python3 runtime as `smdebug` only supports Python3.
-- Install `smdebug` binary through `pip install smdebug`
-- Make some minimal modifications to your training script to add SageMaker Debugger's Hook. Please refer to the framework pages linked below for instructions on how to do that.
-    - [TensorFlow](tensorflow.md)
-    - [PyTorch](pytorch.md)
-    - [MXNet](mxnet.md)
-    - [XGBoost](xgboost.md)
 
 ## Configuring SageMaker Debugger
 
