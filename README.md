@@ -9,8 +9,8 @@
 - [Debugger-supported Frameworks](#debugger-supported-frameworks)
 - [How It Works](#how-it-works)
 - [Examples](#examples)
-- [Further Documentation](#further-documentation)
 - [SageMaker Debugger in action](#sagemaker-debugger-in-action)
+- [Further Documentation and References](#further-documentation-and-references)
 
 ## Overview
 [Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) automates the debugging process of machine learning training jobs. From training jobs, Debugger allows you to
@@ -81,6 +81,8 @@ The `smdebug` library supports frameworks other than the ones listed above while
 
 Debugger is available for any deep learning models that you bring to Amazon SageMaker. The AWS CLI, the SageMaker Estimator API, and the Debugger APIs enable you to use any Docker base images to build and customize containers to train and debug your models. To use Debugger with customized containers, go to [Use Debugger in Custom Training Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-bring-your-own-container.html).
 
+---
+
 ## How It Works
 
 Amazon SageMaker Debugger uses the construct of a `Hook` to save the values of requested tensors throughout the training process. You can then setup a `Rule` job which simultaneously monitors and validates these tensors to ensure
@@ -112,6 +114,7 @@ Here you write custom rules (or manually analyze the tensors) and modify your tr
 The reason for different setups is that Zero Script Change (via AWS Deep Learning Containers) uses custom framework forks of TensorFlow, PyTorch, MXNet, and XGBoost which add the `Hook` to the training job and save requested tensors automatically.
 These framework forks are not available in custom containers or non-SageMaker environments, so you must modify your training script in these environments.
 
+---
 
 ## Examples
 
@@ -119,7 +122,7 @@ These framework forks are not available in custom containers or non-SageMaker en
 
 To find a collection of demonstrations using Debugger, see [SageMaker Debugger Example Notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
 
-#### Run a Rule with Zero Script Change
+#### Run a Rule with zero script change
 
 This example shows a how to use Debugger with Zero Script Change of
 your training script on a SageMaker DLC.
@@ -167,7 +170,7 @@ so you can take any action based on them.
 
 If you want additional configuration and control, see [Running SageMaker jobs with Debugger](docs/sagemaker.md) for more information.
 
-#### Run Debugger in Your Own Container
+#### Run Debugger in custom container
 
 The following example shows how to set `hook` to set a training model using Debugger in your own container.
 This example is for containers in TensorFlow 2.x framework using GradientTape to configure the `hook`.
@@ -194,8 +197,8 @@ model = tf.keras.models.Sequential([ ... ])
 To see a full script of this, refer to the [tf_keras_gradienttape.py](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py) example script.
 For a notebook example of using BYOC in PyTorch, see [Using Amazon SageMaker Debugger with Your Own PyTorch Container](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/pytorch_custom_container/pytorch_byoc_smdebug.ipynb)
 
-#### Run Debugger Locally
-Requires Python 3.6+ and this example uses tf.keras.
+#### Run Debugger locally
+This example shows how to use Debugger for the Keras `model.fit()` API.
 
 To use Debugger, simply add a callback `hook`:
 ```python
@@ -218,7 +221,18 @@ print(f"Saved these tensors: {trial.tensor_names()}")
 print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').values(mode=smd.modes.EVAL)}")
 ```
 
-## Further Documentation
+---
+
+## SageMaker Debugger in Action
+- Through the model pruning process using Debugger and `smdebug`, you can iteratively identify the importance of weights and cut neurons below a threshold you define. This process allows you to train the model with significantly fewer neurons, which means a lighter, more efficient, faster, and cheaper model without compromising accuracy. The following accuracy versus the number of parameters graph is produced in Studio. It shows that the model accuracy started from 12 million parameters (the data point moves from right to left along with the pruning process), improved during the first few pruning iterations, kept the quality of accuracy until it cut the number of parameters down to 6 million, and start sacrificing the accuracy afterwards.
+![Debugger Iterative Model Pruning using ResNet](docs/resources/results_resnet.png?raw=true)
+Debugger provides you tools to access such training process and have a complete control over your model. See [Using SageMaker Debugger and SageMaker Experiments for iterative model pruning](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/pytorch_iterative_model_pruning/iterative_model_pruning_resnet.ipynb) notebook for the full example and more information.
+- Use Debugger with XGBoost in SageMaker Studio to save feature importance values and plot them in a notebook during training. ![Debugger XGBoost Visualization Example](docs/resources/xgboost_feature_importance.png?raw=true)
+- Use Debugger with TensorFlow in SageMaker Studio to run built-in rules and visualize the loss. ![Debugger TensorFlow Visualization Example](docs/resources/tensorflow_rules_loss.png?raw=true)
+
+---
+
+## Further Documentation and References
 
 | Section | Description |
 | --- | --- |
@@ -227,13 +241,6 @@ print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').v
 | [APIs for Saving Tensors](docs/api.md) | Full description of our APIs on saving tensors |
 | [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by the APIs that enable you to perform interactive exploration of tensors saved, as well as to write your own Rules monitoring your training jobs. |
 
-
-## SageMaker Debugger in Action
-- Through the model pruning process using Debugger and `smdebug`, you can iteratively identify the importance of weights and cut neurons below a threshold you define. This process allows you to train the model with significantly fewer neurons, which means a lighter, more efficient, faster, and cheaper model without compromising accuracy.
-![Debugger Iterative Model Pruning using ResNet](docs/resources/results_resnet.png?raw=true)
-See [Using SageMaker Debugger and SageMaker Experiments for iterative model pruning](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/pytorch_iterative_model_pruning/iterative_model_pruning_resnet.ipynb) notebook for visualization and further information.
-- Use Debugger with XGBoost in SageMaker Studio to save feature importance values and plot them in a notebook during training. ![Debugger XGBoost Visualization Example](docs/resources/xgboost_feature_importance.png?raw=true)
-- Use Debugger with TensorFlow in SageMaker Studio to run built-in rules and visualize the loss. ![Debugger TensorFlow Visualization Example](docs/resources/tensorflow_rules_loss.png?raw=true)
 
 ## License
 This library is licensed under the Apache 2.0 License.

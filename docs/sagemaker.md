@@ -1,6 +1,6 @@
 ## Running SageMaker jobs with Amazon SageMaker Debugger
 
-## Outline
+### Outline
 - [Configuring SageMaker Debugger](#configuring-sagemaker-debugger)
   - [Saving data](#saving-data)
     - [Saving built-in collections that we manage](#saving-built-in-collections-that-we-manage)
