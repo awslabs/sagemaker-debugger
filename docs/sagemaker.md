@@ -188,6 +188,7 @@ sagemaker_estimator = sm.tensorflow.TensorFlow(
 )
 sagemaker_estimator.fit()
 ```
+
 #### Custom Rules
 
 You can write your own rule custom made for your application and provide it, so SageMaker can monitor your training job using your rule. To do so, you need to understand the programming model that `smdebug` provides. Our page on [Programming Model for Analysis](analysis.md) describes the APIs that we provide to help you write your own rule.
