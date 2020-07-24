@@ -24,11 +24,11 @@ For a full list of TensorFlow framework versions to use Debugger, see [AWS Deep 
 ---
 
 ## How to Use
-### Debugger with AWS Deep Learning Containers and Zero Script Change
+### Debugger with AWS Deep Learning Containers and zero script change
 
 The Debugger features are all integrated into the AWS Deep Learning Containers, and you can run your training script with zero script change. To find a high-level SageMaker TensorFlow estimator with Debugger example code, see [Debugger in TensorFlow](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html#debugger-zero-script-change-TensorFlow).
 
-### Debugger with AWS Training Containers and Script Mode
+### Debugger with AWS training containers and script Mode
 
 In case you want to run your own training script and debug using the SageMaker TensorFlow framework with script mode and Debugger, the smdebug client library provides the hook constructor that you can add to the training script and retrieve tensors.
 
@@ -49,7 +49,7 @@ Use if you use the Keras `model.fit()` API. This is available for all frameworks
 ```python
 hook = smd.KerasHook.create_from_json_file()
 ```
-To learn how to fully implement the hook to your training script, see the [Keras with the TensorFlow gradient tape and the smdebug hook example script](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py).
+To learn how to fully implement the hook to your training script, see the [Keras with the TensorFlow gradient tape and the smdebug hook example scripts](https://github.com/awslabs/sagemaker-debugger/tree/master/examples/tensorflow2/scripts).
 
 > **Note**: If you use the AWS Deep Learning Containers for zero script change, Debugger collects the most of tensors regardless the eager execution modes, through its high-level API.
 
@@ -72,6 +72,9 @@ Use if you have a model using the `tf.estimator()` API. Available for any Tensor
 ```python
 hook = smd.EstimatorHook.create_from_json_file()
 ```
+
+To learn how to fully implement the hook into your training script, see the [simple MNIST training script with the Tensorflow estimator](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow/sagemaker_byoc/simple.py).
+https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow/local/mnist.py).
 
 #### 2. Register the hook to your model
 
@@ -179,7 +182,7 @@ estimator.evaluate(input_fn=eval_input_fn, steps=args.steps, hooks=[hook])
 
 ## References
 
-### smdebug API for saving tensors
+### The smdebug API for saving tensors
 See the [API for saving tensors](api.md) page for details about the Hooks, Collection, SaveConfig, and ReductionConfig.
 See the [Analysis](analysis.md) page for details about analyzing a training job.
 

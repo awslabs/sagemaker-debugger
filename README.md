@@ -63,10 +63,10 @@ The following frameworks are available AWS Deep Learning Containers with the dee
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](tensorflow.md) | 1.15, 2.1, 2.2 |
-| [MXNet](mxnet.md) | 1.6 |
-| [PyTorch](pytorch.md) | 1.4, 1.5 |
-| [XGBoost](xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](xgboost.md#use-xgboost-as-a-built-in-algorithm))|
+| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1, 2.2 |
+| [MXNet](docs/mxnet.md) | 1.6 |
+| [PyTorch](docs/pytorch.md) | 1.4, 1.5 |
+| [XGBoost](docs/xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
 
 ### AWS training containers with script mode
 
@@ -74,11 +74,11 @@ The `smdebug` library supports frameworks other than the ones listed above while
 
 | Framework | Versions |
 | --- | --- |
-| [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15, 2.1, 2.2 |
+| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1, 2.2 |
 | Keras (with TensorFlow backend) | 2.3 |
-| [MXNet](mxnet.md) | 1.4, 1.5, 1.6 |
-| [PyTorch](pytorch.md) | 1.2, 1.3, 1.4, 1.5 |
-| [XGBoost](xgboost.md) |  0.90-2, 1.0-1 (As a framework)|
+| [MXNet](docs/mxnet.md) | 1.4, 1.5, 1.6 |
+| [PyTorch](docs/pytorch.md) | 1.2, 1.3, 1.4, 1.5 |
+| [XGBoost](docs/xgboost.md) |  0.90-2, 1.0-1 (As a framework)|
 
 ### Debugger on custom containers or local machines
 You can also fully use the Debugger features in custom containers with the SageMaker Python SDK. Furthermore, `smdebug` is an open source library, so you can install it on your local machine for any advanced use cases that cannot be run in the SageMaker environment and for constructing `smdebug` custom hooks and rules.
