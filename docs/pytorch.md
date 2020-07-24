@@ -38,7 +38,7 @@ If using a loss which is a subclass of `nn.functional`, call `hook.record_tensor
 
 #### 4. Take actions using the hook APIs
 
-For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/mchoi8739/sagemaker-debugger/blob/doc-update/docs/api.md#common-hook-api) and [PyTorch specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#pytorch-specific-hook-api).
+For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api) and [PyTorch specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#pytorch-specific-hook-api).
 
 ---
 

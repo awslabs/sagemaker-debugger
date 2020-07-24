@@ -97,7 +97,7 @@ For examples of code structure to apply the hook wrappers, see [Examples](#examp
 
 #### 4. Take actions using the hook APIs
 
-For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/mchoi8739/sagemaker-debugger/blob/doc-update/docs/api.md#common-hook-api) and [TensorFlow specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#tensorflow-specific-hook-api).
+For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api) and [TensorFlow specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#tensorflow-specific-hook-api).
 
 >**Note**: The `inputs`, `outputs`, and `layers` collections are not currently available for TensorFlow 2.1.
 

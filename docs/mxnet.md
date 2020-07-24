@@ -37,7 +37,7 @@ Call `hook.register_block(net)`.
 
 #### 3. Take actions using the hook APIs
 
-For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/mchoi8739/sagemaker-debugger/blob/doc-update/docs/api.md#common-hook-api) and [MXNet specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#mxnet-specific-hook-api).
+For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api) and [MXNet specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#mxnet-specific-hook-api).
 
 ---
 

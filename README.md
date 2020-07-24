@@ -25,10 +25,13 @@ The `smdebug` library powers Debugger by calling the saved tensors from the S3 b
 Debugger helps you develop better, faster, and cheaper models by minimally modifying estimator, tracing the tensors, catching anomalies while training models, and iterative model pruning.
 
 Debugger supports TensorFlow, PyTorch, MXNet, and XGBoost frameworks.
+
 The following list is a summary of the main functionalities of Debugger:
 
-- Zero Script Change experience on SageMaker when using [supported containers](#debugger-supported-frameworks)
-- Full visibility into any tensor retrieved from targeted parts of training jobs
+- Run and debug training jobs of your model on SageMaker when using [supported containers](#debugger-supported-frameworks)
+- No changes needed to bring your training script if using AWS Deep Learning Containers
+- Minimal changes to your training script if using AWS containers or custom containers
+- Full visibility into any tensor retrieved from targeted parts of the training jobs
 - Real-time training job monitoring through Rules
 - Automated anomaly detection and state assertions through built-in and custom Rules on SageMaker
 - Actions on your training jobs based on the status of Rules
