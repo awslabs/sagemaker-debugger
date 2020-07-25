@@ -158,3 +158,15 @@ def str2bool(v):
 def us_since_epoch_to_human_readable_time(us_since_epoch):
     dt = datetime.fromtimestamp(us_since_epoch / 1e6)
     return dt.strftime("%Y-%m-%dT%H:%M:%S:%f")
+
+
+class CaseInsensitiveConfig:
+    def __init__(self, config):
+        self._config = self._convert_keys_to_uppercase(config)
+
+    def _convert_keys_to_uppercase(self, config):
+        return {key.upper(): self._convert_keys_to_uppercase(value) if isinstance(value, dict) else value for key, value in config.items()}
+
+    def get(self, key, default_value=None):
+        value = self._config.get(key.upper(), default_value)
+        return CaseInsensitiveConfig(value) if isinstance(value, dict) else value
