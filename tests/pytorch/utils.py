@@ -36,12 +36,18 @@ class Net(nn.Module):
 
 
 def train(model, hook, device, optimizer, num_steps=500, set_modes=False, save_custom_tensor=False):
+    if save_custom_tensor:
+        hook.save_tensor("custom_tensor_0", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
+
     if set_modes:
         hook.set_mode(modes.TRAIN)
 
+    if save_custom_tensor:
+        hook.save_tensor("custom_tensor_1", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
+
     model.train()
     if save_custom_tensor:
-        hook.save_tensor("custom_tensor", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
+        hook.save_tensor("custom_tensor_2", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
     for i in range(num_steps):
         batch_size = 32
         data, target = torch.rand(batch_size, 1, 28, 28), torch.rand(batch_size).long()
@@ -52,6 +58,8 @@ def train(model, hook, device, optimizer, num_steps=500, set_modes=False, save_c
         hook.record_tensor_value("nll_loss", tensor_value=loss)
         loss.backward()
         optimizer.step()
+    if save_custom_tensor:
+        hook.save_tensor("custom_tensor_3", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
 
 
 def evaluate(model, hook, device, num_steps=100, set_modes=False):

@@ -26,5 +26,5 @@ def test_hook():
     )
     trial = create_trial(out_dir)
     custom_tensors = trial.tensor_names(collection=CollectionKeys.DEFAULT)
-    assert len(custom_tensors)
+    assert len(custom_tensors) == 4
     shutil.rmtree(out_dir)
