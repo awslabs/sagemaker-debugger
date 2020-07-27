@@ -13,7 +13,7 @@ from smdebug.profiler.profiler_constants import (
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
 )
-from smdebug.profiler.utils import str2bool, CaseInsensitiveConfig
+from smdebug.profiler.utils import CaseInsensitiveConfig, str2bool
 
 
 class LastProfilingStatus(Enum):

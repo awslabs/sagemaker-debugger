@@ -173,7 +173,12 @@ class CaseInsensitiveConfig:
         Recursively converts all keys in the provided dictionary to be upper case. This generates a new dictionary, so
         the provided dictionary is not modified.
         """
-        return {key.upper(): self._convert_keys_to_uppercase(value) if isinstance(value, dict) else value for key, value in config.items()}
+        return {
+            key.upper(): self._convert_keys_to_uppercase(value)
+            if isinstance(value, dict)
+            else value
+            for key, value in config.items()
+        }
 
     def get(self, key, default_value=None):
         """
