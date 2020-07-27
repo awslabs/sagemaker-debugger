@@ -31,5 +31,5 @@ def test_hook():
     train(model, hook, torch.device("cpu"), optimizer, num_steps=10, save_custom_tensor=True)
     trial = create_trial(out_dir)
     custom_tensors = trial.tensor_names(collection=CollectionKeys.DEFAULT)
-    assert len(custom_tensors) == 3
+    assert len(custom_tensors) == 4
     shutil.rmtree(out_dir)
