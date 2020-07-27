@@ -162,11 +162,22 @@ def us_since_epoch_to_human_readable_time(us_since_epoch):
 
 class CaseInsensitiveConfig:
     def __init__(self, config):
+        """
+        Utils class that builds on top of the native Python dictionary to make keys case insensitive.
+        :param config The underlying dictionary whose keys should be case insensitive.
+        """
         self._config = self._convert_keys_to_uppercase(config)
 
     def _convert_keys_to_uppercase(self, config):
+        """
+        Recursively converts all keys in the provided dictionary to be upper case. This generates a new dictionary, so
+        the provided dictionary is not modified.
+        """
         return {key.upper(): self._convert_keys_to_uppercase(value) if isinstance(value, dict) else value for key, value in config.items()}
 
     def get(self, key, default_value=None):
+        """
+        Higher level version of the native dictionary get function to convert the provided key to upper case first.
+        """
         value = self._config.get(key.upper(), default_value)
         return CaseInsensitiveConfig(value) if isinstance(value, dict) else value
