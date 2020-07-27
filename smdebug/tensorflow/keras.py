@@ -20,6 +20,7 @@ from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
     ModelInput,
     ModelInputs,
+    ModelOutput,
     ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
@@ -1002,7 +1003,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :param outputs:
         :return:
         """
-        logs = {"smdebug_y": outputs, "smdebug_x": model_inputs}
+        logs = {ModelOutput.Y: outputs, ModelInput.X: model_inputs}
         self.save_smdebug_logs(logs)
 
     def wrap_tape(self, tape):
