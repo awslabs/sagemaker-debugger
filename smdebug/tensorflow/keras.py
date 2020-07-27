@@ -398,6 +398,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
+        self.custom_tensors_to_save.clear()
 
     def _save_tensor_to_file(self, tensor_name, tensor_value, collections_to_write):
         if isinstance(collections_to_write, set) is False:

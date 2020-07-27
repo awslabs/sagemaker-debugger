@@ -922,6 +922,7 @@ class CallbackHook(BaseHook):
             c = self.collection_manager.get(collection_names, create=True)
             c.add_tensor_name(tensor_name)
             self._write_raw_tensor(tensor_name, tensor_value, [c])
+        self.custom_tensors_to_save.clear()
 
     def _write_inputs(self, name, inputs):
         tensor_name = name + CallbackHook.INPUT_TENSOR_SUFFIX
