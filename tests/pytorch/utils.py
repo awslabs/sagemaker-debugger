@@ -56,10 +56,10 @@ def train(model, hook, device, optimizer, num_steps=500, set_modes=False, save_c
         output = model(Variable(data, requires_grad=True))
         loss = F.nll_loss(output, target)
         hook.record_tensor_value("nll_loss", tensor_value=loss)
+        if save_custom_tensor:
+            hook.save_tensor("custom_tensor_3", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
         loss.backward()
         optimizer.step()
-    if save_custom_tensor:
-        hook.save_tensor("custom_tensor_3", torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
 
 
 def evaluate(model, hook, device, num_steps=100, set_modes=False):

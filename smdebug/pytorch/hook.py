@@ -173,6 +173,7 @@ class Hook(CallbackHook):
                 if grad is not None:
                     # self.logger.debug(f"Processing the backward step " f"{self.step} for {tname}")
                     self._save_for_tensor(self.GRADIENT_PREFIX + tname, grad)
+            self._save_custom_tensors_post_step()
 
         return back
 
