@@ -10,9 +10,9 @@
 
 ## Support
 
-**Zero script change experience** — No modifications needed to your training script to enable the Debugger features while using the [official AWS Deep Learning Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html).
+**Zero script change experience** — No modification is needed to your training script to enable the Debugger features while using the [official AWS Deep Learning Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html).
 
-**Script mode experience** — The smdebug library supports training jobs with TensorFlow framework and script mode through its API operations. This option requires minimal changes to your training script.
+**Script mode experience** — The smdebug library supports training jobs with the TensorFlow framework and script mode through its API operations. This option requires minimal changes to your training script, and the smdebug library provides you hook features to help implement Debugger and analyze tensors.
 
 ### Versions
 For a full list of TensorFlow framework versions to use Debugger, see [AWS Deep Learning Containers and SageMaker training containers](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html#debugger-supported-aws-containers).
@@ -63,7 +63,7 @@ hook = smd.SessionHook.create_from_json_file()
 
 To learn how to fully implement the hook into your training script, see the [TensorFlow monitored training session with the smdebug hook example script](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow/sagemaker_byoc/simple.py).
 
-> **Note**: The `tf.train.MonitoredSessions()` API is deprecated in favor of `tf.function()` in TF 2.0 and above. You can use `SessionHook` for `tf.function()` in TF 2.0 and above.
+> **Note**: The official TensorFlow library deprecated the `tf.train.MonitoredSessions()` API in favor of `tf.function()` in TF 2.0 and above. You can use `SessionHook` for `tf.function()` in TF 2.0 and above.
 
 #### EstimatorHook
 
@@ -74,7 +74,6 @@ hook = smd.EstimatorHook.create_from_json_file()
 ```
 
 To learn how to fully implement the hook into your training script, see the [simple MNIST training script with the Tensorflow estimator](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow/sagemaker_byoc/simple.py).
-https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow/local/mnist.py).
 
 #### 2. Register the hook to your model
 
@@ -96,7 +95,7 @@ with hook.wrap_tape(tf.GradientTape(persistent=True)) as tape:
 
 These wrappers capture the gradient tensors, not affecting your optimization logic at all.
 
-For examples of code structure to apply the hook wrappers, see [Examples](#examples)
+For examples of code structure to apply the hook wrappers, see the [Examples](#examples) section.
 
 #### 4. Take actions using the hook APIs
 
@@ -113,6 +112,7 @@ The following examples show the three different hook constructions of TensorFlow
 ### Keras API (tf.keras)
 ```python
 import smdebug.tensorflow as smd
+
 hook = smd.KerasHook(out_dir=args.out_dir)
 
 model = tf.keras.models.Sequential([ ... ])
@@ -148,6 +148,7 @@ model = tf.keras.models.Sequential([ ... ])
 ### Monitored Session (tf.train.MonitoredSession)
 ```python
 import smdebug.tensorflow as smd
+
 hook = smd.SessionHook(out_dir=args.out_dir)
 
 loss = tf.reduce_mean(tf.matmul(...), name="loss")
@@ -165,6 +166,7 @@ sess.run([loss, ...])
 ### Estimator (tf.estimator.Estimator)
 ```python
 import smdebug.tensorflow as smd
+
 hook = smd.EstimatorHook(out_dir=args.out_dir)
 
 train_input_fn, eval_input_fn = ...
