@@ -162,6 +162,7 @@ class Hook(CallbackHook):
 
         # Output output tensors
         self._write_outputs(module_name, outputs)
+        self._save_custom_tensors_post_step()
         self.last_saved_step = self.step
 
     def backward_hook(self, tname):
@@ -172,6 +173,7 @@ class Hook(CallbackHook):
                 if grad is not None:
                     # self.logger.debug(f"Processing the backward step " f"{self.step} for {tname}")
                     self._save_for_tensor(self.GRADIENT_PREFIX + tname, grad)
+            self._save_custom_tensors_post_step()
 
         return back
 

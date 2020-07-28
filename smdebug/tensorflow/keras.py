@@ -15,7 +15,7 @@ from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 # Local
 from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
-from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY
+from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY, SMDEBUG_PREFIX
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
     ModelInput,
@@ -391,7 +391,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
             self.logger.warn("The tensor value could not be converted into a numpy value")
             return
-
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
 
@@ -403,11 +402,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # that the user has saved with the save_tensor api
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
-            self._save_tensor(tensor_name, tensor_value, collection_names)
-        # Clear saved custom tensors
+            self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
-    def _save_tensor(self, tensor_name, tensor_value, collections):
+    def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
         if isinstance(collections, set) is False:
             collections = {collections}
         # Since this function modifies the set, there is a possibility
@@ -442,7 +440,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for key in logs:
             tensors_to_save = []
             collections_to_write = set()
-            if "smdebug_" in key:
+            if SMDEBUG_PREFIX in key:
                 # Save Model Outputs
                 if key in ModelOutputs:
                     export_name = get_model_output_export_name(key)
@@ -520,7 +518,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            self._save_tensor(export_name, tensor.numpy(), input_collection)
+            self._save_tensor_to_file(export_name, tensor.numpy(), input_collection)
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
@@ -530,7 +528,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            self._save_tensor(export_name, tensor.numpy(), output_collection)
+            self._save_tensor_to_file(export_name, tensor.numpy(), output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
@@ -733,7 +731,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 export_name = get_export_name_for_keras(l.name, tensor_suffix)
                 tensors_to_save.append((export_name, o))
             for t_name, t_value in tensors_to_save:
-                self._save_tensor(t_name, t_value, collections_to_write)
+                self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def save_layer_outputs(self, layer_outputs, model=None):
         self._save_layer_values(layer_outputs, self.get_collection(CollectionKeys.LAYERS), model)
