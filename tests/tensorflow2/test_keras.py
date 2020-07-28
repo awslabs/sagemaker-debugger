@@ -173,7 +173,9 @@ def helper_keras_gradtape(
                 _ = tape.gradient(loss_value, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
             acc = train_acc_metric(dataset_labels, logits)
-            hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
+            hook.save_tensor(
+                tensor_name="accuracy", tensor_value=acc, collections_to_write="metrics"
+            )
         train_acc_metric.reset_states()
 
     hook.close()
@@ -708,7 +710,7 @@ def test_save_gradients(out_dir, tf_eager_mode):
         assert output.value(0) is not None
 
 
-def test_save_custom_tensors(out_dir, tf_eager_mode):
+def test_save_tensors(out_dir, tf_eager_mode):
     include_collections = ["custom_coll"]
     hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
     t1 = tf.constant([0, 1, 1, 2, 3, 5, 8, 13, 21, 34])

@@ -7,7 +7,7 @@ from tensorflow.python.distribute import values
 from tensorflow.python.framework.indexed_slices import IndexedSlices
 
 # First Party
-from smdebug.core.modes import ModeKeys, str_to_mode_keys
+from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc, validate_custom_tensor_value
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
@@ -15,10 +15,12 @@ from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 # Local
 from .base_hook import TensorflowBaseHook
 from .collection import CollectionKeys
-from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY
+from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY, SMDEBUG_PREFIX
 from .tensor_ref import TensorRef, get_tf_names
 from .utils import (
     ModelInput,
+    ModelInputs,
+    ModelOutput,
     ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
@@ -64,7 +66,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tensor_refs_to_save_this_step = set()
         self._fetches_added = set()
         self.callable_cache = CallableCache()
-        self.custom_tensors_to_save = dict()
+        self.custom_tensors_to_save = (
+            dict()
+        )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
 
@@ -105,12 +109,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
         return not self._hook_supported
 
-    def should_save_global_step_for_mode(self, mode: str):
-        mode = str_to_mode_keys(mode)
-        mode_step = self.mode_steps[mode]
-        return self.save_config.should_save_step(mode, mode_step)
-
     def register_model(self, model):
+        # This function is called by the hook in the AWS TF codebase
+        # It attaches a hook to every layer of the model to capture
+        # layer values
         self.model = model
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
@@ -391,26 +393,29 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
         if isinstance(collections_to_write, str):
             collections_to_write = [collections_to_write]
+
         for collection in collections_to_write:
             self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
 
     def _save_custom_tensors_post_step(self):
+        # This saves all the values of custom tensors
+        # that the user has saved with the save_tensor api
         for tensor_name in self.custom_tensors_to_save:
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
-    def _save_tensor_to_file(self, tensor_name, tensor_value, collections_to_write):
-        if isinstance(collections_to_write, set) is False:
-            collections_to_write = {collections_to_write}
+    def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
+        if isinstance(collections, set) is False:
+            collections = {collections}
         # Since this function modifies the set, there is a possibility
         # of bugs if calling functions attempt to re-use the set passed
         # to this function
-        collections_to_write = collections_to_write.copy()
+        collections_to_write = collections.copy()
         collections_to_save = self._get_collections_to_save_for_step()
-        for collection in collections_to_save:
-            if match_inc(tensor_name, collection.include_regex):
-                collections_to_write.add(collection)
+        for c in collections_to_save:
+            if match_inc(tensor_name, c.include_regex):
+                collections_to_write.add(c)
         self._initialize_writers(only_initialize_if_missing=True)
         tensor_refs = []
         if isinstance(tensor_value, values.PerReplica):
@@ -432,12 +437,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if logs is None:
             return
 
-        model_input_tensor_id = 0
-
         for key in logs:
-            if "smdebug_" in key:
+            tensors_to_save = []
+            collections_to_write = set()
+            if SMDEBUG_PREFIX in key:
+                # Save Model Outputs
                 if key in ModelOutputs:
-                    tensors_to_save = []
                     export_name = get_model_output_export_name(key)
                     tensors_to_save.append((export_name, logs[key]))
                     collections_to_write = (
@@ -445,39 +450,37 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
                         else set()
                     )
-                    for t_name, t_value in tensors_to_save:
-                        self._save_tensor_to_file(t_name, t_value, collections_to_write)
+                # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
-                    tensors_to_save = []
                     gradients = logs[key]
                     if gradients is not None:
                         for g, v in zip(gradients, self.model.trainable_variables):
-                            layer = v.name.split(":")[0]
-                            export_name = "gradients/" + layer + "Grad"
+                            layer_name = v.name
+                            if len(layer_name.split(":")) > 1:
+                                layer_name = layer_name.split(":")[0]
+                            export_name = "gradients/" + layer_name + "Grad"
                             if isinstance(g, IndexedSlices):
                                 # This class is a simple wrapper for a pair of Tensor objects
                                 # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
                                 g = g.values
                             tensors_to_save.append((export_name, g))
                         collections_to_write = {self.get_collection(CollectionKeys.GRADIENTS)}
-                        for t_name, t_value in tensors_to_save:
-                            self._save_tensor_to_file(t_name, t_value, collections_to_write)
+                # Save Intermediate Layers
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
                     layer_outputs = logs[key]
                     self.save_layer_outputs(layer_outputs)
                     self.save_layer_inputs(logs[ModelInput.X], layer_outputs)
-                else:
-                    tensors_to_save = []
+                # Save Model Inputs
+                elif key in ModelInputs:
                     export_name = get_model_input_export_name()
-                    model_input_tensor_id += 1
                     tensors_to_save.append((export_name, logs[key]))
                     collections_to_write = (
                         {self.get_collection(CollectionKeys.INPUTS)}
                         if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
                         else set()
                     )
-                    for t_name, t_value in tensors_to_save:
-                        self._save_tensor_to_file(t_name, t_value, collections_to_write)
+                for t_name, t_value in tensors_to_save:
+                    self._save_tensor(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
@@ -502,6 +505,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self, grad_tape=False):
+        # Iterates over all the saved layers for input and output values
         if is_tf_version_2x() is False or (grad_tape is False and self.model.run_eagerly is False):
             # This function only works when the run_eagerly is True
             return
@@ -887,6 +891,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.worker = self._get_worker_name()
 
             if self.writer is not None or len(self.writer_map):
+                self._save_custom_tensors_post_step()
                 self._close_writers()
 
             if not self.prepared_collections:
@@ -962,7 +967,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self._write_optimizer_variables()
             self._save_layer_input_and_outputs(grad_tape=True)
-            self._save_custom_tensors_post_step()
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
             self._add_metric(metric_name="loss", metric_value=loss)
@@ -989,6 +993,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.last_saved_step = self.step
 
         return run
+
+    def save_tape_logs(self, model_inputs=None, outputs=None):
+        """
+        called by AWS TF to save model inputs and outputs
+        :param model_inputs:
+        :param outputs:
+        :return:
+        """
+        logs = {ModelOutput.Y: outputs, ModelInput.X: model_inputs}
+        self.save_smdebug_logs(logs)
 
     def wrap_tape(self, tape):
         """
@@ -1021,6 +1035,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             not ((isinstance(tensor_value, tf.Tensor)) and hasattr(tensor_value, "numpy"))
         ) or self._is_not_supported():
             return
+
+        self.logger.warning("This function has been deprecated. Please use the save_tensor API ")
 
         self._add_metric(metric_name=tensor_name, metric_value=tensor_value)
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):

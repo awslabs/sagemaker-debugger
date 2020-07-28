@@ -99,7 +99,11 @@ def helper_keras_gradtape(
                 _ = tape.gradient(loss_value, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
             acc = train_acc_metric(dataset_labels, logits)
-            hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
+            hook.save_tensor(
+                tensor_name="accuracy",
+                tensor_value=acc,
+                collections_to_write=CollectionKeys.METRICS,
+            )
         train_acc_metric.reset_states()
 
     hook.close()
