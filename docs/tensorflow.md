@@ -128,6 +128,7 @@ model.evaluate(x_test, y_test, callbacks=[hook])
 ### Keras GradientTape example for TF 2.0 and above
 ```python
 import smdebug.tensorflow as smd
+
 hook = smd.KerasHook(out_dir=args.out_dir)
 
 model = tf.keras.models.Sequential([ ... ])
