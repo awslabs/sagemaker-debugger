@@ -480,7 +480,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         else set()
                     )
                 for t_name, t_value in tensors_to_save:
-                    self._save_tensor(t_name, t_value, collections_to_write)
+                    self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
