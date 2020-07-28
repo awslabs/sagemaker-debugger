@@ -28,6 +28,7 @@ def run_mnist_gluon_model(
     make_input_zero=False,
     normalize_mean=0.13,
     normalize_std=0.31,
+    save_custom_tensor=False,
 ):
     batch_size = 4
     if make_input_zero:
@@ -103,6 +104,8 @@ def run_mnist_gluon_model(
         eval_acc_name = "loss_acc"
 
     # Start the training.
+    if save_custom_tensor:
+        hook.save_tensor("custom_tensor_1", mx.nd.array([1, 2, 3]))
     for epoch in range(1):
         train_loss, train_acc, valid_acc = 0.0, 0.0, 0.0
         tic = time.time()
@@ -111,6 +114,8 @@ def run_mnist_gluon_model(
 
         i = 0
         for data, label in train_data:
+            if save_custom_tensor:
+                hook.save_tensor("custom_tensor_2", mx.nd.array([1, 2, 3]))
             data = data.as_in_context(mx.cpu(0))
             # forward + backward
             with autograd.record():
@@ -124,6 +129,10 @@ def run_mnist_gluon_model(
             train_acc += acc(output, label)
             # hook.save_scalar(train_loss_name, train_loss)
             # hook.save_scalar(train_acc_name, train_acc)
+            if save_custom_tensor:
+                # This tensor will not be added to default collections since
+                # collections have already been exported
+                hook.save_tensor("custom_tensor_3", mx.nd.array([1, 2, 3]))
             i += 1
             if num_steps_train is not None and i >= num_steps_train:
                 break

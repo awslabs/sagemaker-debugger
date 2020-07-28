@@ -54,6 +54,8 @@ def make_numpy_array(x):
     elif isinstance(x, tuple):
         # todo: fix this, will crash
         return np.asarray(x, dtype=x.dtype)
+    elif isinstance(x, list):
+        return np.asarray(x)
     else:
         raise TypeError(
             "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"

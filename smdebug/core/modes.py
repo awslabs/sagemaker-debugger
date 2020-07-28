@@ -14,3 +14,16 @@ ALLOWED_MODES = [ModeKeys.TRAIN, ModeKeys.EVAL, ModeKeys.PREDICT, ModeKeys.GLOBA
 ALLOWED_MODE_NAMES = [x.name for x in ALLOWED_MODES]
 MODE_STEP_PLUGIN_NAME = "mode_step"
 MODE_PLUGIN_NAME = "mode"
+
+
+def str_to_mode_keys(mode_str):
+    if mode_str == "train":
+        return ModeKeys.TRAIN
+    elif mode_str == "eval":
+        return ModeKeys.EVAL
+    elif mode_str == "predict":
+        return ModeKeys.PREDICT
+    elif mode_str == "global":
+        return ModeKeys.GLOBAL
+    else:
+        raise Exception("Invalid mode")
