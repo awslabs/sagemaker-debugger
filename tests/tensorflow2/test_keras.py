@@ -397,9 +397,8 @@ def test_gradtape_persistent(out_dir, saveall):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("saveall", [True, False])
-def test_keras_fit(out_dir, tf_eager_mode, run_eagerly, saveall):
+def test_keras_fit(out_dir, tf_eager_mode, saveall):
     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
     ts = time.time()
     hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
@@ -408,7 +407,6 @@ def test_keras_fit(out_dir, tf_eager_mode, run_eagerly, saveall):
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
-        run_eagerly=run_eagerly,
         eager=tf_eager_mode,
         steps=["train", "eval", "predict", "train"],
     )
@@ -417,7 +415,7 @@ def test_keras_fit(out_dir, tf_eager_mode, run_eagerly, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (21 if is_tf_2_2() else 22)
+            assert len(trial.tensor_names()) == (13 if is_tf_2_2() else 14)
             assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
             assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
         else:
