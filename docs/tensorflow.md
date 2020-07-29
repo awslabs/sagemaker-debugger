@@ -28,7 +28,7 @@ For a full list of TensorFlow framework versions to use Debugger, see [AWS Deep 
 
 The Debugger features are all integrated into the AWS Deep Learning Containers, and you can run your training script with zero script change. To find a high-level SageMaker TensorFlow estimator with Debugger example code, see [Debugger in TensorFlow](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html#debugger-zero-script-change-TensorFlow).
 
-### Debugger with AWS training containers and script Mode
+### Debugger with AWS training containers and script mode
 
 In case you want to run your own training script and debug using the SageMaker TensorFlow framework with script mode and Debugger, the smdebug client library provides the hook constructor that you can add to the training script and retrieve tensors.
 

@@ -29,8 +29,8 @@ Debugger supports TensorFlow, PyTorch, MXNet, and XGBoost frameworks.
 The following list is a summary of the main functionalities of Debugger:
 
 - Run and debug training jobs of your model on SageMaker when using [supported containers](#debugger-supported-frameworks)
-- No changes needed to bring your training script if using AWS Deep Learning Containers
-- Minimal changes to your training script if using AWS containers or custom containers
+- No changes needed to your training script if using AWS Deep Learning Containers with Debugger fully integrated
+- Minimal changes to your training script if using AWS containers with script mode or custom containers
 - Full visibility into any tensor retrieved from targeted parts of the training jobs
 - Real-time training job monitoring through Rules
 - Automated anomaly detection and state assertions through built-in and custom Rules on SageMaker
@@ -48,7 +48,7 @@ See [How it works](#how-it-works) for more details.
 The `smdebug` library runs on Python 3. Install using the following command:
 
 ```python
-pip3 install smdebug
+pip install smdebug
 ```
 
 ---
