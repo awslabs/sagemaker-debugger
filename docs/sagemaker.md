@@ -184,7 +184,7 @@ sagemaker_estimator = sm.tensorflow.TensorFlow(
     framework_version="1.15",
     py_version="py3",
     # smdebug-specific arguments below
-    rules=[exploding_tensor_rule, vanishing_gradient_rule],
+    rules=[exploding_tensor_rule, vanishing_gradient_rule]
 )
 sagemaker_estimator.fit()
 ```
