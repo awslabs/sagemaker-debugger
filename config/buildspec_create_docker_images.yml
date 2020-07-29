@@ -60,8 +60,8 @@ phases:
           $(aws ecr get-login --registry-ids ${PROD_REGISTRY_ID} --no-include-email --region ${region}) &&
           docker tag smprofiler:cpu ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
           docker push ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
-          docker tag smprofiler:cpu ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:latest &&
-          docker push ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:latest &&
+          docker tag smprofiler:cpu ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
+          docker push ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
           $(aws ecr get-login --registry-ids ${ALPHA_REGISTRY_ID} --no-include-email --region ${region}) &&
           docker tag smprofiler:gpu ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
           docker push ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
