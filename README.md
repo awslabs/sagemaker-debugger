@@ -29,8 +29,13 @@ Debugger supports TensorFlow, PyTorch, MXNet, and XGBoost frameworks.
 The following list is a summary of the main functionalities of Debugger:
 
 - Run and debug training jobs of your model on SageMaker when using [supported containers](#debugger-supported-frameworks)
+<<<<<<< HEAD
 - No changes needed to your training script if using AWS Deep Learning Containers with Debugger fully integrated
 - Minimal changes to your training script if using AWS containers with script mode or custom containers
+=======
+- No changes needed to your training script if using AWS Deep Learning Containers
+- Minimal changes to your training script if using AWS containers or custom containers with script mode
+>>>>>>> 1b1fe4fd599177283aa774ca0a9c62eba8192408
 - Full visibility into any tensor retrieved from targeted parts of the training jobs
 - Real-time training job monitoring through Rules
 - Automated anomaly detection and state assertions through built-in and custom Rules on SageMaker
