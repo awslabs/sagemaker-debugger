@@ -45,6 +45,8 @@ def make_numpy_array(x):
         return x.to(torch.device("cpu")).data.numpy()
     elif isinstance(x, tuple):
         return np.asarray(x, dtype=x.dtype)
+    elif isinstance(x, list):
+        return np.asarray(x)
     else:
         raise TypeError(
             "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"

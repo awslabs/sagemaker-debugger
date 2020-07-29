@@ -44,6 +44,7 @@ from smdebug.core.utils import (
     match_inc,
     remove_claim_file,
     size_and_shape,
+    validate_custom_tensor_value,
 )
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
@@ -239,6 +240,7 @@ class BaseHook:
         # Check if there is any last saved state. Initialize the hook based last saved state.
         self.training_run = 0
         self._initialize_to_last_saved_state()
+        self.custom_tensors_to_save = dict()
 
     # This will avoid pickling of BaseHook object
     def __getstate__(self):
@@ -534,6 +536,23 @@ class BaseHook:
                 mode_step[mode.name] = step
             current_state[LATEST_MODE_STEP] = mode_step
             self.state_store.update_state(current_state)
+
+    def save_tensor(self, tensor_name, tensor_value, collections_to_write=CollectionKeys.DEFAULT):
+        if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
+            self.logger.warn("The tensor value could not be converted into a numpy value")
+            return
+        if isinstance(collections_to_write, str):
+            collections_to_write = [collections_to_write]
+        for collection in collections_to_write:
+            self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
+
+    def _save_custom_tensors_post_step(self):
+        for tensor_name in self.custom_tensors_to_save:
+            tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
+            c = self.collection_manager.get(collection_names, create=True)
+            c.add_tensor_name(tensor_name)
+            self._write_raw_tensor(tensor_name, tensor_value, [c])
+        self.custom_tensors_to_save.clear()
 
     def set_mode(self, mode):
         # train
@@ -921,4 +940,8 @@ class CallbackHook(BaseHook):
 
     @abstractmethod
     def _export_model(self):
+        pass
+
+    @staticmethod
+    def _make_numpy_array(tensor_value):
         pass

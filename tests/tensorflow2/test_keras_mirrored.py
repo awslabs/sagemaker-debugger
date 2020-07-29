@@ -424,6 +424,7 @@ def test_clash_with_tb_callback(out_dir):
     assert len(tr.tensor_names()) == (10 if is_tf_2_2() else 11)
 
 
+@pytest.mark.skip
 def test_one_device(out_dir, tf_eager_mode):
     strategy, _ = train_model(
         out_dir,
