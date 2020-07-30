@@ -101,7 +101,9 @@ def help_test_mnist(
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     # Load training and eval data
-    ((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data()
+    ((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data(
+        TEST_DATASET_S3_PATH
+    )
 
     train_data = train_data / np.float32(255)
     train_labels = train_labels.astype(np.int32)  # not required

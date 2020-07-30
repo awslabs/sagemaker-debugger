@@ -39,7 +39,7 @@ def helper_keras_gradtape(
     persistent=False,
 ):
     mnist = tf.keras.datasets.mnist
-    (x_train, y_train), _ = mnist.load_data()
+    (x_train, y_train), _ = mnist.load_data(TEST_DATASET_S3_PATH)
     dataset = tf.data.Dataset.from_tensor_slices(
         (tf.cast(x_train[..., tf.newaxis] / 255, tf.float32), tf.cast(y_train, tf.int64))
     )

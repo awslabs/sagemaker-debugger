@@ -63,7 +63,7 @@ def main(args):
     img_rows, img_cols = 28, 28
 
     # The data, shuffled and split between train and test sets
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = mnist.load_data(TEST_DATASET_S3_PATH)
 
     if K.image_data_format() == "channels_first":
         x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)

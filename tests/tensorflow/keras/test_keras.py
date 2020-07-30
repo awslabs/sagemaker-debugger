@@ -58,7 +58,7 @@ def train_model(
 
     mnist = keras.datasets.mnist
 
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = mnist.load_data(TEST_DATASET_S3_PATH)
     x_train, x_test = x_train / 255.0, x_test / 255.0
 
     relu_layer = keras.layers.Dense(128, activation="relu")

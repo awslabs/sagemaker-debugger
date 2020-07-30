@@ -114,7 +114,9 @@ def cnn_model_fn(features, labels, mode):
 
 
 # Load training and eval data
-((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data()
+((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data(
+    TEST_DATASET_S3_PATH
+)
 
 train_data = train_data / np.float32(255)
 train_labels = train_labels.astype(np.int32)  # not required

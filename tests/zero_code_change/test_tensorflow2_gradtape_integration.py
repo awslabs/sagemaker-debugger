@@ -21,7 +21,7 @@ from smdebug.core.utils import SagemakerSimulator
 
 def get_keras_data():
     mnist = tf.keras.datasets.mnist
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = mnist.load_data(TEST_DATASET_S3_PATH)
 
     return (x_train, y_train), (x_test, y_test)
 

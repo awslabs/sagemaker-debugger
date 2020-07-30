@@ -87,7 +87,9 @@ def get_estimator(nested_optimizer=False, mirrored=False) -> tf.estimator.Estima
 
 def get_input_fns(batch_size=32) -> Tuple:
     # Load training and eval data
-    ((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data()
+    ((train_data, train_labels), (eval_data, eval_labels)) = tf.keras.datasets.mnist.load_data(
+        TEST_DATASET_S3_PATH
+    )
 
     train_data = train_data / np.float32(255)
     train_labels = train_labels.astype(np.int32)  # not required
@@ -241,7 +243,7 @@ def get_data() -> "tf.contrib.learn.python.learn.datasets.base.Datasets":
 
 
 def get_keras_data(n_examples=32) -> Tuple:
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(TEST_DATASET_S3_PATH)
     x_train = x_train.reshape(60000, 784).astype("float32") / 255
     x_test = x_test.reshape(10000, 784).astype("float32") / 255
     return (x_train[:n_examples], y_train[:n_examples]), (x_test[:n_examples], y_test[:n_examples])

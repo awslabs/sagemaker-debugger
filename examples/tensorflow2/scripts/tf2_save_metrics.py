@@ -44,7 +44,7 @@ def helper_keras_fit(
 ):
 
     mnist = tf.keras.datasets.mnist
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = mnist.load_data(TEST_DATASET_S3_PATH)
     x_train, x_test = x_train / 255, x_test / 255
 
     model = tf.keras.models.Sequential(
