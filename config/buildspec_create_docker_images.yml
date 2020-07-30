@@ -33,16 +33,11 @@ phases:
       - if [ $installed_version != $expected_version ]; then echo "Failed to verify smdebug version." && exit 1 ; fi
       - image_id=`docker commit ${container_id} smprofiler:gpu`
       - for region in ${FINAL_IMAGE_PUSH_REGION_LIST}; do
-          $(aws ecr get-login --registry-ids ${PROD_REGISTRY_ID} --no-include-email --region ${region}) &&
-          docker tag smprofiler:gpu ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
-          docker push ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
-          docker tag smprofiler:gpu ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG} &&
-          docker push ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG} &&
-          $(aws ecr get-login --registry-ids ${ALPHA_REGISTRY_ID} --no-include-email --region ${region}) &&
-          docker tag smprofiler:gpu ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
-          docker push ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
-          docker tag smprofiler:gpu ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG} &&
-          docker push ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG};
+          $(aws ecr get-login --registry-ids ${REGISTRY_ID} --no-include-email --region ${region}) &&
+          docker tag smprofiler:gpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
+          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
+          docker tag smprofiler:gpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG} &&
+          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG} &&
         done
       - docker stop ${container_id}
       - echo "Build CPU image"
@@ -57,16 +52,11 @@ phases:
       - if [ $installed_version != $expected_version ]; then echo "Failed to verify smdebug version." && exit 1 ; fi
       - image_id=`docker commit ${container_id} smprofiler:cpu`
       - for region in ${FINAL_IMAGE_PUSH_REGION_LIST}; do
-          $(aws ecr get-login --registry-ids ${PROD_REGISTRY_ID} --no-include-email --region ${region}) &&
-          docker tag smprofiler:cpu ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
-          docker push ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
-          docker tag smprofiler:cpu ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
-          docker push ${PROD_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
-          $(aws ecr get-login --registry-ids ${ALPHA_REGISTRY_ID} --no-include-email --region ${region}) &&
-          docker tag smprofiler:gpu ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
-          docker push ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
-          docker tag smprofiler:gpu ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
-          docker push ${ALPHA_REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG};
+          $(aws ecr get-login --registry-ids ${REGISTRY_ID} --no-include-email --region ${region}) &&
+          docker tag smprofiler:cpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
+          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
+          docker tag smprofiler:cpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
+          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
         done
       - docker stop ${container_id}
   post_build:
