@@ -13,6 +13,7 @@ import time
 import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
+from tests.constants import TF_IRIS_DATASET_S3_PATH
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.tensorflow.utils import create_trial_fast_refresh
 
@@ -750,7 +751,7 @@ def test_keras_to_estimator(out_dir, tf_eager_mode):
     def input_fn():
         split = tfds.Split.TRAIN
         dataset = tfds.load(
-            "iris", data_dir="s3://smdebug-testing/datasets/", split=split, as_supervised=True
+            "iris", data_dir=TF_IRIS_DATASET_S3_PATH, split=split, as_supervised=True
         )
         dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
         dataset = dataset.batch(32).repeat()
