@@ -421,7 +421,9 @@ def test_keras_to_estimator(script_mode):
 
         def input_fn():
             split = tfds.Split.TRAIN
-            dataset = tfds.load("iris", split=split, as_supervised=True)
+            dataset = tfds.load(
+                "iris", data_dir="s3://smdebug-testing/datasets/", split=split, as_supervised=True
+            )
             dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
             dataset = dataset.batch(32).repeat()
             return dataset
