@@ -266,6 +266,12 @@ def saveall_test_helper(hook=None):
     else:
         addendum = "jsonloading"
     hook._cleanup()
+
+    # smdebug hook should not be pickled. Check if model is saved without issues.
+    # The following two lines will error out if there is an attempt to pickle the hook.
+    torch.save(model.state_dict(), "/tmp/test_output/test_hook_saveall/model_weights")
+    torch.save(model, "/tmp/test_output/test_hook_saveall/model")
+
     delete_local_trials(["/tmp/test_output/test_hook_saveall/" + addendum])
 
 

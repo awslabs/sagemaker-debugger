@@ -415,9 +415,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (28 if is_tf_2_2() else 27)
-            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
-            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+            assert len(trial.tensor_names()) == (13 if is_tf_2_2() else 14)
+            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
+            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -508,7 +508,7 @@ def test_include_regex(out_dir, tf_eager_mode):
     tnames = tr.tensor_names(collection="custom_coll")
 
     if tf_eager_mode:
-        assert len(tnames) == 12
+        assert len(tnames) == 8
     else:
         assert len(tnames) == 8
     for tname in tnames:

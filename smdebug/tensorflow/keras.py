@@ -387,17 +387,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
-    def save_tensor(self, tensor_name, tensor_value, collections_to_write="default"):
-        if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
-            self.logger.warn("The tensor value could not be converted into a numpy value")
-            return
-        if isinstance(collections_to_write, str):
-            collections_to_write = [collections_to_write]
-
-        for collection in collections_to_write:
-            self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
-
-    def _save_custom_tensors_post_step(self):
+   def _save_custom_tensors_post_step(self):
         # This saves all the values of custom tensors
         # that the user has saved with the save_tensor api
         for tensor_name in self.custom_tensors_to_save:
@@ -480,7 +470,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         else set()
                     )
                 for t_name, t_value in tensors_to_save:
-                    self._save_tensor(t_name, t_value, collections_to_write)
+                    self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
