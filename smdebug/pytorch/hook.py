@@ -1,6 +1,7 @@
 # Standard Library
 import os
 import time
+from packaging import version
 
 # Third Party
 import torch
@@ -257,13 +258,13 @@ class Hook(CallbackHook):
                     cpu_thread_start_time=event.cpu_interval.start + self.start_profiler_time_us,
                 )
 
+
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
         # Disable pre-step 0 python profiling if profiling is enabled and if this is step 0.
         # below we say step+1 because step is incremented further in this method
         if python_profiler:
             python_profiler.stop_profiling(step_phase="startstep" + str(self.step + 1))
-
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
             self._close_writers()
@@ -287,9 +288,13 @@ class Hook(CallbackHook):
                 python_profiler.start_profiling(self.step, step_phase="startstep" + str(self.step))
 
             if not self.autograd_profiler_enabled:
-                torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
+                if version.parse(torch.__version__) <= version.parse("1.5.1"):
+                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
+                elif  version.parse(torch.__version__) >= version.parse("1.6"):
+                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False, False))
                 self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
                 self.autograd_profiler_enabled = True
+
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
             self._log_params(module)
@@ -426,7 +431,7 @@ class Hook(CallbackHook):
         if self.step_event:
             self.step_event.update_end_time(now)
 
-        # if this is first forward we will use start time of parent as start time, and end time as now
+        # if this is not first backward we will use start time of parent as start time, and end time as now
         if len(self.backward_modules_profile_stats) > 0:
             # this child start_time is approcximated as last child end time
             child_start_time = self.backward_modules_profile_stats[-1].end_time
@@ -452,6 +457,16 @@ class Hook(CallbackHook):
 
     def _closure_for_registering_backward_hook(self, module):
         module.register_backward_hook(self.bhook)
+
+    def count_parameters(self, model):
+        total_params = 0
+        for name, parameter in model.named_parameters():
+            if not parameter.requires_grad: continue
+            param = parameter.numel()
+            self.logger.info(f"name:{name} count_params:{param}")
+            total_params+=param
+        self.logger.info(f"Total Trainable Params: {total_params}")
+        return total_params
 
     def register_module(self, module):
         """
@@ -496,6 +511,8 @@ class Hook(CallbackHook):
         module.apply(self._closure_for_registering_backward_hook)
 
         self.has_registered_module = True
+        self.count_parameters(module)
+
 
     def register_loss(self, loss_module):
         """Register something like `criterion = nn.CrossEntropyLoss()`."""

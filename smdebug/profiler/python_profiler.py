@@ -124,10 +124,18 @@ class cProfilePythonProfiler(PythonProfiler):
         """Reset profiler and corresponding attributes to defaults
         """
         super()._reset_profiler()
-        self._profiler = cProfileProfiler()
+        self._profiler = cProfileProfiler(self._total_time)
 
     def _name(self):
         return "cProfile"
+
+    def _total_time(self):
+        times = os.times()
+        return times.elapsed
+
+    def _off_cpu_time(self):
+        times = os.times()
+        return times.elapsed - (times.system + times.user)
 
     def _stats_filename(self):
         # this is default value
