@@ -19,10 +19,7 @@ def test_keras_to_estimator(out_dir):
 
     def input_fn():
         split = tfds.Split.TRAIN
-        if use_s3_datasets():
-            data_dir = TEST_DATASET_S3_PATH
-        else:
-            data_dir = None
+        data_dir = TEST_DATASET_S3_PATH if use_s3_datasets() else None
         dataset = tfds.load("iris", data_dir=data_dir, split=split, as_supervised=True)
         dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
         dataset = dataset.batch(32).repeat()
