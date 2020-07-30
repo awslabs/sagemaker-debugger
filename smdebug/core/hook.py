@@ -899,7 +899,6 @@ class CallbackHook(BaseHook):
         )
         self.exported_collections = False
         self.data_type_name = data_type_name
-        self.custom_tensors_to_save = dict()
 
     def _cleanup(self):
         if not self.exported_collections:
@@ -925,23 +924,6 @@ class CallbackHook(BaseHook):
             )
         return idx
 
-    def save_tensor(self, tensor_name, tensor_value, collections_to_write=CollectionKeys.DEFAULT):
-        if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
-            self.logger.warn("The tensor value could not be converted into a numpy value")
-            return
-        if isinstance(collections_to_write, str):
-            collections_to_write = [collections_to_write]
-        for collection in collections_to_write:
-            self.custom_tensors_to_save[tensor_name] = (tensor_value, collection)
-
-    def _save_custom_tensors_post_step(self):
-        for tensor_name in self.custom_tensors_to_save:
-            tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
-            c = self.collection_manager.get(collection_names, create=True)
-            c.add_tensor_name(tensor_name)
-            self._write_raw_tensor(tensor_name, tensor_value, [c])
-        self.custom_tensors_to_save.clear()
-
     def _write_inputs(self, name, inputs):
         tensor_name = name + CallbackHook.INPUT_TENSOR_SUFFIX
         idx = self.written_tensor_name_for_step.get(tensor_name, 0)
@@ -963,3 +945,4 @@ class CallbackHook(BaseHook):
     @staticmethod
     def _make_numpy_array(tensor_value):
         pass
+
