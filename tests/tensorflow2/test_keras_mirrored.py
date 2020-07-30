@@ -256,7 +256,9 @@ def test_save_all(out_dir, tf_eager_mode, workers):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        assert len(tr.tensor_names()) == (6 + 2 + 1 + 5 + 1 + 1 + 2 + 8 + 8 if is_tf_2_2() else 6 + 3 + 1 + 5 + 1)
+        assert len(tr.tensor_names()) == (
+            6 + 2 + 1 + 5 + 1 + 1 + 2 + 8 + 8 if is_tf_2_2() else 6 + 3 + 1 + 5 + 1
+        )
         # weights, metrics, losses, optimizer variables, scalar, inputs, outputs, gradients, layers
     else:
         assert (
@@ -366,7 +368,7 @@ def test_include_regex(out_dir, tf_eager_mode, workers):
     tnames = tr.tensor_names(collection="custom_coll")
 
     if tf_eager_mode:
-        assert len(tnames) == 12
+        assert len(tnames) == (12 if is_tf_2_2() else 4)
     else:
         assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
     for tname in tnames:
@@ -421,7 +423,7 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensor_names()) == (16 if is_tf_2_2() else 17)
+    assert len(tr.tensor_names()) == (16 if is_tf_2_2() else 11)
 
 
 @pytest.mark.skip
