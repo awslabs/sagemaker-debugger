@@ -8,7 +8,7 @@ from tensorflow.python.framework.indexed_slices import IndexedSlices
 
 # First Party
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import match_inc, validate_custom_tensor_value
+from smdebug.core.utils import match_inc
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
@@ -387,7 +387,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             coll.set_tensor_ref(TensorRef.from_non_graph_var(metric_name))
         self.tensor_to_collections[metric_name] = {coll}
 
-   def _save_custom_tensors_post_step(self):
+    def _save_custom_tensors_post_step(self):
         # This saves all the values of custom tensors
         # that the user has saved with the save_tensor api
         for tensor_name in self.custom_tensors_to_save:
@@ -1032,3 +1032,4 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
+
