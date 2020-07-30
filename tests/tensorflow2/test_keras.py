@@ -273,7 +273,7 @@ def test_gradtape_include_regex(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
 
-    assert len(tnames) == 12 if test_gradtape_hook_from_json else 8
+    assert len(tnames) == (12 if is_tf_2_2() else 8)
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
@@ -664,8 +664,8 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (1 if is_tf_2_2() else 0)
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (2 if is_tf_2_2() else 0)
 
 
 @pytest.mark.skip  # skip until aws tf update
