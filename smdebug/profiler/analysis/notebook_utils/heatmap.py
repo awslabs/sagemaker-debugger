@@ -13,9 +13,10 @@ output_notebook(hide_banner=True)
 
 
 class Heatmap:
-    def __init__(self, metrics_reader, select_metrics=[]):
+    def __init__(self, metrics_reader, select_metrics=[], plot_height=150):
 
         self.metrics_reader = metrics_reader
+        self.plot_height = plot_height
 
         # get timestamp of latest file and events
         self.last_timestamp = self.metrics_reader.get_timestamp_of_latest_available_file()
@@ -94,7 +95,7 @@ class Heatmap:
         if self.width > 1000:
             start = self.width - 1000
         self.plot = figure(
-            plot_height=150,
+            plot_height=self.plot_height,
             x_range=(start, self.width),
             y_range=(0, index + 1),
             plot_width=1000,
