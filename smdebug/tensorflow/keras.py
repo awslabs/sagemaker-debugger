@@ -77,11 +77,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.distribution_strategy = self._get_distribution_strategy()
         if self._hook_supported is None:
             self._hook_supported = True
-            if is_tf_version_2x() and tf.executing_eagerly():
-                self.logger.info(
-                    "Executing in TF2.x eager mode."
-                    "SageMaker Debugger will not be saving gradients"
-                )
             if not is_tf_version_2x() and (
                 tf.executing_eagerly()
                 or (hasattr(self.model, "run_eagerly") and self.model.run_eagerly)
