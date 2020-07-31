@@ -945,4 +945,3 @@ class CallbackHook(BaseHook):
     @staticmethod
     def _make_numpy_array(tensor_value):
         pass
-

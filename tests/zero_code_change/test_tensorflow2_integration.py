@@ -20,8 +20,8 @@ import argparse
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
-from tests.utils import SagemakerSimulator
 from tests.tensorflow2.utils import is_tf_2_2
+from tests.utils import SagemakerSimulator
 
 # First Party
 import smdebug.tensorflow as smd
@@ -236,4 +236,3 @@ if __name__ == "__main__":
     test_keras_v2_default(script_mode, eager_mode=False)
     test_keras_v2_multi_collections(script_mode, eager_mode=False)
     test_keras_v2_save_all(script_mode, eager_mode=False)
-
