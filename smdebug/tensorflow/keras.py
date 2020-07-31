@@ -986,7 +986,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :param outputs:
         :return:
         """
-        logs = {ModelOutput.Y: outputs, ModelInput.X: model_inputs}
+        logs = {ModelOutput.Y_PRED: outputs, ModelInput.X: model_inputs}
         self.save_smdebug_logs(logs)
 
     def wrap_tape(self, tape):
