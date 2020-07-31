@@ -21,6 +21,7 @@ import argparse
 import pytest
 import tensorflow.compat.v2 as tf
 from tests.utils import SagemakerSimulator
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -138,6 +139,10 @@ def helper_test_keras_v2_json_config(
             assert len(trial.tensor_names(collection="gradients")) > 0
         assert len(trial.tensor_names(collection="weights")) > 0
         assert len(trial.tensor_names(collection="losses")) > 0
+        if is_tf_2_2():
+            assert len(trial.tensor_names(collection="inputs")) > 0
+            assert len(trial.tensor_names(collection="outputs")) > 0
+            assert len(trial.tensor_names(collection="layers")) > 0
 
 
 @pytest.mark.parametrize("script_mode", [False])
@@ -174,6 +179,15 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
                     },
                     {
                         "CollectionName": "optimizer_variables"
+                    },
+                    {
+                        "CollectionName": "outputs"
+                    },
+                    {
+                        "CollectionName": "inputs"
+                    },
+                    {
+                        "CollectionName": "layers"
                     }
                 ]
             }
@@ -222,3 +236,4 @@ if __name__ == "__main__":
     test_keras_v2_default(script_mode, eager_mode=False)
     test_keras_v2_multi_collections(script_mode, eager_mode=False)
     test_keras_v2_save_all(script_mode, eager_mode=False)
+

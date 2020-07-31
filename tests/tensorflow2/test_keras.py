@@ -409,7 +409,7 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
-        eager=tf_eager_mode,
+        run_eagerly=tf_eager_mode,
         steps=["train", "eval", "predict", "train"],
     )
 
