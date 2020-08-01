@@ -3,6 +3,8 @@ import numpy as np
 from bokeh.io import output_notebook, push_notebook, show
 from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure, show
+from bokeh.layouts import gridplot
+
 
 output_notebook(hide_banner=True)
 
@@ -14,9 +16,11 @@ class StepHistogram:
 
         # get timestamp of latest file and events
         self.last_timestamp = self.metrics_reader.get_timestamp_of_latest_available_file()
+        print(f"StepHistogram created, last_timestamp found:{self.last_timestamp}")
 
         self.step_metrics = {}
         self.sources = {}
+
         # number of datapoints to plot
         self.width = width
 
@@ -30,10 +34,12 @@ class StepHistogram:
             
         return step_metrics
     
-    def plot(starttime_since_epoch_in_micros=0, endtime_since_epoch_in_micros=None, select_metrics=None):
+    def plot(self, starttime_since_epoch_in_micros=0, endtime_since_epoch_in_micros=None, select_metrics=None):
         if endtime_since_epoch_in_micros == None:
             endtime_since_epoch_in_micros = self.metrics_reader.get_timestamp_of_latest_available_file()
+        print(f"stephistogram getting events from {starttime_since_epoch_in_micros} to {endtime_since_epoch_in_micros}")
         all_events = self.metrics_reader.get_events(starttime_since_epoch_in_micros, endtime_since_epoch_in_micros)
+        print(f"Total events fetched:{len(all_events)}")
         self.last_timestamp = endtime_since_epoch_in_micros
         
         self.step_metrics = self._create_step_metrics(all_events)
@@ -45,13 +51,13 @@ class StepHistogram:
 
     def _get_probs_binedges(self, metrics_arr):
         steps_np = np.array(metrics_arr)
-        values = self.steps_np[:-1]
+        values = steps_np[:-1]
         min_value = np.min(values)
         max_value = np.median(values) + 2 * np.std(values)
 
         # define histogram bins
         bins = np.arange(min_value, max_value, (max_value - min_value) / 50.0)
-        probs, binedges = np.histogram(self.steps_np[:-1], bins=bins)
+        probs, binedges = np.histogram(steps_np[:-1], bins=bins)
         bincenters = 0.5 * (binedges[1:] + binedges[:-1])
         return probs, binedges
 
@@ -94,10 +100,10 @@ class StepHistogram:
         self.last_timestamp = current_timestamp
         self.step_metrics = self._create_step_metrics(events, self.step_metrics)
         # update histograms
-        for index, metric in enumerate(self.metrics):
-            probs, binedges = self._get_probs_binedges(self.step_metrics[metrics])
+        for index, metric in enumerate(self.step_metrics):
+            probs, binedges = self._get_probs_binedges(self.step_metrics[metric])
             # update data
             self.sources[metric].data["top"] = probs
             self.sources[metric].data["left"] = binedges[:-1]
             self.sources[metric].data["right"] = binedges[1:]
-        push_notebook()
+        push_notebook(handle=self.target)
