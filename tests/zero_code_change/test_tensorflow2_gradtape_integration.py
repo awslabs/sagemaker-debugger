@@ -113,6 +113,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             if is_tf_2_2():
                 assert len(trial.tensor_names(collection="inputs")) > 0
                 assert len(trial.tensor_names(collection="outputs")) > 0
+                assert trial.tensor_names(collection="outputs") == ['predictions']
                 assert len(trial.tensor_names(collection="layers")) > 0
 
 
