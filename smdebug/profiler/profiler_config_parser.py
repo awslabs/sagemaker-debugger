@@ -102,7 +102,6 @@ class ProfilerConfigParser:
             file_open_fail_threshold = int(
                 config.get("FileOpenFailThreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
             )
-            use_pyinstrument = str2bool(config.get("UsePyInstrument", False))
         except ValueError as e:
             get_logger("smdebug-profiler").info(
                 f"{e} in ProfilingParameters. Enabling profiling with default " f"parameter values."
@@ -111,6 +110,13 @@ class ProfilerConfigParser:
             file_max_size = MAX_FILE_SIZE_DEFAULT
             file_close_interval = CLOSE_FILE_INTERVAL_DEFAULT
             file_open_fail_threshold = FILE_OPEN_FAIL_THRESHOLD_DEFAULT
+
+        try:
+            use_pyinstrument = str2bool(config.get("UsePyinstrument", False))
+        except ValueError as e:
+            get_logger("smdebug-profiler").info(
+                f"{e} in UsePyinstrument of ProfilingParameters. Defaulting to cProfile."
+            )
             use_pyinstrument = False
 
         try:
