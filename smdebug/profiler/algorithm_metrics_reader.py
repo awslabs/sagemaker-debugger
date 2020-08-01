@@ -171,7 +171,7 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
             self.bucket_name = bucket_name
             self.base_folder = base_folder
             self.prefix = os.path.join(self.base_folder, self.prefix, "")
-            print(f"S3AlgorithmMetricsReader created with bucket:{bucket_name} and prefix:{self.prefix}")
+            self.logger.info(f"S3AlgorithmMetricsReader created with bucket:{bucket_name} and prefix:{self.prefix}")
         # Pre-build the file list so that user can query get_timestamp_of_latest_available_file() and get_current_time_range_for_event_query
         self.refresh_event_file_list()
 
@@ -204,7 +204,7 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
 
     def refresh_event_file_list(self):
         start_after = self._startAfter_prefix if self._startAfter_prefix else self.prefix
-        print(f"Making listreq with bucket:{self.bucket_name} prefix:{self.prefix} startAfter:{start_after}")
+        self.logger.debug(f"Making listreq with bucket:{self.bucket_name} prefix:{self.prefix} startAfter:{start_after}")
         list_dir = ListRequest(
             Bucket=self.bucket_name,
             Prefix=self.prefix,
