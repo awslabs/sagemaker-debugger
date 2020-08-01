@@ -80,6 +80,7 @@ def __init__(
     validation_data = None,
 )
 ```
+
 Initializes the hook. Pass this object as a callback to `xgboost.train()`.
 * `out_dir` (str): A path into which tensors and metadata will be written.
 * `export_tensorboard` (bool): Whether to use TensorBoard logs.
