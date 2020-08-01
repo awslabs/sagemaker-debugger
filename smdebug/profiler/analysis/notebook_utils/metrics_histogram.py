@@ -20,50 +20,54 @@ class MetricsHistogram:
         self.last_timestamp = self.metrics_reader.get_timestamp_of_latest_available_file()
         self.seen_system_metric_list = set()
         self.select_metrics = []
+        self.sources = {}
+        self.target = None
 
-    def plot(starttime_since_epoch_in_micros=0, endtime_since_epoch_in_micros=None, select_metrics=None):
+
+    def plot(self, starttime_since_epoch_in_micros=0, endtime_since_epoch_in_micros=None, select_metrics=None):
         if endtime_since_epoch_in_micros == None:
             endtime_since_epoch_in_micros = self.metrics_reader.get_timestamp_of_latest_available_file()
         all_events = self.metrics_reader.get_events(starttime_since_epoch_in_micros, endtime_since_epoch_in_micros)
+        print(f"Found {len(all_events)} system metrics events from timestamp_in_ns:{starttime_since_epoch_in_micros} to timestamp_in_ns:{endtime_since_epoch_in_micros}")
         self.last_timestamp = endtime_since_epoch_in_micros
         # define the list of metrics to plot: per default cpu and gpu
         self.select_metrics = ["cpu", "gpu"]
         if select_metrics is not None:
             self.select_metrics.extend(select_metrics)
-        self.system_metrics = self.preprocess_system_metrics()
-        self.create_plot()
+        self.system_metrics = self.preprocess_system_metrics(all_events)
+        self.create_plot(self.system_metrics)
     
     def clear():
         self.system_metrics = {}
         self.sources = {}
 
     def preprocess_system_metrics(self, all_events=[], system_metrics = {}):
-
+        cpu_name = None
         # read all available system metric events and store them in dict
         for event in all_events:
             if (
                 event.name not in system_metrics
-                and event.dimension is not "GPUMemoryUtilization"
             ):
                 system_metrics[event.name] = []
+                if cpu_name is None and event.dimension == 'CPUUtilization':
+                    cpu_name = event.name
+                    print(cpu_name)
             system_metrics[event.name].append(event.value)
 
         # total cpu utilization is not recorded in SM
-        self.cores = 0.0
-        cpu_total = np.zeros(len(system_metrics["cpu0"]))
-        for metric in system_metrics:
-            # TODO should we do similar for gpu too
-            if "cpu" in metric and metric:
-                if metric not in self.seen_system_metric_list:
-                    self.cores += 1
-                    self.seen_system_metric_list.add(metric)
+        if cpu_name is not None:
+            self.cores = 0.0
+            cpu_total = np.zeros(len(system_metrics[cpu_name]))
+            for metric in system_metrics:
+                # TODO should we do similar for gpu too
+                if "cpu" in metric and metric:
+                    if metric not in self.seen_system_metric_list:
+                        self.cores += 1
+                        self.seen_system_metric_list.add(metric)
 
-                cpu_total += system_metrics[metric]
+                    cpu_total += system_metrics[metric]
 
-        system_metrics["cpu_total"] = cpu_total / self.cores
-
-        # number of datapoints
-        self.width = system_metrics["cpu_total"].shape[0]
+            system_metrics["cpu_total"] = cpu_total / self.cores
 
         # add user defined metrics to the list
         # TODO rename to filtered metrics
@@ -90,13 +94,11 @@ class MetricsHistogram:
     def create_plot(self, system_metrics={}):
         metrics = list(system_metrics.keys())
         figures = []
-        self.sources = {}
 
         # create a histogram per metric
         for index, metric in enumerate(metrics):
             p = figure(plot_height=250, plot_width=250)
             probs, binedges = self._get_probs_binedges(system_metrics[metric])
-            
             # set data
             source = ColumnDataSource(data=dict(top=probs, left=binedges[:-1], right=binedges[1:]))
             self.sources[metric] = source
@@ -133,7 +135,7 @@ class MetricsHistogram:
             values = self.system_metrics[metric]
 
             # create new histogram bins
-            probs, binedges = self._get_probs_binedges(system_metrics[metric])
+            probs, binedges = self._get_probs_binedges(self.system_metrics[metric])
             # update data
             self.sources[metric].data["top"] = probs
             self.sources[metric].data["left"] = binedges[:-1]
