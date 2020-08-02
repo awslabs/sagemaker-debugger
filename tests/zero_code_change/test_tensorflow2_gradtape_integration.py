@@ -110,6 +110,11 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             assert len(trial.steps()) > 0, "Nothing saved at any step."
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
+            if is_tf_2_2():
+                assert len(trial.tensor_names(collection="inputs")) > 0
+                assert len(trial.tensor_names(collection="outputs")) > 0
+                assert trial.tensor_names(collection="outputs") == ["predictions"]
+                assert len(trial.tensor_names(collection="dense_layers")) > 0
 
 
 @pytest.mark.parametrize("script_mode", [False])
@@ -144,6 +149,18 @@ def test_keras_v2_multi_collections(script_mode):
                     },
                     {
                         "CollectionName": "optimizer_variables"
+                    },
+                    {
+                        "CollectionName": "outputs"
+                    },
+                    {
+                        "CollectionName": "inputs"
+                    },
+                    {
+                        "CollectionName": "dense_layers",
+                        "CollectionParameters": {
+                            "include_regex": ".*dense.*"
+                        }
                     }
                 ]
             }
