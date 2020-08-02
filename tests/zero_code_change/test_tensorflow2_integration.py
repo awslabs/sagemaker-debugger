@@ -51,8 +51,6 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
-    if not eager_mode:
-        tf.compat.v1.disable_eager_execution()
     enable_tb = False if tf.__version__ == "2.0.2" else True
     with SagemakerSimulator(enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
@@ -72,7 +70,10 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=eager_mode,
             )
             history = model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
@@ -102,8 +103,6 @@ def helper_test_keras_v2_json_config(
     """ Tests ZCC with custom hook configs """
     smd.del_hook()
     tf.keras.backend.clear_session()
-    if not eager_mode:
-        tf.compat.v1.disable_eager_execution()
     enable_tb = False if tf.__version__ == "2.0.2" else True
     with SagemakerSimulator(json_file_contents=json_file_contents, enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
@@ -123,7 +122,10 @@ def helper_test_keras_v2_json_config(
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=eager_mode,
             )
             history = model.fit(x_train, y_train, epochs=2, batch_size=64, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
