@@ -47,24 +47,37 @@ you're in. Defaults to "global".
 
 ## Hook
 ### Creating a Hook
-Note that when using Zero Script Change supported containers in SageMaker, you generally do not need to create your hook object except for some advanced use cases where you need access to the hook.
+By using AWS Deep Learning Containers, you can directly run your own training script without any additional effort to make it compatible with the SageMaker Python SDK. For a detailed developer guide for this, see [Use Debugger in AWS Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html).
 
-`HookClass` or `hook_class` below will be `Hook` for PyTorch, MXNet, and XGBoost. It will be one of `KerasHook`, `SessionHook` or `EstimatorHook` for TensorFlow.
+However, for some advanced use cases where you need access to customized tensors from targeted parts of a training script, you can manually construct the hook object. The smdebug library provides hook classes to make this process simple and compatible with the SageMaker ecosystem and Debugger.
 
-The framework in `smd` import below refers to one of `tensorflow`, `mxnet`, `pytorch` or `xgboost`.
-
-#### Hook when using SageMaker Python SDK
+#### Hook when using the SageMaker Python SDK
 If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API
 as described in [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html),
-a JSON file containing the hook configuration will be automatically written to the training container. In such a case, you can create a hook from that configuration file by calling
+the CreateTrainingJob API operation containing the hook configuration will be automatically written to the training container.
+
+To capture tensors from your training model, paste the following code to the top or the main function of the training script.
 ```python
-import smdebug.{framework} as smd
-hook = smd.{hook_class}.create_from_json_file()
+import smdebug.Framework as smd
+hook = smd.HookClass.create_from_json_file()
 ```
-with no arguments and then use the hook Python API in your script.
+
+Depending on your choice of framework, `HookClass` need to be replaced by one of `KerasHook`, `SessionHook` or `EstimatorHook` for TensorFlow, and `Hook` for PyTorch, MXNet, and XGBoost.
+
+The framework in `smd.Framework` import refers to one of `tensorflow`, `mxnet`, `pytorch`, or `xgboost`.
+
+After choosing a framework and defining the hook object, you need to embed the hooks into target parts of your training script to retrieve tensors and to use with the SageMaker Debugger Python SDK.
+
+For more information about constructing the hook depending on a framework of your choice and adding the hooks to your model, see the following pages.
+
+* [TensorFlow hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/tensorflow.md)
+* [MXNet hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/mxnet.md)
+* [PyTorch hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/pytorch.md)
+* [XGBoost hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/xgboost.md)
 
 #### Configuring Hook using SageMaker Python SDK
-Parameters to the Hook are passed as below when using the SageMaker Python SDK.
+After you make the minimal changes to your training script, you can configure the hook with parameters to the SageMaker Debugger API operation, `DebuggerHookConfig`.
+
 ```python
 from sagemaker.debugger import DebuggerHookConfig
 hook_config = DebuggerHookConfig(
@@ -73,7 +86,9 @@ hook_config = DebuggerHookConfig(
         "parameter": "value"
     })
 ```
-The parameters can be one of the following. The meaning of these parameters will be clear as you review the sections of documentation below. Note that all parameters below have to be strings. So for any parameter which accepts a list (such as save_steps, reductions, include_regex), the value needs to be given as strings separated by a comma between them.
+
+The available hook parameters are listed in the following. The meaning of these parameters will be clear as you review the sections of documentation below. Note that all parameters below have to be strings. So for any parameter which accepts a list (such as save_steps, reductions, include_regex), the value needs to be given as strings separated by a comma between them.
+
 ```
 dry_run
 save_all
@@ -147,7 +162,8 @@ Note that `smd` import below translates to `import smdebug.{framework} as smd`.
 |`set_mode(mode)`| value of the enum `smd.modes` | Sets mode of the job, can be one of `smd.modes.TRAIN`, `smd.modes.EVAL`, `smd.modes.PREDICT` or `smd.modes.GLOBAL`. Refer [Modes](#modes) for more on that. |
 |`create_from_json_file(`<br/>`  json_file_path=None)` | `json_file_path (str)` | Takes the path of a file which holds the json configuration of the hook, and creates hook from that configuration. This is an optional parameter. <br/> If this is not passed it tries to get the file path from the value of the environment variable `SMDEBUG_CONFIG_FILE_PATH` and defaults to `/opt/ml/input/config/debughookconfig.json`. When training on SageMaker you do not have to specify any path because this is the default path that SageMaker writes the hook configuration to.
 |`close()` | - | Closes all files that are currently open by the hook |
-| `save_scalar(`<br/>`name, `<br/>`value, `<br/>`sm_metric=False)` | `name (str)` <br/> `value (float)` <br/> `sm_metric (bool)`| Saves a scalar value by the given name. Passing `sm_metric=True` flag also makes this scalar available as a SageMaker Metric to show up in SageMaker Studio. Note that when `sm_metric` is False, this scalar always resides only in your AWS account, but setting it to True saves the scalar also on AWS servers. The default value of `sm_metric` for this method is False. |
+| `save_scalar()` | `name (str)` <br/> `value (float)` <br/> `sm_metric (bool)`| Saves a scalar value by the given name. Passing `sm_metric=True` flag also makes this scalar available as a SageMaker Metric to show up in SageMaker Studio. Note that when `sm_metric` is False, this scalar always resides only in your AWS account, but setting it to True saves the scalar also on AWS servers. The default value of `sm_metric` for this method is False. |
+
 
 ### TensorFlow specific Hook API
 Note that there are three types of Hooks in TensorFlow: SessionHook, EstimatorHook and KerasHook based on the TensorFlow interface being used for training. [This page](tensorflow.md) shows examples of each of these.
@@ -157,12 +173,12 @@ Note that there are three types of Hooks in TensorFlow: SessionHook, EstimatorHo
 | `wrap_optimizer(optimizer)` | `optimizer` (tf.train.Optimizer or tf.keras.Optimizer) | Returns the same optimizer object passed with a couple of identifying markers to help `smdebug`. This returned optimizer should be used for training. | When not using Zero Script Change environments, calling this method on your optimizer is necessary for SageMaker Debugger to identify and save gradient tensors. Note that this method returns the same optimizer object passed and does not change your optimization logic. If the hook is of type `KerasHook`, you can pass in either an object of type `tf.train.Optimizer` or `tf.keras.Optimizer`. If the hook is of type `SessionHook` or `EstimatorHook`, the optimizer can only be of type `tf.train.Optimizer`.  This new
 | `add_to_collection(`<br/>  `collection_name, variable)` | `collection_name (str)` : name of the collection to add to. <br/> `variable` parameter to pass to the collection's `add` method. | `None` | Calls the `add` method of a collection object. See [this section](#collection) for more. |
 
-APIs specific to training scripts using TF 2.x GradientTape ([Example](tensorflow.md#TF 2.x GradientTape example)):
+The following hook APIs are specific to training scripts using the TF 2.x GradientTape ([Example](tensorflow.md#TF 2.x GradientTape example)):
 
 | Method | Arguments | Returns | Behavior |
 | --- | --- | --- | --- |
 | `wrap_tape(tape)` | `tape` (tensorflow.python.eager.backprop.GradientTape) | Returns a tape object with three identifying markers to help `smdebug`. This returned tape should be used for training. | When not using Zero Script Change environments, calling this method on your tape is necessary for SageMaker Debugger to identify and save gradient tensors. Note that this method returns the same tape object passed.
-| `record_tensor_value(`<br/>  `tensor_name, tensor_value)` | `tensor_name (str)` : name of the tensor to save. <br/> `tensor_value` EagerTensor to save. | `None` | Manually save metrics tensors while using TF 2.x GradientTape. |
+| `save_tensor()`| tensor_name (str), tensor_value (float), collections_to_write (str) | - | Manually save metrics tensors while using TF 2.x GradientTape. Note: `record_tensor_value()` is deprecated.|
 
 ### MXNet specific Hook API
 
@@ -217,6 +233,7 @@ The names of these collections are all lower case strings.
 | `losses` | TensorFlow, PyTorch, MXNet | Saves the loss for the model |
 | `metrics` | TensorFlow's KerasHook, XGBoost | For KerasHook, saves the metrics computed by Keras for the model. For XGBoost, the evaluation metrics computed by the algorithm. |
 | `outputs` | TensorFlow's KerasHook | Matches the outputs of the model |
+| `layers` | TensorFlow's KerasHook | Input and output of intermediate convolutional layers |
 | `sm_metrics` | TensorFlow | You can add scalars that you want to show up in SageMaker Metrics to this collection. SageMaker Debugger will save these scalars both to the out_dir of the hook, as well as to SageMaker Metric. Note that the scalars passed here will be saved on AWS servers outside of your AWS account. |
 | `optimizer_variables` | TensorFlow's KerasHook | Matches all optimizer variables, currently only supported in Keras. |
 | `hyperparameters` | XGBoost | [Booster paramameters](https://docs.aws.amazon.com/sagemaker/latest/dg/xgboost_hyperparameters.html) |

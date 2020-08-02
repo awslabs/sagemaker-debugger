@@ -14,30 +14,35 @@ from smdebug.core.modes import ModeKeys
 
 
 class ModelOutput:
-    Y = "smdebug_y"
-    Y_PRED = "smdebug_y_pred"
-    VAL_Y = "val_smdebug_y"
-    VAL_Y_PRED = "val_smdebug_y_pred"
+    LABELS = "smdebug_y"
+    PREDICTIONS = "smdebug_y_pred"
+    VAL_LABELS = "val_smdebug_y"
+    VAL_PREDICTIONS = "val_smdebug_y_pred"
 
 
-ModelOutputs = {ModelOutput.Y, ModelOutput.Y_PRED, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED}
+ModelOutputs = {
+    ModelOutput.LABELS,
+    ModelOutput.PREDICTIONS,
+    ModelOutput.VAL_LABELS,
+    ModelOutput.VAL_PREDICTIONS,
+}
 
 
 def get_model_output_export_name(key):
     export_names = {
-        ModelOutput.Y_PRED: "predictions",
-        ModelOutput.Y: "labels",
-        ModelOutput.VAL_Y: "labels",
-        ModelOutput.VAL_Y_PRED: "predictions",
+        ModelOutput.PREDICTIONS: "predictions",
+        ModelOutput.LABELS: "labels",
+        ModelOutput.VAL_LABELS: "labels",
+        ModelOutput.VAL_PREDICTIONS: "predictions",
     }
     return export_names[key]
 
 
 class ModelInput:
-    X = "smdebug_x"
+    INPUTS = "smdebug_x"
 
 
-ModelInputs = {ModelInput.X}
+ModelInputs = {ModelInput.INPUTS}
 
 
 def get_model_input_export_name():
