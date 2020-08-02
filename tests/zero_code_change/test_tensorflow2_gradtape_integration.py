@@ -114,7 +114,12 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 assert len(trial.tensor_names(collection="inputs")) > 0
                 assert len(trial.tensor_names(collection="outputs")) > 0
                 assert trial.tensor_names(collection="outputs") == ["predictions"]
-                assert len(trial.tensor_names(collection="dense_layers")) > 0
+                if "dense_layers" in json_file_contents:
+                    # Only assert for test_keras_v2_multi_collections
+                    # which defines this custom collection
+                    assert len(trial.tensor_names(collection="dense_layers")) > 0
+                else:
+                    assert len(trial.tensor_names(collection="dense_layers")) == 0
 
 
 @pytest.mark.parametrize("script_mode", [False])
