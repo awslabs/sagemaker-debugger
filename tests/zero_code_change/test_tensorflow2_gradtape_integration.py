@@ -26,7 +26,9 @@ def get_keras_data():
     return (x_train, y_train), (x_test, y_test)
 
 
-def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_contents="{}"):
+def helper_test_keras_v2_gradienttape(
+    script_mode: bool = False, json_file_contents="{}", default=False
+):
     """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
@@ -110,7 +112,8 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             assert len(trial.steps()) > 0, "Nothing saved at any step."
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
-            if is_tf_2_2():
+            if is_tf_2_2() and default is False:
+                # Inputs and Outputs are not saved with the default collection configurations.
                 assert len(trial.tensor_names(collection="inputs")) > 0
                 assert len(trial.tensor_names(collection="outputs")) > 0
                 assert trial.tensor_names(collection="outputs") == ["predictions"]
@@ -125,7 +128,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
 @pytest.mark.parametrize("script_mode", [False])
 def test_keras_v2_default(script_mode):
     # Test default ZCC behavior
-    helper_test_keras_v2_gradienttape(script_mode=script_mode)
+    helper_test_keras_v2_gradienttape(script_mode=script_mode, default=True)
 
 
 @pytest.mark.parametrize("script_mode", [False])
