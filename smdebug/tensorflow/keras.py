@@ -454,7 +454,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
                     layer_outputs = logs[key]
                     self.save_layer_outputs(layer_outputs)
-                    self.save_layer_inputs(logs[ModelInput.X], layer_outputs)
+                    self.save_layer_inputs(logs[ModelInput.INPUTS], layer_outputs)
                 # Save Model Inputs
                 elif key in ModelInputs:
                     export_name = get_model_input_export_name()
