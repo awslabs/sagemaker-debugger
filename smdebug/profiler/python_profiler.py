@@ -157,6 +157,7 @@ class cProfilePythonProfiler(PythonProfiler):
         get_logger("smdebug-profiler").info(f"Dumping cProfile stats to {stats_file_path}.")
         pstats.Stats(self._profiler).dump_stats(stats_file_path)
 
+
 class PyinstrumentPythonProfiler(PythonProfiler):
     """Higher level class to oversee profiling specific to Pyinstrument, a third party Python profiler.
     """

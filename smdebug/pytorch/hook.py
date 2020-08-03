@@ -1,11 +1,11 @@
 # Standard Library
 import os
 import time
-from packaging import version
 
 # Third Party
 import torch
 import torch.distributed as dist
+from packaging import version
 
 # First Party
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
@@ -258,7 +258,6 @@ class Hook(CallbackHook):
                     cpu_thread_start_time=event.cpu_interval.start + self.start_profiler_time_us,
                 )
 
-
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
         # Disable pre-step 0 python profiling if profiling is enabled and if this is step 0.
@@ -289,9 +288,13 @@ class Hook(CallbackHook):
 
             if not self.autograd_profiler_enabled:
                 if version.parse(torch.__version__) <= version.parse("1.5.1"):
-                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
-                elif  version.parse(torch.__version__) >= version.parse("1.6"):
-                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False, False))
+                    torch.autograd._enable_profiler(
+                        torch.autograd.ProfilerConfig(self.profiler, False)
+                    )
+                elif version.parse(torch.__version__) >= version.parse("1.6"):
+                    torch.autograd._enable_profiler(
+                        torch.autograd.ProfilerConfig(self.profiler, False, False)
+                    )
                 self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
                 self.autograd_profiler_enabled = True
 
@@ -461,10 +464,11 @@ class Hook(CallbackHook):
     def count_parameters(self, model):
         total_params = 0
         for name, parameter in model.named_parameters():
-            if not parameter.requires_grad: continue
+            if not parameter.requires_grad:
+                continue
             param = parameter.numel()
             self.logger.info(f"name:{name} count_params:{param}")
-            total_params+=param
+            total_params += param
         self.logger.info(f"Total Trainable Params: {total_params}")
         return total_params
 
@@ -512,7 +516,6 @@ class Hook(CallbackHook):
 
         self.has_registered_module = True
         self.count_parameters(module)
-
 
     def register_loss(self, loss_module):
         """Register something like `criterion = nn.CrossEntropyLoss()`."""
