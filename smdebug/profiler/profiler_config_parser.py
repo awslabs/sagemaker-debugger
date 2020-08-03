@@ -13,7 +13,7 @@ from smdebug.profiler.profiler_constants import (
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
 )
-from smdebug.profiler.utils import CaseInsensitiveConfig, str2bool
+from smdebug.profiler.utils import str2bool
 
 
 class LastProfilingStatus(Enum):
@@ -120,7 +120,7 @@ class ProfilerConfigParser:
             use_pyinstrument = False
 
         try:
-            profile_range = CaseInsensitiveConfig(eval(config.get("detailedprofilingconfig", "{}")))
+            profile_range = eval(config.get("detailedprofilingconfig", "{}"))
         except:
             if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG:
                 get_logger("smdebug-profiler").error("Error parsing detailed profiling config.")
