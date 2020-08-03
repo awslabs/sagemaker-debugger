@@ -23,33 +23,35 @@ class MetricsHistogram:
         self.sources = {}
         self.target = None
 
+    """
+    @param starttime is starttime_since_epoch_in_micros. Default value 0, which means start
+    @param endtime is endtime_since_epoch_in_micros. Default value is  MetricsHistogram.last_timestamp , i.e., last_timestamp seen by system_metrics_reader
+    @param select_metrics is array of metrics to be selected, Default ["cpu", "gpu"]
+    """
 
-    def plot(self, starttime_since_epoch_in_micros=0, endtime_since_epoch_in_micros=None, select_metrics=None):
-        if endtime_since_epoch_in_micros == None:
-            endtime_since_epoch_in_micros = self.metrics_reader.get_timestamp_of_latest_available_file()
-        all_events = self.metrics_reader.get_events(starttime_since_epoch_in_micros, endtime_since_epoch_in_micros)
-        print(f"Found {len(all_events)} system metrics events from timestamp_in_ns:{starttime_since_epoch_in_micros} to timestamp_in_ns:{endtime_since_epoch_in_micros}")
-        self.last_timestamp = endtime_since_epoch_in_micros
-        # define the list of metrics to plot: per default cpu and gpu
-        self.select_metrics = ["cpu", "gpu"]
-        if select_metrics is not None:
-            self.select_metrics.extend(select_metrics)
-        self.system_metrics = self.preprocess_system_metrics(all_events)
+    def plot(self, starttime=0, endtime=None, select_metrics=[".*"]):
+        if endtime == None:
+            endtime = self.metrics_reader.get_timestamp_of_latest_available_file()
+        all_events = self.metrics_reader.get_events(starttime, endtime)
+        print(
+            f"Found {len(all_events)} system metrics events from timestamp_in_us:{starttime} to timestamp_in_us:{endtime}"
+        )
+        self.last_timestamp = endtime
+        self.select_metrics = select_metrics
+        self.system_metrics = self.preprocess_system_metrics(all_events=all_events)
         self.create_plot(self.system_metrics)
-    
+
     def clear():
         self.system_metrics = {}
         self.sources = {}
 
-    def preprocess_system_metrics(self, all_events=[], system_metrics = {}):
+    def preprocess_system_metrics(self, all_events=[], system_metrics={}):
         cpu_name = None
         # read all available system metric events and store them in dict
         for event in all_events:
-            if (
-                event.name not in system_metrics
-            ):
+            if event.name not in system_metrics:
                 system_metrics[event.name] = []
-                if cpu_name is None and event.dimension == 'CPUUtilization':
+                if cpu_name is None and event.dimension == "CPUUtilization":
                     cpu_name = event.name
                     print(cpu_name)
             system_metrics[event.name].append(event.value)
@@ -70,13 +72,14 @@ class MetricsHistogram:
             system_metrics["cpu_total"] = cpu_total / self.cores
 
         # add user defined metrics to the list
-        # TODO rename to filtered metrics
         filtered_metrics = []
         available_metrics = list(system_metrics.keys())
+        print(f"select metrics:{self.select_metrics}")
 
         for metric in self.select_metrics:
-            r = re.compile(".*" + metric)
-            filtered_metrics.extend(list(filter(r.match, available_metrics)))
+            r = re.compile(r".*" + metric + r".*")
+            filtered_metrics.extend(list(filter(r.search, available_metrics)))
+        print(f"filtered_metrics:{filtered_metrics}")
 
         # delete the keys which needs to be filtered out
         for key in available_metrics:

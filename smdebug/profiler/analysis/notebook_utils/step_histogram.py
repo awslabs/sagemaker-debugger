@@ -1,14 +1,18 @@
 # Third Party
+# Standard Library
+import re
+
 import numpy as np
 from bokeh.io import output_notebook, push_notebook, show
+from bokeh.layouts import gridplot
 from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure, show
-from bokeh.layouts import gridplot
-
 
 output_notebook(hide_banner=True)
 
 MICROS = 1000000.0
+
+
 class StepHistogram:
     def __init__(self, metrics_reader, width=500):
 
@@ -24,26 +28,46 @@ class StepHistogram:
         # number of datapoints to plot
         self.width = width
 
+    def _get_filtered_list(self, step_metrics):
+        filtered_metrics = []
+        available_metrics = list(step_metrics.keys())
+        print(f"select metrics:{self.select_metrics}")
+
+        for metric in self.select_metrics:
+            r = re.compile(metric)
+            filtered_metrics.extend(list(filter(r.search, available_metrics)))
+        print(f"filtered metrics:{filtered_metrics}")
+        # delete the keys which needs to be filtered out
+        for key in available_metrics:
+            if key not in filtered_metrics:
+                del step_metrics[key]
+        return step_metrics
+
     def _create_step_metrics(self, all_events, step_metrics={}):
         for event in all_events:
-            if "Step:ModeKeys" not in event.event_name:
-                continue
             if event.event_name not in step_metrics:
                 step_metrics[event.event_name] = []
             step_metrics[event.event_name].append(event.duration / MICROS)
-            
+        step_metrics = self._get_filtered_list(step_metrics)
         return step_metrics
-    
-    def plot(self, starttime_since_epoch_in_micros=0, endtime_since_epoch_in_micros=None, select_metrics=None):
-        if endtime_since_epoch_in_micros == None:
-            endtime_since_epoch_in_micros = self.metrics_reader.get_timestamp_of_latest_available_file()
-        print(f"stephistogram getting events from {starttime_since_epoch_in_micros} to {endtime_since_epoch_in_micros}")
-        all_events = self.metrics_reader.get_events(starttime_since_epoch_in_micros, endtime_since_epoch_in_micros)
+
+    """
+    @param starttime: starttime_since_epoch_in_micros . Default vlaue is 0, which means that since start of training
+    @param endtime: endtime_since_epoch_in_micros. Default value is metrics_reader.last_timestamp, i.e., latest timestamp seen by metrics_reader
+    """
+
+    def plot(self, starttime=0, endtime=None, select_metrics=[".*"]):
+        if endtime is None:
+            endtime = self.metrics_reader.get_timestamp_of_latest_available_file()
+        print(f"stephistogram getting events from {starttime} to {endtime}")
+        all_events = self.metrics_reader.get_events(starttime, endtime)
         print(f"Total events fetched:{len(all_events)}")
-        self.last_timestamp = endtime_since_epoch_in_micros
-        
+        self.last_timestamp = endtime
+        self.select_metrics = select_metrics
+
         self.step_metrics = self._create_step_metrics(all_events)
-        self.create_plot(self.step_metrics)
+
+        self.create_plot(step_metrics=self.step_metrics)
 
     def clear():
         self.step_metrics = {}
@@ -68,7 +92,7 @@ class StepHistogram:
 
         # create a histogram per metric
         for index, metric in enumerate(metrics):
-            p = figure(plot_height=350, plot_width=450)            
+            p = figure(plot_height=350, plot_width=450)
             # creates bins
             probs, binedges = self._get_probs_binedges(step_metrics[metric])
             source = ColumnDataSource(data=dict(top=probs, left=binedges[:-1], right=binedges[1:]))
@@ -98,7 +122,7 @@ class StepHistogram:
         # get new events
         events = self.metrics_reader.get_events(self.last_timestamp, current_timestamp)
         self.last_timestamp = current_timestamp
-        self.step_metrics = self._create_step_metrics(events, self.step_metrics)
+        self.step_metrics = self._create_step_metrics(events, step_metrics=self.step_metrics)
         # update histograms
         for index, metric in enumerate(self.step_metrics):
             probs, binedges = self._get_probs_binedges(self.step_metrics[metric])
