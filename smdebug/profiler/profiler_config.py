@@ -31,13 +31,13 @@ class ProfileRange:
 
     def __init__(self, profile_range):
         # step range
-        self.start_step = profile_range.get("StartStep")
-        self.num_steps = profile_range.get("NumSteps")
+        self.start_step = profile_range.get("startstep")
+        self.num_steps = profile_range.get("numsteps")
         self.end_step = None
 
         # time range
-        self.start_time_in_sec = profile_range.get("StartTimeInSecSinceEpoch")
-        self.duration_in_sec = profile_range.get("DurationInSeconds")
+        self.start_time_in_sec = profile_range.get("starttimeinsecsinceepoch")
+        self.duration_in_sec = profile_range.get("durationinseconds")
         self.end_time = None
 
         # convert to the correct type
@@ -52,7 +52,7 @@ class ProfileRange:
                 self.duration_in_sec = float(self.duration_in_sec)
         except ValueError as e:
             get_logger("smdebug-profiler").info(
-                f"{e} encountered in DetailedProfilingConfig. Disabling Detailed profiling."
+                f"{e} encountered in detailedprofilingconfig. Disabling Detailed profiling."
             )
             self.start_step = self.num_steps = self.start_time_in_sec = self.duration_in_sec = None
 
