@@ -56,6 +56,13 @@ def invalid_string_data_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser()
 
 
+@pytest.fixture
+def case_insensitive_profiler_config_parser(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "case_insensitive_profiler_config_parser.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser()
+
+
 def _convert_to_string(item):
     return '"{0}"'.format(item) if isinstance(item, str) else item
 
@@ -202,3 +209,26 @@ def test_invalid_string_data_in_config(invalid_string_data_profiler_config_parse
     assert not invalid_string_data_profiler_config_parser.config.profile_range.num_steps
     assert not invalid_string_data_profiler_config_parser.config.profile_range.start_time_in_sec
     assert not invalid_string_data_profiler_config_parser.config.profile_range.duration_in_sec
+
+
+def test_case_insensitive_profiler_config_parser(case_insensitive_profiler_config_parser):
+    """
+    This test is meant to test that the keys in the profiler config JSON are case insensitive. In other words,
+    the profiler config parser can successfully parse the values from the config even if the case of the key is not
+    camel case.
+    """
+    assert case_insensitive_profiler_config_parser.profiling_enabled
+    assert (
+        case_insensitive_profiler_config_parser.config.trace_file.rotation_policy.file_max_size
+        == 100
+    )
+    assert (
+        case_insensitive_profiler_config_parser.config.trace_file.rotation_policy.file_close_interval
+        == 1
+    )
+    assert case_insensitive_profiler_config_parser.config.trace_file.file_open_fail_threshold == 5
+    assert case_insensitive_profiler_config_parser.config.use_pyinstrument is True
+
+    assert case_insensitive_profiler_config_parser.detailed_profiling_enabled
+    assert case_insensitive_profiler_config_parser.config.profile_range.start_step == 2
+    assert case_insensitive_profiler_config_parser.config.profile_range.num_steps == 3
