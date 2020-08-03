@@ -28,6 +28,12 @@ class PythonStatsReader:
         """Load the python profile stats. To be implemented in subclass.
         """
 
+    def _get_step_stepphase(self, step_phase_str):
+        splits = step_phase_str.split("-", 1)
+        step = splits[0]
+        step_phase = splits[1] if len(splits) > 1 else "full"
+        return step, step_phase
+
 
 class S3PythonStatsReader(PythonStatsReader):
     """Higher level stats reader to download python stats from s3.
@@ -93,7 +99,8 @@ class S3PythonStatsReader(PythonStatsReader):
             with open(stats_file_path, "wb") as f:
                 f.write(object_data)
 
-            start_time, end_time, node_id, step = stats_dir.split("_")
+            start_time, end_time, node_id, step_phase_str = stats_dir.split("_")
+            step, step_phase = self._get_step_stepphase(step_phase_str)
             python_profile_stats.append(
                 StepPythonProfileStats(
                     profiler_name,
@@ -102,6 +109,7 @@ class S3PythonStatsReader(PythonStatsReader):
                     float(end_time),
                     node_id,
                     stats_file_path,
+                    step_phase,
                 )
             )
         python_profile_stats.sort(
@@ -131,7 +139,9 @@ class LocalPythonStatsReader(PythonStatsReader):
         """
         python_profile_stats = []
         for python_stat_dir in os.listdir(self.profile_dir):
-            start_time, end_time, node_id, step = python_stat_dir.split("_")
+            start_time, end_time, node_id, step_phase_str = python_stat_dir.split("_")
+            step, step_phase = self._get_step_stepphase(step_phase_str)
+
             stats_dir = os.path.join(self.profile_dir, python_stat_dir)
             if os.path.isfile(os.path.join(stats_dir, CPROFILE_STATS_FILENAME)):
                 profiler_name = CPROFILE_NAME

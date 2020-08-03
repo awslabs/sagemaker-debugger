@@ -11,6 +11,7 @@ class StepPythonProfileStats:
         end_time_since_epoch_in_micros,
         node_id,
         stats_path,
+        step_phase="",
     ):
         """Class that represents the metadata for profiling on a specific step (or before step 0).
         Used so that users can easily filter through which steps they want profiling stats of.
@@ -27,6 +28,7 @@ class StepPythonProfileStats:
         self.end_time_since_epoch_in_micros = end_time_since_epoch_in_micros
         self.node_id = node_id
         self.stats_path = stats_path
+        self.step_phase = step_phase
 
     def in_time_interval(self, start_time_since_epoch_in_micros, end_time_since_epoch_in_micros):
         """Returns whether this step is in the provided time interval.

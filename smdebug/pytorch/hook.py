@@ -1,6 +1,7 @@
 # Standard Library
 import os
 import time
+from packaging import version
 
 # Third Party
 import torch
@@ -30,7 +31,7 @@ if profiler_config_parser.profiling_enabled:
     python_profiler = PythonProfiler.get_python_profiler(
         config.use_pyinstrument, config.local_path, "pytorch"
     )
-    python_profiler.start_profiling()
+    python_profiler.start_profiling(step_phase="start")
 
 
 class Hook(CallbackHook):
@@ -103,6 +104,7 @@ class Hook(CallbackHook):
         self.step_event = None
         self.forward_modules_profile_stats = []
         self.backward_modules_profile_stats = []
+        self.first_forward_submodule_name = None
         self.autograd_profiler_enabled = False
         self.profiler = (
             torch.autograd.ProfilerState.CUDA
@@ -215,59 +217,54 @@ class Hook(CallbackHook):
                     coll.include(module_name + "_output_")
         super()._prepare_collections()
 
-    # This hook is invoked by trainer prior to running the forward pass.
-    def forward_pre_hook(self, module, inputs):
-        # Disable pre-step 0 python profiling if profiling is enabled and if this is step 0.
-        if python_profiler:
-            python_profiler.stop_profiling()
-
-        if self.profiler_config_parser.can_start_detailed_profiling(self.step):
-            if python_profiler:
-                python_profiler.start_profiling(self.step)
-
-            if not self.autograd_profiler_enabled:
-                torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
-                self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
-                self.autograd_profiler_enabled = True
-        elif self.autograd_profiler_enabled:
-            records = torch.autograd._disable_profiler()
-            self.function_events = torch.autograd.profiler.EventList(
-                torch.autograd.profiler.parse_cpu_trace(records), use_cuda=self.use_cuda
+    def _collect_torch_profiling_data_if_profiler_enabled(self):
+        if self.autograd_profiler_enabled is False:
+            return
+        records = torch.autograd._disable_profiler()
+        self.autograd_profiler_enabled = False
+        function_events = torch.autograd.profiler.EventList(
+            torch.autograd.profiler.parse_cpu_trace(records), use_cuda=self.use_cuda
+        )
+        for index, event in enumerate(function_events):
+            self.record_trace_events(
+                training_phase="cpu_functions",
+                op_name=event.name,
+                phase="X",
+                # event.cpu_interval.start is in microseconds
+                timestamp=(event.cpu_interval.start + self.start_profiler_time_us)
+                / float(
+                    CONVERT_TO_MICROSECS
+                ),  # timestamp expected is in seconds for record_trace_events
+                duration=event.cpu_interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
+                tid=event.thread,
+                step_num=self.step,
+                device="cpu",
             )
-            for index, event in enumerate(self.function_events):
+            for k in event.kernels:
                 self.record_trace_events(
-                    training_phase="cpu_functions",
-                    op_name=event.name,
+                    training_phase="gpu_functions-dev:" + str(k.device),
+                    op_name=k.name,
                     phase="X",
-                    # event.cpu_interval.start is in microseconds
-                    timestamp=(event.cpu_interval.start + self.start_profiler_time_us)
+                    timestamp=(k.interval.start + self.start_profiler_time_us)
                     / float(
                         CONVERT_TO_MICROSECS
                     ),  # timestamp expected is in seconds for record_trace_events
-                    duration=event.cpu_interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
-                    tid=event.thread,
+                    duration=k.interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
+                    tid=k.device,
                     step_num=self.step,
-                    device="cpu",
+                    event_name=event.name,
+                    device=k.device,
+                    start_cpu_thread=event.thread,
+                    cpu_thread_start_time=event.cpu_interval.start + self.start_profiler_time_us,
                 )
-                for k in event.kernels:
-                    self.record_trace_events(
-                        training_phase="gpu_functions-dev:" + str(k.device),
-                        op_name=k.name,
-                        phase="X",
-                        timestamp=(k.interval.start + self.start_profiler_time_us)
-                        / float(
-                            CONVERT_TO_MICROSECS
-                        ),  # timestamp expected is in seconds for record_trace_events
-                        duration=k.interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
-                        tid=k.device,
-                        step_num=self.step,
-                        event_name=event.name,
-                        device=k.device,
-                        start_cpu_thread=event.thread,
-                        cpu_thread_start_time=event.cpu_interval.start
-                        + self.start_profiler_time_us,
-                    )
-            self.autograd_profiler_enabled = False
+
+
+    # This hook is invoked by trainer prior to running the forward pass.
+    def forward_pre_hook(self, module, inputs):
+        # Disable pre-step 0 python profiling if profiling is enabled and if this is step 0.
+        # below we say step+1 because step is incremented further in this method
+        if python_profiler:
+            python_profiler.stop_profiling(step_phase="startstep" + str(self.step + 1))
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
             self._close_writers()
@@ -281,6 +278,22 @@ class Hook(CallbackHook):
             self.prepared_collections = True
 
         self._increment_step()
+
+        if self.autograd_profiler_enabled:
+            self._collect_torch_profiling_data_if_profiler_enabled()
+
+        # should we re-enable profiling for this step?
+        if self.profiler_config_parser.can_start_detailed_profiling(self.step):
+            if python_profiler:
+                python_profiler.start_profiling(self.step, step_phase="startstep" + str(self.step))
+
+            if not self.autograd_profiler_enabled:
+                if version.parse(torch.__version__) <= version.parse("1.5.1"):
+                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
+                elif  version.parse(torch.__version__) >= version.parse("1.6"):
+                    torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False, False))
+                self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
+                self.autograd_profiler_enabled = True
 
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
@@ -312,6 +325,7 @@ class Hook(CallbackHook):
             pid=os.getpid(),
             step_num=str(self.mode_steps[self.mode]),
         )
+        self.first_forward_submodule_name = None
 
     def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
         """Used for registering functional directly, such as F.mse_loss()."""
@@ -346,7 +360,8 @@ class Hook(CallbackHook):
             step_num=str(self.mode_steps[self.mode]),
         )
         self.forward_modules_profile_stats.append(event)
-
+        if len(self.forward_modules_profile_stats) == 1:
+            self.first_forward_submodule_name = module._module_name
         if not self._get_collections_to_save_for_step():
             return
 
@@ -416,7 +431,7 @@ class Hook(CallbackHook):
         if self.step_event:
             self.step_event.update_end_time(now)
 
-        # if this is first forward we will use start time of parent as start time, and end time as now
+        # if this is not first backward we will use start time of parent as start time, and end time as now
         if len(self.backward_modules_profile_stats) > 0:
             # this child start_time is approcximated as last child end time
             child_start_time = self.backward_modules_profile_stats[-1].end_time
@@ -432,9 +447,26 @@ class Hook(CallbackHook):
             step_num=str(self.mode_steps[self.mode]),
         )
         self.backward_modules_profile_stats.append(event)
+        if module._module_name == self.first_forward_submodule_name:
+            # we would stop profiling and restart from this phase
+            if python_profiler:
+                step_ph = "backwardendstep" + str(self.step)
+                python_profiler.stop_profiling(step_phase=step_ph)
+                if self.profiler_config_parser.can_start_detailed_profiling(self.step):
+                    python_profiler.start_profiling(self.step, step_phase=step_ph)
 
     def _closure_for_registering_backward_hook(self, module):
         module.register_backward_hook(self.bhook)
+
+    def count_parameters(self, model):
+        total_params = 0
+        for name, parameter in model.named_parameters():
+            if not parameter.requires_grad: continue
+            param = parameter.numel()
+            self.logger.info(f"name:{name} count_params:{param}")
+            total_params+=param
+        self.logger.info(f"Total Trainable Params: {total_params}")
+        return total_params
 
     def register_module(self, module):
         """
@@ -479,6 +511,8 @@ class Hook(CallbackHook):
         module.apply(self._closure_for_registering_backward_hook)
 
         self.has_registered_module = True
+        self.count_parameters(module)
+
 
     def register_loss(self, loss_module):
         """Register something like `criterion = nn.CrossEntropyLoss()`."""
