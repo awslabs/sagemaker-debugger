@@ -56,7 +56,7 @@ class ProfilerConfigParser:
         if os.path.isfile(config_path):
             with open(config_path) as json_data:
                 try:
-                    config = CaseInsensitiveConfig(json.load(json_data)).get("ProfilingParameters")
+                    config = json.loads(json_data.read().lower()).get("profilingparameters")
                 except:
                     if self.last_status != LastProfilingStatus.INVALID_CONFIG:
                         get_logger("smdebug-profiler").error(
@@ -66,10 +66,10 @@ class ProfilerConfigParser:
                     self.profiling_enabled = False
                     return
             try:
-                profiler_enabled = str2bool(config.get("ProfilerEnabled", True))
+                profiler_enabled = str2bool(config.get("profilerenabled", True))
             except ValueError as e:
                 get_logger("smdebug-profiler").info(
-                    f"{e} in ProfilingParameters. Enabling profiling with default "
+                    f"{e} in profilingparameters. Enabling profiling with default "
                     f"parameter values."
                 )
                 profiler_enabled = True
@@ -94,17 +94,17 @@ class ProfilerConfigParser:
             return
 
         try:
-            local_path = config.get("LocalPath", BASE_FOLDER_DEFAULT)
-            file_max_size = int(config.get("RotateMaxFileSizeInBytes", MAX_FILE_SIZE_DEFAULT))
+            local_path = config.get("localpath", BASE_FOLDER_DEFAULT)
+            file_max_size = int(config.get("rotatemaxfilesizeinbytes", MAX_FILE_SIZE_DEFAULT))
             file_close_interval = float(
-                config.get("RotateFileCloseIntervalInSeconds", CLOSE_FILE_INTERVAL_DEFAULT)
+                config.get("rotatefilecloseintervalinseconds", CLOSE_FILE_INTERVAL_DEFAULT)
             )
             file_open_fail_threshold = int(
-                config.get("FileOpenFailThreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
+                config.get("fileopenfailthreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
             )
         except ValueError as e:
             get_logger("smdebug-profiler").info(
-                f"{e} in ProfilingParameters. Enabling profiling with default " f"parameter values."
+                f"{e} in profilingparameters. Enabling profiling with default " f"parameter values."
             )
             local_path = BASE_FOLDER_DEFAULT
             file_max_size = MAX_FILE_SIZE_DEFAULT
@@ -112,15 +112,15 @@ class ProfilerConfigParser:
             file_open_fail_threshold = FILE_OPEN_FAIL_THRESHOLD_DEFAULT
 
         try:
-            use_pyinstrument = str2bool(config.get("UsePyinstrument", False))
+            use_pyinstrument = str2bool(config.get("usepyinstrument", False))
         except ValueError as e:
             get_logger("smdebug-profiler").info(
-                f"{e} in UsePyinstrument of ProfilingParameters. Defaulting to cProfile."
+                f"{e} in usepyinstrument of profilingparameters. Defaulting to cProfile."
             )
             use_pyinstrument = False
 
         try:
-            profile_range = CaseInsensitiveConfig(eval(config.get("DetailedProfilingConfig", "{}")))
+            profile_range = CaseInsensitiveConfig(eval(config.get("detailedprofilingconfig", "{}")))
         except:
             if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG:
                 get_logger("smdebug-profiler").error("Error parsing detailed profiling config.")
