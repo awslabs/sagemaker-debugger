@@ -20,9 +20,9 @@ class ThreadInfo:
 
 
 """
-Thid contains infomation about all the phases and list of
-threads found for all these phase
-This needs to have node-id
+This contains infomation about all the phases and list of
+threads found for all these phase.
+For mutiple worker scenarios, there will be a phase and different workers will be treated as thread for the phase
 """
 
 
@@ -39,41 +39,6 @@ class ProcessInfo:
         return self._threads[threadid]
 
 
-# TODO merge all event files
-# read all events of one file
-# create metadata map ,
-# read events of other file, update metadata map , update all events with new pids from new metadata map
-# dump metadata json
-# standardize time and update start and endtime ts
-# dump all event metadata
-# dump all events
-
-# step timeline distributed
-# for every phase, Threadids are under that pid
-
-"""
-Metadata pid
-Step , step-node-i+pid+tid ………
-Forward , forward-node-i + pid+tid
-Backward
-DataLoading
-
-create unique pid for each phase(),
-create unique threadname and thread id for each thread ( thread_name = (node_id+actual_pid+actual_thread_id+actual_thread_name))
-"""
-
-# each trace event parser has list of events
-# has list of processes info , each process info has list of threads
-
-# while merging
-# new PRocess info =
-#     go through each of exisiting process info
-#     for each process name, create unique threadid_prefix (node_id + actual_pid)
-
-
-# Device, name = (node - id, pid, thread_id)
-
-
 class TraceEvent:
     def __init__(
         self, ts, name, dur, phase_pid, phase_tid, event_args, node_id, event_phase="", pid=0, tid=0
@@ -82,14 +47,17 @@ class TraceEvent:
         self.event_name = name
         self.duration = dur
         self.end_time = self.start_time + self.duration
-        # this pid points to a unique phase name
+        # this pid points to a unique phase name, the left most column of timeline file
         self.phase_pid = phase_pid
+        # different threads and workers will be under phase, each worker will have its unique phase_tid
         self.phase_tid = phase_tid
+        # Actual process id
         self.pid = pid
-        # this tid points to a unique tid under phase
+        # Actual thread id tid
         self.tid = tid
         self.event_args = event_args
         self.node_id = node_id
+        # the phase name this event belongs to, this can also come from self._processes[phase_pid].name
         self.event_phase = event_phase
 
 
@@ -117,14 +85,6 @@ class TraceEventParser:
     def type(self):
         pass
 
-    """
-    if metadata event has process name,
-    we need to handle multiple nodes with same process name
-    _processes is mapping from pid to name for rest of the file
-    For multiple nodes, pid will be different/same for each node and name will also be same for each ndoe
-
-    """
-
     def _populate_process_info_for_metaevent(self, event):
         id = event["pid"]
         if event["name"] == "process_name":
@@ -136,6 +96,8 @@ class TraceEventParser:
                 self._processes[id] = ProcessInfo(id, process_name)
                 self._process_name_to_id[process_name] = id
             else:
+                # this looks like multinode scenario, where same phase is coming from different node
+                # we will tie this id to existing phase, any thread for this id would be related to this phase
                 existing_id = self._process_name_to_id[process_name]
                 self._processes[id] = ProcessInfo(existing_id, process_name)
 
@@ -145,7 +107,7 @@ class TraceEventParser:
             t_id = event["tid"]
 
         elif phase_tid_default is not None:
-            # there is no thread mentioned and this is unique thread for pahse and node
+            # there is no thread mentioned and this is unique thread for phase and node
             # We will be generating a unique tid here and return this tid to be populated in event
             name = str(phase_tid_default) + "_node:" + node_id
             t_id = hash(name)
@@ -224,8 +186,7 @@ class TraceEventParser:
                 tid,
             )
             self._trace_events.append(t_event)
-        # TOD ignoring B and E events for now.
-        # need to handle it
+        # TODO ignoring B and E events for now. Need to check to handle it
         if phase_type == "B":
             pid = event["pid"]
             if pid not in self._pid_stacks:
@@ -344,11 +305,3 @@ class TraceEventParser:
 
     def clear_events(self):
         self._trace_events = []
-
-    # TODO this will merge
-    # def merge(otherTraceEventParser):
-    #    if not isinstance(otherTraceEventParser, TraceEventParser):
-    #        raise Exception(f"otherTraceEventParser is of type: {instance(otherTraceEventParser)}. Expected type:TraceEventParser"
-
-    # def dumpEventsToTimelineJson():
-    #    #TODO implement
