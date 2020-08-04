@@ -209,6 +209,7 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
 
 @pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True, False])
+@pytest.mark.skip(reason="Takes too long. Time it and and optimize the test")
 def test_keras_v2_save_all(script_mode, eager_mode):
     # Test save all through hook config
     json_file_contents = """
