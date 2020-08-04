@@ -51,7 +51,7 @@ def helper_test_keras_v2_gradienttape(
         opt = tf.keras.optimizers.RMSprop()
         cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
-        n_epochs = 2
+        n_epochs = 1
         if script_mode:
             if json_file_contents == "{}":
                 hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
@@ -186,7 +186,7 @@ def test_keras_v2_save_all(script_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0,1,2,3",
+                    "save_steps": "0",
                     "save_all": true
                 }
             }
