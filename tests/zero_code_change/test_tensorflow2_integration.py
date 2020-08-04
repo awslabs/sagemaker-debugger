@@ -65,7 +65,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
                 loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
             )
             history = model.fit(
-                x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
+                x_train, y_train, batch_size=64, epochs=1, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
@@ -75,7 +75,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
                 metrics=["accuracy"],
                 run_eagerly=eager_mode,
             )
-            history = model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.2)
+            history = model.fit(x_train, y_train, batch_size=64, epochs=1, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
@@ -144,7 +144,12 @@ def helper_test_keras_v2_json_config(
         if is_tf_2_2():
             assert len(trial.tensor_names(collection="inputs")) > 0
             assert len(trial.tensor_names(collection="outputs")) > 0
-            assert len(trial.tensor_names(collection="layers")) > 0
+            if "dense_layers" in json_file_contents:
+                # Only assert for test_keras_v2_multi_collections
+                # which defines this custom collection
+                assert len(trial.tensor_names(collection="dense_layers")) > 0
+            else:
+                assert len(trial.tensor_names(collection="dense_layers")) == 0
 
 
 @pytest.mark.parametrize("script_mode", [False])
@@ -189,7 +194,10 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
                         "CollectionName": "inputs"
                     },
                     {
-                        "CollectionName": "layers"
+                        "CollectionName": "dense_layers",
+                        "CollectionParameters": {
+                            "include_regex": ".*dense.*"
+                        }
                     }
                 ]
             }
@@ -208,7 +216,7 @@ def test_keras_v2_save_all(script_mode, eager_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0,1,2,3",
+                    "save_steps": "0",
                     "save_all": true
                 }
             }
