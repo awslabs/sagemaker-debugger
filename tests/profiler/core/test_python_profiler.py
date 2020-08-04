@@ -6,9 +6,11 @@ import shutil
 import time
 
 # Third Party
+import boto3
 import pytest
 
 # First Party
+from smdebug.core.access_layer.utils import is_s3
 from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
@@ -51,9 +53,9 @@ def reset_python_profiler_dir(cprofile_dir, pyinstrument_dir):
     shutil.rmtree(pyinstrument_dir, ignore_errors=True)
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def bucket_prefix():
-    return "s3://smdebug-testing/resources/python_profile"
+    return f"s3://smdebug-testing/resources/python_profile/{int(time.time())}"
 
 
 @pytest.fixture(scope="session")
@@ -89,6 +91,15 @@ def _analysis_set_up(python_profiler):
     python_profiler.start_profiling(2)
     time_function()
     python_profiler.stop_profiling()
+
+
+def _upload_s3_folder(bucket, key, folder):
+    s3_client = boto3.client("s3")
+    for root, _, files in os.walk(folder):
+        for file in files:
+            dir = os.path.basename(root)
+            full_key = os.path.join(key, dir, file)
+            s3_client.upload_file(os.path.join(root, file), bucket, full_key)
 
 
 @pytest.mark.parametrize("steps", [(1, 2), (1, 5)])
@@ -132,8 +143,10 @@ def test_pyinstrument_profiling(pyinstrument_python_profiler, steps, pyinstrumen
             assert json.load(f)  # validate output file
 
 
-@pytest.mark.parametrize("s3", [True, False])
-def test_cprofile_analysis(cprofile_python_profiler, cprofile_dir, bucket_prefix, s3):
+@pytest.mark.parametrize("s3", [False, True])
+def test_cprofile_analysis(
+    cprofile_python_profiler, cprofile_dir, bucket_prefix, test_framework, s3
+):
     """
     This test is meant to test that the cProfile analysis retrieves the correct step's stats based on the specified
     interval. Stats are either retrieved from s3 or generated manually through python profiling.
@@ -148,6 +161,9 @@ def test_cprofile_analysis(cprofile_python_profiler, cprofile_dir, bucket_prefix
         # Do analysis and use those stats.
         _analysis_set_up(cprofile_python_profiler)
         python_profile_analysis = cProfileAnalysis(local_profile_dir=cprofile_dir)
+        _, bucket, prefix = is_s3(bucket_prefix)
+        key = os.path.join(prefix, "framework", test_framework, CPROFILE_NAME)
+        _upload_s3_folder(bucket, key, cprofile_dir)
 
     # Test that step_function call is recorded in received stats, but not time_function.
     assert len(python_profile_analysis.python_profile_stats) == 2
@@ -170,8 +186,10 @@ def test_cprofile_analysis(cprofile_python_profiler, cprofile_dir, bucket_prefix
     assert all(["step_function" not in stat.function_name for stat in function_stats_list])
 
 
-@pytest.mark.parametrize("s3", [True, False])
-def test_pyinstrument_analysis(pyinstrument_python_profiler, pyinstrument_dir, bucket_prefix, s3):
+@pytest.mark.parametrize("s3", [False, True])
+def test_pyinstrument_analysis(
+    pyinstrument_python_profiler, pyinstrument_dir, test_framework, bucket_prefix, s3
+):
     """
     This test is meant to test that the pyinstrument analysis retrieves the correct step's stats based on the specified
     interval. Stats are either retrieved from s3 or generated manually through python profiling.
@@ -186,6 +204,9 @@ def test_pyinstrument_analysis(pyinstrument_python_profiler, pyinstrument_dir, b
         # Do analysis and use those stats.
         _analysis_set_up(pyinstrument_python_profiler)
         python_profile_analysis = PyinstrumentAnalysis(local_profile_dir=pyinstrument_dir)
+        _, bucket, prefix = is_s3(bucket_prefix)
+        key = os.path.join(prefix, "framework", test_framework, PYINSTRUMENT_NAME)
+        _upload_s3_folder(bucket, key, pyinstrument_dir)
 
     # Test that step_function call is recorded in received stats, but not time_function.
     assert len(python_profile_analysis.python_profile_stats) == 2
