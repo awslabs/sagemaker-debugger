@@ -99,7 +99,7 @@ def _upload_s3_folder(bucket, key, folder):
         for file in files:
             dir = os.path.basename(root)
             full_key = os.path.join(key, dir, file)
-            s3_client.upload(os.path.join(root, file), bucket, full_key)
+            s3_client.upload_file(os.path.join(root, file), bucket, full_key)
 
 
 @pytest.mark.parametrize("steps", [(1, 2), (1, 5)])
