@@ -192,6 +192,7 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
         file_read_requests = []
         for event_file in event_files:
             if event_file not in self._parsed_files:
+                self.logger.debug(f"Will request s3 object {event_file}")
                 file_read_requests.append(ReadObjectRequest(path=event_file))
 
         event_data_list = S3Handler.get_objects(file_read_requests)

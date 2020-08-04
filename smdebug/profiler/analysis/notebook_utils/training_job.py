@@ -59,8 +59,8 @@ class TrainingJob:
         last_job_status = ""
         last_secondary_status = ""
         while self.system_metrics_reader.get_timestamp_of_latest_available_file() == 0:
-            self.system_metrics_reader.refresh_event_file_list()
             print("Profiler data from system not available yet")
+            self.system_metrics_reader.refresh_event_file_list()
             p = self.describe_training_job()
 
             if "TrainingJobStatus" in p:
@@ -81,19 +81,15 @@ class TrainingJob:
         self.framework_metrics_reader = S3AlgorithmMetricsReader(self.profiler_s3_output_path)
 
         events = []
-        while (
-            self.framework_metrics_reader.get_timestamp_of_latest_available_file() == 0
-            or len(events) == 0
-        ):
-            self.framework_metrics_reader.refresh_event_file_list()
-            last_timestamp = self.framework_metrics_reader.get_timestamp_of_latest_available_file()
-            events = self.framework_metrics_reader.get_events(0, last_timestamp)
+        while self.framework_metrics_reader.get_timestamp_of_latest_available_file() == 0:
             print("Profiler data from framework not available yet")
+            self.framework_metrics_reader.refresh_event_file_list()
             time.sleep(10)
 
         print("\n\n Profiler data from framework is available")
+        last_timestamp = self.framework_metrics_reader.get_timestamp_of_latest_available_file()
         print(
-            f"Found {len(events)}, recorded framework annotations. Latest available timestamp microsseconds_since_epoch is:{last_timestamp} , human_readable_timestamp in utc:",
+            f"Found recorded framework annotations. Latest available timestamp microsseconds_since_epoch is:{last_timestamp} , human_readable_timestamp in utc:",
             us_since_epoch_to_human_readable_time(last_timestamp),
         )
 

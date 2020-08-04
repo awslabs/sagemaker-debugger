@@ -31,12 +31,12 @@ class StepHistogram:
     def _get_filtered_list(self, step_metrics):
         filtered_metrics = []
         available_metrics = list(step_metrics.keys())
-        print(f"select metrics:{self.select_metrics}")
-
+        print(f"Select metrics:{self.select_metrics}")
+        print(f"Available_metrics: {available_metrics}")
         for metric in self.select_metrics:
             r = re.compile(metric)
             filtered_metrics.extend(list(filter(r.search, available_metrics)))
-        print(f"filtered metrics:{filtered_metrics}")
+        print(f"Filtered metrics:{filtered_metrics}")
         # delete the keys which needs to be filtered out
         for key in available_metrics:
             if key not in filtered_metrics:
@@ -45,18 +45,30 @@ class StepHistogram:
 
     def _create_step_metrics(self, all_events, step_metrics={}):
         for event in all_events:
-            if event.event_name not in step_metrics:
-                step_metrics[event.event_name] = []
-            step_metrics[event.event_name].append(event.duration / MICROS)
+            if self.show_workers is True:
+                event_unique_id = f"{event.event_phase}-nodeid:{str(event.node_id)}"
+            else:
+                event_unique_id = event.event_phase
+            if event_unique_id not in step_metrics:
+                step_metrics[event_unique_id] = []
+            step_metrics[event_unique_id].append(event.duration / MICROS)
         step_metrics = self._get_filtered_list(step_metrics)
         return step_metrics
 
     """
     @param starttime: starttime_since_epoch_in_micros . Default vlaue is 0, which means that since start of training
     @param endtime: endtime_since_epoch_in_micros. Default value is metrics_reader.last_timestamp, i.e., latest timestamp seen by metrics_reader
+    @param select_metrics: specifies list of metrics regexes that will be shown
+    @param show_workers: if this is True, every metrics will be suffixed by node:$WORKER_ID, and for every metrics, graphs will be shown for each worker
     """
 
-    def plot(self, starttime=0, endtime=None, select_metrics=[".*"]):
+    def plot(
+        self,
+        starttime=0,
+        endtime=None,
+        select_metrics=["Step:ModeKeys", "Forward-node", "Backward\(post-forward\)-node"],
+        show_workers=True,
+    ):
         if endtime is None:
             endtime = self.metrics_reader.get_timestamp_of_latest_available_file()
         print(f"stephistogram getting events from {starttime} to {endtime}")
@@ -64,7 +76,7 @@ class StepHistogram:
         print(f"Total events fetched:{len(all_events)}")
         self.last_timestamp = endtime
         self.select_metrics = select_metrics
-
+        self.show_workers = show_workers
         self.step_metrics = self._create_step_metrics(all_events)
 
         self.create_plot(step_metrics=self.step_metrics)

@@ -1,6 +1,7 @@
 # First Party
 # Standard Library
 import json
+from builtins import Exception, dict, hash, sorted, str
 from datetime import datetime
 
 from smdebug.core.logger import get_logger
@@ -70,18 +71,20 @@ create unique threadname and thread id for each thread ( thread_name = (node_id+
 #     for each process name, create unique threadid_prefix (node_id + actual_pid)
 
 
-Device, name = (node - id, pid, thread_id)
+# Device, name = (node - id, pid, thread_id)
 
 
 class TraceEvent:
-    def __init__(self, ts, name, dur, pid, tid, event_args, node_id, event_phase="", pid=0, tid=0):
+    def __init__(
+        self, ts, name, dur, phase_pid, phase_tid, event_args, node_id, event_phase="", pid=0, tid=0
+    ):
         self.start_time = ts
         self.event_name = name
         self.duration = dur
         self.end_time = self.start_time + self.duration
         # this pid points to a unique phase name
-        self.phase_pid = pid
-        self.phase_tid = tid
+        self.phase_pid = phase_pid
+        self.phase_tid = phase_tid
         self.pid = pid
         # this tid points to a unique tid under phase
         self.tid = tid
@@ -129,24 +132,29 @@ class TraceEventParser:
             # we will check if this name has already been seen, possibly for previous node
             # if not seen, we will create an entry from id to name and reverse entry from name to id
             # otherwise, we will point the id to existing id.
-            if name not in self._process_name_to_id:
+            if process_name not in self._process_name_to_id:
                 self._processes[id] = ProcessInfo(id, process_name)
                 self._process_name_to_id[process_name] = id
             else:
-                existing_id = self._process_name_to_id[name]
+                existing_id = self._process_name_to_id[process_name]
                 self._processes[id] = ProcessInfo(existing_id, process_name)
 
     def _populate_thread_info_for_metaevent(self, event, node_id="", phase_tid_default=None):
         if event["name"] == "thread_name":
             name = event["args"]["name"] + "_node:" + node_id
             t_id = event["tid"]
-            pid = event["pid"]
-        elif phase_tid_default != None:
+
+        elif phase_tid_default is not None:
             # there is no thread mentioned and this is unique thread for pahse and node
             # We will be generating a unique tid here and return this tid to be populated in event
             name = str(phase_tid_default) + "_node:" + node_id
             t_id = hash(name)
-            pid = event["pid"]
+        else:
+            self.logger.info(
+                f"Event:{event} doesn't have thread_name nor phase_tid_default. Returning"
+            )
+            return
+        pid = event["pid"]
         if pid not in self._processes:
             self.logger.warn(
                 f"Did not find matching process for pid {pid}. Creating a process with name 'Unknown'"
