@@ -53,9 +53,9 @@ def reset_python_profiler_dir(cprofile_dir, pyinstrument_dir):
     shutil.rmtree(pyinstrument_dir, ignore_errors=True)
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def bucket_prefix():
-    return "s3://smdebug-testing/resources/python_profile"
+    return f"s3://smdebug-testing/resources/python_profile/{int(time.time())}"
 
 
 @pytest.fixture(scope="session")
