@@ -37,7 +37,7 @@ phases:
           docker tag smprofiler:gpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
           docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${new_tag} &&
           docker tag smprofiler:gpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG} &&
-          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG} &&
+          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-gpu:${TAG};
         done
       - docker stop ${container_id}
       - echo "Build CPU image"
@@ -56,7 +56,7 @@ phases:
           docker tag smprofiler:cpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
           docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${new_tag} &&
           docker tag smprofiler:cpu ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
-          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG} &&
+          docker push ${REGISTRY_ID}.dkr.ecr.${region}.amazonaws.com/smprofiler-cpu:${TAG};
         done
       - docker stop ${container_id}
   post_build:
