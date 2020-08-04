@@ -198,11 +198,12 @@ class TraceEventParser:
 
             event_args = event["args"] if "args" in event else None
             tid = phase_tid
-            # TODO revisit this
-            if "pid" in event_args:
-                pid = event_args["pid"]
-            if "thread_id" in event_args:
-                tid = event_args["thread_id"]
+            if event_args:
+                # Tf Detailed metrics emits pid and thread_id
+                if "pid" in event_args:
+                    pid = event_args["pid"]
+                if "thread_id" in event_args:
+                    tid = event_args["thread_id"]
 
             # TODO get actual pid of process
             # TODO get actual thread id of processes. depending on file type actual pid and tid may be into args
