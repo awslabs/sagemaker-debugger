@@ -17,11 +17,14 @@ class ThreadInfo:
         self.tid = tid
         self.thread_name = thread_name
 
-'''
+
+"""
 Thid contains infomation about all the phases and list of
 threads found for all these phase
-This needs to have node-id 
-'''
+This needs to have node-id
+"""
+
+
 class ProcessInfo:
     def __init__(self, id, name):
         self.id = id
@@ -34,40 +37,41 @@ class ProcessInfo:
     def get_thread_info(self, threadid):
         return self._threads[threadid]
 
-# TODO merge all event files 
+
+# TODO merge all event files
 # read all events of one file
-# create metadata map , 
+# create metadata map ,
 # read events of other file, update metadata map , update all events with new pids from new metadata map
 # dump metadata json
 # standardize time and update start and endtime ts
 # dump all event metadata
-# dump all events 
+# dump all events
 
-# step timeline distributed 
-# for every phase, Threadids are under that pid 
+# step timeline distributed
+# for every phase, Threadids are under that pid
 
-'''
-Metadata pid 
+"""
+Metadata pid
 Step , step-node-i+pid+tid ………
 Forward , forward-node-i + pid+tid
 Backward
-DataLoading 
+DataLoading
 
-create unique pid for each phase(), 
+create unique pid for each phase(),
 create unique threadname and thread id for each thread ( thread_name = (node_id+actual_pid+actual_thread_id+actual_thread_name))
-'''
+"""
 
 # each trace event parser has list of events
-# has list of processes info , each process info has list of threads 
+# has list of processes info , each process info has list of threads
 
 # while merging
-# new PRocess info = 
+# new PRocess info =
 #     go through each of exisiting process info
 #     for each process name, create unique threadid_prefix (node_id + actual_pid)
 
 
- 
-Device, name= (node-id,pid, thread_id)
+Device, name = (node - id, pid, thread_id)
+
 
 class TraceEvent:
     def __init__(self, ts, name, dur, pid, tid, event_args, node_id, event_phase="", pid=0, tid=0):
@@ -109,14 +113,15 @@ class TraceEventParser:
 
     def type(self):
         pass
-    
-    '''
+
+    """
     if metadata event has process name,
     we need to handle multiple nodes with same process name
     _processes is mapping from pid to name for rest of the file
     For multiple nodes, pid will be different/same for each node and name will also be same for each ndoe
 
-    '''
+    """
+
     def _populate_process_info_for_metaevent(self, event):
         id = event["pid"]
         if event["name"] == "process_name":
@@ -131,16 +136,16 @@ class TraceEventParser:
                 existing_id = self._process_name_to_id[name]
                 self._processes[id] = ProcessInfo(existing_id, process_name)
 
-    def _populate_thread_info_for_metaevent(self, event, node_id = "", phase_tid_default=None):
+    def _populate_thread_info_for_metaevent(self, event, node_id="", phase_tid_default=None):
         if event["name"] == "thread_name":
-            name = event["args"]["name"] + "_node:" + node_id 
+            name = event["args"]["name"] + "_node:" + node_id
             t_id = event["tid"]
             pid = event["pid"]
         elif phase_tid_default != None:
             # there is no thread mentioned and this is unique thread for pahse and node
             # We will be generating a unique tid here and return this tid to be populated in event
-            name = str(phase_tid_default) + "_node:" + node_id 
-            t_id = hash(name) 
+            name = str(phase_tid_default) + "_node:" + node_id
+            t_id = hash(name)
             pid = event["pid"]
         if pid not in self._processes:
             self.logger.warn(
@@ -149,7 +154,6 @@ class TraceEventParser:
             self._processes[pid] = ProcessInfo(pid, "Unknown")
         self._processes[pid].add_thread(t_id, name)
         return t_id
-
 
     def _populate_start_time(self, event):
         event_args = event["args"] if "args" in event else None
@@ -175,13 +179,15 @@ class TraceEventParser:
             # In nano seconds
             dur = event["dur"] * self._timescale_multiplier_for_ns
             name = event["name"]
-            pid = phase_pid = event["pid"] # this is phase pid
+            pid = phase_pid = event["pid"]  # this is phase pid
             if "tid" in event:
                 phase_tid = event["tid"]
             else:
                 # we will generate unique tid which is hash of 0 + node_id
-                phase_tid = self._populate_thread_info_for_metaevent(event, node_id=node_id, phase_tid_default=0)
-            
+                phase_tid = self._populate_thread_info_for_metaevent(
+                    event, node_id=node_id, phase_tid_default=0
+                )
+
             event_args = event["args"] if "args" in event else None
             tid = phase_tid
             # TODO revisit this
@@ -191,14 +197,25 @@ class TraceEventParser:
                 tid = event_args["thread_id"]
 
             # TODO get actual pid of process
-            # TODO get actual thread id of processes. depending on file type actual pid and tid may be into args 
-            phase_name = 'Unknown'
-            if phase_pid in self._processes
+            # TODO get actual thread id of processes. depending on file type actual pid and tid may be into args
+            phase_name = "Unknown"
+            if phase_pid in self._processes:
                 phase_name = self._processes[phase_pid].name
 
-            t_event = TraceEvent(start_time, name, dur, phase_pid, phase_tid, event_args, node_id, phase_name, pid, tid)
+            t_event = TraceEvent(
+                start_time,
+                name,
+                dur,
+                phase_pid,
+                phase_tid,
+                event_args,
+                node_id,
+                phase_name,
+                pid,
+                tid,
+            )
             self._trace_events.append(t_event)
-        #TOD ignoring B and E events for now. 
+        # TOD ignoring B and E events for now.
         # need to handle it
         if phase_type == "B":
             pid = event["pid"]
@@ -320,10 +337,9 @@ class TraceEventParser:
         self._trace_events = []
 
     # TODO this will merge
-    def merge(otherTraceEventParser):
-        if not isinstance(otherTraceEventParser, TraceEventParser):
-            raise Exception(f"otherTraceEventParser is of type: {instance(otherTraceEventParser)}. Expected type:TraceEventParser"
+    # def merge(otherTraceEventParser):
+    #    if not isinstance(otherTraceEventParser, TraceEventParser):
+    #        raise Exception(f"otherTraceEventParser is of type: {instance(otherTraceEventParser)}. Expected type:TraceEventParser"
 
-    def dumpEventsToTimelineJson():
-        #TODO implement
-
+    # def dumpEventsToTimelineJson():
+    #    #TODO implement

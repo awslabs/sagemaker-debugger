@@ -19,10 +19,11 @@ class SMProfilerEvents(TraceEventParser):
     def type(self):
         return self.type
 
+
 class TensorboardProfilerEvents(TraceEventParser):
     def __init__(self):
         super().__init__()
-    
+
     def type(self):
         return "TFProfilerMetrics"
 
@@ -179,6 +180,6 @@ def parse_tf_native_profiler_trace_json(log_dir):
 class HorovodProfilerEvents(TraceEventParser):
     def __init__(self):
         super().__init__()
-    
+
     def type(self):
         return "HorovodMetrics"

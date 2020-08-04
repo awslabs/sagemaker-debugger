@@ -37,7 +37,7 @@ class AlgorithmMetricsReader(MetricsReaderBase):
         self._HorovordEventsParser = HorovodProfilerEvents()
         self._event_parsers = [
             self._PythontimelineEventsParser,
-            self._DetailedframeworkEventsParser
+            self._DetailedframeworkEventsParser,
             self._TBEventsParser,
             self._HorovordEventsParser,
         ]
