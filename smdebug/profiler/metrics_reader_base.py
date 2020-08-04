@@ -93,6 +93,8 @@ class MetricsReaderBase:
         end_time = convert_utc_timestamp_to_microseconds(end_time, unit)
 
         event_files = self._get_event_files_in_the_range(start_time, end_time)
+        self.logger.info(f"Getting {len(event_files)} event files")
+        self.logger.debug(f"Getting event files : {event_files} ")
 
         # Download files and parse the events
         self.parse_event_files(event_files)

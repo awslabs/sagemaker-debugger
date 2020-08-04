@@ -12,13 +12,20 @@ from smdebug.profiler.trace_event_file_parser import TraceEventParser
 
 
 class SMProfilerEvents(TraceEventParser):
-    def __init__(self):
+    def __init__(self, type="PythontimelineMetrics"):
         super().__init__()
+        self.type = type
+
+    def type(self):
+        return self.type
 
 
 class TensorboardProfilerEvents(TraceEventParser):
     def __init__(self):
         super().__init__()
+
+    def type(self):
+        return "TFProfilerMetrics"
 
     def _populate_start_time(self, event):
         # TODO, not sure if we can implement this right now
@@ -173,3 +180,6 @@ def parse_tf_native_profiler_trace_json(log_dir):
 class HorovodProfilerEvents(TraceEventParser):
     def __init__(self):
         super().__init__()
+
+    def type(self):
+        return "HorovodMetrics"
