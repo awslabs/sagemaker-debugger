@@ -31,11 +31,13 @@ class AlgorithmMetricsReader(MetricsReaderBase):
     def __init__(self, use_in_memory_cache=False):
         super().__init__(use_in_memory_cache)
         self.prefix = DEFAULT_PREFIX
-        self._SMEventsParser = SMProfilerEvents()
+        self._PythontimelineEventsParser = SMProfilerEvents()
+        self._DetailedframeworkEventsParser = SMProfilerEvents(type="DetailedframeworkMetrics")
         self._TBEventsParser = TensorboardProfilerEvents()
         self._HorovordEventsParser = HorovodProfilerEvents()
         self._event_parsers = [
-            self._SMEventsParser,
+            self._PythontimelineEventsParser,
+            self._DetailedframeworkEventsParser
             self._TBEventsParser,
             self._HorovordEventsParser,
         ]
@@ -117,9 +119,9 @@ class AlgorithmMetricsReader(MetricsReaderBase):
 
     def _get_event_parser(self, filename):
         if PYTHONTIMELINE_SUFFIX in filename:
-            return self._SMEventsParser
+            return self._PythontimelineEventsParser
         if MODELTIMELINE_SUFFIX in filename:
-            return self._SMEventsParser
+            return self._DetailedframeworkEventsParser
         if TENSORBOARDTIMELINE_SUFFIX in filename:
             return self._TBEventsParser
         if HOROVODTIMELINE_SUFFIX in filename:
