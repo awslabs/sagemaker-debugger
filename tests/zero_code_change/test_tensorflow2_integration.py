@@ -20,12 +20,39 @@ import argparse
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
+from tensorflow.python.keras.engine import data_adapter
 from tests.tensorflow2.utils import is_tf_2_2
 from tests.utils import SagemakerSimulator
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
+
+SMDEBUG_PREFIX = "smdebug_"
+
+
+class CustomClassifierModel(tf.keras.models.Sequential):
+    def train_step(self, data):
+        data = data_adapter.expand_1d(data)
+        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)
+            loss = self.compiled_loss(y, y_pred, sample_weight, regularization_losses=self.losses)
+        trainable_variables = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, trainable_variables))
+
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        result_dict = {m.name: m.result() for m in self.metrics}
+        result_dict.update({f"{SMDEBUG_PREFIX}y": y})
+        result_dict.update({f"{SMDEBUG_PREFIX}gradients": y})
+
+        # to pass gradients and labels to the hook, add logs with the prefix SMDEBUG_
+        # For examples:
+        # To save labels: the key will be smdebug_y
+        # To save gradients: the key will be smdebug_gradients
+        return result_dict
 
 
 def get_keras_model_v2():
@@ -98,14 +125,24 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
 
 
 def helper_test_keras_v2_json_config(
-    json_file_contents, script_mode: bool = False, eager_mode: bool = True
+    json_file_contents, script_mode: bool = False, eager_mode: bool = True, custom_classifier=False
 ):
     """ Tests ZCC with custom hook configs """
     smd.del_hook()
     tf.keras.backend.clear_session()
     enable_tb = False if tf.__version__ == "2.0.2" else True
     with SagemakerSimulator(json_file_contents=json_file_contents, enable_tb=enable_tb) as sim:
-        model = get_keras_model_v2()
+        if custom_classifier:
+            model = CustomClassifierModel(
+                [
+                    tf.keras.layers.Flatten(input_shape=(28, 28)),
+                    tf.keras.layers.Dense(128, activation="relu"),
+                    tf.keras.layers.Dropout(0.2),
+                    tf.keras.layers.Dense(10, activation="softmax"),
+                ]
+            )
+        else:
+            model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
         x_train, x_test = x_train / 255, x_test / 255
 
@@ -204,6 +241,57 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
             """
     helper_test_keras_v2_json_config(
         script_mode=script_mode, eager_mode=eager_mode, json_file_contents=json_file_contents
+    )
+
+
+@pytest.mark.parametrize("script_mode", [False])
+@pytest.mark.parametrize("eager_mode", [True])
+def test_keras_v2_custom_train_step(script_mode, eager_mode):
+    # Test multiple collections included in hook json
+    json_file_contents = """
+            {
+                "S3OutputPath": "s3://sagemaker-test",
+                "LocalPath": "/opt/ml/output/tensors",
+                "HookParameters" : {
+                    "save_steps": "0",
+                    "include_workers": "one"
+                },
+                "CollectionConfigurations": [
+                    {
+                        "CollectionName": "gradients"
+                    },
+                    {
+                        "CollectionName": "weights"
+                    },
+                    {
+                        "CollectionName": "losses"
+                    },
+                    {
+                        "CollectionName": "biases"
+                    },
+                    {
+                        "CollectionName": "optimizer_variables"
+                    },
+                    {
+                        "CollectionName": "outputs"
+                    },
+                    {
+                        "CollectionName": "inputs"
+                    },
+                    {
+                        "CollectionName": "dense_layers",
+                        "CollectionParameters": {
+                            "include_regex": ".*dense.*"
+                        }
+                    }
+                ]
+            }
+            """
+    helper_test_keras_v2_json_config(
+        script_mode=script_mode,
+        eager_mode=eager_mode,
+        json_file_contents=json_file_contents,
+        custom_classifier=True,
     )
 
 
