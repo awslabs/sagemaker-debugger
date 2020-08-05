@@ -33,6 +33,11 @@ def setup_test():
     ]
     with open(dir_path + "/metadata.json", "w") as f:
         json.dump(mock_metadata, f)
+
+    # Write another metadata.json after s3 uploader has uploaded the file.
+    # SageMaker renames this file metadata.json.sagemaker-uploaded.
+    with open(dir_path + "/metadata.json.sagemaker-uploaded", "w") as f1:
+        json.dump(mock_metadata, f1)
     return dir_path, os.path.abspath("mock_config.json")
 
 
