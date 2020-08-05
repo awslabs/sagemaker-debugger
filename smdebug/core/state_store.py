@@ -11,6 +11,7 @@ from smdebug.core.config_constants import (
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
     METADATA_FILENAME,
+    METADATA_FILENAME_S3_UPLOADED,
     TRAINING_RUN,
 )
 from smdebug.core.logger import get_logger
@@ -26,7 +27,7 @@ class StateStore:
         checkpoint_files = []
         for child, _, files in os.walk(cp_dir):
             for file in files:
-                if file != METADATA_FILENAME:
+                if file != METADATA_FILENAME and file != METADATA_FILENAME_S3_UPLOADED:
                     checkpoint_files.append(os.path.join(child, file))
         return checkpoint_files
 
