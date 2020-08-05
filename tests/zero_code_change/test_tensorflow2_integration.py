@@ -20,6 +20,7 @@ import argparse
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
+from tests.tensorflow2.utils import is_tf_2_3
 from tests.utils import SagemakerSimulator
 
 # First Party
@@ -51,7 +52,8 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     smd.del_hook()
     tf.keras.backend.clear_session()
     if not eager_mode:
-        tf.compat.v1.disable_eager_execution()
+        # tf.compat.v1.disable_eager_execution()
+        pass
     enable_tb = False if tf.__version__ == "2.0.2" else True
     with SagemakerSimulator(enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
@@ -63,7 +65,10 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
             hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
             opt = hook.wrap_optimizer(opt)
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=eager_mode,
             )
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
@@ -102,7 +107,8 @@ def helper_test_keras_v2_json_config(
     smd.del_hook()
     tf.keras.backend.clear_session()
     if not eager_mode:
-        tf.compat.v1.disable_eager_execution()
+        # tf.compat.v1.disable_eager_execution()
+        pass
     enable_tb = False if tf.__version__ == "2.0.2" else True
     with SagemakerSimulator(json_file_contents=json_file_contents, enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
@@ -114,7 +120,10 @@ def helper_test_keras_v2_json_config(
             hook = smd.KerasHook.create_from_json_file()
             opt = hook.wrap_optimizer(opt)
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=eager_mode,
             )
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
@@ -134,7 +143,7 @@ def helper_test_keras_v2_json_config(
         trial = smd.create_trial(path=sim.out_dir)
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
-        if not eager_mode:
+        if not eager_mode and is_tf_2_3() is False:
             assert len(trial.tensor_names(collection="gradients")) > 0
         assert len(trial.tensor_names(collection="weights")) > 0
         assert len(trial.tensor_names(collection="losses")) > 0
