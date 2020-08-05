@@ -246,6 +246,7 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
 
 @pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True])
+@pytest.mark.skip
 def test_keras_v2_custom_train_step(script_mode, eager_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
