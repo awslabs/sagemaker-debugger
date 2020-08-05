@@ -95,7 +95,9 @@ class ProfilerConfigParser:
 
         try:
             local_path = config.get("localpath", BASE_FOLDER_DEFAULT)
-            file_max_size = int(config.get("rotatemaxfilesizeinbytes", MAX_FILE_SIZE_DEFAULT))
+            file_max_size = int(
+                float(config.get("rotatemaxfilesizeinbytes", MAX_FILE_SIZE_DEFAULT))
+            )
             file_close_interval = float(
                 config.get("rotatefilecloseintervalinseconds", CLOSE_FILE_INTERVAL_DEFAULT)
             )
