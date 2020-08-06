@@ -12,6 +12,7 @@ import argparse
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
 
 # First Party
 import smdebug.tensorflow as smd
@@ -31,7 +32,6 @@ def helper_test_keras_v2_gradienttape(
     """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
-    is_tf_2_2 = True if tf.__version__ == "2.2.0" else False
 
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
         model = tf.keras.models.Sequential(
@@ -102,7 +102,7 @@ def helper_test_keras_v2_gradienttape(
                 print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
-            if not is_tf_2_2:
+            if not (is_tf_2_2() or is_tf_2_3()):
                 assert not hook  # only supported on TF 2.2 and greater
                 return
             assert hook
@@ -112,7 +112,7 @@ def helper_test_keras_v2_gradienttape(
             assert len(trial.steps()) > 0, "Nothing saved at any step."
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
-            if is_tf_2_2 and default is False:
+            if is_tf_2_2() and default is False:
                 # Inputs and Outputs are not saved with the default collection configurations.
                 assert len(trial.tensor_names(collection="inputs")) > 0
                 assert len(trial.tensor_names(collection="outputs")) > 0
