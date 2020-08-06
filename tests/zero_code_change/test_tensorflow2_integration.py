@@ -21,7 +21,7 @@ import argparse
 import pytest
 import tensorflow.compat.v2 as tf
 from tensorflow.python.keras.engine import data_adapter
-from tests.tensorflow2.utils import is_tf_2_2
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
 from tests.utils import SagemakerSimulator
 
 # First Party
@@ -78,7 +78,14 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
     """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
+    if not eager_mode and is_tf_2_3() is False and is_tf_2_2() is False:
+        # v1 training APIs are currently not supported
+        # in ZCC mode with smdebug 0.9 and AWS TF 2.3.0
+        tf.compat.v1.disable_eager_execution()
     enable_tb = False if tf.__version__ == "2.0.2" else True
+    run_eagerly = None
+    if is_tf_2_2() or is_tf_2_3():
+        run_eagerly = eager_mode
     with SagemakerSimulator(enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
@@ -89,7 +96,10 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
             hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
             opt = hook.wrap_optimizer(opt)
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=run_eagerly,
             )
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=1, validation_split=0.2, callbacks=[hook]
@@ -100,7 +110,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
                 loss="sparse_categorical_crossentropy",
                 optimizer=opt,
                 metrics=["accuracy"],
-                run_eagerly=eager_mode,
+                run_eagerly=run_eagerly,
             )
             history = model.fit(x_train, y_train, batch_size=64, epochs=1, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
@@ -130,6 +140,13 @@ def helper_test_keras_v2_json_config(
     """ Tests ZCC with custom hook configs """
     smd.del_hook()
     tf.keras.backend.clear_session()
+    if not eager_mode and is_tf_2_3() is False and is_tf_2_2() is False:
+        # v1 training APIs are currently not supported
+        # in ZCC mode with smdebug 0.9 and AWS TF 2.3.0
+        tf.compat.v1.disable_eager_execution()
+    run_eagerly = None
+    if is_tf_2_2() or is_tf_2_3():
+        run_eagerly = eager_mode
     enable_tb = False if tf.__version__ == "2.0.2" else True
     with SagemakerSimulator(json_file_contents=json_file_contents, enable_tb=enable_tb) as sim:
         if custom_classifier:
@@ -151,7 +168,10 @@ def helper_test_keras_v2_json_config(
             hook = smd.KerasHook.create_from_json_file()
             opt = hook.wrap_optimizer(opt)
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=run_eagerly,
             )
             history = model.fit(
                 x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
@@ -162,7 +182,7 @@ def helper_test_keras_v2_json_config(
                 loss="sparse_categorical_crossentropy",
                 optimizer=opt,
                 metrics=["accuracy"],
-                run_eagerly=eager_mode,
+                run_eagerly=run_eagerly,
             )
             history = model.fit(x_train, y_train, epochs=2, batch_size=64, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
