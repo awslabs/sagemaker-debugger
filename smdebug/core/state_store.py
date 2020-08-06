@@ -41,15 +41,15 @@ class StateStore:
         if self._checkpoint_dir is not None:
             self._states_file = os.path.join(self._checkpoint_dir, METADATA_FILENAME)
             self._read_states_file()
-            try:
-                self._last_seen_checkpoint_files = self._get_checkpoint_files_in_dir(
-                    self._checkpoint_dir
-                )
-                self._last_seen_cp_files_size = [
-                    os.path.getsize(file) for file in self._last_seen_checkpoint_files
-                ]
-            except FileNotFoundError as e:
-                logger.warning(e)
+            self._last_seen_checkpoint_files = self._get_checkpoint_files_in_dir(
+                self._checkpoint_dir
+            )
+            for file in self._last_seen_checkpoint_files:
+                try:
+                    self._last_seen_cp_files_size.append(os.path.getsize(file))
+                except Exception as e:
+                    self._last_seen_cp_files_size.append(0)
+                    logger.warning(e)
 
     def _retrieve_path_to_checkpoint(self):
         """
@@ -100,31 +100,36 @@ class StateStore:
                 )
                 return False
             checkpoint_files = sorted(checkpoint_files)
-            try:
-                timestamps = [os.path.getmtime(file) for file in checkpoint_files]
-            except FileNotFoundError as e:
-                logger.warning(e)
+            timestamps = []
+            for file in checkpoint_files:
+                try:
+                    timestamps.append(os.path.getmtime(file))
+                except FileNotFoundError as e:
+                    timestamps.append(0)
+                    logger.warning(e)
             logger.info(
                 f"Timestamps of different checkpoint files {[i for i in zip(checkpoint_files, timestamps)]}"
             )
 
             if len(self._last_seen_checkpoint_files) != len(checkpoint_files):
                 self._last_seen_checkpoint_files = checkpoint_files
-                try:
-                    self._last_seen_cp_files_size = [
-                        os.path.getsize(file) for file in checkpoint_files
-                    ]
-                except FileNotFoundError as e:
-                    logger.warning(e)
+                for file in checkpoint_files:
+                    try:
+                        self._last_seen_cp_files_size.append(os.path.getsize(file))
+                    except FileNotFoundError as e:
+                        logger.warning(e)
                 logger.info(
                     f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
                 )
                 return True
             # check for each file if file size has changed
-            try:
-                cp_file_sizes = [os.path.getsize(file) for file in checkpoint_files]
-            except FileNotFoundError as e:
-                logger.warning(e)
+            cp_file_sizes = []
+            for file in checkpoint_files:
+                try:
+                    cp_file_sizes.append(os.path.getsize(file))
+                except FileNotFoundError as e:
+                    cp_file_sizes.append(0)
+                    logger.warning(e)
             i = 0
             for size in cp_file_sizes:
                 if size != self._last_seen_cp_files_size[i]:
@@ -140,12 +145,12 @@ class StateStore:
             for file in checkpoint_files:
                 if file != self._last_seen_checkpoint_files[i]:
                     self._last_seen_checkpoint_files = checkpoint_files
-                    try:
-                        self._last_seen_cp_files_size = [
-                            os.path.getsize(file) for file in checkpoint_files
-                        ]
-                    except FileNotFoundError as e:
-                        logger.warning(e)
+                    for file in checkpoint_files:
+                        try:
+                            self._last_seen_cp_files_size.append(os.path.getsize(file))
+                        except FileNotFoundError as e:
+                            self._last_seen_cp_files_size.append(0)
+                            logger.warning(e)
                     logger.info(
                         f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
                     )
