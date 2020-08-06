@@ -56,6 +56,9 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         # in ZCC mode with smdebug 0.9 and AWS TF 2.3.0
         tf.compat.v1.disable_eager_execution()
     enable_tb = False if tf.__version__ == "2.0.2" else True
+    if is_tf_2_3():
+        # Performance regression in the _make_histogram fn
+        enable_tb = False
     with SagemakerSimulator(enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
@@ -119,6 +122,9 @@ def helper_test_keras_v2_json_config(
         # in ZCC mode with smdebug 0.9 and AWS TF 2.3.0
         tf.compat.v1.disable_eager_execution()
     enable_tb = False if tf.__version__ == "2.0.2" else True
+    if is_tf_2_3():
+        # Performance regression in the _make_histogram fn
+        enable_tb = False
     with SagemakerSimulator(json_file_contents=json_file_contents, enable_tb=enable_tb) as sim:
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
