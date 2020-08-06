@@ -205,7 +205,7 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0",
+                    "save_steps": "0,1,2",
                     "include_workers": "one"
                 },
                 "CollectionConfigurations": [
@@ -254,7 +254,7 @@ def test_keras_v2_custom_train_step(script_mode, eager_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0",
+                    "save_steps": "0,1,2",
                     "include_workers": "one"
                 },
                 "CollectionConfigurations": [
@@ -306,7 +306,7 @@ def test_keras_v2_save_all(script_mode, eager_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0",
+                    "save_steps": "0,1,2",
                     "save_all": true
                 }
             }
