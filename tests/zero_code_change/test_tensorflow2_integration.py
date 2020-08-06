@@ -60,15 +60,15 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         model = get_keras_model_v2()
         (x_train, y_train), (x_test, y_test) = get_keras_data()
         x_train, x_test = x_train / 255, x_test / 255
+        run_eagerly = None
+        if is_tf_2_3():
+            # Test eager and non eager mode for v2
+            run_eagerly = eager_mode
 
         opt = tf.keras.optimizers.RMSprop()
         if script_mode:
             hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
             opt = hook.wrap_optimizer(opt)
-            run_eagerly = None
-            if is_tf_2_3():
-                # Test eager and non eager mode for v2
-                run_eagerly = eager_mode
             model.compile(
                 loss="sparse_categorical_crossentropy",
                 optimizer=opt,
@@ -81,7 +81,10 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=run_eagerly,
             )
             history = model.fit(x_train, y_train, batch_size=64, epochs=2, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
@@ -122,13 +125,13 @@ def helper_test_keras_v2_json_config(
         x_train, x_test = x_train / 255, x_test / 255
 
         opt = tf.keras.optimizers.RMSprop()
+        run_eagerly = None
+        if is_tf_2_3():
+            # Test eager and non eager mode for v2
+            run_eagerly = eager_mode
         if script_mode:
             hook = smd.KerasHook.create_from_json_file()
             opt = hook.wrap_optimizer(opt)
-            run_eagerly = None
-            if is_tf_2_3():
-                # Test eager and non eager mode for v2
-                run_eagerly = eager_mode
             model.compile(
                 loss="sparse_categorical_crossentropy",
                 optimizer=opt,
@@ -141,7 +144,10 @@ def helper_test_keras_v2_json_config(
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
             model.compile(
-                loss="sparse_categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+                loss="sparse_categorical_crossentropy",
+                optimizer=opt,
+                metrics=["accuracy"],
+                run_eagerly=run_eagerly,
             )
             history = model.fit(x_train, y_train, epochs=2, batch_size=64, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
