@@ -12,7 +12,7 @@ import argparse
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
-from tests.tensorflow2.utils import is_tf_2_2
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
 
 # First Party
 import smdebug.tensorflow as smd
@@ -26,7 +26,9 @@ def get_keras_data():
     return (x_train, y_train), (x_test, y_test)
 
 
-def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_contents="{}"):
+def helper_test_keras_v2_gradienttape(
+    script_mode: bool = False, json_file_contents="{}", default=False
+):
     """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
@@ -49,7 +51,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
         opt = tf.keras.optimizers.RMSprop()
         cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
-        n_epochs = 2
+        n_epochs = 1
         if script_mode:
             if json_file_contents == "{}":
                 hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
@@ -100,7 +102,7 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
                 print(log)
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
-            if not is_tf_2_2():
+            if not (is_tf_2_2() or is_tf_2_3()):
                 assert not hook  # only supported on TF 2.2 and greater
                 return
             assert hook
@@ -110,12 +112,23 @@ def helper_test_keras_v2_gradienttape(script_mode: bool = False, json_file_conte
             assert len(trial.steps()) > 0, "Nothing saved at any step."
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
+            if is_tf_2_2() and default is False:
+                # Inputs and Outputs are not saved with the default collection configurations.
+                assert len(trial.tensor_names(collection="inputs")) > 0
+                assert len(trial.tensor_names(collection="outputs")) > 0
+                assert trial.tensor_names(collection="outputs") == ["predictions"]
+                if "dense_layers" in json_file_contents:
+                    # Only assert for test_keras_v2_multi_collections
+                    # which defines this custom collection
+                    assert len(trial.tensor_names(collection="dense_layers")) > 0
+                else:
+                    assert len(trial.tensor_names(collection="dense_layers")) == 0
 
 
 @pytest.mark.parametrize("script_mode", [False])
 def test_keras_v2_default(script_mode):
     # Test default ZCC behavior
-    helper_test_keras_v2_gradienttape(script_mode=script_mode)
+    helper_test_keras_v2_gradienttape(script_mode=script_mode, default=True)
 
 
 @pytest.mark.parametrize("script_mode", [False])
@@ -144,6 +157,18 @@ def test_keras_v2_multi_collections(script_mode):
                     },
                     {
                         "CollectionName": "optimizer_variables"
+                    },
+                    {
+                        "CollectionName": "outputs"
+                    },
+                    {
+                        "CollectionName": "inputs"
+                    },
+                    {
+                        "CollectionName": "dense_layers",
+                        "CollectionParameters": {
+                            "include_regex": ".*dense.*"
+                        }
                     }
                 ]
             }
@@ -161,7 +186,7 @@ def test_keras_v2_save_all(script_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0,1,2,3",
+                    "save_steps": "0",
                     "save_all": true
                 }
             }
