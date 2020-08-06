@@ -139,7 +139,7 @@ def helper_test_keras_v2_json_config(
                 run_eagerly=run_eagerly,
             )
             history = model.fit(
-                x_train, y_train, batch_size=64, epochs=2, validation_split=0.2, callbacks=[hook]
+                x_train, y_train, batch_size=64, epochs=1, validation_split=0.2, callbacks=[hook]
             )
             test_scores = model.evaluate(x_test, y_test, verbose=2, callbacks=[hook])
         else:
@@ -149,7 +149,7 @@ def helper_test_keras_v2_json_config(
                 metrics=["accuracy"],
                 run_eagerly=run_eagerly,
             )
-            history = model.fit(x_train, y_train, epochs=2, batch_size=64, validation_split=0.2)
+            history = model.fit(x_train, y_train, epochs=1, batch_size=64, validation_split=0.2)
             test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
@@ -183,7 +183,7 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_interval": "2",
+                    "save_steps": "0",
                     "include_workers": "all"
                 },
                 "CollectionConfigurations": [
@@ -219,7 +219,7 @@ def test_keras_v2_save_all(script_mode, eager_mode):
                 "S3OutputPath": "s3://sagemaker-test",
                 "LocalPath": "/opt/ml/output/tensors",
                 "HookParameters" : {
-                    "save_steps": "0,1,2,3",
+                    "save_steps": "0",
                     "save_all": true
                 }
             }
