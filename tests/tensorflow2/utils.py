@@ -15,3 +15,9 @@ def is_tf_2_2():
     if version.parse(tf.__version__) >= version.parse("2.2.0"):
         return True
     return False
+
+
+def is_tf_2_3():
+    if version.parse(tf.__version__) == version.parse("2.3.0"):
+        return True
+    return False
