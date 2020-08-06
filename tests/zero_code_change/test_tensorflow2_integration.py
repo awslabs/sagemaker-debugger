@@ -154,6 +154,8 @@ def helper_test_keras_v2_json_config(
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
         if not eager_mode and is_tf_2_3() is False:
+            # Gradients are currently not saved in ZCC mode with AWS TF 2.3.0
+            # and smdebug 0.9
             assert len(trial.tensor_names(collection="gradients")) > 0
         assert len(trial.tensor_names(collection="weights")) > 0
         assert len(trial.tensor_names(collection="losses")) > 0
