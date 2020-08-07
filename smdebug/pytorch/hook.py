@@ -136,23 +136,25 @@ class Hook(CallbackHook):
         self.log_outstanding_backward_stats_and_reset()
 
     def log_outstanding_forward_stats_and_reset(self, log_step_event=True):
+        # we need to skip the last event for submodules because that is usually the parent event
+        # and already recorded above
+        for i in range(len(self.forward_modules_profile_stats) - 1):
+            event = self.log_trace_event(self.forward_modules_profile_stats[i])
+
         if self.parent_forward_event:
             self.log_trace_event(self.parent_forward_event)
         if self.step_event and log_step_event is True:
             self.log_trace_event(self.step_event)
             self.step_event = None
 
-        # we need to skip the last event for submodules because that is usually the parent event
-        # and already recorded above
-        for i in range(len(self.forward_modules_profile_stats) - 1):
-            event = self.log_trace_event(self.forward_modules_profile_stats[i])
         self.reset_forward_module_profile_stats()
 
     def log_outstanding_backward_stats_and_reset(self):
-        if self.parent_backward_event:
-            self.log_trace_event(self.parent_backward_event)
         for i in range(len(self.backward_modules_profile_stats)):
             event = self.log_trace_event(self.backward_modules_profile_stats[i])
+
+        if self.parent_backward_event:
+            self.log_trace_event(self.parent_backward_event)
         self.reset_backward_module_profile_stats()
 
     def _get_num_workers(self):
