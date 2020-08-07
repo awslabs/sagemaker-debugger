@@ -7,8 +7,13 @@ from datetime import datetime
 
 # First Party
 from smdebug.core.logger import get_logger
-from smdebug.profiler.profiler_constants import TF_METRICS_PREFIX
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    TENSORBOARDTIMELINE_SUFFIX,
+    TF_METRICS_PREFIX,
+)
 from smdebug.profiler.trace_event_file_parser import TraceEventParser
+from smdebug.profiler.utils import read_tf_profiler_metadata_file
 
 
 class SMProfilerEvents(TraceEventParser):
@@ -27,14 +32,10 @@ class TensorboardProfilerEvents(TraceEventParser):
     def type(self):
         return "TFProfilerMetrics"
 
-    def _populate_start_time(self, event):
-        # TODO, not sure if we can implement this right now
-        return
-
     def _get_trace_events_json(self, tracefile):
         try:
-            with open(tracefile) as json_data:
-                trace_json_data = json.load(json_data)
+            with gzip.GzipFile(tracefile, "r") as fin:
+                trace_json_data = json.loads(fin.read().decode("utf-8"))
         except Exception as e:
             self.logger.error(f"Can't open TF trace file {tracefile}: Exception {str(e)} ")
             return None
@@ -42,35 +43,27 @@ class TensorboardProfilerEvents(TraceEventParser):
             self.logger.error(f"The TF trace file {tracefile} does not contain traceEvents")
             return None
         trace_events_json = trace_json_data["traceEvents"]
+        _, start_time_in_micros, _ = read_tf_profiler_metadata_file(tracefile)
+        # the first time profiler.start() is called is considered the start time
+        # for TF profiler
+        metadata = []
+        args = {"start_time_since_epoch_in_micros": int(start_time_in_micros)}
+        json_dict = {"name": "process_name", "ph": "M", "pid": 0, "args": args}
+        metadata.append(json_dict)
+        args = {"sort_index": 0}
+        json_dict = {"name": "process_sort_index", "ph": "M", "pid": 0, "args": args}
+        metadata.append(json_dict)
+
+        # insert metadata at the beginning of trace events json
+        trace_events_json = metadata + trace_events_json
         return trace_events_json
-
-    def _get_trace_file(self, log_dir):
-        # file is dumped as .gz file. Extract the json file
-        latest_dir = max(
-            glob.glob(os.path.join(log_dir + "/plugins/profile", "*/")), key=os.path.getmtime
-        )
-
-        trace_json_file_gz = ""
-        for file in os.listdir(latest_dir):
-
-            if file.endswith(".gz"):
-                trace_json_file_gz = os.path.join(latest_dir, file)
-                break
-
-        trace_json_file = os.path.join(log_dir, "trace_file.json")
-
-        decompressedFile = gzip.GzipFile(trace_json_file_gz, "rb")
-        with open(trace_json_file, "w+") as outfile:
-            outfile.write(decompressedFile.read().decode("utf-8"))
-        outfile.close()
-
-        return trace_json_file
 
     def read_events_from_file(self, tracefile):
         trace_events_json = self._get_trace_events_json(tracefile)
 
-        for event in trace_events_json:
-            self._read_event(event)
+        if trace_events_json:
+            for event in trace_events_json:
+                self._read_event(event)
 
     def get_events_within_range(self, start_time: datetime, end_time: datetime):
         return None
@@ -110,71 +103,81 @@ class TensorboardProfilerEvents(TraceEventParser):
             training_annotation[phase].append([event.event_name, event.start_time, event.duration])
         return training_annotation
 
+    # TODO: The following function has to be revisited when
+    # AWS-TF forward/backward annotations are finalized.
+    def _dump_info_to_json(self, training_info, trace_json_file):
+        """
+        This function dumps the training info gathered into the
+        json file passed.
+        """
+        with open(trace_json_file, "r+") as f:
+            data = json.load(f)
+        f.close()
 
-def dumpInfoToTraceJson(training_info, trace_json_file):
-    """
-    This function dumps the training info gathered into the
-    json file passed.
-    """
-    with open(trace_json_file, "r+") as f:
-        data = json.load(f)
-    f.close()
+        for phase, metrics in training_info.items():
+            if not metrics:
+                get_logger("smdebug-profiler").error(
+                    f"No metrics captured after profiling for {phase}!"
+                )
+                continue
 
-    for phase, metrics in training_info.items():
-        if not metrics:
-            get_logger("smdebug-profiler").error(
-                f"No metrics captured after profiling for {phase}!"
-            )
-            continue
-
-        # Getting the min start_time to get the start_time
-        start = min(x[1] for x in metrics)
-        # Calculating the max end time using duration.
-        end = max(x[1] + x[2] for x in metrics)
-        phase = "BackwardPass" if phase != "ForwardPass" else phase
-        main_entry = {
-            "pid": "/" + phase,
-            "tid": phase,
-            "ph": "X",
-            "ts": start / 1000,
-            "dur": (end - start) / 1000,
-            "name": phase,
-            "args": {"group_id": phase, "long_name": phase},
-        }
-        data["traceEvents"].append(main_entry)
-
-        for idx, metrics in enumerate(metrics):
-            entry = {
+            # Getting the min start_time to get the start_time
+            start = min(x[1] for x in metrics)
+            # Calculating the max end time using duration.
+            end = max(x[1] + x[2] for x in metrics)
+            phase = "BackwardPass" if phase != "ForwardPass" else phase
+            main_entry = {
                 "pid": "/" + phase,
-                "tid": phase + "ops",
+                "tid": phase,
                 "ph": "X",
-                "args": {"group_id": phase, "long_name": metrics[0]},
-                "ts": metrics[1] / 1000,
-                "dur": metrics[2] / 1000,
-                "name": metrics[0],
+                "ts": start / 1000,
+                "dur": (end - start) / 1000,
+                "name": phase,
+                "args": {"group_id": phase, "long_name": phase},
             }
-            data["traceEvents"].append(entry)
+            data["traceEvents"].append(main_entry)
 
-    get_logger("smdebug-profiler").info(f"Dumping into file {trace_json_file}")
-    with open(trace_json_file, "w+") as outfile:
-        json.dump(data, outfile)
+            for idx, metrics in enumerate(metrics):
+                entry = {
+                    "pid": "/" + phase,
+                    "tid": phase + "ops",
+                    "ph": "X",
+                    "args": {"group_id": phase, "long_name": metrics[0]},
+                    "ts": metrics[1] / 1000,
+                    "dur": metrics[2] / 1000,
+                    "name": metrics[0],
+                }
+                data["traceEvents"].append(entry)
 
+        get_logger("smdebug-profiler").info(f"Dumping into file {trace_json_file}")
+        with open(trace_json_file, "w+") as outfile:
+            json.dump(data, outfile)
 
-def parse_tf_native_profiler_trace_json(log_dir):
-    """
-    Returns: Function returns a dictonary of
-            {"ForwardPass": [],  "ComputeGradient": [], "ApplyGradient": []}
-            The value is list of list. Each list is [opname, ts, duration]
+    # TODO: The following function has to be revisited when
+    # AWS-TF forward/backward annotations are finalized.
+    def parse_tf_native_profiler_trace_json(self, log_dir):
+        """
+        Returns: Function returns a dictonary of
+                {"ForwardPass": [],  "ComputeGradient": [], "ApplyGradient": []}
+                The value is list of list. Each list is [opname, ts, duration]
 
-    """
-    pf_events_obj = TensorboardProfilerEvents()
-    trace_json_file = pf_events_obj._get_trace_file(log_dir)
-    training_info = pf_events_obj.get_training_info(trace_json_file)
+        """
+        tf_profiler_folders = os.listdir(os.path.join(log_dir + "/plugins/profile"))
+        trace_json_files = []
+        for folder in tf_profiler_folders:
+            folderpath = os.path.join(log_dir + "/plugins/profile", folder)
+            for file in os.listdir(folderpath):
+                if file.endswith(".gz"):
+                    trace_json_files.append(os.path.join(folderpath, file))
 
-    # Dump gathered data into trace_json_file
-    dumpInfoToTraceJson(training_info, trace_json_file)
+        # get the latest file. TF annotations will be appended to this file
+        trace_json_file = max(glob.glob(trace_json_files), key=os.path.getmtime)
+        training_info = self.get_training_info(trace_json_file)
 
-    return training_info, trace_json_file
+        # Dump gathered data into trace_json_file
+        self._dump_info_to_json(training_info, trace_json_file)
+
+        return training_info, trace_json_file
 
 
 class HorovodProfilerEvents(TraceEventParser):

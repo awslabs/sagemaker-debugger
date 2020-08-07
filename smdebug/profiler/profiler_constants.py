@@ -6,7 +6,7 @@ DEFAULT_SYSTEM_PROFILER_PREFIX = "system"
 TRACE_DIRECTORY_FORMAT = "%Y%m%d%H"
 PYTHONTIMELINE_SUFFIX = "pythontimeline.json"
 MODELTIMELINE_SUFFIX = "model_timeline.json"
-TENSORBOARDTIMELINE_SUFFIX = "tensorboard_timeline.json"
+TENSORBOARDTIMELINE_SUFFIX = "trace.json.gz"
 HOROVODTIMELINE_SUFFIX = "horovod_timeline.json"
 
 """

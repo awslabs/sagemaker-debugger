@@ -15,7 +15,9 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profiler import PythonProfiler
+from smdebug.profiler.utils import stop_tf_profiler
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
@@ -93,6 +95,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Profiling vars
         self._log_dir = None
         self.is_profiling = False
+        self.tf_profiler_start_time_in_micros = 0
         self.warm_up_completed = False
 
     def _is_not_supported(self):
@@ -656,7 +659,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         if self.is_profiling:
             self.logger.info("Disabling profiler, reached end of training.")
-            tf_profiler.stop()
+            stop_tf_profiler(
+                tf_profiler=tf_profiler,
+                log_dir=self._log_dir,
+                start_time_us=self.tf_profiler_start_time_in_micros,
+            )
             if python_profiler:
                 python_profiler.stop_profiling()
             self.is_profiling = False
@@ -753,10 +760,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     tf_profiler.warmup()
                     self.warm_up_completed = True
                 tf_profiler.start(self._log_dir)
+                self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
                 self.is_profiling = True
         elif self.is_profiling:
             self.logger.info(f"Disabling TF profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}")
-            tf_profiler.stop()
+            stop_tf_profiler(
+                tf_profiler=tf_profiler,
+                log_dir=self._log_dir,
+                start_time_us=self.tf_profiler_start_time_in_micros,
+            )
             self.is_profiling = False
 
     def on_test_batch_begin(self, batch, logs=None):

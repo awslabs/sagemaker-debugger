@@ -30,7 +30,8 @@ class AlgorithmMetricsReader(MetricsReaderBase):
     # if there is not enough memory, use use_in_memory_cache to use S3 or disk as cache
     def __init__(self, use_in_memory_cache=False):
         super().__init__(use_in_memory_cache)
-        self.prefix = DEFAULT_PREFIX
+        self.prefix = "framework"
+        self._SMEventsParser = SMProfilerEvents()
         self._PythontimelineEventsParser = SMProfilerEvents()
         self._DetailedframeworkEventsParser = SMProfilerEvents(type="DetailedframeworkMetrics")
         self._TBEventsParser = TensorboardProfilerEvents()
@@ -131,7 +132,7 @@ class AlgorithmMetricsReader(MetricsReaderBase):
         return get_timestamp_from_tracefilename(event_file)
 
     def _get_event_file_regex(self):
-        return r"(.+)\.(json|csv)$"
+        return r"(.+)\.(json|csv|json.gz)$"
 
 
 class LocalAlgorithmMetricsReader(AlgorithmMetricsReader):
@@ -197,11 +198,15 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
 
         event_data_list = S3Handler.get_objects(file_read_requests)
         for event_data, event_file in zip(event_data_list, event_files):
-            event_string = event_data.decode("utf-8")
-            json_data = json.loads(event_string)
-            node_id = get_node_id_from_tracefilename(event_file)
-            self._get_event_parser(event_file).read_events_from_json_data(json_data, node_id)
-            self._parsed_files.add(event_file)
+            if event_file.endswith("json.gz"):
+                self._get_event_parser(event_file).read_events_from_file(event_file)
+                self._parsed_files.add(event_file)
+            else:
+                event_string = event_data.decode("utf-8")
+                json_data = json.loads(event_string)
+                node_id = get_node_id_from_tracefilename(event_file)
+                self._get_event_parser(event_file).read_events_from_json_data(json_data, node_id)
+                self._parsed_files.add(event_file)
 
     """
     Create a map of timestamp to filename

@@ -33,7 +33,8 @@ class ProcessInfo:
         self._threads = dict()
 
     def add_thread(self, threadid, thread_name):
-        self._threads[threadid] = ThreadInfo(threadid, thread_name)
+        if threadid not in self._threads:
+            self._threads[threadid] = ThreadInfo(threadid, thread_name)
 
     def get_thread_info(self, threadid):
         return self._threads[threadid]
@@ -105,7 +106,9 @@ class TraceEventParser:
         if event["name"] == "thread_name":
             name = event["args"]["name"] + "_node:" + node_id
             t_id = event["tid"]
-
+        elif event["name"] == "thread_sort_index":
+            name = "Unknown"
+            t_id = event["tid"]
         elif phase_tid_default is not None:
             # there is no thread mentioned and this is unique thread for phase and node
             # We will be generating a unique tid here and return this tid to be populated in event

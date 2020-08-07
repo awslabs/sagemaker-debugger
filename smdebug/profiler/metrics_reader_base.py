@@ -172,20 +172,16 @@ class MetricsReaderBase:
             x for x in S3Handler.list_prefix(list_dir) if re.search(self._get_event_file_regex(), x)
         ]
         for event_file in event_files:
-            timestamp = self._get_timestamp_from_filename(event_file)
+            event_file_full_path = f"s3://{list_dir.bucket}/{event_file}"
+            timestamp = self._get_timestamp_from_filename(event_file_full_path)
             if timestamp is None:
                 self.logger.debug(f"Unable to find timestamp from event file name {event_file}.")
                 continue
             if timestamp in self._timestamp_to_filename:
-                if (
-                    f"s3://{list_dir.bucket}/{event_file}"
-                    not in self._timestamp_to_filename[timestamp]
-                ):
-                    self._timestamp_to_filename[timestamp].append(
-                        f"s3://{list_dir.bucket}/{event_file}"
-                    )
+                if event_file_full_path not in self._timestamp_to_filename[timestamp]:
+                    self._timestamp_to_filename[timestamp].append(event_file_full_path)
             else:
-                self._timestamp_to_filename[timestamp] = [f"s3://{list_dir.bucket}/{event_file}"]
+                self._timestamp_to_filename[timestamp] = [event_file_full_path]
         for timestamp in self._timestamp_to_filename:
             self._timestamp_to_filename[timestamp].sort()
         self._update_start_after_prefix()

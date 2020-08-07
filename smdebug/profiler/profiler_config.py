@@ -62,9 +62,11 @@ class ProfileRange:
     def has_time_range(self):
         return self.start_time_in_sec or self.duration_in_sec
 
-    def can_start_detailed_profiling(self, current_step, current_time=time.time()):
+    def can_start_detailed_profiling(self, current_step, current_time=None):
         """Determine whether the values from the config are valid for detailed profiling.
         """
+        if current_time is None:
+            current_time = time.time()
         if self.has_step_range():
             if not self.start_step:
                 self.start_step = current_step

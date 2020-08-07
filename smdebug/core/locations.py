@@ -157,6 +157,20 @@ class TraceFileLocation:
         return log_dir
 
     @staticmethod
+    def get_tf_profiling_metadata_file(base_folder, start_time_us, end_time_us):
+        metadata_file = os.path.join(
+            base_folder,
+            get_node_id()
+            + "_"
+            + str(int(round(start_time_us)))
+            + "_"
+            + str(int(round(end_time_us)))
+            + ".metadata",
+        )
+        ensure_dir(metadata_file, is_file=True)
+        return metadata_file
+
+    @staticmethod
     def get_python_profiling_stats_dir(
         base_folder,
         framework,

@@ -4,12 +4,21 @@ The Enum will indicate the unit in which timestamp is provided.
 """
 # Standard Library
 import re
+import time
 from datetime import datetime
 from distutils.util import strtobool
 from enum import Enum
+from pathlib import Path
+
+# Third Party
+from botocore.exceptions import ClientError
 
 # First Party
+from smdebug.core.access_layer.file import TSAccessFile
+from smdebug.core.access_layer.s3 import TSAccessS3
+from smdebug.core.access_layer.s3handler import ListRequest, S3Handler, is_s3
 from smdebug.core.logger import get_logger
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 
 logger = get_logger()
 
@@ -70,6 +79,17 @@ def convert_utc_datetime_to_nanoseconds(timestamp_datetime: datetime):
     )
 
 
+def is_valid_tfprof_tracefilename(filename: str) -> bool:
+    """
+    Ensure that the tracefilename has a valid format.
+    $ENV_BASE_FOLDER/framework/tensorflow/detailed_profiling/$START_TIME_YYYYMMDDHR/$STEP_NUM/plugins/profile/$HOSTNAME.trace.json.gz
+
+    The filename should have extension .json.gz
+
+    """
+    return filename.endswith("json.gz") and "tensorflow/detailed_profiling" in filename
+
+
 def is_valid_tracefilename(filename: str) -> bool:
     """
     Ensure that the tracefilename has a valid format.
@@ -93,8 +113,12 @@ def get_node_id_from_tracefilename(filename: str) -> str:
 
     The function extracts and returns the {$ENV_NODE_ID} from file.
     """
-    filename = filename.split("/")[-1]
-    return filename.split("_")[1] if is_valid_tracefilename(filename) else ""
+    if is_valid_tracefilename(filename):
+        filename = filename.split("/")[-1]
+        return filename.split("_")[1]
+    else:
+        node_id, _, _ = read_tf_profiler_metadata_file(filename)
+        return node_id
 
 
 def get_node_id_from_system_profiler_filename(filename: str) -> str:
@@ -121,8 +145,12 @@ def get_timestamp_from_tracefilename(filename) -> int:
     The timestamps are used to determine whether an event is available in this this file. If the file name is not
     valid, we will written timestamp as 0.
     """
-    filename = filename.split("/")[-1]
-    return int(filename.split("_")[0] if is_valid_tracefilename(filename) else "0")
+    if is_valid_tracefilename(filename):
+        filename = filename.split("/")[-1]
+        return int(filename.split("_")[0])
+    else:
+        _, _, timestamp = read_tf_profiler_metadata_file(filename)
+        return int(timestamp)
 
 
 def get_utctimestamp_us_since_epoch_from_system_profiler_file(filename) -> int:
@@ -158,3 +186,70 @@ def str2bool(v):
 def us_since_epoch_to_human_readable_time(us_since_epoch):
     dt = datetime.fromtimestamp(us_since_epoch / 1e6)
     return dt.strftime("%Y-%m-%dT%H:%M:%S:%f")
+
+
+def write_tf_profiler_metadata_file(file_path):
+    if not file_path.endswith(".metadata"):
+        return
+    s3, bucket_name, key_name = is_s3(file_path)
+    if s3:
+        writer = TSAccessS3(bucket_name, key_name, binary=False)
+    else:
+        writer = TSAccessFile(file_path, "a+")
+    writer.flush()
+    try:
+        writer.close()
+    except OSError:
+        """
+        In the case of distributed training in local mode,
+        another worker may have already moved the END_OF_JOB file
+        from the /tmp directory.
+        """
+
+
+def read_tf_profiler_metadata_file(file_path):
+    if not is_valid_tfprof_tracefilename(file_path):
+        return "", "0", "0"
+    s3, bucket_name, key_name = is_s3(file_path)
+    if s3:
+        try:
+            folder_name = "/".join(key_name.split("/")[:-4])
+            request = ListRequest(bucket_name, folder_name)
+            file_available = S3Handler.list_prefixes([request])[0]
+            if len(file_available) > 0:
+                metadata_filename = list(filter(lambda x: ".metadata" in x, file_available))
+                if len(metadata_filename) > 0:
+                    metadata_filename = metadata_filename[0]
+                    metadata_filename = metadata_filename.split("/")[-1]
+                    node_id, start, end = str(metadata_filename).split("_")
+                    return node_id, start, end.split(".")[0]
+                else:
+                    return "", "0", "0"
+            else:
+                return "", "0", "0"
+        except ClientError as ex:
+            status_code = ex.response["ResponseMetadata"]["HTTPStatusCode"]
+            logger.info(f"Client error occurred : {ex}")
+            if status_code.startswith("4"):
+                raise ex
+            else:
+                return "", "0", "0"
+    else:
+        folder_name = "/".join(file_path.split("/")[:-4])
+        metadata_filename = list(Path(folder_name).rglob("*.metadata"))
+        if len(metadata_filename) > 0:
+            metadata_filename = metadata_filename[0].name
+            node_id, start, end = str(metadata_filename).split("_")
+            return node_id, start, end.split(".")[0]
+        else:
+            return "", "0", "0"
+
+
+def stop_tf_profiler(tf_profiler, log_dir, start_time_us):
+    from smdebug.core.locations import TraceFileLocation
+
+    tf_profiler.stop()
+    metadata_file = TraceFileLocation.get_tf_profiling_metadata_file(
+        log_dir, start_time_us, time.time() * CONVERT_TO_MICROSECS
+    )
+    write_tf_profiler_metadata_file(metadata_file)
