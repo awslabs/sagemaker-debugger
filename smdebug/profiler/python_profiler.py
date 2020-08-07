@@ -16,6 +16,7 @@ from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
     CPROFILE_STATS_FILENAME,
+    PYINSTRUMENT_HTML_FILENAME,
     PYINSTRUMENT_JSON_FILENAME,
     PYINSTRUMENT_NAME,
 )
@@ -185,7 +186,6 @@ class PyinstrumentPythonProfiler(PythonProfiler):
     """
 
     name = PYINSTRUMENT_NAME
-    stats_filename = PYINSTRUMENT_JSON_FILENAME
 
     def _reset_profiler(self):
         """Reset profiler and corresponding attributes to defaults
@@ -208,9 +208,15 @@ class PyinstrumentPythonProfiler(PythonProfiler):
         """
         stats_file_path = os.path.join(stats_dir, PYINSTRUMENT_JSON_FILENAME)
         get_logger("smdebug-profiler").info(f"Dumping pyinstrument stats to {stats_file_path}.")
-
         session = self._profiler.last_session
         json_stats = JSONRenderer().render(session)
         get_logger("smdebug-profiler").info(f"JSON stats collected for pyinstrument: {json_stats}.")
         with open(stats_file_path, "w") as json_data:
             json_data.write(json_stats)
+
+        html_file_path = os.path.join(stats_dir, PYINSTRUMENT_HTML_FILENAME)
+        get_logger("smdebug-profiler").info(
+            f"Dumping pyinstrument output html to {html_file_path}."
+        )
+        with open(html_file_path, "w") as html_data:
+            html_data.write(self._profiler.output_html())

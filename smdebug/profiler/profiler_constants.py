@@ -56,5 +56,6 @@ TF_METRICS_PREFIX = "aws_marker-"
 
 CPROFILE_STATS_FILENAME = "python_stats"
 PYINSTRUMENT_JSON_FILENAME = "python_stats.json"
+PYINSTRUMENT_HTML_FILENAME = "python_stats.html"
 CPROFILE_NAME = "cProfile"
 PYINSTRUMENT_NAME = "pyinstrument"

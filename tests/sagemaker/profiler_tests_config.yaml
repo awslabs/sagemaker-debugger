@@ -63,7 +63,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"StartStep\": \"1\"}"
+        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
         UsePyinstrument: "True"
         RotateMaxFileSizeInBytes: "12485760.34"
         RotateFileCloseIntervalInSeconds: "100.45"
@@ -71,7 +71,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 11
-        python_stats_file_count: 3
+        python_stats_file_count: 14
   -
     - smprofiler-IT-keras-resnet-cpu-hvd-multinode
     - *Disable
@@ -128,12 +128,12 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
+        DetailedProfilingConfig: "{\"StartStep\": \"1\"}"
         UsePyinstrument: "True"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 2
-        python_stats_file_count: 7
+        python_stats_file_count: 6
   -
     - smprofiler-IT-mnist-keras-gpu-disabled
     - *Enable

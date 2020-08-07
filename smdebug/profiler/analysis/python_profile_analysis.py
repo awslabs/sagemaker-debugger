@@ -1,6 +1,8 @@
 # Standard Library
 import json
+import os
 import pstats
+from collections import defaultdict
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -9,6 +11,7 @@ from smdebug.profiler.analysis.python_stats_reader import (
     S3PythonStatsReader,
 )
 from smdebug.profiler.analysis.utils.python_profile_analysis_utils import (
+    PyinstrumentStepStats,
     StepPhase,
     StepPythonProfileStats,
     cProfileStats,
@@ -198,8 +201,16 @@ class PyinstrumentAnalysis(PythonProfileAnalysis):
     def _aggregate_stats(self, stats):
         """Load and return a list of dictionaries corresponding to each step's stats file.
         """
-        json_stats = []
+        aggregated_stats_dict = defaultdict(lambda: [])
         for step_stats in stats:
-            with open(step_stats.stats_path, "r") as stats:
-                json_stats.append(json.load(stats))
-        return json_stats
+            aggregated_stats_dict[step_stats.start_time_since_epoch_in_micros].append(step_stats)
+
+        aggregated_stats = []
+        for aggregated_step_stats in aggregated_stats_dict.values():
+            aggregated_step_stats.sort(key=lambda x: os.path.basename(x.stats_path))
+            html_step_stats, json_step_stats = aggregated_step_stats
+            with open(json_step_stats.stats_path, "r") as json_data:
+                json_stats = json.load(json_data)
+            aggregated_stats.append(PyinstrumentStepStats(html_step_stats.stats_path, json_stats))
+
+        return aggregated_stats

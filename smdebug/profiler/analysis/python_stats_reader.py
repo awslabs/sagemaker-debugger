@@ -9,6 +9,7 @@ from smdebug.profiler.analysis.utils.python_profile_analysis_utils import StepPy
 from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
     CPROFILE_STATS_FILENAME,
+    PYINSTRUMENT_HTML_FILENAME,
     PYINSTRUMENT_JSON_FILENAME,
     PYINSTRUMENT_NAME,
 )
@@ -82,13 +83,20 @@ class S3PythonStatsReader(PythonStatsReader):
         for full_s3_filepath, object_data in zip(s3_filepaths, objects):
             stats_file = os.path.basename(full_s3_filepath)
 
-            if stats_file not in (CPROFILE_STATS_FILENAME, PYINSTRUMENT_JSON_FILENAME):
+            if stats_file not in (
+                CPROFILE_STATS_FILENAME,
+                PYINSTRUMENT_JSON_FILENAME,
+                PYINSTRUMENT_HTML_FILENAME,
+            ):
+                get_logger("smdebug-profiler").info(
+                    f"Unknown file {full_s3_filepath} found, skipping..."
+                )
                 continue
 
             profiler_name = os.path.basename(os.path.dirname(os.path.dirname(full_s3_filepath)))
             stats_dir = os.path.basename(os.path.dirname(full_s3_filepath))
             stats_dir_path = os.path.join(self.profile_dir, stats_dir)
-            os.makedirs(stats_dir_path)
+            os.makedirs(stats_dir_path, exist_ok=True)
             stats_file_path = os.path.join(stats_dir_path, stats_file)
 
             with open(stats_file_path, "wb") as f:
@@ -142,31 +150,35 @@ class LocalPythonStatsReader(PythonStatsReader):
                 "_"
             )
             stats_dir = os.path.join(self.profile_dir, python_stat_dir)
-            if os.path.isfile(os.path.join(stats_dir, CPROFILE_STATS_FILENAME)):
-                profiler_name = CPROFILE_NAME
-                stats_file_path = os.path.join(stats_dir, CPROFILE_STATS_FILENAME)
-            elif os.path.isfile(os.path.join(stats_dir, PYINSTRUMENT_JSON_FILENAME)):
-                profiler_name = PYINSTRUMENT_NAME
-                stats_file_path = os.path.join(stats_dir, PYINSTRUMENT_JSON_FILENAME)
-            else:
-                get_logger("smdebug-profiler").info(
-                    f"Folder {python_stat_dir} is empty, skipping..."
+            for filename in os.listdir(stats_dir):
+                if filename == CPROFILE_STATS_FILENAME:
+                    profiler_name = CPROFILE_NAME
+                    stats_file_path = os.path.join(stats_dir, CPROFILE_STATS_FILENAME)
+                elif filename == PYINSTRUMENT_JSON_FILENAME:
+                    profiler_name = PYINSTRUMENT_NAME
+                    stats_file_path = os.path.join(stats_dir, PYINSTRUMENT_JSON_FILENAME)
+                elif filename == PYINSTRUMENT_HTML_FILENAME:
+                    profiler_name = PYINSTRUMENT_NAME
+                    stats_file_path = os.path.join(stats_dir, PYINSTRUMENT_HTML_FILENAME)
+                else:
+                    get_logger("smdebug-profiler").info(
+                        f"Unknown file {filename} found, skipping..."
+                    )
+                    continue
+                python_profile_stats.append(
+                    StepPythonProfileStats(
+                        profiler_name,
+                        framework,
+                        float(start_time),
+                        float(end_time),
+                        node_id,
+                        StepPhase(start_phase),
+                        int(start_step),
+                        StepPhase(end_phase),
+                        int(end_step),
+                        stats_file_path,
+                    )
                 )
-                continue
-            python_profile_stats.append(
-                StepPythonProfileStats(
-                    profiler_name,
-                    framework,
-                    float(start_time),
-                    float(end_time),
-                    node_id,
-                    StepPhase(start_phase),
-                    int(start_step),
-                    StepPhase(end_phase),
-                    int(end_step),
-                    stats_file_path,
-                )
-            )
         python_profile_stats.sort(
             key=lambda x: (x.start_step, x.end_step, x.node_id)
         )  # sort each step's stats by the step number, then node ID.

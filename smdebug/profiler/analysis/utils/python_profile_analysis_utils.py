@@ -31,7 +31,7 @@ class StepPythonProfileStats:
         :param start_step: The step at which python profiling was started. -1 if before step 0.
         :param end_phase The phase at which python profiling was stopped.
         :param end_step: The step at which python profiling was stopped.
-        :param stats_path The path to the dumped python stats resulting from profiling this step.
+        :param stats_path The path to the dumped python stats or html resulting from profiling this step.
         """
         self.profiler_name = profiler_name
         self.framework = framework
@@ -138,3 +138,9 @@ class cProfileFunctionStats:
         self.function_name = pstats.func_std_string(key)
         self.prim_calls, self.total_calls, self.total_time, self.cumulative_time, callers = value
         self.callers = [pstats.func_std_string(k) for k in callers.keys()]
+
+
+class PyinstrumentStepStats:
+    def __init__(self, html_file_path, json_stats):
+        self.html_file_path = html_file_path
+        self.json_stats = json_stats

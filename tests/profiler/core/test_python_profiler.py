@@ -16,6 +16,7 @@ from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
     CPROFILE_STATS_FILENAME,
+    PYINSTRUMENT_HTML_FILENAME,
     PYINSTRUMENT_JSON_FILENAME,
     PYINSTRUMENT_NAME,
 )
@@ -159,6 +160,9 @@ def test_pyinstrument_profiling(pyinstrument_python_profiler, steps, pyinstrumen
         with open(full_stats_path, "r") as f:
             assert json.load(f)  # validate output file
 
+        full_html_path = os.path.join(pyinstrument_dir, stats_dir, PYINSTRUMENT_HTML_FILENAME)
+        assert os.path.isfile(full_html_path)
+
 
 @pytest.mark.parametrize("s3", [False, True])
 def test_cprofile_analysis(
@@ -248,13 +252,13 @@ def test_pyinstrument_analysis(
         key = os.path.join(prefix, "framework", test_framework, PYINSTRUMENT_NAME)
         _upload_s3_folder(bucket, key, pyinstrument_dir)
 
-    assert len(python_profile_analysis.python_profile_stats) == 3
+    assert len(python_profile_analysis.python_profile_stats) == 6
 
     # Test that start_end_step_function call is recorded in received stats, but not end_start_step_function or
     # time_function.
     stats = python_profile_analysis.fetch_profile_stats_by_step(1)
     assert len(stats) == 1
-    children = stats[0]["root_frame"]["children"]
+    children = stats[0].json_stats["root_frame"]["children"]
     assert len(children) == 1 and children[0]["function"] == "start_end_step_function"
 
     # Test that end_start_step_function call is recorded in received stats, but not start_end_step_function or
@@ -263,7 +267,7 @@ def test_pyinstrument_analysis(
         1, end_step=2, start_phase=StepPhase.STEP_END, end_phase=StepPhase.STEP_START
     )
     assert len(stats) == 1
-    children = stats[0]["root_frame"]["children"]
+    children = stats[0].json_stats["root_frame"]["children"]
     assert len(children) == 1 and children[0]["function"] == "end_start_step_function"
 
     # Test that time_function call is recorded in received stats, but not step_function
@@ -273,5 +277,5 @@ def test_pyinstrument_analysis(
     )
     stats = python_profile_analysis.fetch_profile_stats_by_time(step_start_time, time.time())
     assert len(stats) == 1
-    children = stats[0]["root_frame"]["children"]
+    children = stats[0].json_stats["root_frame"]["children"]
     assert len(children) == 1 and children[0]["function"] == "time_function"
