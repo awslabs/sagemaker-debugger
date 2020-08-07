@@ -6,7 +6,7 @@ import numpy as np
 from bokeh.io import output_notebook, push_notebook, show
 from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, CustomJS, Div, HoverTool
-from bokeh.models.glyphs import Circle, Line
+from bokeh.models.glyphs import Circle, Line, Quad
 from bokeh.plotting import figure, show
 
 # First Party
@@ -212,6 +212,149 @@ class TimelineCharts:
 
             for event_name in cumulative_time:
                 print(f"Spent {cumulative_time[event_name]} ms (cumulative time) in {event_name}")
+        else:
+            print("No selection made")
+
+    def plot_framework_events(self, events, begin_timestamp, end_timestamp):
+        framework_events = {}
+        yaxis = {}
+        counter = 0
+        for index, event in enumerate(events):
+            if event.event_args is not None:
+                if "bytes_fetched" in event.event_args:
+                    continue
+
+            key = event.event_name + "_tid_" + str(event.tid)
+            if key not in framework_events:
+                framework_events[key] = []
+                yaxis[key] = counter
+                counter += 1
+
+            framework_events[key].append(
+                [int(event.start_time / 1000.0), int(event.end_time / 1000.0), yaxis[key]]
+            )
+            if index > 1000:
+                print(
+                    """Reached more than 1000 datapoints.
+                      Will only plot first 1000 datapoints for the given timerange"""
+                )
+                break
+        return framework_events
+
+    def plot_dataloaders(self, events, begin_timestamp, end_timestamp):
+        # read all available system metric events and store them in dict
+        dataloaders = {}
+        tids = {}
+
+        for index, event in enumerate(events):
+            if event.event_args is None:
+                continue
+            if "bytes_fetched" in event.event_args:
+
+                if event.event_name not in dataloaders:
+                    dataloaders[event.event_name] = []
+                if event.tid not in tids:
+                    tids[event.tid] = len(tids.keys())
+                dataloaders[event.event_name].append(
+                    [int(event.start_time / 1000.0), int(event.end_time / 1000.0), tids[event.tid]]
+                )
+                if index > 1000:
+                    print("Reached more than 1000 datapoints. Will stop plotting.")
+                    break
+
+        return dataloaders
+
+    def plot_detailed_profiler_data(self, indexes):
+
+        if len(indexes) > 0:
+            begin_timestamp = self.system_metrics["cpu_total"][np.min(indexes), 0]
+            end_timestamp = self.system_metrics["cpu_total"][np.max(indexes), 0]
+            print(
+                f"Selected timerange: {begin_timestamp + self.start} to {end_timestamp + self.start}"
+            )
+            events = self.framework_metrics_reader.get_events(
+                begin_timestamp + self.start, end_timestamp + self.start, unit=TimeUnits.SECONDS
+            )
+
+            dataloaders = self.plot_dataloaders(
+                events, begin_timestamp + self.start, end_timestamp + self.start
+            )
+            framework_events = self.plot_framework_events(
+                events, begin_timestamp + self.start, end_timestamp + self.start
+            )
+
+            # define figure
+            plot_dataloaders = figure(
+                plot_height=450,
+                plot_width=1000,
+                tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
+            )
+            plot_dataloaders.xaxis.axis_label = "Time in ms"
+            plot_dataloaders.yaxis.axis_label = "Thread ID"
+            # tooltip
+            hover = HoverTool(tooltips=[("metric", "@metric"), ("index", "$x{10}")])
+
+            for event in dataloaders.keys():
+                for entry in range(len(dataloaders[event])):
+                    # create source that contains time annotations
+                    source = ColumnDataSource(
+                        data=dict(
+                            top=[dataloaders[event][entry][2]],
+                            bottom=[dataloaders[event][entry][2] - 1],
+                            left=[dataloaders[event][entry][0]],
+                            right=[dataloaders[event][entry][1]],
+                            metric=[event],
+                        )
+                    )
+
+                    # vertical bars
+                    quad = Quad(
+                        top="top", bottom="bottom", left="left", right="right", fill_color="black"
+                    )
+
+                    # plot
+                    plot_dataloaders.add_glyph(source, quad)
+            plot_dataloaders.add_tools(hover)
+
+            plot_framework_events = figure(
+                plot_height=450,
+                plot_width=1000,
+                tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
+            )
+            plot_framework_events.xaxis.axis_label = "Time in ms"
+            plot_framework_events.yaxis.axis_label = "Framework metric"
+            # tooltip
+            hover = HoverTool(tooltips=[("metric", "@metric"), ("index", "$x{10}")])
+
+            for event in framework_events.keys():
+                for entry in range(len(framework_events[event])):
+                    # create source that contains time annotations
+                    source = ColumnDataSource(
+                        data=dict(
+                            top=[framework_events[event][entry][2]],
+                            bottom=[framework_events[event][entry][2] - 1],
+                            left=[framework_events[event][entry][0]],
+                            right=[framework_events[event][entry][1]],
+                            metric=[event],
+                        )
+                    )
+
+                    # vertical bars
+                    quad = Quad(
+                        top="top",
+                        bottom="bottom",
+                        left="left",
+                        right="right",
+                        fill_color="blue",
+                        line_color=None,
+                    )
+
+                    # plot
+                    plot_framework_events.add_glyph(source, quad)
+            plot_framework_events.add_tools(hover)
+
+            p = column([plot_dataloaders, plot_framework_events])
+            self.target = show(p, notebook_handle=True)
         else:
             print("No selection made")
 

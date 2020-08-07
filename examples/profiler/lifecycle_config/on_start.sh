@@ -17,7 +17,7 @@ source /home/ec2-user/anaconda3/bin/activate JupyterSystemEnv
 pip install $PIP_PACKAGE_NAME
 jupyter nbextension enable $EXTENSION_NAME --py --sys-prefix
 
-jupyter labextension install @jupyter-widgets/jupyterlab-manager
+nohup jupyter labextension install @jupyter-widgets/jupyterlab-manager &
 nohup jupyter labextension install @bokeh/jupyter_bokeh &
 
 source /home/ec2-user/anaconda3/bin/deactivate
