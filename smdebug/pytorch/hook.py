@@ -14,7 +14,7 @@ from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
-from smdebug.profiler.python_profiler import PythonProfiler
+from smdebug.profiler.python_profiler import PythonProfiler, StepPhase
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
@@ -31,7 +31,7 @@ if profiler_config_parser.profiling_enabled:
     python_profiler = PythonProfiler.get_python_profiler(
         config.use_pyinstrument, config.local_path, "pytorch"
     )
-    python_profiler.start_profiling(step_phase="start")
+    python_profiler.start_profiling(StepPhase.START)
 
 
 class Hook(CallbackHook):
@@ -262,10 +262,6 @@ class Hook(CallbackHook):
 
     # This hook is invoked by trainer prior to running the forward pass.
     def forward_pre_hook(self, module, inputs):
-        # Disable pre-step 0 python profiling if profiling is enabled and if this is step 0.
-        # below we say step+1 because step is incremented further in this method
-        if python_profiler:
-            python_profiler.stop_profiling(step_phase="startstep" + str(self.step + 1))
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
             self._close_writers()
@@ -280,13 +276,17 @@ class Hook(CallbackHook):
 
         self._increment_step()
 
+        # Disable python profiling if the python profiler is currently profiling.
+        if python_profiler:
+            python_profiler.stop_profiling(StepPhase.STEP_START, self.step)
+
         if self.autograd_profiler_enabled:
             self._collect_torch_profiling_data_if_profiler_enabled()
 
         # should we re-enable profiling for this step?
         if self.profiler_config_parser.can_start_detailed_profiling(self.step):
             if python_profiler:
-                python_profiler.start_profiling(self.step, step_phase="startstep" + str(self.step))
+                python_profiler.start_profiling(StepPhase.STEP_START, start_step=self.step)
 
             if not self.autograd_profiler_enabled:
                 if version.parse(torch.__version__) <= version.parse("1.5.1"):
@@ -457,10 +457,11 @@ class Hook(CallbackHook):
         if module._module_name == self.first_forward_submodule_name:
             # we would stop profiling and restart from this phase
             if python_profiler:
-                step_ph = "backwardendstep" + str(self.step)
-                python_profiler.stop_profiling(step_phase=step_ph)
+                python_profiler.stop_profiling(StepPhase.BACKWARD_PASS_END, self.step)
                 if self.profiler_config_parser.can_start_detailed_profiling(self.step):
-                    python_profiler.start_profiling(self.step, step_phase=step_ph)
+                    python_profiler.start_profiling(
+                        StepPhase.BACKWARD_PASS_END, start_step=self.step
+                    )
 
     def _closure_for_registering_backward_hook(self, module):
         module.register_backward_hook(self.bhook)

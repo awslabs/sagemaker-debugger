@@ -28,7 +28,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 13
-        python_stats_file_count: 6
+        python_stats_file_count: 11
   -
     - smprofiler-IT-mnist-keras-cpu-disabled
     - *Enable
@@ -71,7 +71,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 11
-        python_stats_file_count: 2
+        python_stats_file_count: 3
   -
     - smprofiler-IT-keras-resnet-cpu-hvd-multinode
     - *Disable
@@ -133,7 +133,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 2
-        python_stats_file_count: 4
+        python_stats_file_count: 7
   -
     - smprofiler-IT-mnist-keras-gpu-disabled
     - *Enable
@@ -176,7 +176,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 2
-        python_stats_file_count: 11
+        python_stats_file_count: 21
   -
     - smprofiler-IT-keras-resnet-gpu-hvd-multinode
     - *Enable

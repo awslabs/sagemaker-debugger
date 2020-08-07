@@ -17,7 +17,7 @@ from sagemaker.tensorflow import TensorFlow
 from smdebug.core.logger import get_logger
 from smdebug.profiler.algorithm_metrics_reader import S3AlgorithmMetricsReader
 from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
-from smdebug.profiler.profiler_constants import CPROFILE_STATS_FILENAME, PYINSTRUMENT_STATS_FILENAME
+from smdebug.profiler.profiler_constants import CPROFILE_STATS_FILENAME, PYINSTRUMENT_JSON_FILENAME
 from smdebug.profiler.utils import str2bool
 
 # YAML files INDICES
@@ -213,7 +213,7 @@ def _validate_python_stats_files(python_profile_stats):
             assert pstats.Stats(
                 stats_file_path
             ), f"cProfile stats at {stats_file_path} failed validation!"
-        elif basename(stats_file_path) == PYINSTRUMENT_STATS_FILENAME:
+        elif basename(stats_file_path) == PYINSTRUMENT_JSON_FILENAME:
             with open(stats_file_path, "r") as f:
                 assert json.load(f), f"Pyinstrument stats at {stats_file_path} failed validation!"
         else:
@@ -278,7 +278,7 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
 
         python_analysis_class = (
             PyinstrumentAnalysis
-            if str2bool(profiler_config.get("PyInstrument", "False"))
+            if str2bool(profiler_config.get("UsePyinstrument", "False"))
             else cProfileAnalysis
         )
         python_stats_dir = python_stats_dir.format(profiler_name=python_analysis_class.name)

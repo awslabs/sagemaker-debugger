@@ -55,6 +55,6 @@ PROFILER_DURATION_DEFAULT = float("inf")
 TF_METRICS_PREFIX = "aws_marker-"
 
 CPROFILE_STATS_FILENAME = "python_stats"
-PYINSTRUMENT_STATS_FILENAME = "python_stats.json"
+PYINSTRUMENT_JSON_FILENAME = "python_stats.json"
 CPROFILE_NAME = "cProfile"
 PYINSTRUMENT_NAME = "pyinstrument"

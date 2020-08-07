@@ -9,6 +9,7 @@ from smdebug.profiler.analysis.python_stats_reader import (
     S3PythonStatsReader,
 )
 from smdebug.profiler.analysis.utils.python_profile_analysis_utils import (
+    StepPhase,
     StepPythonProfileStats,
     cProfileStats,
 )
@@ -54,43 +55,103 @@ class PythonProfileAnalysis:
         get_logger("smdebug-profiler").info("Refreshing python profile stats.")
         self.python_profile_stats = self.python_stats_reader.load_python_profile_stats()
 
+    def _fetch_profile_stats_by_node_id(self, node_id):
+        """Helper function to filter profile stats by node ID. If no specific node ID is provided, pick the first
+        stats object's node ID.
+        """
+        self._refresh_python_profile_stats()
+        if len(self.python_profile_stats) == 0:
+            return []
+        if node_id == "any":
+            node_id = self.python_profile_stats[0].node_id
+        return [
+            step_stats for step_stats in self.python_profile_stats if step_stats.node_id == node_id
+        ]
+
+    def _aggregate_stats(self, requested_stats):
+        """
+        Helper function to the requested stats by the user. To be overriden in the subclass as this is profiler
+        dependent.
+        """
+        return requested_stats  # placeholder
+
+    def fetch_profile_stats_by_step(
+        self,
+        start_step,
+        end_step=None,
+        start_phase=StepPhase.STEP_START,
+        end_phase=StepPhase.STEP_END,
+        node_id="any",
+    ):
+        """API function to fetch stats based on step interval.
+        """
+        self._refresh_python_profile_stats()
+
+        if end_step is None:
+            end_step = start_step
+
+        requested_stats = [
+            step_stats
+            for step_stats in self._fetch_profile_stats_by_node_id(node_id)
+            if step_stats.in_step_interval(start_step, end_step, start_phase, end_phase)
+        ]
+        return self._aggregate_stats(requested_stats)
+
     def fetch_profile_stats_by_time(
-        self, start_time_since_epoch_in_secs, end_time_since_epoch_in_secs
+        self, start_time_since_epoch_in_secs, end_time_since_epoch_in_secs, node_id="any"
     ):
         """API function to fetch stats based on time interval.
         """
         self._refresh_python_profile_stats()
         start_time_since_epoch_in_micros = start_time_since_epoch_in_secs * CONVERT_TO_MICROSECS
         end_time_since_epoch_in_micros = end_time_since_epoch_in_secs * CONVERT_TO_MICROSECS
-        return [
+        requested_stats = [
             step_stats
-            for step_stats in self.python_profile_stats
+            for step_stats in self._fetch_profile_stats_by_node_id(node_id)
             if step_stats.in_time_interval(
                 start_time_since_epoch_in_micros, end_time_since_epoch_in_micros
             )
         ]
+        return self._aggregate_stats(requested_stats)
 
-    def fetch_profile_stats_by_step(self, start_step, end_step):
-        """API function to fetch stats based on step interval.
-        """
-        self._refresh_python_profile_stats()
-        return [
-            step_stats
-            for step_stats in self.python_profile_stats
-            if step_stats.in_step_interval(start_step, end_step)
-        ]
-
-    def fetch_pre_step_zero_profile_stats(self):
+    def fetch_pre_step_zero_profile_stats(self, node_id="any"):
         """API function that fetches stats from profiling until step 0.
         """
-        return self.fetch_profile_stats_by_step(-1, 0)
+        return self.fetch_profile_stats_by_step(
+            -1,  # We label the start of pre-step 0 profiling as step -1.
+            0,  # pre-step 0 profiling ends at the start of step 0, otherwise known as the start of training.
+            StepPhase.START,
+            StepPhase.STEP_START,
+            node_id,
+        )
 
     def list_profile_stats(self):
-        """API function that the list of python profile stats, which holds the metadata for each instance of profiling
-        (one per step).
+        """API function that returns the list of python profile stats objects, where each object holds the metadata for
+        each instance of profiling and the corresponding stats file (one per step).
+
+        Each object's attributes include:
+            - profiler_name: The name of the profiler used to generate this stats file, cProfile or pyinstrument
+            - framework: The machine learning framework used in training.
+            - start_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling started for this step.
+            - end_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling finished for this step.
+            = node_id The node ID of the node used in the session.
+            - start_phase The phase at which python profiling was started.
+            - start_step: The step at which python profiling was started. -1 if before step 0.
+            - end_phase The phase at which python profiling was stopped.
+            - end_step: The step at which python profiling was stopped.
+            - stats_path The path to the dumped python stats resulting from profiling this step.
         """
         self._refresh_python_profile_stats()
         return self.python_profile_stats
+
+    def list_available_node_ids(self):
+        """API function to list the available node IDs we have python profiling stats for.
+        """
+        self._refresh_python_profile_stats()
+        all_node_ids = map(lambda x: x.node_id, self.python_profile_stats)
+        unique_node_ids = list(set(all_node_ids))
+        unique_node_ids.sort()
+        return unique_node_ids
 
 
 class cProfileAnalysis(PythonProfileAnalysis):
@@ -108,23 +169,7 @@ class cProfileAnalysis(PythonProfileAnalysis):
             filter(lambda x: x.profiler_name == CPROFILE_NAME, self.python_profile_stats)
         )
 
-    def fetch_profile_stats_by_step(self, start_step, end_step):
-        """API function to fetch aggregated stats based on time interval.
-        """
-        requested_stats = super().fetch_profile_stats_by_step(start_step, end_step)
-        return self._aggregate_python_profile_stats(requested_stats)
-
-    def fetch_profile_stats_by_time(
-        self, start_time_since_epoch_in_secs, end_time_since_epoch_in_secs
-    ):
-        """API function to fetch aggregated stats based on time interval.
-        """
-        requested_stats = super().fetch_profile_stats_by_time(
-            start_time_since_epoch_in_secs, end_time_since_epoch_in_secs
-        )
-        return self._aggregate_python_profile_stats(requested_stats)
-
-    def _aggregate_python_profile_stats(self, stats):
+    def _aggregate_stats(self, stats):
         """Aggregate the stats files into one pStats.Stats object corresponding to the requested interval.
         Then returns a `cProfileStats` object (which holds the pStats.Stats object and parsed stats for each called
         function in these steps).
@@ -150,23 +195,7 @@ class PyinstrumentAnalysis(PythonProfileAnalysis):
             filter(lambda x: x.profiler_name == PYINSTRUMENT_NAME, self.python_profile_stats)
         )
 
-    def fetch_profile_stats_by_step(self, start_step, end_step):
-        """API function to fetch stats based on time interval as list of dictionaries.
-        """
-        requested_stats = super().fetch_profile_stats_by_step(start_step, end_step)
-        return self._load_json_stats(requested_stats)
-
-    def fetch_profile_stats_by_time(
-        self, start_time_since_epoch_in_secs, end_time_since_epoch_in_secs
-    ):
-        """API function to fetch stats based on time interval as list of dictionaries.
-        """
-        requested_stats = super().fetch_profile_stats_by_time(
-            start_time_since_epoch_in_secs, end_time_since_epoch_in_secs
-        )
-        return self._load_json_stats(requested_stats)
-
-    def _load_json_stats(self, stats):
+    def _aggregate_stats(self, stats):
         """Load and return a list of dictionaries corresponding to each step's stats file.
         """
         json_stats = []

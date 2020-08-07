@@ -3,6 +3,7 @@ import os
 import pstats
 import time
 from cProfile import Profile as cProfileProfiler
+from enum import Enum
 
 # Third Party
 from pyinstrument import Profiler as PyinstrumentProfiler
@@ -11,10 +12,49 @@ from pyinstrument.renderers import JSONRenderer
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
-from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    CPROFILE_NAME,
+    CPROFILE_STATS_FILENAME,
+    PYINSTRUMENT_JSON_FILENAME,
+    PYINSTRUMENT_NAME,
+)
+
+
+class StepPhase(Enum):
+    # pre-step zero
+    START = "start"
+
+    # start of step
+    STEP_START = "step-start"
+
+    # end of backward pass
+    BACKWARD_PASS_END = "backward-pass-end"
+
+    # end of training step
+    STEP_END = "step-end"
+
+    # end of training
+    TRAIN_END = "train-end"
+
+
+def total_time():
+    if not os.times:
+        return -1
+    times = os.times()
+    return times.elapsed
+
+
+def off_cpu_time():
+    if not os.times:
+        return -1
+    times = os.times()
+    return times.elapsed - (times.system + times.user)
 
 
 class PythonProfiler:
+    name = ""  # placeholder
+
     def __init__(self, base_folder, framework):
         """Higher level class to manage execution of python profiler, dumping of python stats, and retrieval
         of stats based on time or step intervals.
@@ -48,7 +88,7 @@ class PythonProfiler:
         """Reset attributes to defaults
         """
         self._step, self._start_time_since_epoch_in_micros, self._is_profiling = None, None, False
-        self._start_stepphase = ""
+        self._current_step_phase = None
 
     def _enable_profiler(self):
         """Enable the profiler (to be implemented in subclass, where the actual profiler is defined).
@@ -62,25 +102,20 @@ class PythonProfiler:
         """Dump the stats to the provided path (to be implemented in subclass, where the actual profiler is defined).
         """
 
-    def _name(self):
-        return "default"
-
-    def _stats_filename(self):
-        # this is default value
-        return "python_stats"
-
-    def start_profiling(self, start_step=-1, step_phase=""):
-        """Start the python profiler with the provided start step.
+    def start_profiling(self, start_phase, start_step=-1):
+        """Start the python profiler with the provided start phase and start step.
+        Start phase must be one of the specified step phases in StepPhase.
         If start step is -1, then this is profiling from import time to step 0.
         """
-        self._step = start_step
+        self._start_phase = start_phase
+        self._start_step = start_step
         self._start_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
         self._is_profiling = True
-        self._start_stepphase = step_phase
         self._enable_profiler()
 
-    def stop_profiling(self, step_phase=""):
-        """Stop the python profiler.
+    def stop_profiling(self, end_phase, end_step):
+        """Stop the python profiler with the provided end phase and end step.
+        End phase must be one of the specified step phases in StepPhase.
         Dump the python stats for this step with a file path dependent on the base folder, framework, time and step.
         Append a record of this step's profiling with the corresponding metadata.
         Reset the attributes to prepare for the (possibly) next time we profile.
@@ -91,19 +126,18 @@ class PythonProfiler:
         self._disable_profiler()
 
         current_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
-        step_phase_string = ""
-        if self._start_stepphase != "" or step_phase != "":
-            step_phase_string = f"{self._start_stepphase}-{step_phase}"
         stats_dir = TraceFileLocation.get_python_profiling_stats_dir(
             self._base_folder,
             self._framework,
-            self._name(),
-            self._step,
+            self.name,
             self._start_time_since_epoch_in_micros,
             current_time_since_epoch_in_micros,
-            step_phase_string,
+            self._start_phase.value,
+            self._start_step,
+            end_phase.value,
+            end_step,
         )
-        self._dump_stats(os.path.join(stats_dir, self._stats_filename()))
+        self._dump_stats(stats_dir)
 
         self._reset_profiler()
 
@@ -120,26 +154,13 @@ class cProfilePythonProfiler(PythonProfiler):
     This is also the default Python profiler used if profiling is enabled.
     """
 
+    name = CPROFILE_NAME
+
     def _reset_profiler(self):
         """Reset profiler and corresponding attributes to defaults
         """
         super()._reset_profiler()
-        self._profiler = cProfileProfiler(self._total_time)
-
-    def _name(self):
-        return "cProfile"
-
-    def _total_time(self):
-        times = os.times()
-        return times.elapsed
-
-    def _off_cpu_time(self):
-        times = os.times()
-        return times.elapsed - (times.system + times.user)
-
-    def _stats_filename(self):
-        # this is default value
-        return "python_stats"
+        self._profiler = cProfileProfiler(total_time)
 
     def _enable_profiler(self):
         """Enable the cProfile profiler.
@@ -151,9 +172,10 @@ class cProfilePythonProfiler(PythonProfiler):
         """
         self._profiler.disable()
 
-    def _dump_stats(self, stats_file_path):
-        """Dump the stats by via pstats object to a file `python_stats` in the provided directory
+    def _dump_stats(self, stats_dir):
+        """Dump the stats by via pstats object to a file `python_stats` in the provided stats directory.
         """
+        stats_file_path = os.path.join(stats_dir, CPROFILE_STATS_FILENAME)
         get_logger("smdebug-profiler").info(f"Dumping cProfile stats to {stats_file_path}.")
         pstats.Stats(self._profiler).dump_stats(stats_file_path)
 
@@ -162,17 +184,14 @@ class PyinstrumentPythonProfiler(PythonProfiler):
     """Higher level class to oversee profiling specific to Pyinstrument, a third party Python profiler.
     """
 
+    name = PYINSTRUMENT_NAME
+    stats_filename = PYINSTRUMENT_JSON_FILENAME
+
     def _reset_profiler(self):
         """Reset profiler and corresponding attributes to defaults
         """
         super()._reset_profiler()
         self._profiler = PyinstrumentProfiler()
-
-    def _name(self):
-        return "pyinstrument"
-
-    def _stats_filename(self):
-        return "python_stats.json"
 
     def _enable_profiler(self):
         """Enable the pyinstrument profiler.
@@ -184,12 +203,14 @@ class PyinstrumentPythonProfiler(PythonProfiler):
         """
         self._profiler.stop()
 
-    def _dump_stats(self, stats_file_path):
-        """Dump the stats as a JSON dictionary to a file `python_stats.json` with the provided file path.
+    def _dump_stats(self, stats_dir):
+        """Dump the stats as a JSON dictionary to a file `python_stats.json` in the provided stats directory.
         """
+        stats_file_path = os.path.join(stats_dir, PYINSTRUMENT_JSON_FILENAME)
         get_logger("smdebug-profiler").info(f"Dumping pyinstrument stats to {stats_file_path}.")
 
         session = self._profiler.last_session
-        renderer = JSONRenderer()
-        with open(stats_file_path, "w") as f:
-            f.write(renderer.render(session))
+        json_stats = JSONRenderer().render(session)
+        get_logger("smdebug-profiler").info(f"JSON stats collected for pyinstrument: {json_stats}.")
+        with open(stats_file_path, "w") as json_data:
+            json_data.write(json_stats)

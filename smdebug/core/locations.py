@@ -175,16 +175,23 @@ class TraceFileLocation:
         base_folder,
         framework,
         profiler_name,
-        step,
         start_time_since_epoch_in_micros,
         end_time_since_epoch_in_micros,
-        step_phase="",
+        start_phase,
+        start_step,
+        stop_phase,
+        stop_step,
     ):
         node_id = get_node_id()
-        if step_phase:
-            step = str(step) + "-" + step_phase
-        folder_name = "{0}_{1}_{2}_{3}".format(
-            start_time_since_epoch_in_micros, end_time_since_epoch_in_micros, node_id, step
+        folder_name = "{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}".format(
+            framework,
+            start_time_since_epoch_in_micros,
+            end_time_since_epoch_in_micros,
+            node_id,
+            start_phase,
+            start_step,
+            stop_phase,
+            stop_step,
         )
         stats_dir = os.path.join(base_folder, "framework", framework, profiler_name, folder_name)
         ensure_dir(stats_dir, is_file=False)

@@ -1,34 +1,48 @@
 # Standard Library
 import pstats
 
+# First Party
+from smdebug.profiler.python_profiler import StepPhase
+
 
 class StepPythonProfileStats:
     def __init__(
         self,
         profiler_name,
-        step,
+        framework,
         start_time_since_epoch_in_micros,
         end_time_since_epoch_in_micros,
         node_id,
+        start_phase,
+        start_step,
+        end_phase,
+        end_step,
         stats_path,
-        step_phase="",
     ):
         """Class that represents the metadata for profiling on a specific step (or before step 0).
         Used so that users can easily filter through which steps they want profiling stats of.
+        In addition, printing this class will result in a dictionary of the attributes and its corresponding values.
         :param profiler_name The name of the profiler used to generate this stats file, cProfile or pyinstrument
-        :param step: The step that was profiled. -1 if before step 0.
+        :param framework The machine learning framework used in training.
         :param start_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling started for this step.
         :param end_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling finished for this step.
         :param node_id The node ID of the node used in the session.
+        :param start_phase The phase at which python profiling was started.
+        :param start_step: The step at which python profiling was started. -1 if before step 0.
+        :param end_phase The phase at which python profiling was stopped.
+        :param end_step: The step at which python profiling was stopped.
         :param stats_path The path to the dumped python stats resulting from profiling this step.
         """
         self.profiler_name = profiler_name
-        self.step = step
+        self.framework = framework
         self.start_time_since_epoch_in_micros = start_time_since_epoch_in_micros
         self.end_time_since_epoch_in_micros = end_time_since_epoch_in_micros
         self.node_id = node_id
+        self.start_phase = start_phase
+        self.start_step = start_step
+        self.end_phase = end_phase
+        self.end_step = end_step
         self.stats_path = stats_path
-        self.step_phase = step_phase
 
     def in_time_interval(self, start_time_since_epoch_in_micros, end_time_since_epoch_in_micros):
         """Returns whether this step is in the provided time interval.
@@ -44,10 +58,36 @@ class StepPythonProfileStats:
             <= end_time_since_epoch_in_micros
         )
 
-    def in_step_interval(self, start_step, end_step):
-        """Returns whether this is in the provided step interval.
+    def in_step_interval(self, start_step, end_step, start_phase, end_phase):
+        """Returns whether this is in the provided step interval. This is defined as:
+        1. This start step is greater than the provided start step and the end step is greater than the provided end
+            step.
+        2. If this start step equals the provided start step, verify that this start phase does not occur before the
+            provided start phase.
+        3. If this end step equals the provided end step, verify that this end phase does not occur after the provided
+            end phase.
         """
-        return start_step <= self.step < end_step
+        if start_step < self.start_step and end_step > self.end_step:
+            return True
+        elif start_step > self.start_step or end_step < self.end_step:
+            return False
+        else:
+            if (
+                start_step == self.start_step
+                and start_phase in (StepPhase.STEP_END, StepPhase.BACKWARD_PASS_END)
+                and self.start_phase != start_phase
+            ):
+                return False
+            if (
+                end_step == self.end_step
+                and end_phase == StepPhase.STEP_START
+                and self.end_phase != end_phase
+            ):
+                return False
+            return True
+
+    def __repr__(self):
+        return repr(self.__dict__)
 
 
 class cProfileStats:
