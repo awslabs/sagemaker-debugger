@@ -154,6 +154,7 @@ class Hook(CallbackHook):
             self.exported_collections = True
 
         self.last_block = block
+        self._save_custom_tensors_post_step()
 
     # This hook is invoked by trainer after running the forward pass.
     def forward_hook(self, block, inputs, outputs):

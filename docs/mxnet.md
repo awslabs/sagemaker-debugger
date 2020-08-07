@@ -35,8 +35,9 @@ If using SageMaker, you will configure the hook in SageMaker's python SDK using 
 #### 2. Register the model to the hook
 Call `hook.register_block(net)`.
 
-#### 3. (Optional) Configure Collections, SaveConfig and ReductionConfig
-See the [Common API](api.md) page for details on how to do this.
+#### 3. Take actions using the hook APIs
+
+For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api) and [MXNet specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#mxnet-specific-hook-api).
 
 ---
 

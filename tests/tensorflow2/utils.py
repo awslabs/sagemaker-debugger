@@ -1,8 +1,7 @@
 # Standard Library
-from re import search
-
 # Third Party
 import tensorflow.compat.v2 as tf
+from packaging import version
 
 
 def is_tf_2_2():
@@ -13,6 +12,12 @@ def is_tf_2_2():
     number of tensor_names emitted by 1.
     :return: bool
     """
-    if search("2.2..", tf.__version__):
+    if version.parse(tf.__version__) == version.parse("2.2.0"):
+        return True
+    return False
+
+
+def is_tf_2_3():
+    if version.parse(tf.__version__) == version.parse("2.3.0"):
         return True
     return False

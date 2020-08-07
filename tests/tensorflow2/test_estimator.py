@@ -36,7 +36,7 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
         # vanilla TF 2.2: all = 300, loss = 1, weights = 4, gradients = 0, biases = 18, optimizer variables = 0, metrics = 0, others = 277
         # AWS-TF 2.2 : all = 300, loss = 1, weights = 4, gradients = 8, biases = 18, optimizer variables = 0, metrics = 0, others = 269
         # AWS-TF 2.1 : all = 309, loss = 1, weights = 4, gradients = 8, biases = 18, optimizer variables = 0, metrics = 0, others = 278
-        assert len(tnames) >= 300
+        assert len(tnames) >= 1 + 4 + 18
         assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 4
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 18
@@ -71,7 +71,7 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
         # vanilla TF 2.2: all = 214, loss = 2, weights = 1, gradients = 0, biases = 12, optimizer variables = 0, metrics = 0, others = 199
         # AWS-TF 2.2: all = 219, loss = 2, weights = 1, gradients = 2, biases = 12, optimizer variables = 5, metrics = 0, others = 197
         # AWS-TF 2.1: all = 226, loss = 2, weights = 1, gradients = 2, biases = 12, optimizer variables = 5, metrics = 0, others = 204
-        assert len(tnames) >= 214
+        assert len(tnames) >= 2 + 1 + 12
         assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 1
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 12

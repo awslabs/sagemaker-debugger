@@ -64,7 +64,7 @@ class DeleteRequest:
 
 class S3Handler:
     NUM_RETRIES = 5
-    GET_OBJECTS_MULTIPROCESSING_THRESHOLD = 5
+    GET_OBJECTS_MULTIPROCESSING_THRESHOLD = 100
     MULTIPROCESSING_POOL_SIZE = 2 * multiprocessing.cpu_count()
 
     # A boto3 session is not pickleable, and an object must be pickleable to be accessed within a

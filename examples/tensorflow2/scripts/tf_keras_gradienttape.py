@@ -65,7 +65,9 @@ def train(batch_size, n_epochs, model, hook):
             optimizer.apply_gradients(zip(grads, model.trainable_variables))
             acc = train_acc_metric(dataset_labels, logits)
             # save metrics value
-            hook.record_tensor_value(tensor_name="accuracy", tensor_value=acc)
+            hook.save_tensor(
+                tensor_name="accuracy", tensor_value=acc, collections_to_write="metrics"
+            )
             values = [("Accuracy", train_acc_metric.result())]
             progBar.update(idx * batch_size, values=values)
 

@@ -2,6 +2,7 @@
 import collections
 import json
 from enum import Enum
+from typing import Callable, List, Optional
 
 # Third Party
 import tensorflow as tf
@@ -10,6 +11,42 @@ from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.modes import ModeKeys
+
+
+class ModelOutput:
+    LABELS = "smdebug_y"
+    PREDICTIONS = "smdebug_y_pred"
+    VAL_LABELS = "val_smdebug_y"
+    VAL_PREDICTIONS = "val_smdebug_y_pred"
+
+
+ModelOutputs = {
+    ModelOutput.LABELS,
+    ModelOutput.PREDICTIONS,
+    ModelOutput.VAL_LABELS,
+    ModelOutput.VAL_PREDICTIONS,
+}
+
+
+def get_model_output_export_name(key):
+    export_names = {
+        ModelOutput.PREDICTIONS: "predictions",
+        ModelOutput.LABELS: "labels",
+        ModelOutput.VAL_LABELS: "labels",
+        ModelOutput.VAL_PREDICTIONS: "predictions",
+    }
+    return export_names[key]
+
+
+class ModelInput:
+    INPUTS = "smdebug_x"
+
+
+ModelInputs = {ModelInput.INPUTS}
+
+
+def get_model_input_export_name():
+    return f"model_input"
 
 
 class TFDistributionStrategy(Enum):
@@ -241,9 +278,13 @@ def is_keras_optimizer(obj):
     return False
 
 
-def get_export_name_for_keras(layer, tensor_type, tensor):
+def get_export_name_for_keras(layer, tensor_type, tensor=None):
     if tensor_type in ["input", "output", "weight"]:
-        return f"{layer.name}/{tensor_type}s/{tensor.name}"
+        if isinstance(layer, str):
+            # Tensor.name is meaningless when eager execution is enabled.
+            return f"{layer}/{tensor_type}s"
+        else:
+            return f"{layer.name}/{tensor_type}s/{tensor.name}"
     else:
         return None
 
@@ -259,6 +300,53 @@ def get_keras_layer_inputs(layer):
         for input_index, inp in enumerate(inputs):
             input_tensors.append(inp)
     return input_tensors
+
+
+class LayerWithHooks(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        layer: tf.keras.layers.Layer,
+        hooks: List[Callable[[tf.Tensor, tf.Tensor], Optional[tf.Tensor]]] = None,
+    ):
+        super().__init__()
+        self._layer = layer
+        self._hooks = hooks or []
+
+    def call(self, input: tf.Tensor) -> tf.Tensor:
+        output = self._layer(input)
+        for hook in self._hooks:
+            hook_result = hook(input, output)
+            if hook_result is not None:
+                output = hook_result
+        return output
+
+    def register_hook(self, hook: Callable[[tf.Tensor, tf.Tensor], Optional[tf.Tensor]]) -> None:
+        self._hooks.append(hook)
+
+
+class InputOutputSaver:
+    def __init__(self):
+        self.layer_input = None
+        self.layer_output = None
+
+    def __call__(self, callable_inputs, *args, **kwargs) -> None:
+        self.layer_input = kwargs["layer_input"]
+        self.layer_output = kwargs["layer_output"]
+
+
+def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.Tensor]:
+    old_call_fn = layer.call
+
+    def call(callable_inputs, *args, **kwargs) -> tf.Tensor:
+        layer_input = callable_inputs
+        layer_output = old_call_fn(callable_inputs)
+        for hook in layer._hooks:
+            hook_result = hook(callable_inputs, layer_input=layer_input, layer_output=layer_output)
+            if hook_result is not None:
+                layer_output = hook_result
+        return layer_output
+
+    return call
 
 
 def get_non_device_tensors(tensor_refs):

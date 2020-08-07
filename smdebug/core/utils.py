@@ -341,6 +341,14 @@ def remove_file_if_exists(file_path):
         os.remove(file_path)
 
 
+def validate_custom_tensor_value(tensor_value, make_numpy_fn):
+    try:
+        make_numpy_fn(tensor_value)
+    except TypeError:
+        return False
+    return True
+
+
 class SagemakerSimulator(object):
     """
     Creates an environment variable pointing to a JSON config file, and creates the config file.

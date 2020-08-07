@@ -3,6 +3,10 @@ import os
 import shutil
 from pathlib import Path
 
+# Third Party
+import boto3
+from tests.constants import TEST_DATASET_S3_PATH
+
 # First Party
 from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
@@ -10,7 +14,17 @@ from smdebug.core.config_constants import (
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
-from smdebug.core.utils import remove_file_if_exists
+from smdebug.core.utils import is_s3, remove_file_if_exists
+
+
+def use_s3_datasets():
+    s3 = boto3.resource("s3")
+    _, bucket, _ = is_s3(TEST_DATASET_S3_PATH)
+    try:
+        s3.meta.client.head_bucket(Bucket=bucket)
+        return True
+    except Exception:
+        return False
 
 
 class SagemakerSimulator(object):
