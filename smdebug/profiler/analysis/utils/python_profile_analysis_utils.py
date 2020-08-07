@@ -1,8 +1,28 @@
 # Standard Library
 import pstats
+from enum import Enum
 
 # First Party
 from smdebug.profiler.python_profiler import StepPhase
+
+
+class Metrics(Enum):
+    """
+    Enum to describe the types of metrics recorded in cProfile profiling.
+    """
+
+    # total amount of time spent in the scope of this function alone, in seconds.
+    TOTAL_TIME = "tottime"
+
+    # total amount of time spent in the scope of this function and in the scope of all other functions that this
+    # function calls, in seconds.
+    CUMULATIVE_TIME = "cumtime"
+
+    # number of primitive (non-recursive) calls to this function
+    PRIMITIVE_CALLS = "pcalls"
+
+    # total number of calls to this function, recursive or non-recursive.
+    TOTAL_CALLS = "ncalls"
 
 
 class StepPythonProfileStats:
@@ -108,6 +128,20 @@ class cProfileStats:
     def __init__(self, ps):
         self.ps = ps
         self.function_stats_list = [cProfileFunctionStats(k, v) for k, v in ps.stats.items()]
+
+    def print_top_n_functions(self, by, n=10):
+        """Print the stats for the top n functions with respect to the provided metric.
+        :param by The metric to sort the functions by. Must be one of the following from the Metrics enum: TOTAL_TIME,
+            CUMULATIVE_TIME, PRIMITIVE_CALLS, TOTAL_CALLS.
+        :param n The first n functions and stats to print after sorting.
+
+        For example, to print the top 20 functions with respect to cumulative time spent in function:
+        >>> from smdebug.profiler.analysis.utils.python_profile_analysis_utils import Metrics
+        >>> cprofile_stats.print_top_n_function(self, Metrics.CUMULATIVE_TIME, n=20)
+        """
+        assert isinstance(by, Metrics), "by must be valid metric from Metrics!"
+        assert isinstance(n, int), "n must be an integer!"
+        self.ps.sort_stats(by.value).print_stats(n)
 
 
 class cProfileFunctionStats:
