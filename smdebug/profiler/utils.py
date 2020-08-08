@@ -99,10 +99,10 @@ def is_valid_tracefilename(filename: str) -> bool:
     The filename should have minimum 3 fields viz. $FILEEVENTENDTIMEUTCINEPOCH, {$ENV_NODE_ID} and filetype.
 
     """
-    if filename.endswith(".json"):
+    if filename.endswith(".json") and "pevents" in filename:
         if len(filename.split("_")) >= 3:
             return True
-    logger.error(f"The file {filename} is not a valid tracefile.")
+    logger.debug(f"The file {filename} is not a valid tracefile.")
     return False
 
 
