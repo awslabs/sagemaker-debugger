@@ -343,6 +343,12 @@ class BaseHook:
                 )
         return self._collections_to_save_for_step
 
+    def _saving_shapes_in_step(self) -> bool:
+        for coll in self._get_collections_to_save_for_step():
+            if coll.reduction_config.save_shape is True:
+                return True
+        return False
+
     def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
         self._assert_prep()
         # for tf this will be prepopulated in check_and_add_tensor
@@ -455,6 +461,9 @@ class BaseHook:
             if self.worker != self.chief_worker:
                 return
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+
+        if self._saving_shapes_in_step():
+            self.shape_writer = 
 
     def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
@@ -725,6 +734,16 @@ class BaseHook:
             if reduction_config.save_raw_tensor is True:
                 self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
                 break
+    
+    def _write_shape(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
+        for s_col in save_collections:
+            reduction_config = s_col.reduction_config
+            if reduction_config.save_shape is True:
+                numpy_tensor_value = self._make_numpy_array(tensor_value)
+                this_size, this_shape = size_and_shape(numpy_tensor_value)
+
+                self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
+                break
 
     def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):
         # tensor_ref is used by TF
@@ -741,6 +760,7 @@ class BaseHook:
                     mode_step=self.mode_steps[self.mode],
                     timestamp=timestamp,
                 )
+
 
     def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
         """
@@ -805,6 +825,9 @@ class BaseHook:
         :param save_collections: list of collections which are being saved for this step
         """
         self._log_save(tensor_name, save_collections)
+
+        self._write_shape(tensor_name, tensor_value, save_collections, tensor_ref=tensor_ref)
+
         # write reductions defined for collections this tensor may be part of
         self._write_reductions(tensor_name, tensor_value, save_collections, tensor_ref=tensor_ref)
 
