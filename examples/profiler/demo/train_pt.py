@@ -11,6 +11,14 @@ import torchvision
 import torchvision.models as models
 import torchvision.transforms as transforms
 
+# First Party
+from smdebug.pytorch import Hook
+
+
+def between_steps_bottleneck():
+    time.sleep(1)
+
+
 model_names = sorted(
     name
     for name in models.__dict__
@@ -63,6 +71,7 @@ args = parser.parse_args()
 
 
 def main():
+    _ = Hook(out_dir="")  # need this line so that import doesn't get removed by pre-commit
     start = time.time()
     # create model
     net = models.__dict__[args.arch](pretrained=True)
@@ -115,6 +124,7 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            between_steps_bottleneck()
     end = time.time()
     print("Time taken:", end - start)
 
