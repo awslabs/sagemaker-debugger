@@ -3,8 +3,8 @@
 ## Contents
 - [What SageMaker Debugger Supports](#support)
 - [How to Use Debugger with TensorFlow](#how-to-use)
-  - [Debugger with AWS Deep Learning Containers](#debugger-dlc)
-  - [Debugger with other AWS training containers and custom containers](#debugger-script-change)
+  - [Debugger on AWS Deep Learning Containers with TensorFlow](#debugger-dlc)
+  - [Debugger on SageMaker Training Containers and Custom Containers](#debugger-script-change)
 - [Code Samples](#examples)
 - [References](#references)
 
@@ -12,10 +12,10 @@
 
 ## What SageMaker Debugger Supports <a name="support"></a>
 
-The SageMaker Debugger python SDK and `smdebug` library now fully support TensorFlow 2.2 with the latest version release (v0.9.1). Using Debugger, you can access tensors from any kind of TensorFlow models, from the Keras model zoo to your custom model.
-You can simply run your training script on [the official AWS Deep Learning Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html) where Debugger can automatically capture tensors from your training job. No matter what your TensorFlow models use Keras APIs or pure TensorFlow API, in eager mode or non-eager mode, you can directly run them on the AWS Deep Learning Containers.  
+SageMaker Debugger python SDK (v2.0) and its client library `smdebug` library (v0.9.1) now fully support TensorFlow 2.2 with the latest version release. Using Debugger, you can access tensors from any kind of TensorFlow models, from the Keras model zoo to your custom model.
+You can simply run your training script on [the official AWS Deep Learning Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html) where Debugger can automatically capture tensors from your training job. No matter what your TensorFlow models use Keras API or pure TensorFlow API, in eager mode or non-eager mode, you can directly run them on the AWS Deep Learning Containers.  
 
-Debugger and its client library `smdebug` support debugging your training job on other AWS training containers and custom containers. In this case, a hook registration process is required to manually add the hook features to your training script. For a full list of AWS TensorFlow containers to use Debugger, see [AWS Deep Learning Containers and SageMaker training containers](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html#debugger-supported-aws-containers).
+Debugger and its client library `smdebug` support debugging your training job on other AWS training containers and custom containers. In this case, a hook registration process is required to manually add the hook features to your training script. For a full list of AWS TensorFlow containers to use Debugger, see [SageMaker containers to use Debugger with script mode](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html#debugger-supported-aws-containers). For a complete guide of using custom containers, go to [Use Debugger in Custom Training Containers ](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-bring-your-own-container.html).
 
 ### Distributed training supported by Debugger
 - Horovod and Mirrored Strategy multi-GPU distributed trainings are supported.
@@ -23,13 +23,13 @@ Debugger and its client library `smdebug` support debugging your training job on
 
 ---
 
-## How to Use Debugger
+## How to Use Debugger <a name="how-to-use"></a>
 
 ### Debugger on AWS Deep Learning Containers with TensorFlow <a name="debugger-dlc"></a>
 
-The Debugger built-in rules and hook features are fully integrated into the AWS Deep Learning Containers, and you can run your training script without any script changes. When running training jobs on those Deep Learning Containers, Debugger registers its hooks automatically to your training script in order to retrieve tensors. To find a comprehensive guide of using the high-level SageMaker TensorFlow estimator with Debugger, see [Debugger in TensorFlow](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html#debugger-zero-script-change-TensorFlow).
+The Debugger built-in rules and hook features are fully integrated into the AWS Deep Learning Containers, and you can run your training script without any script changes. When running training jobs on those Deep Learning Containers, Debugger registers its hooks automatically to your training script in order to retrieve tensors. To find a comprehensive guide of using the high-level SageMaker TensorFlow estimator with Debugger, go to the [Amazon SageMaker Debugger with TensorFlow](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html#debugger-zero-script-change-TensorFlow) developer guide.
 
-The following code sample is how to set a SageMaker TensorFlow estimator with Debugger.
+The following code sample is the base structure of a SageMaker TensorFlow estimator with Debugger.
 
 ```python
 from sagemaker.tensorflow import TensorFlow
@@ -59,16 +59,16 @@ tf_estimator = TensorFlow(
 )
 tf_estimator.fit("s3://bucket/path/to/training/data")
 ```
->**Note**: The SageMaker TensorFlow estimator and the Debugger collections in the example are based on the latest SageMaker python SDK v2.0 and `smdebug` v0.9.1. It is highly recommended to upgrade the packages by executing the following command line.
+>**Note**: The SageMaker TensorFlow estimator and the Debugger collections in this example are based on the latest SageMaker python SDK v2.0 and `smdebug` v0.9.1. It is highly recommended to upgrade the packages by executing the following command lines.
 ```bash
 pip install -U sagemaker
 pip install -U smdebug
 ```
-If you are using Jupyter Notebook, put exclamation mark at the front of the code lines and restart your kernel.
+If you are using Jupyter Notebook, put exclamation mark at the front of the code lines and restart your kernel. For more information about breaking changes of the SageMaker python SDK, see [Use Version 2.x of the SageMaker Python SDK](https://sagemaker.readthedocs.io/en/stable/v2.html).
 
 #### Available Tensor Collections for TensorFlow
 
-The following table lists the pre-configured tensor collections for TensorFlow models.
+The following table lists the pre-configured tensor collections for TensorFlow models. You can pick any tensor collections by specifying the `name` parameter of `CollectionConfig()` as shown in the base code sample.
 
 | Name | Description|
 | --- | --- |
@@ -85,9 +85,13 @@ The following table lists the pre-configured tensor collections for TensorFlow m
 | biases |	Matches all biases of the model. |
 | optimizer_variables |	Matches all optimizer variables, currently only supported for Keras. |
 
+For more information about adjusting the tensor collection parameters, see [Save Tensors Using Debugger Modified Built-in Collections ](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-data.html#debugger-save-modified-built-in-collections).
+
+For a full list of available tensor collection parameters, see [Configuring Collection using SageMaker Python SDK](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#configuring-collection-using-sagemaker-python-sdk).
+
 >**Note**: The `inputs`, `outputs`, and `layers` collections are not currently available for TensorFlow 2.1.
 
-### Debugger on SageMaker TensorFlow training containers or custom containers <a name="debugger-script-change"></a>
+### Debugger on SageMaker Training Containers and Custom Containers <a name="debugger-script-change"></a>
 
 If you want to run your own training script or custom containers other than the AWS Deep Learning Containers in the previous option, there are two alternatives.
 - Alternative 1: Use the SageMaker TensorFlow training containers with training script modification
@@ -192,9 +196,9 @@ For a full list of actions that the hook APIs offer to construct hooks and save 
 
 ---
 
-## Examples
+## Code Samples <a name="examples"></a>
 
-The following examples show the three different hook constructions of TensorFlow. The following examples show what minimal changes have to be made to enable SageMaker Debugger while using the AWS containers with script mode. To learn how to use the high-level Debugger features with zero script change on AWS Deep Learning Containers, see [Use Debugger in AWS Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html).
+The following examples show the base structures of hook registration in various TensorFlow training scripts. If you want to take the benefit of the high-level Debugger features with zero script change on AWS Deep Learning Containers, see [Use Debugger in AWS Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html).
 
 ### Keras API (tf.keras)
 ```python
@@ -208,7 +212,10 @@ model.compile(
     loss='sparse_categorical_crossentropy',
 )
 # Add the hook as a callback
+hook.set_mode(mode=smd.modes.TRAIN)
 model.fit(x_train, y_train, epochs=args.epochs, callbacks=[hook])
+
+hook.set_mode(mode=smd.modes.EVAL)
 model.evaluate(x_test, y_test, callbacks=[hook])
 ```
 
