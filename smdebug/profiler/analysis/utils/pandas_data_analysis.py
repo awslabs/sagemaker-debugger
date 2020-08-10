@@ -54,12 +54,12 @@ class PandasFrameAnalysis:
                 )
             )
         ]
-        job_statistics["training_loop_start"] = step_0["start_time"][0]
+        job_statistics["training_loop_start"] = step_0["start_time"][step_0.index[0]]
         job_statistics["training_loop_end"] = max(self.framework_metrics_df["end_time"])
         job_statistics["training_loop_duration"] = (
             max(self.framework_metrics_df["end_time_us"]) - step_0["start_time_us"]
         ) / 1000
-        job_statistics["initialization"] = step_0["start_time_us"][0] / 1000
+        job_statistics["initialization"] = step_0["start_time_us"][step_0.index[0]] / 1000
         job_statistics["finalization"] = (
             max(self.sys_metrics_df["timestamp_us"]) - max(self.framework_metrics_df["end_time_us"])
         ) / 1000
@@ -283,16 +283,16 @@ class PandasFrameAnalysis:
                     "phase": "Between " + " and ".join(sorted([this_phase, next_phase])),
                 }
                 mode_df.loc[next_index] = row
-
+        # need to revisit this. For PT jobs, index[0] is not 0
         row = {
             "start_time_us": self.sys_metrics_df["timestamp_us"].min(),
-            "end_time_us": mode_df["start_time_us"][0] - 1,
-            "phase": "Before " + mode_df["phase"][0],
+            "end_time_us": mode_df["start_time_us"][mode_df.index[0]] - 1,
+            "phase": "Before " + mode_df["phase"][mode_df.index[0]],
         }
         mode_df.loc[-1] = row
         mode_df = mode_df.sort_index().reset_index(drop=True)
         row = {
-            "start_time_us": mode_df["start_time_us"][mode_df.index[-1]] - 1,
+            "start_time_us": mode_df["end_time_us"][mode_df.index[-1]] + 1,
             "end_time_us": self.sys_metrics_df["timestamp_us"].max(),
             "phase": "After " + mode_df["phase"][mode_df.index[-1]],
         }

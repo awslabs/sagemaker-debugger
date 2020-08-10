@@ -50,11 +50,13 @@ class PandasFrame:
         # get all system metrics from last to current timestamp
 
         start_timestamp = self.system_metrics_reader.get_timestamp_of_first_available_file()
-        end_timestamp = self.system_metrics_reader.get_timestamp_of_latest_available_file()
+        end_timestamp = (
+            self.system_metrics_reader.get_timestamp_of_latest_available_file() + self.interval
+        )
         sys_events_df, _ = self.get_profiler_data_by_time(
             start_timestamp,
             end_timestamp,
-            cache_metrics=True,
+            cache_metrics=False,
             selected_system_metrics=selected_system_metrics,
             get_framework_metrics=False,
         )
@@ -70,7 +72,9 @@ class PandasFrame:
         # get all framework metrics from last to current timestamp
         self.framework_metrics_reader.refresh_event_file_list()
 
-        start_timestamp = self.framework_metrics_reader.get_timestamp_of_first_available_file()
+        start_timestamp = (
+            self.system_metrics_reader.get_timestamp_of_first_available_file()
+        )  # bug: get_events does not return the very first event
         end_timestamp = self.framework_metrics_reader.get_timestamp_of_latest_available_file()
 
         _, fw_events_df = self.get_profiler_data_by_time(
@@ -114,7 +118,7 @@ class PandasFrame:
         results_detailed = {}
         counter = 0
 
-        while current_time_us <= end_time_us:
+        while start_time_us < end_time_us:
             # get all framework metrics from last to current timestamp
             self.framework_metrics_reader.refresh_event_file_list()
             events = self.framework_metrics_reader.get_events(start_time_us, current_time_us)
@@ -147,7 +151,7 @@ class PandasFrame:
             if current_time_us + self.interval < end_time_us:
                 current_time_us = current_time_us + self.interval
             else:
-                current_time_us = end_time_us + 10
+                current_time_us = end_time_us
 
         framework_metrics = {}
         training_phase = {}
@@ -158,9 +162,10 @@ class PandasFrame:
             else:
                 framework_metrics[key] = results[key]
 
-        max_value = float(max(list(framework_metrics.values())))
-        for key in framework_metrics:
-            framework_metrics[key] = framework_metrics[key]
+        if len(framework_metrics.values()) > 0:
+            max_value = float(max(list(framework_metrics.values())))
+            for key in framework_metrics:
+                framework_metrics[key] = framework_metrics[key] / max_value
 
         return framework_metrics, results_detailed, training_phase
 
@@ -187,7 +192,7 @@ class PandasFrame:
         framework_metrics = {}
         framework_metrics_detailed = {}
         counter = 0
-        while current_time_us <= end_time_us:
+        while start_time_us < end_time_us:
             # get all framework metrics from last to current timestamp
             self.framework_metrics_reader.refresh_event_file_list()
             events = self.framework_metrics_reader.get_events(start_time_us, current_time_us)
@@ -230,7 +235,7 @@ class PandasFrame:
             if current_time_us + self.interval < end_time_us:
                 current_time_us = current_time_us + self.interval
             else:
-                current_time_us = end_time_us + 1
+                current_time_us = end_time_us
 
         # normalize cumulative time to 0-1
         if len(list(framework_metrics.values())) > 0:
@@ -306,7 +311,7 @@ class PandasFrame:
             else:
                 current_time_us = end_time_us
 
-            while current_time_us <= end_time_us:
+            while start_time_us < end_time_us:
                 # get all framework metrics from last to current timestamp
                 self.framework_metrics_reader.refresh_event_file_list()
                 events = self.framework_metrics_reader.get_events(start_time_us, current_time_us)
@@ -352,7 +357,7 @@ class PandasFrame:
                 if current_time_us + self.interval < end_time_us:
                     current_time_us = current_time_us + self.interval
                 else:
-                    current_time_us = end_time_us + 10
+                    current_time_us = end_time_us
 
                 if cache_metrics is True:
                     self.framework_metrics.extend(framework_metrics)

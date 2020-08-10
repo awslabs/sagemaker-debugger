@@ -6,47 +6,76 @@ from smdebug.profiler.analysis.utils.pandas_data_analysis import PandasFrameAnal
 from smdebug.profiler.analysis.utils.profiler_data_to_pandas import PandasFrame
 
 
-def test_pandas_frames(metricfolder="./tests/profiler/resources/test_traces"):
-    pf = PandasFrame(metricfolder)
+@pytest.mark.parametrize("framework", ["tf2", "pt"])
+def test_pandas_frames(framework):
+    bucket_name = (
+        "s3://smdebug-testing/resources/" + framework + "_detailed_profile/profiler-output"
+    )
+    pf = PandasFrame(bucket_name, scan_interval=50000000000)
     system_metrics_df = pf.get_all_system_metrics()
 
     print(f"Number of rows in system metrics dataframe = {system_metrics_df.shape[0]}")
-    assert system_metrics_df.shape[0] == 46
-
+    if framework == "tf2":
+        assert system_metrics_df.shape[0] == 39392
+    if framework == "pt":
+        assert system_metrics_df.shape[0] == 84768
     print(f"Number of columns in system metrics dataframe = {system_metrics_df.shape[1]}")
-    assert system_metrics_df.shape[1] == 4
+    if framework == "tf2":
+        assert system_metrics_df.shape[1] == 4
+    if framework == "pt":
+        assert system_metrics_df.shape[1] == 4
 
-    pf = PandasFrame(metricfolder)
+    pf = PandasFrame(bucket_name, scan_interval=50000000000)
     framework_metrics_df = pf.get_all_framework_metrics()
 
     print(f"Number of rows in framework metrics dataframe = {framework_metrics_df.shape[0]}")
-    assert framework_metrics_df.shape[0] == 3
-
+    if framework == "tf2":
+        assert framework_metrics_df.shape[0] == 74001
+    if framework == "pt":
+        assert framework_metrics_df.shape[0] == 154192
     print(f"Number of columns in framework metrics dataframe = {framework_metrics_df.shape[1]}")
-    assert framework_metrics_df.shape[1] == 10
+    if framework == "tf2":
+        assert framework_metrics_df.shape[1] == 10
+    if framework == "pt":
+        assert framework_metrics_df.shape[1] == 10
 
 
-def test_get_data_by_time(metricfolder="./tests/profiler/resources/test_traces"):
-    pf = PandasFrame(metricfolder)
-    system_metrics_df, framework_metrics_df = pf.get_profiler_data_by_time(
-        1589930989000000, 1591748100000000
+@pytest.mark.parametrize("framework", ["tf2", "pt"])
+def test_get_data_by_time(framework):
+    bucket_name = (
+        "s3://smdebug-testing/resources/" + framework + "_detailed_profile/profiler-output"
     )
-
+    pf = PandasFrame(bucket_name, scan_interval=50000000000)
+    if framework == "tf2":
+        system_metrics_df, framework_metrics_df = pf.get_profiler_data_by_time(
+            1596668220000000, 1596678220000000
+        )
+        assert system_metrics_df.shape[0] == 39392
+    if framework == "pt":
+        system_metrics_df, framework_metrics_df = pf.get_profiler_data_by_time(
+            1596493560000000, 1596499560000000
+        )
+        assert system_metrics_df.shape[0] == 84768
     print(f"Number of rows in system metrics dataframe = {system_metrics_df.shape[0]}")
-    assert system_metrics_df.shape[0] == 14
 
     print(f"Number of columns in system metrics dataframe = {system_metrics_df.shape[1]}")
     assert system_metrics_df.shape[1] == 4
 
     print(f"Number of rows in framework metrics dataframe = {framework_metrics_df.shape[0]}")
-    assert framework_metrics_df.shape[0] == 4
-
+    if framework == "tf2":
+        assert framework_metrics_df.shape[0] == 74001
+    if framework == "pt":
+        assert framework_metrics_df.shape[0] == 154192
     print(f"Number of columns in framework metrics dataframe = {framework_metrics_df.shape[1]}")
     assert framework_metrics_df.shape[1] == 10
 
 
-def test_get_data_by_step(metricfolder="./tests/profiler/resources/test_traces"):
-    pf = PandasFrame(metricfolder)
+@pytest.mark.parametrize("framework", ["tf2", "pt"])
+def test_get_data_by_step(framework):
+    bucket_name = (
+        "s3://smdebug-testing/resources/" + framework + "_detailed_profile/profiler-output"
+    )
+    pf = PandasFrame(bucket_name)
     _, framework_metrics_df = pf.get_profiler_data_by_step(2, 3)
 
     assert not framework_metrics_df.empty
@@ -54,7 +83,10 @@ def test_get_data_by_step(metricfolder="./tests/profiler/resources/test_traces")
     assert framework_metrics_df.groupby("step").ngroups == 2
 
     print(f"Number of rows in framework metrics dataframe = {framework_metrics_df.shape[0]}")
-    assert framework_metrics_df.shape[0] == 2
+    if framework == "tf2":
+        assert framework_metrics_df.shape[0] == 5
+    if framework == "pt":
+        assert framework_metrics_df.shape[0] == 738
 
     print(f"Number of columns in framework metrics dataframe = {framework_metrics_df.shape[1]}")
     assert framework_metrics_df.shape[1] == 10
@@ -111,12 +143,12 @@ def test_get_step_stats(framework, by, tensorflow_metrics, pytorch_metrics):
         if framework == "tf2":
             assert step_stats.shape[0] == 111
         else:
-            assert step_stats.shape[0] == 152
+            assert step_stats.shape[0] == 207
     elif by == "process":
         if framework == "tf2":
             assert step_stats.shape[0] == 6
         else:
-            assert step_stats.shape[0] == 5
+            assert step_stats.shape[0] == 7
 
 
 @pytest.mark.slow
@@ -137,7 +169,7 @@ def test_get_util_stats_by_training_phase(framework, phase, tensorflow_metrics, 
     if phase is None:
         assert util_stats.shape[0] <= 8
     else:
-        assert util_stats.shape[0] <= 6
+        assert util_stats.shape[0] <= 8
     assert util_stats.shape[1] == 8
 
     assert all(util_stats["Resource"].unique() == ["cpu", "gpu"])
@@ -196,4 +228,18 @@ def test_get_training_phase_intervals(framework, phase_train, tensorflow_metrics
     if framework == "tf2":
         assert interval_stats.shape[0] == 11251
     else:
-        assert interval_stats.shape[0] == 661
+        assert interval_stats.shape[0] == 2793
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("framework", ["tf2", "pt"])
+def test_get_jobs_stats(framework, tensorflow_metrics, pytorch_metrics):
+    if framework == "tf2":
+        system_metrics_df, framework_metrics_df = tensorflow_metrics
+    else:
+        system_metrics_df, framework_metrics_df = pytorch_metrics
+
+    pf_analysis = PandasFrameAnalysis(system_metrics_df, framework_metrics_df)
+
+    job_stats = pf_analysis.get_job_statistics()
+    assert job_stats is not None
