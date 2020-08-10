@@ -79,6 +79,12 @@ def convert_utc_datetime_to_nanoseconds(timestamp_datetime: datetime):
     )
 
 
+def convert_utc_datetime_to_microseconds(timestamp_datetime: datetime):
+    return convert_utc_timestamp_to_microseconds(
+        timestamp_datetime.timestamp(), unit=TimeUnits.SECONDS
+    )
+
+
 def is_valid_tfprof_tracefilename(filename: str) -> bool:
     """
     Ensure that the tracefilename has a valid format.
@@ -188,6 +194,11 @@ def us_since_epoch_to_human_readable_time(us_since_epoch):
     return dt.strftime("%Y-%m-%dT%H:%M:%S:%f")
 
 
+def ns_since_epoch_to_human_readable_time(ns_since_epoch):
+    dt = datetime.fromtimestamp(ns_since_epoch / 1e9)
+    return dt.strftime("%Y-%m-%dT%H:%M:%S:%f")
+
+
 def write_tf_profiler_metadata_file(file_path):
     if not file_path.endswith(".metadata"):
         return
@@ -215,9 +226,9 @@ def read_tf_profiler_metadata_file(file_path):
         try:
             folder_name = "/".join(key_name.split("/")[:-4])
             request = ListRequest(bucket_name, folder_name)
-            file_available = S3Handler.list_prefixes([request])[0]
+            file_available = S3Handler.list_prefixes([request])
             if len(file_available) > 0:
-                metadata_filename = list(filter(lambda x: ".metadata" in x, file_available))
+                metadata_filename = list(filter(lambda x: ".metadata" in x, file_available[0]))
                 if len(metadata_filename) > 0:
                     metadata_filename = metadata_filename[0]
                     metadata_filename = metadata_filename.split("/")[-1]

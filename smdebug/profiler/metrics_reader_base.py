@@ -37,6 +37,18 @@ class MetricsReaderBase:
         return self._event_parsers
 
     """
+    The function returns the timestamp of first available file.
+    This timestamp indicates users can query the events up to this timestamp to gauge
+    """
+
+    def get_timestamp_of_first_available_file(self):
+        return (
+            sorted(self._timestamp_to_filename.keys())[0]
+            if len(self._timestamp_to_filename) > 0
+            else 0
+        )
+
+    """
     The function returns the timestamp of last available file.
     This timestamp indicates users can query the events up to this timestamp to gauge
     """

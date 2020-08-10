@@ -217,7 +217,16 @@ class TraceEventParser:
                 tid = b_event["tid"] if "tid" in event else "0"
                 name = b_event["name"]
                 event_args = event["args"] if "args" in event else None
-                t_event = TraceEvent(start_time, name, duration, pid, tid, event_args, node_id)
+                t_event = TraceEvent(
+                    start_time,
+                    name,
+                    duration,
+                    pid,
+                    tid,
+                    event_args,
+                    node_id,
+                    event_phase=self._processes[pid].name,
+                )
                 self._trace_events.append(t_event)
 
     def get_all_events(self):

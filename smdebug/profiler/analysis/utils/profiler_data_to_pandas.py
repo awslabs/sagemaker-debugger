@@ -6,100 +6,372 @@ from smdebug.profiler.algorithm_metrics_reader import (
     LocalAlgorithmMetricsReader,
     S3AlgorithmMetricsReader,
 )
+from smdebug.profiler.profiler_constants import CONVERT_MICRO_TO_NS, CONVERT_TO_MICROSECS
 from smdebug.profiler.system_metrics_reader import LocalSystemMetricsReader, S3SystemMetricsReader
-from smdebug.profiler.utils import us_since_epoch_to_human_readable_time
+from smdebug.profiler.utils import (
+    convert_utc_datetime_to_microseconds,
+    ns_since_epoch_to_human_readable_time,
+    us_since_epoch_to_human_readable_time,
+)
 
 
 class PandasFrame:
-    def __init__(self, path):
+    def __init__(self, path, use_in_memory_cache=False, scan_interval=50000000):
 
         self.path = path
-        self.start_time = 0
+        self.step_time_mapping = dict()
 
         # Reader for system and framework metrics
         if path.startswith("s3"):
             self.system_metrics_reader = S3SystemMetricsReader(self.path)
-            self.framework_metrics_reader = S3AlgorithmMetricsReader(self.path)
+            self.framework_metrics_reader = S3AlgorithmMetricsReader(
+                self.path, use_in_memory_cache=use_in_memory_cache
+            )
         else:
             self.system_metrics_reader = LocalSystemMetricsReader(self.path)
-            self.framework_metrics_reader = LocalAlgorithmMetricsReader(self.path)
+            self.framework_metrics_reader = LocalAlgorithmMetricsReader(
+                self.path, use_in_memory_cache=use_in_memory_cache
+            )
 
-        self.last_timestamp_system_metrics = 0
-        self.last_timestamp_framework_metrics = 0
+        # list to store metrics
         self.system_metrics = []
         self.framework_metrics = []
 
-    def get_latest_data(self):
+        # we read data in chunks
+        self.interval = scan_interval
+        self.start_time = self.system_metrics_reader.get_timestamp_of_first_available_file()
 
+    def get_all_system_metrics(self, selected_system_metrics=[]):
+        """
+        Get system metrics
+        :param systemk_metrics_list: list of system metrics.If not empty, function will only return framework events that are part of this list.
+        :return: System metrics DataFrame
+        """
         # get all system metrics from last to current timestamp
-        current_timestamp = self.system_metrics_reader.get_timestamp_of_latest_available_file()
-        events = self.system_metrics_reader.get_events(
-            self.last_timestamp_system_metrics, current_timestamp
-        )
-        self.last_timestamp_system_metrics = current_timestamp
 
-        # append new events to existing list
-        for event in events:
-            self.system_metrics.append(
-                [
-                    # GPU and CPU metrics are recorded at slightly different timesteps, so we round the numbers
-                    us_since_epoch_to_human_readable_time(int(event.timestamp * 1000) * 1000),
-                    int(event.timestamp * 1000) * 1000,
-                    event.value,
-                    event.name,
-                ]
-            )
+        start_timestamp = self.system_metrics_reader.get_timestamp_of_first_available_file()
+        end_timestamp = self.system_metrics_reader.get_timestamp_of_latest_available_file()
+        sys_events_df, _ = self.get_profiler_data_by_time(
+            start_timestamp,
+            end_timestamp,
+            cache_metrics=True,
+            selected_system_metrics=selected_system_metrics,
+            get_framework_metrics=False,
+        )
+
+        return sys_events_df
+
+    def get_all_framework_metrics(self, selected_framework_metrics=[]):
+        """
+        Get framework metrics
+        :param selected_framework_metrics: list of framework metrics.If not empty, function will only return framework events that are part of this list.
+        :return: Framework metrics DataFrame
+        """
+        # get all framework metrics from last to current timestamp
+        self.framework_metrics_reader.refresh_event_file_list()
+
+        start_timestamp = self.framework_metrics_reader.get_timestamp_of_first_available_file()
+        end_timestamp = self.framework_metrics_reader.get_timestamp_of_latest_available_file()
+
+        _, fw_events_df = self.get_profiler_data_by_time(
+            start_timestamp,
+            end_timestamp,
+            cache_metrics=False,
+            selected_framework_metrics=selected_framework_metrics,
+            get_system_metrics=False,
+        )
+
+        return fw_events_df
+
+    def convert_datetime_to_timestamp(self, timestamp):
+        """
+        A helper function to convert datetime into timestamp
+        :param timestep: timestamp in datetime
+        :return: timestamp in microseconds
+        """
+        timestamp = pd.to_datetime(timestamp, format="%Y-%m-%dT%H:%M:%S:%f")
+        return convert_utc_datetime_to_microseconds(timestamp)
+
+    def get_framework_metrics_by_timesteps(self, timestep_list=[], selected_framework_metrics=[]):
+        """
+        Get framework metrics for a list of timeranges. This function is useful when we want to correlate framework metrics with system metrics. Framework metrics have a begin and end timestamp. System metrics have only a single timestamp.
+        :param timestep_list: list of timestamps
+        :param selected_framework_metrics: list of framework metrics which will be stored in the dataframe
+        :return: Framework metrics DataFrame
+        """
+        # get min and max search range
+        timestep_list = sorted(timestep_list)
+        start_time_us = self.convert_datetime_to_timestamp(timestep_list[0])
+        end_time_us = self.convert_datetime_to_timestamp(timestep_list[-1])
+
+        # to avoid out of memory issues, we read data in chunks
+        current_time_us = start_time_us
+        if end_time_us - start_time_us > self.interval:
+            current_time_us = start_time_us + self.interval
+        else:
+            current_time_us = end_time_us
+        results = {}
+        results_detailed = {}
+        counter = 0
+
+        while current_time_us <= end_time_us:
+            # get all framework metrics from last to current timestamp
+            self.framework_metrics_reader.refresh_event_file_list()
+            events = self.framework_metrics_reader.get_events(start_time_us, current_time_us)
+
+            # iterate over system metrics timestamps and find overlap
+            for index, timestamp in enumerate(timestep_list[counter:]):
+                timestamp = self.convert_datetime_to_timestamp(timestamp)
+                if timestamp >= current_time_us:
+                    counter = index
+                    break
+                for event in events:
+                    if len(selected_framework_metrics) > 0 and (
+                        event.event_name not in selected_framework_metrics
+                        and event.event_phase not in selected_framework_metrics
+                    ):
+                        continue
+                    if (
+                        event.start_time / CONVERT_MICRO_TO_NS < timestamp
+                        and event.end_time / CONVERT_MICRO_TO_NS > timestamp
+                    ):
+                        if event.event_phase not in results:
+                            results[event.event_phase] = 0
+                        results[event.event_phase] += event.end_time - event.start_time
+                        if "Step" not in event.event_name:
+                            if event.event_name not in results_detailed:
+                                results_detailed[event.event_name] = 0
+                            results_detailed[event.event_name] += event.end_time - event.start_time
+            # read the next chunk of framework metrics
+            start_time_us = current_time_us
+            if current_time_us + self.interval < end_time_us:
+                current_time_us = current_time_us + self.interval
+            else:
+                current_time_us = end_time_us + 10
+
+        framework_metrics = {}
+        training_phase = {}
+
+        for key in results:
+            if "Step" in key:
+                training_phase[key] = results[key]
+            else:
+                framework_metrics[key] = results[key]
+
+        max_value = float(max(list(framework_metrics.values())))
+        for key in framework_metrics:
+            framework_metrics[key] = framework_metrics[key]
+
+        return framework_metrics, results_detailed, training_phase
+
+    def get_framework_metrics_by_begin_and_end_timesteps(
+        self, begin_timestep_list, end_timestep_list, selected_framework_metrics=[]
+    ):
+        """
+        Get framework metrics for a set of given timeranges. This function is useful when we want to correlate framework metrics such as steps with other framework metrics such as dataloading, preprocessing etc.
+        :param begin_timestep_list: list of start of intervals in datetime
+        :param end_timestep_list: list of end intervals in datetime
+        :param selected_framework_metrics: list of framework metrics which will be stored in the dataframe
+        :return: Framework metrics DataFrame
+        """
+        # Get min and max timestamps from the list of timeranges
+        start_time_us = self.convert_datetime_to_timestamp(min(begin_timestep_list))
+        end_time_us = self.convert_datetime_to_timestamp(max(end_timestep_list))
+
+        # in order to avoid out of memory issues we will read only chunks of data
+        current_time_us = start_time_us
+        if end_time_us - start_time_us > self.interval:
+            current_time_us = start_time_us + self.interval
+        else:
+            current_time_us = end_time_us
+        framework_metrics = {}
+        framework_metrics_detailed = {}
+        counter = 0
+        while current_time_us <= end_time_us:
+            # get all framework metrics from last to current timestamp
+            self.framework_metrics_reader.refresh_event_file_list()
+            events = self.framework_metrics_reader.get_events(start_time_us, current_time_us)
+
+            # iterate over start and end time intervals and find overlaps in the current timerange
+            for index, (begin_timestamp, end_timestamp) in enumerate(
+                zip(begin_timestep_list[counter:], end_timestep_list[counter:])
+            ):
+                begin_timestamp = self.convert_datetime_to_timestamp(begin_timestamp)
+                end_timestamp = self.convert_datetime_to_timestamp(end_timestamp)
+
+                # if we are out of range, stop searching for overlaps
+                if begin_timestamp >= current_time_us:
+                    counter = index
+                    break
+                # iterate over events in the current timerange
+                for event in events:
+                    if len(selected_framework_metrics) > 0 and (
+                        event.event_name not in selected_framework_metrics
+                        and event.event_phase not in selected_framework_metrics
+                    ):
+                        continue
+                    if (
+                        event.end_time / CONVERT_MICRO_TO_NS >= begin_timestamp
+                        and event.start_time / CONVERT_MICRO_TO_NS <= end_timestamp
+                    ):
+                        if "Step" not in event.event_name:
+                            if event.event_phase not in framework_metrics:
+                                framework_metrics[event.event_phase] = 0
+                            framework_metrics[event.event_phase] += (
+                                event.end_time - event.start_time
+                            )
+                            if event.event_name not in framework_metrics_detailed:
+                                framework_metrics_detailed[event.event_name] = 0
+                            framework_metrics_detailed[event.event_name] += (
+                                event.end_time - event.start_time
+                            )
+            # read the next chunk of data
+            start_time_us = current_time_us
+            if current_time_us + self.interval < end_time_us:
+                current_time_us = current_time_us + self.interval
+            else:
+                current_time_us = end_time_us + 1
+
+        # normalize cumulative time to 0-1
+        if len(list(framework_metrics.values())) > 0:
+            max_value = float(max(list(framework_metrics.values())))
+            for key in framework_metrics:
+                framework_metrics[key] = framework_metrics[key]
+            max_value = float(max(list(framework_metrics_detailed.values())))
+            for key in framework_metrics_detailed:
+                framework_metrics_detailed[key] = framework_metrics_detailed[key] / max_value
+
+        return framework_metrics, framework_metrics_detailed
+
+    def get_profiler_data_by_time(
+        self,
+        start_time_us,
+        end_time_us,
+        cache_metrics=False,
+        selected_framework_metrics=[],
+        selected_system_metrics=[],
+        get_framework_metrics=True,
+        get_system_metrics=True,
+    ):
+        """
+        Get metrics data within a time interval.
+        :param start_time_us: Start of the interval in microseconds
+        :param end_time_us: End of the interval in microseconds
+        :param cache_metrics: If True, collect and return all metrics requested so far, else,
+        :param framework_metrics_list: list of framework metrics. If not empty, function will only return framework events that are part of this list.
+        :param selected_system_metrics: list of system metrics. If not empty, function will only return system events that are part of this list.
+        :param selected_framework_metrics: if True, get framework metrics
+        :param get_system_metrics: if True: get system metrics
+       return current request
+        :return: System metrics DataFrame, Framework metrics DataFrame
+        """
+        # read system metrics
+        system_metrics = []
+        if get_system_metrics:
+            events = self.system_metrics_reader.get_events(start_time_us, end_time_us)
+
+            # append new events to existing list
+            for event in events:
+                if len(selected_system_metrics) > 0 and event.name not in selected_system_metrics:
+                    continue
+                system_metrics.append(
+                    [
+                        # GPU and CPU metrics are recorded at slightly different timesteps, so we round the numbers
+                        us_since_epoch_to_human_readable_time(
+                            int(event.timestamp * CONVERT_TO_MICROSECS)
+                        ),
+                        int(event.timestamp * CONVERT_TO_MICROSECS),
+                        event.value,
+                        event.name,
+                    ]
+                )
+
+            if cache_metrics is True:
+                self.system_metrics.extend(system_metrics)
+                system_metrics = self.system_metrics
 
         # create data frame for system metrics
         system_metrics_df = pd.DataFrame(
-            self.system_metrics, columns=["timestamp", "timestamp_us", "value", "system_metric"]
+            system_metrics, columns=["timestamp", "timestamp_us", "value", "system_metric"]
         )
-        if system_metrics_df.shape[0] != 0:
-            self.start_time = min(system_metrics_df["timestamp_us"])
+
         system_metrics_df["timestamp_us"] = system_metrics_df["timestamp_us"] - self.start_time
 
-        # get all framework metrics from last to current timestamp
-        self.framework_metrics_reader.refresh_event_file_list()
-        current_timestamp = self.framework_metrics_reader.get_timestamp_of_latest_available_file()
-        events = self.framework_metrics_reader.get_events(
-            self.last_timestamp_framework_metrics, current_timestamp
-        )
-        self.last_timestamp_framework_metrics = current_timestamp
-
-        # append new events to existing list
-        for event in events:
-            if event.event_args is not None and "step_num" in event.event_args:
-                step = int(event.event_args["step_num"])
+        # get framework metrics
+        framework_metrics = []
+        if get_framework_metrics:
+            # only fetch a subset of data to avoid out of memory issues
+            if end_time_us - start_time_us > self.interval:
+                current_time_us = start_time_us + self.interval
             else:
-                step = -1
-            if event.event_args is not None and "layer_name" in event.event_args:
-                name = event.event_args["layer_name"]
-            elif event.event_args is not None and "name" in event.event_args:
-                name = event.event_args["name"]
-            else:
-                name = event.event_name
+                current_time_us = end_time_us
 
-            self.framework_metrics.append(
-                [
-                    us_since_epoch_to_human_readable_time(event.start_time / 1000),
-                    us_since_epoch_to_human_readable_time(event.end_time / 1000),
-                    event.start_time / 1000.0,
-                    event.end_time / 1000.0,
-                    name,
-                    step,
-                ]
-            )
+            while current_time_us <= end_time_us:
+                # get all framework metrics from last to current timestamp
+                self.framework_metrics_reader.refresh_event_file_list()
+                events = self.framework_metrics_reader.get_events(start_time_us, current_time_us)
+
+                # append new events to existing list
+                for event in events:
+                    if len(selected_framework_metrics) > 0 and (
+                        event.event_name not in selected_framework_metrics
+                        and event.event_phase not in selected_framework_metrics
+                    ):
+                        continue
+                    if event.event_args is not None and "step_num" in event.event_args:
+                        step = int(event.event_args["step_num"])
+                    else:
+                        step = -1
+                    if event.event_args is not None and "layer_name" in event.event_args:
+                        name = event.event_args["layer_name"]
+                    elif event.event_args is not None and "name" in event.event_args:
+                        name = event.event_args["name"]
+                    else:
+                        name = event.event_name
+                    if event.event_args is not None and "bytes_fetched" in event.event_args:
+                        bytes_fetched = event.event_args["bytes_fetched"]
+                    else:
+                        bytes_fetched = -1
+
+                    framework_metrics.append(
+                        [
+                            ns_since_epoch_to_human_readable_time(event.start_time),
+                            ns_since_epoch_to_human_readable_time(event.end_time),
+                            event.start_time / CONVERT_MICRO_TO_NS,
+                            event.end_time / CONVERT_MICRO_TO_NS,
+                            event.tid,
+                            event.pid,
+                            name,
+                            step,
+                            bytes_fetched,
+                            event.event_phase,
+                        ]
+                    )
+                # read the next chunk of data
+                start_time_us = current_time_us
+                if current_time_us + self.interval < end_time_us:
+                    current_time_us = current_time_us + self.interval
+                else:
+                    current_time_us = end_time_us + 10
+
+                if cache_metrics is True:
+                    self.framework_metrics.extend(framework_metrics)
+                    framework_metrics = self.framework_metrics
 
         # create data frame for framework metrics
         framework_metrics_df = pd.DataFrame(
-            self.framework_metrics,
+            framework_metrics,
             columns=[
                 "start_time",
                 "end_time",
                 "start_time_us",
                 "end_time_us",
+                "tid",
+                "pid",
                 "framework_metric",
                 "step",
+                "bytes",
+                "process",
             ],
         )
         framework_metrics_df["start_time_us"] = (
@@ -108,3 +380,32 @@ class PandasFrame:
         framework_metrics_df["end_time_us"] = framework_metrics_df["end_time_us"] - self.start_time
 
         return system_metrics_df, framework_metrics_df
+
+    def get_profiler_data_by_step(self, start_step, end_step, cache_metrics=False):
+        """
+        Get metrics data within a step interval. We find the mapping between step number and time interval for
+        the step as some events may not be associated with a step number yet.
+        :param start_step: Start of step interval
+        :param end_step: End of step interval
+        :param cache_metrics: If True, collect and return all metrics requested so far, else,
+        return current request
+        :return: System metrics DataFrame, Framework metrics DataFrame
+        """
+        sys_metrics_df, fw_metrics_df = (
+            self.get_all_system_metrics(),
+            self.get_all_framework_metrics(),
+        )
+
+        fw_metrics_df = fw_metrics_df[
+            (fw_metrics_df["step"].between(start_step, end_step, inclusive=True))
+        ]
+        start_time, end_time = (
+            fw_metrics_df["start_time_us"].min(),
+            fw_metrics_df["end_time_us"].max(),
+        )
+
+        sys_metrics_df = sys_metrics_df[
+            (sys_metrics_df["timestamp_us"].between(start_time, end_time, inclusive=True))
+        ]
+
+        return sys_metrics_df, fw_metrics_df

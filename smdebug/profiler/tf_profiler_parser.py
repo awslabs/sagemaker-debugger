@@ -4,8 +4,11 @@ import gzip
 import json
 import os
 from datetime import datetime
+from io import BytesIO
 
 # First Party
+from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
+from smdebug.core.access_layer.utils import is_s3
 from smdebug.core.logger import get_logger
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
@@ -34,8 +37,16 @@ class TensorboardProfilerEvents(TraceEventParser):
 
     def _get_trace_events_json(self, tracefile):
         try:
-            with gzip.GzipFile(tracefile, "r") as fin:
-                trace_json_data = json.loads(fin.read().decode("utf-8"))
+            s3, bucket_name, key_name = is_s3(tracefile)
+            if s3:
+                object_requests = ReadObjectRequest(os.path.join("s3://", bucket_name, key_name))
+                objects = S3Handler.get_objects([object_requests])
+                gzipfile = BytesIO(objects[0])
+                gzipfile = gzip.GzipFile(fileobj=gzipfile)
+                trace_json_data = json.loads(gzipfile.read().decode("utf-8"))
+            else:
+                with gzip.GzipFile(tracefile, "r") as fin:
+                    trace_json_data = json.loads(fin.read().decode("utf-8"))
         except Exception as e:
             self.logger.error(f"Can't open TF trace file {tracefile}: Exception {str(e)} ")
             return None
