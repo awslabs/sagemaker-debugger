@@ -18,13 +18,14 @@ class StepTimelineChart:
         self.metrics_reader.get_events(0, self.last_timestamp)
 
         self.steps = []
-
+        self.metric_names = []
         # read events for given timerange
         events = self.metrics_reader.get_events(0, self.last_timestamp)
 
         # process events
         for event in events:
-            if event.event_name == "Step:ModeKeys.TRAIN":
+            if event.event_name.startswith("Step"):
+                self.metric_names.append(event.event_name)
                 self.steps.append(
                     [
                         event.start_time / 1000000.0,
@@ -66,13 +67,23 @@ class StepTimelineChart:
         # create line chart for step duration
         self.source = ColumnDataSource(
             data=dict(
-                x=self.steps_np[:, 0] - self.start, y=self.steps_np[:, 1], step=self.steps_np[:, 2]
+                x=self.steps_np[:, 0] - self.start,
+                y=self.steps_np[:, 1],
+                step=self.steps_np[:, 2],
+                metric=self.metric_names,
             )
         )
         line = Line(x="x", y="y", line_color="blue")
 
         # tooltip
-        hover = HoverTool(tooltips=[("index", "$index"), ("step", "@step"), ("(x,y)", "($x, $y)")])
+        hover = HoverTool(
+            tooltips=[
+                ("index", "$index"),
+                ("step", "@step"),
+                ("metric", "@metric"),
+                ("(x,y)", "($x, $y)"),
+            ]
+        )
 
         # create plot
         self.plot.add_tools(hover)
@@ -94,7 +105,8 @@ class StepTimelineChart:
         if len(events) > 0:
             # process new events and append to list
             for event in events:
-                if event.event_name == "Step:ModeKeys.TRAIN":
+                if event.event_name.startswith("Step"):
+                    self.metric_names.append(event.event_name)
                     self.steps.append(
                         [
                             event.start_time / 1000000.0,
@@ -123,5 +135,5 @@ class StepTimelineChart:
             self.source.data["x"] = self.steps_np[:, 0] - self.start
             self.source.data["y"] = self.steps_np[:, 1]
             self.source.data["step"] = self.steps_np[:, 2]
-
+            self.source.data["metric"] = self.metric_names
             push_notebook()

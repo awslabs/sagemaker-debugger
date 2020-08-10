@@ -7,74 +7,94 @@ import numpy as np
 from bokeh.io import output_notebook, push_notebook, show
 from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.models.glyphs import Image
+from bokeh.models.tickers import FixedTicker
 from bokeh.plotting import figure, show
 
 output_notebook(hide_banner=True)
 
 
 class Heatmap:
-    def __init__(self, metrics_reader, select_metrics=[], plot_height=150):
+    def __init__(
+        self,
+        metrics_reader,
+        select_metrics=[],
+        starttime=0,
+        endtime=None,
+        select_dimensions=[".*CPU", ".*GPU", ".*Memory"],
+        select_events=[".*"],
+        plot_height=350,
+    ):
 
+        self.select_dimensions = select_dimensions
+        self.select_events = select_events
         self.metrics_reader = metrics_reader
+        self.available_dimensions = []
+        self.available_events = []
+        self.start = 0  # replace with system_metrics_reader.get_first_available_timestamp()/1000000
+
+        if endtime == None:
+            # get timestamp of latest file and events
+            self.last_timestamp_system_metrics = (
+                self.metrics_reader.get_timestamp_of_latest_available_file()
+            )
+        else:
+            self.last_timestamp_system_metrics = endtime
+        events = self.metrics_reader.get_events(starttime, self.last_timestamp_system_metrics)
+
         self.plot_height = plot_height
 
         # get timestamp of latest file and events
         self.last_timestamp = self.metrics_reader.get_timestamp_of_latest_available_file()
-        self.all_events = self.metrics_reader.get_events(0, self.last_timestamp)
+        events = self.metrics_reader.get_events(0, self.last_timestamp)
 
-        # define the list of metrics to plot: per default cpu and gpu
-        self.select_metrics = ["cpu", "gpu"]
-        if select_metrics is not None:
-            self.select_metrics.extend(select_metrics)
-
-        self.preprocess_system_metrics()
+        self.system_metrics = self.preprocess_system_metrics(events, system_metrics={})
         self.create_plot()
 
-    def preprocess_system_metrics(self):
+    def preprocess_system_metrics(self, events, system_metrics):
 
         # read all available system metric events and store them in dict
-        self.system_metrics = {}
-        for event in self.all_events:
-            if event.dimension == "GPUMemoryUtilization":
-                continue
-            if event.name not in self.system_metrics:
-                self.system_metrics[event.name] = []
-            self.system_metrics[event.name].append([event.timestamp, event.value])
+        for event in events:
+            if event.dimension not in system_metrics:
+                system_metrics[event.dimension] = {}
+                self.available_dimensions.append(event.dimension)
+            if event.name not in system_metrics[event.dimension]:
+                system_metrics[event.dimension][event.name] = []
+                self.available_events.append(event.name)
+            system_metrics[event.dimension][event.name].append([event.timestamp, event.value])
 
-        # total cpu utilization is not recorded in SM
-        cpu_total = np.zeros((len(self.system_metrics["cpu0"]), 2))
+        for dimension in system_metrics:
+            for event in system_metrics[dimension]:
+                # convert to numpy
+                system_metrics[dimension][event] = np.array(system_metrics[dimension][event])
 
-        # first timestamp
-        self.start = self.system_metrics["cpu0"][0][0]
+                # subtract first timestamp
+                system_metrics[dimension][event][:, 0] = (
+                    system_metrics[dimension][event][:, 0] - self.start
+                )
 
-        self.cores = 0.0
-        for metric in self.system_metrics:
+        # compute total utilization per event dimension
+        for event_dimension in system_metrics:
+            n = len(system_metrics[event_dimension])
+            total = [sum(x) for x in zip(*system_metrics[event_dimension].values())]
+            system_metrics[event_dimension]["total"] = np.array(total) / n
+            self.available_events.append("total")
 
-            # convert to numpy
-            self.system_metrics[metric] = np.array(self.system_metrics[metric])
+        self.filtered_events = []
+        print(f"select events:{self.select_events}")
+        self.filtered_dimensions = []
+        print(f"select dimensions:{self.select_dimensions}")
+        for metric in self.select_events:
+            r = re.compile(r".*" + metric)
+            self.filtered_events.extend(list(filter(r.search, self.available_events)))
+        self.filtered_events = set(self.filtered_events)
+        print(f"filtered_events:{self.filtered_events}")
+        for metric in self.select_dimensions:
+            r = re.compile(metric)  # + r".*")
+            self.filtered_dimensions.extend(list(filter(r.search, self.available_dimensions)))
+        self.filtered_dimensions = set(self.filtered_dimensions)
+        print(f"filtered_dimensions:{self.filtered_dimensions}")
 
-            # subtract first timestamp
-            self.system_metrics[metric][:, 0] = self.system_metrics[metric][:, 0] - self.start
-
-            # compute total cpu utilization
-            if "cpu" in metric:
-                self.cores += 1
-                cpu_total[:, 0] = self.system_metrics[metric][:, 0]
-                cpu_total[:, 1] += self.system_metrics[metric][:, 1]
-
-        self.system_metrics["cpu_total"] = cpu_total
-        self.system_metrics["cpu_total"][:, 1] = cpu_total[:, 1] / self.cores
-
-        # number of datapoints
-        self.width = self.system_metrics["cpu_total"].shape[0]
-
-        # add user defined metrics to the list
-        self.metrics = []
-        available_metrics = list(self.system_metrics.keys())
-
-        for metric in self.select_metrics:
-            r = re.compile(".*" + metric)
-            self.metrics.extend(list(filter(r.match, available_metrics)))
+        return system_metrics
 
     def create_plot(self):
 
@@ -82,13 +102,21 @@ class Heatmap:
         tmp = []
         metric_names = []
         yaxis = {}
-        for index, metric in enumerate(self.metrics):
-            values = self.system_metrics[metric][: self.width, 1]
-            tmp.append(values)
-            metric_names.append(metric),
-            timestamps = self.system_metrics[metric][: self.width, 0]
-            yaxis[index] = metric
-        yaxis[index + 1] = ""
+
+        # number of datapoints
+        self.width = self.system_metrics["CPUUtilization"]["total"].shape[0]
+
+        for dimension in self.filtered_dimensions:
+            for event in self.filtered_events:
+                if event in self.system_metrics[dimension]:
+                    values = self.system_metrics[dimension][event][: self.width, 1]
+                    tmp.append(values)
+                    metric_names.append(dimension + "_" + event),
+                    timestamps = self.system_metrics[dimension][event][: self.width, 0]
+                    yaxis[len(tmp)] = dimension + "_" + event
+
+        ymax = len(tmp) + 1
+        yaxis[ymax] = ""
 
         # define figure
         start = 0
@@ -97,7 +125,7 @@ class Heatmap:
         self.plot = figure(
             plot_height=self.plot_height,
             x_range=(start, self.width),
-            y_range=(0, index + 1),
+            y_range=(0, ymax),
             plot_width=1000,
             tools="crosshair,reset,xwheel_zoom, box_edit",
         )
@@ -115,10 +143,10 @@ class Heatmap:
         self.source = ColumnDataSource(
             data=dict(
                 image=[np.array(tmp[i]).reshape(1, -1) for i in range(len(tmp))],
-                x=[0] * (index + 1),
-                y=[i for i in range(index + 1)],
-                dw=[self.width] * (index + 1),
-                dh=[1.3] * (index + 1),
+                x=[0] * ymax,
+                y=[i for i in range(ymax)],
+                dw=[self.width] * (ymax),
+                dh=[1.3] * (ymax),
                 metric=[i for i in metric_names],
             )
         )
@@ -130,10 +158,8 @@ class Heatmap:
         self.plot.add_tools(hover)
         self.plot.xgrid.visible = False
         self.plot.ygrid.visible = False
-        self.plot.xaxis.major_tick_line_color = None
-        self.plot.xaxis.minor_tick_line_color = None
-        self.plot.yaxis.major_tick_line_color = None
-        self.plot.yaxis.minor_tick_line_color = None
+        self.plot.yaxis.ticker = FixedTicker(ticks=np.arange(0, ymax).tolist())
+        self.plot.yaxis.major_label_text_font_size = "5pt"
         self.plot.yaxis.major_label_overrides = yaxis
 
         self.target = show(self.plot, notebook_handle=True)
@@ -145,54 +171,35 @@ class Heatmap:
         self.last_timestamp = current_timestamp
 
         if len(events) > 0:
-
-            new_system_metrics = {}
-            for event in events:
-                # get_events may return different types of events
-                if event.name not in new_system_metrics:
-                    new_system_metrics[event.name] = []
-                new_system_metrics[event.name].append([event.timestamp, event.value])
-
-            cpu_total = np.zeros((len(new_system_metrics["cpu0"]), 2))
-
-            # iterate over available metrics
-            for metric in new_system_metrics:
-
-                # convert to numpy
-                new_system_metrics[metric] = np.array((new_system_metrics[metric]))
-
-                # subtract first timestamp
-                new_system_metrics[metric][:, 0] = new_system_metrics[metric][:, 0] - self.start
-
-                # compute total cpu utilization
-                if "cpu" in metric:
-                    cpu_total[:, 0] = new_system_metrics[metric][:, 0]
-                    cpu_total[:, 1] += new_system_metrics[metric][:, 1]
-
-            new_system_metrics["cpu_total"] = cpu_total
-            new_system_metrics["cpu_total"][:, 1] = (
-                new_system_metrics["cpu_total"][:, 1] / self.cores
-            )
+            new_system_metrics = self.preprocess_system_metrics(events, system_metrics={})
 
             # append numpy arrays to previous numpy arrays
-            for metric in self.system_metrics:
-                self.system_metrics[metric] = np.vstack(
-                    [self.system_metrics[metric], new_system_metrics[metric]]
-                )
-
-            self.width = self.system_metrics["cpu_total"].shape[0]
+            for dimension in self.filtered_dimensions:
+                for event in self.filtered_events:
+                    if event in self.system_metrics[dimension]:
+                        self.system_metrics[dimension][event] = np.vstack(
+                            [
+                                self.system_metrics[dimension][event],
+                                new_system_metrics[dimension][event],
+                            ]
+                        )
+            self.width = self.system_metrics["CPUUtilization"]["cpu0"].shape[0]
 
             tmp = []
             metric_names = []
-            for index, metric in enumerate(self.metrics):
-                values = self.system_metrics[metric][:, 1]
-                tmp.append(values)
-                metric_names.append(metric)
+
+            for dimension in self.filtered_dimensions:
+                for event in self.filtered_events:
+                    if event in self.system_metrics[dimension]:
+                        values = self.system_metrics[dimension][event][: self.width, 1]
+                        tmp.append(values)
+                        metric_names.append(dimension + "_" + event)
+                        timestamps = self.system_metrics[dimension][event][: self.width, 0]
 
             # update heatmap
             images = [np.array(tmp[i]).reshape(1, -1) for i in range(len(tmp))]
             self.source.data["image"] = images
-            self.source.data["dw"] = [self.width] * (index + 1)
+            self.source.data["dw"] = [self.width] * (len(tmp) + 1)
             self.source.data["metric"] = metric_names
 
             if self.width > 1000:

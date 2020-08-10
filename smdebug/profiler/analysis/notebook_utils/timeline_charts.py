@@ -16,166 +16,177 @@ output_notebook(hide_banner=True)
 
 
 class TimelineCharts:
-    def __init__(self, system_metrics_reader, framework_metrics_reader, select_metrics=[], x=1000):
+    def __init__(
+        self,
+        system_metrics_reader,
+        framework_metrics_reader,
+        starttime=0,
+        endtime=None,
+        select_dimensions=[".*"],
+        select_events=[".*"],
+        x=1000,
+    ):
+
+        self.select_dimensions = select_dimensions
+        self.select_events = select_events
 
         # placeholder
-        self.system_metrics_sources = {}
-
-        # read and preprocess system metrics: per default we only show overall cpu and gpu usage
-        self.select_metrics = ["cpu", "gpu"]
-        if select_metrics is not None:
-            self.select_metrics.extend(select_metrics)
+        self.sources = {}
+        self.available_dimensions = []
+        self.available_events = []
 
         self.system_metrics_reader = system_metrics_reader
         self.framework_metrics_reader = framework_metrics_reader
 
-        # get timestamp of latest file and events
-        self.last_timestamp_system_metrics = (
-            self.system_metrics_reader.get_timestamp_of_latest_available_file()
+        if endtime == None:
+            # get timestamp of latest file and events
+            self.last_timestamp_system_metrics = (
+                self.system_metrics_reader.get_timestamp_of_latest_available_file()
+            )
+        else:
+            self.last_timestamp_system_metrics = endtime
+        events = self.system_metrics_reader.get_events(
+            starttime, self.last_timestamp_system_metrics
         )
-        self.system_metrics_events = self.system_metrics_reader.get_events(
-            0, self.last_timestamp_system_metrics
-        )
+        # first timestamp
+        self.start = 0  # replace with system_metrics_reader.get_first_available_timestamp()/1000000
+        self.system_metrics = self.preprocess_system_metrics(events, system_metrics={})
 
-        self.preprocess_system_metrics()
-
-        if x < self.system_metrics["cpu_total"].shape[0]:
+        if x < self.system_metrics["CPUUtilization"]["total"].shape[0]:
             self.width = x
         else:
-            self.width = self.system_metrics["cpu_total"].shape[0] - 1
+            self.width = self.system_metrics["CPUUtilization"]["total"].shape[0] - 1
 
         # create plot
         self.create_plot()
 
-    def preprocess_system_metrics(self):
+    def preprocess_system_metrics(self, events, system_metrics):
 
         # read all available system metric events and store them in dict
-        self.system_metrics = {}
-        for event in self.system_metrics_events:
-            if event.dimension == "GPUMemoryUtilization":
-                continue
-            if event.name not in self.system_metrics:
-                self.system_metrics[event.name] = []
-            self.system_metrics[event.name].append([event.timestamp, event.value])
+        for event in events:
+            if event.dimension not in system_metrics:
+                system_metrics[event.dimension] = {}
+                self.available_dimensions.append(event.dimension)
+            if event.name not in system_metrics[event.dimension]:
+                system_metrics[event.dimension][event.name] = []
+                self.available_events.append(event.name)
+            system_metrics[event.dimension][event.name].append([event.timestamp, event.value])
 
-        # total cpu utilization is not recorded in SM
-        cpu_total = np.zeros((len(self.system_metrics["cpu0"]), 2))
+        for dimension in system_metrics:
+            for event in system_metrics[dimension]:
+                # convert to numpy
+                system_metrics[dimension][event] = np.array(system_metrics[dimension][event])
 
-        # first timestamp
-        self.start = self.system_metrics["cpu0"][0][0]
+                # subtract first timestamp
+                system_metrics[dimension][event][:, 0] = (
+                    system_metrics[dimension][event][:, 0] - self.start
+                )
 
-        self.cores = 0.0
-        for metric in self.system_metrics:
-            # convert to numpy
-            self.system_metrics[metric] = np.array(self.system_metrics[metric])
+        # compute total utilization per event dimension
+        for event_dimension in system_metrics:
+            n = len(system_metrics[event_dimension])
+            total = [sum(x) for x in zip(*system_metrics[event_dimension].values())]
+            system_metrics[event_dimension]["total"] = np.array(total) / n
+            self.available_events.append("total")
 
-            # subtract first timestamp
-            self.system_metrics[metric][:, 0] = self.system_metrics[metric][:, 0] - self.start
-
-            # compute total cpu utilization
-            if "cpu" in metric:
-                self.cores += 1
-                cpu_total[:, 0] = self.system_metrics[metric][:, 0]
-                cpu_total[:, 1] += self.system_metrics[metric][:, 1]
-
-        self.system_metrics["cpu_total"] = cpu_total
-        self.system_metrics["cpu_total"][:, 1] = cpu_total[:, 1] / self.cores
-
-        # add user defined metrics to the list
-        self.metrics = []
-        available_metrics = list(self.system_metrics.keys())
-
-        for metric in self.select_metrics:
-            r = re.compile(".*" + metric)
-            self.metrics.extend(list(filter(r.match, available_metrics)))
+        self.filtered_events = []
+        print(f"select events:{self.select_events}")
+        self.filtered_dimensions = []
+        print(f"select dimensions:{self.select_dimensions}")
+        for metric in self.select_events:
+            r = re.compile(r".*" + metric)
+            self.filtered_events.extend(list(filter(r.search, self.available_events)))
+        self.filtered_events = set(self.filtered_events)
+        print(f"filtered_events:{self.filtered_events}")
+        for metric in self.select_dimensions:
+            r = re.compile(metric)  # + r".*")
+            self.filtered_dimensions.extend(list(filter(r.search, self.available_dimensions)))
+        self.filtered_dimensions = set(self.filtered_dimensions)
+        print(f"filtered_dimensions:{self.filtered_dimensions}")
+        return system_metrics
 
     def plot_system_metrics(self):
 
         self.figures = []
-
+        x_range = None
         # iterate over metrics e.g. cpu usage, gpu usage, i/o reads and writes etc
-        for index, metric in enumerate(self.metrics):
+        # create a histogram per dimension and event
+        for dimension in self.filtered_dimensions:
+            self.sources[dimension] = {}
+            for event in self.filtered_events:
+                if event in self.system_metrics[dimension]:
 
-            values = self.system_metrics[metric]
-            values = values[values[:, 0].argsort()]
-            # set y ranges for cpu and gpu which are measured in percent
-            if "gpu" in metric or "cpu" in metric:
-                y_range = (0, 102)
-            else:
-                y_range = (np.min(values[-self.width :, 1]), np.max(values[-self.width :, 1]))
+                    values = self.system_metrics[dimension][event]
+                    values = values[values[:, 0].argsort()]
+                    # set y ranges for cpu and gpu which are measured in percent
+                    if "Utilization" in dimension or "Memory" in dimension:
+                        y_range = (0, 102)
+                    else:
+                        y_range = (
+                            np.min(values[-self.width :, 1]),
+                            np.max(values[-self.width :, 1]),
+                        )
 
-            # create figure: each system metric has its own figure
-            if index == 0:
-                plot = figure(
-                    plot_height=200,
-                    plot_width=1000,
-                    x_range=(values[-self.width, 0], values[-1, 0]),
-                    y_range=y_range,
-                    tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
-                )
-                x_range = plot.x_range
-            else:
-                plot = figure(
-                    plot_height=200,
-                    plot_width=1000,
-                    x_range=x_range,
-                    y_range=y_range,
-                    tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
-                )
+                    # create figure: each system metric has its own figure
 
-            plot.xgrid.visible = False
-            plot.ygrid.visible = False
+                    if x_range == None:
+                        plot = figure(
+                            plot_height=200,
+                            plot_width=1000,
+                            x_range=(values[-self.width, 0], values[-1, 0]),
+                            y_range=y_range,
+                            tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
+                        )
+                        x_range = plot.x_range
+                    else:
+                        plot = figure(
+                            plot_height=200,
+                            plot_width=1000,
+                            x_range=x_range,
+                            y_range=y_range,
+                            tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
+                        )
 
-            # create line chart for system metric
-            source = ColumnDataSource(
-                data=dict(
-                    x=values[:, 0],
-                    y=values[:, 1],
-                    # gpu0=self.system_metrics["gpu0"][:,1],
-                    cpu=self.system_metrics["cpu_total"],
-                    # memory=self.system_metrics["memory"][-self.width:,1]
-                )
-            )
+                    plot.xgrid.visible = False
+                    plot.ygrid.visible = False
 
-            callback = CustomJS(
-                args=dict(s1=source, div=self.div),
-                code="""
-                    console.log('Running CustomJS callback now.');
-                    var inds = s1.selected.indices;
-                    console.log(inds);
-                    var line = "<span style=float:left;clear:left;font_size=13px><b> Selected index range: [" + Math.min.apply(Math,inds) + "," + Math.max.apply(Math,inds) + "]</b></span>\\n";
-                    console.log(line)
-                    var text = div.text.concat(line);
-                    var lines = text.split("\\n")
-                    if (lines.length > 35)
-                        lines.shift();
-                    div.text = lines.join("\\n");""",
-            )
+                    # create line chart for system metric
+                    source = ColumnDataSource(data=dict(x=values[:, 0], y=values[:, 1]))
 
-            plot.js_on_event("selectiongeometry", callback)
+                    callback = CustomJS(
+                        args=dict(s1=source, div=self.div),
+                        code="""
+                            console.log('Running CustomJS callback now.');
+                            var inds = s1.selected.indices;
+                            console.log(inds);
+                            var line = "<span style=float:left;clear:left;font_size=13px><b> Selected index range: [" + Math.min.apply(Math,inds) + "," + Math.max.apply(Math,inds) + "]</b></span>\\n";
+                            console.log(line)
+                            var text = div.text.concat(line);
+                            var lines = text.split("\\n")
+                            if (lines.length > 35)
+                                lines.shift();
+                            div.text = lines.join("\\n");""",
+                    )
 
-            line = Line(x="x", y="y", line_color="blue")
-            circle = Circle(x="x", y="y", fill_alpha=0, line_width=0)
-            p = plot.add_glyph(source, line)
-            p = plot.add_glyph(source, circle)
+                    plot.js_on_event("selectiongeometry", callback)
 
-            # create tooltip for hover tool
-            hover = HoverTool(
-                renderers=[p],
-                tooltips=[
-                    ("index", "$index"),
-                    ("(x,y)", "($x, $y)"),  # ("gpu0", "@gpu0"),
-                    ("cpu", "@cpu"),  # ("memory", "@memory")
-                ],
-            )
+                    line = Line(x="x", y="y", line_color="blue")
+                    circle = Circle(x="x", y="y", fill_alpha=0, line_width=0)
+                    p = plot.add_glyph(source, line)
+                    p = plot.add_glyph(source, circle)
 
-            plot.xaxis.axis_label = "Time in ms"
-            plot.yaxis.axis_label = metric
-            plot.add_tools(hover)
+                    # create tooltip for hover tool
+                    hover = HoverTool(
+                        renderers=[p], tooltips=[("index", "$index"), ("(x,y)", "($x, $y)")]
+                    )
 
-            # store figure and datasource
-            self.figures.append(plot)
-            self.system_metrics_sources[metric] = source
+                    plot.xaxis.axis_label = "Time in ms"
+                    plot.yaxis.axis_label = dimension + "_" + event
+                    plot.add_tools(hover)
+
+                    # store figure and datasource
+                    self.figures.append(plot)
+                    self.sources[dimension][event] = source
 
         return self.figures
 
@@ -189,8 +200,8 @@ class TimelineCharts:
     def find_time_annotations(self, indexes):
 
         if len(indexes) > 0:
-            begin_timestamp = self.system_metrics["cpu_total"][np.min(indexes), 0]
-            end_timestamp = self.system_metrics["cpu_total"][np.max(indexes), 0]
+            begin_timestamp = self.system_metrics["CPUUtilization"]["total"][np.min(indexes), 0]
+            end_timestamp = self.system_metrics["CPUUtilization"]["total"][np.max(indexes), 0]
             total_time = end_timestamp - begin_timestamp
             print(
                 f"Selected timerange: {begin_timestamp + self.start} to {end_timestamp + self.start}"
@@ -224,14 +235,17 @@ class TimelineCharts:
                 if "bytes_fetched" in event.event_args:
                     continue
 
-            key = event.event_name + "_tid_" + str(event.tid)
-            if key not in framework_events:
-                framework_events[key] = []
-                yaxis[key] = counter
+            if event.event_phase not in framework_events:
+                framework_events[event.event_phase] = []
+                yaxis[event.event_phase] = counter
                 counter += 1
 
-            framework_events[key].append(
-                [int(event.start_time / 1000.0), int(event.end_time / 1000.0), yaxis[key]]
+            framework_events[event.event_phase].append(
+                [
+                    int(event.start_time / 1000.0),
+                    int(event.end_time / 1000.0),
+                    yaxis[event.event_phase],
+                ]
             )
             if index > 1000:
                 print(
@@ -267,8 +281,8 @@ class TimelineCharts:
     def plot_detailed_profiler_data(self, indexes):
 
         if len(indexes) > 0:
-            begin_timestamp = self.system_metrics["cpu_total"][np.min(indexes), 0]
-            end_timestamp = self.system_metrics["cpu_total"][np.max(indexes), 0]
+            begin_timestamp = self.system_metrics["CPUUtilization"]["cpu0"][np.min(indexes), 0]
+            end_timestamp = self.system_metrics["CPUUtilization"]["cpu0"][np.max(indexes), 0]
             print(
                 f"Selected timerange: {begin_timestamp + self.start} to {end_timestamp + self.start}"
             )
@@ -285,7 +299,7 @@ class TimelineCharts:
 
             # define figure
             plot_dataloaders = figure(
-                plot_height=450,
+                plot_height=250,
                 plot_width=1000,
                 tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
             )
@@ -309,7 +323,13 @@ class TimelineCharts:
 
                     # vertical bars
                     quad = Quad(
-                        top="top", bottom="bottom", left="left", right="right", fill_color="black"
+                        top="top",
+                        bottom="bottom",
+                        left="left",
+                        right="right",
+                        fill_color="black",
+                        line_color=None,
+                        fill_alpha=0.2,
                     )
 
                     # plot
@@ -317,7 +337,7 @@ class TimelineCharts:
             plot_dataloaders.add_tools(hover)
 
             plot_framework_events = figure(
-                plot_height=450,
+                plot_height=250,
                 plot_width=1000,
                 tools="crosshair,xbox_select,pan,reset,save,xwheel_zoom",
             )
@@ -346,6 +366,7 @@ class TimelineCharts:
                         left="left",
                         right="right",
                         fill_color="blue",
+                        fill_alpha=0.2,
                         line_color=None,
                     )
 
@@ -364,71 +385,48 @@ class TimelineCharts:
         events = self.system_metrics_reader.get_events(
             self.last_timestamp_system_metrics, current_timestamp
         )
-
+        print(
+            f"Found {len(events)} new system metrics events from timestamp_in_us:{self.last_timestamp_system_metrics} to timestamp_in_us:{current_timestamp}"
+        )
         if len(events) > 0:
-            new_system_metrics = {}
-            for event in events:
-                if event.dimension == "GPUMemoryUtilization":
-                    continue
-
-                if event.name not in new_system_metrics:
-                    new_system_metrics[event.name] = []
-                new_system_metrics[event.name].append([event.timestamp, event.value])
-            self.last_timestamp_system_metrics = current_timestamp
-            cpu_total = np.zeros((len(new_system_metrics["cpu0"]), 2))
-
-            # iterate over available metrics
-            for metric in new_system_metrics:
-
-                # convert to numpy
-                new_system_metrics[metric] = np.array((new_system_metrics[metric]))
-
-                # subtract first timestamp
-                new_system_metrics[metric][:, 0] = new_system_metrics[metric][:, 0] - self.start
-
-                # compute total cpu utilization
-                if metric is not None and "cpu" in metric:
-                    cpu_total[:, 0] = new_system_metrics[metric][:, 0]
-                    cpu_total[:, 1] += new_system_metrics[metric][:, 1]
-
-            new_system_metrics["cpu_total"] = cpu_total
-            new_system_metrics["cpu_total"][:, 1] = (
-                new_system_metrics["cpu_total"][:, 1] / self.cores
-            )
+            new_system_metrics = self.preprocess_system_metrics(events, system_metrics={})
 
             # append numpy arrays to previous numpy arrays
-            for metric in self.system_metrics:
-                new_system_metrics[metric] = new_system_metrics[metric][
-                    new_system_metrics[metric][:, 0].argsort()
-                ]
-                self.system_metrics[metric] = np.vstack(
-                    [self.system_metrics[metric], new_system_metrics[metric]]
-                )
-                self.system_metrics[metric] = self.system_metrics[metric][
-                    self.system_metrics[metric][:, 0].argsort()
-                ]
-            self.width = self.system_metrics["cpu_total"].shape[0] - 1
+            for dimension in self.filtered_dimensions:
+                for event in self.filtered_events:
+                    if event in self.system_metrics[dimension]:
+                        new_system_metrics[dimension][event] = new_system_metrics[dimension][event][
+                            new_system_metrics[dimension][event][:, 0].argsort()
+                        ]
+                        self.system_metrics[dimension][event] = np.vstack(
+                            [
+                                self.system_metrics[dimension][event],
+                                new_system_metrics[dimension][event],
+                            ]
+                        )
+                        self.system_metrics[dimension][event] = self.system_metrics[dimension][
+                            event
+                        ][self.system_metrics[dimension][event][:, 0].argsort()]
+
+            self.width = self.system_metrics["CPUUtilization"]["total"].shape[0] - 1
 
             if self.width > 1000:
-                min_value = self.system_metrics["cpu_total"][-1000, 0]
+                min_value = self.system_metrics["CPUUtilization"]["total"][-1000, 0]
             else:
-                min_value = self.system_metrics["cpu_total"][-self.width, 0]
-            max_value = self.system_metrics["cpu_total"][-1, 0]
+                min_value = self.system_metrics["CPUUtilization"]["total"][-self.width, 0]
+            max_value = self.system_metrics["CPUUtilization"]["total"][-1, 0]
 
             for figure in self.figures:
                 figure.x_range.start = int(min_value)
                 figure.x_range.end = int(max_value)
 
             # update line charts with system metrics
+            for dimension in self.filtered_dimensions:
+                for event in self.filtered_events:
+                    if event in self.system_metrics[dimension]:
+                        values = np.array(self.system_metrics[dimension][event])
+                        self.sources[dimension][event].data["x"] = values[:, 0]
+                        self.sources[dimension][event].data["y"] = values[:, 1]
 
-            for metric in self.metrics:
-                values = np.array(self.system_metrics[metric])
-                self.system_metrics_sources[metric].data["x"] = values[:, 0]
-                self.system_metrics_sources[metric].data["y"] = values[:, 1]
-                # self.system_metrics_sources[metric].data['gpu0'] = self.system_metrics['gpu0'][:,1]
-                self.system_metrics_sources[metric].data["cpu"] = self.system_metrics["cpu_total"][
-                    :, 1
-                ]
-                # self.system_metrics_sources[metric].data['memory'] = self.system_metrics['memory'][:,1]
-
+            self.last_timestamp_system_metrics = current_timestamp
             push_notebook()

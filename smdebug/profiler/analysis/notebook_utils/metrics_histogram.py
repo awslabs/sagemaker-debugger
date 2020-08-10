@@ -15,13 +15,12 @@ class MetricsHistogram:
     def __init__(self, metrics_reader):
 
         self.metrics_reader = metrics_reader
-
-        # get timestamp of latest files
-        self.last_timestamp = self.metrics_reader.get_timestamp_of_latest_available_file()
-        self.seen_system_metric_list = set()
-        self.select_metrics = []
+        self.system_metrics = {}
+        self.select_dimensions = []
+        self.select_events = []
         self.sources = {}
         self.target = None
+        self.available_metrics = []
 
     """
     @param starttime is starttime_since_epoch_in_micros. Default value 0, which means start
@@ -29,7 +28,7 @@ class MetricsHistogram:
     @param select_metrics is array of metrics to be selected, Default ["cpu", "gpu"]
     """
 
-    def plot(self, starttime=0, endtime=None, select_metrics=[".*"]):
+    def plot(self, starttime=0, endtime=None, select_dimensions=[".*"], select_events=[".*"]):
         if endtime == None:
             endtime = self.metrics_reader.get_timestamp_of_latest_available_file()
         all_events = self.metrics_reader.get_events(starttime, endtime)
@@ -37,54 +36,51 @@ class MetricsHistogram:
             f"Found {len(all_events)} system metrics events from timestamp_in_us:{starttime} to timestamp_in_us:{endtime}"
         )
         self.last_timestamp = endtime
-        self.select_metrics = select_metrics
-        self.system_metrics = self.preprocess_system_metrics(all_events=all_events)
-        self.create_plot(self.system_metrics)
+        self.select_dimensions = select_dimensions
+        self.select_events = select_events
+        self.system_metrics = self.preprocess_system_metrics(
+            all_events=all_events, system_metrics={}
+        )
+        self.create_plot()
 
-    def clear():
+    def clear(self):
         self.system_metrics = {}
         self.sources = {}
 
     def preprocess_system_metrics(self, all_events=[], system_metrics={}):
-        cpu_name = None
+
         # read all available system metric events and store them in dict
         for event in all_events:
-            if event.name not in system_metrics:
-                system_metrics[event.name] = []
-                if cpu_name is None and event.dimension == "CPUUtilization":
-                    cpu_name = event.name
-                    print(cpu_name)
-            system_metrics[event.name].append(event.value)
+            if event.dimension not in system_metrics:
+                system_metrics[event.dimension] = {}
+                self.available_metrics.append(event.dimension)
+            if event.name not in system_metrics[event.dimension]:
+                system_metrics[event.dimension][event.name] = []
+                self.available_metrics.append(event.name)
+            system_metrics[event.dimension][event.name].append(event.value)
 
-        # total cpu utilization is not recorded in SM
-        if cpu_name is not None:
-            self.cores = 0.0
-            cpu_total = np.zeros(len(system_metrics[cpu_name]))
-            for metric in system_metrics:
-                # TODO should we do similar for gpu too
-                if "cpu" in metric and metric:
-                    if metric not in self.seen_system_metric_list:
-                        self.cores += 1
-                        self.seen_system_metric_list.add(metric)
-
-                    cpu_total += system_metrics[metric]
-
-            system_metrics["cpu_total"] = cpu_total / self.cores
+        # compute total utilization per event dimension
+        for event_dimension in system_metrics:
+            n = len(system_metrics[event_dimension])
+            total = [sum(x) for x in zip(*system_metrics[event_dimension].values())]
+            system_metrics[event_dimension]["total"] = np.array(total) / n
+            self.available_metrics.append("total")
 
         # add user defined metrics to the list
-        filtered_metrics = []
-        available_metrics = list(system_metrics.keys())
-        print(f"select metrics:{self.select_metrics}")
-
-        for metric in self.select_metrics:
+        self.filtered_events = []
+        print(f"select events:{self.select_events}")
+        self.filtered_dimensions = []
+        print(f"select dimensions:{self.select_dimensions}")
+        for metric in self.select_events:
             r = re.compile(r".*" + metric + r".*")
-            filtered_metrics.extend(list(filter(r.search, available_metrics)))
-        print(f"filtered_metrics:{filtered_metrics}")
+            self.filtered_events.extend(list(filter(r.search, self.available_metrics)))
+        self.filtered_events = set(self.filtered_events)
+        print(f"filtered_events:{self.filtered_events}")
+        for metric in self.select_dimensions:
+            r = re.compile(metric)  # + r".*")
+            self.filtered_dimensions.extend(list(filter(r.search, self.available_metrics)))
+        print(f"filtered_dimensions:{self.filtered_dimensions}")
 
-        # delete the keys which needs to be filtered out
-        for key in available_metrics:
-            if key not in filtered_metrics and "total" not in key:
-                del system_metrics[key]
         return system_metrics
 
     def _get_probs_binedges(self, values):
@@ -94,37 +90,44 @@ class MetricsHistogram:
         bincenters = 0.5 * (binedges[1:] + binedges[:-1])
         return probs, binedges
 
-    def create_plot(self, system_metrics={}):
-        metrics = list(system_metrics.keys())
+    def create_plot(self):
         figures = []
 
-        # create a histogram per metric
-        for index, metric in enumerate(metrics):
-            p = figure(plot_height=250, plot_width=250)
-            probs, binedges = self._get_probs_binedges(system_metrics[metric])
-            # set data
-            source = ColumnDataSource(data=dict(top=probs, left=binedges[:-1], right=binedges[1:]))
-            self.sources[metric] = source
-            p.quad(
-                top="top",
-                bottom=0,
-                left="left",
-                right="right",
-                source=source,
-                fill_color="navy",
-                line_color="white",
-                fill_alpha=0.5,
-            )
+        # create a histogram per dimension and event
+        for dimension in self.filtered_dimensions:
+            self.sources[dimension] = {}
+            for event in self.filtered_events:
+                if event in self.system_metrics[dimension]:
+                    p = figure(plot_height=250, plot_width=250)
+                    probs, binedges = self._get_probs_binedges(
+                        self.system_metrics[dimension][event]
+                    )
+                    # set data
+                    source = ColumnDataSource(
+                        data=dict(top=probs, left=binedges[:-1], right=binedges[1:])
+                    )
+                    self.sources[dimension][event] = source
+                    p.quad(
+                        top="top",
+                        bottom=0,
+                        left="left",
+                        right="right",
+                        source=source,
+                        fill_color="navy",
+                        line_color="white",
+                        fill_alpha=0.5,
+                    )
 
-            # set plot
-            p.y_range.start = 0
-            p.xaxis.axis_label = metric + " util"
-            p.yaxis.axis_label = "Occurences"
-            p.grid.grid_line_color = "white"
-            figures.append(p)
+                    # set plot
+                    p.y_range.start = 0
+                    p.xaxis.axis_label = dimension + "_" + event
+                    p.yaxis.axis_label = "Occurences"
+                    p.grid.grid_line_color = "white"
+                    figures.append(p)
 
         p = gridplot(figures, ncols=4)
         self.target = show(p, notebook_handle=True)
+        print(f"filtered_dimensions:{self.filtered_dimensions}")
 
     def update_data(self, current_timestamp):
         # get all events from last to current timestamp
@@ -133,14 +136,18 @@ class MetricsHistogram:
 
         self.system_metrics = self.preprocess_system_metrics(events, self.system_metrics)
 
-        # update histograms
-        for index, metric in enumerate(self.system_metrics):
-            values = self.system_metrics[metric]
+        # create a histogram per dimension and event
+        for dimension in self.filtered_dimensions:
+            for event in self.filtered_events:
+                if event in self.system_metrics[dimension]:
+                    values = self.system_metrics[dimension][event]
 
-            # create new histogram bins
-            probs, binedges = self._get_probs_binedges(self.system_metrics[metric])
-            # update data
-            self.sources[metric].data["top"] = probs
-            self.sources[metric].data["left"] = binedges[:-1]
-            self.sources[metric].data["right"] = binedges[1:]
+                    # create new histogram bins
+                    probs, binedges = self._get_probs_binedges(
+                        self.system_metrics[dimension][event]
+                    )
+                    # update data
+                    self.sources[dimension][event].data["top"] = probs
+                    self.sources[dimension][event].data["left"] = binedges[:-1]
+                    self.sources[dimension][event].data["right"] = binedges[1:]
         push_notebook()
