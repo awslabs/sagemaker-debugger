@@ -383,7 +383,8 @@ class _TimelineLoggerThread(threading.Thread):
         # write the trace event record
         position_and_length_of_record = self._writer.write(record.to_json() + ",\n")
         self.flush()
-        self.last_event_end_time_in_us = record.event_end_ts_micros
+        if record.event_end_ts_micros > self.last_event_end_time_in_us:
+            self.last_event_end_time_in_us = record.event_end_ts_micros
         return position_and_length_of_record
 
     def flush(self):
