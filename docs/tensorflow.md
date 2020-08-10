@@ -67,16 +67,16 @@ tf_estimator = TensorFlow(
 tf_estimator.fit("s3://bucket/path/to/training/data")
 ```
 
->**Note**: The SageMaker TensorFlow estimator and the Debugger collections in this example are based on the latest SageMaker Python SDK v2.0 and `smdebug` v0.9.1. It is highly recommended to upgrade the packages by executing the following command lines.
-    ```
-    pip install -U sagemaker
-    pip install -U smdebug
-    ```
->If you are using Jupyter Notebook, put exclamation mark at the front of the code lines and restart your kernel. For more information about breaking changes of the SageMaker Python SDK, see [Use Version 2.x of the SageMaker Python SDK](https://sagemaker.readthedocs.io/en/stable/v2.html).
+**Note**: The SageMaker TensorFlow estimator and the Debugger collections in this example are based on the latest SageMaker Python SDK v2.0 and `smdebug` v0.9.1. It is highly recommended to upgrade the packages by executing the following command lines.
+```
+pip install -U sagemaker
+pip install -U smdebug
+```
+If you are using Jupyter Notebook, put exclamation mark at the front of the code lines and restart your kernel. For more information about breaking changes of the SageMaker Python SDK, see [Use Version 2.x of the SageMaker Python SDK](https://sagemaker.readthedocs.io/en/stable/v2.html).
 
 #### Available Tensor Collections for TensorFlow
 
-The following table lists the pre-configured tensor collections for TensorFlow models. You can pick any tensor collections by specifying the `name` parameter of `CollectionConfig()` as shown in the base code sample.
+The following table lists the pre-configured tensor collections for TensorFlow models. You can pick any tensor collections by specifying the `name` parameter of `CollectionConfig()` as shown in the base code sample. SageMaker Debugger will save these tensors to the default out_dir of the hook.
 
 | Name | Description|
 | --- | --- |
@@ -84,11 +84,11 @@ The following table lists the pre-configured tensor collections for TensorFlow m
 | default |	Includes "metrics", "losses", and "sm_metrics". |
 | metrics |	For KerasHook, saves the metrics computed by Keras for the model. |
 | losses | Saves all losses of the model. |
-| sm_metrics | You can add scalars that you want to show up in SageMaker Metrics to this collection. SageMaker Debugger will save these scalars both to the out_dir of the hook, as well as to SageMaker Metric. Note that the scalars passed here will be saved on AWS servers outside of your AWS account. |
-| inputs | Matches all input to the model. |
-| outputs |	Matches all outputs of the model, such as predictions (logits) and labels. |
+| sm_metrics | Saves scalars that you want to include in the SageMaker metrics collection. |
+| inputs | Matches all model inputs to the model. |
+| outputs |	Matches all model outputs of the model, such as predictions (logits) and labels. |
 | layers | Matches all inputs and outputs of intermediate layers. |
-| gradients |	Matches all gradients of the model. In TensorFlow when not using zero script change environments, must use hook.wrap_optimizer() or hook.wrap_tape(). |
+| gradients |	Matches all gradients of the model. |
 | weights |	Matches all weights of the model. |
 | biases |	Matches all biases of the model. |
 | optimizer_variables |	Matches all optimizer variables, currently only supported for Keras. |
@@ -97,13 +97,15 @@ For more information about adjusting the tensor collection parameters, see [Save
 
 For a full list of available tensor collection parameters, see [Configuring Collection using SageMaker Python SDK](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#configuring-collection-using-sagemaker-python-sdk).
 
->**Note**: The `inputs`, `outputs`, and `layers` collections are not currently available for TensorFlow 2.1.
+>**Note**: The `inputs`, `outputs`, and `layers` collections are currently not available for TensorFlow 2.1.
 
 ### Debugger on SageMaker Training Containers and Custom Containers <a name="debugger-script-change"></a>
 
 If you want to run your own training script or custom containers other than the AWS Deep Learning Containers in the previous option, there are two alternatives.
+
 - Alternative 1: Use the SageMaker TensorFlow training containers with training script modification
 - Alternative 2: Use your custom container with modified training script and push the container to Amazon ECR.
+
 In both cases, you need to manually register the Debugger hook to your training script. Depending on the TensorFlow and Keras API operations used to construct your model, you need to pick the right TensorFlow hook class, register the hook, and save tensors.
 
 1. [Create a hook](#create-a-hook)
@@ -116,11 +118,14 @@ In both cases, you need to manually register the Debugger hook to your training 
 
 #### 1. Create a hook <a name="create-a-hook"></a>
 
- To create the hook constructor, add the following code to your training script. This will enable the `smdebug` tools for TensorFlow and create a TensorFlow hook object.
+ To create the hook constructor, add the following code to your training script. This will enable the `smdebug` tools for TensorFlow and create a TensorFlow `hook` object. When executing the fit() API for training, specify the smdebug `hook` as callbacks.
 
 ```python
 import smdebug.tensorflow as smd
 hook = smd.{hook_class}.create_from_json_file()
+...
+model.fit(...
+          callbacks=[hook])
 ```
 
 Depending on TensorFlow versions and Keras API that was used in your training script, you need to choose the right hook class. There are three hook constructors for TensorFlow that you can choose: `KerasHook`, `SessionHook`, and `EstimatorHook`.
