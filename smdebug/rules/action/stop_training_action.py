@@ -20,7 +20,7 @@ class StopTrainingAction:
         self._rule_name = rule_name
         self._found_jobs = self._get_sm_tj_jobs_with_prefix()
 
-    def _get_sm_tj_jobs_with_prefix(self, status=["InProgress"]):
+    def _get_sm_tj_jobs_with_prefix(self):
         res = {}
         found_job_dict = {}
         next_token = None
@@ -61,10 +61,10 @@ class StopTrainingAction:
                 self._logger.info(
                     f"Caught exception while getting list_training_job exception is: \n {e}. Attempt:{i}"
                 )
-            if "NextToken" not in jobs:
+            if "NextToken" not in res:
                 break
             else:
-                next_token = jobs["NextToken"]
+                next_token = res["NextToken"]
                 res = {}
                 jobs = {}
                 i += 1
