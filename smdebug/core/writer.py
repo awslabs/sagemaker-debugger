@@ -16,6 +16,9 @@
 # under the License.
 
 """APIs for logging data in the event file."""
+# Standard Library
+from typing import Tuple
+
 # First Party
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter
@@ -38,7 +41,36 @@ from .modes import ModeKeys
 logger = get_logger()
 
 
-class FileWriter:
+class BaseWriter:
+    def __init__(self, trial_dir, worker, step=0, mode=ModeKeys.GLOBAL):
+        self.trial_dir = trial_dir
+        self.step = step
+        self.worker = worker
+        if worker is None:
+            assert False, "Worker should not be none. Check worker name initialization"
+        self.mode = mode
+        self._writer = None
+
+    def name(self):
+        return self._writer.name()
+
+    def __enter__(self):
+        """Make usable with "with" statement."""
+        return self
+
+    def __exit__(self, unused_type, unused_value, unused_traceback):
+        """Make usable with "with" statement."""
+        self.close()
+
+    def flush(self):
+        """Flushes the event file to disk.
+        Call this method to make sure that all pending events have been written to disk.
+        """
+        self._writer.flush()
+        # don't flush index writer as we only want to flush on close
+
+
+class FileWriter(BaseWriter):
     def __init__(
         self,
         trial_dir,
@@ -71,12 +103,7 @@ class FileWriter:
             verbose : bool
                 Determines whether to print logging messages.
         """
-        self.trial_dir = trial_dir
-        self.step = step
-        self.worker = worker
-        if worker is None:
-            assert False, "Worker should not be none. Check worker name initialization"
-        self.mode = mode
+        super(FileWriter, self).__init__(trial_dir, worker, step, mode)
         if wtype == "events":
             el = TensorFileLocation(step_num=self.step, worker_name=self.worker)
             event_file_path = el.get_file_location(trial_dir=self.trial_dir)
@@ -102,14 +129,6 @@ class FileWriter:
             write_checksum=write_checksum,
         )
         self._default_bins = _get_default_bins()
-
-    def __enter__(self):
-        """Make usable with "with" statement."""
-        return self
-
-    def __exit__(self, unused_type, unused_value, unused_traceback):
-        """Make usable with "with" statement."""
-        self.close()
 
     @staticmethod
     def _get_metadata(mode, mode_step):
@@ -187,13 +206,6 @@ class FileWriter:
         s = scalar_summary(name, value)
         self._writer.write_summary(s, global_step, timestamp=timestamp)
 
-    def flush(self):
-        """Flushes the event file to disk.
-        Call this method to make sure that all pending events have been written to disk.
-        """
-        self._writer.flush()
-        # don't flush index writer as we only want to flush on close
-
     def close(self):
         """Flushes the event file to disk and close the file.
         Call this method when you do not need the summary writer anymore.
@@ -201,9 +213,6 @@ class FileWriter:
         self._writer.close()
         if self.index_writer is not None:
             self.index_writer.close()
-
-    def name(self):
-        return self._writer.name()
 
     @staticmethod
     def _check_mode_step(mode, mode_step, global_step):
@@ -216,3 +225,39 @@ class FileWriter:
             ex_str = "mode can be one of " + ", ".join(mode_keys)
             raise ValueError(ex_str)
         return mode, mode_step
+
+
+class ShapeWriter(BaseWriter):
+    def __init__(self, trial_dir, worker, step=0, mode=ModeKeys.GLOBAL):
+        super(ShapeWriter, self).__init__(trial_dir, worker, step, mode)
+        el = ShapeFileLocation(step_num=self.step, worker_name=self.worker, mode=self.mode)
+        self.file_path = el.get_file_location(base_dir=self.trial_dir)
+        s3, bucket_name, key_name = is_s3(self.file_path)
+        if s3:
+            self._writer = TSAccessS3(bucket_name, key_name, binary=False)
+        else:
+            self._writer = TSAccessFile(self.file_path, "a+")
+
+        self.shapes = []
+        self.meta = {}
+
+    def write_shape(self, name, shape: Tuple[int]):
+        self.shapes.append({"name": name, "shape": shape})
+
+    def flush(self):
+        if not self._writer:
+            raise ValueError(f"Cannot flush because self._writer={self._writer}")
+        if not self.shapes:
+            raise ValueError(f"Cannot write shapes to file {self.file_path} as it is empty")
+
+        s = json.dumps({"meta": self.meta, "payload": self.shapes})
+        self._writer.write(s)
+        self._writer.flush()
+
+    def close(self):
+        """Flushes the event file to disk and close the file.
+        """
+        if self._writer is not None:
+            self.flush()
+            self._writer.close()
+            self._writer = None

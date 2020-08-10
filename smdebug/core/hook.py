@@ -424,7 +424,6 @@ class BaseHook:
             self.writer = None
 
         to_delete_writers = []
-
         # Delete all the tb writers
         for mode, writer in self.tb_writers.items():
             if writer is not None:
@@ -433,6 +432,9 @@ class BaseHook:
                 to_delete_writers.append(mode)
         for mode in to_delete_writers:
             del self.tb_writers[mode]
+
+        self.shape_writer.close()
+        self.shape_writer = None
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # Function is overridden in smdebug/tensorflow/base_hook.py
@@ -463,7 +465,9 @@ class BaseHook:
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
         if self._saving_shapes_in_step():
-            self.shape_writer = 
+            self.shape_writer = ShapeWriter(
+                trial_dir=self.out_dir, step=self.step, worker=self.worker
+            )
 
     def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
@@ -734,15 +738,14 @@ class BaseHook:
             if reduction_config.save_raw_tensor is True:
                 self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
                 break
-    
+
     def _write_shape(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         for s_col in save_collections:
             reduction_config = s_col.reduction_config
-            if reduction_config.save_shape is True:
+            if self.dry_run is False and reduction_config.save_shape is True:
                 numpy_tensor_value = self._make_numpy_array(tensor_value)
                 this_size, this_shape = size_and_shape(numpy_tensor_value)
-
-                self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
+                self.shape_writer.write_shape(tensor_name, this_shape)
                 break
 
     def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):
@@ -760,7 +763,6 @@ class BaseHook:
                     mode_step=self.mode_steps[self.mode],
                     timestamp=timestamp,
                 )
-
 
     def _save_for_tensor(self, tensor_name, tensor_value, check_before_write=True):
         """

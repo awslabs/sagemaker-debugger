@@ -341,6 +341,11 @@ class TensorflowBaseHook(BaseHook):
         else:
             raise NotImplementedError
 
+        if self._saving_shapes_in_step():
+            self.shape_writer = ShapeWriter(
+                trial_dir=self.out_dir, step=self.step, worker=self.worker
+            )
+
     def _close_writers(self) -> None:
         if self.dry_run:
             return
@@ -372,6 +377,9 @@ class TensorflowBaseHook(BaseHook):
                 to_delete_writers.append(mode)
         for mode in to_delete_writers:
             del self.tb_writers[mode]
+
+        self.shape_writer.close()
+        self.shape_writer = None
 
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()
