@@ -12,10 +12,17 @@
 
 ## What SageMaker Debugger Supports <a name="support"></a>
 
-SageMaker Debugger python SDK (v2.0) and its client library `smdebug` library (v0.9.1) now fully support TensorFlow 2.2 with the latest version release. Using Debugger, you can access tensors from any kind of TensorFlow models, from the Keras model zoo to your custom model.
+SageMaker Debugger python SDK (v2.0) and its client library `smdebug` library (v0.9.1) now fully support TensorFlow 2.2 with the latest version release. Using Debugger, you can access tensors of any kind of TensorFlow models, from the Keras model zoo to your custom model, and save them using Debugger built-in or custom tensor collections.
 You can simply run your training script on [the official AWS Deep Learning Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html) where Debugger can automatically capture tensors from your training job. No matter what your TensorFlow models use Keras API or pure TensorFlow API, in eager mode or non-eager mode, you can directly run them on the AWS Deep Learning Containers.  
 
 Debugger and its client library `smdebug` support debugging your training job on other AWS training containers and custom containers. In this case, a hook registration process is required to manually add the hook features to your training script. For a full list of AWS TensorFlow containers to use Debugger, see [SageMaker containers to use Debugger with script mode](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html#debugger-supported-aws-containers). For a complete guide of using custom containers, go to [Use Debugger in Custom Training Containers ](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-bring-your-own-container.html).
+
+### New features
+- The latest TensorFlow version fully covered by Debugger is `2.2.0`.
+- Debug training jobs with the TensorFlow framework or Keras TensorFlow.
+- Debug training jobs with the TensorFlow framework in eager or non-eager model.
+- New built-in tensor collections: model `inputs`, `outputs`, `layers`, `gradients`.
+- New hook APIs to save tensors, in addition to scalars: `save_tensors`, `save_scalar`.
 
 ### Distributed training supported by Debugger
 - Horovod and Mirrored Strategy multi-GPU distributed trainings are supported.
@@ -40,7 +47,7 @@ tf_estimator = TensorFlow(
     role = "SageMakerRole",
     instance_count = 1,
     instance_type = "ml.p2.xlarge",
-    framework_version = "2.2",
+    framework_version = "2.2.0",
     py_version = "py37"
 
     # Debugger-specific Parameters
