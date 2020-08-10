@@ -39,7 +39,6 @@ EXPECTED_FILE_NUM_INDEX = 7
 # Other CONSTANTS and INDICES
 S3_PATH_BUCKET_INDEX = 2
 S3_PATH_FOLDER_INDEX = 3
-FILE_TIMESTAMP_OFFSET = 20
 FILE_SIZE_OFFSET = 500
 FILE_ROTATION_OFFSET = 1
 TRACE_FILE_NUM_OFFSET = 1
@@ -158,10 +157,7 @@ def _validate_trace_files(tracefiles, profiler_config):
                 data = json.load(fhandle)
         except:
             print(f"Badly formed json trace file: {cur_file}")
-            # TODO: replace continue with return False after the framework bug is fixed
-            # https://github.com/leleamol/sagemaker-debugger-private/issues/72
-            continue
-            # return False
+            return False
 
         # Files are rotated when size of the current file exceeds the file_size_limit.
         # So here we check if size of the file is less than or equal to the file_size_limit + 500 bytes offset
@@ -184,11 +180,8 @@ def _validate_trace_files(tracefiles, profiler_config):
             event_start = start_time + item.get("ts")
             event_end = event_start + item.get("dur")
 
-            # TODO : There is flakiness in some cases where there is a difference of <5 microsecond between
-            # event_end time and file_timestamp. I am adding an offset of 5. But this has to be fixed on
-            # framework side. The occurrence of this bug is flaky.
             assert (
-                event_end <= file_timestamp + FILE_TIMESTAMP_OFFSET
+                event_end <= file_timestamp
             ), f"In file: {cur_file} \nfor event {item}, \nthe event end time: {event_end} exceeds the filename timestamp {file_timestamp}"
 
         # Files are rotated when the duration of the current file exceeds the file_rotation_limit.
