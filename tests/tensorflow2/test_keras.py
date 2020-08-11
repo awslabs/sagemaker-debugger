@@ -22,6 +22,7 @@ from tests.utils import use_s3_datasets
 import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
+from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.locations import ShapeFileLocation
 from smdebug.core.modes import ModeKeys
