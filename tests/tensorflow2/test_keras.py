@@ -186,8 +186,9 @@ def helper_keras_gradtape(
 def test_keras_gradtape_shapes(out_dir):
     hook = smd.KerasHook(
         out_dir=out_dir,
-        save_all=saveall,
-        save_config=SaveConfig(save_steps=[0], reduce_config=ReductionConfig(save_shape=True)),
+        save_all=True,
+        save_config=SaveConfig(save_steps=[0]),
+        reduction_config=ReductionConfig(save_shape=True),
     )
     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
     sl = ShapeFileLocation(0, DEFAULT_WORKER_NAME)
