@@ -183,6 +183,29 @@ def helper_keras_gradtape(
     hook.close()
 
 
+def test_keras_gradtape_shapes(out_dir):
+    hook = smd.KerasHook(
+        out_dir=out_dir,
+        save_all=saveall,
+        save_config=SaveConfig(save_steps=[0], reduce_config=ReductionConfig(save_shape=True)),
+    )
+    helper_keras_gradtape(trial_dir=out_dir, hook=hook)
+    sl = ShapeFileLocation(0, DEFAULT_WORKER_NAME)
+    path = os.path.join(out_dir, sl.get_file_location())
+    with open(path) as jsfile:
+        shape_dict = json.load(jsfile)
+    print(shape_dict["payload"])
+    assert "payload" in shape_dict
+    assert len(shape_dict["payload"]) == 41
+    for ts in shape_dict["payload"]:
+        for dim in ts["shape"]:
+            assert isinstance(dim, int)
+        assert isinstance(ts["name"], str)
+
+    if hook_created:
+        shutil.rmtree(out_dir)
+
+
 @pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 @pytest.mark.parametrize("saveall", [True, False])
