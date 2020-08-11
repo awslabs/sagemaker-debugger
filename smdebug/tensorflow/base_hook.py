@@ -378,8 +378,9 @@ class TensorflowBaseHook(BaseHook):
         for mode in to_delete_writers:
             del self.tb_writers[mode]
 
-        self.shape_writer.close()
-        self.shape_writer = None
+        if self.shape_writer is not None:
+            self.shape_writer.close()
+            self.shape_writer = None
 
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()
