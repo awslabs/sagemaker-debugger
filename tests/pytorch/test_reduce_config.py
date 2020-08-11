@@ -1,13 +1,18 @@
 # Standard Library
+import json
 import os
 import shutil
 from datetime import datetime
 
 # Third Party
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 
 # First Party
+from smdebug.core.config_constants import DEFAULT_WORKER_NAME
+from smdebug.core.locations import ShapeFileLocation
 from smdebug.pytorch import ReductionConfig, SaveConfig
 from smdebug.pytorch.hook import Hook as t_hook
 from smdebug.trials import create_trial
@@ -81,6 +86,83 @@ def test_reduce_config(hook=None, out_dir=None):
     # assert l1_norm != None
     # l2_norm = flatten_input.reduction_value(step_num=4, abs=True, reduction_name='l2')
     # assert l2_norm != None
+
+    if hook_created:
+        shutil.rmtree(out_dir)
+
+
+def test_save_shapes(hook=None, out_dir=None):
+    class ChildA(nn.Module):
+        def __init__(self):
+            super(ChildA, self).__init__()
+            self.child2 = ChildB()
+            self.relu0 = nn.ReLU()
+
+        def forward(self, x):
+            return self.relu0(self.child2(x))
+
+    class ChildB(nn.Module):
+        def __init__(self):
+            super(ChildB, self).__init__()
+            self.conv1 = nn.Conv2d(1, 20, 5, 1)
+
+        def forward(self, x):
+            return self.conv1(x)
+
+    class NestedNet(nn.Module):
+        def __init__(self):
+            super(NestedNet, self).__init__()
+            self.child1 = ChildA()
+            self.max_pool = nn.MaxPool2d(2, stride=2)
+            self.conv2 = nn.Conv2d(20, 50, 5, 1)
+            relu_module = nn.ReLU()
+            self.relu1 = nn.ReLU()
+            self.max_pool2 = nn.MaxPool2d(2, stride=2)
+            self.fc1 = nn.Linear(4 * 4 * 50, 500)
+            self.relu2 = nn.ReLU()
+            self.fc2 = nn.Linear(500, 10)
+
+        def forward(self, x):
+            x = self.child1(x)
+            x = self.max_pool(x)
+            x = self.relu1(self.conv2(x))
+            x = self.max_pool2(x)
+            x = x.view(-1, 4 * 4 * 50)
+            x = self.relu2(self.fc1(x))
+            x = self.fc2(x)
+            return F.log_softmax(x, dim=1)
+
+    hook_created = False
+    if hook is None:
+        global_reduce_config = ReductionConfig(save_shape=True)
+        global_save_config = SaveConfig(save_steps=[0])
+
+        run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
+        out_dir = "/tmp/" + run_id
+        hook = t_hook(
+            out_dir=out_dir,
+            save_config=global_save_config,
+            save_all=True,
+            reduction_config=global_reduce_config,
+        )
+        hook_created = True
+
+    model = NestedNet().to(torch.device("cpu"))
+    hook.register_module(model)
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    train(model, hook, torch.device("cpu"), optimizer, num_steps=10)
+
+    sl = ShapeFileLocation(0, DEFAULT_WORKER_NAME)
+    path = os.path.join(out_dir, sl.get_file_location())
+    with open(path) as jsfile:
+        shape_dict = json.load(jsfile)
+    print(shape_dict["payload"])
+    assert "payload" in shape_dict
+    assert len(shape_dict["payload"]) == 41
+    for ts in shape_dict["payload"]:
+        for dim in ts["shape"]:
+            assert isinstance(dim, int)
+        assert isinstance(ts["name"], str)
 
     if hook_created:
         shutil.rmtree(out_dir)

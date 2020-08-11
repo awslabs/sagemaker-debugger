@@ -46,7 +46,7 @@ from smdebug.core.utils import (
     size_and_shape,
     validate_custom_tensor_value,
 )
-from smdebug.core.writer import FileWriter
+from smdebug.core.writer import FileWriter, ShapeWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
 
 try:
@@ -222,7 +222,7 @@ class BaseHook:
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
-
+        self.shape_writer = None
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
         else:
@@ -433,8 +433,9 @@ class BaseHook:
         for mode in to_delete_writers:
             del self.tb_writers[mode]
 
-        self.shape_writer.close()
-        self.shape_writer = None
+        if self.shape_writer is not None:
+            self.shape_writer.close()
+            self.shape_writer = None
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # Function is overridden in smdebug/tensorflow/base_hook.py
@@ -745,7 +746,11 @@ class BaseHook:
             if self.dry_run is False and reduction_config.save_shape is True:
                 numpy_tensor_value = self._make_numpy_array(tensor_value)
                 this_size, this_shape = size_and_shape(numpy_tensor_value)
-                self.shape_writer.write_shape(tensor_name, this_shape)
+                if tensor_ref is not None:
+                    name = tensor_ref.tf_obj.name
+                else:
+                    name = tensor_name
+                self.shape_writer.write_shape(name, this_shape)
                 break
 
     def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):

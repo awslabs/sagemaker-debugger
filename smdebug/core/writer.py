@@ -17,9 +17,11 @@
 
 """APIs for logging data in the event file."""
 # Standard Library
+import json
 from typing import Tuple
 
 # First Party
+from smdebug.core.access_layer import TSAccessFile, TSAccessS3
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter
 from smdebug.core.tfevent.index_file_writer import IndexWriter
@@ -32,9 +34,15 @@ from smdebug.core.tfevent.summary import (
     scalar_summary,
 )
 from smdebug.core.tfevent.util import make_tensor_proto
+from smdebug.core.utils import is_s3
 
 # Local
-from .locations import IndexFileLocationUtils, TensorboardFileLocation, TensorFileLocation
+from .locations import (
+    IndexFileLocationUtils,
+    ShapeFileLocation,
+    TensorboardFileLocation,
+    TensorFileLocation,
+)
 from .logger import get_logger
 from .modes import ModeKeys
 
@@ -230,8 +238,8 @@ class FileWriter(BaseWriter):
 class ShapeWriter(BaseWriter):
     def __init__(self, trial_dir, worker, step=0, mode=ModeKeys.GLOBAL):
         super(ShapeWriter, self).__init__(trial_dir, worker, step, mode)
-        el = ShapeFileLocation(step_num=self.step, worker_name=self.worker, mode=self.mode)
-        self.file_path = el.get_file_location(base_dir=self.trial_dir)
+        el = ShapeFileLocation(step_num=self.step, worker_name=self.worker)
+        self.file_path = el.get_file_location(trial_dir=self.trial_dir)
         s3, bucket_name, key_name = is_s3(self.file_path)
         if s3:
             self._writer = TSAccessS3(bucket_name, key_name, binary=False)
@@ -253,6 +261,8 @@ class ShapeWriter(BaseWriter):
         s = json.dumps({"meta": self.meta, "payload": self.shapes})
         self._writer.write(s)
         self._writer.flush()
+        self.meta = {}
+        self.shapes = []
 
     def close(self):
         """Flushes the event file to disk and close the file.
