@@ -159,7 +159,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     )
 
     tr = create_trial_fast_refresh(trial_dir)
-    print(tr.tensor_names())
+    print(f"MyTestDebug:{tr.tensor_names()}")
 
     if include_workers == "all":
         assert len(tr.workers()) == strategy.num_replicas_in_sync
@@ -259,7 +259,7 @@ def test_save_all(out_dir, tf_eager_mode, workers):
         include_workers=workers,
     )
     tr = create_trial_fast_refresh(out_dir)
-    print(tr.tensor_names())
+    print(f"test_save_all MyTestDebug:{tr.tensor_names()}")
     if tf_eager_mode:
         if is_tf_2_2():
             assert len(tr.tensor_names()) == (
@@ -306,6 +306,8 @@ def test_base_reductions(out_dir, tf_eager_mode):
     )
 
     tr = create_trial_fast_refresh(out_dir)
+    print(f"test_base_reductions MyTestDebug:{tr.tensor_names()}")
+
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
 
     try:
@@ -337,6 +339,8 @@ def test_collection_reductions(out_dir, tf_eager_mode):
     train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     tr = create_trial_fast_refresh(out_dir)
+    print(f"test_collection_reductions MyTestDebug:{tr.tensor_names()}")
+
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
 
     try:
@@ -375,6 +379,8 @@ def test_include_regex(out_dir, tf_eager_mode, workers):
     strategy, _ = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     tr = create_trial_fast_refresh(out_dir)
+    print(f"test_include_regex MyTestDebug:{tr.tensor_names()}")
+
     tnames = tr.tensor_names(collection="custom_coll")
 
     if tf_eager_mode:
@@ -403,6 +409,8 @@ def test_include_regex_opt_var(out_dir, tf_eager_mode, workers):
     strategy, _ = train_model(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
 
     tr = create_trial_fast_refresh(out_dir)
+    print(f"test_include_regex_opt_var MyTestDebug:{tr.tensor_names()}")
+
     tnames = tr.tensor_names(collection="custom_optimizer_variables")
 
     if tf_eager_mode:
@@ -433,6 +441,8 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
+    print(f"test_clash_with_tb_callback MyTestDebug:{tr.tensor_names()}")
+
     if is_tf_2_2():
         assert len(tr.tensor_names()) == 16
     else:
