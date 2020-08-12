@@ -297,34 +297,11 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             tensors_to_save.update(coll.get_tensors(graph=self.graph))
         return tensors_to_save
 
-    def _filter_to_nodes_in_graph(self, dest_names):
-        # this logic is taken from https://github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/python/framework
-        # /graph_util_impl.py#L121 It ensure that the node names we are going to fetch later is actually present in
-        # graph.
-        dest_names_set = set(dest_names)
-        node_names_in_graph = set()
-
-        for node in self.graph.as_graph_def().node:
-            n = node.name
-            if n.startswith("^"):
-                n = n[1:]
-            else:
-                n = n.split(":")[0]
-            node_names_in_graph.add(n)
-        self.logger.debug(
-            f"Nodes present in dest_names but not present in graph are getting filtered out. List of "
-            f"node names is :{list(dest_names_set - node_names_in_graph)}"
-        )
-        return list(dest_names_set.intersection(node_names_in_graph))
-
     def _get_subgraph_which_reach_fetches(self, fetches_ops_tuple):
         if fetches_ops_tuple in self._subgraph_nodes:
             subgraph_nodes = self._subgraph_nodes[fetches_ops_tuple]
         else:
             dest_names = [n.name for n in fetches_ops_tuple]
-            # We need to filter the dest_names and filter to names which is present in graph,
-            # https://github.com/awslabs/sagemaker-debugger/issues/321
-            dest_names = self._filter_to_nodes_in_graph(dest_names)
             subgraph = tf.graph_util.extract_sub_graph(self.graph.as_graph_def(), dest_names)
             _, subgraph_nodes, _ = extract_graph_summary(subgraph)
             self._subgraph_nodes[fetches_ops_tuple] = subgraph_nodes
