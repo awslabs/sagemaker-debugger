@@ -153,6 +153,11 @@ class Collection(BaseCollection):
             )
 
         self.add_tensor_name(export_name)
+        # including exact name in collection regex, this is to ensure that we always include this tensor name if it
+        # is present in graph from now onwards. For estimator, graph changes between train and evaluation phase,
+        # this will ensure that tensors will get captured in evaluation phase also, if tensor names are present in
+        # evaluation graph
+        self.include("^" + name + "$")
 
     def has_tensor(self, name, graph=None):
         if graph is None:
