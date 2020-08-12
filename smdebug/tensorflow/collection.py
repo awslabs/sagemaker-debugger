@@ -149,7 +149,7 @@ class Collection(BaseCollection):
         if name not in self._graph_tensors_map[graph]:
             self._graph_tensors_map[graph][name] = tensor
             get_logger().debug(
-                f"Added name:{name} to graph:{graph} to tensor:{tensor} self:{id(self)}"
+                f"Added name:{name} to graph:{graph} to tensor:{tensor} self:{id(self)} collection_name:{self.name}"
             )
 
         self.add_tensor_name(export_name)
@@ -157,7 +157,13 @@ class Collection(BaseCollection):
         # is present in graph from now onwards. For estimator, graph changes between train and evaluation phase,
         # this will ensure that tensors will get captured in evaluation phase also, if tensor names are present in
         # evaluation graph
-        self.include("^" + name + "$")
+        if name == export_name:
+            self.include("^" + name + "$")
+        else:
+            get_logger().debug(
+                f"Export_name:{export_name} != name:{name} . Not adding to include in collection collection_name:{self.name} selfId:{id(self)}"
+            )
+            self.include("^" + export_name + "$")
 
     def has_tensor(self, name, graph=None):
         if graph is None:
