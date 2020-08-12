@@ -256,7 +256,9 @@ class ShapeWriter(BaseWriter):
         if not self._writer:
             raise ValueError(f"Cannot flush because self._writer={self._writer}")
         if not self.shapes:
-            raise ValueError(f"Cannot write shapes to file {self.file_path} as it is empty")
+            raise ValueError(
+                f"Cannot write shapes to file {self.file_path} as it is empty. {self.shapes}"
+            )
 
         s = json.dumps({"meta": self.meta, "payload": self.shapes})
         self._writer.write(s)
@@ -268,6 +270,7 @@ class ShapeWriter(BaseWriter):
         """Flushes the event file to disk and close the file.
         """
         if self._writer is not None:
-            self.flush()
-            self._writer.close()
-            self._writer = None
+            if self.shapes:
+                self.flush()
+                self._writer.close()
+                self._writer = None

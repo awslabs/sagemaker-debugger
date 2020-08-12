@@ -1,4 +1,5 @@
 # Standard Library
+import json
 import os
 import shutil
 from pathlib import Path
@@ -12,8 +13,10 @@ from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
+    DEFAULT_WORKER_NAME,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.core.locations import ShapeFileLocation
 from smdebug.core.utils import is_s3, remove_file_if_exists
 
 
@@ -25,6 +28,23 @@ def use_s3_datasets():
         return True
     except Exception:
         return False
+
+
+def verify_shapes(out_dir, step_num, num_tensors):
+    sl = ShapeFileLocation(step_num, DEFAULT_WORKER_NAME)
+    path = os.path.join(out_dir, sl.get_file_location())
+    with open(path) as jsfile:
+        shape_dict = json.load(jsfile)
+    print(shape_dict["payload"])
+    assert "payload" in shape_dict
+    assert len(shape_dict["payload"]) == num_tensors, (
+        len(shape_dict["payload"]),
+        shape_dict["payload"],
+    )
+    for ts in shape_dict["payload"]:
+        for dim in ts["shape"]:
+            assert isinstance(dim, int)
+        assert isinstance(ts["name"], str)
 
 
 class SagemakerSimulator(object):

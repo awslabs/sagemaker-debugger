@@ -342,9 +342,12 @@ class TensorflowBaseHook(BaseHook):
             raise NotImplementedError
 
         if self._saving_shapes_in_step():
-            self.shape_writer = ShapeWriter(
-                trial_dir=self.out_dir, step=self.step, worker=self.worker
-            )
+            if self.shape_writer is None or only_initialize_if_missing is False:
+                self.shape_writer = ShapeWriter(
+                    trial_dir=self.out_dir, step=self.step, worker=self.worker
+                )
+        else:
+            assert self.shape_writer is None
 
     def _close_writers(self) -> None:
         if self.dry_run:

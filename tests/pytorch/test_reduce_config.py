@@ -1,5 +1,4 @@
 # Standard Library
-import json
 import os
 import shutil
 from datetime import datetime
@@ -9,10 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from tests.utils import verify_shapes
 
 # First Party
-from smdebug.core.config_constants import DEFAULT_WORKER_NAME
-from smdebug.core.locations import ShapeFileLocation
 from smdebug.pytorch import ReductionConfig, SaveConfig
 from smdebug.pytorch.hook import Hook as t_hook
 from smdebug.trials import create_trial
@@ -151,19 +149,7 @@ def test_save_shapes(hook=None, out_dir=None):
     hook.register_module(model)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     train(model, hook, torch.device("cpu"), optimizer, num_steps=10)
-
-    sl = ShapeFileLocation(0, DEFAULT_WORKER_NAME)
-    path = os.path.join(out_dir, sl.get_file_location())
-    with open(path) as jsfile:
-        shape_dict = json.load(jsfile)
-    print(shape_dict["payload"])
-    assert "payload" in shape_dict
-    assert len(shape_dict["payload"]) == 41
-    for ts in shape_dict["payload"]:
-        for dim in ts["shape"]:
-            assert isinstance(dim, int)
-        assert isinstance(ts["name"], str)
-
+    verify_shapes(out_dir, 0, 4)
     if hook_created:
         shutil.rmtree(out_dir)
 

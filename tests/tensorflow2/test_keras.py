@@ -16,15 +16,13 @@ import tensorflow_datasets as tfds
 from tests.constants import TEST_DATASET_S3_PATH
 from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
 from tests.tensorflow.utils import create_trial_fast_refresh
-from tests.utils import use_s3_datasets
+from tests.utils import use_s3_datasets, verify_shapes
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from smdebug.core.locations import ShapeFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
@@ -193,20 +191,8 @@ def test_keras_gradtape_shapes(out_dir):
         reduction_config=ReductionConfig(save_shape=True),
     )
     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
-    sl = ShapeFileLocation(0, DEFAULT_WORKER_NAME)
-    path = os.path.join(out_dir, sl.get_file_location())
-    with open(path) as jsfile:
-        shape_dict = json.load(jsfile)
-    print(shape_dict["payload"])
-    assert "payload" in shape_dict
-    assert len(shape_dict["payload"]) == 41
-    for ts in shape_dict["payload"]:
-        for dim in ts["shape"]:
-            assert isinstance(dim, int)
-        assert isinstance(ts["name"], str)
-
-    if hook_created:
-        shutil.rmtree(out_dir)
+    verify_shapes(out_dir, 0, 9)
+    verify_shapes(out_dir, 500, 14)
 
 
 @pytest.mark.skip_if_non_eager
@@ -477,6 +463,17 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     )
     for tname in trial.tensor_names():
         assert trial.tensor(tname).value(0) is not None
+
+
+def test_keras_fit_shapes(out_dir):
+    hook = smd.KerasHook(
+        out_dir=out_dir,
+        save_all=True,
+        save_config=SaveConfig(save_steps=[0]),
+        reduction_config=ReductionConfig(save_shape=True),
+    )
+    helper_keras_fit(trial_dir=out_dir, hook=hook)
+    verify_shapes(out_dir, 0, 9)
 
 
 @pytest.mark.slow
