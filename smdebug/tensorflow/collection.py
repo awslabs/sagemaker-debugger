@@ -18,13 +18,13 @@ logger = get_logger()
 
 class Collection(BaseCollection):
     def __init__(
-            self,
-            name,
-            include_regex=None,
-            tensor_names=None,
-            reduction_config=None,
-            save_config=None,
-            save_histogram=True,
+        self,
+        name,
+        include_regex=None,
+        tensor_names=None,
+        reduction_config=None,
+        save_config=None,
+        save_histogram=True,
     ):
         super().__init__(
             name, include_regex, tensor_names, reduction_config, save_config, save_histogram
@@ -148,7 +148,9 @@ class Collection(BaseCollection):
             self._graph_tensors_map[graph] = {}
         if name not in self._graph_tensors_map[graph]:
             self._graph_tensors_map[graph][name] = tensor
-            get_logger().debug(f"Added name:{name} to graph:{graph} to tensor:{tensor} self:{id(self)}")
+            get_logger().debug(
+                f"Added name:{name} to graph:{graph} to tensor:{tensor} self:{id(self)}"
+            )
 
         self.add_tensor_name(export_name)
 
