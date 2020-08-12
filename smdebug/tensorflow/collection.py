@@ -18,19 +18,21 @@ logger = get_logger()
 
 class Collection(BaseCollection):
     def __init__(
-        self,
-        name,
-        include_regex=None,
-        tensor_names=None,
-        reduction_config=None,
-        save_config=None,
-        save_histogram=True,
+            self,
+            name,
+            include_regex=None,
+            tensor_names=None,
+            reduction_config=None,
+            save_config=None,
+            save_histogram=True,
     ):
         super().__init__(
             name, include_regex, tensor_names, reduction_config, save_config, save_histogram
         )
-        # mapping from tf_name to TensorInCollection object
-        self._tensors = {}
+        # Different  graphs can have same tensor name, so we store
+        # _tensors map for each individual graph
+        # value is mapping from tf_name to TensorInCollection object
+        self._graph_tensors_map = {}
 
     def _store_tensor_ref(self, tensor_ref):
         if tensor_ref:
@@ -73,8 +75,10 @@ class Collection(BaseCollection):
          Adds tensors to the collection from a given Operation, Tensor, Variable or MirroredVariable
          :param arg: the argument to add to collection
          """
+        get_logger().debug(f"type:{type(arg)} arg:{arg} self:{id(self)}")
         if isinstance(arg, list) or isinstance(arg, set):
             for a in arg:
+                get_logger().debug(f"Adding for list type:{type(a)} self:{id(self)}")
                 self.add_for_mode(a, mode)
         elif isinstance(arg, tf.Operation):
             return self.add_operation(arg, mode=mode)
@@ -93,11 +97,20 @@ class Collection(BaseCollection):
                 "tf.MirroredVariable and list or set of any of the above."
             )
 
-    def get_tensors_dict(self):
-        return self._tensors
+    def _get_tensor_map_from_graph_tensor_map(self, graph):
+        if graph is None:
+            graph = tf.get_default_graph()
+        if graph in self._graph_tensors_map:
+            return self._graph_tensors_map[graph]
+        else:
+            return {}
+
+    def get_tensors_dict(self, graph=None):
+        return self._get_tensor_map_from_graph_tensor_map(graph)
 
     def get_tensors(self, mode=None, graph=None):
-        tensors = self._tensors.values()
+        tensor_map = self._get_tensor_map_from_graph_tensor_map(graph)
+        tensors = tensor_map.values()
         if mode is not None:
             tensors = [t for t in tensors if mode in t.modes]
         if graph is not None:
@@ -107,10 +120,14 @@ class Collection(BaseCollection):
     def get_export_names_of_tensors(self):
         return self.tensor_names
 
-    def get_tensor(self, name):
-        return self._tensors[name]
+    def get_tensor(self, name, graph=None):
+        tensor_map = self._get_tensor_map_from_graph_tensor_map(graph)
+        if name in tensor_map:
+            return tensor_map[name]
+        else:
+            return None
 
-    def set_tensor_ref(self, tensor, tensor_name: tf.Tensor = None):
+    def set_tensor_ref(self, tensor, tensor_name: tf.Tensor = None, graph=None):
         """
         Map tf_obj to a name.
         In case of EagerTensor, rely on the tensor name
@@ -124,12 +141,22 @@ class Collection(BaseCollection):
         else:
             name = tensor.name
             export_name = tensor.export_name
-        self._tensors[name] = tensor
+        get_logger().debug(f"In set_tensor_ref: tensor_name:{name}")
+        if graph is None:
+            graph = tf.get_default_graph()
+        if graph not in self._graph_tensors_map:
+            self._graph_tensors_map[graph] = {}
+        if name not in self._graph_tensors_map[graph]:
+            self._graph_tensors_map[graph][name] = tensor
+            get_logger().debug(f"Added name:{name} to graph:{graph} to tensor:{tensor} self:{id(self)}")
+
         self.add_tensor_name(export_name)
 
-    def has_tensor(self, name):
+    def has_tensor(self, name, graph=None):
+        if graph is None:
+            graph = tf.get_default_graph()
         # tf object name
-        return name in self._tensors
+        return graph in self._graph_tensors_map and name in self._graph_tensors_map[graph]
 
     def add_keras_layer(self, layer, inputs=False, outputs=True):
         if inputs:
