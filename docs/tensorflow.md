@@ -83,19 +83,17 @@ The following table lists the pre-configured tensor collections for TensorFlow m
 | `metrics` |	For KerasHook, saves the metrics computed by Keras for the model. |
 | `losses` | Saves all losses of the model. |
 | `sm_metrics` | Saves scalars that you want to include in the SageMaker metrics collection. |
-| `inputs` | Matches all model inputs to the model. |
-| `outputs` |	Matches all model outputs of the model, such as predictions (logits) and labels. |
-| `layers` | Matches all inputs and outputs of intermediate layers. |
-| `gradients` |	Matches all gradients of the model. |
 | `weights` |	Matches all weights of the model. |
 | `biases` |	Matches all biases of the model. |
 | `optimizer_variables` |	Matches all optimizer variables, currently only supported for Keras. |
+| `inputs` | Matches all model inputs to the model. (Available only for TensorFlow 2.2.0)|
+| `outputs` |	Matches all model outputs of the model, such as predictions (logits) and labels. (Available only for TensorFlow 2.2.0)|
+| `layers` | Matches all inputs and outputs of intermediate layers. (Available only for TensorFlow 2.2.0)|
+| `gradients` |	Matches all gradients of the model. (Available only for TensorFlow 2.2.0)|
 
 For more information about adjusting the tensor collection parameters, see [Save Tensors Using Debugger Modified Built-in Collections](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-data.html#debugger-save-modified-built-in-collections).
 
 For a full list of available tensor collection parameters, see [Configuring Collection using SageMaker Python SDK](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#configuring-collection-using-sagemaker-python-sdk).
-
->**Note**: The `inputs`, `outputs`, `gradients`, and `layers` built-in collections are currently available for TensorFlow 2.2.0.
 
 ---
 
