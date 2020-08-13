@@ -190,7 +190,7 @@ class Trial(ABC):
             retry_count = 2
         while retry_count > 0:
             if name is None:
-                self.refresh_tensors()
+                self.refresh_data()
             else:
                 self.refresh_tensor(name)
             if retry_count > 1:
@@ -215,7 +215,7 @@ class Trial(ABC):
 
     def refresh_tensor(self, tname, steps=None):
         # for now we load all tensors at once
-        self.refresh_tensors()
+        self.refresh_data()
 
     def tensor(self, tname):
         # will not show tensor if it was not written yet
@@ -560,10 +560,6 @@ class Trial(ABC):
             return StepState.UNAVAILABLE
         return StepState.NOT_YET_AVAILABLE
 
-    def _load_tensors(self):
-        if self.index_mode:
-            self._load_tensors_from_index_files()
-
     def _update_last_index_token(self, new_index_token: str) -> None:
         """
         This function updates the last_index_token in the following scenarios:
@@ -625,15 +621,7 @@ class Trial(ABC):
                 f"Updating last_complete_step to: {self.last_complete_step}. "
             )
 
-    def _load_tensors_from_index_files(self):
-        self.index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(
-            start_after_key=self.last_index_token, range_steps=self.range_steps
-        )
-        self._load_tensors_from_index_tensors(self.index_tensors_dict)
-        if new_index_token:  # new index token can be None if there are no new index files
-            self._update_last_index_token(new_index_token)
-
-    def refresh_tensors(self):
+    def refresh_data(self):
         # TODO if job finished
         if self.index_mode:
             index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(

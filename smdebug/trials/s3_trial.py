@@ -45,7 +45,7 @@ class S3Trial(Trial):
         self.path = "s3://" + os.path.join(self.bucket_name, self.prefix_name)
         self.index_reader = S3IndexReader(self.path)
         self._load_collections()
-        self._load_tensors()
+        self.refresh_data()
 
     def _get_collection_files(self) -> list:
         collection_files, _ = list_s3_objects(

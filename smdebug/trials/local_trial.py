@@ -34,7 +34,7 @@ class LocalTrial(Trial):
         self.index_reader = LocalIndexReader(self.path)
         self.logger.info(f"Loading trial {name} at path {self.trial_dir}")
         self._load_collections()
-        self._load_tensors()
+        self.refresh_data()
 
     def _get_collection_files(self) -> list:
         return list_collection_files_in_directory(get_path_to_collections(self.path))
