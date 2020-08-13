@@ -5,7 +5,7 @@
 - [Debugger on AWS Deep Learning Containers with TensorFlow](#debugger-dlc)
   - [Debugger Built-in Tensor Collections for TensorFlow](#tf-built-in-collection)
 - [Debugger on SageMaker Training Containers and Custom Containers](#debugger-script-change)
-- [Code Samples](#examples)
+- [Code Examples](#examples)
 - [References](#references)
 
 ---
@@ -205,7 +205,7 @@ For a full list of actions that the hook APIs offer to construct hooks and save 
 
 ---
 
-## Code Samples <a name="examples"></a>
+## Code Examples <a name="examples"></a>
 
 The following code examples show the base structures that you can use for hook registration in various TensorFlow training scripts. If you want to use the high-level Debugger features with zero script change on AWS Deep Learning Containers, see [Use Debugger in AWS Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html).
 
