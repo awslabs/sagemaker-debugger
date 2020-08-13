@@ -113,15 +113,7 @@ For both options, you need to manually register the Debugger hook to your traini
 
 ### Step 1: Create a hook <a name="create-a-hook"></a>
 
- To create the hook constructor, add the following code to your training script. This enables the `smdebug` tools for TensorFlow and creates a TensorFlow `hook` object. When you run the `fit()` API for training, specify the smdebug `hook` as `callbacks`, as shown following:
-
-```python
-import smdebug.tensorflow as smd
-hook = smd.{hook_class}.create_from_json_file()
-...
-model.fit(...
-          callbacks=[hook])
-```
+To create the hook constructor, add the following code to your training script. This enables the `smdebug` tools for TensorFlow and creates a TensorFlow `hook` object. When you run the `fit()` API for training, specify the smdebug `hook` as `callbacks`, as shown in the following subsections.
 
 Depending on the TensorFlow versions and the Keras API that you use in your training script, you need to choose the right hook class. The hook constructors for TensorFlow that you can choose are `smd.KerasHook`, `smd.SessionHook`, and `smd.EstimatorHook`.
 
@@ -130,6 +122,7 @@ Depending on the TensorFlow versions and the Keras API that you use in your trai
 If you use the Keras model zoo and a Keras `model.fit()` API, use `KerasHook`. `KerasHook` is available for the Keras model with the TensorFlow backend interface. `KerasHook` covers the eager execution modes and the gradient tape features that are introduced in the TensorFlow framework version 2.0. You can set the smdebug Keras hook constructor by adding the following code to your training script. Place this code line before `model.compile()`:
 
 ```python
+import smdebug.tensorflow as smd
 hook = smd.KerasHook.create_from_json_file()
 ```
 
@@ -142,6 +135,7 @@ To learn how to fully implement the hook in your training script, see the [Keras
 If your model is created in TensorFlow version 1.x with the low-level approach (not using the Keras API), use `SessionHook`. `SessionHook` is for the TensorFlow 1.x monitored training session API, `tf.train.MonitoredSessions()`, as shown following:
 
 ```python
+import smdebug.tensorflow as smd
 hook = smd.SessionHook.create_from_json_file()
 ```
 
@@ -154,6 +148,7 @@ To learn how to fully implement the hook into your training script, see the [Ten
 If you have a model using the `tf.estimator()` API, use `EstimatorHook`. `EstimatorHook`  is available for any TensorFlow framework versions that support the `tf.estimator()` API, as shown following:
 
 ```python
+import smdebug.tensorflow as smd
 hook = smd.EstimatorHook.create_from_json_file()
 ```
 
@@ -211,7 +206,7 @@ The following code examples show the base structures that you can use for hook r
 
 ### Keras API (tf.keras)
 
-The following code example shows how to register the smdebug `KerasHook` for the Keras `model.fit()`. You can also set the hook mode to track stored tensors in different phases of training job. For a list of available hook modes, see [smdebug modes](#api.md#modes).
+The following code example shows how to register the smdebug `KerasHook` for the Keras `model.fit()`. You can also set the hook mode to track stored tensors in different phases of training job. For a list of available hook modes, see [smdebug modes](api.md#modes).
 
 ```python
 import smdebug.tensorflow as smd
@@ -279,7 +274,7 @@ sess.run([loss, ...])
 
 ### Estimator (tf.estimator.Estimator)
 
-The following code example shows how to register the smdebug `EstimatorHook`. You can also set the hook mode to track stored tensors in different phases of training job. For a list of available hook modes, see [smdebug modes](#api.md#modes).
+The following code example shows how to register the smdebug `EstimatorHook`. You can also set the hook mode to track stored tensors in different phases of training job. For a list of available hook modes, see [smdebug modes](api.md#modes).
 
 ```python
 import smdebug.tensorflow as smd
@@ -289,7 +284,7 @@ hook = smd.EstimatorHook.create_from_json_file()
 train_input_fn, eval_input_fn = ...
 estimator = tf.estimator.Estimator(...)
 
-# Set hook.set_mode to set tensors to be stored in different phases of training job, such as TRAIN and EVAL.
+# Set hook.set_mode to set tensors to be stored in different phases of training job, such as TRAIN and EVAL
 hook.set_mode(mode=smd.modes.TRAIN)
 estimator.train(input_fn=train_input_fn, steps=args.steps, hooks=[hook])
 

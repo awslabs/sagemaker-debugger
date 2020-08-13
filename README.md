@@ -68,8 +68,6 @@ The following frameworks are available AWS Deep Learning Containers with the dee
 | [PyTorch](docs/pytorch.md) | 1.4, 1.5 |
 | [XGBoost](docs/xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
 
->**Note**: Limited support of the zero script change experience for TensorFlow 2.2. The tensor collections `layers`, `inputs`, `outputs`, and `gradients` are currently not available.
-
 ### AWS training containers with script mode
 
 The `smdebug` library supports frameworks other than the ones listed above while using AWS containers with script mode. If you want to use SageMaker Debugger with one of the following framework versions, you need to make minimal changes to your training script.
