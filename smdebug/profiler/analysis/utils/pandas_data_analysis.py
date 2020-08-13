@@ -53,13 +53,13 @@ class PandasFrameAnalysis:
                     ["Step:ModeKeys.TRAIN", "Step:ModeKeys.GLOBAL"]
                 )
             )
-        ]
-        job_statistics["training_loop_start"] = step_0["start_time"][step_0.index[0]]
+        ].reset_index(drop=True)
+        job_statistics["training_loop_start"] = step_0["start_time"][0]
         job_statistics["training_loop_end"] = max(self.framework_metrics_df["end_time"])
         job_statistics["training_loop_duration"] = (
             max(self.framework_metrics_df["end_time_us"]) - step_0["start_time_us"]
         ) / 1000
-        job_statistics["initialization"] = step_0["start_time_us"][step_0.index[0]] / 1000
+        job_statistics["initialization"] = step_0["start_time_us"][0] / 1000
         job_statistics["finalization"] = (
             max(self.sys_metrics_df["timestamp_us"]) - max(self.framework_metrics_df["end_time_us"])
         ) / 1000
@@ -268,7 +268,9 @@ class PandasFrameAnalysis:
                 )
             ).reset_index(drop=True)
         else:
-            mode_df = mode_df[["start_time_us", "end_time_us", "framework_metric"]]
+            mode_df = mode_df[["start_time_us", "end_time_us", "framework_metric"]].reset_index(
+                drop=True
+            )
             mode_df.rename({"framework_metric": "phase"}, axis="columns", inplace=True)
 
         for i in range(len(mode_df.index) - 1):
@@ -283,11 +285,11 @@ class PandasFrameAnalysis:
                     "phase": "Between " + " and ".join(sorted([this_phase, next_phase])),
                 }
                 mode_df.loc[next_index] = row
-        # need to revisit this. For PT jobs, index[0] is not 0
+
         row = {
             "start_time_us": self.sys_metrics_df["timestamp_us"].min(),
-            "end_time_us": mode_df["start_time_us"][mode_df.index[0]] - 1,
-            "phase": "Before " + mode_df["phase"][mode_df.index[0]],
+            "end_time_us": mode_df["start_time_us"][0] - 1,
+            "phase": "Before " + mode_df["phase"][0],
         }
         mode_df.loc[-1] = row
         mode_df = mode_df.sort_index().reset_index(drop=True)

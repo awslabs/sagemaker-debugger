@@ -16,7 +16,7 @@ from smdebug.profiler.utils import (
 
 
 class PandasFrame:
-    def __init__(self, path, use_in_memory_cache=False, scan_interval=50000000):
+    def __init__(self, path, use_in_memory_cache=False, scan_interval=5000000000):
 
         self.path = path
         self.step_time_mapping = dict()
@@ -288,6 +288,7 @@ class PandasFrame:
                         int(event.timestamp * CONVERT_TO_MICROSECS),
                         event.value,
                         event.name,
+                        event.dimension,
                     ]
                 )
 
@@ -297,7 +298,8 @@ class PandasFrame:
 
         # create data frame for system metrics
         system_metrics_df = pd.DataFrame(
-            system_metrics, columns=["timestamp", "timestamp_us", "value", "system_metric"]
+            system_metrics,
+            columns=["timestamp", "timestamp_us", "value", "system_metric", "dimension"],
         )
 
         system_metrics_df["timestamp_us"] = system_metrics_df["timestamp_us"] - self.start_time
@@ -384,7 +386,10 @@ class PandasFrame:
         )
         framework_metrics_df["end_time_us"] = framework_metrics_df["end_time_us"] - self.start_time
 
-        return system_metrics_df, framework_metrics_df
+        return (
+            system_metrics_df[system_metrics_df.duplicated() == False],
+            framework_metrics_df[framework_metrics_df.duplicated() == False],
+        )
 
     def get_profiler_data_by_step(self, start_step, end_step, cache_metrics=False):
         """

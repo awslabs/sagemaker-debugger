@@ -247,10 +247,10 @@ class TimelineCharts:
                     yaxis[event.event_phase],
                 ]
             )
-            if index > 1000:
+            if index > 500:
                 print(
-                    """Reached more than 1000 datapoints.
-                      Will only plot first 1000 datapoints for the given timerange"""
+                    """Reached more than 500 datapoints.
+                      Will only plot first 500 datapoints for the given timerange"""
                 )
                 break
         return framework_events
@@ -272,8 +272,8 @@ class TimelineCharts:
                 dataloaders[event.event_name].append(
                     [int(event.start_time / 1000.0), int(event.end_time / 1000.0), tids[event.tid]]
                 )
-                if index > 1000:
-                    print("Reached more than 1000 datapoints. Will stop plotting.")
+                if index > 500:
+                    print("Reached more than 500 datapoints. Will stop plotting.")
                     break
 
         return dataloaders

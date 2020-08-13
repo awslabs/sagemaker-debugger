@@ -21,16 +21,16 @@ def test_pandas_frames(framework):
         assert system_metrics_df.shape[0] == 84768
     print(f"Number of columns in system metrics dataframe = {system_metrics_df.shape[1]}")
     if framework == "tf2":
-        assert system_metrics_df.shape[1] == 4
+        assert system_metrics_df.shape[1] == 5
     if framework == "pt":
-        assert system_metrics_df.shape[1] == 4
+        assert system_metrics_df.shape[1] == 5
 
     pf = PandasFrame(bucket_name, scan_interval=50000000000)
     framework_metrics_df = pf.get_all_framework_metrics()
 
     print(f"Number of rows in framework metrics dataframe = {framework_metrics_df.shape[0]}")
     if framework == "tf2":
-        assert framework_metrics_df.shape[0] == 74001
+        assert framework_metrics_df.shape[0] == 73984
     if framework == "pt":
         assert framework_metrics_df.shape[0] == 154192
     print(f"Number of columns in framework metrics dataframe = {framework_metrics_df.shape[1]}")
@@ -59,11 +59,11 @@ def test_get_data_by_time(framework):
     print(f"Number of rows in system metrics dataframe = {system_metrics_df.shape[0]}")
 
     print(f"Number of columns in system metrics dataframe = {system_metrics_df.shape[1]}")
-    assert system_metrics_df.shape[1] == 4
+    assert system_metrics_df.shape[1] == 5
 
     print(f"Number of rows in framework metrics dataframe = {framework_metrics_df.shape[0]}")
     if framework == "tf2":
-        assert framework_metrics_df.shape[0] == 74001
+        assert framework_metrics_df.shape[0] == 73984
     if framework == "pt":
         assert framework_metrics_df.shape[0] == 154192
     print(f"Number of columns in framework metrics dataframe = {framework_metrics_df.shape[1]}")
@@ -228,7 +228,7 @@ def test_get_training_phase_intervals(framework, phase_train, tensorflow_metrics
     if framework == "tf2":
         assert interval_stats.shape[0] == 11251
     else:
-        assert interval_stats.shape[0] == 2793
+        assert interval_stats.shape[0] == 785
 
 
 @pytest.mark.slow
