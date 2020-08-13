@@ -163,7 +163,7 @@ Note that `smd` import below translates to `import smdebug.{framework} as smd`.
 |`create_from_json_file(`<br/>`  json_file_path=None)` | `json_file_path (str)` | Takes the path of a file which holds the json configuration of the hook, and creates hook from that configuration. This is an optional parameter. <br/> If this is not passed it tries to get the file path from the value of the environment variable `SMDEBUG_CONFIG_FILE_PATH` and defaults to `/opt/ml/input/config/debughookconfig.json`. When training on SageMaker you do not have to specify any path because this is the default path that SageMaker writes the hook configuration to.
 |`close()` | - | Closes all files that are currently open by the hook |
 | `save_scalar()` | `name (str)` <br/> `value (float)` <br/> `sm_metric (bool)`| Saves a scalar value by the given name. Passing `sm_metric=True` flag also makes this scalar available as a SageMaker Metric to show up in SageMaker Studio. Note that when `sm_metric` is False, this scalar always resides only in your AWS account, but setting it to True saves the scalar also on AWS servers. The default value of `sm_metric` for this method is False. |
-| `save_tensor()`| `tensor_name (str)`, `tensor_value (np.ndarray)`, `collections_to_write (str or list[str])` | Manually save metrics tensors. The `record_tensor_value()` API is deprecated in favor or `save_tensor()`.|
+| `save_tensor()`| `tensor_name (str)`, `tensor_value (numpy.array or numpy.ndarray)`, `collections_to_write (str or list[str])` | Manually save metrics tensors. The `record_tensor_value()` API is deprecated in favor or `save_tensor()`.|
 
 
 ### TensorFlow specific Hook API
