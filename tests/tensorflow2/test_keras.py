@@ -438,9 +438,9 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
                     collection=CollectionKeys.OPTIMIZER_VARIABLES, mode=ModeKeys.EVAL
                 )
             )
-            == 0,
-            "No Optimizer Variables Should be Saved in EVAL Mode",
-        )
+            == 0
+        ), "No Optimizer Variables Should be Saved in EVAL Mode"
+
     else:  # save the default losses and metrics
         assert len(trial.tensor_names()) == (
             4 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 5
