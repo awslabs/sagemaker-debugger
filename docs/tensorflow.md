@@ -67,7 +67,7 @@ pip install -U smdebug
 ```
 If you are using a Jupyter Notebook, put an exclamation mark (!) at the beginning of the code string and restart your kernel. For more information about the SageMaker Python SDK, see [Use Version 2.x of the SageMaker Python SDK](https://sagemaker.readthedocs.io/en/stable/v2.html).
 
-### Debugger Built-in Tensor Collections for TensorFlow <a name="tf-built-in-collection></a>"
+### Debugger Built-in Tensor Collections for TensorFlow <a name="tf-built-in-collection"></a>
 
 The following table lists the pre-configured tensor collections for TensorFlow models. You can pick any tensor collections by specifying the `name` parameter of `CollectionConfig()` as shown in the previous base code example. SageMaker Debugger will save these tensors to the default out_dir of the hook.
 
