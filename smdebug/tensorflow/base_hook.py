@@ -86,6 +86,7 @@ class TensorflowBaseHook(BaseHook):
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
         self.device_map = {}
         self.writer_map = {}
+        self.shape_writer_map = {}
         # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
@@ -320,6 +321,13 @@ class TensorflowBaseHook(BaseHook):
                     self.writer = FileWriter(
                         trial_dir=self.out_dir, step=self.step, worker=self.worker
                     )
+                if self._saving_shapes_in_step():
+                    self.shape_writer = ShapeWriter(
+                        trial_dir=self.out_dir,
+                        step=self.step,
+                        worker=self.worker,
+                        index_writer=self.writer.index_writer,
+                    )
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 for device, device_string in self.device_map.items():
@@ -329,25 +337,39 @@ class TensorflowBaseHook(BaseHook):
                         self.writer_map[device_string] = FileWriter(
                             trial_dir=self.out_dir, step=self.step, worker=device_string
                         )
+                        if self._saving_shapes_in_step():
+                            self.shape_writer[device_string] = ShapeWriter(
+                                trial_dir=self.out_dir,
+                                step=self.step,
+                                worker=self.worker,
+                                index_writer=self.writer_map[device_string].index_writer,
+                            )
             else:
                 # training on CPU when all device strings have cpu
                 if self.writer is None or only_initialize_if_missing is False:
                     self.writer = FileWriter(
                         trial_dir=self.out_dir, step=self.step, worker=self.worker
                     )
+                    if self._saving_shapes_in_step():
+                        self.shape_writer = ShapeWriter(
+                            trial_dir=self.out_dir,
+                            step=self.step,
+                            worker=self.worker,
+                            index_writer=self.writer.index_writer,
+                        )
+
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+                if self._saving_shapes_in_step():
+                    self.shape_writer = ShapeWriter(
+                        trial_dir=self.out_dir,
+                        step=self.step,
+                        worker=self.worker,
+                        index_writer=self.writer.index_writer,
+                    )
         else:
             raise NotImplementedError
-
-        if self._saving_shapes_in_step():
-            if self.shape_writer is None or only_initialize_if_missing is False:
-                self.shape_writer = ShapeWriter(
-                    trial_dir=self.out_dir, step=self.step, worker=self.worker
-                )
-        else:
-            assert self.shape_writer is None
 
     def _close_writers(self) -> None:
         if self.dry_run:

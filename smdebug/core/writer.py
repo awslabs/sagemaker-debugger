@@ -39,9 +39,9 @@ from smdebug.core.utils import is_s3
 # Local
 from .locations import (
     IndexFileLocationUtils,
-    ShapeFileLocation,
     TensorboardFileLocation,
     TensorFileLocation,
+    TensorShape,
 )
 from .logger import get_logger
 from .modes import ModeKeys
@@ -58,6 +58,7 @@ class BaseWriter:
             assert False, "Worker should not be none. Check worker name initialization"
         self.mode = mode
         self._writer = None
+        self._index_writer = None
 
     def name(self):
         return self._writer.name()
@@ -77,6 +78,21 @@ class BaseWriter:
         self._writer.flush()
         # don't flush index writer as we only want to flush on close
 
+    @classmethod
+    def create_index_writer(cls, trial_dir, worker, step):
+        el = TensorFileLocation(step_num=step, worker_name=worker)
+        event_file_path = el.get_file_location(trial_dir=trial_dir)
+        index_file_path = IndexFileLocationUtils.get_index_key_for_step(trial_dir, step, worker)
+        return IndexWriter(index_file_path)
+
+    @property
+    def index_writer(self):
+        return self._index_writer
+
+    @index_writer.setter
+    def index_writer(self, iw):
+        self._index_writer = iw
+
 
 class FileWriter(BaseWriter):
     def __init__(
@@ -90,6 +106,7 @@ class FileWriter(BaseWriter):
         flush_secs=120,
         verbose=False,
         write_checksum=False,
+        index_writer=None,
     ):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `trial_dir`.
@@ -113,12 +130,14 @@ class FileWriter(BaseWriter):
         """
         super(FileWriter, self).__init__(trial_dir, worker, step, mode)
         if wtype == "events":
+            if index_writer is None:
+                self.index_writer = self.create_index_writer(
+                    trial_dir=trial_dir, worker=worker, step=step
+                )
+            else:
+                self.index_writer = index_writer
             el = TensorFileLocation(step_num=self.step, worker_name=self.worker)
             event_file_path = el.get_file_location(trial_dir=self.trial_dir)
-            index_file_path = IndexFileLocationUtils.get_index_key_for_step(
-                self.trial_dir, self.step, self.worker
-            )
-            self.index_writer = IndexWriter(index_file_path)
         elif wtype == "tensorboard":
             el = TensorboardFileLocation(
                 step_num=self.step, worker_name=self.worker, mode=self.mode
@@ -236,41 +255,21 @@ class FileWriter(BaseWriter):
 
 
 class ShapeWriter(BaseWriter):
-    def __init__(self, trial_dir, worker, step=0, mode=ModeKeys.GLOBAL):
+    def __init__(self, trial_dir, worker, index_writer, step=0, mode=ModeKeys.GLOBAL):
         super(ShapeWriter, self).__init__(trial_dir, worker, step, mode)
-        el = ShapeFileLocation(step_num=self.step, worker_name=self.worker)
-        self.file_path = el.get_file_location(trial_dir=self.trial_dir)
-        s3, bucket_name, key_name = is_s3(self.file_path)
-        if s3:
-            self._writer = TSAccessS3(bucket_name, key_name, binary=False)
-        else:
-            self._writer = TSAccessFile(self.file_path, "a+")
+        self._index_writer = index_writer
 
-        self.shapes = []
-        self.meta = {}
-
-    def write_shape(self, name, shape: Tuple[int]):
-        self.shapes.append({"name": name, "shape": shape})
+    def write_shape(
+        self, name, shape: Tuple[int], mode=ModeKeys.GLOBAL, mode_step=None, original_name=None
+    ):
+        self._index_writer.add_shape(
+            TensorShape(name, mode, mode_step, shape, original_name=original_name)
+        )
 
     def flush(self):
-        if not self._writer:
-            raise ValueError(f"Cannot flush because self._writer={self._writer}")
-        if not self.shapes:
-            raise ValueError(
-                f"Cannot write shapes to file {self.file_path} as it is empty. {self.shapes}"
-            )
-
-        s = json.dumps({"meta": self.meta, "payload": self.shapes})
-        self._writer.write(s)
-        self._writer.flush()
-        self.meta = {}
-        self.shapes = []
+        self._index_writer.flush()
 
     def close(self):
         """Flushes the event file to disk and close the file.
         """
-        if self._writer is not None:
-            if self.shapes:
-                self.flush()
-                self._writer.close()
-                self._writer = None
+        self._index_writer.close()

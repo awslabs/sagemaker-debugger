@@ -191,8 +191,8 @@ def test_keras_gradtape_shapes(out_dir):
         reduction_config=ReductionConfig(save_shape=True),
     )
     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
-    verify_shapes(out_dir, 0, 9)
-    verify_shapes(out_dir, 500, 14)
+    verify_shapes(out_dir, 0, 10)
+    verify_shapes(out_dir, 500, 15)
 
 
 @pytest.mark.skip_if_non_eager
@@ -473,7 +473,7 @@ def test_keras_fit_shapes(out_dir):
         reduction_config=ReductionConfig(save_shape=True),
     )
     helper_keras_fit(trial_dir=out_dir, hook=hook)
-    verify_shapes(out_dir, 0, 9)
+    verify_shapes(out_dir, 0, 12)
 
 
 @pytest.mark.slow

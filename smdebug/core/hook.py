@@ -463,11 +463,15 @@ class BaseHook:
         if self.save_all_workers is False:
             if self.worker != self.chief_worker:
                 return
+
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
         if self._saving_shapes_in_step():
             self.shape_writer = ShapeWriter(
-                trial_dir=self.out_dir, step=self.step, worker=self.worker
+                trial_dir=self.out_dir,
+                step=self.step,
+                worker=self.worker,
+                index_writer=self.writer.index_writer,
             )
 
     def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
@@ -747,10 +751,16 @@ class BaseHook:
                 numpy_tensor_value = self._make_numpy_array(tensor_value)
                 this_size, this_shape = size_and_shape(numpy_tensor_value)
                 if tensor_ref is not None:
-                    name = tensor_ref.tf_obj.name
+                    original_name = tensor_ref.tf_obj.name
                 else:
-                    name = tensor_name
-                self.shape_writer.write_shape(name, this_shape)
+                    original_name = None
+                self.shape_writer.write_shape(
+                    tensor_name,
+                    this_shape,
+                    self.mode,
+                    self.mode_steps[self.mode],
+                    original_name=original_name,
+                )
                 break
 
     def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):

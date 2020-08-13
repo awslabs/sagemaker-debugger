@@ -68,6 +68,21 @@ class TensorUnavailableForStep(Exception):
         return msg
 
 
+class ShapeUnavailableForStep(Exception):
+    def __init__(self, tname, step, mode=modes.GLOBAL):
+        self.step = step
+        self.mode = mode
+        self.tname = tname
+
+    def __str__(self):
+        msg = (
+            "Shape for tensor {} is not available for step {} "
+            "with mode {} as it was not saved."
+            "".format(self.tname, self.step, self.mode.name)
+        )
+        return msg
+
+
 class TensorUnavailable(Exception):
     def __init__(self, tname):
         self.tname = tname

@@ -16,8 +16,8 @@ from smdebug.core.config_constants import (
     DEFAULT_WORKER_NAME,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
-from smdebug.core.locations import ShapeFileLocation
 from smdebug.core.utils import is_s3, remove_file_if_exists
+from smdebug.trials import create_trial
 
 
 def use_s3_datasets():
@@ -31,20 +31,12 @@ def use_s3_datasets():
 
 
 def verify_shapes(out_dir, step_num, num_tensors):
-    sl = ShapeFileLocation(step_num, DEFAULT_WORKER_NAME)
-    path = os.path.join(out_dir, sl.get_file_location())
-    with open(path) as jsfile:
-        shape_dict = json.load(jsfile)
-    print(shape_dict["payload"])
-    assert "payload" in shape_dict
-    assert len(shape_dict["payload"]) == num_tensors, (
-        len(shape_dict["payload"]),
-        shape_dict["payload"],
-    )
-    for ts in shape_dict["payload"]:
-        for dim in ts["shape"]:
-            assert isinstance(dim, int)
-        assert isinstance(ts["name"], str)
+    trial = create_trial(out_dir)
+    tnames = trial.tensor_names(step=step_num)
+    assert num_tensors == len(tnames), (len(tnames), tnames)
+    for tname in tnames:
+        tensor = trial.tensor(tname)
+        assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))
 
 
 class SagemakerSimulator(object):

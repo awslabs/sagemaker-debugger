@@ -24,6 +24,20 @@ class TensorLocation:
         return {"tensorname": self.tensorname, "start_idx": self.start_idx, "length": self.length}
 
 
+class TensorShape:
+    def __init__(self, name, mode, mode_step, shape, original_name=None):
+        if original_name is None:
+            original_name = name
+        self.name = name
+        self.original_name = original_name
+        self.mode = mode
+        self.mode_step = mode_step
+        self.shape = tuple(shape)
+
+    def to_dict(self):
+        return {"tensorname": self.name, "originalname": self.original_name, "shape": self.shape}
+
+
 STEP_NUMBER_FORMATTING_LENGTH = "012"
 
 
@@ -87,28 +101,6 @@ class TensorFileLocation(EventFileLocation):
     def get_step_dir_path(cls, trial_dir, step_num):
         step_num = int(step_num)
         return os.path.join(cls.get_dir(trial_dir), format(step_num, STEP_NUMBER_FORMATTING_LENGTH))
-
-
-class ShapeFileLocation(TensorFileLocation):
-    def __init__(self, step_num, worker_name):
-        super().__init__(step_num, worker_name)
-
-    def get_filename(self):
-        step_num_str = self.get_step_num_str()
-        return f"{step_num_str}_{self.worker_name}_shapes.json"
-
-    @classmethod
-    def load_filename(cls, s, print_error=True):
-        name = os.path.basename(s)
-        m = re.search("(.*)_(.*)_shapes.json$", name)
-        if m:
-            step_num = int(m.group(1))
-            worker_name = m.group(2)
-            return cls(step_num=step_num, worker_name=worker_name)
-        else:
-            if print_error:
-                logger.error("Failed to load shape file location: ", s)
-            return None
 
 
 class TensorboardFileLocation(EventFileLocation):

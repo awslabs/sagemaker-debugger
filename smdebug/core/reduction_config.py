@@ -1,16 +1,25 @@
 # Standard Library
 import json
 from typing import Any, Dict
-from smdebug.core.logger import get_logger
-logger = get_logger()
 
 # First Party
+from smdebug.core.logger import get_logger
 from smdebug.core.utils import split
+
+logger = get_logger()
+
 
 ALLOWED_REDUCTIONS = ["min", "max", "mean", "std", "variance", "sum", "prod"]
 ALLOWED_NORMS = ["l1", "l2"]
 REDUCTION_CONFIG_VERSION_NUM = "v0"
-ALLOWED_PARAMS = ["reductions", "abs_reductions", "norms", "abs_norms", "save_raw_tensor", "save_shape"]
+ALLOWED_PARAMS = [
+    "reductions",
+    "abs_reductions",
+    "norms",
+    "abs_norms",
+    "save_raw_tensor",
+    "save_shape",
+]
 
 
 class ReductionConfig:
@@ -82,7 +91,6 @@ class ReductionConfig:
         if not isinstance(self.save_shape, bool):
             raise ValueError(f"save_shape={self.save_shape} must be a boolean")
 
-
     @classmethod
     def from_dict(cls, params: Dict[str, Any]) -> "ReductionConfig":
         """Parses a flattened dict with two keys: `save_raw_tensor` and `reductions`."""
@@ -115,7 +123,7 @@ class ReductionConfig:
             norms=norms,
             abs_norms=abs_norms,
             save_raw_tensor=save_raw_tensor,
-            save_shape=save_shape
+            save_shape=save_shape,
         )
 
     @classmethod
@@ -136,7 +144,11 @@ class ReductionConfig:
             all_reductions.append(f"abs_{red}_norm")
         all_reductions_str = ",".join(all_reductions)
         # Return the dict
-        return {"save_raw_tensor": self.save_raw_tensor, "reductions": all_reductions_str, "save_shape": self.save_shape}
+        return {
+            "save_raw_tensor": self.save_raw_tensor,
+            "reductions": all_reductions_str,
+            "save_shape": self.save_shape,
+        }
 
     def to_json(self) -> str:
         return json.dumps(self.to_json_dict())
