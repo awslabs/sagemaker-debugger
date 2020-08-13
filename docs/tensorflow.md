@@ -95,7 +95,7 @@ For more information about adjusting the tensor collection parameters, see [Save
 
 For a full list of available tensor collection parameters, see [Configuring Collection using SageMaker Python SDK](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#configuring-collection-using-sagemaker-python-sdk).
 
->**Note**: The `inputs`, `outputs`, and `layers` collections are currently not available for TensorFlow 2.1.0.
+>**Note**: The `inputs`, `outputs`, `gradients`, and `layers` built-in collections are currently available for TensorFlow 2.2.0.
 
 ---
 
