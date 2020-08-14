@@ -9,7 +9,13 @@ from smdebug.core.access_layer.s3handler import S3Handler, is_s3
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import list_files_in_directory
 from smdebug.profiler.profiler_constants import ENV_TRAIILING_DURATION, TRAILING_DURATION_DEFAULT
-from smdebug.profiler.utils import TimeUnits, convert_utc_timestamp_to_microseconds
+from smdebug.profiler.utils import (
+    TimeUnits,
+    convert_utc_timestamp_to_microseconds,
+    is_valid_tfprof_tracefilename,
+    is_valid_tracefilename,
+    validate_system_profiler_file,
+)
 
 
 class MetricsReaderBase:
@@ -168,9 +174,14 @@ class MetricsReaderBase:
 
     def _parse_event_files_local_mode(self, event_files):
         for event_file in event_files:
-            if event_file not in self._parsed_files:
-                self._get_event_parser(event_file).read_events_from_file(event_file)
-                self._parsed_files.add(event_file)
+            if (
+                is_valid_tracefilename(event_file)
+                or is_valid_tfprof_tracefilename(event_file)
+                or validate_system_profiler_file(event_file)
+            ):
+                if event_file not in self._parsed_files:
+                    self._get_event_parser(event_file).read_events_from_file(event_file)
+                    self._parsed_files.add(event_file)
 
     def _get_timestamp_from_filename(self, event_file):
         pass

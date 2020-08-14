@@ -21,7 +21,12 @@ from smdebug.profiler.tf_profiler_parser import (
     SMProfilerEvents,
     TensorboardProfilerEvents,
 )
-from smdebug.profiler.utils import get_node_id_from_tracefilename, get_timestamp_from_tracefilename
+from smdebug.profiler.utils import (
+    get_node_id_from_tracefilename,
+    get_timestamp_from_tracefilename,
+    is_valid_tfprof_tracefilename,
+    is_valid_tracefilename,
+)
 
 
 class AlgorithmMetricsReader(MetricsReaderBase):
@@ -198,15 +203,18 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
 
         event_data_list = S3Handler.get_objects(file_read_requests)
         for event_data, event_file in zip(event_data_list, event_files):
-            if event_file.endswith("json.gz"):
+            if event_file.endswith("json.gz") and is_valid_tfprof_tracefilename(event_file):
                 self._get_event_parser(event_file).read_events_from_file(event_file)
                 self._parsed_files.add(event_file)
             else:
-                event_string = event_data.decode("utf-8")
-                json_data = json.loads(event_string)
-                node_id = get_node_id_from_tracefilename(event_file)
-                self._get_event_parser(event_file).read_events_from_json_data(json_data, node_id)
-                self._parsed_files.add(event_file)
+                if is_valid_tracefilename(event_file):
+                    event_string = event_data.decode("utf-8")
+                    json_data = json.loads(event_string)
+                    node_id = get_node_id_from_tracefilename(event_file)
+                    self._get_event_parser(event_file).read_events_from_json_data(
+                        json_data, node_id
+                    )
+                    self._parsed_files.add(event_file)
 
     """
     Create a map of timestamp to filename

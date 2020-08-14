@@ -72,3 +72,13 @@ def test_MetricsReader_TFProfiler_timeline(use_in_memory_cache, trace_location):
         assert len(events) == 798
     elif trace_location == "s3":
         assert len(events) >= 73000
+
+
+@pytest.mark.parametrize("use_in_memory_cache", [True, False])
+def test_MetricReader_all_files(use_in_memory_cache):
+    bucket_name = "s3://smdebug-testing/resources/pytorch_traces_with_pyinstru/profiler-output"
+    lt = S3AlgorithmMetricsReader(bucket_name, use_in_memory_cache=use_in_memory_cache)
+
+    events = lt.get_events(0, time.time() * CONVERT_TO_MICROSECS)
+
+    assert len(events) != 0
