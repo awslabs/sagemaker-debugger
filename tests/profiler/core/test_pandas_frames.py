@@ -2,7 +2,11 @@
 # Third Party
 import pytest
 
-from smdebug.profiler.analysis.utils.pandas_data_analysis import PandasFrameAnalysis
+from smdebug.profiler.analysis.utils.pandas_data_analysis import (
+    PandasFrameAnalysis,
+    Resource,
+    StatsBy,
+)
 from smdebug.profiler.analysis.utils.profiler_data_to_pandas import PandasFrame
 
 
@@ -114,14 +118,11 @@ def pytorch_metrics():
     return get_metrics("pt")
 
 
-@pytest.fixture
-def phase_train():
-    return ["Step:ModeKeys.TRAIN"]
-
-
 @pytest.mark.slow
 @pytest.mark.parametrize("framework", ["tf2", "pt"])
-@pytest.mark.parametrize("by", ["training_phase", "framework_metric", "process"])
+@pytest.mark.parametrize(
+    "by", [StatsBy.TRAINING_PHASE, StatsBy.FRAMEWORK_METRICS, StatsBy.PROCESS, "step"]
+)
 def test_get_step_stats(framework, by, tensorflow_metrics, pytorch_metrics):
     if framework == "tf2":
         system_metrics_df, framework_metrics_df = tensorflow_metrics
@@ -130,25 +131,28 @@ def test_get_step_stats(framework, by, tensorflow_metrics, pytorch_metrics):
 
     pf_analysis = PandasFrameAnalysis(system_metrics_df, framework_metrics_df)
     step_stats = pf_analysis.get_step_statistics(by=by)
-    print(step_stats.shape)
-    assert not step_stats.empty
-    assert step_stats.shape[1] == 7
 
-    if by == "training_phase":
-        if framework == "tf2":
-            assert step_stats.shape[0] == 2
-        else:
-            assert step_stats.shape[0] == 1
-    elif by == "framework_metric":
-        if framework == "tf2":
-            assert step_stats.shape[0] == 111
-        else:
-            assert step_stats.shape[0] == 207
-    elif by == "process":
-        if framework == "tf2":
-            assert step_stats.shape[0] == 6
-        else:
-            assert step_stats.shape[0] == 7
+    if by == "step":
+        assert step_stats is None
+    else:
+        assert not step_stats.empty
+        assert step_stats.shape[1] == 7
+
+        if by == "training_phase":
+            if framework == "tf2":
+                assert step_stats.shape[0] == 2
+            else:
+                assert step_stats.shape[0] == 1
+        elif by == "framework_metric":
+            if framework == "tf2":
+                assert step_stats.shape[0] == 111
+            else:
+                assert step_stats.shape[0] == 207
+        elif by == "process":
+            if framework == "tf2":
+                assert step_stats.shape[0] == 6
+            else:
+                assert step_stats.shape[0] == 7
 
 
 @pytest.mark.slow
@@ -163,7 +167,7 @@ def test_get_util_stats_by_training_phase(framework, phase, tensorflow_metrics, 
         system_metrics_df, framework_metrics_df = pytorch_metrics
 
     pf_analysis = PandasFrameAnalysis(system_metrics_df, framework_metrics_df)
-    util_stats = pf_analysis.get_utilization_stats(phase=phase, by="training_phase")
+    util_stats = pf_analysis.get_utilization_stats(phase=phase, by=StatsBy.TRAINING_PHASE)
 
     assert not util_stats.empty
     if phase is None:
@@ -177,22 +181,29 @@ def test_get_util_stats_by_training_phase(framework, phase, tensorflow_metrics, 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("framework", ["tf2", "pt"])
-def test_get_util_stats(framework, tensorflow_metrics, pytorch_metrics):
+@pytest.mark.parametrize("resource", [None, Resource.CPU, [Resource.CPU, Resource.GPU], "cpu"])
+@pytest.mark.parametrize("by", [None, "step"])
+def test_get_util_stats(framework, resource, by, tensorflow_metrics, pytorch_metrics):
     if framework == "tf2":
         system_metrics_df, framework_metrics_df = tensorflow_metrics
     else:
         system_metrics_df, framework_metrics_df = pytorch_metrics
 
     pf_analysis = PandasFrameAnalysis(system_metrics_df, framework_metrics_df)
-    util_stats = pf_analysis.get_utilization_stats()
+    util_stats = pf_analysis.get_utilization_stats(resource=resource, by=by)
 
-    assert not util_stats.empty
+    if by == "step" or resource == "cpu":
+        assert util_stats is None
+    else:
+        assert not util_stats.empty
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("framework", ["tf2", "pt"])
-@pytest.mark.parametrize("device", ["cpu", "gpu"])
-@pytest.mark.parametrize("ranges", [None, [(0, 10), (10, 20), (30, 80), (80, 100)]])
+@pytest.mark.parametrize("device", ["cpu", Resource.CPU, Resource.GPU])
+@pytest.mark.parametrize(
+    "ranges", [None, [(0, 10), (10, 20), (30, 80), (80, 100)], [(30,)], [], ((0, 10), (10, 90))]
+)
 def test_get_device_usage_stats(framework, device, ranges, tensorflow_metrics, pytorch_metrics):
     if framework == "tf2":
         system_metrics_df, framework_metrics_df = tensorflow_metrics
@@ -202,33 +213,54 @@ def test_get_device_usage_stats(framework, device, ranges, tensorflow_metrics, p
     pf_analysis = PandasFrameAnalysis(system_metrics_df, framework_metrics_df)
     usage_stats = pf_analysis.get_device_usage_stats(device=device, utilization_ranges=ranges)
 
-    assert usage_stats
-
-    if ranges is None:
-        assert len(usage_stats) == 3
+    if ranges in [[(30,)], [], ((0, 10), (10, 90))] or device == "cpu":
+        assert not usage_stats
     else:
-        assert len(usage_stats) == len(ranges)
+        assert usage_stats
+
+        if ranges is None:
+            assert len(usage_stats) == 3
+        else:
+            assert len(usage_stats) == len(ranges)
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("framework", ["tf2", "pt"])
-def test_get_training_phase_intervals(framework, phase_train, tensorflow_metrics, pytorch_metrics):
+@pytest.mark.parametrize(
+    "phase",
+    [
+        ["Step:ModeKeys.TRAIN"],
+        "Step:ModeKeys.TRAIN",
+        ["Step:ModeKeys.GLOBAL"],
+        ("Step:ModeKeys.GLOBAL"),
+    ],
+)
+def test_get_training_phase_intervals(framework, phase, tensorflow_metrics, pytorch_metrics):
     if framework == "tf2":
+        valid_phase = ["Step:ModeKeys.TRAIN"]
         system_metrics_df, framework_metrics_df = tensorflow_metrics
     else:
-        phase_train = ["Step:ModeKeys.GLOBAL"]
+        valid_phase = ["Step:ModeKeys.GLOBAL"]
         system_metrics_df, framework_metrics_df = pytorch_metrics
 
     pf_analysis = PandasFrameAnalysis(system_metrics_df, framework_metrics_df)
-    interval_stats = pf_analysis.get_training_phase_intervals(phase=phase_train)
+    interval_stats = pf_analysis.get_training_phase_intervals(phase=phase)
 
-    assert not interval_stats.empty
-    assert interval_stats.shape[1] == 3
-
-    if framework == "tf2":
-        assert interval_stats.shape[0] == 11251
+    if isinstance(phase, str):
+        phase = [phase]
+    if not isinstance(phase, list) or phase != valid_phase:
+        print(not isinstance(phase, (str, list)))
+        print(phase != valid_phase, phase, valid_phase)
+        print((isinstance(phase, str) and [phase] != valid_phase))
+        assert interval_stats is None
     else:
-        assert interval_stats.shape[0] == 785
+        assert not interval_stats.empty
+        assert interval_stats.shape[1] == 3
+
+        if framework == "tf2":
+            assert interval_stats.shape[0] == 11251
+        else:
+            assert interval_stats.shape[0] == 785
 
 
 @pytest.mark.slow
