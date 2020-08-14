@@ -213,6 +213,11 @@ def test_mnist_shapes(out_dir, on_s3=False):
 
 
 @pytest.mark.slow  # 0:02 to run
+def test_mnist_shapes_s3(out_dir):
+    test_mnist_shapes(out_dir, on_s3=True)
+
+
+@pytest.mark.slow  # 0:02 to run
 def test_mnist_local_json(out_dir, monkeypatch):
     monkeypatch.setenv(
         CONFIG_FILE_PATH_ENV_STR, "tests/tensorflow/hooks/test_json_configs/test_mnist_local.json"

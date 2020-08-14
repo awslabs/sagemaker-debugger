@@ -154,6 +154,19 @@ def test_save_shapes(hook=None, out_dir=None):
         shutil.rmtree(out_dir)
 
 
+def test_save_shapes_json():
+    from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
+
+    out_dir = "/tmp/test_output/test_hook_save_shape/jsonloading"
+    shutil.rmtree(out_dir, True)
+    os.environ[
+        CONFIG_FILE_PATH_ENV_STR
+    ] = "tests/pytorch/test_json_configs/test_hook_save_shape.json"
+    hook = t_hook.create_from_json_file()
+    test_save_shapes(hook=hook, out_dir=out_dir)
+    shutil.rmtree(out_dir, True)
+
+
 # Test creating hook by loading the json file with reduction configs.
 def test_reduce_config_with_json():
     from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
