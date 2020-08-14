@@ -17,11 +17,9 @@
 
 """APIs for logging data in the event file."""
 # Standard Library
-import json
 from typing import Tuple
 
 # First Party
-from smdebug.core.access_layer import TSAccessFile, TSAccessS3
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter
 from smdebug.core.tfevent.index_file_writer import IndexWriter
@@ -34,7 +32,6 @@ from smdebug.core.tfevent.summary import (
     scalar_summary,
 )
 from smdebug.core.tfevent.util import make_tensor_proto
-from smdebug.core.utils import is_s3
 
 # Local
 from .locations import (
