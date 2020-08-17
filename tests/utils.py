@@ -35,7 +35,7 @@ def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True):
     if exact_equal:
         assert num_tensors == len(tnames), (len(tnames), tnames)
     else:
-        assert num_tensors >= len(tnames), (len(tnames), tnames)
+        assert num_tensors <= len(tnames), (len(tnames), tnames)
     for tname in tnames:
         tensor = trial.tensor(tname)
         assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))
