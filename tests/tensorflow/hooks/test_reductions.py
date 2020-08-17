@@ -70,7 +70,7 @@ def test_shapes(out_dir, save_raw_tensor=False):
         include_collections=["weights", "gradients", "losses"],
     )
     simple_model(hook)
-    verify_shapes(out_dir, 0, 2)
+    verify_shapes(out_dir, 0, 3)
 
 
 def test_reductions_with_raw_tensor(out_dir):
