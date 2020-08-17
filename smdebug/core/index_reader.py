@@ -241,8 +241,9 @@ class IndexReader(ABC):
         else:
             event_file_name = None
 
-        tensor_payload = index_dict["tensor_payload"]
         to_update_index_dict = []
+
+        tensor_payload = index_dict.get("tensor_payload", [])
         for tensor in tensor_payload:
             tensor_name = tensor["tensorname"]
             start_idx = tensor["start_idx"]
@@ -252,7 +253,7 @@ class IndexReader(ABC):
             )
             to_update_index_dict.append((tensor_name, step, tensor_location))
 
-        shape_payload = index_dict["shape_payload"]
+        shape_payload = index_dict.get("shape_payload", [])
         for tensor in shape_payload:
             tensor_name = tensor["tensorname"]
             original_name = tensor["originalname"]
