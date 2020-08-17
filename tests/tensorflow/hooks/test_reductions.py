@@ -1,7 +1,7 @@
 # Standard Library
 
 # Third Party
-from tests.tensorflow2.utils import verify_shapes
+from tests.utils import verify_shapes
 
 # First Party
 import smdebug.tensorflow as smd
