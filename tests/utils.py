@@ -29,10 +29,13 @@ def use_s3_datasets():
         return False
 
 
-def verify_shapes(out_dir, step_num, num_tensors):
+def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True):
     trial = create_trial(out_dir)
     tnames = trial.tensor_names(step=step_num)
-    assert num_tensors == len(tnames), (len(tnames), tnames)
+    if exact_equal:
+        assert num_tensors == len(tnames), (len(tnames), tnames)
+    else:
+        assert num_tensors >= len(tnames), (len(tnames), tnames)
     for tname in tnames:
         tensor = trial.tensor(tname)
         assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))
