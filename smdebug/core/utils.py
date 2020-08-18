@@ -29,7 +29,7 @@ def make_numpy_array(x):
     if isinstance(x, np.ndarray):
         return x
     elif np.isscalar(x):
-        return np.array(x)
+        return np.array([x])
     elif isinstance(x, tuple):
         return np.asarray(x)
     elif isinstance(x, list):
