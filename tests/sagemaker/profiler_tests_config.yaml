@@ -3,6 +3,8 @@
       tests/sagemaker/scripts/mnist/mnist_cpu.py,
      mnist_gpu.py: &mnist_gpu
       tests/sagemaker/scripts/mnist/mnist_gpu.py,
+     mnist_hvd.py: &mnist_hvd
+      tests/sagemaker/scripts/mnist/mnist_hvd.py,
      keras_resnet_hvd.py: &keras_resnet_hvd
       tests/sagemaker/scripts/resnet/keras_resnet_hvd.py,
      keras_resnet_mirrored.py: &keras_resnet_mirrored
@@ -91,18 +93,19 @@
 
 - gpu_jobs:
   -
-    - smprofiler-IT-keras-resnet-gpu-hvd
+    - smprofiler-IT-single-node-multi-gpu-hvd
     - *Enable
-    - *keras_resnet_hvd
+    - *mnist_hvd
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
     - expected_values_in_test_artifacts:
-        python_trace_file_count: 1
-        framework_trace_file_count: 3
-        python_stats_file_count: 1
+        python_trace_file_count: 12
+        framework_trace_file_count: 28
+        python_stats_file_count: 4
+        horovod_tracefile_count: 3
   -
     - smprofiler-IT-keras-resnet-gpu-mirrored
     - *Enable
@@ -178,9 +181,9 @@
         framework_trace_file_count: 2
         python_stats_file_count: 21
   -
-    - smprofiler-IT-keras-resnet-gpu-hvd-multinode
+    - smprofiler-IT-multi-node-multi-gpu-hvd
     - *Enable
-    - *keras_resnet_hvd
+    - *mnist_hvd
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 2
@@ -190,11 +193,12 @@
         RotateFileCloseIntervalInSeconds: "100"
         FileOpenFailThreshold: "35"
     - expected_values_in_test_artifacts:
-        python_trace_file_count: 2
-        framework_trace_file_count: 4
-        python_stats_file_count: 2
+        python_trace_file_count: 8
+        framework_trace_file_count: 24
+        python_stats_file_count: 8
+        horovod_tracefile_count: 1
   -
-    - smprofiler-IT-keras-resnet-gpu-mirrored
+    - smprofiler-IT-keras-multi-worker-mirrored
     - *Disable
     - *keras_resnet_mirrored
     - AmazonSageMaker-ExecutionRole-20200205T150348

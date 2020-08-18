@@ -107,12 +107,12 @@ def _get_estimator_list(index, job_type):
                 distributions = {"mpi": {"enabled": False, "processes_per_host": 1}}
         else:
             image_uri = environ["ENV_GPU_TRAIN_IMAGE"]
-            if instance_count > 1:
+            if "hvd" in job_name:
                 distributions = {
                     "mpi": {
                         "enabled": True,
-                        "processes_per_host": 1,
-                        "custom_mpi_options": "-verbose --NCCL_DEBUG=INFO -x OMPI_MCA_btl_vader_single_copy_mechanism=none",
+                        "processes_per_host": 4,
+                        "custom_mpi_options": "-verbose -x HOROVOD_TIMELINE=./hvd_timeline.json -x NCCL_DEBUG=INFO -x OMPI_MCA_btl_vader_single_copy_mechanism=none",
                     }
                 }
 
@@ -124,13 +124,14 @@ def _get_estimator_list(index, job_type):
             train_instance_type=instance_type,
             image_name=image_uri,
             entry_point=job_script,
-            framework_version="2.2",
+            framework_version="2.2.0",
             profiler_config=profiler_config,
-            py_version="py3",
+            py_version="py37",
             script_mode=True,
             rules=rules,
             distributions=distributions,
         )
+        estimator.fit(wait=False)
         estimator_list.append(estimator)
     return zip(estimator_list, profiler_params_list, expected_num_trace_file_list)
 
@@ -224,8 +225,6 @@ def _validate_python_stats_files(python_profile_stats):
 
 
 def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir):
-    estimator.fit(wait=False)
-
     job_name = estimator.latest_training_job.name
     print(f"\nRunning training job - {job_name}")
     path = estimator.latest_job_profiler_artifacts_path()
@@ -277,6 +276,16 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
         else:
             assert len(framework_tracefiles) > 0
 
+        horovod_tracefiles = [
+            join(root, name)
+            for root, _, files in walk(pevents_dir)
+            for name in files
+            if name.endswith("horovod_timeline.json")
+        ]
+        print(f"Number of generated horovod trace files {len(horovod_tracefiles)}")
+        if "horovod_tracefile_count" in expected_num_trace_file:
+            assert len(horovod_tracefiles) > 0
+
         python_analysis_class = (
             PyinstrumentAnalysis
             if str2bool(profiler_config.get("UsePyinstrument", False))
@@ -304,6 +313,7 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
         _validate_trace_files(python_tracefiles, profiler_config)
         _validate_trace_files(framework_tracefiles, profiler_config)
         _validate_python_stats_files(python_profile_stats)
+        _validate_trace_files(horovod_tracefiles, profiler_config)
         print("SMProfiler trace files validated.")
     else:
         assert not path
