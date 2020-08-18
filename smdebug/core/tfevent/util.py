@@ -36,8 +36,6 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
 
 
 def _get_proto_dtype(npdtype):
-    if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
-        return (False, "DT_STRING")
     try:
         from tensorflow.python import _pywrap_bfloat16
 
@@ -46,6 +44,8 @@ def _get_proto_dtype(npdtype):
         _NP_DATATYPE_TO_PROTO_DATATYPE.update({np.dtype(_np_bfloat16): "DT_BFLOAT16"})
     except (ModuleNotFoundError, ValueError, ImportError):
         pass
+    if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
+        return (False, "DT_STRING")
     return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
 
 
