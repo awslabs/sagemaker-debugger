@@ -1,5 +1,6 @@
 # Third Party
 import numpy as np
+from tensorflow.python import _pywrap_bfloat16
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -9,6 +10,9 @@ from .proto.tensor_pb2 import TensorProto
 from .proto.tensor_shape_pb2 import TensorShapeProto
 
 logger = get_logger()
+
+# TF Implements a Custom Numpy Datatype for Brain Floating Type
+_np_bfloat16 = _pywrap_bfloat16.TF_bfloat16_type()
 
 # hash value of ndarray.dtype is not the same as np.float class
 # so we need to convert the type classes below to np.dtype object
@@ -27,11 +31,17 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
     np.dtype(np.complex64): "DT_COMPLEX64",
     np.dtype(np.complex128): "DT_COMPLEX128",
     np.dtype(np.bool): "DT_BOOL",
+    np.dtype([("qint8", "i1")]): "DT_QINT8",
+    np.dtype([("quint8", "u1")]): "DT_QUINT8",
+    np.dtype([("qint16", "<i2")]): "DT_QINT16",
+    np.dtype([("quint16", "<u2")]): "DT_UINT16",
+    np.dtype([("qint32", "<i4")]): "DT_INT32",
+    np.dtype(_np_bfloat16): "DT_BFLOAT16",
 }
 
 
 def _get_proto_dtype(npdtype):
-    if npdtype.kind == "U":
+    if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
         return (False, "DT_STRING")
     return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
 
