@@ -117,6 +117,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
 
         hook = smd.get_hook()
         assert hook
+
         hook.close()
         # Check that hook created and tensors saved
         trial = smd.create_trial(path=sim.out_dir)

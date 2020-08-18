@@ -22,6 +22,7 @@ from smdebug.core.collection import (
 )
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
+    DEFAULT_SAVED_COLLECTIONS,
     DEFAULT_WORKER_NAME,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
@@ -363,6 +364,14 @@ class BaseHook:
     @abstractmethod
     def _get_default_collections(self):
         pass
+
+    def has_default_hook_configuration(self):
+        # Used in AWS TF to determine if the hook
+        # is using the default hook configuration
+        collections_being_saved = [x.name for x in self._collections_to_save]
+        if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
+            return True
+        return False
 
     def _prepare_collections(self):
         """Populate collections_to_save and ensure every collection has
