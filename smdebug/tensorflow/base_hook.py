@@ -14,8 +14,7 @@ from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
-from smdebug.core.tfevent.util import make_numpy_array
-from smdebug.core.utils import serialize_tf_device
+from smdebug.core.utils import make_numpy_array, serialize_tf_device
 from smdebug.core.writer import FileWriter
 
 # Local
