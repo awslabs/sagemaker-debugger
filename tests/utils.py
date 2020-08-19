@@ -40,9 +40,9 @@ def is_scalar(x):
     return False
 
 
-def verify_shapes(out_dir, step_num, tensornames, multiworker=False):
+def verify_shapes(out_dir, step_num, multiworker=False):
     trial = create_trial_fast_refresh(out_dir)
-    for tname in tensornames:
+    for tname in trial.tensor_names(step=step_num):
         tensor = trial.tensor(tname)
         if multiworker is False:
             assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))

@@ -191,8 +191,8 @@ def test_keras_gradtape_shapes(out_dir):
         reduction_config=ReductionConfig(save_shape=True),
     )
     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
-    verify_shapes(out_dir, 0, ["gradients/dense_1/biasGrad", "weights/dense/bias:0", "loss"])
-    verify_shapes(out_dir, 500, ["weights/dense/bias:0", "Adam/learning_rate:0", "loss"])
+    verify_shapes(out_dir, 0)
+    verify_shapes(out_dir, 500)
 
 
 @pytest.mark.skip_if_non_eager

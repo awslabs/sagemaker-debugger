@@ -100,30 +100,8 @@ def test_save_shapes(out_dir, hook=None):
             reduction_config=global_reduce_config,
         )
     run_mnist_gluon_model(hook=hook, num_steps_train=5)
-    verify_shapes(
-        out_dir,
-        0,
-        [
-            "dense0_relu_input_0",
-            "dense0_relu_output_0",
-            "pool1_output_0",
-            "gradient/dense0_weight",
-            "conv0_weight",
-            "softmaxcrossentropyloss0_input_0",
-        ],
-    )
-    verify_shapes(
-        out_dir,
-        1,
-        [
-            "dense0_relu_input_0",
-            "dense0_relu_output_0",
-            "pool1_output_0",
-            "gradient/dense0_weight",
-            "conv0_weight",
-            "softmaxcrossentropyloss0_input_0",
-        ],
-    )
+    verify_shapes(out_dir, 0)
+    verify_shapes(out_dir, 1)
     if hook_created:
         shutil.rmtree(out_dir)
 
