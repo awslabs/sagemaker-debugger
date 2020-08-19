@@ -1,4 +1,5 @@
 # Third Party
+import numpy as np
 from tensorflow.python.framework.dtypes import _NP_TO_TF
 
 # First Party
@@ -10,7 +11,7 @@ def test_tensorflow2_datatypes():
     # of numpy to tf types
     for _type in _NP_TO_TF:
         try:
-            _get_proto_dtype(_type)
+            _get_proto_dtype(np.dtype(_type))
         except KeyError:
             assert False
     assert True
