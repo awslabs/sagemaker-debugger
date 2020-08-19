@@ -100,8 +100,8 @@ def test_save_shapes(out_dir, hook=None):
             reduction_config=global_reduce_config,
         )
     run_mnist_gluon_model(hook=hook, num_steps_train=5)
-    verify_shapes(out_dir, 0, 49)
-    verify_shapes(out_dir, 1, 49)
+    verify_shapes(out_dir, 0, 40, exact_equal=False)
+    verify_shapes(out_dir, 1, 40, exact_equal=False)
     if hook_created:
         shutil.rmtree(out_dir)
 

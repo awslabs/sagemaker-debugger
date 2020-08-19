@@ -7,6 +7,7 @@ from pathlib import Path
 import boto3
 import numpy as np
 from tests.constants import TEST_DATASET_S3_PATH
+from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 from smdebug.core.config_constants import (
@@ -18,7 +19,6 @@ from smdebug.core.config_constants import (
 )
 from smdebug.core.utils import is_s3, remove_file_if_exists
 from smdebug.exceptions import TensorUnavailableForStep
-from smdebug.trials import create_trial
 
 
 def use_s3_datasets():
@@ -40,14 +40,9 @@ def is_scalar(x):
     return False
 
 
-def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True, multiworker=False):
-    trial = create_trial(out_dir)
-    tnames = trial.tensor_names(step=step_num)
-    if exact_equal:
-        assert num_tensors == len(tnames), (len(tnames), tnames)
-    else:
-        assert num_tensors <= len(tnames), (len(tnames), tnames)
-    for tname in tnames:
+def verify_shapes(out_dir, step_num, tensornames, multiworker=False):
+    trial = create_trial_fast_refresh(out_dir)
+    for tname in tensornames:
         tensor = trial.tensor(tname)
         if multiworker is False:
             assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))

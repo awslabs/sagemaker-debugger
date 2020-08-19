@@ -236,7 +236,9 @@ def test_tf_keras_shapes(out_dir):
         eager=False,
         steps=["train", "eval", "predict", "train"],
     )
-    verify_shapes(out_dir, 0, 21)
+    verify_shapes(
+        out_dir, 0, ["training/RMSprop/momentum:0", "dense/weights/dense/kernel:0", "batch", "loss"]
+    )
 
 
 @pytest.mark.slow  # 0:03 to run

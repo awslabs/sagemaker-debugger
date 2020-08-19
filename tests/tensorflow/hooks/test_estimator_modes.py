@@ -18,6 +18,7 @@ import numpy as np
 import pytest
 import tensorflow as tf
 from tests.analysis.utils import delete_s3_prefix
+from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
 
 # First Party
@@ -209,7 +210,15 @@ def test_mnist_shapes(out_dir, on_s3=False):
         steps=None,
         reduction_config=smd.ReductionConfig(save_shape=True),
     )
-    verify_shapes(out_dir, 0, 249)
+    verify_shapes(
+        out_dir,
+        0,
+        [
+            "conv2d/kernel:0",
+            "gradients/sparse_softmax_cross_entropy_loss/value_grad/Sum:0",
+            "dense_1/kernel:0",
+        ],
+    )
 
 
 @pytest.mark.slow  # 0:02 to run

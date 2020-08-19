@@ -301,7 +301,17 @@ def test_shapes(out_dir, tf_eager_mode):
         steps=["train"],
         eager=tf_eager_mode,
     )
-    verify_shapes(out_dir, 0, 15, multiworker=True)
+    verify_shapes(
+        out_dir,
+        0,
+        [
+            "dense_1/weights/dense_1/kernel:0",
+            "scalar/foobar",
+            "dense/weights/dense/bias:0",
+            "Adam/decay:0",
+        ],
+        multiworker=True,
+    )
 
 
 @pytest.mark.slow
