@@ -20,7 +20,8 @@ class MetricsHistogram:
         self.select_events = []
         self.sources = {}
         self.target = None
-        self.available_metrics = []
+        self.available_dimensions = []
+        self.available_events = []
 
     """
     @param starttime is starttime_since_epoch_in_micros. Default value 0, which means start
@@ -53,10 +54,10 @@ class MetricsHistogram:
         for event in all_events:
             if event.dimension not in system_metrics:
                 system_metrics[event.dimension] = {}
-                self.available_metrics.append(event.dimension)
+                self.available_dimensions.append(event.dimension)
             if event.name not in system_metrics[event.dimension]:
                 system_metrics[event.dimension][event.name] = []
-                self.available_metrics.append(event.name)
+                self.available_events.append(event.name)
             system_metrics[event.dimension][event.name].append(event.value)
 
         # compute total utilization per event dimension
@@ -64,7 +65,7 @@ class MetricsHistogram:
             n = len(system_metrics[event_dimension])
             total = [sum(x) for x in zip(*system_metrics[event_dimension].values())]
             system_metrics[event_dimension]["total"] = np.array(total) / n
-            self.available_metrics.append("total")
+            self.available_events.append("total")
 
         # add user defined metrics to the list
         self.filtered_events = []
@@ -73,12 +74,13 @@ class MetricsHistogram:
         print(f"select dimensions:{self.select_dimensions}")
         for metric in self.select_events:
             r = re.compile(r".*" + metric + r".*")
-            self.filtered_events.extend(list(filter(r.search, self.available_metrics)))
+            self.filtered_events.extend(list(filter(r.search, self.available_events)))
         self.filtered_events = set(self.filtered_events)
         print(f"filtered_events:{self.filtered_events}")
         for metric in self.select_dimensions:
             r = re.compile(metric)  # + r".*")
-            self.filtered_dimensions.extend(list(filter(r.search, self.available_metrics)))
+            self.filtered_dimensions.extend(list(filter(r.search, self.available_dimensions)))
+        self.filtered_dimensions = set(self.filtered_dimensions)
         print(f"filtered_dimensions:{self.filtered_dimensions}")
 
         return system_metrics

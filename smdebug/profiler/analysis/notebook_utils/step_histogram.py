@@ -137,9 +137,10 @@ class StepHistogram:
         self.step_metrics = self._create_step_metrics(events, step_metrics=self.step_metrics)
         # update histograms
         for index, metric in enumerate(self.step_metrics):
-            probs, binedges = self._get_probs_binedges(self.step_metrics[metric])
-            # update data
-            self.sources[metric].data["top"] = probs
-            self.sources[metric].data["left"] = binedges[:-1]
-            self.sources[metric].data["right"] = binedges[1:]
+            if metric in self.sources:
+                probs, binedges = self._get_probs_binedges(self.step_metrics[metric])
+                # update data
+                self.sources[metric].data["top"] = probs
+                self.sources[metric].data["left"] = binedges[:-1]
+                self.sources[metric].data["right"] = binedges[1:]
         push_notebook(handle=self.target)
