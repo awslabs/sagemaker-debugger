@@ -390,6 +390,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
+    def should_save_layer(self, layer_name):
+        # Called in AWS TF to determine
+        # if a particular layer value
+        # should be saved
+        collections_to_save = self._get_collections_to_save_for_step()
+        if CollectionKeys.LAYERS in collections_to_save:
+            return True
+        for c in collections_to_save:
+            if match_inc(layer_name, c.include_regex):
+                return True
+        return False
+
     def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
         if isinstance(collections, set) is False:
             collections = {collections}
