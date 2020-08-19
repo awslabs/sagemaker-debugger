@@ -712,9 +712,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         layer_collection = self.get_collection(CollectionKeys.LAYERS)
         collections_to_write = {layer_collection} if layer_collection in step_collections else set()
         for layer_name, layer_input, layer_output in logs:
-            layer_input_tensor_name = get_export_name_for_keras(layer_name, "input")
+            # Cast layer_name to str since it can also be of type bytes
+            # when run with mirrored strategy
+            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
             self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
-            layer_output_tensor_name = get_export_name_for_keras(layer_name, "output")
+            layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
             self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
 
     def _write_optimizer_variables(self):
