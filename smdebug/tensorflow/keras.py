@@ -454,8 +454,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 elif key == SMDEBUG_GRADIENTS_KEY:
                     gradients = logs[key]
                     if gradients is not None:
-                        for g, v in zip(gradients, self.model.trainable_variables):
-                            layer_name = v.name
+                        for g, layer in zip(gradients, self.model.layers):
+                            layer_name = layer.name
                             if len(layer_name.split(":")) > 1:
                                 layer_name = layer_name.split(":")[0]
                             export_name = "gradients/" + layer_name + "Grad"
