@@ -260,7 +260,7 @@ class ShapeWriter(BaseWriter):
         self, name, shape: Tuple[int], mode=ModeKeys.GLOBAL, mode_step=None, original_name=None
     ):
         self._index_writer.add_shape(
-            TensorShape(name, mode, mode_step, shape, original_name=original_name)
+            TensorShape(name, mode.name, mode_step, shape, original_name=original_name)
         )
 
     def flush(self):

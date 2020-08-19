@@ -86,24 +86,20 @@ def test_save_config(hook=None, out_dir=None):
         shutil.rmtree(out_dir)
 
 
-def test_save_shapes(out_dir, hook=None):
-    hook_created = False
-    if hook is None:
-        hook_created = True
-        global_reduce_config = ReductionConfig(save_shape=True)
-        global_save_config = SaveConfig(save_steps=[0, 1])
+def test_save_shapes(out_dir):
+    global_reduce_config = ReductionConfig(save_shape=True)
+    global_save_config = SaveConfig(save_steps=[0, 1])
 
-        hook = t_hook(
-            out_dir=out_dir,
-            save_config=global_save_config,
-            save_all=True,
-            reduction_config=global_reduce_config,
-        )
+    hook = t_hook(
+        out_dir=out_dir,
+        save_config=global_save_config,
+        save_all=True,
+        reduction_config=global_reduce_config,
+    )
     run_mnist_gluon_model(hook=hook, num_steps_train=5)
     verify_shapes(out_dir, 0)
     verify_shapes(out_dir, 1)
-    if hook_created:
-        shutil.rmtree(out_dir)
+    shutil.rmtree(out_dir)
 
 
 def test_save_config_hook_from_json():

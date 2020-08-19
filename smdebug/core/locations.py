@@ -23,9 +23,6 @@ class TensorLocation:
     def to_dict(self):
         return {"tensorname": self.tensorname, "start_idx": self.start_idx, "length": self.length}
 
-    def get_mode(self):
-        return str(self.mode).split(".")[-1]
-
 
 class TensorShape:
     def __init__(self, name, mode, mode_step, shape, original_name=None):
@@ -39,9 +36,6 @@ class TensorShape:
 
     def to_dict(self):
         return {"tensorname": self.name, "originalname": self.original_name, "shape": self.shape}
-
-    def get_mode(self):
-        return str(self.mode).split(".")[-1]
 
 
 STEP_NUMBER_FORMATTING_LENGTH = "012"
