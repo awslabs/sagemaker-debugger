@@ -262,7 +262,7 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
 
-    def _get_writers(self, tensor_name, tensor_ref) -> List[FileWriter]:
+    def _get_writers(self, tensor_name, tensor_ref, shape_writers=False) -> List[FileWriter]:
         """
         For tensors generated during distributed tf jobs, we map the tensor to a writer
         with its device attribute.
@@ -278,8 +278,8 @@ class TensorflowBaseHook(BaseHook):
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
         ]:
-            if (self.save_all_workers is True or self.worker == self.chief_worker) and self.writer:
-                return [self.writer]
+            if self.save_all_workers is True or self.worker == self.chief_worker:
+                return self._get_single_process_writers(shape_writers)
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 # else is for metrics in Keras
@@ -290,17 +290,25 @@ class TensorflowBaseHook(BaseHook):
                 # if device str is empty or cpu in worker
                 if not bool(worker) or "CPU" in worker:
                     if self.save_all_workers:
-                        return list(self.writer_map.values())
+                        if shape_writers is False:
+                            return list(self.writer_map.values())
+                        else:
+                            return list(self.shape_writer_map.values())
                     else:
-                        return [self.writer_map[self.device_map[self.chief_worker]]]
+                        if shape_writers is False:
+                            return [self.writer_map[self.device_map[self.chief_worker]]]
+                        else:
+                            return [self.shape_writer_map[self.device_map[self.chief_worker]]]
                 elif self.save_all_workers or worker == self.chief_worker:
-                    return [self.writer_map[self.device_map[worker]]]
-            elif self.writer:
+                    if shape_writers is False:
+                        return [self.writer_map[self.device_map[worker]]]
+                    else:
+                        return [self.shape_writer_map[self.device_map[worker]]]
+            else:
                 # training on CPU when all device strings have cpu
-                return [self.writer]
+                return self._get_single_process_writers(shape_writers)
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
-            if self.writer:
-                return [self.writer]
+            return self._get_single_process_writers(shape_writers)
         else:
             raise NotImplementedError
         # when self.writer is None, returns empty list
@@ -338,7 +346,7 @@ class TensorflowBaseHook(BaseHook):
                             trial_dir=self.out_dir, step=self.step, worker=device_string
                         )
                         if self._saving_shapes_in_step():
-                            self.shape_writer[device_string] = ShapeWriter(
+                            self.shape_writer_map[device_string] = ShapeWriter(
                                 trial_dir=self.out_dir,
                                 step=self.step,
                                 worker=self.worker,
@@ -383,25 +391,9 @@ class TensorflowBaseHook(BaseHook):
             self.writer.close()
             self.writer = None
 
-        # Delete all the dist training writers
-        to_delete_writers = []
-        for device, writer in self.writer_map.items():
-            writer.flush()
-            writer.close()
-            to_delete_writers.append(device)
-
-        for device in to_delete_writers:
-            del self.writer_map[device]
-
-        to_delete_writers = []
-        # Delete all the tb writers
-        for mode, writer in self.tb_writers.items():
-            if writer is not None:
-                writer.flush()
-                writer.close()
-                to_delete_writers.append(mode)
-        for mode in to_delete_writers:
-            del self.tb_writers[mode]
+        self._close_given_writer_map(self.writer_map)
+        self._close_given_writer_map(self.shape_writer_map)
+        self._close_given_writer_map(self.tb_writers)
 
         if self.shape_writer is not None:
             self.shape_writer.close()

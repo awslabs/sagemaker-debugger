@@ -410,6 +410,17 @@ class BaseHook:
         self.prepared_collections = True
 
     #### End of Save Manager methods ####
+    @staticmethod
+    def _close_given_writer_map(writer_dict):
+        # Delete all the dist training writers
+        to_delete_writers = []
+        for key, writer in writer_dict.items():
+            # close calls flush
+            writer.close()
+            to_delete_writers.append(key)
+
+        for key in to_delete_writers:
+            del writer_dict[key]
 
     def _close_writers(self) -> None:
         if self.dry_run:
@@ -423,15 +434,7 @@ class BaseHook:
             self.writer.close()
             self.writer = None
 
-        to_delete_writers = []
-        # Delete all the tb writers
-        for mode, writer in self.tb_writers.items():
-            if writer is not None:
-                writer.flush()
-                writer.close()
-                to_delete_writers.append(mode)
-        for mode in to_delete_writers:
-            del self.tb_writers[mode]
+        self._close_given_writer_map(self.tb_writers)
 
         if self.shape_writer is not None:
             self.shape_writer.close()
@@ -474,7 +477,13 @@ class BaseHook:
                 index_writer=self.writer.index_writer,
             )
 
-    def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
+    def _get_single_process_writers(self, shape_writers=False) -> List[FileWriter]:
+        if shape_writers is False:
+            return [self.writer] if self.writer else []
+        else:
+            return [self.shape_writer] if self.shape_writer else []
+
+    def _get_writers(self, tensor_name, tensor_ref=None, shape_writers=False) -> List[FileWriter]:
         """
         :param tensor_name:
         :param tensor_ref: used by TF
@@ -482,7 +491,7 @@ class BaseHook:
         """
         if self.save_all_workers is False and self.worker != self.chief_worker:
             return []
-        return [self.writer] if self.writer else []
+        return self._get_single_process_writers(shape_writers)
 
     def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
         """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
@@ -745,6 +754,7 @@ class BaseHook:
                 break
 
     def _write_shape(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
+        shape_writers = self._get_writers(tensor_name, tensor_ref=tensor_ref, shape_writers=True)
         for s_col in save_collections:
             reduction_config = s_col.reduction_config
             if self.dry_run is False and reduction_config.save_shape is True:
@@ -754,13 +764,15 @@ class BaseHook:
                     original_name = tensor_ref.tf_obj.name
                 else:
                     original_name = None
-                self.shape_writer.write_shape(
-                    tensor_name,
-                    this_shape,
-                    self.mode,
-                    self.mode_steps[self.mode],
-                    original_name=original_name,
-                )
+
+                for writer in shape_writers:
+                    writer.write_shape(
+                        tensor_name,
+                        this_shape,
+                        self.mode,
+                        self.mode_steps[self.mode],
+                        original_name=original_name,
+                    )
                 break
 
     def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):

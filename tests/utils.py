@@ -29,7 +29,7 @@ def use_s3_datasets():
         return False
 
 
-def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True):
+def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True, multiworker=False):
     trial = create_trial(out_dir)
     tnames = trial.tensor_names(step=step_num)
     if exact_equal:
@@ -38,7 +38,17 @@ def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True):
         assert num_tensors <= len(tnames), (len(tnames), tnames)
     for tname in tnames:
         tensor = trial.tensor(tname)
-        assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))
+        if multiworker is False:
+            assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))
+        else:
+            workers = tensor.workers(step_num)
+            assert len(workers) > 1
+            for w in workers:
+                assert isinstance(tensor.shape(step_num, worker=w), tuple), (
+                    tname,
+                    w,
+                    tensor.shape(step_num, worker=w),
+                )
 
 
 class SagemakerSimulator(object):
