@@ -366,7 +366,7 @@ class BaseHook:
         pass
 
     def has_default_hook_configuration(self):
-        # Used in AWS TF to determine if the hook
+        # Used in the internal framework forks to determine if the hook
         # is using the default hook configuration
         collections_being_saved = [x.name for x in self._collections_to_save]
         if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
