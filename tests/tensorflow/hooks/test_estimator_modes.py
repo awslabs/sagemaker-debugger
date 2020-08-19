@@ -18,7 +18,6 @@ import numpy as np
 import pytest
 import tensorflow as tf
 from tests.analysis.utils import delete_s3_prefix
-from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
 
 # First Party
