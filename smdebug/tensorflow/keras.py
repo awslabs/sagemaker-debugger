@@ -467,9 +467,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         collections_to_write = {self.get_collection(CollectionKeys.GRADIENTS)}
                 # Save Intermediate Layers
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
-                    layer_outputs = logs[key]
-                    self.save_layer_outputs(layer_outputs)
-                    self.save_layer_inputs(logs[ModelInput.INPUTS], layer_outputs)
+                    self._save_layer_values(logs[key])
                 # Save Model Inputs
                 elif key in ModelInputs:
                     export_name = get_model_input_export_name()
@@ -504,11 +502,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._add_metric(metric_name=key)
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
-    def _save_layer_input_and_outputs(self, grad_tape=False):
-        # Iterates over all the saved layers for input and output values
-        if is_tf_version_2x() is False or (grad_tape is False and self.model.run_eagerly is False):
-            # This function only works when the run_eagerly is True
-            return
+    def _save_layer_input_and_outputs(self):
+        # Run only for GradTape
         for layer_name in self.saved_layers:
             # Save Input
             tensor = self.saved_layers[layer_name].layer_input
@@ -713,33 +708,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
-    def _save_layer_values(self, layer_outputs, collection, model=None, inputs=None):
-        if model is None:
-            if self.model:
-                model = self.model
-            else:
-                return
-        if layer_outputs is not None:
-            tensors_to_save = []
-            step_collections = self._get_collections_to_save_for_step()
-            collections_to_write = {collection} if collection in step_collections else set()
-            tensor_suffix = "output"
-            if inputs is not None:
-                layer_outputs = [inputs] + layer_outputs
-                tensor_suffix = "input"
-            for o, l in zip(layer_outputs, model.layers):
-                export_name = get_export_name_for_keras(l.name, tensor_suffix)
-                tensors_to_save.append((export_name, o))
-            for t_name, t_value in tensors_to_save:
-                self._save_tensor_to_file(t_name, t_value, collections_to_write)
-
-    def save_layer_outputs(self, layer_outputs, model=None):
-        self._save_layer_values(layer_outputs, self.get_collection(CollectionKeys.LAYERS), model)
-
-    def save_layer_inputs(self, x, layer_outputs, model=None):
-        self._save_layer_values(
-            layer_outputs, self.get_collection(CollectionKeys.LAYERS), model, inputs=x
-        )
+    def _save_layer_values(self, logs):
+        step_collections = self._get_collections_to_save_for_step()
+        layer_collection = self.get_collection(CollectionKeys.LAYERS)
+        collections_to_write = {layer_collection} if layer_collection in step_collections else set()
+        for layer_name, layer_input, layer_output in logs:
+            layer_input_tensor_name = get_export_name_for_keras(layer_name, "input")
+            self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
+            layer_output_tensor_name = get_export_name_for_keras(layer_name, "output")
+            self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
 
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
