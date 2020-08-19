@@ -348,7 +348,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
                 # Add tensor to custom collections
                 for custom_coll in custom_collections:
-                    if match_inc(tensor_ref.name, custom_coll.include_regex):
+                    if (
+                        match_inc(tensor_ref.name, custom_coll.include_regex)
+                        and tensor_ref.tf_obj is not None
+                    ):
                         custom_coll.add_for_mode(tensor_ref.tf_obj, self.mode)
                         if custom_coll not in self.tensor_to_collections[tensor_ref.name]:
                             self.tensor_to_collections[tensor_ref.name].add(custom_coll)
