@@ -44,9 +44,12 @@ def _get_proto_dtype(npdtype):
         _NP_DATATYPE_TO_PROTO_DATATYPE.update({np.dtype(_np_bfloat16): "DT_BFLOAT16"})
     except (ModuleNotFoundError, ValueError, ImportError):
         pass
-    if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
-        return (False, "DT_STRING")
-    return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
+    if hasattr(npdtype, "kind"):
+        if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
+            return (False, "DT_STRING")
+    if np.dtype(npdtype) in _NP_DATATYPE_TO_PROTO_DATATYPE:
+        return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
+    raise TypeError(f"Numpy Datatype: {np.dtype(npdtype)} is currently not supported")
 
 
 def make_tensor_proto(nparray_data, tag):
