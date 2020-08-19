@@ -5,6 +5,7 @@ from pathlib import Path
 
 # Third Party
 import boto3
+import numpy as np
 from tests.constants import TEST_DATASET_S3_PATH
 
 # First Party
@@ -16,6 +17,7 @@ from smdebug.core.config_constants import (
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
 from smdebug.core.utils import is_s3, remove_file_if_exists
+from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.trials import create_trial
 
 
@@ -29,6 +31,15 @@ def use_s3_datasets():
         return False
 
 
+def is_scalar(x):
+    if isinstance(x, list):
+        if len(x) == 1:
+            return True
+    elif isinstance(x, np.ndarray):
+        return True
+    return False
+
+
 def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True, multiworker=False):
     trial = create_trial(out_dir)
     tnames = trial.tensor_names(step=step_num)
@@ -40,10 +51,24 @@ def verify_shapes(out_dir, step_num, num_tensors, exact_equal=True, multiworker=
         tensor = trial.tensor(tname)
         if multiworker is False:
             assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))
+            try:
+                if not is_scalar(tensor.value(step_num)):
+                    # test did not save value except scalars which dont use reduction config
+                    #  so it should raise the below exception
+                    assert False
+            except TensorUnavailableForStep:
+                pass
         else:
             workers = tensor.workers(step_num)
             assert len(workers) > 1
             for w in workers:
+                try:
+                    if not is_scalar(tensor.value(step_num, worker=w)):
+                        # test did not save value so it should raise the below exception
+                        assert False
+                except TensorUnavailableForStep:
+                    pass
+
                 assert isinstance(tensor.shape(step_num, worker=w), tuple), (
                     tname,
                     w,

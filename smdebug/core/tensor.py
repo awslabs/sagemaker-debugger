@@ -266,6 +266,7 @@ class Tensor:
     def value(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
         # step refreshes
         s = self._step(step_num=step_num, mode=mode, worker=worker)
+        print(s, s.value)
         if s.value is not None:
             return s.value
         elif s.location is not None:
