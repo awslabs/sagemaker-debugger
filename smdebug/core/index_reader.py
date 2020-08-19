@@ -248,7 +248,7 @@ class IndexReader(ABC):
 
         to_update_index_dict = []
 
-        if len(index_dict["tensor_payload"]):
+        if "tensor_payload" in index_dict and len(index_dict["tensor_payload"]):
             event_file_name = os.path.join(path, index_meta["event_file_name"])
             for tensor in index_dict["tensor_payload"]:
                 tensor_name = tensor["tensorname"]
@@ -259,7 +259,7 @@ class IndexReader(ABC):
                 )
                 to_update_index_dict.append((tensor_name, step, tensor_location))
 
-        if len(index_dict["shape_payload"]):
+        if "shape_payload" in index_dict and len(index_dict["shape_payload"]):
             for tensor in index_dict["shape_payload"]:
                 tensor_name = tensor["tensorname"]
                 original_name = tensor["originalname"]
