@@ -760,7 +760,7 @@ class BaseHook:
             if self.dry_run is False and reduction_config.save_shape is True:
                 numpy_tensor_value = self._make_numpy_array(tensor_value)
                 this_size, this_shape = size_and_shape(numpy_tensor_value)
-                if tensor_ref is not None:
+                if tensor_ref is not None and tensor_ref.tf_obj is not None:
                     original_name = tensor_ref.tf_obj.name
                 else:
                     original_name = None
