@@ -517,11 +517,7 @@ def test_include_regex(out_dir, tf_eager_mode):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-
-    if tf_eager_mode:
-        assert len(tnames) == (12 if is_tf_2_2() else 8)
-    else:
-        assert len(tnames) == 8
+    assert len(tnames) == 8
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
