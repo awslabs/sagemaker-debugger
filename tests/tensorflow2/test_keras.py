@@ -474,7 +474,7 @@ def test_keras_fit_shapes(out_dir):
     )
     helper_keras_fit(trial_dir=out_dir, hook=hook)
     print(create_trial_fast_refresh(out_dir).tensor_names(step=0))
-    verify_shapes(out_dir, 0, ["dense/weights/dense/kernel:0", "accuracy", "Adam/beta_1:0"])
+    verify_shapes(out_dir, 0)
 
 
 @pytest.mark.slow
