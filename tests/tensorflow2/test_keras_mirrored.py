@@ -293,7 +293,7 @@ def test_save_all(out_dir, tf_eager_mode, workers):
 
 @pytest.mark.slow
 def test_shapes(out_dir, tf_eager_mode):
-    train_model(
+    strategy, _ = train_model(
         out_dir,
         save_all=True,
         save_config=SaveConfig(save_steps=[0]),
@@ -301,7 +301,8 @@ def test_shapes(out_dir, tf_eager_mode):
         steps=["train"],
         eager=tf_eager_mode,
     )
-    verify_shapes(out_dir, 0, multiworker=True)
+    multiworker = strategy.num_replicas_in_sync > 1
+    verify_shapes(out_dir, 0, multiworker=multiworker)
 
 
 @pytest.mark.slow
