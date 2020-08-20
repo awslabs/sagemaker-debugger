@@ -397,9 +397,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Called in AWS TF to determine
         # if a particular layer value
         # should be saved
-        collections_to_save = self._get_collections_to_save_for_step()
-        if CollectionKeys.LAYERS in collections_to_save:
+        if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS):
             return True
+        collections_to_save = self._get_collections_to_save_for_step()
         for c in collections_to_save:
             if match_inc(layer_name, c.include_regex):
                 return True
