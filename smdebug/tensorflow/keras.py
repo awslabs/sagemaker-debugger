@@ -737,6 +737,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
     def _save_layer_values(self, logs):
+        if logs is None:
+            return
         step_collections = self._get_collections_to_save_for_step()
         layer_collection = self.get_collection(CollectionKeys.LAYERS)
         collections_to_write = {layer_collection} if layer_collection in step_collections else set()
