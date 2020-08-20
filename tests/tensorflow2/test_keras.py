@@ -103,6 +103,8 @@ def helper_keras_fit(
         elif step == "predict":
             model.predict(x_test[:100], callbacks=hooks, verbose=0)
 
+    model.save(trial_dir, save_format="tf")
+
     hook.close()
 
 
@@ -180,6 +182,7 @@ def helper_keras_gradtape(
             )
         train_acc_metric.reset_states()
 
+    model.save(trial_dir, save_format="tf")
     hook.close()
 
 
