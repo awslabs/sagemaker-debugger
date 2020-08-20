@@ -71,6 +71,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
+        self.gradient_name_to_tensor_position_map = dict()
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -405,6 +406,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return True
         return False
 
+    def should_save_gradient(self, layer_name):
+        # Called in AWS TF to determine
+        # if a particular layer value
+        # should be saved
+        if self._is_collection_being_saved_for_step(CollectionKeys.GRADIENTS):
+            return True
+        collections_to_save = self._get_collections_to_save_for_step()
+        for c in collections_to_save:
+            if match_inc(layer_name, c.include_regex):
+                return True
+        return False
+
     def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
         if isinstance(collections, set) is False:
             collections = {collections}
@@ -433,6 +446,34 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 collection.set_tensor_ref(tensor_ref)
             self._save_for_tensor(tensor_name, t, check_before_write=True)
 
+    def save_gradients_from_logs(self, gradients):
+        if gradients is not None:
+            if len(self.gradient_name_to_tensor_position_map) == 0 and self._gradients_set is False:
+                # Map has not yet been initialized
+                for index, grad_var in enumerate(zip(gradients, self.model.trainable_variables)):
+                    g, v = grad_var  # split gradients and trainable variables tuple
+                    layer_name = v.name
+                    if len(layer_name.split(":")) > 1:
+                        layer_name = layer_name.split(":")[0]
+                    export_name = "gradients/" + layer_name + "Grad"
+                    if self.should_save_gradient(export_name):
+                        self.gradient_name_to_tensor_position_map[export_name] = index
+                self._gradients_set = True
+
+            gradient_collection = self.get_collection(CollectionKeys.GRADIENTS)
+            step_collections = self._get_collections_to_save_for_step()
+            collections_to_write = (
+                {gradient_collection} if gradient_collection in step_collections else set()
+            )
+            for gradient_name, index in self.gradient_name_to_tensor_position_map.items():
+                gradient_value = gradients[index]
+                if isinstance(gradient_value, IndexedSlices):
+                    # This class is a simple wrapper for a pair of Tensor objects
+                    # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
+                    gradient_value = gradient_value.values
+
+                self._save_tensor_to_file(gradient_name, gradient_value, collections_to_write)
+
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
@@ -452,19 +493,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
-                    gradients = logs[key]
-                    if gradients is not None:
-                        for g, v in zip(gradients, self.model.trainable_variables):
-                            layer_name = v.name
-                            if len(layer_name.split(":")) > 1:
-                                layer_name = layer_name.split(":")[0]
-                            export_name = "gradients/" + layer_name + "Grad"
-                            if isinstance(g, IndexedSlices):
-                                # This class is a simple wrapper for a pair of Tensor objects
-                                # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
-                                g = g.values
-                            tensors_to_save.append((export_name, g))
-                        collections_to_write = {self.get_collection(CollectionKeys.GRADIENTS)}
+                    self.save_gradients_from_logs(logs[key])
                 # Save Intermediate Layers
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
                     self._save_layer_values(logs[key])
