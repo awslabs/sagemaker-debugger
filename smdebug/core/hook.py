@@ -344,6 +344,13 @@ class BaseHook:
                 )
         return self._collections_to_save_for_step
 
+    def is_tensor_in_custom_collection(self, tensor_name):
+        collections_to_save = self._get_collections_to_save_for_step()
+        for c in collections_to_save:
+            if match_inc(tensor_name, c.include_regex):
+                return True
+        return False
+
     def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
         self._assert_prep()
         # for tf this will be prepopulated in check_and_add_tensor
@@ -932,12 +939,6 @@ class CallbackHook(BaseHook):
                 f"module_name:{module_name} {var.__class__.__name__}"
             )
         return idx
-
-    def is_tensor_in_custom_collection(self, tensor_name):
-        collections_to_save = self._get_collections_to_save_for_step()
-        for c in collections_to_save:
-            if match_inc(tensor_name, c.include_regex):
-                return True
 
     def _write_inputs(self, name, inputs):
         tensor_name = name + CallbackHook.INPUT_TENSOR_SUFFIX
