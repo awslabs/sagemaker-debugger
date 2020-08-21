@@ -933,6 +933,12 @@ class CallbackHook(BaseHook):
             )
         return idx
 
+    def is_tensor_in_custom_collection(self, tensor_name):
+        collections_to_save = self._get_collections_to_save_for_step()
+        for c in collections_to_save:
+            if match_inc(tensor_name, c.include_regex):
+                return True
+
     def _write_inputs(self, name, inputs):
         tensor_name = name + CallbackHook.INPUT_TENSOR_SUFFIX
         idx = self.written_tensor_name_for_step.get(tensor_name, 0)

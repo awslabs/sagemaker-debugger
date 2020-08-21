@@ -400,23 +400,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # should be saved
         if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS):
             return True
-        collections_to_save = self._get_collections_to_save_for_step()
-        for c in collections_to_save:
-            if match_inc(layer_name, c.include_regex):
-                return True
-        return False
+        return self.is_tensor_in_custom_collection(layer_name)
 
-    def should_save_gradient(self, layer_name):
+    def should_save_gradient(self, gradient_name):
         # Called in AWS TF to determine
-        # if a particular layer value
-        # should be saved
+        # if a particular gradient value
+        # should be saved for a layer
         if self._is_collection_being_saved_for_step(CollectionKeys.GRADIENTS):
             return True
-        collections_to_save = self._get_collections_to_save_for_step()
-        for c in collections_to_save:
-            if match_inc(layer_name, c.include_regex):
-                return True
-        return False
+        return self.is_tensor_in_custom_collection(gradient_name)
 
     def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
         if isinstance(collections, set) is False:
@@ -533,6 +525,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _save_layer_input_and_outputs(self):
         # Run only for GradTape
+        if self.tape is None:
+            return
         for layer_name in self.saved_layers:
             # Save Input
             tensor = self.saved_layers[layer_name].layer_input
