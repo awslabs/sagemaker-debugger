@@ -797,6 +797,10 @@ class BaseHook:
         base_str = f"Saving {tensor_name} from {'collections' if many_colls else 'collection'}"
         self.logger.debug(f"{base_str} {coll_str} {step_str}")
 
+    def save_feed_dict_item(self):
+        # TODO
+        pass
+
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         """
         Write all data that we might want to for this tensor

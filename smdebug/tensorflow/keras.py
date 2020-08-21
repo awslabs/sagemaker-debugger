@@ -390,12 +390,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
+    def flatten_dict(self, feed_dict, collection):
+        for name, value in feed_dict:
+            tensor_ref = TensorRef.from_non_graph_var(name)
+            collection.set_tensor_ref(tensor_ref)
+
     def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
         if isinstance(collections, set) is False:
             collections = {collections}
         # Since this function modifies the set, there is a possibility
         # of bugs if calling functions attempt to re-use the set passed
         # to this function
+        if isinstance(tensor_value, dict):
+            flatten_dict = self.flatten_dict(tensor_value)
         collections_to_write = collections.copy()
         collections_to_save = self._get_collections_to_save_for_step()
         for c in collections_to_save:
