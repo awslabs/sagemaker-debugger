@@ -109,6 +109,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # This function is called by the hook in the AWS TF codebase
         # It attaches a hook to every layer of the model to capture
         # layer values
+        if self.tape is None:
+            return
         self.model = model
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
