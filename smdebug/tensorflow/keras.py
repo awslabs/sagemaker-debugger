@@ -72,6 +72,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.saved_layers = dict()
         self.has_registered_model = False
         self.gradient_name_to_tensor_position_map = dict()
+        self._supports_tf_logs = True
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
