@@ -742,7 +742,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # Cast layer_name to str since it can also be of type bytes
             # when run with mirrored strategy
             if len(layer_input) == 1:
-                # Layer Inputs are flattened passed as a list into
+                # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
                 layer_input = layer_input[0]
             layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
