@@ -450,8 +450,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     if len(layer_name.split(":")) > 1:
                         layer_name = layer_name.split(":")[0]
                     export_name = "gradients/" + layer_name + "Grad"
-                    if self.should_save_gradient(export_name):
-                        self.gradient_name_to_tensor_position_map[export_name] = index
+                    self.gradient_name_to_tensor_position_map[export_name] = index
                 self._gradients_set = True
 
             gradient_collection = self.get_collection(CollectionKeys.GRADIENTS)
