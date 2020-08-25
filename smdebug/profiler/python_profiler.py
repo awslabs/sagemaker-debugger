@@ -30,8 +30,8 @@ class StepPhase(Enum):
     # start of step
     STEP_START = "step-start"
 
-    # end of backward pass
-    BACKWARD_PASS_END = "backward-pass-end"
+    # end of forward pass
+    FORWARD_PASS_END = "forward-pass-end"
 
     # end of training step
     STEP_END = "step-end"

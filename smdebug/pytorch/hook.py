@@ -413,6 +413,13 @@ class Hook(CallbackHook):
         # for compatibility with ZCC patches which call this
         self.register_module(module)
 
+    def fhook(self, module, inputs, outputs):
+        # we would stop profiling and restart from this phase
+        if python_profiler:
+            python_profiler.stop_profiling(StepPhase.FORWARD_PASS_END, self.step)
+            if self.profiler_config_parser.can_start_detailed_profiling(self.step):
+                python_profiler.start_profiling(StepPhase.FORWARD_PASS_END, start_step=self.step)
+
     def bhook(self, module, grad_input, grad_output):
         now = time.time()
         backward_st_time = now
@@ -454,14 +461,6 @@ class Hook(CallbackHook):
             step_num=str(self.mode_steps[self.mode]),
         )
         self.backward_modules_profile_stats.append(event)
-        if module._module_name == self.first_forward_submodule_name:
-            # we would stop profiling and restart from this phase
-            if python_profiler:
-                python_profiler.stop_profiling(StepPhase.BACKWARD_PASS_END, self.step)
-                if self.profiler_config_parser.can_start_detailed_profiling(self.step):
-                    python_profiler.start_profiling(
-                        StepPhase.BACKWARD_PASS_END, start_step=self.step
-                    )
 
     def _closure_for_registering_backward_hook(self, module):
         module.register_backward_hook(self.bhook)
@@ -510,6 +509,7 @@ class Hook(CallbackHook):
 
         # Use `forward_pre_hook` for the entire net
         module.register_forward_pre_hook(self.forward_pre_hook)
+        module.register_forward_hook(self.fhook)
 
         # Set `self.forward_hook` as a callback for each submodule/layer.
         # `module.apply(fn)` calls fn for each submodule in module.children()

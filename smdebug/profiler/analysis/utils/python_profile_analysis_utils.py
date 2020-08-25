@@ -94,7 +94,7 @@ class StepPythonProfileStats:
         else:
             if (
                 start_step == self.start_step
-                and start_phase in (StepPhase.STEP_END, StepPhase.BACKWARD_PASS_END)
+                and start_phase in (StepPhase.STEP_END, StepPhase.FORWARD_PASS_END)
                 and self.start_phase != start_phase
             ):
                 return False

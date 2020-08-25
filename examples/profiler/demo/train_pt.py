@@ -38,6 +38,7 @@ parser.add_argument(
 parser.add_argument(
     "--epochs", default=2, type=int, metavar="N", help="number of total epochs to run"
 )
+parser.add_argument("--enable_bottleneck", type=bool, default=True)
 parser.add_argument(
     "-b",
     "--batch-size",
@@ -72,11 +73,10 @@ args = parser.parse_args()
 
 def main():
     _ = Hook(out_dir="")  # need this line so that import doesn't get removed by pre-commit
+
     start = time.time()
     # create model
     net = models.__dict__[args.arch](pretrained=True)
-    device = torch.device("cuda")
-    net.cuda()
 
     loss_optim = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=1.0, momentum=0.9)
@@ -117,14 +117,17 @@ def main():
     # train the model
     for epoch in range(5):
         net.train()
+        step = 0
         for _, (inputs, targets) in enumerate(trainloader):
-            inputs, targets = inputs.to(torch.device("cuda")), targets.to(torch.device("cuda"))
             output = net(inputs)
             loss = loss_optim(output, targets)
             optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
-            between_steps_bottleneck()
+            if args.enable_bottleneck:
+                if 9 < step < 21:
+                    between_steps_bottleneck()
+                optimizer.step()
+            step += 1
     end = time.time()
     print("Time taken:", end - start)
 
