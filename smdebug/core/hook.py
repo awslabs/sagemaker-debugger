@@ -541,6 +541,13 @@ class BaseHook:
             self.mode_steps[ModeKeys.GLOBAL] = self.step
         self._collections_to_save_for_step = None
 
+    def should_save_tensor(self, tensor_name: str, collection_name: str) -> bool:
+        # Called in the internal AWS codebase to determine
+        # if a particular tensor value should be saved
+        if self._is_collection_being_saved_for_step(collection_name):
+            return True
+        return self.is_tensor_in_custom_collection(tensor_name)
+
     def _write_state(self):
         if self.state_store.is_checkpoint_updated():
             current_state = dict()
