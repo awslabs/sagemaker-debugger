@@ -1,5 +1,8 @@
 # Standard Library
 
+# Third Party
+from tests.utils import verify_shapes
+
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
@@ -55,6 +58,19 @@ def test_reductions(out_dir, save_raw_tensor=False):
         include_collections=["weights", "gradients", "losses"],
     )
     helper_test_reductions(out_dir, hook, save_raw_tensor)
+
+
+def test_shapes(out_dir, save_raw_tensor=False):
+    pre_test_clean_up()
+    rdnc = smd.ReductionConfig(save_shape=True, save_raw_tensor=save_raw_tensor)
+    hook = smd.SessionHook(
+        out_dir=out_dir,
+        save_config=smd.SaveConfig(save_interval=1),
+        reduction_config=rdnc,
+        include_collections=["weights", "gradients", "losses"],
+    )
+    simple_model(hook)
+    verify_shapes(out_dir, 0)
 
 
 def test_reductions_with_raw_tensor(out_dir):

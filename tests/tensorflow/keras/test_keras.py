@@ -5,6 +5,7 @@ import shutil
 import pytest
 import tensorflow as tf
 from tests.tensorflow.utils import create_trial_fast_refresh
+from tests.utils import verify_shapes
 
 # First Party
 from smdebug.core.access_layer import has_training_ended
@@ -222,6 +223,20 @@ def test_keras(out_dir):
 @pytest.mark.slow  # 0:07 to run
 def test_tf_keras(out_dir):
     exhaustive_check(out_dir, True)
+
+
+@pytest.mark.slow  # 0:07 to run
+def test_tf_keras_shapes(out_dir):
+    train_model(
+        out_dir,
+        save_all=True,
+        reduction_config=ReductionConfig(save_shape=True),
+        use_tf_keras=True,
+        save_config=SaveConfig(save_steps=[0, 10]),
+        eager=False,
+        steps=["train", "eval", "predict", "train"],
+    )
+    verify_shapes(out_dir, 0)
 
 
 @pytest.mark.slow  # 0:03 to run
