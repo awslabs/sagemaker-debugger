@@ -30,6 +30,7 @@ from .utils import (
     get_model_input_export_name,
     get_model_output_export_name,
     is_keras_optimizer,
+    is_tf_version_2_3_x,
     is_tf_version_2x,
 )
 
@@ -73,6 +74,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.has_registered_model = False
         self.gradient_name_to_tensor_position_map = dict()
         self._supports_tf_logs = True
+        self.step_incremented_in_on_train_begin = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -648,6 +650,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
+        if self.prepared_collections is False and is_tf_version_2_3_x():
+            # Addresses ordering issues in TF 2.3.0
+            # sets prepared_collections to True here
+            self._prepare_collections()
+            self._increment_step()
+            self.step_incremented_in_on_train_begin = True
+
         # have to clear callable cache if we are not caching per mode
         self.callable_cache.change_mode()
 
@@ -691,7 +700,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None or len(self.writer_map):
             self._close_writers()
-        self._increment_step()
+
+        # Addresses callback ordering bug in TF 2.3.0
+        if self.step_incremented_in_on_train_begin is False:
+            self._increment_step()
+        else:
+            self.step_incremented_in_on_train_begin = False
 
         if self.prepared_collections is False:
             # sets prepared_collections to True here

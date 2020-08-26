@@ -384,3 +384,7 @@ def get_keras_mode(mode):
 
 def is_tf_version_2x():
     return version.parse(tf.__version__) >= version.parse("2.0.0")
+
+
+def is_tf_version_2_3_x():
+    return version.parse(tf.__version__) >= version.parse("2.3.0")
