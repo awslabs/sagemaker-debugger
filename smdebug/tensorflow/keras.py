@@ -705,7 +705,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
-                # self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
                 self._prepare_tensors_available_post_step()
                 self._prepared_tensors[mode] = True
