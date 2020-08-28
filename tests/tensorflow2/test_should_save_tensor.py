@@ -17,14 +17,22 @@ model = tf.keras.models.Sequential(
 )
 
 
-def test_should_save_tensor_with_default_collections(out_dir):
+def helper_create_hook(out_dir, collections, include_regex=None):
     hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=3),
-        include_collections=TF_DEFAULT_SAVED_COLLECTIONS,
+        out_dir, save_config=SaveConfig(save_interval=3), include_collections=collections
     )
+
+    if include_regex:
+        for collection in collections:
+            hook.get_collection(collection).include(include_regex)
+
     hook.register_model(model)
     hook.on_train_begin()
+    return hook
+
+
+def test_should_save_tensor_with_default_collections(out_dir):
+    hook = helper_create_hook(out_dir, TF_DEFAULT_SAVED_COLLECTIONS)
     for layer in model.layers:
         layer_name = layer.name
         assert not hook.should_save_tensor(layer_name, CollectionKeys.GRADIENTS)
@@ -32,13 +40,7 @@ def test_should_save_tensor_with_default_collections(out_dir):
 
 
 def test_should_save_tensor_with_tf_collection(out_dir):
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=3),
-        include_collections=[CollectionKeys.LAYERS, CollectionKeys.GRADIENTS],
-    )
-    hook.register_model(model)
-    hook.on_train_begin()
+    hook = helper_create_hook(out_dir, [CollectionKeys.GRADIENTS, CollectionKeys.LAYERS])
     for layer in model.layers:
         layer_name = layer.name
         assert hook.should_save_tensor(layer_name, CollectionKeys.GRADIENTS)
@@ -46,12 +48,7 @@ def test_should_save_tensor_with_tf_collection(out_dir):
 
 
 def test_should_save_tensor_with_custom_collection(out_dir):
-    hook = smd.KerasHook(
-        out_dir, save_config=SaveConfig(save_interval=3), include_collections=["custom_coll"]
-    )
-    hook.get_collection("custom_coll").include("dense")
-    hook.register_model(model)
-    hook.on_train_begin()
+    hook = helper_create_hook(out_dir, ["custom_coll"], include_regex="dense")
     for layer in model.layers:
         layer_name = layer.name
         if "dense" in layer_name:
