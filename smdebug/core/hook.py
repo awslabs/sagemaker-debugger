@@ -541,9 +541,9 @@ class BaseHook:
             self.mode_steps[ModeKeys.GLOBAL] = self.step
         self._collections_to_save_for_step = None
 
+    # Called in the internal AWS codebase to determine
+    # if a particular tensor value should be saved
     def should_save_tensor(self, tensor_name: str, collection_name: str) -> bool:
-        # Called in the internal AWS codebase to determine
-        # if a particular tensor value should be saved
         if self._is_collection_being_saved_for_step(collection_name):
             return True
         return self.is_tensor_saved_for_step(tensor_name)

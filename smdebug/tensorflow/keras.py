@@ -440,7 +440,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 {gradient_collection} if gradient_collection in step_collections else set()
             )
             for v, g in gradients:
-                layer_name = v.name.split(":")[0]
+                if isinstance(v, tf.Tensor):
+                    # Tensor.name is meaningless with eager execution
+                    layer_name = str(v.numpy(), "utf-8")
+                else:
+                    layer_name = v.name
+                layer_name = layer_name.split(":")[0]
                 export_name = "gradients/" + layer_name + "Grad"
                 if isinstance(g, IndexedSlices):
                     # This class is a simple wrapper for a pair of Tensor objects
