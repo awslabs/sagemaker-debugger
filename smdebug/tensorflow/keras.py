@@ -439,7 +439,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             collections_to_write = (
                 {gradient_collection} if gradient_collection in step_collections else set()
             )
-            for g, v in zip(gradients, self.model.trainable_variables):
+            for v, g in gradients:
                 layer_name = v.name.split(":")[0]
                 export_name = "gradients/" + layer_name + "Grad"
                 if isinstance(g, IndexedSlices):
