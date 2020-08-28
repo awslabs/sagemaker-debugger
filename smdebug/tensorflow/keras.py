@@ -444,7 +444,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     # Tensor.name is meaningless with eager execution
                     layer_name = str(v.numpy(), "utf-8")
                 else:
-                    layer_name = v.name
+                    layer_name = v
                 layer_name = layer_name.split(":")[0]
                 export_name = "gradients/" + layer_name + "Grad"
                 if isinstance(g, IndexedSlices):
