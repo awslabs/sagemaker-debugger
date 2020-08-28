@@ -16,7 +16,7 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
 from smdebug.core.tfevent.util import make_numpy_array
 from smdebug.core.utils import serialize_tf_device
-from smdebug.core.writer import FileWriter, ShapeWriter
+from smdebug.core.writer import FileWriter
 
 # Local
 from .collection import CollectionKeys, CollectionManager
@@ -87,7 +87,6 @@ class TensorflowBaseHook(BaseHook):
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
         self.device_map = {}
         self.writer_map = {}
-        self.shape_writer_map = {}
         # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
@@ -271,7 +270,7 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
             raise NotImplementedError
 
-    def _get_writers(self, tensor_name, tensor_ref, shape_writers=False) -> List[FileWriter]:
+    def _get_writers(self, tensor_name, tensor_ref) -> List[FileWriter]:
         """
         For tensors generated during distributed tf jobs, we map the tensor to a writer
         with its device attribute.
@@ -287,8 +286,8 @@ class TensorflowBaseHook(BaseHook):
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
         ]:
-            if self.save_all_workers is True or self.worker == self.chief_worker:
-                return self._get_single_process_writers(shape_writers)
+            if (self.save_all_workers is True or self.worker == self.chief_worker) and self.writer:
+                return [self.writer]
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 # else is for metrics in Keras
@@ -299,25 +298,17 @@ class TensorflowBaseHook(BaseHook):
                 # if device str is empty or cpu in worker
                 if not bool(worker) or "CPU" in worker:
                     if self.save_all_workers:
-                        if shape_writers is False:
-                            return list(self.writer_map.values())
-                        else:
-                            return list(self.shape_writer_map.values())
+                        return list(self.writer_map.values())
                     else:
-                        if shape_writers is False:
-                            return [self.writer_map[self.device_map[self.chief_worker]]]
-                        else:
-                            return [self.shape_writer_map[self.device_map[self.chief_worker]]]
+                        return [self.writer_map[self.device_map[self.chief_worker]]]
                 elif self.save_all_workers or worker == self.chief_worker:
-                    if shape_writers is False:
-                        return [self.writer_map[self.device_map[worker]]]
-                    else:
-                        return [self.shape_writer_map[self.device_map[worker]]]
-            else:
+                    return [self.writer_map[self.device_map[worker]]]
+            elif self.writer:
                 # training on CPU when all device strings have cpu
-                return self._get_single_process_writers(shape_writers)
+                return [self.writer]
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
-            return self._get_single_process_writers(shape_writers)
+            if self.writer:
+                return [self.writer]
         else:
             raise NotImplementedError
         # when self.writer is None, returns empty list
@@ -338,13 +329,6 @@ class TensorflowBaseHook(BaseHook):
                     self.writer = FileWriter(
                         trial_dir=self.out_dir, step=self.step, worker=self.worker
                     )
-                if self._saving_shapes_in_step():
-                    self.shape_writer = ShapeWriter(
-                        trial_dir=self.out_dir,
-                        step=self.step,
-                        worker=self.worker,
-                        index_writer=self.writer.index_writer,
-                    )
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 for device, device_string in self.device_map.items():
@@ -354,37 +338,15 @@ class TensorflowBaseHook(BaseHook):
                         self.writer_map[device_string] = FileWriter(
                             trial_dir=self.out_dir, step=self.step, worker=device_string
                         )
-                        if self._saving_shapes_in_step():
-                            self.shape_writer_map[device_string] = ShapeWriter(
-                                trial_dir=self.out_dir,
-                                step=self.step,
-                                worker=self.worker,
-                                index_writer=self.writer_map[device_string].index_writer,
-                            )
             else:
                 # training on CPU when all device strings have cpu
                 if self.writer is None or only_initialize_if_missing is False:
                     self.writer = FileWriter(
                         trial_dir=self.out_dir, step=self.step, worker=self.worker
                     )
-                    if self._saving_shapes_in_step():
-                        self.shape_writer = ShapeWriter(
-                            trial_dir=self.out_dir,
-                            step=self.step,
-                            worker=self.worker,
-                            index_writer=self.writer.index_writer,
-                        )
-
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
-                if self._saving_shapes_in_step():
-                    self.shape_writer = ShapeWriter(
-                        trial_dir=self.out_dir,
-                        step=self.step,
-                        worker=self.worker,
-                        index_writer=self.writer.index_writer,
-                    )
         else:
             raise NotImplementedError
 
@@ -400,13 +362,25 @@ class TensorflowBaseHook(BaseHook):
             self.writer.close()
             self.writer = None
 
-        self._close_given_writer_map(self.writer_map)
-        self._close_given_writer_map(self.shape_writer_map)
-        self._close_given_writer_map(self.tb_writers)
+        # Delete all the dist training writers
+        to_delete_writers = []
+        for device, writer in self.writer_map.items():
+            writer.flush()
+            writer.close()
+            to_delete_writers.append(device)
 
-        if self.shape_writer is not None:
-            self.shape_writer.close()
-            self.shape_writer = None
+        for device in to_delete_writers:
+            del self.writer_map[device]
+
+        to_delete_writers = []
+        # Delete all the tb writers
+        for mode, writer in self.tb_writers.items():
+            if writer is not None:
+                writer.flush()
+                writer.close()
+                to_delete_writers.append(mode)
+        for mode in to_delete_writers:
+            del self.tb_writers[mode]
 
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()

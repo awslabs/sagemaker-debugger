@@ -16,9 +16,6 @@
 # under the License.
 
 """APIs for logging data in the event file."""
-# Standard Library
-from typing import Tuple
-
 # First Party
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter
@@ -34,64 +31,14 @@ from smdebug.core.tfevent.summary import (
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local
-from .locations import (
-    IndexFileLocationUtils,
-    TensorboardFileLocation,
-    TensorFileLocation,
-    TensorShape,
-)
+from .locations import IndexFileLocationUtils, TensorboardFileLocation, TensorFileLocation
 from .logger import get_logger
 from .modes import ModeKeys
 
 logger = get_logger()
 
 
-class BaseWriter:
-    def __init__(self, trial_dir, worker, step=0, mode=ModeKeys.GLOBAL):
-        self.trial_dir = trial_dir
-        self.step = step
-        self.worker = worker
-        if worker is None:
-            assert False, "Worker should not be none. Check worker name initialization"
-        self.mode = mode
-        self._writer = None
-        self._index_writer = None
-
-    def name(self):
-        return self._writer.name()
-
-    def __enter__(self):
-        """Make usable with "with" statement."""
-        return self
-
-    def __exit__(self, unused_type, unused_value, unused_traceback):
-        """Make usable with "with" statement."""
-        self.close()
-
-    def flush(self):
-        """Flushes the event file to disk.
-        Call this method to make sure that all pending events have been written to disk.
-        """
-        self._writer.flush()
-        # don't flush index writer as we only want to flush on close
-
-    @classmethod
-    def create_index_writer(cls, trial_dir, worker, step):
-        el = TensorFileLocation(step_num=step, worker_name=worker)
-        event_file_path = el.get_file_location(trial_dir=trial_dir)
-        index_file_path = IndexFileLocationUtils.get_index_key_for_step(trial_dir, step, worker)
-        return IndexWriter(index_file_path)
-
-    @property
-    def index_writer(self):
-        return self._index_writer
-
-    @index_writer.setter
-    def index_writer(self, iw):
-        self._index_writer = iw
-
-
-class FileWriter(BaseWriter):
+class FileWriter:
     def __init__(
         self,
         trial_dir,
@@ -103,7 +50,6 @@ class FileWriter(BaseWriter):
         flush_secs=120,
         verbose=False,
         write_checksum=False,
-        index_writer=None,
     ):
         """Creates a `FileWriter` and an  file.
         On construction the summary writer creates a new event file in `trial_dir`.
@@ -125,16 +71,19 @@ class FileWriter(BaseWriter):
             verbose : bool
                 Determines whether to print logging messages.
         """
-        super(FileWriter, self).__init__(trial_dir, worker, step, mode)
+        self.trial_dir = trial_dir
+        self.step = step
+        self.worker = worker
+        if worker is None:
+            assert False, "Worker should not be none. Check worker name initialization"
+        self.mode = mode
         if wtype == "events":
-            if index_writer is None:
-                self.index_writer = self.create_index_writer(
-                    trial_dir=trial_dir, worker=worker, step=step
-                )
-            else:
-                self.index_writer = index_writer
             el = TensorFileLocation(step_num=self.step, worker_name=self.worker)
             event_file_path = el.get_file_location(trial_dir=self.trial_dir)
+            index_file_path = IndexFileLocationUtils.get_index_key_for_step(
+                self.trial_dir, self.step, self.worker
+            )
+            self.index_writer = IndexWriter(index_file_path)
         elif wtype == "tensorboard":
             el = TensorboardFileLocation(
                 step_num=self.step, worker_name=self.worker, mode=self.mode
@@ -153,6 +102,14 @@ class FileWriter(BaseWriter):
             write_checksum=write_checksum,
         )
         self._default_bins = _get_default_bins()
+
+    def __enter__(self):
+        """Make usable with "with" statement."""
+        return self
+
+    def __exit__(self, unused_type, unused_value, unused_traceback):
+        """Make usable with "with" statement."""
+        self.close()
 
     @staticmethod
     def _get_metadata(mode, mode_step):
@@ -230,6 +187,13 @@ class FileWriter(BaseWriter):
         s = scalar_summary(name, value)
         self._writer.write_summary(s, global_step, timestamp=timestamp)
 
+    def flush(self):
+        """Flushes the event file to disk.
+        Call this method to make sure that all pending events have been written to disk.
+        """
+        self._writer.flush()
+        # don't flush index writer as we only want to flush on close
+
     def close(self):
         """Flushes the event file to disk and close the file.
         Call this method when you do not need the summary writer anymore.
@@ -237,6 +201,9 @@ class FileWriter(BaseWriter):
         self._writer.close()
         if self.index_writer is not None:
             self.index_writer.close()
+
+    def name(self):
+        return self._writer.name()
 
     @staticmethod
     def _check_mode_step(mode, mode_step, global_step):
@@ -249,24 +216,3 @@ class FileWriter(BaseWriter):
             ex_str = "mode can be one of " + ", ".join(mode_keys)
             raise ValueError(ex_str)
         return mode, mode_step
-
-
-class ShapeWriter(BaseWriter):
-    def __init__(self, trial_dir, worker, index_writer, step=0, mode=ModeKeys.GLOBAL):
-        super(ShapeWriter, self).__init__(trial_dir, worker, step, mode)
-        self._index_writer = index_writer
-
-    def write_shape(
-        self, name, shape: Tuple[int], mode=ModeKeys.GLOBAL, mode_step=None, original_name=None
-    ):
-        self._index_writer.add_shape(
-            TensorShape(name, mode.name, mode_step, shape, original_name=original_name)
-        )
-
-    def flush(self):
-        self._index_writer.flush()
-
-    def close(self):
-        """Flushes the event file to disk and close the file.
-        """
-        self._index_writer.close()
