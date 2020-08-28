@@ -434,30 +434,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def save_gradients_from_logs(self, gradients):
         if gradients is not None:
-            if len(self.gradient_name_to_tensor_position_map) == 0 and self._gradients_set is False:
-                # Map has not yet been initialized
-                for index, grad_var in enumerate(zip(gradients, self.model.trainable_variables)):
-                    g, v = grad_var  # split gradients and trainable variables tuple
-                    layer_name = v.name
-                    if len(layer_name.split(":")) > 1:
-                        layer_name = layer_name.split(":")[0]
-                    export_name = "gradients/" + layer_name + "Grad"
-                    self.gradient_name_to_tensor_position_map[export_name] = index
-                self._gradients_set = True
-
             gradient_collection = self.get_collection(CollectionKeys.GRADIENTS)
             step_collections = self._get_collections_to_save_for_step()
             collections_to_write = (
                 {gradient_collection} if gradient_collection in step_collections else set()
             )
-            for gradient_name, index in self.gradient_name_to_tensor_position_map.items():
-                gradient_value = gradients[index]
-                if isinstance(gradient_value, IndexedSlices):
+            for g, v in zip(gradients, self.model.trainable_variables):
+                layer_name = v.name.split(":")[0]
+                export_name = "gradients/" + layer_name + "Grad"
+                if isinstance(g, IndexedSlices):
                     # This class is a simple wrapper for a pair of Tensor objects
                     # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
-                    gradient_value = gradient_value.values
-
-                self._save_tensor_to_file(gradient_name, gradient_value, collections_to_write)
+                    g = g.values
+                self._save_tensor_to_file(export_name, g, collections_to_write)
 
     def save_smdebug_logs(self, logs):
         if logs is None:
