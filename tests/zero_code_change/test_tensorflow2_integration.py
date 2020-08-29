@@ -46,7 +46,7 @@ class CustomClassifierModel(tf.keras.models.Sequential):
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
         result_dict = {m.name: m.result() for m in self.metrics}
         result_dict.update({f"{SMDEBUG_PREFIX}y": y})
-        result_dict.update({f"{SMDEBUG_PREFIX}gradients": y})
+        result_dict.update({f"{SMDEBUG_PREFIX}gradients": gradients})
 
         # to pass gradients and labels to the hook, add logs with the prefix SMDEBUG_
         # For examples:

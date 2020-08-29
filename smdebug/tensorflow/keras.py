@@ -439,10 +439,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             collections_to_write = (
                 {gradient_collection} if gradient_collection in step_collections else set()
             )
+            if gradients and isinstance(gradients[0], tuple) is False:
+                gradients = zip(self.model.trainable_variables, gradients)
             for v, g in gradients:
                 if isinstance(v, tf.Tensor):
                     # Tensor.name is meaningless with eager execution
                     layer_name = str(v.numpy(), "utf-8")
+                elif isinstance(v, tf.Variable):
+                    layer_name = v.name
                 else:
                     layer_name = v
                 layer_name = layer_name.split(":")[0]
