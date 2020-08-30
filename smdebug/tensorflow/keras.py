@@ -72,8 +72,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
-        self.gradient_name_to_tensor_position_map = dict()
+        # supports_tf_logs property was introduced in TF 2.3.0
+        # it indicates to the framework that the callback is not
+        # limited to reading only numpy logs
         self._supports_tf_logs = True
+        # TF 2.3.0 has a callback ordering bug
+        # this flag indicated to the train_batch_begin callback
+        # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
 
     def _is_not_supported(self):
