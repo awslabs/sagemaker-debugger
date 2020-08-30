@@ -407,7 +407,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Called in AWS TF to determine
         # if a particular layer value
         # should be saved
-        return self.should_save_tensor(layer_name, CollectionKeys.LAYERS)
+        return self.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)
 
     def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
         if isinstance(collections, set) is False:

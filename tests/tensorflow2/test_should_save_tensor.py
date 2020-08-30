@@ -35,16 +35,16 @@ def test_should_save_tensor_with_default_collections(out_dir):
     hook = helper_create_hook(out_dir, TF_DEFAULT_SAVED_COLLECTIONS)
     for layer in model.layers:
         layer_name = layer.name
-        assert not hook.should_save_tensor(layer_name, CollectionKeys.GRADIENTS)
-        assert not hook.should_save_tensor(layer_name, CollectionKeys.LAYERS)
+        assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.GRADIENTS)
+        assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)
 
 
 def test_should_save_tensor_with_tf_collection(out_dir):
     hook = helper_create_hook(out_dir, [CollectionKeys.GRADIENTS, CollectionKeys.LAYERS])
     for layer in model.layers:
         layer_name = layer.name
-        assert hook.should_save_tensor(layer_name, CollectionKeys.GRADIENTS)
-        assert hook.should_save_tensor(layer_name, CollectionKeys.LAYERS)
+        assert hook.should_save_tensor_or_collection(layer_name, CollectionKeys.GRADIENTS)
+        assert hook.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)
 
 
 def test_should_save_tensor_with_custom_collection(out_dir):
@@ -52,8 +52,8 @@ def test_should_save_tensor_with_custom_collection(out_dir):
     for layer in model.layers:
         layer_name = layer.name
         if "dense" in layer_name:
-            assert hook.should_save_tensor(layer_name, CollectionKeys.GRADIENTS)
-            assert hook.should_save_tensor(layer_name, CollectionKeys.LAYERS)
+            assert hook.should_save_tensor_or_collection(layer_name, CollectionKeys.GRADIENTS)
+            assert hook.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)
         else:
-            assert not hook.should_save_tensor(layer_name, CollectionKeys.GRADIENTS)
-            assert not hook.should_save_tensor(layer_name, CollectionKeys.LAYERS)
+            assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.GRADIENTS)
+            assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)

@@ -543,7 +543,7 @@ class BaseHook:
 
     # Called in the internal AWS codebase to determine
     # if a particular tensor value should be saved
-    def should_save_tensor(self, tensor_name: str, collection_name: str) -> bool:
+    def should_save_tensor_or_collection(self, tensor_name: str, collection_name: str) -> bool:
         if self._is_collection_being_saved_for_step(collection_name):
             return True
         return self.is_tensor_saved_for_step(tensor_name)
