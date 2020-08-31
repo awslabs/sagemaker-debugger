@@ -117,6 +117,9 @@ def validate():
         from smdebug.mxnet import get_hook
 
         hook = get_hook()
+        # Check if the hook was executed with the default
+        # hook configuration
+        assert hook.has_default_hook_configuration()
         out_dir = hook.out_dir
         print("Created the trial with out_dir {0}".format(out_dir))
         tr = create_trial(out_dir)

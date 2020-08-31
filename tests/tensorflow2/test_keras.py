@@ -103,6 +103,8 @@ def helper_keras_fit(
         elif step == "predict":
             model.predict(x_test[:100], callbacks=hooks, verbose=0)
 
+    model.save(trial_dir, save_format="tf")
+
     hook.close()
 
 
@@ -180,6 +182,7 @@ def helper_keras_gradtape(
             )
         train_acc_metric.reset_states()
 
+    model.save(trial_dir, save_format="tf")
     hook.close()
 
 
@@ -541,11 +544,7 @@ def test_include_regex(out_dir, tf_eager_mode):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-
-    if tf_eager_mode:
-        assert len(tnames) == (12 if is_tf_2_2() else 8)
-    else:
-        assert len(tnames) == 8
+    assert len(tnames) == 12
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 

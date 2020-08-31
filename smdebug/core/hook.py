@@ -22,6 +22,7 @@ from smdebug.core.collection import (
 )
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.config_constants import (
+    DEFAULT_SAVED_COLLECTIONS,
     DEFAULT_WORKER_NAME,
     LATEST_GLOBAL_STEP_SAVED,
     LATEST_GLOBAL_STEP_SEEN,
@@ -349,6 +350,13 @@ class BaseHook:
                 return True
         return False
 
+    def is_tensor_saved_for_step(self, tensor_name):
+        collections_to_save = self._get_collections_to_save_for_step()
+        for c in collections_to_save:
+            if match_inc(tensor_name, c.include_regex):
+                return True
+        return False
+
     def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
         self._assert_prep()
         # for tf this will be prepopulated in check_and_add_tensor
@@ -369,6 +377,14 @@ class BaseHook:
     @abstractmethod
     def _get_default_collections(self):
         pass
+
+    def has_default_hook_configuration(self):
+        # Used in the internal framework forks to determine if the hook
+        # is using the default hook configuration
+        collections_being_saved = [x.name for x in self._collections_to_save]
+        if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
+            return True
+        return False
 
     def _prepare_collections(self):
         """Populate collections_to_save and ensure every collection has
@@ -551,6 +567,13 @@ class BaseHook:
         if self.mode != ModeKeys.GLOBAL:
             self.mode_steps[ModeKeys.GLOBAL] = self.step
         self._collections_to_save_for_step = None
+
+    # Called in the internal AWS codebase to determine
+    # if a particular tensor value should be saved
+    def should_save_tensor_or_collection(self, tensor_name: str, collection_name: str) -> bool:
+        if self._is_collection_being_saved_for_step(collection_name):
+            return True
+        return self.is_tensor_saved_for_step(tensor_name)
 
     def _write_state(self):
         if self.state_store.is_checkpoint_updated():
