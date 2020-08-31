@@ -452,6 +452,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     layer_name = str(v.numpy(), "utf-8")
                 elif isinstance(v, tf.Variable):
                     layer_name = v.name
+                elif isinstance(v, bytes):
+                    layer_name = str(v, "utf-8")
                 else:
                     layer_name = v
                 layer_name = layer_name.split(":")[0]
