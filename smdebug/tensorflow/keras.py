@@ -30,6 +30,7 @@ from .utils import (
     get_model_input_export_name,
     get_model_output_export_name,
     is_keras_optimizer,
+    is_tf_version_2_3_x,
     is_tf_version_2x,
 )
 
@@ -71,6 +72,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
+        # supports_tf_logs property was introduced in TF 2.3.0
+        # it indicates to the framework that the callback is not
+        # limited to reading only numpy logs
+        self._supports_tf_logs = True
+        # TF 2.3.0 has a callback ordering bug
+        # this flag indicated to the train_batch_begin callback
+        # the the step was already incremented in the on_train_begin callback
+        self.step_incremented_in_on_train_begin = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -109,7 +118,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
-        self._wrap_model_with_input_output_saver()
+        if self.tape is not None:
+            self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -348,7 +358,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
                 # Add tensor to custom collections
                 for custom_coll in custom_collections:
-                    if match_inc(tensor_ref.name, custom_coll.include_regex):
+                    if (
+                        match_inc(tensor_ref.name, custom_coll.include_regex)
+                        and tensor_ref.tf_obj is not None
+                    ):
                         custom_coll.add_for_mode(tensor_ref.tf_obj, self.mode)
                         if custom_coll not in self.tensor_to_collections[tensor_ref.name]:
                             self.tensor_to_collections[tensor_ref.name].add(custom_coll)
@@ -390,6 +403,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
+    def should_save_layer(self, layer_name):
+        # Called in AWS TF to determine
+        # if a particular layer value
+        # should be saved
+        return self.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)
+
     def _save_tensor_to_file(self, tensor_name, tensor_value, collections):
         if isinstance(collections, set) is False:
             collections = {collections}
@@ -418,6 +437,31 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 collection.set_tensor_ref(tensor_ref)
             self._save_for_tensor(tensor_name, t, check_before_write=True)
 
+    def save_gradients_from_logs(self, gradients):
+        if gradients is not None:
+            gradient_collection = self.get_collection(CollectionKeys.GRADIENTS)
+            step_collections = self._get_collections_to_save_for_step()
+            collections_to_write = (
+                {gradient_collection} if gradient_collection in step_collections else set()
+            )
+            if gradients and isinstance(gradients[0], tuple) is False:
+                gradients = zip(self.model.trainable_variables, gradients)
+            for v, g in gradients:
+                if isinstance(v, tf.Tensor):
+                    # Tensor.name is meaningless with eager execution
+                    layer_name = str(v.numpy(), "utf-8")
+                elif isinstance(v, tf.Variable):
+                    layer_name = v.name
+                else:
+                    layer_name = v
+                layer_name = layer_name.split(":")[0]
+                export_name = "gradients/" + layer_name + "Grad"
+                if isinstance(g, IndexedSlices):
+                    # This class is a simple wrapper for a pair of Tensor objects
+                    # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
+                    g = g.values
+                self._save_tensor_to_file(export_name, g, collections_to_write)
+
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
@@ -437,24 +481,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
-                    gradients = logs[key]
-                    if gradients is not None:
-                        for g, v in zip(gradients, self.model.trainable_variables):
-                            layer_name = v.name
-                            if len(layer_name.split(":")) > 1:
-                                layer_name = layer_name.split(":")[0]
-                            export_name = "gradients/" + layer_name + "Grad"
-                            if isinstance(g, IndexedSlices):
-                                # This class is a simple wrapper for a pair of Tensor objects
-                                # See: https://www.tensorflow.org/api_docs/python/tf/IndexedSlices
-                                g = g.values
-                            tensors_to_save.append((export_name, g))
-                        collections_to_write = {self.get_collection(CollectionKeys.GRADIENTS)}
+                    self.save_gradients_from_logs(logs[key])
                 # Save Intermediate Layers
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
-                    layer_outputs = logs[key]
-                    self.save_layer_outputs(layer_outputs)
-                    self.save_layer_inputs(logs[ModelInput.INPUTS], layer_outputs)
+                    self._save_layer_values(logs[key])
                 # Save Model Inputs
                 elif key in ModelInputs:
                     export_name = get_model_input_export_name()
@@ -489,10 +519,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._add_metric(metric_name=key)
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
-    def _save_layer_input_and_outputs(self, grad_tape=False):
-        # Iterates over all the saved layers for input and output values
-        if is_tf_version_2x() is False or (grad_tape is False and self.model.run_eagerly is False):
-            # This function only works when the run_eagerly is True
+    def _save_layer_input_and_outputs(self):
+        # Run only for GradTape
+        if self.tape is None:
             return
         for layer_name in self.saved_layers:
             # Save Input
@@ -520,7 +549,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # weights, metrics
         self._save_metrics(batch, logs)
         self.save_smdebug_logs(logs)
-        self._save_layer_input_and_outputs()
         self._save_custom_tensors_post_step()
 
         if is_tf_version_2x() and tf.executing_eagerly():
@@ -615,6 +643,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
+        if self.prepared_collections is False and is_tf_version_2_3_x():
+            # Addresses ordering issues in TF 2.3.0
+            # sets prepared_collections to True here
+            self._prepare_collections()
+            self._increment_step()
+            self.step_incremented_in_on_train_begin = True
+
         # have to clear callable cache if we are not caching per mode
         self.callable_cache.change_mode()
 
@@ -658,7 +693,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None or len(self.writer_map):
             self._close_writers()
-        self._increment_step()
+
+        # Addresses callback ordering bug in TF 2.3.0
+        if self.step_incremented_in_on_train_begin is False:
+            self._increment_step()
+        else:
+            self.step_incremented_in_on_train_begin = False
 
         if self.prepared_collections is False:
             # sets prepared_collections to True here
@@ -668,7 +708,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
-                self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
                 self._prepare_tensors_available_post_step()
                 self._prepared_tensors[mode] = True
@@ -698,33 +737,23 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
-    def _save_layer_values(self, layer_outputs, collection, model=None, inputs=None):
-        if model is None:
-            if self.model:
-                model = self.model
-            else:
-                return
-        if layer_outputs is not None:
-            tensors_to_save = []
-            step_collections = self._get_collections_to_save_for_step()
-            collections_to_write = {collection} if collection in step_collections else set()
-            tensor_suffix = "output"
-            if inputs is not None:
-                layer_outputs = [inputs] + layer_outputs
-                tensor_suffix = "input"
-            for o, l in zip(layer_outputs, model.layers):
-                export_name = get_export_name_for_keras(l.name, tensor_suffix)
-                tensors_to_save.append((export_name, o))
-            for t_name, t_value in tensors_to_save:
-                self._save_tensor_to_file(t_name, t_value, collections_to_write)
-
-    def save_layer_outputs(self, layer_outputs, model=None):
-        self._save_layer_values(layer_outputs, self.get_collection(CollectionKeys.LAYERS), model)
-
-    def save_layer_inputs(self, x, layer_outputs, model=None):
-        self._save_layer_values(
-            layer_outputs, self.get_collection(CollectionKeys.LAYERS), model, inputs=x
-        )
+    def _save_layer_values(self, logs):
+        if logs is None:
+            return
+        step_collections = self._get_collections_to_save_for_step()
+        layer_collection = self.get_collection(CollectionKeys.LAYERS)
+        collections_to_write = {layer_collection} if layer_collection in step_collections else set()
+        for layer_name, layer_input, layer_output in logs:
+            # Cast layer_name to str since it can also be of type bytes
+            # when run with mirrored strategy
+            if len(layer_input) == 1:
+                # Layer Inputs are flattened and passed as a list into
+                # the next layer. Unpacking it speeds up the _make_numpy fn.
+                layer_input = layer_input[0]
+            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
+            self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
+            layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
+            self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
 
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
@@ -951,7 +980,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
 
             self._write_optimizer_variables()
-            self._save_layer_input_and_outputs(grad_tape=True)
+            self._save_layer_input_and_outputs()
             if not ((isinstance(loss, tf.Tensor)) and hasattr(loss, "numpy")):
                 return grads
             self._add_metric(metric_name="loss", metric_value=loss)

@@ -20,6 +20,7 @@ from smdebug.core.writer import FileWriter
 
 # Local
 from .collection import CollectionKeys, CollectionManager
+from .constants import TF_DEFAULT_SAVED_COLLECTIONS
 from .singleton_utils import set_hook
 from .utils import (
     TFDistributionStrategy,
@@ -216,6 +217,14 @@ class TensorflowBaseHook(BaseHook):
         # if horovod/param server and worker == chief worker
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
+
+    def has_default_hook_configuration(self):
+        # Used in AWS TF to determine if the hook
+        # is using the default hook configuration
+        collections_being_saved = [x.name for x in self._collections_to_save]
+        if set(collections_being_saved) == set(TF_DEFAULT_SAVED_COLLECTIONS):
+            return True
+        return False
 
     def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
         if self._custom_collections is None:

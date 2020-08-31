@@ -46,7 +46,7 @@ class CustomClassifierModel(tf.keras.models.Sequential):
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
         result_dict = {m.name: m.result() for m in self.metrics}
         result_dict.update({f"{SMDEBUG_PREFIX}y": y})
-        result_dict.update({f"{SMDEBUG_PREFIX}gradients": y})
+        result_dict.update({f"{SMDEBUG_PREFIX}gradients": gradients})
 
         # to pass gradients and labels to the hook, add logs with the prefix SMDEBUG_
         # For examples:
@@ -117,6 +117,9 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
 
         hook = smd.get_hook()
         assert hook
+        # Check if the hook was executed with the default
+        # hook configuration
+        assert hook.has_default_hook_configuration()
         hook.close()
         # Check that hook created and tensors saved
         trial = smd.create_trial(path=sim.out_dir)

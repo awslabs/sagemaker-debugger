@@ -78,6 +78,8 @@ def helper_test_keras_v2_gradienttape(
                 train_acc_metric.reset_states()
             hook = smd.get_hook()
             assert hook
+            if default:
+                assert hook.has_default_hook_configuration()
             hook.close()
             # Check that hook created and tensors saved
             trial = smd.create_trial(path=sim.out_dir)
