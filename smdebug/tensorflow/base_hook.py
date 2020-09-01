@@ -306,12 +306,12 @@ class TensorflowBaseHook(BaseHook):
                     else:
                         if shape_writers is False:
                             return [self.writer_map[self.device_map[self.chief_worker]]]
-                        else:
+                        elif self._saving_shapes_in_step():
                             return [self.shape_writer_map[self.device_map[self.chief_worker]]]
                 elif self.save_all_workers or worker == self.chief_worker:
                     if shape_writers is False:
                         return [self.writer_map[self.device_map[worker]]]
-                    else:
+                    elif self._saving_shapes_in_step():
                         return [self.shape_writer_map[self.device_map[worker]]]
             else:
                 # training on CPU when all device strings have cpu
