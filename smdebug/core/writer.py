@@ -242,7 +242,9 @@ class FileWriter:
         if self._proto_writer:
             return self._proto_writer.name()
         else:
-            return None
+            raise RuntimeError(
+                "Writer hasn't been initialized yet. It will be initialized when the first tensor or summary is written."
+            )
 
     @staticmethod
     def _check_mode_step(mode, mode_step, global_step):
