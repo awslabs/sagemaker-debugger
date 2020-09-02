@@ -47,7 +47,7 @@ from smdebug.core.utils import (
     size_and_shape,
     validate_custom_tensor_value,
 )
-from smdebug.core.writer import FileWriter, ShapeWriter
+from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
 
 try:
@@ -223,7 +223,7 @@ class BaseHook:
         self.mode = ModeKeys.GLOBAL
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
-        self.shape_writer = None
+
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()
         else:
@@ -344,12 +344,6 @@ class BaseHook:
                 )
         return self._collections_to_save_for_step
 
-    def _saving_shapes_in_step(self) -> bool:
-        for coll in self._get_collections_to_save_for_step():
-            if coll.reduction_config.save_shape is True:
-                return True
-        return False
-
     def is_tensor_saved_for_step(self, tensor_name):
         collections_to_save = self._get_collections_to_save_for_step()
         for c in collections_to_save:
@@ -452,10 +446,6 @@ class BaseHook:
 
         self._close_given_writer_map(self.tb_writers)
 
-        if self.shape_writer is not None:
-            self.shape_writer.close()
-            self.shape_writer = None
-
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # Function is overridden in smdebug/tensorflow/base_hook.py
         if only_initialize_if_missing and self.writer:
@@ -485,21 +475,10 @@ class BaseHook:
 
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
-        if self._saving_shapes_in_step():
-            self.shape_writer = ShapeWriter(
-                trial_dir=self.out_dir,
-                step=self.step,
-                worker=self.worker,
-                index_writer=self.writer.index_writer,
-            )
+    def _get_single_process_writers(self) -> List[FileWriter]:
+        return [self.writer] if self.writer else []
 
-    def _get_single_process_writers(self, shape_writers=False) -> List[FileWriter]:
-        if shape_writers is False:
-            return [self.writer] if self.writer else []
-        else:
-            return [self.shape_writer] if self.shape_writer else []
-
-    def _get_writers(self, tensor_name, tensor_ref=None, shape_writers=False) -> List[FileWriter]:
+    def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
         :param tensor_name:
         :param tensor_ref: used by TF
@@ -507,7 +486,7 @@ class BaseHook:
         """
         if self.save_all_workers is False and self.worker != self.chief_worker:
             return []
-        return self._get_single_process_writers(shape_writers)
+        return self._get_single_process_writers()
 
     def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
         """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
@@ -777,7 +756,7 @@ class BaseHook:
                 break
 
     def _write_shape(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
-        shape_writers = self._get_writers(tensor_name, tensor_ref=tensor_ref, shape_writers=True)
+        writers = self._get_writers(tensor_name, tensor_ref=tensor_ref)
         for s_col in save_collections:
             reduction_config = s_col.reduction_config
             if self.dry_run is False and reduction_config.save_shape is True:
@@ -788,7 +767,7 @@ class BaseHook:
                 else:
                     original_name = None
 
-                for writer in shape_writers:
+                for writer in writers:
                     writer.write_shape(
                         tensor_name,
                         this_shape,
