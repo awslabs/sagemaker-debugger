@@ -364,7 +364,6 @@ class TensorflowBaseHook(BaseHook):
             self.writer = None
 
         self._close_given_writer_map(self.writer_map)
-        self._close_given_writer_map(self.shape_writer_map)
         self._close_given_writer_map(self.tb_writers)
 
     def _export_model(self):
