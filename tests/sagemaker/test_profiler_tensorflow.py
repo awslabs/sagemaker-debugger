@@ -72,7 +72,7 @@ def _download_artifacts(s3_path, out_dir):
 
 
 def _get_estimator_list(index, job_type):
-    fhandle = open("tests/sagemaker/profiler_tests_config.yaml")
+    fhandle = open("tests/sagemaker/tensorflow_profiler_tests_config.yaml")
     config_file = yaml.load(fhandle, Loader=yaml.FullLoader)
     fhandle.close()
     estimator_list = []
