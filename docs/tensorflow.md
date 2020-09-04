@@ -64,7 +64,7 @@ tf_estimator = TensorFlow(
 )
 tf_estimator.fit("s3://bucket/path/to/training/data")
 ```
->**Note**: The SageMaker TensorFlow estimator and the Debugger collections in the example are based on the latest SageMaker python SDK v2.0 and `smdebug` v0.9.1. It is highly recommended to upgrade the packages by executing the following command line.
+>**Note**: The SageMaker TensorFlow estimator and the Debugger collections in the example are based on the SageMaker python SDK v2 and `smdebug` v0.9.2. It is highly recommended to upgrade the packages by executing the following command line.
 ```bash
 pip install -U sagemaker
 pip install -U smdebug
