@@ -475,7 +475,7 @@ class BaseHook:
 
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
 
-    def _get_single_process_writers(self) -> List[FileWriter]:
+    def _get_main_writer(self) -> List[FileWriter]:
         return [self.writer] if self.writer else []
 
     def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
@@ -486,7 +486,7 @@ class BaseHook:
         """
         if self.save_all_workers is False and self.worker != self.chief_worker:
             return []
-        return self._get_single_process_writers()
+        return self._get_main_writer()
 
     def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
         """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
@@ -762,6 +762,9 @@ class BaseHook:
             if self.dry_run is False and reduction_config.save_shape is True:
                 numpy_tensor_value = self._make_numpy_array(tensor_value)
                 this_size, this_shape = size_and_shape(numpy_tensor_value)
+                # In TF Keras and Variables in all interfaces of TF, sometimes we output tensors with
+                # more meaningful names than the origina name. Outputting
+                # both Smdebug given name and original name in such cases
                 if tensor_ref is not None and tensor_ref.tf_obj is not None:
                     original_name = tensor_ref.tf_obj.name
                 else:

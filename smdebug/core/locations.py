@@ -26,10 +26,8 @@ class TensorLocation:
 
 class TensorShape:
     def __init__(self, name, mode, mode_step, shape, original_name=None):
-        if original_name is None:
-            original_name = name
         self.name = name
-        self.original_name = original_name
+        self.original_name = original_name if original_name is not None else name
         self.mode = mode
         self.mode_step = mode_step
         self.shape = tuple(shape)

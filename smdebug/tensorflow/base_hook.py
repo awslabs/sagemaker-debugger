@@ -288,7 +288,7 @@ class TensorflowBaseHook(BaseHook):
             TFDistributionStrategy.HOROVOD,
         ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
-                return self._get_single_process_writers()
+                return self._get_main_writer()
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 # else is for metrics in Keras
@@ -306,9 +306,9 @@ class TensorflowBaseHook(BaseHook):
                     return [self.writer_map[self.device_map[worker]]]
             else:
                 # training on CPU when all device strings have cpu
-                return self._get_single_process_writers()
+                return self._get_main_writer()
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
-            return self._get_single_process_writers()
+            return self._get_main_writer()
         else:
             raise NotImplementedError
         # when self.writer is None, returns empty list

@@ -138,8 +138,9 @@ class Tensor:
     def __init__(self, name, trial, cache):
         self._mode_steps = {}
         self.name = name
-        # SMdebug modifies some names of tensors to be more descriptive
-        # In such cases we save here the original name
+        # In TF Keras and Variables in all interfaces of TF,
+        # SMDebug modifies some names of tensors to be more descriptive.
+        # In such cases we save here the original name.
         self.original_name = None
         self.trial = trial
         self.cache = cache
