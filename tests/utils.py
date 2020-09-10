@@ -5,16 +5,20 @@ from pathlib import Path
 
 # Third Party
 import boto3
+import numpy as np
 from tests.constants import TEST_DATASET_S3_PATH
+from tests.tensorflow.utils import create_trial_fast_refresh
 
 # First Party
 from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
+    DEFAULT_WORKER_NAME,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
 from smdebug.core.utils import is_s3, remove_file_if_exists
+from smdebug.exceptions import TensorUnavailableForStep
 
 
 def use_s3_datasets():
@@ -25,6 +29,46 @@ def use_s3_datasets():
         return True
     except Exception:
         return False
+
+
+def is_scalar(x):
+    if isinstance(x, list):
+        if len(x) == 1:
+            return True
+    elif isinstance(x, np.ndarray):
+        return True
+    return False
+
+
+def verify_shapes(out_dir, step_num, multiworker=False):
+    trial = create_trial_fast_refresh(out_dir)
+    for tname in trial.tensor_names(step=step_num):
+        tensor = trial.tensor(tname)
+        if multiworker is False:
+            assert isinstance(tensor.shape(step_num), tuple), (tname, tensor.shape(step_num))
+            try:
+                if not is_scalar(tensor.value(step_num)):
+                    # test did not save value except scalars which dont use reduction config
+                    #  so it should raise the below exception
+                    assert False
+            except TensorUnavailableForStep:
+                pass
+        else:
+            workers = tensor.workers(step_num)
+            assert len(workers) > 1
+            for w in workers:
+                try:
+                    if not is_scalar(tensor.value(step_num, worker=w)):
+                        # test did not save value so it should raise the below exception
+                        assert False
+                except TensorUnavailableForStep:
+                    pass
+
+                assert isinstance(tensor.shape(step_num, worker=w), tuple), (
+                    tname,
+                    w,
+                    tensor.shape(step_num, worker=w),
+                )
 
 
 class SagemakerSimulator(object):

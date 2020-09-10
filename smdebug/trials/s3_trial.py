@@ -45,7 +45,7 @@ class S3Trial(Trial):
         self.path = "s3://" + os.path.join(self.bucket_name, self.prefix_name)
         self.index_reader = S3IndexReader(self.path)
         self._load_collections()
-        self._load_tensors()
+        self.refresh_data()
 
     def _get_collection_files(self) -> list:
         collection_files, _ = list_s3_objects(
@@ -55,12 +55,6 @@ class S3Trial(Trial):
             delimiter="",
         )
         return collection_files
-
-    def _load_tensors_from_index_tensors(self, index_tensors_dict):
-        for tname in index_tensors_dict:
-            for step, itds in index_tensors_dict[tname].items():
-                for worker in itds:
-                    self._add_tensor(int(step), worker, itds[worker]["tensor_location"])
 
     def _read_collections(self, collection_files):
         first_collection_file = collection_files[0]  # First Collection File
