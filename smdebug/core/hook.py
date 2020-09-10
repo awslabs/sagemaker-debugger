@@ -420,6 +420,17 @@ class BaseHook:
         self.prepared_collections = True
 
     #### End of Save Manager methods ####
+    @staticmethod
+    def _close_given_writer_map(writer_dict):
+        # Delete all the dist training writers
+        to_delete_writers = []
+        for key, writer in writer_dict.items():
+            # close calls flush
+            writer.close()
+            to_delete_writers.append(key)
+
+        for key in to_delete_writers:
+            del writer_dict[key]
 
     def _close_writers(self) -> None:
         if self.dry_run:
@@ -433,16 +444,7 @@ class BaseHook:
             self.writer.close()
             self.writer = None
 
-        to_delete_writers = []
-
-        # Delete all the tb writers
-        for mode, writer in self.tb_writers.items():
-            if writer is not None:
-                writer.flush()
-                writer.close()
-                to_delete_writers.append(mode)
-        for mode in to_delete_writers:
-            del self.tb_writers[mode]
+        self._close_given_writer_map(self.tb_writers)
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # Function is overridden in smdebug/tensorflow/base_hook.py
@@ -470,7 +472,11 @@ class BaseHook:
         if self.save_all_workers is False:
             if self.worker != self.chief_worker:
                 return
+
         self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
+
+    def _get_main_writer(self) -> List[FileWriter]:
+        return [self.writer] if self.writer else []
 
     def _get_writers(self, tensor_name, tensor_ref=None) -> List[FileWriter]:
         """
@@ -480,7 +486,7 @@ class BaseHook:
         """
         if self.save_all_workers is False and self.worker != self.chief_worker:
             return []
-        return [self.writer] if self.writer else []
+        return self._get_main_writer()
 
     def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
         """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
@@ -749,6 +755,31 @@ class BaseHook:
                 self._write_raw_tensor_simple(tensor_name, tensor_value, tensor_ref=tensor_ref)
                 break
 
+    def _write_shape(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
+        writers = self._get_writers(tensor_name, tensor_ref=tensor_ref)
+        for s_col in save_collections:
+            reduction_config = s_col.reduction_config
+            if self.dry_run is False and reduction_config.save_shape is True:
+                numpy_tensor_value = self._make_numpy_array(tensor_value)
+                this_size, this_shape = size_and_shape(numpy_tensor_value)
+                # In TF Keras and Variables in all interfaces of TF, sometimes we output tensors with
+                # more meaningful names than the origina name. Outputting
+                # both Smdebug given name and original name in such cases
+                if tensor_ref is not None and tensor_ref.tf_obj is not None:
+                    original_name = tensor_ref.tf_obj.name
+                else:
+                    original_name = None
+
+                for writer in writers:
+                    writer.write_shape(
+                        tensor_name,
+                        this_shape,
+                        self.mode,
+                        self.mode_steps[self.mode],
+                        original_name=original_name,
+                    )
+                break
+
     def _write_raw_tensor_simple(self, tensor_name, tensor_value, tensor_ref=None, timestamp=None):
         # tensor_ref is used by TF
         # todo: if fp16, check perf of saving as fp16 in proto vs as fp32
@@ -828,6 +859,9 @@ class BaseHook:
         :param save_collections: list of collections which are being saved for this step
         """
         self._log_save(tensor_name, save_collections)
+
+        self._write_shape(tensor_name, tensor_value, save_collections, tensor_ref=tensor_ref)
+
         # write reductions defined for collections this tensor may be part of
         self._write_reductions(tensor_name, tensor_value, save_collections, tensor_ref=tensor_ref)
 

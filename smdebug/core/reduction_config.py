@@ -3,12 +3,23 @@ import json
 from typing import Any, Dict
 
 # First Party
+from smdebug.core.logger import get_logger
 from smdebug.core.utils import split
+
+logger = get_logger()
+
 
 ALLOWED_REDUCTIONS = ["min", "max", "mean", "std", "variance", "sum", "prod"]
 ALLOWED_NORMS = ["l1", "l2"]
 REDUCTION_CONFIG_VERSION_NUM = "v0"
-ALLOWED_PARAMS = ["reductions", "abs_reductions", "norms", "abs_norms", "save_raw_tensor"]
+ALLOWED_PARAMS = [
+    "reductions",
+    "abs_reductions",
+    "norms",
+    "abs_norms",
+    "save_raw_tensor",
+    "save_shape",
+]
 
 
 class ReductionConfig:
@@ -49,12 +60,14 @@ class ReductionConfig:
         norms=None,
         abs_norms=None,
         save_raw_tensor=False,
+        save_shape=False,
     ):
         self.reductions = reductions if reductions is not None else []
         self.abs_reductions = abs_reductions if abs_reductions is not None else []
         self.norms = norms if norms is not None else []
         self.abs_norms = abs_norms if abs_norms is not None else []
         self.save_raw_tensor = save_raw_tensor
+        self.save_shape = save_shape
         ## DO NOT REMOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
         self._check()
 
@@ -75,6 +88,8 @@ class ReductionConfig:
             raise ValueError("abs_norms can only be one of " + ",".join(ALLOWED_NORMS))
         if not isinstance(self.save_raw_tensor, bool):
             raise ValueError(f"save_raw_tensor={self.save_raw_tensor} must be a boolean")
+        if not isinstance(self.save_shape, bool):
+            raise ValueError(f"save_shape={self.save_shape} must be a boolean")
 
     @classmethod
     def from_dict(cls, params: Dict[str, Any]) -> "ReductionConfig":
@@ -83,7 +98,7 @@ class ReductionConfig:
             return None
         if not isinstance(params, dict):
             raise ValueError(f"params={params} must be dict")
-
+        save_shape = params.get("save_shape", False)
         save_raw_tensor = params.get("save_raw_tensor", False)
         # Parse comma-separated string into array
         all_reductions = split(params.get("reductions", ""))
@@ -108,6 +123,7 @@ class ReductionConfig:
             norms=norms,
             abs_norms=abs_norms,
             save_raw_tensor=save_raw_tensor,
+            save_shape=save_shape,
         )
 
     @classmethod
@@ -116,7 +132,6 @@ class ReductionConfig:
         return cls.from_dict(d)
 
     def to_json_dict(self) -> Dict[str, Any]:
-        save_raw_tensor = self.save_raw_tensor
         # Convert reductions from various arrays into single comma-separated string
         all_reductions = []
         for red in self.reductions:
@@ -129,7 +144,11 @@ class ReductionConfig:
             all_reductions.append(f"abs_{red}_norm")
         all_reductions_str = ",".join(all_reductions)
         # Return the dict
-        return {"save_raw_tensor": save_raw_tensor, "reductions": all_reductions_str}
+        return {
+            "save_raw_tensor": self.save_raw_tensor,
+            "reductions": all_reductions_str,
+            "save_shape": self.save_shape,
+        }
 
     def to_json(self) -> str:
         return json.dumps(self.to_json_dict())
@@ -144,10 +163,11 @@ class ReductionConfig:
             and self.norms == other.norms
             and self.abs_norms == other.abs_norms
             and self.save_raw_tensor == other.save_raw_tensor
+            and self.save_shape == other.save_shape
         )
 
     def __repr__(self):
         return (
             f"<class ReductionConfig: reductions={self.reductions}, "
-            f"abs_reductions={self.abs_reductions}, norms={self.norms}, abs_norms={self.abs_norms}>"
+            f"abs_reductions={self.abs_reductions}, norms={self.norms}, abs_norms={self.abs_norms}>, save_shape={self.save_shape}, save_raw_tensor={self.save_raw_tensor}"
         )
