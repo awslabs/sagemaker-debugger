@@ -1,11 +1,11 @@
 # Third Party
 import mxnet as mx
 import numpy as np
-from mxnet.ndarray import NDArray
 
 # First Party
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.core.reductions import get_numpy_reduction
+from smdebug.core.utils import make_numpy_array
 
 
 def get_reduction_of_data(aggregation_name, tensor_data, tensor_name, abs=False):
@@ -42,22 +42,3 @@ def get_reduction_of_data(aggregation_name, tensor_data, tensor_name, abs=False)
         op = f(tensor_data)
         return op
     raise RuntimeError("Invalid aggregation_name {0} for mx.NDArray".format(aggregation_name))
-
-
-def make_numpy_array(x):
-    if isinstance(x, np.ndarray):
-        return x
-    elif np.isscalar(x):
-        return np.array([x])
-    elif isinstance(x, NDArray):
-        return x.asnumpy()
-    elif isinstance(x, tuple):
-        # todo: fix this, will crash
-        return np.asarray(x, dtype=x.dtype)
-    elif isinstance(x, list):
-        return np.asarray(x)
-    else:
-        raise TypeError(
-            "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"
-            " and MXNet NDArray, while received type {}".format(str(type(x)))
-        )
