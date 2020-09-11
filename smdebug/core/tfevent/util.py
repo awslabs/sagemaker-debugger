@@ -1,5 +1,6 @@
 # Third Party
 import numpy as np
+from packaging import version
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -37,11 +38,14 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
 
 def _get_proto_dtype(npdtype):
     try:
-        from tensorflow.python import _pywrap_bfloat16
+        from tensorflow import __version__ as tf_version
 
-        # TF Implements a Custom Numpy Datatype for Brain Floating Type
-        _np_bfloat16 = _pywrap_bfloat16.TF_bfloat16_type()
-        _NP_DATATYPE_TO_PROTO_DATATYPE.update({np.dtype(_np_bfloat16): "DT_BFLOAT16"})
+        if version.parse(tf_version) > version.parse("2.0.0"):
+            from tensorflow.python import _pywrap_bfloat16
+
+            # TF Implements a Custom Numpy Datatype for Brain Floating Type
+            _np_bfloat16 = _pywrap_bfloat16.TF_bfloat16_type()
+            _NP_DATATYPE_TO_PROTO_DATATYPE.update({np.dtype(_np_bfloat16): "DT_BFLOAT16"})
     except (ModuleNotFoundError, ValueError, ImportError):
         pass
     if hasattr(npdtype, "kind"):
