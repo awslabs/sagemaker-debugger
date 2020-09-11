@@ -63,10 +63,12 @@ The following frameworks are available AWS Deep Learning Containers with the dee
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1, 2.2 |
+| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0 |
 | [MXNet](docs/mxnet.md) | 1.6 |
-| [PyTorch](docs/pytorch.md) | 1.4, 1.5 |
+| [PyTorch](docs/pytorch.md) | 1.4, 1.5, 1.6 |
 | [XGBoost](docs/xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
+
+**Note**: Debugger with zero script change is partially available for TensorFlow v2.1.0 and v2.3.0. The `inputs`, `outputs`, `gradients`, and `layers` built-in collections are currently not available for these TensorFlow versions.
 
 ### AWS training containers with script mode
 
@@ -74,10 +76,10 @@ The `smdebug` library supports frameworks other than the ones listed above while
 
 | Framework | Versions |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1, 2.2 |
+| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0 |
 | Keras (with TensorFlow backend) | 2.3 |
 | [MXNet](docs/mxnet.md) | 1.4, 1.5, 1.6 |
-| [PyTorch](docs/pytorch.md) | 1.2, 1.3, 1.4, 1.5 |
+| [PyTorch](docs/pytorch.md) | 1.2, 1.3, 1.4, 1.5, 1.6 |
 | [XGBoost](docs/xgboost.md) |  0.90-2, 1.0-1 (As a framework)|
 
 ### Debugger on custom containers or local machines
