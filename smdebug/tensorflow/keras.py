@@ -541,6 +541,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             if hasattr(tensor, "numpy"):
                 self._save_tensor_to_file(export_name, tensor.numpy(), input_collection)
+            else:
+                self.logger.warn("cannot save layer values during forward pass with tf.function")
+                return
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
