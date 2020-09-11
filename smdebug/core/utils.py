@@ -37,10 +37,7 @@ def make_numpy_array(x):
     elif isinstance(x, dict):
         return np.array(x)
     else:
-        raise TypeError(
-            "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"
-            " while received type {}".format(str(type(x)))
-        )
+        raise TypeError("_make_numpy_array does not support the" " type {}".format(str(type(x))))
 
 
 def ensure_dir(file_path, is_file=True):
