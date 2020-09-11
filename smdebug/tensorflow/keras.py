@@ -5,6 +5,7 @@ import functools
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 from tensorflow.python.framework.indexed_slices import IndexedSlices
+from tensorflow.python.util import nest
 
 # First Party
 from smdebug.core.modes import ModeKeys
@@ -497,6 +498,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         else set()
                     )
                 for t_name, t_value in tensors_to_save:
+                    if isinstance(t_value, dict):
+                        # flatten the inputs and labels
+                        # since we cannot convert dicts into numpy
+                        t_value = nest.flatten(t_value)
                     self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
