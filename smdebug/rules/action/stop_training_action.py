@@ -50,7 +50,7 @@ class StopTrainingAction:
                     self._logger.info(
                         f"No TrainingJob summaries found: list_training_jobs output is : {res}"
                     )
-                    return
+                    return []
                 for job in jobs:
                     tj_status = job["TrainingJobStatus"]
                     tj_name = job["TrainingJobName"]
