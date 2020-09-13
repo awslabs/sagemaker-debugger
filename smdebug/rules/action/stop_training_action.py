@@ -26,6 +26,7 @@ class StopTrainingAction:
         next_token = None
         name = self._training_job_prefix
         i = 0
+        exception_caught_times = 0
         while i < 50:
             try:
                 if next_token is None:
@@ -61,6 +62,10 @@ class StopTrainingAction:
                 self._logger.info(
                     f"Caught exception while getting list_training_job exception is: \n {e}. Attempt:{i}"
                 )
+                exception_caught_times += 1
+                if exception_caught_times > 5:
+                    print("Got exception more than 5 times while finding training job. Giving up.")
+                    break
             if "NextToken" not in res:
                 break
             else:
@@ -68,6 +73,11 @@ class StopTrainingAction:
                 res = {}
                 jobs = {}
                 i += 1
+            if len(found_job_dict) > 0:
+                print(
+                    f"Found training jobs matching prefix:{name}. Exiting even if next_token:{next_token} was present."
+                )
+                break
 
         return found_job_dict.keys()
 
