@@ -27,6 +27,11 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
     np.dtype(np.complex64): "DT_COMPLEX64",
     np.dtype(np.complex128): "DT_COMPLEX128",
     np.dtype(np.bool): "DT_BOOL",
+    np.dtype([("qint8", "i1")]): "DT_QINT8",
+    np.dtype([("quint8", "u1")]): "DT_QUINT8",
+    np.dtype([("qint16", "<i2")]): "DT_QINT16",
+    np.dtype([("quint16", "<u2")]): "DT_UINT16",
+    np.dtype([("qint32", "<i4")]): "DT_INT32",
 }
 
 
