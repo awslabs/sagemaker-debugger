@@ -539,7 +539,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            self._save_tensor_to_file(export_name, tensor.numpy(), input_collection)
+            if hasattr(tensor, "numpy"):
+                self._save_tensor_to_file(export_name, tensor.numpy(), input_collection)
+            else:
+                self.logger.warn("cannot save layer values during forward pass with tf.function")
+                return
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
@@ -549,7 +553,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            self._save_tensor_to_file(export_name, tensor.numpy(), output_collection)
+            if hasattr(tensor, "numpy"):
+                self._save_tensor_to_file(export_name, tensor.numpy(), output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
@@ -1023,7 +1028,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :return:
         """
         logs = {ModelOutput.PREDICTIONS: outputs, ModelInput.INPUTS: model_inputs}
-        self.save_smdebug_logs(logs)
+        if is_tf_version_2x() and tf.executing_eagerly():
+            self.save_smdebug_logs(logs)
+        else:
+            self.logger.warn("cannot save model inputs and outputs in non-eager execution mode")
 
     def wrap_tape(self, tape):
         """
