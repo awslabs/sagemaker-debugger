@@ -36,9 +36,13 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
 
 
 def _get_proto_dtype(npdtype):
-    if npdtype.kind == "U":
-        return (False, "DT_STRING")
-    return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
+    if hasattr(npdtype, "kind"):
+        if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
+            return False, "DT_STRING"
+    try:
+        return True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype]
+    except KeyError:
+        raise TypeError(f"Numpy Datatype: {np.dtype(npdtype)} is currently not supported")
 
 
 def make_tensor_proto(nparray_data, tag):
