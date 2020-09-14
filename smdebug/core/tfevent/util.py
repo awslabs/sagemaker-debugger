@@ -53,10 +53,10 @@ def _get_proto_dtype(npdtype):
     except (ModuleNotFoundError, ValueError, ImportError):
         pass
     if hasattr(npdtype, "kind"):
-        if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
-            return (False, "DT_STRING")
+        if npdtype.kind == "U":  # or npdtype.kind == "O" or npdtype.kind == "S":
+            return False, "DT_STRING"
     try:
-        return (True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype])
+        return True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype]
     except KeyError:
         raise TypeError(f"Numpy Datatype: {np.dtype(npdtype)} is currently not supported")
 
