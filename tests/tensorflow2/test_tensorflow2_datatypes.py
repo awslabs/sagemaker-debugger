@@ -18,13 +18,13 @@ def test_tensorflow2_datatypes():
 
             # TF 2.x.x Implements a Custom Numpy Datatype for Brain Floating Type
             _np_bfloat16 = _pywrap_bfloat16.TF_bfloat16_type()
-            _NP_TO_TF.pop(np.dtype(_np_bfloat16))
+            _NP_TO_TF.pop(_np_bfloat16)
     except (ModuleNotFoundError, ValueError, ImportError):
         pass
 
     for _type in _NP_TO_TF:
         try:
             _get_proto_dtype(np.dtype(_type))
-        except KeyError:
+        except Exception:
             assert False
     assert True
