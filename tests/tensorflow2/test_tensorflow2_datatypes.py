@@ -1,6 +1,6 @@
 # Third Party
 import numpy as np
-from packagin import version
+from packaging import version
 from tensorflow.python.framework.dtypes import _NP_TO_TF
 
 # First Party
