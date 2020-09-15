@@ -528,14 +528,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _save_layer_input_and_outputs(self):
         # Run only for GradTape
-        import pdb
+        pass
         # pdb.set_trace()
         if self.tape is None:
             # return
             pass
         for layer_name in self.model.saved_layers:
             # Save Input
-            tensor = self.saved_layers[layer_name].layer_input
+            tensor = self.model.saved_layers[layer_name].layer_input
             export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
             input_collection = (
                 {self.get_collection(CollectionKeys.LAYERS)}
@@ -548,7 +548,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.logger.warn("cannot save layer values during forward pass with tf.function")
                 return
             # Save Output
-            tensor = self.saved_layers[layer_name].layer_output
+            tensor = self.model.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
             self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
             output_collection = (
