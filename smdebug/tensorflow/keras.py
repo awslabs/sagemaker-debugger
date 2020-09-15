@@ -119,8 +119,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
-        if self.tape is not None:
-            self._wrap_model_with_input_output_saver()
+        self.model.saved_layers = dict()
+        self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -528,9 +528,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _save_layer_input_and_outputs(self):
         # Run only for GradTape
+        import pdb
+        # pdb.set_trace()
         if self.tape is None:
-            return
-        for layer_name in self.saved_layers:
+            # return
+            pass
+        for layer_name in self.model.saved_layers:
             # Save Input
             tensor = self.saved_layers[layer_name].layer_input
             export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
@@ -562,6 +565,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_metrics(batch, logs)
         self.save_smdebug_logs(logs)
         self._save_custom_tensors_post_step()
+        self._save_layer_input_and_outputs()
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
@@ -691,7 +695,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             layer.register_hook = lambda hook: layer._hooks.append(hook)
             saver = InputOutputSaver()
             layer.register_hook(saver)
-            self.saved_layers[layer.name] = saver
+            self.model.saved_layers[layer.name] = saver
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
