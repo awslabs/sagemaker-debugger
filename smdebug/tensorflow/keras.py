@@ -528,7 +528,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _save_layer_input_and_outputs(self):
         # Run only for GradTape
-        import pdb
+        pass
         # pdb.set_trace()
         if self.tape is None:
             # return
