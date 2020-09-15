@@ -17,6 +17,7 @@ def test_tensorflow2_datatypes():
             from tensorflow.python import _pywrap_bfloat16
 
             # TF 2.x.x Implements a Custom Numpy Datatype for Brain Floating Type
+            # Which is currently only supported on TPUs
             _np_bfloat16 = _pywrap_bfloat16.TF_bfloat16_type()
             _NP_TO_TF.pop(_np_bfloat16)
     except (ModuleNotFoundError, ValueError, ImportError):
