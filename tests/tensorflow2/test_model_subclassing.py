@@ -90,7 +90,7 @@ def test_subclassed_model(out_dir):
         "flatten/outputs",
     ]
 
-    assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_inputs"]
+    assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_input"]
     assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == ["labels", "predictions"]
     assert trial.tensor_names(collection=smd.CollectionKeys.LOSSES) == ["loss"]
     assert trial.tensor_names(collection=smd.CollectionKeys.GRADIENTS) == [
