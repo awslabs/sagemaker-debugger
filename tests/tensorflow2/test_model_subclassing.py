@@ -40,21 +40,6 @@ class MyModel(Model):
         return self.second(x)
 
 
-# Create an instance of the model
-model = MyModel()
-
-
-def get_grads(images, labels):
-    # with tf.GradientTape() as tape:
-    print("model outer call")
-    return model(images, training=True)
-
-
-@tf.function
-def train_step(images, labels):
-    return tf.reduce_mean(get_grads(images, labels))
-
-
 def test_subclassed_model(out_dir):
     # Download and load MNIST dataset.
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data("MNIST-data")
@@ -63,6 +48,9 @@ def test_subclassed_model(out_dir):
     # Add a channels dimension
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
+
+    # Create an instance of the model
+    model = MyModel()
 
     train_ds = (
         tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000, seed=123).batch(2)
