@@ -67,16 +67,7 @@ def test_subclassed_model(out_dir):
     model.fit(train_ds, epochs=1, steps_per_epoch=10, callbacks=[MyModel.hook])
 
     trial = smd.create_trial(out_dir)
-    assert trial.tensor_names(collection=smd.CollectionKeys.LAYERS) == [
-        "conv2d/inputs",
-        "conv2d/outputs",
-        "dense/inputs",
-        "dense/outputs",
-        "dense_1/inputs",
-        "dense_1/outputs",
-        "flatten/inputs",
-        "flatten/outputs",
-    ]
+    assert len(trial.tensor_names(collection=smd.CollectionKeys.LAYERS)) == 8
 
     assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_input"]
     assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == ["labels", "predictions"]
