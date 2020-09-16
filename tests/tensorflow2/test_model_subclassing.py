@@ -72,11 +72,4 @@ def test_subclassed_model(out_dir):
     assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_input"]
     assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == ["labels", "predictions"]
     assert trial.tensor_names(collection=smd.CollectionKeys.LOSSES) == ["loss"]
-    assert trial.tensor_names(collection=smd.CollectionKeys.GRADIENTS) == [
-        "gradients/my_model/first/conv2d/biasGrad",
-        "gradients/my_model/first/conv2d/kernelGrad",
-        "gradients/my_model/second/dense/biasGrad",
-        "gradients/my_model/second/dense/kernelGrad",
-        "gradients/my_model/second/dense_1/biasGrad",
-        "gradients/my_model/second/dense_1/kernelGrad",
-    ]
+    assert len(trial.tensor_names(collection=smd.CollectionKeys.GRADIENTS)) == 6
