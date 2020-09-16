@@ -119,7 +119,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
-        self.model.saved_layers = dict()
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
@@ -529,9 +528,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _save_layer_input_and_outputs(self):
         if is_tf_version_2x() is False:
             return
-        for layer_name in self.model.saved_layers:
+        for layer_name in self.saved_layers:
             # Save Input
-            tensor = self.model.saved_layers[layer_name].layer_input
+            tensor = self.saved_layers[layer_name].layer_input
             export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
             input_collection = (
                 {self.get_collection(CollectionKeys.LAYERS)}
@@ -544,7 +543,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.logger.warn("cannot save layer values during forward pass with tf.function")
                 continue
             # Save Output
-            tensor = self.model.saved_layers[layer_name].layer_output
+            tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
             self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
             output_collection = (
@@ -691,7 +690,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             layer.register_hook = lambda hook: layer._hooks.append(hook)
             saver = InputOutputSaver()
             layer.register_hook(saver)
-            self.model.saved_layers[layer.name] = saver
+            self.saved_layers[layer.name] = saver
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
