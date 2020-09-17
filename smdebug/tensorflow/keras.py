@@ -119,8 +119,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
-        if self.tape is not None:
-            self._wrap_model_with_input_output_saver()
+        self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -527,8 +526,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self):
-        # Run only for GradTape
-        if self.tape is None:
+        if is_tf_version_2x() is False:
             return
         for layer_name in self.saved_layers:
             # Save Input
@@ -542,8 +540,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if hasattr(tensor, "numpy"):
                 self._save_tensor_to_file(export_name, tensor.numpy(), input_collection)
             else:
-                self.logger.warn("cannot save layer values during forward pass with tf.function")
-                return
+                self.logger.warning("cannot save layer values during forward pass with tf.function")
+                continue
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
@@ -562,6 +560,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._save_metrics(batch, logs)
         self.save_smdebug_logs(logs)
         self._save_custom_tensors_post_step()
+        self._save_layer_input_and_outputs()
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
