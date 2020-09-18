@@ -342,7 +342,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
     def _prepare_non_layer_tensors(self):
-        # for gradients, optimizer_variables
         for coll in self.collection_manager.get_collections().values():
             for tensor_ref in coll.get_tensors():
                 if tensor_ref.name not in self.tensor_to_collections:
