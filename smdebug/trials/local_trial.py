@@ -34,16 +34,10 @@ class LocalTrial(Trial):
         self.index_reader = LocalIndexReader(self.path)
         self.logger.info(f"Loading trial {name} at path {self.trial_dir}")
         self._load_collections()
-        self._load_tensors()
+        self.refresh_data()
 
     def _get_collection_files(self) -> list:
         return list_collection_files_in_directory(get_path_to_collections(self.path))
-
-    def _load_tensors_from_index_tensors(self, index_tensors_dict):
-        for tname in index_tensors_dict:
-            for step, itds in index_tensors_dict[tname].items():
-                for worker in itds:
-                    self._add_tensor(int(step), worker, itds[worker]["tensor_location"])
 
     def _read_collections(self, collection_files):
         first_collection_file = collection_files[0]  # First Collection File

@@ -16,6 +16,9 @@
 # under the License.
 
 """APIs for logging data in the event file."""
+# Standard Library
+from typing import Tuple
+
 # First Party
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME
 from smdebug.core.tfevent.event_file_writer import EventFileWriter
@@ -31,7 +34,12 @@ from smdebug.core.tfevent.summary import (
 from smdebug.core.tfevent.util import make_tensor_proto
 
 # Local
-from .locations import IndexFileLocationUtils, TensorboardFileLocation, TensorFileLocation
+from .locations import (
+    IndexFileLocationUtils,
+    TensorboardFileLocation,
+    TensorFileLocation,
+    TensorShape,
+)
 from .logger import get_logger
 from .modes import ModeKeys
 
@@ -72,14 +80,20 @@ class FileWriter:
                 Determines whether to print logging messages.
         """
         self.trial_dir = trial_dir
-        self.step = step
         self.worker = worker
-        if worker is None:
-            assert False, "Worker should not be none. Check worker name initialization"
+        self.step = step
+        self.wtype = wtype
         self.mode = mode
+        self.max_queue = max_queue
+        self.flush_secs = flush_secs
+        self.verbose = verbose
+        self.write_checksum = write_checksum
+
+        self._proto_writer = None
+
         if wtype == "events":
             el = TensorFileLocation(step_num=self.step, worker_name=self.worker)
-            event_file_path = el.get_file_location(trial_dir=self.trial_dir)
+            self.event_file_path = el.get_file_location(trial_dir=self.trial_dir)
             index_file_path = IndexFileLocationUtils.get_index_key_for_step(
                 self.trial_dir, self.step, self.worker
             )
@@ -88,19 +102,11 @@ class FileWriter:
             el = TensorboardFileLocation(
                 step_num=self.step, worker_name=self.worker, mode=self.mode
             )
-            event_file_path = el.get_file_location(base_dir=self.trial_dir)
+            self.event_file_path = el.get_file_location(base_dir=self.trial_dir)
             self.index_writer = None
         else:
             assert False, "Writer type not supported: {}".format(wtype)
 
-        self._writer = EventFileWriter(
-            path=event_file_path,
-            index_writer=self.index_writer,
-            max_queue=max_queue,
-            flush_secs=flush_secs,
-            verbose=verbose,
-            write_checksum=write_checksum,
-        )
         self._default_bins = _get_default_bins()
 
     def __enter__(self):
@@ -119,6 +125,27 @@ class FileWriter:
         smd = SummaryMetadata(plugin_data=plugin_data)
         return smd
 
+    @property
+    def index_writer(self):
+        return self._index_writer
+
+    @index_writer.setter
+    def index_writer(self, iw):
+        self._index_writer = iw
+
+    @property
+    def proto_writer(self):
+        if self._proto_writer is None:
+            self._proto_writer = EventFileWriter(
+                path=self.event_file_path,
+                index_writer=self.index_writer,
+                max_queue=self.max_queue,
+                flush_secs=self.flush_secs,
+                verbose=self.verbose,
+                write_checksum=self.write_checksum,
+            )
+        return self._proto_writer
+
     def write_tensor(
         self, tdata, tname, write_index=True, mode=ModeKeys.GLOBAL, mode_step=None, timestamp=None
     ):
@@ -129,14 +156,14 @@ class FileWriter:
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
         s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
         if write_index:
-            self._writer.write_summary_with_index(
+            self.proto_writer.write_summary_with_index(
                 s, self.step, tname, mode, mode_step, timestamp=timestamp
             )
         else:
-            self._writer.write_summary(s, self.step, timestamp)
+            self.proto_writer.write_summary(s, self.step, timestamp)
 
     def write_graph(self, graph):
-        self._writer.write_graph(graph)
+        self.proto_writer.write_graph(graph)
 
     def write_pytorch_graph(self, graph_profile):
         # https://github.com/pytorch/pytorch/blob/c749be9e9f8dd3db8b3582e93f917bd47e8e9e20/torch/utils/tensorboard/writer.py # L99
@@ -144,13 +171,13 @@ class FileWriter:
         graph = graph_profile[0]
         stepstats = graph_profile[1]
         event = Event(graph_def=graph.SerializeToString())
-        self._writer.write_event(event)
+        self.proto_writer.write_event(event)
         trm = TaggedRunMetadata(tag="step1", run_metadata=stepstats.SerializeToString())
         event = Event(tagged_run_metadata=trm)
-        self._writer.write_event(event)
+        self.proto_writer.write_event(event)
 
     def write_summary(self, summ, global_step, timestamp: float = None):
-        self._writer.write_summary(summ, global_step, timestamp=timestamp)
+        self.proto_writer.write_summary(summ, global_step, timestamp=timestamp)
 
     def write_histogram_summary(self, tdata, tname, global_step, bins="default"):
         """Add histogram data to the event file.
@@ -179,31 +206,45 @@ class FileWriter:
             bins = self._default_bins
         try:
             s = histogram_summary(tname, tdata, bins)
-            self._writer.write_summary(s, global_step)
+            self.proto_writer.write_summary(s, global_step)
         except ValueError as e:
             logger.warning(f"Unable to write histogram {tname} at {global_step}: {e}")
 
     def write_scalar_summary(self, name, value, global_step, timestamp: float = None):
         s = scalar_summary(name, value)
-        self._writer.write_summary(s, global_step, timestamp=timestamp)
+        self.proto_writer.write_summary(s, global_step, timestamp=timestamp)
 
-    def flush(self):
-        """Flushes the event file to disk.
-        Call this method to make sure that all pending events have been written to disk.
-        """
-        self._writer.flush()
-        # don't flush index writer as we only want to flush on close
+    def write_shape(
+        self, name, shape: Tuple[int], mode=ModeKeys.GLOBAL, mode_step=None, original_name=None
+    ):
+        self.index_writer.add_shape(
+            TensorShape(name, mode.name, mode_step, shape, original_name=original_name)
+        )
 
     def close(self):
         """Flushes the event file to disk and close the file.
         Call this method when you do not need the summary writer anymore.
         """
-        self._writer.close()
+        if self._proto_writer is not None:
+            self.proto_writer.close()
         if self.index_writer is not None:
             self.index_writer.close()
 
+    def flush(self):
+        """Flushes the event file to disk.
+        Call this method to make sure that all pending events have been written to disk.
+        """
+        if self._proto_writer is not None:
+            self._proto_writer.flush()
+        # don't flush index writer as we only want to flush on close
+
     def name(self):
-        return self._writer.name()
+        if self._proto_writer:
+            return self._proto_writer.name()
+        else:
+            raise RuntimeError(
+                "Writer hasn't been initialized yet. It will be initialized when the first tensor or summary is written."
+            )
 
     @staticmethod
     def _check_mode_step(mode, mode_step, global_step):

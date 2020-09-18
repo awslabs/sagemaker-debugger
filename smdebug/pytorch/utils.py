@@ -34,21 +34,3 @@ def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
         op = f(tensor_data)
         return op
     raise RuntimeError("Invalid reduction_name {0}".format(reduction_name))
-
-
-def make_numpy_array(x):
-    if isinstance(x, np.ndarray):
-        return x
-    elif np.isscalar(x):
-        return np.array([x])
-    elif isinstance(x, torch.Tensor):
-        return x.to(torch.device("cpu")).data.numpy()
-    elif isinstance(x, tuple):
-        return np.asarray(x, dtype=x.dtype)
-    elif isinstance(x, list):
-        return np.asarray(x)
-    else:
-        raise TypeError(
-            "_make_numpy_array only accepts input types of numpy.ndarray, scalar,"
-            " and Torch Tensor, while received type {}".format(str(type(x)))
-        )
