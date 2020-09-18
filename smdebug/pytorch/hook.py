@@ -8,10 +8,9 @@ import torch.distributed as dist
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
-from smdebug.core.utils import make_numpy_array
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
-from smdebug.pytorch.utils import get_reduction_of_data
+from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
@@ -251,6 +250,4 @@ class Hook(CallbackHook):
 
     @staticmethod
     def _make_numpy_array(tensor_value):
-        if isinstance(tensor_value, torch.Tensor):
-            return tensor_value.to(torch.device("cpu")).data.numpy()
         return make_numpy_array(tensor_value)

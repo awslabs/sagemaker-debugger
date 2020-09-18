@@ -1,6 +1,5 @@
 # Third Party
 import mxnet as mx
-from mxnet.ndarray import NDArray
 
 # First Party
 from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS, CollectionKeys
@@ -254,6 +253,4 @@ class Hook(CallbackHook):
 
     @staticmethod
     def _make_numpy_array(tensor_value):
-        if isinstance(tensor_value, NDArray):
-            return tensor_value.asnumpy()
         return make_numpy_array(tensor_value)
