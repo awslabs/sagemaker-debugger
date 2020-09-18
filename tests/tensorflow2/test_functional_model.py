@@ -23,8 +23,11 @@ def create_dataset():
     return train_ds, test_ds
 
 
-def test_functional_model(out_dir):
-    tf.compat.v1.disable_eager_execution()
+def test_functional_model(out_dir, tf_eager_mode):
+    if tf_eager_mode is False:
+        tf.compat.v1.disable_eager_execution()
+    else:
+        return
     num_classes = 10
     train_ds, test_ds = create_dataset()
 
@@ -59,8 +62,6 @@ def test_functional_model(out_dir):
 
     callbacks = [smd_callback]
     model.fit(train_ds, epochs=1, steps_per_epoch=100, callbacks=callbacks)
-
-    tf.compat.v1.disable_eager_execution()
 
     trial = smd.create_trial(out_dir)
     assert len(trial.tensor_names(collection="custom")) == 1
