@@ -96,6 +96,7 @@ include_workers
 include_regex
 reductions
 save_raw_tensor
+save_shape
 save_interval
 save_steps
 start_step

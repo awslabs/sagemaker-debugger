@@ -18,6 +18,7 @@ import numpy as np
 import pytest
 import tensorflow as tf
 from tests.analysis.utils import delete_s3_prefix
+from tests.utils import verify_shapes
 
 # First Party
 import smdebug.tensorflow as smd
@@ -30,10 +31,12 @@ from smdebug.trials import create_trial
 def help_test_mnist(
     path,
     save_config=None,
+    reduction_config=None,
     hook=None,
     set_modes=True,
     num_steps=10,
     num_eval_steps=None,
+    save_all=False,
     steps=None,
     include_collections=None,
 ):
@@ -125,7 +128,11 @@ def help_test_mnist(
         if include_collections is None:
             include_collections = ["weights", "gradients", "default", "losses"]
         hook = smd.SessionHook(
-            out_dir=trial_dir, save_config=save_config, include_collections=include_collections
+            out_dir=trial_dir,
+            save_config=save_config,
+            include_collections=include_collections,
+            save_all=save_all,
+            reduction_config=reduction_config,
         )
 
     if num_eval_steps is None:
@@ -185,6 +192,29 @@ def test_mnist(out_dir, on_s3=False):
         out_dir = f"s3://{bucket}/{prefix}"
     help_test_mnist(out_dir, save_config=smd.SaveConfig(save_interval=2), num_steps=2, steps=None)
     helper_test_mnist_trial(out_dir)
+
+
+@pytest.mark.slow  # 0:02 to run
+def test_mnist_shapes(out_dir, on_s3=False):
+    if on_s3:
+        run_id = "trial_" + datetime.now().strftime("%Y%m%d-%H%M%S%f")
+        bucket = "smdebug-testing"
+        prefix = "outputs/hooks/estimator_modes/" + run_id
+        out_dir = f"s3://{bucket}/{prefix}"
+    help_test_mnist(
+        out_dir,
+        save_all=True,
+        save_config=smd.SaveConfig(save_steps=[0]),
+        num_steps=1,
+        steps=None,
+        reduction_config=smd.ReductionConfig(save_shape=True),
+    )
+    verify_shapes(out_dir, 0)
+
+
+@pytest.mark.slow  # 0:02 to run
+def test_mnist_shapes_s3(out_dir):
+    test_mnist_shapes(out_dir, on_s3=True)
 
 
 @pytest.mark.slow  # 0:02 to run

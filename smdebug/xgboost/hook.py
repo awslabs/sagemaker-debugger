@@ -13,7 +13,7 @@ from smdebug.core.collection import DEFAULT_XGBOOST_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig
-from smdebug.core.tfevent.util import make_numpy_array
+from smdebug.core.utils import make_numpy_array
 from smdebug.xgboost.singleton_utils import set_hook
 
 # Local

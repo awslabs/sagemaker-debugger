@@ -8,6 +8,9 @@ import socket
 from pathlib import Path
 from typing import Dict, List
 
+# Third Party
+import numpy as np
+
 # First Party
 from smdebug.core.config_constants import (
     CLAIM_FILENAME,
@@ -20,6 +23,21 @@ from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
 logger = get_logger()
+
+
+def make_numpy_array(x):
+    if isinstance(x, np.ndarray):
+        return x
+    elif np.isscalar(x):
+        return np.array([x])
+    elif isinstance(x, tuple):
+        return np.asarray(x)
+    elif isinstance(x, list):
+        return np.asarray(x)
+    elif isinstance(x, dict):
+        return np.array(x)
+    else:
+        raise TypeError("_make_numpy_array does not support the" " type {}".format(str(type(x))))
 
 
 def ensure_dir(file_path, is_file=True):

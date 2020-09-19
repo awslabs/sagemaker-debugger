@@ -4,9 +4,11 @@ import re
 # Third Party
 import numpy as np
 
+# First Party
+from smdebug.core.utils import make_numpy_array
+
 # Local
 from .proto.summary_pb2 import HistogramProto, Summary
-from .util import make_numpy_array
 
 _INVALID_TAG_CHARACTERS = re.compile(r"[^-/\w\.]")
 
