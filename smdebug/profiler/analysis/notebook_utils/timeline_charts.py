@@ -25,10 +25,12 @@ class TimelineCharts:
         select_dimensions=[".*"],
         select_events=[".*"],
         x=1000,
+        show_workers=True,
     ):
 
         self.select_dimensions = select_dimensions
         self.select_events = select_events
+        self.show_workers = show_workers
 
         # placeholder
         self.sources = {}
@@ -52,10 +54,16 @@ class TimelineCharts:
         self.start = 0  # replace with system_metrics_reader.get_first_available_timestamp()/1000000
         self.system_metrics = self.preprocess_system_metrics(events, system_metrics={})
 
-        if x < self.system_metrics["CPUUtilization"]["total"].shape[0]:
+        min_width = float("inf")
+        for key in self.system_metrics.keys():
+            if key.startswith("CPUUtilization"):
+                width = self.system_metrics[key]["total"].shape[0]
+                if width <= min_width:
+                    min_width = width
+        if x < min_width:
             self.width = x
         else:
-            self.width = self.system_metrics["CPUUtilization"]["total"].shape[0] - 1
+            self.width = min_width - 1
 
         # create plot
         self.create_plot()
@@ -64,13 +72,17 @@ class TimelineCharts:
 
         # read all available system metric events and store them in dict
         for event in events:
-            if event.dimension not in system_metrics:
-                system_metrics[event.dimension] = {}
-                self.available_dimensions.append(event.dimension)
-            if event.name not in system_metrics[event.dimension]:
-                system_metrics[event.dimension][event.name] = []
+            if self.show_workers is True:
+                event_unique_id = f"{event.dimension}-nodeid:{str(event.node_id)}"
+            else:
+                event_unique_id = event.dimension
+            if event_unique_id not in system_metrics:
+                system_metrics[event_unique_id] = {}
+                self.available_dimensions.append(event_unique_id)
+            if event.name not in system_metrics[event_unique_id]:
+                system_metrics[event_unique_id][event.name] = []
                 self.available_events.append(event.name)
-            system_metrics[event.dimension][event.name].append([event.timestamp, event.value])
+            system_metrics[event_unique_id][event.name].append([event.timestamp, event.value])
 
         for dimension in system_metrics:
             for event in system_metrics[dimension]:
@@ -200,8 +212,15 @@ class TimelineCharts:
     def find_time_annotations(self, indexes):
 
         if len(indexes) > 0:
-            begin_timestamp = self.system_metrics["CPUUtilization"]["total"][np.min(indexes), 0]
-            end_timestamp = self.system_metrics["CPUUtilization"]["total"][np.max(indexes), 0]
+            cpu_util = None
+            for key in self.system_metrics.keys():
+                if key.startswith("CPUUtilization"):
+                    width = self.system_metrics[key]["total"].shape[0]
+                    if cpu_util is None or np.min(indexes) <= width <= np.max(indexes):
+                        cpu_util = self.system_metrics[key]
+
+            begin_timestamp = cpu_util["total"][np.min(indexes), 0]
+            end_timestamp = cpu_util["total"][np.max(indexes), 0]
             total_time = end_timestamp - begin_timestamp
             print(
                 f"Selected timerange: {begin_timestamp + self.start} to {end_timestamp + self.start}"
@@ -281,8 +300,15 @@ class TimelineCharts:
     def plot_detailed_profiler_data(self, indexes):
 
         if len(indexes) > 0:
-            begin_timestamp = self.system_metrics["CPUUtilization"]["cpu0"][np.min(indexes), 0]
-            end_timestamp = self.system_metrics["CPUUtilization"]["cpu0"][np.max(indexes), 0]
+            cpu_util = None
+            for key in self.system_metrics.keys():
+                if key.startswith("CPUUtilization"):
+                    width = self.system_metrics[key]["cpu0"].shape[0]
+                    if cpu_util is None or np.min(indexes) <= width <= np.max(indexes):
+                        cpu_util = self.system_metrics[key]
+
+            begin_timestamp = cpu_util["cpu0"][np.min(indexes), 0]
+            end_timestamp = cpu_util["cpu0"][np.max(indexes), 0]
             print(
                 f"Selected timerange: {begin_timestamp + self.start} to {end_timestamp + self.start}"
             )
@@ -408,13 +434,22 @@ class TimelineCharts:
                             event
                         ][self.system_metrics[dimension][event][:, 0].argsort()]
 
-            self.width = self.system_metrics["CPUUtilization"]["total"].shape[0] - 1
+            max_width = 0
+            cpu_util = None
+            for key in self.system_metrics.keys():
+                if key.startswith("CPUUtilization"):
+                    width = self.system_metrics[key]["total"].shape[0]
+                    if cpu_util is None or width >= max_width:
+                        max_width = width
+                        cpu_util = self.system_metrics[key]
+
+            self.width = max_width - 1
 
             if self.width > 1000:
-                min_value = self.system_metrics["CPUUtilization"]["total"][-1000, 0]
+                min_value = cpu_util["total"][-1000, 0]
             else:
-                min_value = self.system_metrics["CPUUtilization"]["total"][-self.width, 0]
-            max_value = self.system_metrics["CPUUtilization"]["total"][-1, 0]
+                min_value = cpu_util["total"][-self.width, 0]
+            max_value = cpu_util["total"][-1, 0]
 
             for figure in self.figures:
                 figure.x_range.start = int(min_value)

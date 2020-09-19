@@ -289,6 +289,8 @@ class PandasFrame:
                         event.value,
                         event.name,
                         event.dimension,
+                        event.node_id,
+                        event.type,
                     ]
                 )
 
@@ -299,7 +301,15 @@ class PandasFrame:
         # create data frame for system metrics
         system_metrics_df = pd.DataFrame(
             system_metrics,
-            columns=["timestamp", "timestamp_us", "value", "system_metric", "dimension"],
+            columns=[
+                "timestamp",
+                "timestamp_us",
+                "value",
+                "system_metric",
+                "dimension",
+                "nodeID",
+                "type",
+            ],
         )
 
         system_metrics_df["timestamp_us"] = system_metrics_df["timestamp_us"] - self.start_time
@@ -352,6 +362,7 @@ class PandasFrame:
                             step,
                             bytes_fetched,
                             event.event_phase,
+                            event.node_id,
                         ]
                     )
                 # read the next chunk of data
@@ -379,6 +390,7 @@ class PandasFrame:
                 "step",
                 "bytes",
                 "process",
+                "nodeID",
             ],
         )
         framework_metrics_df["start_time_us"] = (

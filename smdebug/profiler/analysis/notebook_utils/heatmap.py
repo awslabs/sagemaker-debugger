@@ -23,10 +23,12 @@ class Heatmap:
         select_dimensions=[".*CPU", ".*GPU", ".*Memory"],
         select_events=[".*"],
         plot_height=350,
+        show_workers=True,
     ):
 
         self.select_dimensions = select_dimensions
         self.select_events = select_events
+        self.show_workers = show_workers
         self.metrics_reader = metrics_reader
         self.available_dimensions = []
         self.available_events = []
@@ -54,13 +56,17 @@ class Heatmap:
 
         # read all available system metric events and store them in dict
         for event in events:
-            if event.dimension not in system_metrics:
-                system_metrics[event.dimension] = {}
-                self.available_dimensions.append(event.dimension)
-            if event.name not in system_metrics[event.dimension]:
-                system_metrics[event.dimension][event.name] = []
+            if self.show_workers is True:
+                event_unique_id = f"{event.dimension}-nodeid:{str(event.node_id)}"
+            else:
+                event_unique_id = event.dimension
+            if event_unique_id not in system_metrics:
+                system_metrics[event_unique_id] = {}
+                self.available_dimensions.append(event_unique_id)
+            if event.name not in system_metrics[event_unique_id]:
+                system_metrics[event_unique_id][event.name] = []
                 self.available_events.append(event.name)
-            system_metrics[event.dimension][event.name].append([event.timestamp, event.value])
+            system_metrics[event_unique_id][event.name].append([event.timestamp, event.value])
 
         for dimension in system_metrics:
             for event in system_metrics[dimension]:
@@ -104,7 +110,14 @@ class Heatmap:
         yaxis = {}
 
         # number of datapoints
-        self.width = self.system_metrics["CPUUtilization"]["total"].shape[0]
+        max_width = 0
+        for key in self.system_metrics.keys():
+            if key.startswith("CPUUtilization"):
+                width = self.system_metrics[key]["total"].shape[0]
+                if width >= max_width:
+                    max_width = width
+
+        self.width = max_width
 
         for dimension in self.filtered_dimensions:
             for event in self.filtered_events:
@@ -183,7 +196,14 @@ class Heatmap:
                                 new_system_metrics[dimension][event],
                             ]
                         )
-            self.width = self.system_metrics["CPUUtilization"]["cpu0"].shape[0]
+            max_width = 0
+            for key in self.system_metrics.keys():
+                if key.startswith("CPUUtilization"):
+                    width = self.system_metrics[key]["cpu0"].shape[0]
+                    if width >= max_width:
+                        max_width = width
+
+            self.width = max_width
 
             tmp = []
             metric_names = []

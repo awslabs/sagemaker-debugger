@@ -1,5 +1,4 @@
 # Standard Library
-from collections import defaultdict
 from enum import Enum
 
 # Third Party
@@ -27,12 +26,17 @@ class StatsBy(Enum):
 class Resource(Enum):
     """
     Enum to specify the device/resource specified in system metrics
-    TODO: Add other resources as system metrics are updated
     """
 
     CPU = "cpu"
 
     GPU = "gpu"
+
+    IO = "i/o"
+
+    NETWORK = "network"
+
+    MEMORY = "memory"
 
 
 # Container class for job stats
@@ -61,6 +65,37 @@ class PandasFrameAnalysis:
 
         self.framework_metrics_df["duration_us"] = (
             self.framework_metrics_df["end_time_us"] - self.framework_metrics_df["start_time_us"]
+        )
+        self._get_step_numbers()
+
+    def _get_step_time_mapping(self):
+        phase_metrics_df = self.framework_metrics_df[
+            self.framework_metrics_df["framework_metric"].str.contains("Step:ModeKeys")
+        ]
+
+        # multi-processing
+        phase_metrics_df = phase_metrics_df[phase_metrics_df["step"] != -1]
+        phase_metrics_df = (
+            phase_metrics_df.groupby(["step"])
+            .agg({"start_time_us": "min", "end_time_us": "max"})
+            .reset_index()
+        )
+        self.step_time_df = phase_metrics_df
+
+    def _get_step_numbers(self):
+        self._get_step_time_mapping()
+
+        def helper(x):
+            if x["step"] != -1:
+                return x["step"]
+            result = self.step_time_df[
+                (self.step_time_df["start_time_us"] < x["start_time_us"])
+                & (self.step_time_df["end_time_us"] > x["end_time_us"])
+            ]
+            return result["step"].iloc[0]
+
+        self.framework_metrics_df["step"] = self.framework_metrics_df.apply(
+            lambda x: helper(x), axis=1
         )
 
     def get_job_statistics(self):
@@ -116,9 +151,19 @@ class PandasFrameAnalysis:
         by = by.value
         step_stats = None
         if by in [StatsBy.FRAMEWORK_METRICS.value, StatsBy.PROCESS.value]:
-            # TODO: Consider that some events may be occurring in parallel
+            # TODO: Consider that some processes may be optimized.
+            # For example: data pipeline executed in parallel.
+            phase_metrics_df = (
+                self.framework_metrics_df.groupby(["step", by])
+                .agg({"start_time_us": "min", "end_time_us": "max"})
+                .reset_index()
+            )
+            phase_metrics_df["duration_us"] = (
+                phase_metrics_df["end_time_us"] - phase_metrics_df["start_time_us"]
+            )
+
             step_stats = (
-                self.framework_metrics_df.groupby([by])["duration_us"]
+                phase_metrics_df.groupby([by])["duration_us"]
                 .describe(percentiles=[0.5, 0.95, 0.99])
                 .unstack()
                 .reset_index()
@@ -131,6 +176,17 @@ class PandasFrameAnalysis:
             phase_metrics_df = self.framework_metrics_df[
                 self.framework_metrics_df["framework_metric"].str.contains("Step:ModeKeys")
             ]
+
+            # multi-processing
+            phase_metrics_df = (
+                phase_metrics_df.groupby(["step", "framework_metric"])
+                .agg({"start_time_us": "min", "end_time_us": "max"})
+                .reset_index()
+            )
+            phase_metrics_df["duration_us"] = (
+                phase_metrics_df["end_time_us"] - phase_metrics_df["start_time_us"]
+            )
+
             step_stats = (
                 phase_metrics_df.groupby(["framework_metric"])["duration_us"]
                 .describe(percentiles=[0.5, 0.95, 0.99])
@@ -190,7 +246,13 @@ class PandasFrameAnalysis:
             return None
 
         if resource is None:
-            resources = [Resource.CPU.value, Resource.GPU.value]
+            resources = [
+                Resource.CPU.value,
+                Resource.GPU.value,
+                Resource.MEMORY.value,
+                Resource.IO.value,
+                Resource.NETWORK.value,
+            ]
         else:
             if isinstance(resource, Resource):
                 resource = [resource]
@@ -201,103 +263,112 @@ class PandasFrameAnalysis:
             self._get_utilization_phase_by_time_interval(interval_df)
 
         df_for_concat = []
+        columns = [
+            "Resource",
+            "nodeID",
+            "utilization_mean",
+            "utilization_min",
+            "utilization_max",
+            "utilization_p50",
+            "utilization_p95",
+            "utilization_p99",
+        ]
         for resrc in resources:
             sys_resrc_df = self.sys_metrics_df[
-                self.sys_metrics_df["system_metric"].str.contains(resrc)
+                self.sys_metrics_df["type"].str.contains(resrc)
             ].reset_index()
+            if sys_resrc_df.empty:
+                # there's no data for this resource
+                continue
             if by == StatsBy.TRAINING_PHASE:
-                sys_resrc_df = (
-                    sys_resrc_df.groupby("phase")["value"]
-                    .describe(percentiles=[0.5, 0.95, 0.99])
-                    .unstack()
-                    .reset_index()
-                )
-                sys_resrc_df = sys_resrc_df.pivot(
-                    index="phase", columns="level_0", values=0
-                ).reset_index()
-                sys_resrc_df.columns.name = ""
-                sys_resrc_df = sys_resrc_df.drop(["count", "std"], axis="columns")
-                sys_resrc_df = sys_resrc_df[["phase", "mean", "min", "max", "50%", "95%", "99%"]]
-                sys_resrc_df.insert(0, "Resource", resrc)
-                df_for_concat.append(sys_resrc_df)
-                columns = [
-                    "Resource",
-                    "Training_phase",
-                    "utilization_mean_%",
-                    "utilization_min_%",
-                    "utilization_max_%",
-                    "utilization_p50_%",
-                    "utilization_p95_%",
-                    "utilization_p99_%",
-                ]
+                groupby = first_column_name = "phase"
             else:
-                sys_resrc_df = (
-                    sys_resrc_df.groupby(lambda _: resrc)["value"]
-                    .describe(percentiles=[0.5, 0.95, 0.99])
-                    .unstack()
-                    .reset_index()
-                )
-                sys_resrc_df = sys_resrc_df.pivot(
-                    index="level_1", columns="level_0", values=0
-                ).reset_index()
-                sys_resrc_df.columns.name = ""
-                sys_resrc_df = sys_resrc_df.drop(["count", "std"], axis="columns")
-                sys_resrc_df = sys_resrc_df[["level_1", "mean", "min", "max", "50%", "95%", "99%"]]
-                df_for_concat.append(sys_resrc_df)
-                columns = [
-                    "Resource",
-                    "utilization_mean_%",
-                    "utilization_min_%",
-                    "utilization_max_%",
-                    "utilization_p50_%",
-                    "utilization_p95_%",
-                    "utilization_p99_%",
-                ]
+                groupby = lambda _: resrc
+                first_column_name = "level_0"
 
+            sys_resrc_df = (
+                sys_resrc_df.groupby([groupby, "nodeID"])["value"]
+                .describe(percentiles=[0.5, 0.95, 0.99])
+                .reset_index()
+            )
+            sys_resrc_df.columns.name = ""
+            sys_resrc_df = sys_resrc_df.drop(["count", "std"], axis="columns")
+            sys_resrc_df = sys_resrc_df[
+                [first_column_name, "nodeID", "mean", "min", "max", "50%", "95%", "99%"]
+            ]
+
+            if by == StatsBy.TRAINING_PHASE:
+                sys_resrc_df.insert(0, "Resource", resrc)
+
+            df_for_concat.append(sys_resrc_df)
+
+        if by == StatsBy.TRAINING_PHASE:
+            columns.insert(1, "Training_phase")
         util_stats = pd.concat(df_for_concat).reset_index(drop=True)
         util_stats.columns = columns
         return util_stats
 
-    def get_device_usage_stats(self, device=Resource.CPU, utilization_ranges=None):
+    def get_device_usage_stats(self, device=None, utilization_ranges=None):
         """
         Find the usage spread based on utilization ranges. If ranges are not provided,
         >90, 10-90, <10 are considered
-        :param device: Resource.cpu or Resource.gpu. Type: Resource
+        :param device: List of Resource.cpu, Resource.gpu. Type: Resource
         :param utilization_ranges: list of tuples
         """
+        if (device is not None) and (not isinstance(device, (list, Resource))):
+            get_logger("smdebug-profiler").info(f"{device} should be of type list or Resource")
+            return pd.DataFrame()
+
+        if device is None:
+            resources = [Resource.CPU.value, Resource.GPU.value]
+        else:
+            if isinstance(device, Resource):
+                device = [device]
+            resources = [x.value for x in device]
+
         if utilization_ranges is None:
             utilization_ranges = [(90, 100), (10, 90), (0, 10)]
         if not isinstance(utilization_ranges, list):
             get_logger("smdebug-profiler").info(
                 f"{utilization_ranges} should be a list of tuples containing the ranges"
             )
-            return {}
+            return pd.DataFrame()
         if len(utilization_ranges) == 0:
             get_logger("smdebug-profiler").info(f"{utilization_ranges} cannot be empty")
-            return {}
-        if not isinstance(device, Resource):
-            get_logger("smdebug-profiler").info(f"{device} should be of type Resource")
-            return {}
-        device = device.value
-        device_sys_df = self.sys_metrics_df[
-            self.sys_metrics_df["system_metric"].str.contains(device)
-        ].reset_index()
+            return pd.DataFrame()
+        if any(len(utilization_range) != 2 for utilization_range in utilization_ranges):
+            get_logger("smdebug-profiler").info(
+                f"Each interval in {utilization_ranges} must have a start and end value"
+            )
+            return pd.DataFrame()
 
-        usage_dict = defaultdict(int)
-        for utilization_range in utilization_ranges:
-            if len(utilization_range) != 2:
-                get_logger("smdebug-profiler").info(
-                    f"Invalid range {utilization_range} for usage stats"
-                )
-                return {}
-            else:
-                start, end = utilization_range
-                between_range = len(
-                    device_sys_df[(device_sys_df["value"].between(start, end, inclusive=True))]
-                )
+        def helper(x, util_ranges):
+            for start, end in util_ranges:
+                if start <= float(x) <= end:
+                    return (start, end)
+            return ()
 
-            usage_dict[utilization_range] = between_range
-        return usage_dict
+        self.sys_metrics_df["ranges"] = self.sys_metrics_df.apply(
+            lambda x: helper(x["value"], utilization_ranges), axis=1
+        )
+        device_sys_df = self.sys_metrics_df[self.sys_metrics_df["ranges"] != ()]
+
+        if device_sys_df.empty:
+            return device_sys_df
+
+        usage_stats = device_sys_df[
+            device_sys_df["type"].str.contains("|".join(resources)).any(level=0)
+        ]
+
+        df_grouped = (
+            usage_stats.groupby(["type", "nodeID", "ranges"])["ranges"].describe().reset_index()
+        )
+        df_grouped = df_grouped.drop(["unique", "top", "freq"], axis="columns")
+        df_grouped = (
+            df_grouped.set_index(["type", "nodeID"]).pivot(columns="ranges")["count"].reset_index()
+        )
+        df_grouped = df_grouped.fillna(0)
+        return df_grouped
 
     def get_training_phase_intervals(self, phase=None):
         """

@@ -29,7 +29,14 @@ class MetricsHistogram:
     @param select_metrics is array of metrics to be selected, Default ["cpu", "gpu"]
     """
 
-    def plot(self, starttime=0, endtime=None, select_dimensions=[".*"], select_events=[".*"]):
+    def plot(
+        self,
+        starttime=0,
+        endtime=None,
+        select_dimensions=[".*"],
+        select_events=[".*"],
+        show_workers=True,
+    ):
         if endtime == None:
             endtime = self.metrics_reader.get_timestamp_of_latest_available_file()
         all_events = self.metrics_reader.get_events(starttime, endtime)
@@ -39,6 +46,7 @@ class MetricsHistogram:
         self.last_timestamp = endtime
         self.select_dimensions = select_dimensions
         self.select_events = select_events
+        self.show_workers = show_workers
         self.system_metrics = self.preprocess_system_metrics(
             all_events=all_events, system_metrics={}
         )
@@ -52,13 +60,17 @@ class MetricsHistogram:
 
         # read all available system metric events and store them in dict
         for event in all_events:
-            if event.dimension not in system_metrics:
-                system_metrics[event.dimension] = {}
-                self.available_dimensions.append(event.dimension)
-            if event.name not in system_metrics[event.dimension]:
-                system_metrics[event.dimension][event.name] = []
+            if self.show_workers is True:
+                event_unique_id = f"{event.dimension}-nodeid:{str(event.node_id)}"
+            else:
+                event_unique_id = event.dimension
+            if event_unique_id not in system_metrics:
+                system_metrics[event_unique_id] = {}
+                self.available_dimensions.append(event_unique_id)
+            if event.name not in system_metrics[event_unique_id]:
+                system_metrics[event_unique_id][event.name] = []
                 self.available_events.append(event.name)
-            system_metrics[event.dimension][event.name].append(event.value)
+            system_metrics[event_unique_id][event.name].append(event.value)
 
         # compute total utilization per event dimension
         for event_dimension in system_metrics:
