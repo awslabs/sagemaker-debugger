@@ -73,7 +73,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
-
         # supports_tf_logs property was introduced in TF 2.3.0
         # it indicates to the framework that the callback is not
         # limited to reading only numpy logs
