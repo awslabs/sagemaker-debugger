@@ -196,13 +196,16 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
 
     def parse_event_files(self, event_files):
         file_read_requests = []
+        event_files_to_read = []
+
         for event_file in event_files:
             if event_file not in self._parsed_files:
                 self.logger.debug(f"Will request s3 object {event_file}")
+                event_files_to_read.append(event_file)
                 file_read_requests.append(ReadObjectRequest(path=event_file))
 
         event_data_list = S3Handler.get_objects(file_read_requests)
-        for event_data, event_file in zip(event_data_list, event_files):
+        for event_data, event_file in zip(event_data_list, event_files_to_read):
             if event_file.endswith("json.gz") and is_valid_tfprof_tracefilename(event_file):
                 self._get_event_parser(event_file).read_events_from_file(event_file)
                 self._parsed_files.add(event_file)

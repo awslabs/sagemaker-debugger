@@ -142,12 +142,15 @@ class S3SystemMetricsReader(SystemMetricsReader):
 
     def parse_event_files(self, event_files):
         file_read_requests = []
+        event_files_to_read = []
+
         for event_file in event_files:
             if event_file not in self._parsed_files:
+                event_files_to_read.append(event_file)
                 file_read_requests.append(ReadObjectRequest(path=event_file))
 
         event_data_list = S3Handler.get_objects(file_read_requests)
-        for event_data, event_file in zip(event_data_list, event_files):
+        for event_data, event_file in zip(event_data_list, event_files_to_read):
             event_string = event_data.decode("utf-8")
             event_items = event_string.split("\n")
             event_items.remove("")

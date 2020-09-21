@@ -38,7 +38,7 @@ def test_tensorboardprofiler_events(
     assert len(completed_event_list) == 798
 
     start_time_sorted = t_events.get_events_start_time_sorted()
-    start_time_for_first_event = start_time_sorted[0].start_time / 1000
+    start_time_for_first_event = start_time_sorted[0].start_time
     relative_start_time = start_time_for_first_event - int(start_time_micros)
     print(f"The first event started at {relative_start_time}")
     assert relative_start_time == 21307.0
@@ -47,7 +47,7 @@ def test_tensorboardprofiler_events(
     end_time_for_last_event = end_time_sorted[-1].end_time
     pid_last_event = end_time_sorted[-1].pid
     tid_last_event = end_time_sorted[-1].tid
-    relative_end_time = (end_time_for_last_event / 1000) - int(start_time_micros)
+    relative_end_time = end_time_for_last_event - int(start_time_micros)
     print(f"The last event ended at {relative_end_time}")
     assert relative_end_time == 293205.0
 

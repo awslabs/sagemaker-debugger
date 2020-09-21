@@ -9,6 +9,7 @@ from datetime import datetime
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     DEFAULT_PREFIX,
+    MERGEDTIMELINE_SUFFIX,
     PYTHONTIMELINE_SUFFIX,
     TRACE_DIRECTORY_FORMAT,
 )
@@ -208,6 +209,16 @@ class TraceFileLocation:
         stats_dir = os.path.join(base_folder, "framework", framework, profiler_name, folder_name)
         ensure_dir(stats_dir, is_file=False)
         return stats_dir
+
+    @staticmethod
+    def get_merged_trace_file_location(base_dir, timestamp_in_us):
+        env_base_location = base_dir
+        timestamp = int(round(timestamp_in_us))
+        worker_id = get_node_id()
+        file_path = os.path.join(
+            env_base_location, str(timestamp) + "_" + worker_id + "_" + MERGEDTIMELINE_SUFFIX
+        )
+        return file_path
 
 
 class IndexFileLocationUtils:

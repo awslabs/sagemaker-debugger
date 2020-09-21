@@ -38,7 +38,7 @@ class HvdTraceFileRotation:
             )
 
             # default training phase name
-            self.training_phase = ""
+            self.training_phase = {}
 
             # timeline writer for writing trace files
             self.tl_writer = TimelineFileWriter(
@@ -82,8 +82,10 @@ class HvdTraceFileRotation:
 
         # get the operation name from the event string
         op_name = event.get("name", "")
+        # get the event pid
+        pid = event.get("pid", 0)
 
-        return op_name, timestamp_in_secs, duration_in_secs, args
+        return op_name, timestamp_in_secs, duration_in_secs, pid, args
 
     def _convert_monotonic_to_epoch_time(self, timestamp_in_us):
         """
@@ -138,15 +140,15 @@ class HvdTraceFileRotation:
                             # metadata event for each event
                             if event["ph"] == "M":
                                 if "name" in event["args"]:
-                                    self.training_phase = event["args"]["name"]
+                                    self.training_phase[event["pid"]] = event["args"]["name"]
                             else:
                                 # parse the event JSON string
-                                op_name, timestamp_in_secs, duration, args = self._parse_trace_event(
+                                op_name, timestamp_in_secs, duration, pid, args = self._parse_trace_event(
                                     event
                                 )
                                 # write complete, duration, and instant events
                                 self.tl_writer.write_trace_events(
-                                    training_phase=self.training_phase,
+                                    training_phase=self.training_phase[pid],
                                     op_name=op_name,
                                     phase=event["ph"],
                                     timestamp=timestamp_in_secs,

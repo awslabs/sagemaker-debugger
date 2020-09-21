@@ -75,7 +75,9 @@ class TimelineRecord:
         abs_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
         self.rel_ts_micros = abs_ts_micros - self.base_start_time
         self.duration = (
-            duration if duration else int(round(time.time() * CONVERT_TO_MICROSECS) - abs_ts_micros)
+            duration
+            if duration is not None
+            else int(round(time.time() * CONVERT_TO_MICROSECS) - abs_ts_micros)
         )
         self.event_end_ts_micros = abs_ts_micros + self.duration
         self.pid = 0

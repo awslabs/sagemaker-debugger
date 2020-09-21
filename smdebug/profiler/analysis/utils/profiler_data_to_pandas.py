@@ -6,11 +6,10 @@ from smdebug.profiler.algorithm_metrics_reader import (
     LocalAlgorithmMetricsReader,
     S3AlgorithmMetricsReader,
 )
-from smdebug.profiler.profiler_constants import CONVERT_MICRO_TO_NS, CONVERT_TO_MICROSECS
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.system_metrics_reader import LocalSystemMetricsReader, S3SystemMetricsReader
 from smdebug.profiler.utils import (
     convert_utc_datetime_to_microseconds,
-    ns_since_epoch_to_human_readable_time,
     us_since_epoch_to_human_readable_time,
 )
 
@@ -135,10 +134,7 @@ class PandasFrame:
                         and event.event_phase not in selected_framework_metrics
                     ):
                         continue
-                    if (
-                        event.start_time / CONVERT_MICRO_TO_NS < timestamp
-                        and event.end_time / CONVERT_MICRO_TO_NS > timestamp
-                    ):
+                    if event.start_time < timestamp and event.end_time > timestamp:
                         if event.event_phase not in results:
                             results[event.event_phase] = 0
                         results[event.event_phase] += event.end_time - event.start_time
@@ -215,10 +211,7 @@ class PandasFrame:
                         and event.event_phase not in selected_framework_metrics
                     ):
                         continue
-                    if (
-                        event.end_time / CONVERT_MICRO_TO_NS >= begin_timestamp
-                        and event.start_time / CONVERT_MICRO_TO_NS <= end_timestamp
-                    ):
+                    if event.end_time >= begin_timestamp and event.start_time <= end_timestamp:
                         if "Step" not in event.event_name:
                             if event.event_phase not in framework_metrics:
                                 framework_metrics[event.event_phase] = 0
@@ -352,10 +345,10 @@ class PandasFrame:
 
                     framework_metrics.append(
                         [
-                            ns_since_epoch_to_human_readable_time(event.start_time),
-                            ns_since_epoch_to_human_readable_time(event.end_time),
-                            event.start_time / CONVERT_MICRO_TO_NS,
-                            event.end_time / CONVERT_MICRO_TO_NS,
+                            us_since_epoch_to_human_readable_time(event.start_time),
+                            us_since_epoch_to_human_readable_time(event.end_time),
+                            event.start_time,
+                            event.end_time,
                             event.tid,
                             event.pid,
                             name,

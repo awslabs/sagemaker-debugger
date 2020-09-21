@@ -43,9 +43,9 @@ def test_smprofiler_events(
     start_time_sorted = t_events.get_events_start_time_sorted()
     start_time_for_first_event = start_time_sorted[0].start_time
     print(f"The first event started at {start_time_for_first_event}")
-    assert start_time_for_first_event == 1589314018458743000
+    assert start_time_for_first_event == 1589314018458743
 
     end_time_sorted = t_events.get_events_end_time_sorted()
     end_time_for_last_event = end_time_sorted[-1].end_time
     print(f"The first event started at {end_time_for_last_event}")
-    assert end_time_for_last_event == 1589314018481947000
+    assert end_time_for_last_event == 1589314018481947

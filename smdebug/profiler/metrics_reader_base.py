@@ -3,12 +3,18 @@
 import bisect
 import os
 import re
+import time
 
 # First Party
 from smdebug.core.access_layer.s3handler import S3Handler, is_s3
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import list_files_in_directory
-from smdebug.profiler.profiler_constants import ENV_TRAIILING_DURATION, TRAILING_DURATION_DEFAULT
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    ENV_TRAIILING_DURATION,
+    PYTHONTIMELINE_SUFFIX,
+    TRAILING_DURATION_DEFAULT,
+)
 from smdebug.profiler.utils import (
     TimeUnits,
     convert_utc_timestamp_to_microseconds,
@@ -106,11 +112,25 @@ class MetricsReaderBase:
     TODO: Implement blocking call to wait for files to be available for download.
     """
 
-    def get_events(self, start_time, end_time, unit=TimeUnits.MICROSECONDS, event_type=None):
+    def get_events(
+        self,
+        start_time,
+        end_time,
+        unit=TimeUnits.MICROSECONDS,
+        event_type=None,
+        file_suffix_filter=None,
+    ):
         start_time = convert_utc_timestamp_to_microseconds(start_time, unit)
         end_time = convert_utc_timestamp_to_microseconds(end_time, unit)
 
-        event_files = self._get_event_files_in_the_range(start_time, end_time)
+        all_event_files = self._get_event_files_in_the_range(start_time, end_time)
+        event_files = list()
+        if file_suffix_filter is None:
+            event_files = all_event_files
+        else:
+            for eventfile in all_event_files:
+                if any([eventfile.endswith(suffix) for suffix in file_suffix_filter]):
+                    event_files.append(eventfile)
         self.logger.info(f"Getting {len(event_files)} event files")
         self.logger.debug(f"Getting event files : {event_files} ")
 
@@ -144,6 +164,49 @@ class MetricsReaderBase:
                     self._parsed_files = set()
 
         return result
+
+    def _get_time_interval_for_step(self, start_step, end_step):
+        """
+        Use python timeline files to get time interval for a step interval
+        """
+        event_list = self.get_events(
+            0,
+            time.time() * CONVERT_TO_MICROSECS,
+            TimeUnits.MICROSECONDS,
+            file_suffix_filter=[PYTHONTIMELINE_SUFFIX],
+        )
+
+        start_time_us = end_time_us = None
+        event_list.sort(key=lambda x: x.start_time)
+        for event in event_list:
+            if (
+                hasattr(event, "event_args")
+                and event.event_args is not None
+                and "step_num" in event.event_args
+            ):
+                # get the start time of start step
+                if start_time_us is None and start_step == int(event.event_args["step_num"]):
+                    start_time_us = event.start_time
+                # get the time just before the start of end_step
+                if end_time_us is None and (end_step == int(event.event_args["step_num"])):
+                    end_time_us = event.start_time - 1
+            if start_time_us is not None and end_time_us is not None:
+                break
+
+        if start_time_us is None or end_time_us is None:
+            get_logger("smdebug-profiler").info(f"Invalid step interval [{start_step}, {end_step}]")
+            start_time_us = end_time_us = 0
+        return start_time_us, end_time_us
+
+    def get_events_by_step(self, start_step, end_step, event_type=None, file_suffix_filter=None):
+        """
+        Get list of events by step interval
+        """
+        start_time, end_time = self._get_time_interval_for_step(start_step, end_step)
+
+        return self.get_events(
+            start_time, end_time, TimeUnits.MICROSECONDS, event_type, file_suffix_filter
+        )
 
     """
     It is possible that event files from different nodes to arrive in S3 in different order. For example, Even if t1

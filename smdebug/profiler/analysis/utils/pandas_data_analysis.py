@@ -105,9 +105,9 @@ class PandasFrameAnalysis:
         job_statistics = JobStats()
         job_statistics["start_time"] = min(self.sys_metrics_df["timestamp"])
         job_statistics["end_time"] = max(self.sys_metrics_df["timestamp"])
-        job_statistics["job_duration"] = (
-            max(self.sys_metrics_df["timestamp_us"]) - min(self.sys_metrics_df["timestamp_us"])
-        ) / 1000
+        job_statistics["job_duration"] = max(self.sys_metrics_df["timestamp_us"]) - min(
+            self.sys_metrics_df["timestamp_us"]
+        )
         step_0 = self.framework_metrics_df[
             (self.framework_metrics_df["step"] == 0)
             & (
@@ -120,11 +120,11 @@ class PandasFrameAnalysis:
         job_statistics["training_loop_end"] = max(self.framework_metrics_df["end_time"])
         job_statistics["training_loop_duration"] = (
             max(self.framework_metrics_df["end_time_us"]) - step_0["start_time_us"]
-        ) / 1000
-        job_statistics["initialization"] = step_0["start_time_us"][0] / 1000
-        job_statistics["finalization"] = (
-            max(self.sys_metrics_df["timestamp_us"]) - max(self.framework_metrics_df["end_time_us"])
-        ) / 1000
+        )
+        job_statistics["initialization"] = step_0["start_time_us"][0]
+        job_statistics["finalization"] = max(self.sys_metrics_df["timestamp_us"]) - max(
+            self.framework_metrics_df["end_time_us"]
+        )
         job_statistics["initialization_%"] = (
             job_statistics["initialization"] / job_statistics["job_duration"]
         ) * 100

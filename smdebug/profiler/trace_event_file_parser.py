@@ -7,7 +7,9 @@ from datetime import datetime
 from smdebug.core.logger import get_logger
 from smdebug.profiler.utils import (
     TimeUnits,
+    convert_utc_datetime_to_microseconds,
     convert_utc_datetime_to_nanoseconds,
+    convert_utc_timestamp_to_microseconds,
     convert_utc_timestamp_to_nanoseconds,
     get_node_id_from_tracefilename,
 )
@@ -42,7 +44,19 @@ class ProcessInfo:
 
 class TraceEvent:
     def __init__(
-        self, ts, name, dur, phase_pid, phase_tid, event_args, node_id, event_phase="", pid=0, tid=0
+        self,
+        ts,
+        name,
+        dur,
+        phase_pid,
+        phase_tid,
+        event_args,
+        node_id,
+        phase,
+        event_phase="",
+        pid=0,
+        tid=0,
+        process_info=None,
     ):
         self.start_time = ts
         self.event_name = name
@@ -58,8 +72,37 @@ class TraceEvent:
         self.tid = tid
         self.event_args = event_args
         self.node_id = node_id
+        self.phase = phase
         # the phase name this event belongs to, this can also come from self._processes[phase_pid].name
         self.event_phase = event_phase
+        self.process_info = process_info
+
+    def to_json(self):
+        json_dict = {
+            "name": self.event_name,
+            "pid": self.pid,
+            "tid": self.tid,
+            "ph": self.phase,
+            "ts": self.start_time,
+        }
+
+        # handle Instant event
+        if self.phase == "i":
+            if self.event_args:
+                # Instant events have a field unique to them called scope.
+                # scope can be "g" - global, "p" - process, "t" - thread.
+                # parsing this value that is being passed as args.
+                s = self.event_args["s"] if "s" in self.event_args else "t"
+                json_dict.update({"s": s})
+                if "s" in self.event_args:
+                    self.event_args.pop("s")
+        elif self.phase == "X":
+            json_dict.update({"dur": self.duration})
+
+        if self.event_args:
+            json_dict["args"] = self.event_args
+
+        return json.dumps(json_dict)
 
 
 class TraceEventParser:
@@ -75,9 +118,6 @@ class TraceEventParser:
         """
         self._pid_stacks = dict()
         self._start_timestamp = 0
-        self._start_time_known = False
-        # The timestamp in trace events are in micro seconds, we multiply by 1000 to convert to ns
-        self._timescale_multiplier_for_ns = 1000
         self.logger = get_logger("smdebug-profiler")
 
     def read_trace_file(self):
@@ -130,13 +170,18 @@ class TraceEventParser:
 
     def _populate_start_time(self, event):
         event_args = event["args"] if "args" in event else None
-        if self._start_time_known is False:
-            if event_args is None:
+        if event_args is None:
+            return
+        # the start time since micros is set for each trace event parser type.
+        # in cases such as multiprocessing, files of the same type may have
+        # different start times. updating start time here if it is different from
+        # previous file that was read.
+        if "start_time_since_epoch_in_micros" in event_args:
+            start_time_in_us = event_args["start_time_since_epoch_in_micros"]
+            if self._start_timestamp == start_time_in_us:
                 return
-            if "start_time_since_epoch_in_micros" in event_args:
-                self._start_timestamp = event_args["start_time_since_epoch_in_micros"]
-                self._start_time_known = True
-                self.logger.info(f"Start time for events in uSeconds = {self._start_timestamp}")
+            self._start_timestamp = start_time_in_us
+            self.logger.info(f"Start time for events in uSeconds = {self._start_timestamp}")
 
     def _read_event(self, event, node_id=""):
         if "ph" not in event:
@@ -148,9 +193,9 @@ class TraceEventParser:
             self._populate_start_time(event)
         if phase_type == "X":
             # In nano seconds
-            start_time = (event["ts"] + self._start_timestamp) * self._timescale_multiplier_for_ns
+            start_time = event["ts"] + self._start_timestamp
             # In nano seconds
-            dur = event["dur"] * self._timescale_multiplier_for_ns
+            dur = event["dur"]
             name = event["name"]
             pid = phase_pid = event["pid"]  # this is phase pid
             if "tid" in event:
@@ -184,9 +229,11 @@ class TraceEventParser:
                 phase_tid,
                 event_args,
                 node_id,
+                phase_type,
                 phase_name,
                 pid,
                 tid,
+                self._processes[phase_pid],
             )
             self._trace_events.append(t_event)
         # TODO ignoring B and E events for now. Need to check to handle it
@@ -202,10 +249,8 @@ class TraceEventParser:
             else:
                 b_event = self._pid_stacks[pid][-1]
                 self._pid_stacks[pid].pop()
-                start_time = (
-                    b_event["ts"] + self._start_timestamp
-                ) * self._timescale_multiplier_for_ns
-                end_time = (event["ts"] + self._start_timestamp) * self._timescale_multiplier_for_ns
+                start_time = b_event["ts"] + self._start_timestamp
+                end_time = event["ts"] + self._start_timestamp
                 duration = end_time - start_time
                 if duration < 0:
                     self.logger.error(
@@ -225,7 +270,9 @@ class TraceEventParser:
                     tid,
                     event_args,
                     node_id,
+                    "X",
                     event_phase=self._processes[pid].name,
+                    process_info=self._processes[pid],
                 )
                 self._trace_events.append(t_event)
 
@@ -252,14 +299,14 @@ class TraceEventParser:
     """
 
     def get_events_within_time_range(self, start_time, end_time, unit=TimeUnits.MICROSECONDS):
-        start_time_nanoseconds = convert_utc_timestamp_to_nanoseconds(start_time, unit)
-        end_time_nanoseconds = convert_utc_timestamp_to_nanoseconds(end_time, unit)
+        start_time_microseconds = convert_utc_timestamp_to_microseconds(start_time, unit)
+        end_time_microseconds = convert_utc_timestamp_to_microseconds(end_time, unit)
         result_events = list()
         for x_event in self._trace_events:
             # event finished before start time or event started after the end time
             if (
-                x_event.end_time < start_time_nanoseconds
-                or end_time_nanoseconds < x_event.start_time
+                x_event.end_time < start_time_microseconds
+                or end_time_microseconds < x_event.start_time
             ):
                 continue
             result_events.append(x_event)
@@ -277,13 +324,13 @@ class TraceEventParser:
         The start and end time can be specified datetime objects.
         The events that are in progress during these boundaries are not included.
         """
-        start_time_nanoseconds = end_time_nanoseconds = 0
+        start_time_microseconds = end_time_microseconds = 0
         if start_time.__class__ is datetime:
-            start_time_nanoseconds = convert_utc_datetime_to_nanoseconds(start_time)
+            start_time_microseconds = convert_utc_datetime_to_microseconds(start_time)
         if end_time.__class__ is datetime:
-            end_time_nanoseconds = convert_utc_datetime_to_nanoseconds(end_time)
+            end_time_microseconds = convert_utc_datetime_to_microseconds(end_time)
         return self.get_events_within_time_range(
-            start_time_nanoseconds, end_time_nanoseconds, unit=TimeUnits.NANOSECONDS
+            start_time_microseconds, end_time_microseconds, unit=TimeUnits.MICROSECONDS
         )
 
     def get_process_info(self, process_id):
