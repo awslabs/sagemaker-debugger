@@ -15,11 +15,10 @@ def rw(path):
     Checks that we can save data and read it back the way it was
     """
     with FileWriter(trial_dir=path + "/my_trial", step=20, worker="algo-1") as fw:
-        fname = fw.name()
-        print(f"Saving data in {fname}")
         for i in range(10):
             data = np.ones(shape=(4, 4), dtype=np.float32) * i
             fw.write_tensor(tdata=data, tname=f"foo_{i}")
+        fname = fw.name()
 
     fr = FileReader(fname=fname)
     for i, ts in enumerate(fr.read_tensors()):
@@ -47,17 +46,14 @@ def test_s3():
     key_name = f"outputs/core-tests-{uuid.uuid4()}"
     # sagemaker-us-east-1-722321484884
     location = "s3://{}/{}".format(bucket_name, key_name)
-    print("Saving to Location")
     rw(location)
 
 
 def test_string():
     with FileWriter(trial_dir="/tmp/ts_output/my_trial", step=20, worker="algo-1") as fw:
-        fname = fw.name()
-        print(f"Saving string data in {fname}")
         s_written = np.array(["foo", "barz"])
         fw.write_tensor(tdata=s_written, tname=f"foo_string")
-
+        fname = fw.name()
     fr = FileReader(fname=fname)
     read = list(fr.read_tensors())
     assert len(read) == 1

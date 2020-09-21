@@ -24,6 +24,18 @@ class TensorLocation:
         return {"tensorname": self.tensorname, "start_idx": self.start_idx, "length": self.length}
 
 
+class TensorShape:
+    def __init__(self, name, mode, mode_step, shape, original_name=None):
+        self.name = name
+        self.original_name = original_name if original_name is not None else name
+        self.mode = mode
+        self.mode_step = mode_step
+        self.shape = tuple(shape)
+
+    def to_dict(self):
+        return {"tensorname": self.name, "originalname": self.original_name, "shape": self.shape}
+
+
 STEP_NUMBER_FORMATTING_LENGTH = "012"
 
 

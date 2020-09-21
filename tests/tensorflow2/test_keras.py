@@ -16,7 +16,7 @@ import tensorflow_datasets as tfds
 from tests.constants import TEST_DATASET_S3_PATH
 from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
 from tests.tensorflow.utils import create_trial_fast_refresh
-from tests.utils import use_s3_datasets
+from tests.utils import use_s3_datasets, verify_shapes
 
 # First Party
 import smdebug.tensorflow as smd
@@ -184,6 +184,18 @@ def helper_keras_gradtape(
 
     model.save(trial_dir, save_format="tf")
     hook.close()
+
+
+def test_keras_gradtape_shapes(out_dir):
+    hook = smd.KerasHook(
+        out_dir=out_dir,
+        save_all=True,
+        save_config=SaveConfig(save_steps=[0]),
+        reduction_config=ReductionConfig(save_shape=True),
+    )
+    helper_keras_gradtape(trial_dir=out_dir, hook=hook)
+    verify_shapes(out_dir, 0)
+    verify_shapes(out_dir, 500)
 
 
 @pytest.mark.skip_if_non_eager
@@ -454,6 +466,18 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     )
     for tname in trial.tensor_names():
         assert trial.tensor(tname).value(0) is not None
+
+
+def test_keras_fit_shapes(out_dir):
+    hook = smd.KerasHook(
+        out_dir=out_dir,
+        save_all=True,
+        save_config=SaveConfig(save_steps=[0]),
+        reduction_config=ReductionConfig(save_shape=True),
+    )
+    helper_keras_fit(trial_dir=out_dir, hook=hook)
+    print(create_trial_fast_refresh(out_dir).tensor_names(step=0))
+    verify_shapes(out_dir, 0)
 
 
 @pytest.mark.slow
