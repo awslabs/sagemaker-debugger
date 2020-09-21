@@ -7,21 +7,56 @@ import pytest
 from tests.profiler.resources.profiler_config_parser_utils import (
     current_step,
     current_time,
+    dataloader_test_cases,
     detailed_profiling_test_cases,
+    general_profiling_test_cases,
+    python_profiling_test_cases,
 )
 
 # First Party
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
     CLOSE_FILE_INTERVAL_DEFAULT,
+    DATALOADER_PROFILING_START_STEP_DEFAULT,
+    DETAILED_PROFILING_START_STEP_DEFAULT,
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
+    PROFILING_NUM_STEPS_DEFAULT,
+    PYTHON_PROFILING_NUM_STEPS_DEFAULT,
+    PYTHON_PROFILING_START_STEP_DEFAULT,
 )
+
+
+@pytest.fixture
+def general_profiler_config_path(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "general_profiler_config.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    yield config_path
+    if os.path.isfile(config_path):
+        os.remove(config_path)
 
 
 @pytest.fixture
 def detailed_profiler_config_path(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "detailed_profiler_config.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    yield config_path
+    if os.path.isfile(config_path):
+        os.remove(config_path)
+
+
+@pytest.fixture
+def dataloader_profiler_config_path(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "dataloader_profiler_config.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    yield config_path
+    if os.path.isfile(config_path):
+        os.remove(config_path)
+
+
+@pytest.fixture
+def python_profiler_config_path(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "python_profiler_config.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
     yield config_path
     if os.path.isfile(config_path):
@@ -71,12 +106,68 @@ def _convert_key_and_value(key, value):
     return "{0}: {1}, ".format(_convert_to_string(key), _convert_to_string(value))
 
 
-@pytest.mark.parametrize("test_case", detailed_profiling_test_cases)
-def test_profiling_ranges(detailed_profiler_config_path, test_case):
-    detailed_profiling_parameters, expected_detailed_profiling_enabled, expected_can_detailed_profile, expected_values = (
-        test_case
+@pytest.mark.parametrize("test_case", general_profiling_test_cases)
+def test_general_profiling_ranges(general_profiler_config_path, test_case):
+    profiling_parameters, expected_can_save, expected_values = test_case
+    general_profiling_parameters, detailed_profiling_parameters = profiling_parameters
+
+    general_start_step, general_num_steps = general_profiling_parameters
+    general_metrics_config = "{"
+    if general_start_step:
+        general_metrics_config += _convert_key_and_value("StartStep", general_start_step)
+    if general_num_steps:
+        general_metrics_config += _convert_key_and_value("NumSteps", general_num_steps)
+    general_metrics_config += "}"
+
+    detailed_start_step, detailed_num_steps = detailed_profiling_parameters
+    detailed_profiler_config = "{"
+    if detailed_start_step:
+        detailed_profiler_config += _convert_key_and_value("StartStep", detailed_start_step)
+    if detailed_num_steps:
+        detailed_profiler_config += _convert_key_and_value("NumSteps", detailed_num_steps)
+    detailed_profiler_config += "}"
+
+    metrics_config = (
+        '{ "GeneralMetricsConfig": '
+        + general_metrics_config
+        + ', "DetailedProfilingConfig": '
+        + detailed_profiler_config
+        + "}"
     )
-    start_step, num_steps, start_time, duration = detailed_profiling_parameters
+
+    full_config = {
+        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+    }
+
+    with open(general_profiler_config_path, "w") as f:
+        json.dump(full_config, f)
+
+    profiler_config_parser = ProfilerConfigParser()
+    assert profiler_config_parser.profiling_enabled
+    assert (
+        profiler_config_parser.should_save_metrics(MetricsCategory.DETAILED_PROFILING, current_step)
+        == expected_can_save
+    )
+
+    expected_general_values, expected_detailed_values = expected_values
+
+    expected_general_start_step, expected_general_end_step = expected_general_values
+    general_metrics_config = profiler_config_parser.config.general_metrics_config
+    assert general_metrics_config.is_enabled()
+    assert general_metrics_config.start_step == expected_general_start_step
+    assert general_metrics_config.end_step == expected_general_end_step
+
+    expected_detailed_start_step, expected_detailed_end_step = expected_detailed_values
+    detailed_profiling_config = profiler_config_parser.config.detailed_profiling_config
+    assert detailed_profiling_config.is_enabled()
+    assert detailed_profiling_config.start_step == expected_detailed_start_step
+    assert detailed_profiling_config.end_step == expected_detailed_end_step
+
+
+@pytest.mark.parametrize("test_case", detailed_profiling_test_cases)
+def test_detailed_profiling_ranges(detailed_profiler_config_path, test_case):
+    profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
+    start_step, num_steps, start_time, duration = profiling_parameters
     detailed_profiler_config = "{"
     if start_step:
         detailed_profiler_config += _convert_key_and_value("StartStep", start_step)
@@ -88,11 +179,10 @@ def test_profiling_ranges(detailed_profiler_config_path, test_case):
         detailed_profiler_config += _convert_key_and_value("DurationInSeconds", duration)
     detailed_profiler_config += "}"
 
+    metrics_config = '{ "DetailedProfilingConfig": ' + detailed_profiler_config + "}"
+
     full_config = {
-        "ProfilingParameters": {
-            "ProfilerEnabled": True,
-            "DetailedProfilingConfig": detailed_profiler_config,
-        }
+        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
     }
 
     with open(detailed_profiler_config_path, "w") as f:
@@ -100,21 +190,102 @@ def test_profiling_ranges(detailed_profiler_config_path, test_case):
 
     profiler_config_parser = ProfilerConfigParser()
     assert profiler_config_parser.profiling_enabled
-    assert profiler_config_parser.detailed_profiling_enabled == expected_detailed_profiling_enabled
 
-    if profiler_config_parser.detailed_profiling_enabled:
-        profile_range = profiler_config_parser.config.profile_range
-        assert (
-            profile_range.can_start_detailed_profiling(current_step, current_time)
-            == expected_can_detailed_profile
+    detailed_profiling_config = profiler_config_parser.config.detailed_profiling_config
+    assert detailed_profiling_config.is_enabled() == expected_enabled
+    assert (
+        profiler_config_parser.should_save_metrics(
+            MetricsCategory.DETAILED_PROFILING, current_step, current_time=current_time
         )
-        expected_start_step, expected_end_step, expected_start_time, expected_end_time = (
-            expected_values
+        == expected_can_save
+    )
+
+    expected_start_step, expected_end_step, expected_start_time, expected_end_time = expected_values
+    assert detailed_profiling_config.start_step == expected_start_step
+    assert detailed_profiling_config.end_step == expected_end_step
+    assert detailed_profiling_config.start_time_in_sec == expected_start_time
+    assert detailed_profiling_config.end_time == expected_end_time
+
+
+@pytest.mark.parametrize("test_case", dataloader_test_cases)
+def test_dataloader_profiling_ranges(detailed_profiler_config_path, test_case):
+    profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
+    start_step, metrics_regex, metrics_name = profiling_parameters
+    dataloader_config = "{"
+    if start_step:
+        dataloader_config += _convert_key_and_value("StartStep", start_step)
+    if metrics_regex:
+        dataloader_config += _convert_key_and_value("MetricsRegex", metrics_regex)
+    dataloader_config += "}"
+
+    metrics_config = '{ "DataloaderMetricsConfig": ' + dataloader_config + "}"
+
+    full_config = {
+        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+    }
+
+    with open(detailed_profiler_config_path, "w") as f:
+        json.dump(full_config, f)
+
+    profiler_config_parser = ProfilerConfigParser()
+    assert profiler_config_parser.profiling_enabled
+
+    dataloader_metrics_config = profiler_config_parser.config.dataloader_metrics_config
+    assert dataloader_metrics_config.is_enabled() == expected_enabled
+    assert (
+        profiler_config_parser.should_save_metrics(
+            MetricsCategory.DATALOADER, current_step, metrics_name=metrics_name
         )
-        assert profile_range.start_step == expected_start_step
-        assert profile_range.end_step == expected_end_step
-        assert profile_range.start_time_in_sec == expected_start_time
-        assert profile_range.end_time == expected_end_time
+        == expected_can_save
+    )
+
+    expected_start_step, expected_end_step, expected_metrics_regex = expected_values
+    assert dataloader_metrics_config.start_step == expected_start_step
+    assert dataloader_metrics_config.end_step == expected_end_step
+    assert dataloader_metrics_config.metrics_regex == expected_metrics_regex
+
+
+@pytest.mark.parametrize("test_case", python_profiling_test_cases)
+def test_python_profiling_ranges(python_profiler_config_path, test_case):
+    profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
+    start_step, num_steps, profiler_name, cprofile_timer = profiling_parameters
+    python_profiler_config = "{"
+    if start_step is not None:
+        python_profiler_config += _convert_key_and_value("StartStep", start_step)
+    if num_steps is not None:
+        python_profiler_config += _convert_key_and_value("NumSteps", num_steps)
+    if profiler_name is not None:
+        python_profiler_config += _convert_key_and_value("ProfilerName", profiler_name)
+    if cprofile_timer is not None:
+        python_profiler_config += _convert_key_and_value("cProfileTimer", cprofile_timer)
+    python_profiler_config += "}"
+
+    metrics_config = '{ "PythonProfilingConfig": ' + python_profiler_config + "}"
+
+    full_config = {
+        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+    }
+
+    with open(python_profiler_config_path, "w") as f:
+        json.dump(full_config, f)
+
+    profiler_config_parser = ProfilerConfigParser()
+    assert profiler_config_parser.profiling_enabled
+
+    python_profiling_config = profiler_config_parser.config.python_profiling_config
+    assert python_profiling_config.is_enabled() == expected_enabled
+    assert (
+        profiler_config_parser.should_save_metrics(MetricsCategory.PYTHON_PROFILING, current_step)
+        == expected_can_save
+    )
+
+    expected_start_step, expected_end_step, expected_profiler_name, expected_cprofile_timer = (
+        expected_values
+    )
+    assert python_profiling_config.start_step == expected_start_step
+    assert python_profiling_config.end_step == expected_end_step
+    assert python_profiling_config.profiler_name == expected_profiler_name
+    assert python_profiling_config.cprofile_timer == expected_cprofile_timer
 
 
 def test_disabled_profiler(
@@ -141,15 +312,17 @@ def test_default_values(simple_profiler_config_parser):
     assert rotation_policy.file_max_size == MAX_FILE_SIZE_DEFAULT
     assert rotation_policy.file_close_interval == CLOSE_FILE_INTERVAL_DEFAULT
 
-    profile_range = simple_profiler_config_parser.config.profile_range
-    assert not any(
-        [
-            profile_range.start_step,
-            profile_range.num_steps,
-            profile_range.start_time_in_sec,
-            profile_range.duration_in_sec,
-        ]
-    )
+    detailed_profiling_config = simple_profiler_config_parser.config.detailed_profiling_config
+    assert detailed_profiling_config.start_step == DETAILED_PROFILING_START_STEP_DEFAULT
+    assert detailed_profiling_config.num_steps == PROFILING_NUM_STEPS_DEFAULT
+
+    dataloader_metrics_config = simple_profiler_config_parser.config.dataloader_metrics_config
+    assert dataloader_metrics_config.start_step == DATALOADER_PROFILING_START_STEP_DEFAULT
+    assert dataloader_metrics_config.num_steps == PROFILING_NUM_STEPS_DEFAULT
+
+    python_profiling_config = simple_profiler_config_parser.config.python_profiling_config
+    assert python_profiling_config.start_step == PYTHON_PROFILING_START_STEP_DEFAULT
+    assert python_profiling_config.num_steps == PYTHON_PROFILING_NUM_STEPS_DEFAULT
 
 
 def test_string_data_in_config(string_data_profiler_config_parser):
@@ -170,13 +343,17 @@ def test_string_data_in_config(string_data_profiler_config_parser):
         string_data_profiler_config_parser.config.trace_file.file_open_fail_threshold, int
     )
 
-    assert isinstance(string_data_profiler_config_parser.config.profile_range.start_step, int)
-    assert isinstance(string_data_profiler_config_parser.config.profile_range.num_steps, int)
     assert isinstance(
-        string_data_profiler_config_parser.config.profile_range.start_time_in_sec, float
+        string_data_profiler_config_parser.config.detailed_profiling_config.start_step, int
     )
     assert isinstance(
-        string_data_profiler_config_parser.config.profile_range.duration_in_sec, float
+        string_data_profiler_config_parser.config.detailed_profiling_config.num_steps, int
+    )
+    assert isinstance(
+        string_data_profiler_config_parser.config.detailed_profiling_config.start_time_in_sec, float
+    )
+    assert isinstance(
+        string_data_profiler_config_parser.config.detailed_profiling_config.duration_in_sec, float
     )
 
 
@@ -203,12 +380,20 @@ def test_invalid_string_data_in_config(invalid_string_data_profiler_config_parse
     )
 
     # Disable detailed profiling config if any of the fields are invalid
-    assert not invalid_string_data_profiler_config_parser.detailed_profiling_enabled
+    assert (
+        not invalid_string_data_profiler_config_parser.config.detailed_profiling_config.is_enabled()
+    )
 
-    assert not invalid_string_data_profiler_config_parser.config.profile_range.start_step
-    assert not invalid_string_data_profiler_config_parser.config.profile_range.num_steps
-    assert not invalid_string_data_profiler_config_parser.config.profile_range.start_time_in_sec
-    assert not invalid_string_data_profiler_config_parser.config.profile_range.duration_in_sec
+    assert (
+        not invalid_string_data_profiler_config_parser.config.detailed_profiling_config.start_step
+    )
+    assert not invalid_string_data_profiler_config_parser.config.detailed_profiling_config.num_steps
+    assert (
+        not invalid_string_data_profiler_config_parser.config.detailed_profiling_config.start_time_in_sec
+    )
+    assert (
+        not invalid_string_data_profiler_config_parser.config.detailed_profiling_config.duration_in_sec
+    )
 
 
 def test_case_insensitive_profiler_config_parser(case_insensitive_profiler_config_parser):
@@ -227,8 +412,7 @@ def test_case_insensitive_profiler_config_parser(case_insensitive_profiler_confi
         == 1
     )
     assert case_insensitive_profiler_config_parser.config.trace_file.file_open_fail_threshold == 5
-    assert case_insensitive_profiler_config_parser.config.use_pyinstrument is True
 
-    assert case_insensitive_profiler_config_parser.detailed_profiling_enabled
-    assert case_insensitive_profiler_config_parser.config.profile_range.start_step == 2
-    assert case_insensitive_profiler_config_parser.config.profile_range.num_steps == 3
+    assert case_insensitive_profiler_config_parser.config.detailed_profiling_config.is_enabled()
+    assert case_insensitive_profiler_config_parser.config.detailed_profiling_config.start_step == 2
+    assert case_insensitive_profiler_config_parser.config.detailed_profiling_config.num_steps == 3

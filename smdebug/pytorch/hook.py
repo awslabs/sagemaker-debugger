@@ -12,7 +12,7 @@ from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profiler import PythonProfiler, StepPhase
 from smdebug.pytorch.collection import CollectionManager
@@ -28,10 +28,9 @@ python_profiler = None
 profiler_config_parser = ProfilerConfigParser()
 if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
-    python_profiler = PythonProfiler.get_python_profiler(
-        config.use_pyinstrument, config.local_path, "pytorch"
-    )
-    python_profiler.start_profiling(StepPhase.START)
+    if config.python_profiling_config.is_enabled():
+        python_profiler = PythonProfiler.get_python_profiler(config, "pytorch")
+        python_profiler.start_profiling(StepPhase.START)
 
 
 class Hook(CallbackHook):
@@ -112,6 +111,7 @@ class Hook(CallbackHook):
             else torch.autograd.ProfilerState.CPU
         )
         self.use_cuda = torch.cuda.is_available()
+        self.profiler_config_parser = profiler_config_parser
 
     def log_trace_event(self, event):
         self.record_trace_events(
@@ -279,26 +279,29 @@ class Hook(CallbackHook):
         # Disable python profiling if the python profiler is currently profiling.
         if python_profiler:
             python_profiler.stop_profiling(StepPhase.STEP_START, self.step)
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.step
+            ):
+                python_profiler.start_profiling(StepPhase.STEP_START, start_step=self.step)
 
         if self.autograd_profiler_enabled:
             self._collect_torch_profiling_data_if_profiler_enabled()
 
         # should we re-enable profiling for this step?
-        if self.profiler_config_parser.can_start_detailed_profiling(self.step):
-            if python_profiler:
-                python_profiler.start_profiling(StepPhase.STEP_START, start_step=self.step)
-
-            if not self.autograd_profiler_enabled:
-                if version.parse(torch.__version__) <= version.parse("1.5.1"):
-                    torch.autograd._enable_profiler(
-                        torch.autograd.ProfilerConfig(self.profiler, False)
-                    )
-                elif version.parse(torch.__version__) >= version.parse("1.6"):
-                    torch.autograd._enable_profiler(
-                        torch.autograd.ProfilerConfig(self.profiler, False, False)
-                    )
-                self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
-                self.autograd_profiler_enabled = True
+        if (
+            self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.DETAILED_PROFILING, self.step
+            )
+            and not self.autograd_profiler_enabled
+        ):
+            if version.parse(torch.__version__) <= version.parse("1.5.1"):
+                torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
+            elif version.parse(torch.__version__) >= version.parse("1.6"):
+                torch.autograd._enable_profiler(
+                    torch.autograd.ProfilerConfig(self.profiler, False, False)
+                )
+            self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
+            self.autograd_profiler_enabled = True
 
         if self._get_collections_to_save_for_step():
             self._initialize_writers()
@@ -417,7 +420,9 @@ class Hook(CallbackHook):
         # we would stop profiling and restart from this phase
         if python_profiler:
             python_profiler.stop_profiling(StepPhase.FORWARD_PASS_END, self.step)
-            if self.profiler_config_parser.can_start_detailed_profiling(self.step):
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.step
+            ):
                 python_profiler.start_profiling(StepPhase.FORWARD_PASS_END, start_step=self.step)
 
     def bhook(self, module, grad_input, grad_output):
@@ -542,3 +547,11 @@ class Hook(CallbackHook):
     @staticmethod
     def _make_numpy_array(tensor_value):
         return make_numpy_array(tensor_value)
+
+    def should_save_dataloader_metrics(self, metrics_name):
+        """Determine whether dataloader metrics for the provided metrics_name should be saved. We check for the next
+        step since the dataloader metrics for the next step are collected on the current step.
+        """
+        return self.profiler_config_parser.should_save_metrics(
+            MetricsCategory.DATALOADER, self.step + 1, metrics_name=metrics_name
+        )

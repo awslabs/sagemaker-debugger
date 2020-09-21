@@ -14,10 +14,14 @@ from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profiler import PythonProfiler, StepPhase
-from smdebug.profiler.utils import stop_tf_profiler
+from smdebug.profiler.utils import (
+    remove_tf_step_number_file,
+    stop_tf_profiler,
+    write_tf_step_number_to_file,
+)
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
@@ -49,10 +53,9 @@ python_profiler = None
 profiler_config_parser = ProfilerConfigParser()
 if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
-    python_profiler = PythonProfiler.get_python_profiler(
-        config.use_pyinstrument, config.local_path, "tensorflow"
-    )
-    python_profiler.start_profiling(StepPhase.START)
+    if config.python_profiling_config.is_enabled():
+        python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
+        python_profiler.start_profiling(StepPhase.START)
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -695,6 +698,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
     def on_train_end(self, logs=None):
+        if python_profiler:
+            python_profiler.stop_profiling(StepPhase.TRAIN_END, self.mode_steps[ModeKeys.TRAIN])
         if self.is_profiling:
             self.logger.info("Disabling profiler, reached end of training.")
             stop_tf_profiler(
@@ -702,8 +707,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 log_dir=self._log_dir,
                 start_time_us=self.tf_profiler_start_time_in_micros,
             )
-            if python_profiler:
-                python_profiler.stop_profiling(StepPhase.TRAIN_END, self.mode_steps[ModeKeys.TRAIN])
             self.is_profiling = False
 
     # throws error in keras if this fn is absent
@@ -732,6 +735,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.start = time.time()
         if self._is_not_supported():
             return
+
+        if self.profiler_config_parser.profiling_enabled:
+            write_tf_step_number_to_file(
+                self.profiler_config_parser.config.local_path, self.mode_steps[self.mode]
+            )
 
         # set mode for each batch as when users run model.fit() and pass validation data
         # through the optional argument, then mode_begin is not called for the training steps
@@ -782,15 +790,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if python_profiler:
             python_profiler.stop_profiling(StepPhase.STEP_START, self.mode_steps[ModeKeys.TRAIN])
-
-        if self.profiler_config_parser.can_start_detailed_profiling(
-            self.mode_steps[ModeKeys.TRAIN]
-        ):
-            if python_profiler:
+            if profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.mode_steps[ModeKeys.TRAIN]
+            ):
                 python_profiler.start_profiling(
                     StepPhase.STEP_START, start_step=self.mode_steps[ModeKeys.TRAIN]
                 )
 
+        if self.profiler_config_parser.should_save_metrics(
+            MetricsCategory.DETAILED_PROFILING, self.mode_steps[ModeKeys.TRAIN]
+        ):
             if not self.is_profiling:
                 self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
                     self.profiler_config_parser.config.local_path,
@@ -906,8 +915,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if python_profiler:
             python_profiler.stop_profiling(StepPhase.STEP_END, self.mode_steps[ModeKeys.TRAIN])
 
-            if self.profiler_config_parser.can_start_detailed_profiling(
-                self.mode_steps[ModeKeys.TRAIN]
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.mode_steps[ModeKeys.TRAIN]
             ):
                 python_profiler.start_profiling(
                     StepPhase.STEP_END, start_step=self.mode_steps[ModeKeys.TRAIN]
@@ -992,6 +1001,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Unwrap the tape before closing
         if self.tape:
             self._unwrap_tape()
+        if self.profiler_config_parser.profiling_enabled:
+            remove_tf_step_number_file(self.profiler_config_parser.config.local_path)
         super()._cleanup()
 
     def _wrap_push_tape(self, function):

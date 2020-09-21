@@ -20,8 +20,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"StartStep\": \"1\" ,\"NumSteps\": \"5\"}"
-        UsePyinstrument: "False"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"StartStep\": \"4\", \"NumSteps\": \"5\", \"ProfilerName\": \"cprofile\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 11
         framework_trace_file_count: 0
@@ -37,8 +36,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
-        UsePyinstrument: "True"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"3\", \"ProfilerName\": \"pyinstrument\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 7
         framework_trace_file_count: 0
@@ -55,8 +53,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
-        UsePyinstrument: "True"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"3\", \"ProfilerName\": \"pyinstrument\"}}"
         RotateMaxFileSizeInBytes: "12485760.34"
         RotateFileCloseIntervalInSeconds: "100.45"
         FileOpenFailThreshold: "35"
@@ -108,8 +105,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
-        UsePyinstrument: "True"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"3\", \"ProfilerName\": \"pyinstrument\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 3
         framework_trace_file_count: 0
@@ -143,8 +139,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"StartStep\": \"1\" ,\"NumSteps\": \"5\"}"
-        UsePyinstrument: "False"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"StartStep\": \"4\", \"NumSteps\": \"5\", \"ProfilerName\": \"cprofile\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 11
         framework_trace_file_count: 0
@@ -178,8 +173,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
-        UsePyinstrument: "True"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"3\", \"ProfilerName\": \"pyinstrument\"}}"
         RotateMaxFileSizeInBytes: "12485760.34"
         RotateFileCloseIntervalInSeconds: "100.45"
         FileOpenFailThreshold: "35"
@@ -217,7 +211,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"1\"}"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"1\", \"ProfilerName\": \"cprofile\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 4
         framework_trace_file_count: 0
@@ -252,7 +246,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"1\"}"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"1\", \"ProfilerName\": \"cprofile\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 4
         framework_trace_file_count: 0
@@ -272,15 +266,13 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
-        UsePyinstrument: "True"
         RotateMaxFileSizeInBytes: "12485760.34"
         RotateFileCloseIntervalInSeconds: "100.45"
         FileOpenFailThreshold: "35"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 8
         framework_trace_file_count: 0
-        python_stats_file_count: 56
+        python_stats_file_count: 28
     - hyper_params:
         training_script: pt_res50_cifar10_distributed.py
         nproc_per_node: 4

@@ -5,6 +5,6 @@
         "RotateMaxFileSizeInBytes": "300",
         "RotateFileCloseIntervalInSeconds": "0.5",
         "FileOpenFailThreshold": "2",
-        "DetailedProfilingConfig": "{\"StartStep\": \"2\", \"NumSteps\": \"1\", \"StartTimeInSecSinceEpoch\": \"1594429959.418771\", \"DurationInSeconds\": \"0.1\"}"
+        "MetricsConfig": "{ \"DetailedProfilingConfig\": {\"StartStep\": \"2\", \"NumSteps\": \"1\", \"StartTimeInSecSinceEpoch\": \"1594429959.418771\", \"DurationInSeconds\": \"0.1\"}}"
     }
 }

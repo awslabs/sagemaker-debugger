@@ -24,6 +24,7 @@ from smdebug.profiler.python_profiler import (
     PyinstrumentPythonProfiler,
     StepPhase,
     cProfilePythonProfiler,
+    cProfileTimer,
 )
 
 
@@ -34,7 +35,7 @@ def test_framework():
 
 @pytest.fixture
 def cprofile_python_profiler(out_dir, test_framework):
-    return cProfilePythonProfiler(out_dir, test_framework)
+    return cProfilePythonProfiler(out_dir, test_framework, cProfileTimer.TOTAL_TIME)
 
 
 @pytest.fixture

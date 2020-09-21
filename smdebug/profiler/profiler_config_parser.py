@@ -1,6 +1,7 @@
 # Standard Library
 import json
 import os
+from collections import defaultdict
 from enum import Enum
 
 # First Party
@@ -20,14 +21,26 @@ class LastProfilingStatus(Enum):
     """Enum to track last profiling status so that we log for any changes
     """
 
-    START = "START"
-    CONFIG_NOT_FOUND = "CONFIG_NOT_FOUND"
-    INVALID_CONFIG = "INVALID_CONFIG"
-    PROFILER_DISABLED = "PROFILER_DISABLED"
-    PROFILER_ENABLED = "PROFILER_ENABLED"
-    INVALID_DETAILED_CONFIG = "INVALID_DETAILED_CONFIG"
-    INVALID_DETAILED_CONFIG_FIELDS = "INVALID_DETAILED_CONFIG_FIELDS"
-    DETAILED_CONFIG_NOT_FOUND = "DETAILED_CONFIG_NOT_FOUND"
+    START = 1
+    CONFIG_NOT_FOUND = 2
+    INVALID_CONFIG = 3
+    DEFAULT_ENABLED = 4
+    PROFILER_DISABLED = 5
+    PROFILER_ENABLED = 6
+    DEFAULT_VALUES = 7
+    DEFAULT_PYTHON_PROFILING = 8
+    INVALID_METRICS_CONFIG = 9
+    INVALID_GENERAL_CONFIG_FIELDS = 10
+    INVALID_DETAILED_CONFIG_FIELDS = 11
+    INVALID_DATALOADER_CONFIG_FIELDS = 12
+    INVALID_PYTHON_CONFIG_FIELDS = 13
+    DETAILED_CONFIG_NOT_FOUND = 14
+
+
+class MetricsCategory(Enum):
+    DETAILED_PROFILING = 1
+    DATALOADER = 2
+    PYTHON_PROFILING = 3
 
 
 class ProfilerConfigParser:
@@ -42,9 +55,28 @@ class ProfilerConfigParser:
         """
         self.config = None
         self.profiling_enabled = False
-        self.detailed_profiling_enabled = False
-        self.last_status = LastProfilingStatus.START
+        self.logger = get_logger("smdebug-profiler")
+        self.last_logging_statuses = defaultdict(lambda: False)
+        self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()
+
+    def _reset_statuses(self):
+        """Set the last logging statuses to be the current logging statuses and reset the current logging statuses.
+        """
+        self.last_logging_statuses = self.current_logging_statuses
+        self.current_logging_statuses = defaultdict(lambda: False)
+
+    def _log_new_message(self, status, log_function, message):
+        """Helper function to log the given message only if the given status was not True in the last call to
+        load_config. In other words, only log this message if it wasn't already logged before. Use the provided log
+        function to log the message
+
+        Also mark this status as True so that we do not log the message in the next call to load_config if the status
+        is once again True.
+        """
+        if not self.last_logging_statuses[status]:
+            log_function(message)
+        self.current_logging_statuses[status] = True
 
     def load_config(self):
         """Load the config file (if it exists) from $SMPROFILER_CONFIG_PATH.
@@ -58,38 +90,46 @@ class ProfilerConfigParser:
                 try:
                     config = json.loads(json_data.read().lower()).get("profilingparameters")
                 except:
-                    if self.last_status != LastProfilingStatus.INVALID_CONFIG:
-                        get_logger("smdebug-profiler").error(
-                            f"Error parsing config at {config_path}."
-                        )
-                        self.last_status = LastProfilingStatus.INVALID_CONFIG
+                    self._log_new_message(
+                        LastProfilingStatus.INVALID_CONFIG,
+                        self.logger.error,
+                        f"Error parsing config at {config_path}.",
+                    )
+                    self._reset_statuses()
                     self.profiling_enabled = False
                     return
             try:
                 profiler_enabled = str2bool(config.get("profilerenabled", True))
             except ValueError as e:
-                get_logger("smdebug-profiler").info(
-                    f"{e} in profilingparameters. Enabling profiling with default "
-                    f"parameter values."
+                self._log_new_message(
+                    LastProfilingStatus.DEFAULT_ENABLED,
+                    self.logger.info,
+                    f"{e} in profilingparameters. Profiler is enabled.",
                 )
                 profiler_enabled = True
             if profiler_enabled is True:
-                if self.last_status != LastProfilingStatus.PROFILER_ENABLED:
-                    get_logger("smdebug-profiler").info(f"Using config at {config_path}.")
-                    self.last_status = LastProfilingStatus.PROFILER_ENABLED
+                self._log_new_message(
+                    LastProfilingStatus.PROFILER_ENABLED,
+                    self.logger.info,
+                    f"Using config at {config_path}.",
+                )
                 self.profiling_enabled = True
             else:
-                if self.last_status != LastProfilingStatus.PROFILER_DISABLED:
-                    get_logger("smdebug-profiler").info(f"User has disabled profiler.")
-                    self.last_status = LastProfilingStatus.PROFILER_DISABLED
+                self._log_new_message(
+                    LastProfilingStatus.PROFILER_DISABLED,
+                    self.logger.info,
+                    f"User has disabled profiler.",
+                )
+                self._reset_statuses()
                 self.profiling_enabled = False
                 return
         else:
-            if self.last_status != LastProfilingStatus.CONFIG_NOT_FOUND:
-                get_logger("smdebug-profiler").info(
-                    f"Unable to find config at {config_path}. Profiler is disabled."
-                )
-                self.last_status = LastProfilingStatus.CONFIG_NOT_FOUND
+            self._log_new_message(
+                LastProfilingStatus.CONFIG_NOT_FOUND,
+                self.logger.info,
+                f"Unable to find config at {config_path}. Profiler is disabled.",
+            )
+            self._reset_statuses()
             self.profiling_enabled = False
             return
 
@@ -105,8 +145,11 @@ class ProfilerConfigParser:
                 config.get("fileopenfailthreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
             )
         except ValueError as e:
-            get_logger("smdebug-profiler").info(
-                f"{e} in profilingparameters. Enabling profiling with default " f"parameter values."
+            self._log_new_message(
+                LastProfilingStatus.DEFAULT_VALUES,
+                self.logger.info,
+                f"{e} in profilingparameters. Enabling profiling with default "
+                f"parameter values.",
             )
             local_path = BASE_FOLDER_DEFAULT
             file_max_size = MAX_FILE_SIZE_DEFAULT
@@ -114,63 +157,96 @@ class ProfilerConfigParser:
             file_open_fail_threshold = FILE_OPEN_FAIL_THRESHOLD_DEFAULT
 
         try:
-            use_pyinstrument = str2bool(config.get("usepyinstrument", False))
-        except ValueError as e:
-            get_logger("smdebug-profiler").info(
-                f"{e} in usepyinstrument of profilingparameters. Defaulting to cProfile."
+            metrics_config = eval(config.get("metricsconfig", "{}"))
+            assert isinstance(metrics_config, dict)
+        except (ValueError, AssertionError) as e:
+            self._log_new_message(
+                LastProfilingStatus.INVALID_METRICS_CONFIG,
+                self.logger.error,
+                f"{e} in metricsconfig. Default metrics collection will be enabled.",
             )
-            use_pyinstrument = False
+            metrics_config = {}
 
-        try:
-            profile_range = eval(config.get("detailedprofilingconfig", "{}"))
-        except:
-            if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG:
-                get_logger("smdebug-profiler").error("Error parsing detailed profiling config.")
-                self.last_status = LastProfilingStatus.INVALID_DETAILED_CONFIG
-            self.profiling_enabled = False
-            return
+        general_metrics_config = metrics_config.get("generalmetricsconfig", {})
+        detailed_profiling_config = metrics_config.get("detailedprofilingconfig", {})
+        dataloader_metrics_config = metrics_config.get("dataloadermetricsconfig", {})
+        python_profiling_config = metrics_config.get("pythonprofilingconfig", {})
 
         self.config = ProfilerConfig(
             local_path,
             file_max_size,
             file_close_interval,
             file_open_fail_threshold,
-            use_pyinstrument,
-            profile_range,
+            general_metrics_config,
+            detailed_profiling_config,
+            dataloader_metrics_config,
+            python_profiling_config,
         )
+
+        if self.config.general_metrics_config.error_message is not None:
+            self._log_new_message(
+                LastProfilingStatus.INVALID_GENERAL_CONFIG_FIELDS,
+                self.logger.error,
+                self.config.general_metrics_config.error_message,
+            )
 
         if (
-            self.config.profile_range.has_step_range()
-            and self.config.profile_range.has_time_range()
+            self.config.detailed_profiling_config.error_message is not None
+            and detailed_profiling_config != general_metrics_config
         ):
-            if self.last_status != LastProfilingStatus.INVALID_DETAILED_CONFIG_FIELDS:
-                get_logger("smdebug-profiler").error(
-                    "User must not specify both step and time fields for profile range! No sync metrics will be logged."
-                )
-                self.last_status = LastProfilingStatus.INVALID_DETAILED_CONFIG_FIELDS
-            self.detailed_profiling_enabled = False
-            return
+            self._log_new_message(
+                LastProfilingStatus.INVALID_DETAILED_CONFIG_FIELDS,
+                self.logger.error,
+                self.config.detailed_profiling_config.error_message,
+            )
 
-        elif (
-            not self.config.profile_range.has_step_range()
-            and not self.config.profile_range.has_time_range()
+        if (
+            self.config.dataloader_metrics_config.error_message is not None
+            and dataloader_metrics_config != general_metrics_config
         ):
-            if self.last_status != LastProfilingStatus.DETAILED_CONFIG_NOT_FOUND:
-                get_logger("smdebug-profiler").debug(
-                    "No detailed profiler config provided! No sync metrics will be logged."
-                )
-                self.last_status = LastProfilingStatus.DETAILED_CONFIG_NOT_FOUND
-            self.detailed_profiling_enabled = False
-            return
+            self._log_new_message(
+                LastProfilingStatus.INVALID_DATALOADER_CONFIG_FIELDS,
+                self.logger.error,
+                self.config.dataloader_metrics_config.error_message,
+            )
 
-        self.detailed_profiling_enabled = True
+        if (
+            self.config.python_profiling_config.error_message is not None
+            and python_profiling_config != general_metrics_config
+        ):
+            self._log_new_message(
+                LastProfilingStatus.INVALID_PYTHON_CONFIG_FIELDS,
+                self.logger.error,
+                self.config.python_profiling_config.error_message,
+            )
 
-    def can_start_detailed_profiling(self, current_step):
-        """Higher level check to make sure that profiler is enabled AND that detailed profiling is enabled
-        AND the config values are valid for detailed profiling.
+        self._reset_statuses()
+
+    def should_save_metrics(
+        self, metrics_category, current_step, metrics_name=None, current_time=None
+    ):
+        """Takes in a metrics category and current step and returns whether to collect metrics for that step. Metrics
+        category must be one of the metrics specified in MetricNames. If metrics category is Dataloader, then metrics
+        name is required and check if the metrics regex specified in the dataloader config matches this name.
         """
-        return (
-            self.profiling_enabled
-            and self.detailed_profiling_enabled
-            and self.config.profile_range.can_start_detailed_profiling(current_step)
+        if not self.profiling_enabled:
+            return False
+
+        if metrics_category == MetricsCategory.DETAILED_PROFILING:
+            metric_config = self.config.detailed_profiling_config
+        elif metrics_category == MetricsCategory.DATALOADER:
+            metric_config = self.config.dataloader_metrics_config
+            if not metric_config.valid_metrics_name(metrics_name):
+                return False
+        elif metrics_category == MetricsCategory.PYTHON_PROFILING:
+            metric_config = self.config.python_profiling_config
+        else:
+            return False  # unrecognized metrics category
+
+        # need to call can_start_profiling for both so that end step/time is updated if necessary
+        can_profile_general = self.config.general_metrics_config.can_start_profiling(
+            current_step, current_time
         )
+        can_profile_metric = metric_config.can_start_profiling(current_step, current_time)
+
+        return can_profile_general or can_profile_metric

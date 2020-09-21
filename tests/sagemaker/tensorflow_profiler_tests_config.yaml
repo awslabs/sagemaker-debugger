@@ -25,8 +25,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"StartStep\": \"1\" ,\"NumSteps\": \"5\"}"
-        UsePyinstrument: "False"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"StartStep\": \"1\", \"NumSteps\": \"5\", \"ProfilerName\": \"cprofile\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 13
@@ -65,8 +64,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"NumSteps\": \"3\"}"
-        UsePyinstrument: "True"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"3\", \"ProfilerName\": \"pyinstrument\"}}"
         RotateMaxFileSizeInBytes: "12485760.34"
         RotateFileCloseIntervalInSeconds: "100.45"
         FileOpenFailThreshold: "35"
@@ -104,7 +102,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 12
         framework_trace_file_count: 28
-        python_stats_file_count: 4
+        python_stats_file_count: 28
         horovod_tracefile_count: 3
   -
     - smprofiler-IT-keras-resnet-gpu-mirrored
@@ -121,7 +119,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 7
-        python_stats_file_count: 1
+        python_stats_file_count: 7
   -
     - smprofiler-IT-mnist-keras-gpu-default
     - *Enable
@@ -131,8 +129,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"StartStep\": \"1\"}"
-        UsePyinstrument: "True"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"StartStep\": \"1\", \"ProfilerName\": \"pyinstrument\"}}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 2
@@ -171,8 +168,7 @@
     - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        DetailedProfilingConfig: "{\"DurationInSeconds\": \"100\"}"
-        UsePyinstrument: "False"
+        MetricsConfig: "{\"PythonProfilingConfig\": {\"DurationInSeconds\": \"100\", \"ProfilerName\": \"cprofile\"}}"
         RotateMaxFileSizeInBytes: "5485760"
         RotateFileCloseIntervalInSeconds: "50"
         FileOpenFailThreshold: "35"
@@ -195,7 +191,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 8
         framework_trace_file_count: 24
-        python_stats_file_count: 8
+        python_stats_file_count: 56
         horovod_tracefile_count: 1
   -
     - smprofiler-IT-keras-multi-worker-mirrored
@@ -212,4 +208,4 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 2
         framework_trace_file_count: 14
-        python_stats_file_count: 1
+        python_stats_file_count: 14

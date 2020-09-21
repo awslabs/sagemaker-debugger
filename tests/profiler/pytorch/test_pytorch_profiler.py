@@ -81,4 +81,4 @@ def test_pytorch_profiler(pytorch_profiler_config_parser, out_dir):
     lt.refresh_event_file_list()
     events = lt.get_events(0, time.time() * 1000000)
     print(f"Number of events {len(events)}")
-    assert len(events) == 447
+    assert len(events) == 330

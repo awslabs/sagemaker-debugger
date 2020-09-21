@@ -20,6 +20,7 @@ from smdebug.profiler.profiler_constants import (
     PYINSTRUMENT_HTML_FILENAME,
     PYINSTRUMENT_JSON_FILENAME,
     PYINSTRUMENT_NAME,
+    PYTHON_PROFILING_START_STEP_DEFAULT,
 )
 
 
@@ -47,11 +48,29 @@ def total_time():
     return times.elapsed
 
 
+def cpu_time():
+    if not os.times:
+        return -1
+    times = os.times()
+    return times.system + times.user
+
+
 def off_cpu_time():
     if not os.times:
         return -1
     times = os.times()
     return times.elapsed - (times.system + times.user)
+
+
+class PythonProfilerName(Enum):
+    CPROFILE = CPROFILE_NAME
+    PYINSTRUMENT = PYINSTRUMENT_NAME
+
+
+class cProfileTimer(Enum):
+    TOTAL_TIME = "total_time"
+    CPU_TIME = "cpu_time"
+    OFF_CPU_TIME = "off_cpu_time"
 
 
 class PythonProfiler:
@@ -144,29 +163,42 @@ class PythonProfiler:
         self._reset_profiler()
 
     @staticmethod
-    def get_python_profiler(use_pyinstrument, base_folder, framework):
-        python_profiler_class = (
-            PyinstrumentPythonProfiler if use_pyinstrument else cProfilePythonProfiler
-        )
-        return python_profiler_class(base_folder, framework)
+    def get_python_profiler(profiler_config, framework):
+        base_folder = profiler_config.local_path
+        python_profiling_config = profiler_config.python_profiling_config
+        if python_profiling_config.profiler_name == CPROFILE_NAME:
+            cprofile_timer = python_profiling_config.cprofile_timer
+            if cprofile_timer is None:
+                return cProfileDefaultPythonProfiler(base_folder, framework)
+            else:
+                return cProfilePythonProfiler(base_folder, framework, cprofile_timer)
+        else:
+            return PyinstrumentPythonProfiler(base_folder, framework)
 
 
 class cProfilePythonProfiler(PythonProfiler):
-    """Higher level class to oversee profiling specific to cProfile, Python's native profiler.
+    """Higher level class to oversee profiling specific to cProfile, Python's native profiler in .
     This is also the default Python profiler used if profiling is enabled.
     """
 
     name = CPROFILE_NAME
+    timer_name_to_function = {
+        cProfileTimer.TOTAL_TIME: total_time,
+        cProfileTimer.CPU_TIME: cpu_time,
+        cProfileTimer.OFF_CPU_TIME: off_cpu_time,
+    }
 
-    def _reset_profiler(self):
-        """Reset profiler and corresponding attributes to defaults
-        """
-        super()._reset_profiler()
-        self._profiler = cProfileProfiler(total_time)
+    def __init__(self, base_folder, framework, cprofile_timer):
+        super().__init__(base_folder, framework)
+        if cprofile_timer == "default":
+            self.cprofile_timer = None  # will be set in subclass
+        else:
+            self.cprofile_timer = self.timer_name_to_function[cprofile_timer]
 
     def _enable_profiler(self):
-        """Enable the cProfile profiler.
+        """Enable the cProfile profiler with the current cProfile timer.
         """
+        self._profiler = cProfileProfiler(self.cprofile_timer)
         self._profiler.enable()
 
     def _disable_profiler(self):
@@ -182,21 +214,43 @@ class cProfilePythonProfiler(PythonProfiler):
         pstats.Stats(self._profiler).dump_stats(stats_file_path)
 
 
+class cProfileDefaultPythonProfiler(cProfilePythonProfiler):
+    """Higher level class on cProfilePythonProfiler to manage the default case where no python profiling config is
+    specified. Three steps of python profiling are done starting at PYTHON_PROFILING_START_STEP_DEFAULT. For each of
+    these steps, the cProfile timer function used cycles between total_time, cpu_time and off_cpu_time.
+    """
+
+    def __init__(self, base_folder, framework):
+        super().__init__(base_folder, framework, "default")
+
+    def _enable_profiler(self):
+        """Set the current cProfile timer based on the step and enable the cProfile profiler.
+        """
+        if self._start_step == PYTHON_PROFILING_START_STEP_DEFAULT:
+            # first step of default three steps of profiling
+            self.cprofile_timer = total_time
+        elif self._start_step == PYTHON_PROFILING_START_STEP_DEFAULT + 1:
+            # second step of default three steps of profiling
+            self.cprofile_timer = cpu_time
+        elif self._start_step == PYTHON_PROFILING_START_STEP_DEFAULT + 2:
+            # third step of default three steps of profiling
+            self.cprofile_timer = off_cpu_time
+        else:
+            # for pre step zero or post hook close profiling, use total_time
+            self.cprofile_timer = total_time
+        super()._enable_profiler()
+
+
 class PyinstrumentPythonProfiler(PythonProfiler):
     """Higher level class to oversee profiling specific to Pyinstrument, a third party Python profiler.
     """
 
     name = PYINSTRUMENT_NAME
 
-    def _reset_profiler(self):
-        """Reset profiler and corresponding attributes to defaults
-        """
-        super()._reset_profiler()
-        self._profiler = PyinstrumentProfiler()
-
     def _enable_profiler(self):
         """Enable the pyinstrument profiler.
         """
+        self._profiler = PyinstrumentProfiler()
         self._profiler.start()
 
     def _disable_profiler(self):

@@ -19,11 +19,12 @@ from smdebug.core.logger import get_logger
 from smdebug.profiler.algorithm_metrics_reader import S3AlgorithmMetricsReader
 from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
 from smdebug.profiler.profiler_constants import (
+    CPROFILE_NAME,
     CPROFILE_STATS_FILENAME,
     PYINSTRUMENT_HTML_FILENAME,
     PYINSTRUMENT_JSON_FILENAME,
+    PYINSTRUMENT_NAME,
 )
-from smdebug.profiler.utils import str2bool
 
 # YAML files INDICES
 CPU_JOBS_INDEX = 1
@@ -287,9 +288,12 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
             _validate_trace_files(horovod_tracefiles, profiler_config)
 
         python_analysis_class = (
-            PyinstrumentAnalysis
-            if str2bool(profiler_config.get("UsePyinstrument", False))
-            else cProfileAnalysis
+            cProfileAnalysis
+            if eval(profiler_config.get("MetricsConfig", "{}"))
+            .get("PythonProfilingConfig", {})
+            .get("ProfilerName", CPROFILE_NAME)
+            == CPROFILE_NAME
+            else PyinstrumentAnalysis
         )
         python_stats_dir = python_stats_dir.format(profiler_name=python_analysis_class.name)
         makedirs(
