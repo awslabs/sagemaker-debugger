@@ -10,8 +10,8 @@
 
 ## Support
 
-- Zero Script Change experience where you need no modifications to your training script is supported in the official [SageMaker Framework Container for MXNet 1.6](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html), or the [AWS Deep Learning Container for MXNet 1.6](https://aws.amazon.com/machine-learning/containers/).
-- This library itself supports the following versions when you use our API which requires a few minimal changes to your training script: MXNet 1.4, 1.5, 1.6.
+- Zero Script Change experience where you need no modifications to your training script is supported in the official [AWS Deep Learning Container for MXNet](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#general-framework-containers).
+- This library itself supports the following versions when you use our API which requires a few minimal changes to your training script: MXNet 1.4, 1.5, 1.6, and 1.7.
 - Only Gluon models are supported
 - When the Gluon model is hybridized, inputs and outputs of intermediate layers can not be saved
 - Parameter server based distributed training is not yet supported
