@@ -51,9 +51,6 @@ The `smdebug` library runs on Python 3. Install using the following command:
 pip install smdebug
 ```
 
-To find the latest release of smdebug, see the following PyPI page.
-- [The latest smdebug PyPI release](https://pypi.org/project/smdebug/)
-
 ---
 
 ## Debugger-supported Frameworks
