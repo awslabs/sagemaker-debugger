@@ -12,17 +12,14 @@
 
 ## Amazon SageMaker Debugger Support for TensorFlow<a name="support"></a>
 
-Amazon SageMaker Debugger python SDK and its client library `smdebug` now fully support TensorFlow 2.2 with the latest version release.
+Amazon SageMaker Debugger python SDK and its client library `smdebug` now fully support TensorFlow 2.3 with the latest version release.
 
-- [Amazon SageMaker Python SDK PyPI](https://pypi.org/project/sagemaker/)
-- [The latest smdebug PyPI release](https://pypi.org/project/smdebug/)
-
-Using Debugger, you can access tensors of any kind for TensorFlow models, from the Keras model zoo to your own custom model, and save them using Debugger built-in or custom tensor collections. You can run your training script on [the official AWS Deep Learning Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html) where Debugger can automatically capture tensors from your training job. It doesn't matter whether your TensorFlow models use Keras API or pure TensorFlow API (in eager mode or non-eager mode), you can directly run them on the AWS Deep Learning Containers.
+Using Debugger, you can access tensors of any kind for TensorFlow models, from the Keras model zoo to your own custom model, and save them using Debugger built-in or custom tensor collections. You can run your training script on [the official AWS Deep Learning Containers](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#general-framework-containers) where Debugger can automatically capture tensors from your training job. It doesn't matter whether your TensorFlow models use Keras API or pure TensorFlow API (in eager mode or non-eager mode), you can directly run them on the AWS Deep Learning Containers.
 
 Debugger and its client library `smdebug` support debugging your training job on other AWS training containers and custom containers. In this case, a hook registration process is required to manually add the hook features to your training script. For a full list of AWS TensorFlow containers to use Debugger, see [SageMaker containers to use Debugger with script mode](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html#debugger-supported-aws-containers). For a complete guide for using custom containers, see [Use Debugger in Custom Training Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-bring-your-own-container.html).
 
 ### New Features supported by Debugger
-- The latest TensorFlow version fully covered by Debugger is 2.2.0
+- The latest TensorFlow version fully covered by Debugger is 2.3.0
 - Debug training jobs with the TensorFlow framework or Keras TensorFlow
 - Debug training jobs with the TensorFlow eager or non-eager mode
 - New built-in tensor collections: `inputs`, `outputs`, `layers`, `gradients`
