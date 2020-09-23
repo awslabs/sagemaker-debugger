@@ -186,29 +186,33 @@ class TraceFileLocation:
     @staticmethod
     def get_python_profiling_stats_dir(
         base_folder,
-        framework,
         profiler_name,
-        start_time_since_epoch_in_micros,
-        end_time_since_epoch_in_micros,
-        start_phase,
+        framework,
+        start_mode,
         start_step,
-        stop_phase,
-        stop_step,
+        start_phase,
+        start_time_since_epoch_in_micros,
+        end_mode,
+        end_step,
+        end_phase,
+        end_time_since_epoch_in_micros,
     ):
         node_id = get_node_id()
-        folder_name = "{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}".format(
-            framework,
-            start_time_since_epoch_in_micros,
-            end_time_since_epoch_in_micros,
-            node_id,
-            start_phase,
+        stats_dir = "{0}-{1}-{2}-{3}_{4}-{5}-{6}-{7}".format(
+            start_mode,
             start_step,
-            stop_phase,
-            stop_step,
+            start_phase,
+            start_time_since_epoch_in_micros,
+            end_mode,
+            end_step,
+            end_phase,
+            end_time_since_epoch_in_micros,
         )
-        stats_dir = os.path.join(base_folder, "framework", framework, profiler_name, folder_name)
-        ensure_dir(stats_dir, is_file=False)
-        return stats_dir
+        stats_dir_path = os.path.join(
+            base_folder, "framework", framework, profiler_name, node_id, stats_dir
+        )
+        ensure_dir(stats_dir_path, is_file=False)
+        return stats_dir_path
 
     @staticmethod
     def get_merged_trace_file_location(base_dir, timestamp_in_us):

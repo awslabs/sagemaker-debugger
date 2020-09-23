@@ -1,4 +1,5 @@
 # Standard Library
+import atexit
 import os
 import time
 
@@ -14,7 +15,8 @@ from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
-from smdebug.profiler.python_profiler import PythonProfiler, StepPhase
+from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
+from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
@@ -30,6 +32,7 @@ if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
     if config.python_profiling_config.is_enabled():
         python_profiler = PythonProfiler.get_python_profiler(config, "pytorch")
+        atexit.register(python_profiler.stop_profiling, StepPhase.END)
         python_profiler.start_profiling(StepPhase.START)
 
 
@@ -276,13 +279,34 @@ class Hook(CallbackHook):
 
         self._increment_step()
 
+        # we will log all outstanding forward and backward events
+        self.log_outstanding_timeline_metrics()
+
+        self.step_event = self._TraceEventData(
+            phase="Step:" + str(self.mode),
+            op_name="Step:" + str(self.mode),
+            start_time=time.time(),
+            dur=0,  # end time of step_event will be updated every time a forward event or backward is called after this
+            pid=os.getpid(),
+            step_num=str(self.mode_steps[self.mode]),
+        )
+
         # Disable python profiling if the python profiler is currently profiling.
         if python_profiler:
+            python_profiler.stop_profiling(
+                StepPhase.STEP_START,
+                end_mode=mode_keys_to_python_profile_mode(self.mode),
+                end_step=self.step,
+            )
             python_profiler.stop_profiling(StepPhase.STEP_START, self.step)
             if self.profiler_config_parser.should_save_metrics(
                 MetricsCategory.PYTHON_PROFILING, self.step
             ):
-                python_profiler.start_profiling(StepPhase.STEP_START, start_step=self.step)
+                python_profiler.start_profiling(
+                    StepPhase.STEP_START,
+                    start_mode=mode_keys_to_python_profile_mode(self.mode),
+                    start_step=self.step,
+                )
 
         if self.autograd_profiler_enabled:
             self._collect_torch_profiling_data_if_profiler_enabled()
@@ -315,21 +339,11 @@ class Hook(CallbackHook):
         # last operation can be forward( eval loop is running or multiple forward for example RNN can have multiple call to forward of module)
         # or last operation can be backward (train backward loop just finished and we are at forward again)
 
-        # we will log all outstanding forward and backward events
-        self.log_outstanding_timeline_metrics()
         self.parent_forward_event = self._TraceEventData(
             phase="Forward",
             op_name=module._module_name,
             start_time=time.time(),
             dur=0,  # end time of parent_forward_event will be updated every time a forward event is called after this
-            pid=os.getpid(),
-            step_num=str(self.mode_steps[self.mode]),
-        )
-        self.step_event = self._TraceEventData(
-            phase="Step:" + str(self.mode),
-            op_name="Step:" + str(self.mode),
-            start_time=time.time(),
-            dur=0,  # end time of step_event will be updated every time a forward event or backward is called after this
             pid=os.getpid(),
             step_num=str(self.mode_steps[self.mode]),
         )
@@ -419,11 +433,19 @@ class Hook(CallbackHook):
     def fhook(self, module, inputs, outputs):
         # we would stop profiling and restart from this phase
         if python_profiler:
-            python_profiler.stop_profiling(StepPhase.FORWARD_PASS_END, self.step)
+            python_profiler.stop_profiling(
+                StepPhase.FORWARD_PASS_END,
+                end_mode=mode_keys_to_python_profile_mode(self.mode),
+                end_step=self.step,
+            )
             if self.profiler_config_parser.should_save_metrics(
                 MetricsCategory.PYTHON_PROFILING, self.step
             ):
-                python_profiler.start_profiling(StepPhase.FORWARD_PASS_END, start_step=self.step)
+                python_profiler.start_profiling(
+                    StepPhase.FORWARD_PASS_END,
+                    start_mode=mode_keys_to_python_profile_mode(self.mode),
+                    start_step=self.step,
+                )
 
     def bhook(self, module, grad_input, grad_output):
         now = time.time()
@@ -444,19 +466,16 @@ class Hook(CallbackHook):
                     pid=os.getpid(),
                     step_num=str(self.mode_steps[self.mode]),
                 )
-
         if self.parent_backward_event:
             self.parent_backward_event.update_end_time(now)
         if self.step_event:
             self.step_event.update_end_time(now)
-
         # if this is not first backward we will use start time of parent as start time, and end time as now
         if len(self.backward_modules_profile_stats) > 0:
             # this child start_time is approcximated as last child end time
             child_start_time = self.backward_modules_profile_stats[-1].end_time
         else:
             child_start_time = backward_st_time
-
         event = self._TraceEventData(
             phase="Backward-SubModuleInternal",
             op_name=module._module_name,
@@ -504,7 +523,6 @@ class Hook(CallbackHook):
             break
         # Create an attribute and store the module name in the object
         # So that it is available in the forward hook.
-
         for name, submodule in module.named_modules():
             assert submodule not in self.module_set, f"Don't register module={module} twice"
             submodule._module_name = name
@@ -539,6 +557,18 @@ class Hook(CallbackHook):
         # Add a callback to the forward pass
         loss_module.register_forward_hook(self.forward_hook)
         self.has_registered_loss_module = True
+
+    def close(self):
+        self._cleanup()
+        if python_profiler:
+            python_profiler.start_profiling(
+                StepPhase.STEP_END,
+                start_mode=mode_keys_to_python_profile_mode(self.mode),
+                start_step=self.mode_steps[self.mode],
+            )
+
+    def _cleanup(self):
+        super()._cleanup()
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):

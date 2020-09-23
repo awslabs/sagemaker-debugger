@@ -2,8 +2,15 @@
 import pstats
 from enum import Enum
 
+# Third Party
+import pandas as pd
+
 # First Party
-from smdebug.profiler.python_profiler import StepPhase
+from smdebug.profiler.python_profile_utils import (
+    PythonProfileModes,
+    StepPhase,
+    str_to_python_profile_mode,
+)
 
 
 class Metrics(Enum):
@@ -26,43 +33,67 @@ class Metrics(Enum):
 
 
 class StepPythonProfileStats:
-    def __init__(
-        self,
-        profiler_name,
-        framework,
-        start_time_since_epoch_in_micros,
-        end_time_since_epoch_in_micros,
-        node_id,
-        start_phase,
-        start_step,
-        end_phase,
-        end_step,
-        stats_path,
-    ):
-        """Class that represents the metadata for profiling on a specific step (or before step 0).
-        Used so that users can easily filter through which steps they want profiling stats of.
-        In addition, printing this class will result in a dictionary of the attributes and its corresponding values.
-        :param profiler_name The name of the profiler used to generate this stats file, cProfile or pyinstrument
-        :param framework The machine learning framework used in training.
-        :param start_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling started for this step.
-        :param end_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling finished for this step.
-        :param node_id The node ID of the node used in the session.
-        :param start_phase The phase at which python profiling was started.
-        :param start_step: The step at which python profiling was started. -1 if before step 0.
-        :param end_phase The phase at which python profiling was stopped.
-        :param end_step: The step at which python profiling was stopped.
-        :param stats_path The path to the dumped python stats or html resulting from profiling this step.
-        """
+    """
+    Class that represents the metadata for a single instance of profiling: before step 0, during a step, between steps,
+    end of script, etc. Used so that users can easily filter through which exact portion of their session that
+    they want profiling stats of. In addition, printing this class will result in a dictionary of the attributes and
+    its corresponding values.
+
+    ...
+
+    Attributes
+    ----------
+    profiler_name: str
+        The name of the profiler used to generate this stats file, cProfile or pyinstrument
+    framework: str
+        The machine learning framework used in training.
+    node_id: str
+        The node ID of the node used in the session.
+    start_mode: str
+        The training phase (TRAIN/EVAL/GLOBAL) at which profiling started.
+    start_phase: str
+        The step phase (start of step, end of step, etc.) at which python profiling was started.
+    start_step: float
+        The step at which python profiling was started. -1 if profiling before step 0.
+    start_time_since_epoch_in_micros: int
+        The UTC time (in microseconds) at which profiling started for this step.
+    end_mode: str
+        The training phase (TRAIN/EVAL/GLOBAL) at which profiling was stopped.
+    end_step: float
+        The step at which python profiling was stopped. Infinity if end of script.
+    end_phase: str
+        The step phase (start of step, end of step, etc.) at which python profiling was stopped.
+    end_time_since_epoch_in_micros: int
+        The UTC time (in microseconds) at which profiling finished for this step.
+    stats_path: str
+        The path to the dumped python stats or html resulting from profiling this step.
+            """
+
+    def __init__(self, framework, profiler_name, node_id, stats_dir, stats_path):
+        start_metadata, end_metadata = stats_dir.split("_")
+        start_mode, start_step, start_phase, start_time_since_epoch_in_micros = start_metadata.split(
+            "-"
+        )
+        end_mode, end_step, end_phase, end_time_since_epoch_in_micros = end_metadata.split("-")
+
         self.profiler_name = profiler_name
         self.framework = framework
-        self.start_time_since_epoch_in_micros = start_time_since_epoch_in_micros
-        self.end_time_since_epoch_in_micros = end_time_since_epoch_in_micros
         self.node_id = node_id
-        self.start_phase = start_phase
-        self.start_step = start_step
-        self.end_phase = end_phase
-        self.end_step = end_step
+
+        self.start_mode = PythonProfileModes(str_to_python_profile_mode(start_mode))
+        self.start_step = -1 if start_step == "*" else int(start_step)
+        self.start_phase = StepPhase(start_phase)
+        self.start_time_since_epoch_in_micros = float(start_time_since_epoch_in_micros)
+
+        self.end_mode = PythonProfileModes(str_to_python_profile_mode(end_mode))
+        self.end_step = float("inf") if end_step == "*" else int(end_step)
+        self.end_phase = StepPhase(end_phase)
+        self.end_time_since_epoch_in_micros = float(end_time_since_epoch_in_micros)
+
         self.stats_path = stats_path
+
+    def has_start_and_end_mode(self, start_mode, end_mode):
+        return self.start_mode == start_mode and self.end_mode == end_mode
 
     def in_time_interval(self, start_time_since_epoch_in_micros, end_time_since_epoch_in_micros):
         """Returns whether this step is in the provided time interval.
@@ -106,6 +137,15 @@ class StepPythonProfileStats:
                 return False
             return True
 
+    def has_pre_step_zero_profile_stats(self):
+        return self.start_phase == StepPhase.START
+
+    def has_post_hook_close_profile_stats(self):
+        return self.end_phase == StepPhase.END
+
+    def has_node_id(self, node_id):
+        return self.node_id == node_id
+
     def __repr__(self):
         return repr(self.__dict__)
 
@@ -143,6 +183,11 @@ class cProfileStats:
         assert isinstance(n, int), "n must be an integer!"
         self.ps.sort_stats(by.value).print_stats(n)
 
+    def get_function_stats(self):
+        """Return the function stats list as a DataFrame, where each row represents a cProfileFunctionStats object.
+        """
+        return pd.DataFrame([repr(function_stats) for function_stats in self.function_stats_list])
+
 
 class cProfileFunctionStats:
     """Class used to represent a single profiled function and parsed cProfile stats pertaining to this function.
@@ -172,6 +217,17 @@ class cProfileFunctionStats:
         self.function_name = pstats.func_std_string(key)
         self.prim_calls, self.total_calls, self.total_time, self.cumulative_time, callers = value
         self.callers = [pstats.func_std_string(k) for k in callers.keys()]
+
+    def __repr__(self):
+        return repr(
+            {
+                "function name": self.function_name,
+                "# of primitive calls": self.prim_calls,
+                "# of total calls": self.total_calls,
+                "total time": self.total_time,
+                "cumulative time": self.cumulative_time,
+            }
+        )
 
 
 class PyinstrumentStepStats:

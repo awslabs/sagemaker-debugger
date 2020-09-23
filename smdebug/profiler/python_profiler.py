@@ -4,7 +4,6 @@ import os
 import pstats
 import time
 from cProfile import Profile as cProfileProfiler
-from enum import Enum
 
 # Third Party
 from pyinstrument import Profiler as PyinstrumentProfiler
@@ -22,59 +21,18 @@ from smdebug.profiler.profiler_constants import (
     PYINSTRUMENT_NAME,
     PYTHON_PROFILING_START_STEP_DEFAULT,
 )
-
-
-class StepPhase(Enum):
-    # pre-step zero
-    START = "start"
-
-    # start of step
-    STEP_START = "step-start"
-
-    # end of forward pass
-    FORWARD_PASS_END = "forward-pass-end"
-
-    # end of training step
-    STEP_END = "step-end"
-
-    # end of training
-    TRAIN_END = "train-end"
-
-
-def total_time():
-    if not os.times:
-        return -1
-    times = os.times()
-    return times.elapsed
-
-
-def cpu_time():
-    if not os.times:
-        return -1
-    times = os.times()
-    return times.system + times.user
-
-
-def off_cpu_time():
-    if not os.times:
-        return -1
-    times = os.times()
-    return times.elapsed - (times.system + times.user)
-
-
-class PythonProfilerName(Enum):
-    CPROFILE = CPROFILE_NAME
-    PYINSTRUMENT = PYINSTRUMENT_NAME
-
-
-class cProfileTimer(Enum):
-    TOTAL_TIME = "total_time"
-    CPU_TIME = "cpu_time"
-    OFF_CPU_TIME = "off_cpu_time"
+from smdebug.profiler.python_profile_utils import (
+    PythonProfileModes,
+    cProfileTimer,
+    cpu_time,
+    off_cpu_time,
+    python_profile_mode_to_str,
+    total_time,
+)
 
 
 class PythonProfiler:
-    name = ""  # placeholder
+    _name = ""  # placeholder
 
     def __init__(self, base_folder, framework):
         """Higher level class to manage execution of python profiler, dumping of python stats, and retrieval
@@ -108,8 +66,11 @@ class PythonProfiler:
     def _reset_profiler(self):
         """Reset attributes to defaults
         """
-        self._step, self._start_time_since_epoch_in_micros, self._is_profiling = None, None, False
-        self._current_step_phase = None
+        self._start_mode = None
+        self._start_step = None
+        self._start_phase = None
+        self._start_time_since_epoch_in_micros = None
+        self._is_profiling = None
 
     def _enable_profiler(self):
         """Enable the profiler (to be implemented in subclass, where the actual profiler is defined).
@@ -123,40 +84,48 @@ class PythonProfiler:
         """Dump the stats to the provided path (to be implemented in subclass, where the actual profiler is defined).
         """
 
-    def start_profiling(self, start_phase, start_step=-1):
-        """Start the python profiler with the provided start phase and start step.
+    def start_profiling(
+        self, start_phase, start_mode=PythonProfileModes.PRE_STEP_ZERO, start_step="*"
+    ):
+        """Start the python profiler with the provided start phase and start step and start mode.
         Start phase must be one of the specified step phases in StepPhase.
-        If start step is -1, then this is profiling from import time to step 0.
+        Start mode must be one of the specified modes in ModeKeys.
+        If start step is *, then this is profiling until step 0.
         """
-        self._start_phase = start_phase
+        self._start_mode = start_mode
         self._start_step = start_step
+        self._start_phase = start_phase
         self._start_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
         self._is_profiling = True
         self._enable_profiler()
 
-    def stop_profiling(self, end_phase, end_step):
-        """Stop the python profiler with the provided end phase and end step.
+    def stop_profiling(self, end_phase, end_mode=PythonProfileModes.POST_HOOK_CLOSE, end_step="*"):
+        """Stop the python profiler with the provided end phase and end step and end mode.
         End phase must be one of the specified step phases in StepPhase.
+        End mode must be one of the specified modes in ModeKeys.
         Dump the python stats for this step with a file path dependent on the base folder, framework, time and step.
         Append a record of this step's profiling with the corresponding metadata.
         Reset the attributes to prepare for the (possibly) next time we profile.
+        If end step is *, then this is profiling until the end of the script.
         """
         if not self._is_profiling:
             return
 
         self._disable_profiler()
 
-        current_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
+        end_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
         stats_dir = TraceFileLocation.get_python_profiling_stats_dir(
             self._base_folder,
+            self._name,
             self._framework,
-            self.name,
-            self._start_time_since_epoch_in_micros,
-            current_time_since_epoch_in_micros,
-            self._start_phase.value,
+            python_profile_mode_to_str(self._start_mode),
             self._start_step,
-            end_phase.value,
+            self._start_phase.value,
+            self._start_time_since_epoch_in_micros,
+            python_profile_mode_to_str(end_mode),
             end_step,
+            end_phase.value,
+            end_time_since_epoch_in_micros,
         )
         self._dump_stats(stats_dir)
 
@@ -181,7 +150,7 @@ class cProfilePythonProfiler(PythonProfiler):
     This is also the default Python profiler used if profiling is enabled.
     """
 
-    name = CPROFILE_NAME
+    _name = CPROFILE_NAME
     timer_name_to_function = {
         cProfileTimer.TOTAL_TIME: total_time,
         cProfileTimer.CPU_TIME: cpu_time,
@@ -245,7 +214,7 @@ class PyinstrumentPythonProfiler(PythonProfiler):
     """Higher level class to oversee profiling specific to Pyinstrument, a third party Python profiler.
     """
 
-    name = PYINSTRUMENT_NAME
+    _name = PYINSTRUMENT_NAME
 
     def _enable_profiler(self):
         """Enable the pyinstrument profiler.

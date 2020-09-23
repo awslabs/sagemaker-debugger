@@ -299,7 +299,7 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
             python_stats_dir, exist_ok=True
         )  # still needs to be created if python profiling is disabled
         python_analysis = python_analysis_class(local_profile_dir=python_stats_dir)
-        python_profile_stats = python_analysis.list_profile_stats()
+        python_profile_stats = python_analysis.python_profile_stats
         print(f"Number of generated python stats files {len(python_profile_stats)}")
         assert len(python_profile_stats) == expected_num_trace_file["python_stats_file_count"]
 

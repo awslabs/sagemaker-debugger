@@ -12,6 +12,7 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 
 # First Party
+from smdebug.profiler.utils import str2bool
 from smdebug.pytorch import Hook
 
 
@@ -38,7 +39,7 @@ parser.add_argument(
 parser.add_argument(
     "--epochs", default=2, type=int, metavar="N", help="number of total epochs to run"
 )
-parser.add_argument("--enable_bottleneck", type=bool, default=True)
+parser.add_argument("--enable_bottleneck", type=str2bool, default=True)
 parser.add_argument(
     "-b",
     "--batch-size",

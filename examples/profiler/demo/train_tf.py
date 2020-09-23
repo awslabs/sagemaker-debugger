@@ -11,6 +11,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.utils import to_categorical
 
 # First Party
+from smdebug.profiler.utils import str2bool
 from smdebug.tensorflow import KerasHook
 
 
@@ -84,7 +85,7 @@ def main():
     parser.add_argument("--epoch", type=int, default=50)
     parser.add_argument("--data_augmentation", type=bool, default=False)
     parser.add_argument("--model_dir", type=str, default="./model_keras_resnet")
-    parser.add_argument("--enable_bottleneck", type=bool, default=True)
+    parser.add_argument("--enable_bottleneck", type=str2bool, default=True)
     args = parser.parse_args()
 
     mirrored_strategy = tf.distribute.MirroredStrategy()
