@@ -50,7 +50,11 @@ class SystemProfilerEventParser:
     def read_events_from_file(self, eventfile):
         try:
             with open(eventfile) as json_data:
-                trace_json_data = json.load(json_data)
+                event_line = json_data.readline()
+                while event_line:
+                    json_event = json.loads(event_line)
+                    event_line = json_data.readline()
+                    self.read_event_from_dict(json_event)
         except Exception as e:
             self.logger.error(
                 f"Can't open profiler system metric file {eventfile}: Exception {str(e)}"
@@ -58,7 +62,6 @@ class SystemProfilerEventParser:
             raise ValueError(
                 f"Can't open profiler system metric file {eventfile}: Exception {str(e)}"
             )
-        self.read_events_from_json_data(trace_json_data)
 
     def read_events_from_json_data(self, system_profiler_json_data):
         for event in system_profiler_json_data:

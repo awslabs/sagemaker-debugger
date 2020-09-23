@@ -251,7 +251,7 @@ class TimelineCharts:
         counter = 0
         for index, event in enumerate(events):
             if event.event_args is not None:
-                if "bytes_fetched" in event.event_args:
+                if "bytes_fetched" in event.event_args or "worker_id" in event.event_args:
                     continue
 
             if event.event_phase not in framework_events:
@@ -283,7 +283,6 @@ class TimelineCharts:
             if event.event_args is None:
                 continue
             if "bytes_fetched" in event.event_args:
-
                 if event.event_name not in dataloaders:
                     dataloaders[event.event_name] = []
                 if event.tid not in tids:
@@ -291,6 +290,20 @@ class TimelineCharts:
                 dataloaders[event.event_name].append(
                     [int(event.start_time / 1000.0), int(event.end_time / 1000.0), tids[event.tid]]
                 )
+            elif "worker_id" in event.event_args:
+                if event.event_name not in dataloaders:
+                    dataloaders[event.event_name] = []
+                worker_id = event.event_args["worker_id"]
+                if worker_id not in tids:
+                    tids[worker_id] = len(tids.keys())
+                dataloaders[event.event_name].append(
+                    [
+                        int(event.start_time / 1000.0),
+                        int(event.end_time / 1000.0),
+                        tids[event.event_args["worker_id"]],
+                    ]
+                )
+
                 if index > 500:
                     print("Reached more than 500 datapoints. Will stop plotting.")
                     break

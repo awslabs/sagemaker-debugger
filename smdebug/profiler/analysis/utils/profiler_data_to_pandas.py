@@ -2,6 +2,7 @@
 import pandas as pd
 
 # First Party
+from smdebug.core.utils import match_inc
 from smdebug.profiler.algorithm_metrics_reader import (
     LocalAlgorithmMetricsReader,
     S3AlgorithmMetricsReader,
@@ -92,7 +93,7 @@ class PandasFrame:
         :param timestep: timestamp in datetime
         :return: timestamp in microseconds
         """
-        timestamp = pd.to_datetime(timestamp, format="%Y-%m-%dT%H:%M:%S:%f")
+        timestamp = pd.to_datetime(timestamp, format="%Y-%m-%dT%H:%M:%S:%f", utc=True)
         return convert_utc_datetime_to_microseconds(timestamp)
 
     def get_framework_metrics_by_timesteps(self, timestep_list=[], selected_framework_metrics=[]):
@@ -234,7 +235,7 @@ class PandasFrame:
         if len(list(framework_metrics.values())) > 0:
             max_value = float(max(list(framework_metrics.values())))
             for key in framework_metrics:
-                framework_metrics[key] = framework_metrics[key]
+                framework_metrics[key] = framework_metrics[key] / max_value
             max_value = float(max(list(framework_metrics_detailed.values())))
             for key in framework_metrics_detailed:
                 framework_metrics_detailed[key] = framework_metrics_detailed[key] / max_value
@@ -424,3 +425,133 @@ class PandasFrame:
         ]
 
         return sys_metrics_df, fw_metrics_df
+
+    def get_all_dataloader_metrics(self, selected_framework_metrics=[]):
+        """
+        Get framework metrics
+        :param selected_framework_metrics: list of framework metrics.If not empty, function will only return framework events that are part of this list.
+        :return: Framework metrics DataFrame
+        """
+        # get all framework metrics from last to current timestamp
+        self.framework_metrics_reader.refresh_event_file_list()
+
+        start_timestamp = (
+            self.system_metrics_reader.get_timestamp_of_first_available_file()
+        )  # bug: get_events does not return the very first event
+        end_timestamp = self.framework_metrics_reader.get_timestamp_of_latest_available_file()
+
+        fw_events_df = self._get_dataloader_profiler_data_by_time(
+            start_timestamp,
+            end_timestamp,
+            cache_metrics=False,
+            selected_framework_metrics=selected_framework_metrics,
+        )
+
+        return fw_events_df
+
+    def _get_dataloader_profiler_data_by_time(
+        self, start_time_us, end_time_us, cache_metrics=False, selected_framework_metrics=[]
+    ):
+        """
+        Get metrics data within a time interval.
+        :param start_time_us: Start of the interval in microseconds
+        :param end_time_us: End of the interval in microseconds
+        :param cache_metrics: If True, collect and return all metrics requested so far, else,
+        :param framework_metrics_list: list of framework metrics. If not empty, function will only return framework events that are part of this list.
+        :return: Framework metrics DataFrame
+        """
+        # get framework metrics
+        framework_metrics = []
+        # only fetch a subset of data to avoid out of memory issues
+        if end_time_us - start_time_us > self.interval:
+            current_time_us = start_time_us + self.interval
+        else:
+            current_time_us = end_time_us
+
+        while start_time_us < end_time_us:
+            # get all framework metrics from last to current timestamp
+            self.framework_metrics_reader.refresh_event_file_list()
+            events = self.framework_metrics_reader.get_events(start_time_us, current_time_us)
+
+            # append new events to existing list
+            for event in events:
+                if len(selected_framework_metrics) > 0 and not (
+                    match_inc(event.event_name, selected_framework_metrics)
+                    or match_inc(event.event_phase, selected_framework_metrics)
+                ):
+                    continue
+                if event.event_args is not None and "step_num" in event.event_args:
+                    step = int(event.event_args["step_num"])
+                else:
+                    step = -1
+                if event.event_args is not None and "layer_name" in event.event_args:
+                    name = event.event_args["layer_name"]
+                elif event.event_args is not None and "name" in event.event_args:
+                    name = event.event_args["name"]
+                else:
+                    name = event.event_name
+                if event.event_args is not None and "worker_id" in event.event_args:
+                    worker_id = event.event_args["worker_id"]
+                else:
+                    worker_id = -1
+
+                if event.event_args is not None and "num_workers" in event.event_args:
+                    num_workers = event.event_args["num_workers"]
+                else:
+                    num_workers = -1
+
+                if event.event_args is not None and "pin_memory" in event.event_args:
+                    pin_memory = "True" if event.event_args["pin_memory"] is True else "False"
+                else:
+                    pin_memory = "NA"
+
+                framework_metrics.append(
+                    [
+                        us_since_epoch_to_human_readable_time(event.start_time),
+                        us_since_epoch_to_human_readable_time(event.end_time),
+                        event.start_time,
+                        event.end_time,
+                        event.duration,
+                        event.pid,
+                        name,
+                        step,
+                        worker_id,
+                        num_workers,
+                        pin_memory,
+                        event.event_phase,
+                    ]
+                )
+            # read the next chunk of data
+            start_time_us = current_time_us
+            if current_time_us + self.interval < end_time_us:
+                current_time_us = current_time_us + self.interval
+            else:
+                current_time_us = end_time_us
+
+            if cache_metrics is True:
+                self.framework_metrics.extend(framework_metrics)
+                framework_metrics = self.framework_metrics
+
+        # create data frame for framework metrics
+        framework_metrics_df = pd.DataFrame(
+            framework_metrics,
+            columns=[
+                "start_time",
+                "end_time",
+                "start_time_us",
+                "end_time_us",
+                "duration_us",
+                "pid",
+                "framework_metric",
+                "step",
+                "worker_id",
+                "num_workers",
+                "pin_memory",
+                "process",
+            ],
+        )
+        framework_metrics_df["start_time_us"] = (
+            framework_metrics_df["start_time_us"] - self.start_time
+        )
+        framework_metrics_df["end_time_us"] = framework_metrics_df["end_time_us"] - self.start_time
+        return framework_metrics_df[framework_metrics_df.duplicated() == False]

@@ -192,12 +192,12 @@ def str2bool(v):
 
 
 def us_since_epoch_to_human_readable_time(us_since_epoch):
-    dt = datetime.fromtimestamp(us_since_epoch / 1e6)
+    dt = datetime.utcfromtimestamp(us_since_epoch / 1e6)
     return dt.strftime("%Y-%m-%dT%H:%M:%S:%f")
 
 
 def ns_since_epoch_to_human_readable_time(ns_since_epoch):
-    dt = datetime.fromtimestamp(ns_since_epoch / 1e9)
+    dt = datetime.utcfromtimestamp(ns_since_epoch / 1e9)
     return dt.strftime("%Y-%m-%dT%H:%M:%S:%f")
 
 
