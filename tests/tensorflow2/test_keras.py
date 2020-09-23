@@ -520,7 +520,7 @@ def test_include_regex(out_dir, tf_eager_mode):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-    assert len(tnames) == 12
+    assert len(tnames) == (12 if is_tf_2_2() else 4)
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
@@ -672,7 +672,7 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     if is_tf_2_2():
         assert len(trial.tensor_names()) == 27
     else:
-        assert len(trial.tensor_names()) == (20 if is_tf_2_3() else 21)
+        assert len(trial.tensor_names()) == 13
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
