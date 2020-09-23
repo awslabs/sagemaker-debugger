@@ -54,6 +54,7 @@ class TSAccessFile(TSAccessBase):
                 self.logger.info(
                     f"Sagemaker-Debugger: Skipping close of file:{self.temp_path} as file doesn't exist"
                 )
+                return
             shutil.move(self.temp_path, self.path)
             self.logger.debug(
                 f"Sagemaker-Debugger: Wrote {os.path.getsize(self.path)} bytes to file {self.path}"
