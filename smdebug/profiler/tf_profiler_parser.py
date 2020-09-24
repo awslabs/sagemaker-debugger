@@ -3,8 +3,8 @@ import glob
 import gzip
 import json
 import os
+import zlib
 from datetime import datetime
-from io import BytesIO
 
 # First Party
 from smdebug.core.access_layer.s3handler import ReadObjectRequest, S3Handler
@@ -41,9 +41,8 @@ class TensorboardProfilerEvents(TraceEventParser):
             if s3:
                 object_requests = ReadObjectRequest(os.path.join("s3://", bucket_name, key_name))
                 objects = S3Handler.get_objects([object_requests])
-                gzipfile = BytesIO(objects[0])
-                gzipfile = gzip.GzipFile(fileobj=gzipfile)
-                trace_json_data = json.loads(gzipfile.read().decode("utf-8"))
+                unzipped = zlib.decompress(objects[0], zlib.MAX_WBITS | 16)
+                trace_json_data = json.loads(unzipped.decode("utf-8"))
             else:
                 with gzip.GzipFile(tracefile, "r") as fin:
                     trace_json_data = json.loads(fin.read().decode("utf-8"))
