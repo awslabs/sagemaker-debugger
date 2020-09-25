@@ -350,6 +350,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
+    def _prepare_non_layer_tensors(self):
+        for coll in self.collection_manager.get_collections().values():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
+                if tensor_ref.name not in self.tensor_to_collections:
+                    self.tensor_to_collections[tensor_ref.name] = {coll}
+                elif coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(coll)
+
     def _prepare_tensors_available_post_step(self):
         # for gradients, optimizer_variables
         custom_collections, _ = self._get_custom_and_default_collections()
@@ -359,7 +368,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.get_collection(name=CollectionKeys.OUTPUTS),
             self.get_collection(name=CollectionKeys.INPUTS),
         ]:
-            for tensor_ref in coll.get_tensors():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
@@ -729,6 +739,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._get_exec_function(mode)
             ):
                 self._prepare_layers(mode)
+                self._prepare_non_layer_tensors()
                 self._prepare_tensors_available_post_step()
                 self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
