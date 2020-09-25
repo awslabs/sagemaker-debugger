@@ -777,6 +777,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for layer_name, layer_input, layer_output in logs:
             # Cast layer_name to str since it can also be of type bytes
             # when run with mirrored strategy
+            if isinstance(layer_name, tf.Tensor):
+                # Tensor.name is meaningless with eager execution
+                layer_name = str(layer_name.numpy(), "utf-8")
+            elif isinstance(layer_name, tf.Variable):
+                layer_name = layer_name.name
+            elif isinstance(layer_name, bytes):
+                layer_name = str(layer_name, "utf-8")
             if len(layer_input) == 1:
                 # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
