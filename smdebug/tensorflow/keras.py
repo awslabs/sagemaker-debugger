@@ -146,13 +146,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if match_inc(ts_name, current_coll.include_regex):
                 # In TF 2.x eager mode, we can't put tensors in a set/dictionary as tensor.__hash__()
-                # is no longer available. tensor.experimental_ref() returns a hashable reference
+                # is no longer available. tensor.ref() returns a hashable reference
                 # object to this Tensor.
                 if is_tf_version_2x() and tf.executing_eagerly():
-                    # tensor.experimental_ref is an experimental API
-                    # and can be changed or removed.
-                    # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
-                    tensor = tensor.experimental_ref()
+                    if hasattr(tensor, "ref"):
+                        # See: https://www.tensorflow.org/api_docs/python/tf/Tensor#ref
+                        # experimental_ref is being deprecated for ref
+                        tensor = tensor.ref()
+                    elif hasattr(tensor, "experimental_ref"):
+                        # tensor.experimental_ref is an experimental API
+                        # and can be changed or removed.
+                        # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
+                        tensor = tensor.experimental_ref()
+                    else:
+                        raise Exception(
+                            "Neither ref nor experimental_ref API present. Check TF version"
+                        )
                 if not current_coll.has_tensor(tensor):
                     # tensor will be added to this coll below
                     colls_with_tensor.add(current_coll)
