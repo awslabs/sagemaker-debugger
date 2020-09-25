@@ -352,7 +352,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_non_layer_tensors(self):
         for coll in self.collection_manager.get_collections().values():
-            for tensor_ref in coll.get_tensors():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
@@ -367,7 +368,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.get_collection(name=CollectionKeys.OUTPUTS),
             self.get_collection(name=CollectionKeys.INPUTS),
         ]:
-            for tensor_ref in coll.get_tensors():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
