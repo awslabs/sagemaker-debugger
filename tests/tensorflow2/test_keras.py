@@ -567,6 +567,22 @@ def test_layer_names(out_dir, tf_eager_mode):
         assert re.match(pattern=pattern, string=tname) is not None
 
 
+@pytest.mark.slow
+def test_layer_names_gradient_tape(out_dir):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=9),
+        include_collections=[CollectionKeys.LAYERS],
+    )
+    helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
+
+    tr = create_trial_fast_refresh(out_dir)
+    tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+    for tname in tnames:
+        assert re.match(pattern=pattern, string=tname) is not None
+
+
 @pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_clash_with_tb_callback(out_dir):
