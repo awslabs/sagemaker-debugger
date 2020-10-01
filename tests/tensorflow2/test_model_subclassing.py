@@ -13,6 +13,15 @@ class MyModel(Model):
         self.conv1 = Conv2D(
             32, 3, activation="relu", kernel_initializer=tf.keras.initializers.GlorotNormal(seed=12)
         )
+        self.original_call = self.conv1.call
+
+        def new_call(inputs, *args, **kwargs):
+            # Since we use layer wrapper we need to assert if these parameters
+            # are actually being passed into the original call fn
+            assert kwargs["input_one"] == 1
+            self.original_call(inputs, *args, **kwargs)
+
+        self.conv1.call = new_call
         self.conv0 = Conv2D(
             32, 3, activation="relu", kernel_initializer=tf.keras.initializers.GlorotNormal(seed=12)
         )
@@ -26,7 +35,7 @@ class MyModel(Model):
     def first(self, x):
         with tf.name_scope("first"):
             tf.print("mymodel.first")
-            x = self.conv1(x)
+            x = self.conv1(x, input_one=1)
             # x = self.bn(x)
             return self.flatten(x)
 
@@ -37,8 +46,6 @@ class MyModel(Model):
 
     def call(self, x, training=None, test_input_one=1, test_input_two=2):
         x = self.first(x)
-        # Since we use layer wrapper we need to assert if these parameters
-        # are actually being passed into the original call fn
         assert test_input_one == 1
         assert test_input_two == 2
         return self.second(x)
