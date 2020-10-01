@@ -5,7 +5,9 @@ from collections import defaultdict
 from enum import Enum
 
 # First Party
+from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.logger import get_logger
+from smdebug.core.utils import get_node_id
 from smdebug.profiler.profiler_config import ProfilerConfig
 from smdebug.profiler.profiler_constants import (
     BASE_FOLDER_DEFAULT,
@@ -13,6 +15,7 @@ from smdebug.profiler.profiler_constants import (
     CONFIG_PATH_DEFAULT,
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
+    TF_STEP_NUMBER_FILENAME,
 )
 from smdebug.profiler.utils import str2bool
 
@@ -54,6 +57,7 @@ class ProfilerConfigParser:
         """Initialize the parser to be disabled for profiling and detailed profiling.
         """
         self.config = None
+        self.tf_step_number_writer = None
         self.profiling_enabled = False
         self.logger = get_logger("smdebug-profiler")
         self.last_logging_statuses = defaultdict(lambda: False)
@@ -83,6 +87,8 @@ class ProfilerConfigParser:
         Set the provided values for the specified variables and default values for the rest.
         Validate the detailed profiling config (if it exists).
         """
+        self.config = None
+        self.tf_step_number_writer = None
         config_path = os.environ.get("SMPROFILER_CONFIG_PATH", CONFIG_PATH_DEFAULT)
 
         if os.path.isfile(config_path):
@@ -248,5 +254,20 @@ class ProfilerConfigParser:
             current_step, current_time
         )
         can_profile_metric = metric_config.can_start_profiling(current_step, current_time)
-
         return can_profile_general or can_profile_metric
+
+    def write_tf_step_number(self, current_step):
+        """If dataloader metrics collection is enabled, write the current step number to:
+        <local_path>/<node_id>/tf_step_number. We simply update the file but never close the writer,
+        since we don't want the file to be uploaded to s3.
+        """
+        if not self.profiling_enabled or not self.config.dataloader_metrics_config.is_enabled():
+            return
+
+        if self.tf_step_number_writer is None:
+            self.tf_step_number_writer = TSAccessFile(
+                os.path.join(self.config.local_path, get_node_id(), TF_STEP_NUMBER_FILENAME), "w"
+            )
+
+        self.tf_step_number_writer.write(str(current_step))
+        self.tf_step_number_writer.flush()

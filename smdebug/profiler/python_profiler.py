@@ -247,7 +247,7 @@ class PyinstrumentPythonProfiler(PythonProfiler):
             get_logger("smdebug-profiler").info(
                 f"Dumping pyinstrument output html to {html_file_path}."
             )
-        except UnboundLocalError:
+        except (UnboundLocalError, AssertionError):
             # Handles error that sporadically occurs within pyinstrument.
             get_logger("smdebug-profiler").info(
                 f"The pyinstrument profiling session has been corrupted for: {stats_file_path}."

@@ -32,7 +32,6 @@ if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
     if config.python_profiling_config.is_enabled():
         python_profiler = PythonProfiler.get_python_profiler(config, "pytorch")
-        atexit.register(python_profiler.stop_profiling, StepPhase.END)
         python_profiler.start_profiling(StepPhase.START)
 
 
@@ -115,6 +114,9 @@ class Hook(CallbackHook):
         )
         self.use_cuda = torch.cuda.is_available()
         self.profiler_config_parser = profiler_config_parser
+        self.profiler_config_parser.load_config()
+        if python_profiler:
+            atexit.register(python_profiler.stop_profiling, StepPhase.END)
 
     def log_trace_event(self, event):
         self.record_trace_events(

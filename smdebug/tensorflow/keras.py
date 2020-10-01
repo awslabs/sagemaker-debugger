@@ -19,11 +19,7 @@ from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerCon
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
 from smdebug.profiler.python_profiler import PythonProfiler
-from smdebug.profiler.utils import (
-    remove_tf_step_number_file,
-    stop_tf_profiler,
-    write_tf_step_number_to_file,
-)
+from smdebug.profiler.utils import stop_tf_profiler
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
@@ -57,7 +53,6 @@ if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
     if config.python_profiling_config.is_enabled():
         python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
-        atexit.register(python_profiler.stop_profiling, StepPhase.END)
         python_profiler.start_profiling(StepPhase.START)
 
 
@@ -112,6 +107,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
+        self.profiler_config_parser = profiler_config_parser
+        self.profiler_config_parser.load_config()
+        if python_profiler:
+            atexit.register(python_profiler.stop_profiling, StepPhase.END)
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -755,9 +754,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
 
         if self.profiler_config_parser.profiling_enabled:
-            write_tf_step_number_to_file(
-                self.profiler_config_parser.config.local_path, self.mode_steps[self.mode]
-            )
+            self.profiler_config_parser.write_tf_step_number(self.mode_steps[mode])
 
         # set mode for each batch as when users run model.fit() and pass validation data
         # through the optional argument, then mode_begin is not called for the training steps
@@ -780,7 +777,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 end_mode=mode_keys_to_python_profile_mode(mode),
                 end_step=self.mode_steps[mode],
             )
-            if profiler_config_parser.should_save_metrics(
+            if self.profiler_config_parser.should_save_metrics(
                 MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
             ):
                 python_profiler.start_profiling(
@@ -939,7 +936,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 end_mode=mode_keys_to_python_profile_mode(mode),
                 end_step=self.mode_steps[mode],
             )
-            if profiler_config_parser.should_save_metrics(
+            if self.profiler_config_parser.should_save_metrics(
                 MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
             ):
                 python_profiler.start_profiling(
@@ -1039,8 +1036,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Unwrap the tape before closing
         if self.tape:
             self._unwrap_tape()
-        if self.profiler_config_parser.profiling_enabled:
-            remove_tf_step_number_file(self.profiler_config_parser.config.local_path)
         super()._cleanup()
 
     def _wrap_push_tape(self, function):

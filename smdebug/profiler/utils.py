@@ -3,7 +3,6 @@ The TimeUnit enum is to be used while querying the events within timerange or at
 The Enum will indicate the unit in which timestamp is provided.
 """
 # Standard Library
-import os
 import re
 import time
 from datetime import datetime
@@ -19,8 +18,7 @@ from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.access_layer.s3handler import ListRequest, S3Handler, is_s3
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import ensure_dir
-from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS, TF_STEP_NUMBER_FILENAME
+from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 
 logger = get_logger()
 
@@ -266,18 +264,3 @@ def stop_tf_profiler(tf_profiler, log_dir, start_time_us):
         log_dir, start_time_us, time.time() * CONVERT_TO_MICROSECS
     )
     write_tf_profiler_metadata_file(metadata_file)
-
-
-def write_tf_step_number_to_file(folder, step):
-    ensure_dir(folder, is_file=False)
-    filepath = os.path.join(folder, TF_STEP_NUMBER_FILENAME)
-
-    with open(filepath, "w") as step_number_file:
-        step_number_file.write(str(step))
-
-
-def remove_tf_step_number_file(folder):
-    filepath = os.path.join(folder, TF_STEP_NUMBER_FILENAME)
-
-    if os.path.isfile(filepath):
-        os.remove(filepath)

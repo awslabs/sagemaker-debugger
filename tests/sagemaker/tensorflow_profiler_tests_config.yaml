@@ -102,7 +102,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 12
         framework_trace_file_count: 28
-        python_stats_file_count: 28
+        python_stats_file_count: 32
         horovod_tracefile_count: 3
   -
     - smprofiler-IT-keras-resnet-gpu-mirrored
@@ -119,7 +119,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 7
-        python_stats_file_count: 28
+        python_stats_file_count: 10
   -
     - smprofiler-IT-mnist-keras-gpu-default
     - *Enable
@@ -191,7 +191,7 @@
     - expected_values_in_test_artifacts:
         python_trace_file_count: 8
         framework_trace_file_count: 24
-        python_stats_file_count: 112
+        python_stats_file_count: 64
         horovod_tracefile_count: 1
   -
     - smprofiler-IT-keras-multi-worker-mirrored
