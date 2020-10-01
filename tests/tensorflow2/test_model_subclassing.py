@@ -35,8 +35,12 @@ class MyModel(Model):
             x = self.d1(x)
             return self.d2(x)
 
-    def call(self, x, training=None):
+    def call(self, x, training=None, test_input_one=1, test_input_two=2):
         x = self.first(x)
+        # Since we use layer wrapper we need to assert if these parameters
+        # are actually being passed into the original call fn
+        assert test_input_one == 1
+        assert test_input_two == 2
         return self.second(x)
 
 
