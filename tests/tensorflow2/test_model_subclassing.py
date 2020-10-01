@@ -19,7 +19,8 @@ class MyModel(Model):
             # Since we use layer wrapper we need to assert if these parameters
             # are actually being passed into the original call fn
             assert kwargs["input_one"] == 1
-            self.original_call(inputs, *args, **kwargs)
+            kwargs.pop("input_one")
+            return self.original_call(inputs, *args, **kwargs)
 
         self.conv1.call = new_call
         self.conv0 = Conv2D(
@@ -44,10 +45,8 @@ class MyModel(Model):
             x = self.d1(x)
             return self.d2(x)
 
-    def call(self, x, training=None, test_input_one=1, test_input_two=2):
+    def call(self, x, training=None):
         x = self.first(x)
-        assert test_input_one == 1
-        assert test_input_two == 2
         return self.second(x)
 
 
