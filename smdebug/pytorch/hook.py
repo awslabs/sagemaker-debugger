@@ -46,12 +46,11 @@ class Hook(CallbackHook):
     """
 
     class _TraceEventData:
-        def __init__(self, phase, op_name, start_time, dur, pid, **kwargs):
+        def __init__(self, phase, op_name, start_time, dur, **kwargs):
             self.training_phase = phase
             self.end_time = start_time + dur
             self.start_time = start_time
             self.op_name = op_name
-            self.pid = pid
             self.kwargs = kwargs
 
         def update_end_time(self, end_time=time.time()):
@@ -281,6 +280,10 @@ class Hook(CallbackHook):
 
         self._increment_step()
 
+        ## prepararing for step metrics
+        # last operation can be forward( eval loop is running or multiple forward for example RNN can have multiple call to forward of module)
+        # or last operation can be backward (train backward loop just finished and we are at forward again)
+
         # we will log all outstanding forward and backward events
         self.log_outstanding_timeline_metrics()
 
@@ -289,6 +292,14 @@ class Hook(CallbackHook):
             op_name="Step:" + str(self.mode),
             start_time=time.time(),
             dur=0,  # end time of step_event will be updated every time a forward event or backward is called after this
+            pid=os.getpid(),
+            step_num=str(self.mode_steps[self.mode]),
+        )
+        self.parent_forward_event = self._TraceEventData(
+            phase="Forward",
+            op_name=module._module_name,
+            start_time=time.time(),
+            dur=0,  # end time of parent_forward_event will be updated every time a forward event is called after this
             pid=os.getpid(),
             step_num=str(self.mode_steps[self.mode]),
         )
@@ -337,18 +348,6 @@ class Hook(CallbackHook):
             self.export_collections()
             self.exported_collections = True
 
-        ## prepararing for step metrics
-        # last operation can be forward( eval loop is running or multiple forward for example RNN can have multiple call to forward of module)
-        # or last operation can be backward (train backward loop just finished and we are at forward again)
-
-        self.parent_forward_event = self._TraceEventData(
-            phase="Forward",
-            op_name=module._module_name,
-            start_time=time.time(),
-            dur=0,  # end time of parent_forward_event will be updated every time a forward event is called after this
-            pid=os.getpid(),
-            step_num=str(self.mode_steps[self.mode]),
-        )
         self.first_forward_submodule_name = None
 
     def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:

@@ -55,7 +55,6 @@
         ProfilerEnabled: "True"
         MetricsConfig: "{\"PythonProfilingConfig\": {\"NumSteps\": \"3\", \"ProfilerName\": \"pyinstrument\"}}"
         RotateMaxFileSizeInBytes: "12485760.34"
-        RotateFileCloseIntervalInSeconds: "100.45"
         FileOpenFailThreshold: "35"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 7
