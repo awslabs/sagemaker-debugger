@@ -37,7 +37,6 @@ class MyModel(Model):
         with tf.name_scope("first"):
             tf.print("mymodel.first")
             x = self.conv1(x, input_one=1)
-            # x = self.bn(x)
             return self.flatten(x)
 
     def second(self, x):
