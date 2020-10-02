@@ -127,16 +127,12 @@ def test_general_profiling_ranges(general_profiler_config_path, test_case):
         detailed_profiler_config += _convert_key_and_value("NumSteps", detailed_num_steps)
     detailed_profiler_config += "}"
 
-    metrics_config = (
-        '{ "GeneralMetricsConfig": '
-        + general_metrics_config
-        + ', "DetailedProfilingConfig": '
-        + detailed_profiler_config
-        + "}"
-    )
-
     full_config = {
-        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+        "ProfilingParameters": {
+            "ProfilerEnabled": True,
+            "GeneralMetricsConfig": general_metrics_config,
+            "DetailedProfilingConfig": detailed_profiler_config,
+        }
     }
 
     with open(general_profiler_config_path, "w") as f:
@@ -179,10 +175,11 @@ def test_detailed_profiling_ranges(detailed_profiler_config_path, test_case):
         detailed_profiler_config += _convert_key_and_value("DurationInSeconds", duration)
     detailed_profiler_config += "}"
 
-    metrics_config = '{ "DetailedProfilingConfig": ' + detailed_profiler_config + "}"
-
     full_config = {
-        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+        "ProfilingParameters": {
+            "ProfilerEnabled": True,
+            "DetailedProfilingConfig": detailed_profiler_config,
+        }
     }
 
     with open(detailed_profiler_config_path, "w") as f:
@@ -218,10 +215,11 @@ def test_dataloader_profiling_ranges(detailed_profiler_config_path, test_case):
         dataloader_config += _convert_key_and_value("MetricsRegex", metrics_regex)
     dataloader_config += "}"
 
-    metrics_config = '{ "DataloaderMetricsConfig": ' + dataloader_config + "}"
-
     full_config = {
-        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+        "ProfilingParameters": {
+            "ProfilerEnabled": True,
+            "DataloaderMetricsConfig": dataloader_config,
+        }
     }
 
     with open(detailed_profiler_config_path, "w") as f:
@@ -260,10 +258,11 @@ def test_python_profiling_ranges(python_profiler_config_path, test_case):
         python_profiler_config += _convert_key_and_value("cProfileTimer", cprofile_timer)
     python_profiler_config += "}"
 
-    metrics_config = '{ "PythonProfilingConfig": ' + python_profiler_config + "}"
-
     full_config = {
-        "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+        "ProfilingParameters": {
+            "ProfilerEnabled": True,
+            "PythonProfilingConfig": python_profiler_config,
+        }
     }
 
     with open(python_profiler_config_path, "w") as f:

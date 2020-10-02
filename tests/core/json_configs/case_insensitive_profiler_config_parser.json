@@ -5,6 +5,6 @@
         "rotateMaxFileSizeInBYTES": 100,
         "RotatefileCloseintervalInseconds": 1,
         "FILEopenFAILthreshold": 5,
-        "MetricsConfig": "{\"detailedProfilingconfig\": {\"startstep\": \"2\", \"NUMSTEPS\": \"3\"}}"
+        "detailedProfilingconfig": "{\"startstep\": \"2\", \"NUMSTEPS\": \"3\"}"
     }
 }

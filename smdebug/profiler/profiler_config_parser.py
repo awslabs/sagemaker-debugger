@@ -32,18 +32,40 @@ class LastProfilingStatus(Enum):
     PROFILER_ENABLED = 6
     DEFAULT_VALUES = 7
     DEFAULT_PYTHON_PROFILING = 8
-    INVALID_METRICS_CONFIG = 9
-    INVALID_GENERAL_CONFIG_FIELDS = 10
-    INVALID_DETAILED_CONFIG_FIELDS = 11
-    INVALID_DATALOADER_CONFIG_FIELDS = 12
-    INVALID_PYTHON_CONFIG_FIELDS = 13
-    DETAILED_CONFIG_NOT_FOUND = 14
+    INVALID_GENERAL_METRICS_CONFIG = 9
+    INVALID_DETAILED_PROFILING_CONFIG = 10
+    INVALID_DATALOADER_METRICS_CONFIG = 11
+    INVALID_PYTHON_PROFILING_CONFIG = 12
+    INVALID_GENERAL_CONFIG_FIELDS = 13
+    INVALID_DETAILED_CONFIG_FIELDS = 14
+    INVALID_DATALOADER_CONFIG_FIELDS = 15
+    INVALID_PYTHON_CONFIG_FIELDS = 16
+    DETAILED_CONFIG_NOT_FOUND = 17
 
 
 class MetricsCategory(Enum):
+    """Enum to track each possible metrics that can be collected.
+    """
+
     DETAILED_PROFILING = 1
     DATALOADER = 2
     PYTHON_PROFILING = 3
+
+
+class ProfilingParametersField(Enum):
+    """Enum to track each field parsed from the profiling parameters.
+    """
+
+    PROFILING_PARAMETERS = "profilingparameters"
+    PROFILER_ENABLED = "profilerenabled"
+    LOCAL_PATH = "localpath"
+    FILE_MAX_SIZE = "rotatemaxfilesizeinbytes"
+    FILE_CLOSE_INTERVAL = "rotatefilecloseintervalinseconds"
+    FILE_OPEN_FAIL_THRESHOLD = "fileopenfailthreshold"
+    GENERAL_METRICS_CONFIG = "generalmetricsconfig"
+    DETAILED_PROFILING_CONFIG = "detailedprofilingconfig"
+    DATALOADER_METRICS_CONFIG = "dataloadermetricsconfig"
+    PYTHON_PROFILING_CONFIG = "pythonprofilingconfig"
 
 
 class ProfilerConfigParser:
@@ -82,6 +104,22 @@ class ProfilerConfigParser:
             log_function(message)
         self.current_logging_statuses[status] = True
 
+    def _parse_metrics_config(self, config, config_name, invalid_status):
+        """Helper function to parse each metrics config from config given the ProfilingParametersField (config_name).
+        If an error occurs in parsing, log the message with the provided LastProfilingStatus (invalid_status).
+        """
+        try:
+            metrics_config = eval(config.get(config_name.value, "{}"))
+            assert isinstance(metrics_config, dict)
+            return metrics_config
+        except (ValueError, AssertionError) as e:
+            self._log_new_message(
+                invalid_status,
+                self.logger.error,
+                f"{e} in {config_name.value}. Default metrics collection will be enabled.",
+            )
+            return {}
+
     def load_config(self):
         """Load the config file (if it exists) from $SMPROFILER_CONFIG_PATH.
         Set the provided values for the specified variables and default values for the rest.
@@ -94,7 +132,9 @@ class ProfilerConfigParser:
         if os.path.isfile(config_path):
             with open(config_path) as json_data:
                 try:
-                    config = json.loads(json_data.read().lower()).get("profilingparameters")
+                    config = json.loads(json_data.read().lower()).get(
+                        ProfilingParametersField.PROFILING_PARAMETERS.value
+                    )
                 except:
                     self._log_new_message(
                         LastProfilingStatus.INVALID_CONFIG,
@@ -105,12 +145,14 @@ class ProfilerConfigParser:
                     self.profiling_enabled = False
                     return
             try:
-                profiler_enabled = str2bool(config.get("profilerenabled", True))
+                profiler_enabled = str2bool(
+                    config.get(ProfilingParametersField.PROFILER_ENABLED.value, True)
+                )
             except ValueError as e:
                 self._log_new_message(
                     LastProfilingStatus.DEFAULT_ENABLED,
                     self.logger.info,
-                    f"{e} in profilingparameters. Profiler is enabled.",
+                    f"{e} in {ProfilingParametersField.PROFILING_PARAMETERS}. Profiler is enabled.",
                 )
                 profiler_enabled = True
             if profiler_enabled is True:
@@ -140,21 +182,28 @@ class ProfilerConfigParser:
             return
 
         try:
-            local_path = config.get("localpath", BASE_FOLDER_DEFAULT)
+            local_path = config.get(ProfilingParametersField.LOCAL_PATH.value, BASE_FOLDER_DEFAULT)
             file_max_size = int(
-                float(config.get("rotatemaxfilesizeinbytes", MAX_FILE_SIZE_DEFAULT))
+                float(
+                    config.get(ProfilingParametersField.FILE_MAX_SIZE.value, MAX_FILE_SIZE_DEFAULT)
+                )
             )
             file_close_interval = float(
-                config.get("rotatefilecloseintervalinseconds", CLOSE_FILE_INTERVAL_DEFAULT)
+                config.get(
+                    ProfilingParametersField.FILE_CLOSE_INTERVAL.value, CLOSE_FILE_INTERVAL_DEFAULT
+                )
             )
             file_open_fail_threshold = int(
-                config.get("fileopenfailthreshold", FILE_OPEN_FAIL_THRESHOLD_DEFAULT)
+                config.get(
+                    ProfilingParametersField.FILE_OPEN_FAIL_THRESHOLD.value,
+                    FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
+                )
             )
         except ValueError as e:
             self._log_new_message(
                 LastProfilingStatus.DEFAULT_VALUES,
                 self.logger.info,
-                f"{e} in profilingparameters. Enabling profiling with default "
+                f"{e} in {ProfilingParametersField.PROFILING_PARAMETERS}. Enabling profiling with default "
                 f"parameter values.",
             )
             local_path = BASE_FOLDER_DEFAULT
@@ -162,21 +211,26 @@ class ProfilerConfigParser:
             file_close_interval = CLOSE_FILE_INTERVAL_DEFAULT
             file_open_fail_threshold = FILE_OPEN_FAIL_THRESHOLD_DEFAULT
 
-        try:
-            metrics_config = eval(config.get("metricsconfig", "{}"))
-            assert isinstance(metrics_config, dict)
-        except (ValueError, AssertionError) as e:
-            self._log_new_message(
-                LastProfilingStatus.INVALID_METRICS_CONFIG,
-                self.logger.error,
-                f"{e} in metricsconfig. Default metrics collection will be enabled.",
-            )
-            metrics_config = {}
-
-        general_metrics_config = metrics_config.get("generalmetricsconfig", {})
-        detailed_profiling_config = metrics_config.get("detailedprofilingconfig", {})
-        dataloader_metrics_config = metrics_config.get("dataloadermetricsconfig", {})
-        python_profiling_config = metrics_config.get("pythonprofilingconfig", {})
+        general_metrics_config = self._parse_metrics_config(
+            config,
+            ProfilingParametersField.GENERAL_METRICS_CONFIG,
+            LastProfilingStatus.INVALID_GENERAL_METRICS_CONFIG,
+        )
+        detailed_profiling_config = self._parse_metrics_config(
+            config,
+            ProfilingParametersField.DETAILED_PROFILING_CONFIG,
+            LastProfilingStatus.INVALID_DETAILED_PROFILING_CONFIG,
+        )
+        dataloader_metrics_config = self._parse_metrics_config(
+            config,
+            ProfilingParametersField.DATALOADER_METRICS_CONFIG,
+            LastProfilingStatus.INVALID_DATALOADER_METRICS_CONFIG,
+        )
+        python_profiling_config = self._parse_metrics_config(
+            config,
+            ProfilingParametersField.PYTHON_PROFILING_CONFIG,
+            LastProfilingStatus.INVALID_PYTHON_PROFILING_CONFIG,
+        )
 
         self.config = ProfilerConfig(
             local_path,

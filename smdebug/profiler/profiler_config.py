@@ -1,6 +1,7 @@
 # Standard Library
 import re
 import time
+from enum import Enum
 
 # First Party
 from smdebug.profiler.profiler_constants import (
@@ -13,6 +14,19 @@ from smdebug.profiler.profiler_constants import (
     PYTHON_PROFILING_START_STEP_DEFAULT,
 )
 from smdebug.profiler.python_profiler import cProfileTimer
+
+
+class MetricsConfigsField(Enum):
+    """Enum to track each field parsed from any particular metrics config.
+    """
+
+    START_STEP = "startstep"
+    NUM_STEPS = "numsteps"
+    START_TIME = "starttimeinsecsinceepoch"
+    DURATION = "durationinseconds"
+    METRICS_REGEX = "metricsregex"
+    PROFILER_NAME = "profilername"
+    CPROFILE_TIMER = "cprofiletimer"
 
 
 class RotationPolicy:
@@ -43,13 +57,13 @@ class ProfileRange:
         self.error_message = None
 
         # step range
-        self.start_step = profile_range.get("startstep")
-        self.num_steps = profile_range.get("numsteps")
+        self.start_step = profile_range.get(MetricsConfigsField.START_STEP.value)
+        self.num_steps = profile_range.get(MetricsConfigsField.NUM_STEPS.value)
         self.end_step = None
 
         # time range
-        self.start_time_in_sec = profile_range.get("starttimeinsecsinceepoch")
-        self.duration_in_sec = profile_range.get("durationinseconds")
+        self.start_time_in_sec = profile_range.get(MetricsConfigsField.START_TIME.value)
+        self.duration_in_sec = profile_range.get(MetricsConfigsField.DURATION.value)
         self.end_time = None
 
         # convert to the correct type
@@ -129,8 +143,8 @@ class DetailedProfilingConfig(ProfileRange):
     def __init__(self, general_metrics_config, detailed_profiling_config):
         if general_metrics_config == detailed_profiling_config == {}:
             detailed_profiling_config = {
-                "startstep": DETAILED_PROFILING_START_STEP_DEFAULT,
-                "numsteps": PROFILING_NUM_STEPS_DEFAULT,
+                MetricsConfigsField.START_STEP.value: DETAILED_PROFILING_START_STEP_DEFAULT,
+                MetricsConfigsField.NUM_STEPS.value: PROFILING_NUM_STEPS_DEFAULT,
             }
         super().__init__("detailed profiling", detailed_profiling_config)
 
@@ -145,8 +159,8 @@ class DataloaderMetricsConfig(ProfileRange):
     def __init__(self, general_metrics_config, dataloader_config):
         if general_metrics_config == dataloader_config == {}:
             dataloader_config = {
-                "startstep": DATALOADER_PROFILING_START_STEP_DEFAULT,
-                "numsteps": PROFILING_NUM_STEPS_DEFAULT,
+                MetricsConfigsField.START_STEP.value: DATALOADER_PROFILING_START_STEP_DEFAULT,
+                MetricsConfigsField.NUM_STEPS.value: PROFILING_NUM_STEPS_DEFAULT,
             }
         super().__init__("dataloader profiling", dataloader_config)
 
@@ -154,7 +168,9 @@ class DataloaderMetricsConfig(ProfileRange):
             return
 
         try:
-            self.metrics_regex = re.compile(dataloader_config.get("metricsregex", ".*"))
+            self.metrics_regex = re.compile(
+                dataloader_config.get(MetricsConfigsField.METRICS_REGEX.value, ".*")
+            )
         except re.error as e:
             self.metrics_regex = None
             self.error_message = f"{e} encountered in {self.name} config. Disabling {self.name}."
@@ -178,8 +194,8 @@ class PythonProfilingConfig(ProfileRange):
         profile_three_steps = False
         if general_metrics_config == python_profiling_config == {}:
             python_profiling_config = {
-                "startstep": PYTHON_PROFILING_START_STEP_DEFAULT,
-                "numsteps": PYTHON_PROFILING_NUM_STEPS_DEFAULT,
+                MetricsConfigsField.START_STEP.value: PYTHON_PROFILING_START_STEP_DEFAULT,
+                MetricsConfigsField.NUM_STEPS.value: PYTHON_PROFILING_NUM_STEPS_DEFAULT,
             }
             profile_three_steps = True
         super().__init__("python profiling", python_profiling_config)
@@ -187,7 +203,9 @@ class PythonProfilingConfig(ProfileRange):
         if self.error_message:
             return
 
-        self.profiler_name = python_profiling_config.get("profilername", CPROFILE_NAME)
+        self.profiler_name = python_profiling_config.get(
+            MetricsConfigsField.PROFILER_NAME.value, CPROFILE_NAME
+        )
         if self.profiler_name not in (CPROFILE_NAME, PYINSTRUMENT_NAME):
             self.error_message = f"Profiler name must be {CPROFILE_NAME} or {PYINSTRUMENT_NAME}!"
             self.profiler_name = self.cprofile_timer = None
@@ -200,7 +218,9 @@ class PythonProfilingConfig(ProfileRange):
                 # only parse this field if pyinstrument is not specified and we are not doing the default three steps
                 # of profiling.
                 self.cprofile_timer = cProfileTimer(
-                    python_profiling_config.get("cprofiletimer", "total_time")
+                    python_profiling_config.get(
+                        MetricsConfigsField.CPROFILE_TIMER.value, "total_time"
+                    )
                 )
         except ValueError as e:
             self.error_message = f"{e} encountered in {self.name} config. Disabling {self.name}."

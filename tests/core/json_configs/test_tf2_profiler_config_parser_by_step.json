@@ -2,6 +2,6 @@
     "ProfilingParameters": {
         "ProfilerEnabled": true,
         "LocalPath": "/tmp/test",
-        "MetricsConfig": "{\"DetailedProfilingConfig\": {\"StartStep\": 2, \"NumSteps\": 2}}"
+        "DetailedProfilingConfig": "{\"StartStep\": 2, \"NumSteps\": 2}"
     }
 }

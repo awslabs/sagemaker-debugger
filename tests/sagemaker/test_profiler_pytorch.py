@@ -289,9 +289,9 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
 
         python_analysis_class = (
             cProfileAnalysis
-            if eval(profiler_config.get("MetricsConfig", "{}"))
-            .get("PythonProfilingConfig", {})
-            .get("ProfilerName", CPROFILE_NAME)
+            if eval(profiler_config.get("PythonProfilingConfig", "{}")).get(
+                "ProfilerName", CPROFILE_NAME
+            )
             == CPROFILE_NAME
             else PyinstrumentAnalysis
         )
