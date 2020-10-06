@@ -21,19 +21,12 @@ from smdebug.profiler.utils import read_tf_profiler_metadata_file
 
 class SMProfilerEvents(TraceEventParser):
     def __init__(self, type="PythontimelineMetrics"):
-        super().__init__()
-        self.type = type
-
-    def type(self):
-        return self.type
+        super().__init__(type=type)
 
 
 class TensorboardProfilerEvents(TraceEventParser):
     def __init__(self):
-        super().__init__()
-
-    def type(self):
-        return "TFProfilerMetrics"
+        super().__init__(type="TFProfilerMetrics")
 
     def _get_trace_events_json(self, tracefile):
         try:

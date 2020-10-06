@@ -273,7 +273,6 @@ class _TimelineLoggerThread(threading.Thread):
             logger.debug(f"Sagemaker-Debugger: failed to open {path}: {str(err)}")
             self.continuous_fail_count += 1
             return False
-        self.tensor_table = collections.defaultdict(int)
         self.is_first = True
         self._writer.write("[\n")
         self._healthy = True

@@ -53,6 +53,7 @@ class TraceEvent:
         event_args,
         node_id,
         phase,
+        file_type,
         event_phase="",
         pid=0,
         tid=0,
@@ -76,6 +77,7 @@ class TraceEvent:
         # the phase name this event belongs to, this can also come from self._processes[phase_pid].name
         self.event_phase = event_phase
         self.process_info = process_info
+        self.file_type = file_type
 
     def to_json(self):
         json_dict = {
@@ -106,7 +108,7 @@ class TraceEvent:
 
 
 class TraceEventParser:
-    def __init__(self):
+    def __init__(self, type=""):
         # list of ProcessInfo found in this file
         self._processes = dict()
         # reverse mapping from name to id
@@ -118,12 +120,10 @@ class TraceEventParser:
         """
         self._pid_stacks = dict()
         self._start_timestamp = 0
+        self.type = type
         self.logger = get_logger("smdebug-profiler")
 
     def read_trace_file(self):
-        pass
-
-    def type(self):
         pass
 
     def _populate_process_info_for_metaevent(self, event):
@@ -230,6 +230,7 @@ class TraceEventParser:
                 event_args,
                 node_id,
                 phase_type,
+                self.type,
                 phase_name,
                 pid,
                 tid,
@@ -271,6 +272,7 @@ class TraceEventParser:
                     event_args,
                     node_id,
                     "X",
+                    file_type=self.type,
                     event_phase=self._processes[pid].name,
                     process_info=self._processes[pid],
                 )
