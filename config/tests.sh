@@ -24,7 +24,7 @@ run_for_framework() {
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/rules
       elif [ "$1" = "pytorch" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_integration.py
-        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_multiprocessing.py
+        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  -s tests/zero_code_change/test_pytorch_multiprocessing.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_training_with_no_grad_updates.py
       elif [ "$1" = "tensorflow" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow_integration.py
