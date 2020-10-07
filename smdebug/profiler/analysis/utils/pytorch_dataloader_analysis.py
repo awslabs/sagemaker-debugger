@@ -120,17 +120,16 @@ class PT_dataloader_analysis:
         self.dataIter_metric["end_time"] = pd.to_datetime(
             self.dataIter_metric["end_time"], format="%Y-%m-%dT%H:%M:%S:%f"
         )
-        self.dataIter_metric = self.dataIter_metric.sort_values(by=["end_time"])
+        self.dataIter_metric = self.dataIter_metric.sort_values(by=["node_id", "pid", "end_time"])
         # Compute the 'BatchTime_in_seconds' for every GetNext call.
         self.dataIter_metric["BatchTime_in_seconds"] = (
-            self.dataIter_metric["start_time"].diff(1).dt.total_seconds()
+            self.dataIter_metric.groupby(["node_id", "pid"])["start_time"].diff().dt.total_seconds()
         )
         self.dataIter_metric["previous_batch_start"] = (
-            self.dataIter_metric["start_time"].shift().fillna(-1)
+            self.dataIter_metric.groupby(["node_id", "pid"])["start_time"].shift().fillna(-1)
         )
         median_duration = self.dataIter_metric["BatchTime_in_seconds"].median()
         print(f"Median time spent on each batch of data = {median_duration} seconds")
-        self.dataIter_metric["BatchTime_in_seconds"].plot()
         # Get the outlier duration. The cell prints the dataframe that contains the outlier.
         md = self.dataIter_metric.loc[
             self.dataIter_metric["BatchTime_in_seconds"] >= (2 * median_duration),

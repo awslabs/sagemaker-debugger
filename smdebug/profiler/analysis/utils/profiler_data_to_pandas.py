@@ -519,6 +519,7 @@ class PandasFrame:
                         num_workers,
                         pin_memory,
                         event.event_phase,
+                        event.node_id,
                     ]
                 )
             # read the next chunk of data
@@ -548,6 +549,7 @@ class PandasFrame:
                 "num_workers",
                 "pin_memory",
                 "process",
+                "node_id",
             ],
         )
         framework_metrics_df["start_time_us"] = (

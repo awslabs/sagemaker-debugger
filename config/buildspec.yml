@@ -30,7 +30,8 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
-        - pip install -q pytest==5.3.3 wheel pytest-html pre-commit awscli tensorflow_datasets pytest-cov
+        - pip install -q pytest==5.3.3 wheel pytest-html pre-commit tensorflow_datasets pytest-cov
+        - pip install --upgrade awscli
 
   pre_build:
     commands:
@@ -39,7 +40,9 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
+      # We do not need to force install smdebug-rules. The container used for PR builds do not have smdebug rules binary.
+      # Force installing rules binary attempts to re-install ipython-genutils which fails on PyTorch Ubuntu 16.04 containers.
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - pip show smdebug
