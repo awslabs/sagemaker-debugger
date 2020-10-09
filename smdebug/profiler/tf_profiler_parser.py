@@ -64,9 +64,17 @@ class TensorboardProfilerEvents(TraceEventParser):
     def read_events_from_file(self, tracefile):
         trace_events_json = self._get_trace_events_json(tracefile)
 
+        node_id = "default"
+        file_name_splits = tracefile.split("/")
+        if len(file_name_splits) > 0:
+            file = file_name_splits[-1]
+            file_split = file.split(".")
+            if len(file_split) > 0:
+                node_id = file_split[0]
+        print(f"Reading event from tracefile:{tracefile} and node_id:{node_id}")
         if trace_events_json:
             for event in trace_events_json:
-                self._read_event(event)
+                self._read_event(event, node_id)
 
     def get_events_within_range(self, start_time: datetime, end_time: datetime):
         return None

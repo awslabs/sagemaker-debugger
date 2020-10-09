@@ -1,6 +1,7 @@
 # First Party
 # Standard Library
 import json
+import re
 from builtins import Exception, dict, hash, sorted, str
 from datetime import datetime
 
@@ -19,6 +20,9 @@ class ThreadInfo:
     def __init__(self, tid, thread_name):
         self.tid = tid
         self.thread_name = thread_name
+
+    def __repr__(self):
+        return f"tid:{self.tid} name:{self.thread_name}"
 
 
 """
@@ -40,6 +44,9 @@ class ProcessInfo:
 
     def get_thread_info(self, threadid):
         return self._threads[threadid]
+
+    def __repr__(self):
+        return f"id:{self.id} name:{self.name} threads:{self._threads}"
 
 
 class TraceEvent:
@@ -142,9 +149,11 @@ class TraceEventParser:
                 existing_id = self._process_name_to_id[process_name]
                 self._processes[id] = ProcessInfo(existing_id, process_name)
 
-    def _populate_thread_info_for_metaevent(self, event, node_id="", phase_tid_default=None):
+    def _populate_thread_info_for_metaevent(
+        self, event, node_id="", phase_tid_default=None, phase_name=""
+    ):
         if event["name"] == "thread_name":
-            name = event["args"]["name"] + "_node:" + node_id
+            name = node_id + "_" + event["args"]["name"]
             t_id = event["tid"]
         elif event["name"] == "thread_sort_index":
             name = "Unknown"
@@ -152,8 +161,8 @@ class TraceEventParser:
         elif phase_tid_default is not None:
             # there is no thread mentioned and this is unique thread for phase and node
             # We will be generating a unique tid here and return this tid to be populated in event
-            name = str(phase_tid_default) + "_node:" + node_id
-            t_id = hash(name)
+            name = node_id + "_" + str(phase_tid_default)
+            t_id = hash(name + str(phase_name))
         else:
             self.logger.info(
                 f"Event:{event} doesn't have thread_name nor phase_tid_default. Returning"
@@ -186,6 +195,12 @@ class TraceEventParser:
     def _read_event(self, event, node_id=""):
         if "ph" not in event:
             return
+        # if node-id in for of pid-algo-i , interchange to algo-i-pid so that we can have good sorted order
+        # if we view this in timeline
+        found_nodeids_parts = re.match("(.*)-(algo.*)", node_id) if node_id is not None else None
+        if found_nodeids_parts is not None and len(found_nodeids_parts.groups()) == 2:
+            node_id = found_nodeids_parts[2] + "-" + found_nodeids_parts[1]
+
         phase_type = event["ph"]
         if phase_type == "M":
             self._populate_process_info_for_metaevent(event)
@@ -198,12 +213,22 @@ class TraceEventParser:
             dur = event["dur"]
             name = event["name"]
             pid = phase_pid = event["pid"]  # this is phase pid
-            if "tid" in event:
+            phase_tid = event["tid"] if "tid" in event else 0
+
+            phase_name = "Unknown"
+            if phase_pid in self._processes:
+                phase_name = self._processes[phase_pid].name
+
+            if (
+                "tid" in event
+                and phase_pid in self._processes
+                and event["tid"] in self._processes[phase_pid]._threads
+            ):
                 phase_tid = event["tid"]
             else:
                 # we will generate unique tid which is hash of 0 + node_id
                 phase_tid = self._populate_thread_info_for_metaevent(
-                    event, node_id=node_id, phase_tid_default=0
+                    event, node_id=node_id, phase_tid_default=phase_tid, phase_name=phase_name
                 )
 
             event_args = event["args"] if "args" in event else None
@@ -215,12 +240,6 @@ class TraceEventParser:
                 if "thread_id" in event_args:
                     tid = event_args["thread_id"]
 
-            # TODO get actual pid of process
-            # TODO get actual thread id of processes. depending on file type actual pid and tid may be into args
-            phase_name = "Unknown"
-            if phase_pid in self._processes:
-                phase_name = self._processes[phase_pid].name
-
             t_event = TraceEvent(
                 start_time,
                 name,
@@ -230,11 +249,11 @@ class TraceEventParser:
                 event_args,
                 node_id,
                 phase_type,
-                self.type,
-                phase_name,
-                pid,
-                tid,
-                self._processes[phase_pid],
+                file_type=self.type,
+                event_phase=phase_name,
+                pid=pid,
+                tid=tid,
+                process_info=self._processes[phase_pid],
             )
             self._trace_events.append(t_event)
         # TODO ignoring B and E events for now. Need to check to handle it
@@ -244,9 +263,11 @@ class TraceEventParser:
                 self._pid_stacks[pid] = []
             self._pid_stacks[pid].append(event)
         if phase_type == "E":
-            pid = event["pid"]
+            pid = phase_pid = event["pid"]
             if pid not in self._pid_stacks:
-                self.logger.error(f"Did not find the 'B' type event in the pid {pid}")
+                self.logger.info(
+                    f"Did not find the 'B' type event in the pid {pid} . Skipping event: {event}"
+                )
             else:
                 b_event = self._pid_stacks[pid][-1]
                 self._pid_stacks[pid].pop()
@@ -260,21 +281,49 @@ class TraceEventParser:
                         f"{b_event['name']}"
                     )
                     return
-                tid = b_event["tid"] if "tid" in event else "0"
+
                 name = b_event["name"]
                 event_args = event["args"] if "args" in event else None
+                phase_tid = tid = b_event["tid"] if "tid" in event else "0"
+                phase_name = "Unknown"
+                if phase_pid in self._processes:
+                    phase_name = self._processes[phase_pid].name
+
+                if (
+                    "tid" in event
+                    and phase_pid in self._processes
+                    and tid in self._processes[phase_pid]._threads
+                ):
+                    phase_tid = self._processes[phase_pid]._threads[tid]
+                else:
+                    # we will generate unique tid which is hash of 0 + node_id
+                    phase_tid = self._populate_thread_info_for_metaevent(
+                        event, node_id=node_id, phase_tid_default=phase_tid, phase_name=phase_name
+                    )
+                tid = phase_tid
+                if event_args:
+                    # Tf Detailed metrics emits pid and thread_id
+                    # get actual pid of process
+                    # get actual thread id of processes. depending on file type actual pid and tid may be into args
+                    if "pid" in event_args:
+                        pid = event_args["pid"]
+                    if "thread_id" in event_args:
+                        tid = event_args["thread_id"]
+
                 t_event = TraceEvent(
                     start_time,
                     name,
                     duration,
-                    pid,
-                    tid,
+                    phase_pid,
+                    phase_tid,
                     event_args,
                     node_id,
                     "X",
                     file_type=self.type,
-                    event_phase=self._processes[pid].name,
-                    process_info=self._processes[pid],
+                    event_phase=phase_name,
+                    pid=pid,
+                    tid=tid,
+                    process_info=self._processes[phase_pid],
                 )
                 self._trace_events.append(t_event)
 
