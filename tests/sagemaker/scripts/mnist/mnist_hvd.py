@@ -2,6 +2,8 @@
 import horovod.tensorflow.keras as hvd
 import tensorflow.compat.v2 as tf
 
+assert tf.test.is_gpu_available()
+
 
 def get_data(batch_size):
     (mnist_images, mnist_labels), _ = tf.keras.datasets.mnist.load_data(

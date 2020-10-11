@@ -7,6 +7,8 @@ import tensorflow_datasets as tfds
 from tensorflow import keras
 from tensorflow.keras import layers
 
+assert tf.test.is_gpu_available()
+
 hvd.init()
 
 # Horovod: pin GPU to be used to process local rank (one GPU per process)

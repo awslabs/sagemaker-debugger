@@ -8,6 +8,8 @@ from tensorflow.keras import layers
 
 tf.get_logger().setLevel("WARNING")
 
+assert tf.test.is_gpu_available()
+
 train_dataset, valid_dataset = tfds.load(
     "cifar10", split=["train", "test"], batch_size=128, as_supervised=True
 )
