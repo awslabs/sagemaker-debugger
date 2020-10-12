@@ -712,9 +712,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             layer._hooks = []
             layer.call = get_layer_call_fn(layer)
             layer.register_hook = lambda hook: layer._hooks.append(hook)
-            saver = InputOutputSaver()
-            layer.register_hook(saver)
-            self.saved_layers[layer.name] = saver
+            if self.should_save_layer(layer.name):
+                saver = InputOutputSaver()
+                layer.register_hook(saver)
+                self.saved_layers[layer.name] = saver
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
