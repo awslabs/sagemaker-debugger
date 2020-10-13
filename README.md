@@ -63,7 +63,7 @@ The following frameworks are available AWS Deep Learning Containers with the dee
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0 |
+| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
 | [MXNet](docs/mxnet.md) | 1.6, 1.7 |
 | [PyTorch](docs/pytorch.md) | 1.4, 1.5, 1.6 |
 | [XGBoost](docs/xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
@@ -76,7 +76,7 @@ The `smdebug` library supports frameworks other than the ones listed above while
 
 | Framework | Versions |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0 |
+| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
 | Keras (with TensorFlow backend) | 2.3 |
 | [MXNet](docs/mxnet.md) | 1.4, 1.5, 1.6, 1.7 |
 | [PyTorch](docs/pytorch.md) | 1.2, 1.3, 1.4, 1.5, 1.6 |
