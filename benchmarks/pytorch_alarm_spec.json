@@ -1,9 +1,9 @@
 [
   {
-    "AlarmName": "SMProfiler PT1.5 p3.16x change in TrainingTime for profiler_fully_enabled vs smdebug_enabled",
+    "AlarmName": "SMProfiler PT1.5 p3.2x change in TrainingTime for profiler_fully_enabled vs smdebug_enabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for profiler_fully_enabled compared to smdebug_enabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.16xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.2xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -12,10 +12,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p3.16x change in TrainingTime for system_profiler_enabled vs smdebug_enabled",
+    "AlarmName": "SMProfiler PT1.5 p3.2x change in TrainingTime for system_profiler_enabled vs smdebug_enabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for system_profiler_enabled compared to smdebug_enabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.16xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.2xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -24,10 +24,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p3.16x change in TrainingTime for framework_profiler_enabled vs smdebug_enabled",
+    "AlarmName": "SMProfiler PT1.5 p3.2x change in TrainingTime for framework_profiler_enabled vs smdebug_enabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for framework_profiler_enabled compared to smdebug_enabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.16xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.2xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -36,10 +36,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p3.16x change in TrainingTime for profiler_fully_enabled vs profiler_disabled",
+    "AlarmName": "SMProfiler PT1.5 p3.2x change in TrainingTime for profiler_fully_enabled vs profiler_disabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for profiler_fully_enabled compared to profiler_disabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.16xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.2xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -48,10 +48,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p3.16x change in TrainingTime for system_profiler_enabled vs profiler_disabled",
+    "AlarmName": "SMProfiler PT1.5 p3.2x change in TrainingTime for system_profiler_enabled vs profiler_disabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for system_profiler_enabled compared to profiler_disabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.16xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.2xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -60,10 +60,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p3.16x change in TrainingTime for framework_profiler_enabled vs profiler_disabled",
+    "AlarmName": "SMProfiler PT1.5 p3.2x change in TrainingTime for framework_profiler_enabled vs profiler_disabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for framework_profiler_enabled compared to profiler_disabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.16xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p3.2xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -72,10 +72,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p2.8x change in TrainingTime for profiler_fully_enabled vs smdebug_enabled",
+    "AlarmName": "SMProfiler PT1.5 p2.x change in TrainingTime for profiler_fully_enabled vs smdebug_enabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for profiler_fully_enabled compared to smdebug_enabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.8xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -84,10 +84,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p2.8x change in TrainingTime for system_profiler_enabled vs smdebug_enabled",
+    "AlarmName": "SMProfiler PT1.5 p2.x change in TrainingTime for system_profiler_enabled vs smdebug_enabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for system_profiler_enabled compared to smdebug_enabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.8xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -96,10 +96,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p2.8x change in TrainingTime for framework_profiler_enabled vs smdebug_enabled",
+    "AlarmName": "SMProfiler PT1.5 p2.x change in TrainingTime for framework_profiler_enabled vs smdebug_enabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for framework_profiler_enabled compared to smdebug_enabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.8xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -108,10 +108,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p2.8x change in TrainingTime for profiler_fully_enabled vs profiler_disabled",
+    "AlarmName": "SMProfiler PT1.5 p2.x change in TrainingTime for profiler_fully_enabled vs profiler_disabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for profiler_fully_enabled compared to profiler_disabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.8xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -120,10 +120,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p2.8x change in TrainingTime for system_profiler_enabled vs profiler_disabled",
+    "AlarmName": "SMProfiler PT1.5 p2.x change in TrainingTime for system_profiler_enabled vs profiler_disabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for system_profiler_enabled compared to profiler_disabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.8xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
@@ -132,10 +132,10 @@
     "TreatMissingData": "missing"
   },
   {
-    "AlarmName": "SMProfiler PT1.5 p2.8x change in TrainingTime for framework_profiler_enabled vs profiler_disabled",
+    "AlarmName": "SMProfiler PT1.5 p2.x change in TrainingTime for framework_profiler_enabled vs profiler_disabled",
     "ActionsEnabled": true,
     "MetricName": "Change in TrainingTimeInSeconds for framework_profiler_enabled compared to profiler_disabled",
-    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.8xlarge",
+    "Namespace": "smprofiler-PT1.5-resnet50-ml.p2.xlarge",
     "Statistic": "Maximum",
     "Period": 86400,
     "EvaluationPeriods": 1,
