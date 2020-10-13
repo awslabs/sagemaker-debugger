@@ -12,7 +12,6 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 
 # First Party
-from smdebug.profiler.utils import str2bool
 from smdebug.pytorch import Hook
 
 
@@ -39,10 +38,9 @@ parser.add_argument(
 parser.add_argument(
     "--epochs", default=2, type=int, metavar="N", help="number of total epochs to run"
 )
-parser.add_argument("--enable_bottleneck", type=str2bool, default=True)
 parser.add_argument(
     "-b",
-    "--batch-size",
+    "--batch_size",
     default=256,
     type=int,
     metavar="N",
@@ -74,19 +72,26 @@ args = parser.parse_args()
 
 def main():
     _ = Hook(out_dir="")  # need this line so that import doesn't get removed by pre-commit
-
     start = time.time()
     # create model
     net = models.__dict__[args.arch](pretrained=True)
+    device = torch.device("cuda")
+    net.cuda()
 
     loss_optim = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=1.0, momentum=0.9)
-    batch_size = 256
+    batch_size = args.batch_size
 
     transform_train = transforms.Compose(
         [
-            transforms.RandomCrop(32, padding=4),
+            transforms.Resize(256),
+            transforms.RandomCrop(128),
             transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(brightness=0.8, contrast=0.8),
+            transforms.RandomAffine(degrees=10),
+            transforms.RandomPerspective(distortion_scale=0.5, p=0.5, interpolation=3),
+            transforms.RandomRotation(degrees=10),
+            transforms.RandomVerticalFlip(p=0.5),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ]
@@ -116,19 +121,16 @@ def main():
     print("Loaded training")
 
     # train the model
-    for epoch in range(5):
+    for epoch in range(args.epochs):
         net.train()
-        step = 0
         for _, (inputs, targets) in enumerate(trainloader):
+            inputs, targets = inputs.to(torch.device("cuda")), targets.to(torch.device("cuda"))
             output = net(inputs)
             loss = loss_optim(output, targets)
             optimizer.zero_grad()
             loss.backward()
-            if args.enable_bottleneck:
-                if 9 < step < 21:
-                    between_steps_bottleneck()
-                optimizer.step()
-            step += 1
+            optimizer.step()
+            between_steps_bottleneck()
     end = time.time()
     print("Time taken:", end - start)
 

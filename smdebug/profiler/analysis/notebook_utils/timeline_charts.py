@@ -232,7 +232,7 @@ class TimelineCharts:
             )
             for event in events:
                 if event.event_args is not None and "step_num" in event.event_args:
-                    key = event.event_name + "_" + event.event_args["step_num"]
+                    key = event.event_name + "_" + str(event.event_args["step_num"])
                 else:
                     key = event.event_name
                 if key not in cumulative_time:
