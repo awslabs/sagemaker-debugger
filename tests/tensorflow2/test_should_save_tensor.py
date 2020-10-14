@@ -61,3 +61,9 @@ def test_should_save_tensor_with_custom_collection(out_dir):
         else:
             assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.GRADIENTS)
             assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)
+
+
+def test_should_save_tensor_behavior_without_hook_init(out_dir):
+    hook = smd.KerasHook(out_dir, save_config=SaveConfig(save_interval=3), save_all=True)
+    assert not hook.should_save_tensor_or_collection("dummy", CollectionKeys.GRADIENTS)
+    assert not hook.should_save_tensor_or_collection("dummy", CollectionKeys.LAYERS)
