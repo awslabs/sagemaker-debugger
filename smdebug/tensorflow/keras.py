@@ -983,6 +983,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._prepare_collections()
                 self.prepared_collections = True
 
+            self._wrap_model_with_input_output_saver()
             self._increment_step()
 
             if self._get_collections_to_save_for_step():
@@ -1066,6 +1067,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             function(*args, **kwargs)
             if self._is_not_supported():
                 return
+            self._unwrap_model_input_output_saver()
 
             self.last_saved_step = self.step
 
