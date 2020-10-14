@@ -705,8 +705,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        # Adds a hook to each layer to capture layer
-        # inputs and outputs
+        """Adds a hook to each layer to capture layer inputs and outputs"""
+        if is_tf_version_2x() is False:
+            return
         for layer in self.model.layers:
             if self.should_save_layer(layer.name) and hasattr(layer, "has_smdebug_layer_wrapper"):
                 if layer.has_smdebug_layer_wrapper:
@@ -719,6 +720,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             layer.register_hook(saver)
             self.saved_layers[layer.name] = saver
             layer.has_smdebug_layer_wrapper = True
+
+    def _unwrap_model_input_output_saver(self):
+        """Removes hooks added to each layer to capture layer inputs and outputs"""
+        if is_tf_version_2x() is False:
+            return
+        for layer in self.model.layers:
+            if hasattr(layer, "has_smdebug_layer_wrapper"):
+                layer.call = layer._old_call
+                layer._old_call = None
+                layer.register_hook = None
+                layer.has_smdebug_layer_wrapper = False
+        self.saved_layers = dict()
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
@@ -830,6 +843,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._remove_fetches_and_callbacks(mode)
 
         self._save_tensors_post_step(batch, logs)
+        self._unwrap_model_input_output_saver()
         if is_tf_version_2x() and tf.executing_eagerly():
             # Need to prepare non layer tensors again since
             # some tensors only become available on  batch end
