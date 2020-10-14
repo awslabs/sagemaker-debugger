@@ -214,7 +214,7 @@ class BaseHook:
             )
 
         self._collections_to_save = set()
-        self._collections_to_save_for_step = None
+        self._collections_to_save_for_step = set()
         self.prepared_collections = False
         self.tensor_to_collections = {}
 
@@ -545,7 +545,7 @@ class BaseHook:
         # Increment Global step number irrespective of what mode it is
         if self.mode != ModeKeys.GLOBAL:
             self.mode_steps[ModeKeys.GLOBAL] = self.step
-        self._collections_to_save_for_step = None
+        self._collections_to_save_for_step = set()
 
     # Called in the internal AWS codebase to determine
     # if a particular tensor value should be saved
@@ -595,7 +595,7 @@ class BaseHook:
         if mode not in self.mode_steps:
             self.mode_steps[mode] = self.init_step
 
-        self._collections_to_save_for_step = None
+        self._collections_to_save_for_step = set()
 
     def export_collections(self):
         num_workers = self._get_num_workers()
