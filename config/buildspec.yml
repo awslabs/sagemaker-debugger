@@ -30,7 +30,8 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
-        - pip install -q pytest==5.3.3 wheel pytest-html pre-commit awscli tensorflow_datasets pytest-cov
+        # tensorflow_datasets verion 4.0.0 and onwards require tensorflow >= 2.1.0
+        - pip install -q pytest==5.3.3 wheel pytest-html pre-commit awscli tensorflow_datasets==3.2.1 pytest-cov
 
   pre_build:
     commands:
@@ -39,7 +40,8 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
+      # The build container does not have rules binary, we do not need to force-reinstall the binary.
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - pip show smdebug
