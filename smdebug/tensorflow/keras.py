@@ -713,14 +713,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self.should_save_layer(layer.name):
                 if hasattr(layer, "has_smdebug_layer_wrapper") and layer.has_smdebug_layer_wrapper:
                     return
-            layer._hooks = []
-            layer._old_call = layer.call
-            layer.call = get_layer_call_fn(layer)
-            layer.register_hook = lambda hook: layer._hooks.append(hook)
-            saver = InputOutputSaver()
-            layer.register_hook(saver)
-            self.saved_layers[layer.name] = saver
-            layer.has_smdebug_layer_wrapper = True
+                layer._hooks = []
+                layer._old_call = layer.call
+                layer.call = get_layer_call_fn(layer)
+                layer.register_hook = lambda hook: layer._hooks.append(hook)
+                saver = InputOutputSaver()
+                layer.register_hook(saver)
+                self.saved_layers[layer.name] = saver
+                layer.has_smdebug_layer_wrapper = True
 
     def _unwrap_model_input_output_saver(self):
         """Removes hooks added to each layer to capture layer inputs and outputs"""
