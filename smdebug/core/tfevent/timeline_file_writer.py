@@ -216,6 +216,13 @@ class _TimelineLoggerThread(threading.Thread):
         self._num_outstanding_events = 0
         self._writer = None
         self.verbose = verbose
+        # This is a master dictionary that keeps the track of training_phase to pid globally. The dictionary will not
+        # get
+        # reset for a new file. This ensures that we keep unique pid for the training phases.
+        self.training_phase_to_pid = collections.defaultdict(int)
+        # This table keeps track of training_phase to pid for a given file. It will be reset for every new file. For
+        # a given training phase, if we don't find entry in this table, we will write metaevent for that training
+        # phase.
         self.tensor_table = collections.defaultdict(int)
         self.continuous_fail_count = 0
         self.is_first = True
@@ -273,6 +280,7 @@ class _TimelineLoggerThread(threading.Thread):
             logger.debug(f"Sagemaker-Debugger: failed to open {path}: {str(err)}")
             self.continuous_fail_count += 1
             return False
+        self.tensor_table = collections.defaultdict(int)
         self.is_first = True
         self._writer.write("[\n")
         self._healthy = True
@@ -348,19 +356,26 @@ class _TimelineLoggerThread(threading.Thread):
                     self._healthy = False
                 return
 
-        if self.tensor_table[record.training_phase] == 0:
-            tensor_idx = len(self.tensor_table)
-            self.tensor_table[record.training_phase] = tensor_idx
-
             # First writing a metadata event
-            if self.is_first:
-                args = {"start_time_since_epoch_in_micros": record.base_start_time}
-                json_dict = {"name": "process_name", "ph": "M", "pid": 0, "args": args}
-                self._writer.write(json.dumps(json_dict) + ",\n")
+        if self.is_first:
+            args = {"start_time_since_epoch_in_micros": record.base_start_time}
+            json_dict = {"name": "process_name", "ph": "M", "pid": 0, "args": args}
+            self._writer.write(json.dumps(json_dict) + ",\n")
 
-                args = {"sort_index": 0}
-                json_dict = {"name": "process_sort_index", "ph": "M", "pid": 0, "args": args}
-                self._writer.write(json.dumps(json_dict) + ",\n")
+            args = {"sort_index": 0}
+            json_dict = {"name": "process_sort_index", "ph": "M", "pid": 0, "args": args}
+            self._writer.write(json.dumps(json_dict) + ",\n")
+            self.is_first = False
+
+        if self.tensor_table[record.training_phase] == 0:
+            # Get the tensor_idx from master table if not create one and append it to master table.
+            if record.training_phase in self.training_phase_to_pid:
+                tensor_idx = self.training_phase_to_pid[record.training_phase]
+            else:
+                tensor_idx = len(self.training_phase_to_pid)
+                self.training_phase_to_pid[record.training_phase] = tensor_idx
+
+            self.tensor_table[record.training_phase] = tensor_idx
 
             # Instant events don't have a training phase
             if record.phase != "i":
@@ -376,8 +391,6 @@ class _TimelineLoggerThread(threading.Thread):
                     "args": args,
                 }
                 self._writer.write(json.dumps(json_dict) + ",\n")
-
-            self.is_first = False
 
         record.pid = self.tensor_table[record.training_phase]
 
