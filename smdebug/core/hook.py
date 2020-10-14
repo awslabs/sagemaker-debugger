@@ -552,7 +552,7 @@ class BaseHook:
     def should_save_tensor_or_collection(self, tensor_name: str, collection_name: str) -> bool:
         if self.prepared_collections is False:
             # always return false if an attempt to save a
-            # tensor is made before the smdebug hook is initialized.
+            # tensor is made before the collections are prepared.
             # this can happen if the fn is called before callbacks are init.
             self.logger.warning(
                 "Tensors cannot be saved with smdebug before callbacks are initialized."
