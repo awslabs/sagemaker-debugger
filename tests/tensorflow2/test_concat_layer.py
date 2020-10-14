@@ -25,7 +25,7 @@ def test_multiple_inputs(out_dir):
         out_dir, save_all=True, save_config=smd.SaveConfig(save_steps=[0], save_interval=1)
     )
 
-    hook.register_model(my_model)
+    # hook.register_model(my_model)
     x_train = np.random.random((1000, 20))
     y_train = np.random.random((1000, 1))
     my_model.compile(optimizer="Adam", loss="mse", run_eagerly=True)

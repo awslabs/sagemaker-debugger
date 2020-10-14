@@ -119,7 +119,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
-        self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -706,16 +705,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        if self.has_registered_model:
-            return
+        # Adds a hook to each layer to capture layer
+        # inputs and outputs
         for layer in self.model.layers:
-            if self.should_save_layer(layer.name):
-                layer._hooks = []
-                layer.call = get_layer_call_fn(layer)
-                layer.register_hook = lambda hook: layer._hooks.append(hook)
-                saver = InputOutputSaver()
-                layer.register_hook(saver)
-                self.saved_layers[layer.name] = saver
+            if self.should_save_layer(layer.name) and hasattr(layer, "has_smdebug_layer_wrapper"):
+                if layer.has_smdebug_layer_wrapper:
+                    return
+            layer._hooks = []
+            layer._old_call = layer.call
+            layer.call = get_layer_call_fn(layer)
+            layer.register_hook = lambda hook: layer._hooks.append(hook)
+            saver = InputOutputSaver()
+            layer.register_hook(saver)
+            self.saved_layers[layer.name] = saver
+            layer.has_smdebug_layer_wrapper = True
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
@@ -755,6 +758,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # this will delay the preparation of tensors as the
             # full graph is not built. Gradients are not available
             # at this stage for example
+
+        self._wrap_model_with_input_output_saver()
 
         if self._prepared_tensors[mode]:
             self._prepare_tensors_for_step(mode)
