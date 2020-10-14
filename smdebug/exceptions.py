@@ -99,6 +99,15 @@ class InvalidWorker(Exception):
         return "Invalid Worker: {}".format(self.worker)
 
 
+class NoMoreProfilerData(Exception):
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+        self.msg = "Looking for timestamp {} and reached " "end of training.".format(timestamp)
+
+    def __str__(self):
+        return self.msg
+
+
 class NoMoreData(Exception):
     def __init__(self, step, mode, last_step):
         self.step = step
