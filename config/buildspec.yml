@@ -40,6 +40,7 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
       - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --force-reinstall $RULES_CODEBUILD_SRC_DIR/dist/*.whl; else pip install $RULES_CODEBUILD_SRC_DIR/dist/*.whl; fi
       - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
