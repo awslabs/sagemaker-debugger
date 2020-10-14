@@ -773,6 +773,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # full graph is not built. Gradients are not available
             # at this stage for example
 
+        if self.has_registered_model:
+            self._wrap_model_with_input_output_saver()
+
         if self._prepared_tensors[mode]:
             self._prepare_tensors_for_step(mode)
             if self.tensor_refs_to_save_this_step:
@@ -986,6 +989,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if self._get_collections_to_save_for_step():
                 self._initialize_writers()
+
+            if self.has_registered_model:
+                self._wrap_model_with_input_output_saver()
 
             if self.last_saved_step is not None and self._exported_collections is False:
                 # in keras, these collections change when mode changes
