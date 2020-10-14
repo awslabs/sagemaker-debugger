@@ -710,8 +710,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x() is False:
             return
         for layer in self.model.layers:
-            if self.should_save_layer(layer.name) and hasattr(layer, "has_smdebug_layer_wrapper"):
-                if layer.has_smdebug_layer_wrapper:
+            if self.should_save_layer(layer.name):
+                if hasattr(layer, "has_smdebug_layer_wrapper") and layer.has_smdebug_layer_wrapper:
                     return
             layer._hooks = []
             layer._old_call = layer.call
