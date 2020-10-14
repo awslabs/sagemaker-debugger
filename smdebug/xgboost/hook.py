@@ -157,7 +157,7 @@ class Hook(CallbackHook):
 
     def _increment_step(self, iteration):
         self.step = self.mode_steps[self.mode] = iteration
-        self._collections_to_save_for_step = set()
+        self._collections_to_save_for_step = None
 
     def _callback(self, env: CallbackEnv) -> None:
         if not self.prepared_collections:
