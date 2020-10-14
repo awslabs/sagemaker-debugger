@@ -119,6 +119,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
+        self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -771,8 +772,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # this will delay the preparation of tensors as the
             # full graph is not built. Gradients are not available
             # at this stage for example
-
-        self._wrap_model_with_input_output_saver()
 
         if self._prepared_tensors[mode]:
             self._prepare_tensors_for_step(mode)
