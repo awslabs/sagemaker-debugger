@@ -708,7 +708,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _wrap_model_with_input_output_saver(self):
         if self.has_registered_model:
             return
-        for layer in self.model.layers:
+        for layer in self.model._flatten_layers(include_self=False, recursive=True):
             layer._hooks = []
             layer.call = get_layer_call_fn(layer)
             layer.register_hook = lambda hook: layer._hooks.append(hook)
