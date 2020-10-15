@@ -90,10 +90,10 @@ def is_valid_tfprof_tracefilename(filename: str) -> bool:
     Ensure that the tracefilename has a valid format.
     $ENV_BASE_FOLDER/framework/tensorflow/detailed_profiling/$START_TIME_YYYYMMDDHR/$STEP_NUM/plugins/profile/$HOSTNAME.trace.json.gz
 
-    The filename should have extension .json.gz
+    The filename should have extension trace.json.gz
 
     """
-    return filename.endswith("json.gz") and "tensorflow/detailed_profiling" in filename
+    return filename.endswith("trace.json.gz") and "tensorflow/detailed_profiling" in filename
 
 
 def is_valid_tracefilename(filename: str) -> bool:

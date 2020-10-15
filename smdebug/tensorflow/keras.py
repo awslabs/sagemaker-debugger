@@ -1180,9 +1180,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Disable python profiling, because now we are starting wrap tape.
         if python_profiler:
             python_profiler.stop_profiling(
-                0,
+                StepPhase.STEP_START,
                 end_mode=mode_keys_to_python_profile_mode(self.mode),
-                end_step=StepPhase.STEP_START,
+                end_step=0,
             )
 
         from tensorflow.python.eager.backprop import GradientTape
