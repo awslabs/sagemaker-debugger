@@ -61,3 +61,11 @@ def test_should_save_tensor_with_custom_collection(out_dir):
         else:
             assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.GRADIENTS)
             assert not hook.should_save_tensor_or_collection(layer_name, CollectionKeys.LAYERS)
+
+
+def test_should_save_tensor_behavior_without_prepare_collections(out_dir):
+    """Always return false if an attempt to save a tensor is made before the collections are prepared.
+    This can happen if the fn is called before callbacks are init."""
+    hook = smd.KerasHook(out_dir, save_config=SaveConfig(save_interval=3), save_all=True)
+    assert not hook.should_save_tensor_or_collection("dummy", CollectionKeys.GRADIENTS)
+    assert not hook.should_save_tensor_or_collection("dummy", CollectionKeys.LAYERS)
