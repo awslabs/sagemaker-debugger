@@ -17,9 +17,15 @@ from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerCon
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
 from smdebug.profiler.python_profiler import PythonProfiler
+from smdebug.profiler.utils import start_herring_profiler, stop_herring_profiler
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, make_numpy_array
+
+try:
+    import herring.torch as herring
+except ImportError:
+    herring = None
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
@@ -162,13 +168,13 @@ class Hook(CallbackHook):
         self.reset_backward_module_profile_stats()
 
     def _get_num_workers(self):
-        """Check horovod and torch.distributed."""
+        """Check horovod, herring, and torch.distributed."""
         # Try torch.distributed
         # torch.distributed is empty on Mac on Torch <= 1.2
         if hasattr(dist, "is_initialized") and dist.is_initialized():
             return torch.distributed.get_world_size()
-        # Try horovod
         else:
+            # Try horovod
             try:
                 import horovod.torch as hvd
 
@@ -176,22 +182,40 @@ class Hook(CallbackHook):
                     return hvd.size()
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
+
+            # Try herring
+            try:
+                import herring.torch as herring
+
+                if herring.get_world_size():
+                    return herring.get_world_size()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
         # Return default
         return 1
 
     def _get_worker_name(self):
-        """Check horovod and torch.distributed."""
+        """Check horovod, herring, and torch.distributed."""
         # Try torch.distributed
         # torch.distributed is empty on Mac on Torch <= 1.2
         if hasattr(dist, "is_initialized") and dist.is_initialized():
             return f"worker_{dist.get_rank()}"
-        # Try horovod
         else:
+            # Try horovod
             try:
                 import horovod.torch as hvd
 
                 if hvd.size():
                     return f"worker_{hvd.rank()}"
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
+
+            # Try herring
+            try:
+                import herring.torch as herring
+
+                if herring.get_world_size():
+                    return f"worker_{herring.get_rank()}"
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
         # Return default
@@ -339,6 +363,16 @@ class Hook(CallbackHook):
                 )
             self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
             self.autograd_profiler_enabled = True
+
+        if self.is_herring_profiling:
+            # Stop herring profiling at end step
+            stop_herring_profiler(herring, self.profiler_config_parser.config.local_path)
+        self.is_herring_profiling = False
+        if self.profiler_config_parser.should_save_metrics(
+            MetricsCategory.HERRING_PROFILING, self.step
+        ):
+            start_herring_profiler(herring, self.profiler_config_parser.config.local_path)
+            self.is_herring_profiling = True
 
         if self._get_collections_to_save_for_step():
             self._initialize_writers()

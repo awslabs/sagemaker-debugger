@@ -3,7 +3,9 @@ The TimeUnit enum is to be used while querying the events within timerange or at
 The Enum will indicate the unit in which timestamp is provided.
 """
 # Standard Library
+import os
 import re
+import shutil
 import time
 from datetime import datetime
 from distutils.util import strtobool
@@ -14,11 +16,17 @@ from pathlib import Path
 from botocore.exceptions import ClientError
 
 # First Party
-from smdebug.core.access_layer.file import TSAccessFile
+from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX, TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.access_layer.s3handler import ListRequest, S3Handler, is_s3
 from smdebug.core.logger import get_logger
-from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
+from smdebug.core.utils import ensure_dir, get_node_id
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    HERRINGTIMELINE_SUFFIX,
+    HOROVODTIMELINE_SUFFIX,
+    TF_STEP_NUMBER_FILENAME,
+)
 
 logger = get_logger()
 
@@ -264,3 +272,32 @@ def stop_tf_profiler(tf_profiler, log_dir, start_time_us):
         log_dir, start_time_us, time.time() * CONVERT_TO_MICROSECS
     )
     write_tf_profiler_metadata_file(metadata_file)
+
+
+def start_herring_profiler(herring, base_dir):
+    if herring:
+        import herringcommon as hc
+
+        herring_temp_file = os.path.join(
+            base_dir, f"{get_node_id()}_{HERRINGTIMELINE_SUFFIX}{SMDEBUG_TEMP_PATH_SUFFIX}"
+        )
+        ensure_dir(herring_temp_file)
+        hc.startProfiling(herring_temp_file, append_rank=False)
+
+
+def stop_herring_profiler(herring, base_dir):
+    from smdebug.core.locations import TraceFileLocation
+
+    if herring:
+        import herringcommon as hc
+
+        herring_temp_file = os.path.join(
+            base_dir, f"{get_node_id()}_{HERRINGTIMELINE_SUFFIX}{SMDEBUG_TEMP_PATH_SUFFIX}"
+        )
+        hc.stopProfiling()
+        new_file_name = TraceFileLocation.get_file_location(
+            time.time() * CONVERT_TO_MICROSECS, base_dir, suffix=HERRINGTIMELINE_SUFFIX
+        )
+        ensure_dir(new_file_name)
+        if os.path.exists(herring_temp_file):
+            shutil.move(herring_temp_file, new_file_name)

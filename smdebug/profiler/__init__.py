@@ -7,5 +7,10 @@ from .system_metrics_reader import (
     S3SystemMetricsReader,
 )
 from .system_profiler_file_parser import SystemProfilerEventParser
-from .tf_profiler_parser import HorovodProfilerEvents, SMProfilerEvents, TensorboardProfilerEvents
+from .tf_profiler_parser import (
+    HerringProfilerEvents,
+    HorovodProfilerEvents,
+    SMProfilerEvents,
+    TensorboardProfilerEvents,
+)
 from .trace_event_file_parser import TraceEvent, TraceEventParser

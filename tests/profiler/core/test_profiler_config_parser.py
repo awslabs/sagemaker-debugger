@@ -10,6 +10,7 @@ from tests.profiler.resources.profiler_config_parser_utils import (
     dataloader_test_cases,
     detailed_profiling_test_cases,
     general_profiling_test_cases,
+    herring_profiling_test_cases,
     python_profiling_test_cases,
 )
 
@@ -96,6 +97,15 @@ def case_insensitive_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "case_insensitive_profiler_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
     return ProfilerConfigParser()
+
+
+@pytest.fixture
+def herring_profiler_config_path(config_folder, monkeypatch):
+    config_path = os.path.join(config_folder, "herring_profiler_config.json")
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    yield config_path
+    if os.path.isfile(config_path):
+        os.remove(config_path)
 
 
 def _convert_to_string(item):
@@ -285,6 +295,45 @@ def test_python_profiling_ranges(python_profiler_config_path, test_case):
     assert python_profiling_config.end_step == expected_end_step
     assert python_profiling_config.profiler_name == expected_profiler_name
     assert python_profiling_config.cprofile_timer == expected_cprofile_timer
+
+
+@pytest.mark.parametrize("test_case", herring_profiling_test_cases)
+def test_herring_profiling_ranges(herring_profiler_config_path, test_case):
+    profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
+    start_step, num_steps = profiling_parameters
+
+    herring_profiler_config = "{"
+    if start_step:
+        herring_profiler_config += _convert_key_and_value("StartStep", start_step)
+    if num_steps:
+        herring_profiler_config += _convert_key_and_value("NumSteps", num_steps)
+    herring_profiler_config += "}"
+
+    full_config = {
+        "ProfilingParameters": {
+            "ProfilerEnabled": True,
+            "HerringProfilingConfig": herring_profiler_config,
+        }
+    }
+
+    with open(herring_profiler_config_path, "w") as f:
+        json.dump(full_config, f)
+
+    profiler_config_parser = ProfilerConfigParser()
+    assert profiler_config_parser.profiling_enabled
+
+    herring_profiling_config = profiler_config_parser.config.herring_profiling_config
+    assert herring_profiling_config.is_enabled() == expected_enabled
+    assert (
+        profiler_config_parser.should_save_metrics(
+            MetricsCategory.HERRING_PROFILING, current_step, current_time=current_time
+        )
+        == expected_can_save
+    )
+
+    expected_start_step, expected_end_step = expected_values
+    assert herring_profiling_config.start_step == expected_start_step
+    assert herring_profiling_config.end_step == expected_end_step
 
 
 def test_disabled_profiler(

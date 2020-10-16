@@ -8,6 +8,7 @@ from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
     DATALOADER_PROFILING_START_STEP_DEFAULT,
     DETAILED_PROFILING_START_STEP_DEFAULT,
+    HERRING_PROFILING_START_STEP_DEFAULT,
     PROFILING_NUM_STEPS_DEFAULT,
     PYINSTRUMENT_NAME,
     PYTHON_PROFILING_NUM_STEPS_DEFAULT,
@@ -228,6 +229,20 @@ class PythonProfilingConfig(ProfileRange):
             self.reset_profile_range()
 
 
+class HerringProfilingConfig(ProfileRange):
+    """Configuration corresponding to the herring profiling config. If not specified and no general metrics config was
+    specified, then do herring profiling only for step 15.
+    """
+
+    def __init__(self, general_metrics_config, herring_profiling_config):
+        if general_metrics_config == herring_profiling_config == {}:
+            herring_profiling_config = {
+                MetricsConfigsField.START_STEP.value: HERRING_PROFILING_START_STEP_DEFAULT,
+                MetricsConfigsField.NUM_STEPS.value: PROFILING_NUM_STEPS_DEFAULT,
+            }
+        super().__init__("herring profiling", herring_profiling_config)
+
+
 class ProfilerConfig:
     """Overall profiler configuration
     """
@@ -242,6 +257,7 @@ class ProfilerConfig:
         detailed_profiling_config,
         dataloader_metrics_config,
         python_profiling_config,
+        herring_profiling_config,
     ):
         """
         :param local_path: path where profiler events have to be saved.
@@ -252,6 +268,7 @@ class ProfilerConfig:
         :param detailed_profiling_config Dictionary holding the detailed profiling config.
         :param dataloader_metrics_config Dictionary holding the dataloader config.
         :param python_profiling_config Dictionary holding the python profiling config.
+        :param herring_profiling_config Dictionary holding the Herring profiling config.
         """
         self.local_path = local_path
         self.trace_file = TraceFile(file_max_size, file_close_interval, file_open_fail_threshold)
@@ -264,4 +281,8 @@ class ProfilerConfig:
         )
         self.python_profiling_config = PythonProfilingConfig(
             general_metrics_config, python_profiling_config
+        )
+
+        self.herring_profiling_config = HerringProfilingConfig(
+            general_metrics_config, herring_profiling_config
         )

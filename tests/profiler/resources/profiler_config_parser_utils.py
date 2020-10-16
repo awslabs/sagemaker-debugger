@@ -7,6 +7,7 @@ from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
     DATALOADER_PROFILING_START_STEP_DEFAULT,
     DETAILED_PROFILING_START_STEP_DEFAULT,
+    HERRING_PROFILING_START_STEP_DEFAULT,
     PROFILER_DURATION_DEFAULT,
     PROFILING_NUM_STEPS_DEFAULT,
     PYINSTRUMENT_NAME,
@@ -312,5 +313,51 @@ general_profiling_test_cases = [
             (bad_start_step, bad_start_step + PROFILING_NUM_STEPS_DEFAULT),
             (bad_start_step_2, bad_start_step_2 + PROFILING_NUM_STEPS_DEFAULT),
         ),
+    ),
+]
+
+# These test cases will primarily test the various combinations of start step, num steps that are unique to herring
+# profiling. Each test case consists of (herring_profiling_parameters, expected_herring_profiling_enabled,
+# expected_can_profile, expected_values) where:
+#   - herring_profiling_parameters refers to fields (if they exist, `None` otherwise) in the herring profiling config,
+#       i.e. (start_step, num_steps)
+#   - expected_herring_profiling_enabled refers to whether herring profiling is enabled (no errors parsing config).
+#   - expected_can_herring_profile refers to the expected value of should_save_metrics for herring profiling
+#   - expected_values refers to expected values of the profile range after parsing, i.e.
+#       (start_step, end_step)
+herring_profiling_test_cases = [
+    # Valid case where no fields are provided. Default parameters are used, but no profiling takes place on current
+    # step.
+    (
+        (None, None),
+        True,
+        False,
+        (
+            HERRING_PROFILING_START_STEP_DEFAULT,
+            HERRING_PROFILING_START_STEP_DEFAULT + PROFILING_NUM_STEPS_DEFAULT,
+        ),
+    ),
+    # Valid case where both start_step and num_steps are provided. Profiler starts at start_step and profiles for
+    # num_steps steps. Profiler will profile current step.
+    ((good_start_step, num_steps), True, True, (good_start_step, good_start_step + num_steps)),
+    # Valid case where only start_step is provided. Profiler starts at start_step and profiles for
+    # PROFILER_NUM_STEPS_DEFAULT steps. Profiler will profile current step.
+    (
+        (good_start_step, None),
+        True,
+        True,
+        (good_start_step, good_start_step + PROFILING_NUM_STEPS_DEFAULT),
+    ),
+    # Valid case where only num_steps is provided. Profiler starts at current_step and profiles for num_steps steps.
+    # Profiler will profile current step.
+    ((None, num_steps), True, True, (current_step, current_step + num_steps)),
+    # Valid case where detailed_profiling_enabled is True, but start_step is too small. Profiler starts at
+    # bad_start_step and profiles for PROFILER_NUM_STEPS_DEFAULT steps. because
+    # bad_start_step + PROFILING_NUM_STEPS_DEFAULT < current_step, Profiler does not profile current step.
+    (
+        (bad_start_step_2, None),
+        True,
+        False,
+        (bad_start_step_2, bad_start_step_2 + PROFILING_NUM_STEPS_DEFAULT),
     ),
 ]

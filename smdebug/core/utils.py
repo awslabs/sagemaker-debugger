@@ -319,6 +319,22 @@ def get_distributed_worker():
                 rank = hvd.rank()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
+
+        try:
+            import herring.torch as herring
+
+            if herring.get_world_size():
+                rank = herring.get_rank()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
+
+        try:
+            import herring.tensorflow as herring
+
+            if herring.size():
+                rank = herring.rank()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
     return rank
 
 
