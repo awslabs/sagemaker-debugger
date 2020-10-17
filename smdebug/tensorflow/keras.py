@@ -549,8 +549,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
         for layer_name in self.saved_layers:
             # Save Input
-            tensor = self.saved_layers[layer_name].layer_input
-            export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
+            layer_inputs = self.saved_layers[layer_name].layer_input
+            for idx, tensor in layer_inputs:
+                export_name = get_export_name_for_keras(
+                    layer_name, tensor_type="input", tensor=tensor
+                )
             input_collection = (
                 {self.get_collection(CollectionKeys.LAYERS)}
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
