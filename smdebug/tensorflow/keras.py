@@ -81,6 +81,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
+        self.has_unwrapped_model_with_input_output_saver = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -713,11 +714,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
         for layer in self.model._flatten_layers(include_self=False, recursive=True):
             layer._hooks = []
+            layer._old_call = layer.call
             layer.call = get_layer_call_fn(layer)
             layer.register_hook = lambda hook: layer._hooks.append(hook)
             saver = InputOutputSaver()
             layer.register_hook(saver)
             self.saved_layers[layer.name] = saver
+        self.has_wrapped_model_with_input_output_saver = True
+
+    def _unwrap_model_with_input_output_saver(self):
+        for layer in self.model._flatten_layers(include_self=False, recursive=True):
+            layer._hooks = []
+            layer.call = layer._old_call
+        self.has_unwrapped_model_with_input_output_saver = False
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
@@ -850,6 +859,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # estimator and to make it easier when seeing tensorboard
                 self._export_model()
                 self._exported_model[self.mode] = True
+
+        if is_tf_version_2x():
+            self._unwrap_model_with_input_output_saver()
 
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)

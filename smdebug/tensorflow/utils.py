@@ -282,7 +282,7 @@ def get_export_name_for_keras(layer, tensor_type, tensor=None, idx=None):
     if tensor_type in ["input", "output", "weight"]:
         if isinstance(layer, str):
             # Tensor.name is meaningless when eager execution is enabled.
-            return f"{layer}/{tensor_type}_{idx}"
+            return f"{layer}/{tensor_type}_{idx}" if idx is not None else f"{layer}/{tensor_type}"
         else:
             return f"{layer.name}/{tensor_type}s/{tensor.name}"
     else:
