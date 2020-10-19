@@ -194,7 +194,7 @@ def test_layer_names_gradient_tape(out_dir):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
-    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)_\d+"
     for tname in tnames:
         assert re.match(pattern=pattern, string=tname) is not None
 
@@ -580,7 +580,7 @@ def test_layer_names(out_dir, tf_eager_mode):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
-    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)_\d+"
     for tname in tnames:
         assert re.match(pattern=pattern, string=tname) is not None
 
