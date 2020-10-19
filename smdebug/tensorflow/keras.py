@@ -791,6 +791,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         step_collections = self._get_collections_to_save_for_step()
         layer_collection = self.get_collection(CollectionKeys.LAYERS)
         collections_to_write = {layer_collection} if layer_collection in step_collections else set()
+        self.layer_name_dict = dict()
         for layer_name, layer_input, layer_output in logs:
             # Cast layer_name to str since it can also be of type bytes
             # when run with mirrored strategy
@@ -805,9 +806,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
                 layer_input = layer_input[0]
-            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
+            layer_name = str(layer_name)
+            idx = self.layer_name_dict.get(layer_name, 0)
+            self.layer_name_dict[layer_name] = idx + 1
+            layer_input_tensor_name = get_export_name_for_keras(layer_name, "input", idx=idx)
             self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
-            layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
+            layer_output_tensor_name = get_export_name_for_keras(layer_name, "output", idx=idx)
             self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
 
     def _write_optimizer_variables(self):
