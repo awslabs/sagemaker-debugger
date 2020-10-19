@@ -710,7 +710,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        if self.has_wrapped_model_with_input_output_saver:
+        if self.has_wrapped_model_with_input_output_saver or self.model is None:
             return
         for layer in self.model._flatten_layers(include_self=False, recursive=True):
             layer._hooks = []
@@ -996,6 +996,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # this means sometimes collections will be exported after 1 step
                 self.export_collections()
                 self._exported_collections = True
+            self._wrap_model_with_input_output_saver()
 
         return run
 
@@ -1067,6 +1068,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return
 
             self.last_saved_step = self.step
+            self._unwrap_model_with_input_output_saver()
 
         return run
 
