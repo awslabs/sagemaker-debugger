@@ -45,5 +45,5 @@ def test_if_nested_layers_are_recorded(out_dir):
     trial = create_trial(path=out_dir)
     layer_names = trial.tensor_names(collection=smd.CollectionKeys.LAYERS)
     assert (
-        len(layer_names) == 6
+        len(layer_names) == 8
     )  # ['custom_layer/inputs', 'custom_layer/outputs', 'con/inputs', 'con/outputs', 'dense/inputs', 'dense/outputs']
