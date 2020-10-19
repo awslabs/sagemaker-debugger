@@ -548,7 +548,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _save_layer_input_and_outputs(self):
         if is_tf_version_2x() is False:
             return
-        input_collection = (
+        layer_collection = (
             {self.get_collection(CollectionKeys.LAYERS)}
             if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
             else set()
@@ -566,7 +566,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                     continue
                 else:
-                    self._save_tensor_to_file(export_name, tensor, input_collection)
+                    self._save_tensor_to_file(export_name, tensor, layer_collection)
 
             # Save Output
             layer_outputs = self.saved_layers[layer_name].layer_output
@@ -580,7 +580,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                     continue
                 else:
-                    self._save_tensor_to_file(export_name, tensor, input_collection)
+                    self._save_tensor_to_file(export_name, tensor, layer_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
