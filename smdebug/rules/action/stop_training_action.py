@@ -79,7 +79,7 @@ class StopTrainingAction:
                 )
                 break
 
-        return list(found_job_dict.keys())
+        return found_job_dict.keys()
 
     def _stop_training_job(self):
         if len(self._found_jobs) != 1:

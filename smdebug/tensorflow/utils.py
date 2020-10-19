@@ -278,11 +278,11 @@ def is_keras_optimizer(obj):
     return False
 
 
-def get_export_name_for_keras(layer, tensor_type, tensor=None, idx=None):
+def get_export_name_for_keras(layer, tensor_type, tensor=None, layer_idx=None, tensor_idx=None):
     if tensor_type in ["input", "output", "weight"]:
         if isinstance(layer, str):
             # Tensor.name is meaningless when eager execution is enabled.
-            return f"{layer}/{tensor_type}_{idx}" if idx is not None else f"{layer}/{tensor_type}"
+            return f"{layer}_{layer_idx}/{tensor_type}_{tensor_idx}"
         else:
             return f"{layer.name}/{tensor_type}s/{tensor.name}"
     else:

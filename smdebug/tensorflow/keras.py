@@ -556,31 +556,48 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for layer_name in self.saved_layers:
             # Save Input
             layer_inputs = self.saved_layers[layer_name].layer_input
-            for idx, tensor in enumerate(layer_inputs):
-                export_name = get_export_name_for_keras(
-                    layer_name, tensor_type="input", tensor=tensor, idx=idx
-                )
-                if hasattr(tensor, "numpy") is False:
+            for layer_idx, tensor in enumerate(layer_inputs):
+                if isinstance(tensor, list):
+                    tensor_list = tensor
+                else:
+                    tensor_list = [tensor]
+                if hasattr(tensor_list[0], "numpy") is False:
                     self.logger.warning(
                         "cannot save layer values during forward pass with tf.function"
                     )
                     continue
                 else:
-                    self._save_tensor_to_file(export_name, tensor, layer_collection)
-
+                    for t_idx, t in enumerate(tensor_list):
+                        export_name = get_export_name_for_keras(
+                            layer_name,
+                            tensor_type="input",
+                            tensor=tensor,
+                            layer_idx=layer_idx,
+                            tensor_idx=t_idx,
+                        )
+                        self._save_tensor_to_file(export_name, t, layer_collection)
             # Save Output
-            layer_outputs = self.saved_layers[layer_name].layer_output
-            for idx, tensor in enumerate(layer_outputs):
-                export_name = get_export_name_for_keras(
-                    layer_name, tensor_type="output", tensor=tensor, idx=idx
-                )
-                if hasattr(tensor, "numpy") is False:
+            layer_inputs = self.saved_layers[layer_name].layer_input
+            for layer_idx, tensor in enumerate(layer_inputs):
+                if isinstance(tensor, list):
+                    tensor_list = tensor
+                else:
+                    tensor_list = [tensor]
+                if hasattr(tensor_list[0], "numpy") is False:
                     self.logger.warning(
                         "cannot save layer values during forward pass with tf.function"
                     )
                     continue
                 else:
-                    self._save_tensor_to_file(export_name, tensor, layer_collection)
+                    for t_idx, t in enumerate(tensor_list):
+                        export_name = get_export_name_for_keras(
+                            layer_name,
+                            tensor_type="output",
+                            tensor=tensor,
+                            layer_idx=layer_idx,
+                            tensor_idx=t_idx,
+                        )
+                        self._save_tensor_to_file(export_name, t, layer_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
@@ -791,7 +808,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         step_collections = self._get_collections_to_save_for_step()
         layer_collection = self.get_collection(CollectionKeys.LAYERS)
         collections_to_write = {layer_collection} if layer_collection in step_collections else set()
-        self.layer_name_dict = dict()
+        layer_name_dict = dict()
         for layer_name, layer_input, layer_output in logs:
             # Cast layer_name to str since it can also be of type bytes
             # when run with mirrored strategy
@@ -807,8 +824,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
                 layer_input = layer_input[0]
             layer_name = str(layer_name)
-            idx = self.layer_name_dict.get(layer_name, 0)
-            self.layer_name_dict[layer_name] = idx + 1
+            idx = layer_name_dict.get(layer_name, 0)
+            layer_name_dict[layer_name] = idx + 1
             layer_input_tensor_name = get_export_name_for_keras(layer_name, "input", idx=idx)
             self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
             layer_output_tensor_name = get_export_name_for_keras(layer_name, "output", idx=idx)

@@ -34,4 +34,4 @@ def test_multiple_inputs(out_dir):
     trial = create_trial(path=out_dir)
     tnames = sorted(trial.tensor_names(collection=smd.CollectionKeys.LAYERS))
     assert "concatenate" in tnames[0]
-    assert trial.tensor(tnames[0]).shape(0) == (1000, 40)
+    assert trial.tensor(tnames[0]).shape(0) == (1000, 20)
