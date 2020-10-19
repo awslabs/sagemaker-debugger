@@ -826,9 +826,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             layer_name = str(layer_name)
             idx = layer_name_dict.get(layer_name, 0)
             layer_name_dict[layer_name] = idx + 1
-            layer_input_tensor_name = get_export_name_for_keras(layer_name, "input", idx=idx)
+            layer_input_tensor_name = get_export_name_for_keras(
+                layer_name, "input", layer_idx=idx, tensor_idx=idx
+            )
             self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
-            layer_output_tensor_name = get_export_name_for_keras(layer_name, "output", idx=idx)
+            layer_output_tensor_name = get_export_name_for_keras(
+                layer_name, "output", layer_idx=idx, tensor_idx=idx
+            )
             self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
 
     def _write_optimizer_variables(self):
