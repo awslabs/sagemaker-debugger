@@ -81,7 +81,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
-        self.has_unwrapped_model_with_input_output_saver = False
+        self.has_wrapped_model_with_input_output_saver = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -710,7 +710,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        if self.has_registered_model:
+        if self.has_wrapped_model_with_input_output_saver:
             return
         for layer in self.model._flatten_layers(include_self=False, recursive=True):
             layer._hooks = []
@@ -726,7 +726,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for layer in self.model._flatten_layers(include_self=False, recursive=True):
             layer._hooks = []
             layer.call = layer._old_call
-        self.has_unwrapped_model_with_input_output_saver = False
+        self.has_wrapped_model_with_input_output_saver = False
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
