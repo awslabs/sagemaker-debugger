@@ -44,6 +44,15 @@ def test_if_nested_layers_are_recorded(out_dir):
     model.fit(x_train, y_train, epochs=1, steps_per_epoch=1, callbacks=[hook])
     trial = create_trial(path=out_dir)
     layer_names = trial.tensor_names(collection=smd.CollectionKeys.LAYERS)
-    assert (
-        len(layer_names) == 8
-    )  # ['custom_layer/inputs', 'custom_layer/outputs', 'con/inputs', 'con/outputs', 'dense/inputs', 'dense/outputs']
+    """
+        [
+            'concatenate_0/input_0',
+            'concatenate_0/input_1',
+            'concatenate_0/output_0',
+            'custom_layer_0/input_0',
+            'custom_layer_0/output_0',
+            'dense_0/input_0',
+            'dense_0/output_0'
+        ]
+    """
+    assert len(layer_names) == 7
