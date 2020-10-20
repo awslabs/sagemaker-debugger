@@ -36,6 +36,16 @@ def test_layer_reusability(out_dir):
 
     trial = create_trial(path=out_dir, name="training_run")
     tensor_names = trial.tensor_names(collection=smd.CollectionKeys.LAYERS)
+    """
+        [
+            'dense_0/input_0',
+            'dense_0/output_0',
+            'dense_1/input_0',
+            'dense_1/output_0',
+            'dense_2/input_0',
+            'dense_2/output_0'
+        ]
+    """
     assert len(tensor_names) == 6
     for name in tensor_names:
         shape = trial.tensor(name).shape(step_num=0)
