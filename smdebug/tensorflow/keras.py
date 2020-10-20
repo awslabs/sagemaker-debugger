@@ -577,8 +577,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         )
                         self._save_tensor_to_file(export_name, t, layer_collection)
             # Save Output
-            layer_inputs = self.saved_layers[layer_name].layer_input
-            for layer_idx, tensor in enumerate(layer_inputs):
+            layer_outputs = self.saved_layers[layer_name].layer_output
+            for layer_idx, tensor in enumerate(layer_outputs):
                 if isinstance(tensor, list):
                     tensor_list = tensor
                 else:
@@ -728,6 +728,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _wrap_model_with_input_output_saver(self):
         if self.has_wrapped_model_with_input_output_saver or self.model is None:
+            # do not proceed if the model has already been wrapped
+            # or the model has not been registered with smdebug yet
             return
         for layer in self.model._flatten_layers(include_self=False, recursive=True):
             layer._hooks = []

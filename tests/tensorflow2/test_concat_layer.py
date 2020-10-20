@@ -32,6 +32,11 @@ def test_multiple_inputs(out_dir):
     my_model.fit(x_train, y_train, epochs=1, steps_per_epoch=1, callbacks=[hook])
 
     trial = create_trial(path=out_dir)
-    tnames = sorted(trial.tensor_names(collection=smd.CollectionKeys.LAYERS))
-    assert "concatenate" in tnames[0]
+    tnames = trial.tensor_names(regex="concatenate")
+    assert len(tnames) == 3  # two inputs + one output
+    tnames = trial.tensor_names(regex="concatenate.+/input")
+    assert len(tnames) == 2  # Concatenate Layer receives two inputs
     assert trial.tensor(tnames[0]).shape(0) == (1000, 20)
+    tnames = trial.tensor_names(regex="concatenate.+/output")
+    assert len(tnames) == 1  # Concatenate Layer emits a single output
+    assert trial.tensor(tnames[0]).shape(0) == (1000, 40)
