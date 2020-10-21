@@ -12,7 +12,10 @@ from smdebug.trials import create_trial
 # Test Reference: https://github.com/tensorflow/docs/blob/master/site/en/guide/mixed_precision.ipynb
 
 
-@pytest.mark.skipif(does_tf_support_mixed_precision_training() is False)
+@pytest.mark.skipif(
+    does_tf_support_mixed_precision_training() is False,
+    reason="The Keras mixed precision API is first available in TensorFlow 2.1.0",
+)
 def test_mixed_precision_training(out_dir):
 
     from tensorflow.keras.mixed_precision import experimental as mixed_precision

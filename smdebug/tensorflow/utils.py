@@ -14,7 +14,7 @@ from smdebug.core.modes import ModeKeys
 
 
 def does_tf_support_mixed_precision_training():
-    # The Keras mixed precision API is available starting TensorFlow 2.1.
+    # The Keras mixed precision API is first available in TensorFlow 2.1.0
     # See: https://www.tensorflow.org/guide/mixed_precision
     return version.parse(tf.__version__) >= version.parse("2.1.0")
 
