@@ -101,8 +101,6 @@ class TensorRef:
                 # for mirrored variable value this will be the mirrored variable
                 original_tensor = variable
 
-            from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
-
             if (
                 is_tf_version_2x()
                 and tf.executing_eagerly()
