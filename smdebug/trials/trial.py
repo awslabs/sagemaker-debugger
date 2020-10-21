@@ -14,7 +14,7 @@ from smdebug.core.config_constants import (
     TRAINING_END_DELAY_REFRESH_DEFAULT,
     TRAINING_END_DELAY_REFRESH_KEY,
 )
-from smdebug.core.locations import IndexFileLocationUtils, TensorLocation
+from smdebug.core.locations import IndexFileLocationUtils, TensorLocation, TensorShape
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import REDUCTIONS_PREFIX, reverse_reduction_tensor_name
@@ -190,7 +190,7 @@ class Trial(ABC):
             retry_count = 2
         while retry_count > 0:
             if name is None:
-                self.refresh_tensors()
+                self.refresh_data()
             else:
                 self.refresh_tensor(name)
             if retry_count > 1:
@@ -215,7 +215,7 @@ class Trial(ABC):
 
     def refresh_tensor(self, tname, steps=None):
         # for now we load all tensors at once
-        self.refresh_tensors()
+        self.refresh_data()
 
     def tensor(self, tname):
         # will not show tensor if it was not written yet
@@ -231,14 +231,14 @@ class Trial(ABC):
             self.maybe_refresh(tname)
         return tname in self._tensors
 
-    def _populate_step_dict(self, tensor_object, step_num):
-        if tensor_object.mode != ModeKeys.GLOBAL:
-            if tensor_object.mode not in self._mode_to_global:
-                self._mode_to_global[tensor_object.mode] = {}
-            if tensor_object.mode_step not in self._mode_to_global[tensor_object.mode]:
-                self._mode_to_global[tensor_object.mode][tensor_object.mode_step] = int(step_num)
+    def _populate_step_dict(self, mode, mode_step, step_num):
+        if mode != ModeKeys.GLOBAL:
+            if mode not in self._mode_to_global:
+                self._mode_to_global[mode] = {}
+            if mode_step not in self._mode_to_global[mode]:
+                self._mode_to_global[mode][mode_step] = int(step_num)
         if step_num not in self._global_to_mode:
-            self._global_to_mode[step_num] = (tensor_object.mode, tensor_object.mode_step)
+            self._global_to_mode[step_num] = (mode, mode_step)
 
     def _populate_workers_for_global_step(self, step, worker) -> None:
         """
@@ -263,7 +263,7 @@ class Trial(ABC):
             self.last_complete_step = step
             self.logger.debug(f"Populating last completing step to: {step}")
 
-    def _populate_global_step_to_tensor_name_map(self, tensor: TensorLocation, step_num) -> None:
+    def _populate_global_step_to_tensor_name_map(self, tensorname: str, step_num) -> None:
         """
         The self.global_step_to_tensors_map dictionary holds a mapping of
         step number and a set of all the tensor names that have been written for the step.
@@ -274,47 +274,67 @@ class Trial(ABC):
         """
         if step_num not in self.global_step_to_tensors_map:
             self.global_step_to_tensors_map[step_num] = set()
-        self.global_step_to_tensors_map[step_num].add(tensor.tensorname)
+        self.global_step_to_tensors_map[step_num].add(tensorname)
 
-    def _populate_mode_to_tensor_name_map(self, tensor: TensorLocation) -> None:
+    def _populate_mode_to_tensor_name_map(self, tensorname, mode) -> None:
         """
         The self.mode_to_tensors_map dictionary holds a mapping of
         mode and a set of all the tensor names that have been written for the mode.
         :param tensor:
         :return:
         """
-        if tensor.mode != ModeKeys.GLOBAL:
-            if tensor.mode not in self.mode_to_tensors_map:
-                self.mode_to_tensors_map[tensor.mode] = set()
-            self.mode_to_tensors_map[tensor.mode].add(tensor.tensorname)
+        if mode != ModeKeys.GLOBAL:
+            if mode not in self.mode_to_tensors_map:
+                self.mode_to_tensors_map[mode] = set()
+            self.mode_to_tensors_map[mode].add(tensorname)
 
-    def _add_tensor(self, step_num, worker, tensor_object: TensorLocation):
+    def _load_tensors_from_index_tensors(self, index_tensors_dict):
+        for tname in index_tensors_dict:
+            for step, itds in index_tensors_dict[tname].items():
+                for worker in itds:
+                    self._add_tensor(
+                        int(step),
+                        worker,
+                        itds[worker].get("tensor_location", None),
+                        itds[worker].get("tensor_shape", None),
+                    )
+
+    def _add_tensor(
+        self, step_num, worker, tensor_location: TensorLocation, tensor_shape: TensorShape
+    ):
         is_reduction = False
 
-        if REDUCTIONS_PREFIX in tensor_object.tensorname:
-            tname, red_name, abs = reverse_reduction_tensor_name(tensor_object.tensorname)
-            tensor_object.tensorname = tname
-            is_reduction = True
+        if tensor_location is not None:
+            tensorname = tensor_location.tensorname
+            mode = tensor_location.mode
+            mode_step = tensor_location.mode_step
+        elif tensor_shape is not None:
+            tensorname = tensor_shape.name
+            mode = tensor_shape.mode
+            mode_step = tensor_shape.mode_step
         else:
-            tname = tensor_object.tensorname
+            raise RuntimeError("both tensor_location and tensor_shape can't be None")
 
-        if tname not in self._tensors:
-            tensor = Tensor(tname, trial=self, cache=self.cache)
-            self._tensors[tname] = tensor
+        if REDUCTIONS_PREFIX in tensorname:
+            tensorname, red_name, abs = reverse_reduction_tensor_name(tensorname)
+            is_reduction = True
 
-        tensor = self._tensors[tname]
+        if tensorname not in self._tensors:
+            tensor = Tensor(tensorname, trial=self, cache=self.cache)
+            self._tensors[tensorname] = tensor
+
+        tensor = self._tensors[tensorname]
 
         if is_reduction:
-            tensor.add_reduction_step(
-                tensor_object.mode, tensor_object.mode_step, worker, red_name, abs, tensor_object
-            )
+            tensor.add_reduction_step(mode, mode_step, worker, red_name, abs, tensor_location)
         else:
-            tensor.add_step(tensor_object.mode, tensor_object.mode_step, worker, tensor_object)
+            # shape can only be passed for actual tensor, not reductions
+            tensor.add_step(mode, mode_step, worker, tensor_location, tensor_shape)
 
-        self._populate_step_dict(tensor_object, step_num)
-        self._populate_global_step_to_tensor_name_map(tensor_object, step_num)
+        self._populate_step_dict(mode, mode_step, step_num)
+        self._populate_global_step_to_tensor_name_map(tensorname, step_num)
         self._populate_workers_for_global_step(step_num, worker)
-        self._populate_mode_to_tensor_name_map(tensor_object)
+        self._populate_mode_to_tensor_name_map(tensorname, mode)
 
     def _tensors_matching_regex(self, regex_list) -> set:
         matched_tensornames = set()
@@ -560,10 +580,6 @@ class Trial(ABC):
             return StepState.UNAVAILABLE
         return StepState.NOT_YET_AVAILABLE
 
-    def _load_tensors(self):
-        if self.index_mode:
-            self._load_tensors_from_index_files()
-
     def _update_last_index_token(self, new_index_token: str) -> None:
         """
         This function updates the last_index_token in the following scenarios:
@@ -625,15 +641,7 @@ class Trial(ABC):
                 f"Updating last_complete_step to: {self.last_complete_step}. "
             )
 
-    def _load_tensors_from_index_files(self):
-        self.index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(
-            start_after_key=self.last_index_token, range_steps=self.range_steps
-        )
-        self._load_tensors_from_index_tensors(self.index_tensors_dict)
-        if new_index_token:  # new index token can be None if there are no new index files
-            self._update_last_index_token(new_index_token)
-
-    def refresh_tensors(self):
+    def refresh_data(self):
         # TODO if job finished
         if self.index_mode:
             index_tensors_dict, new_index_token = self.index_reader.load_tensor_data_from_index_files(

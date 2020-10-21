@@ -329,7 +329,7 @@ class InputOutputSaver:
         self.layer_input = None
         self.layer_output = None
 
-    def __call__(self, callable_inputs, *args, **kwargs) -> None:
+    def __call__(self, inputs, *args, **kwargs) -> None:
         self.layer_input = kwargs["layer_input"]
         self.layer_output = kwargs["layer_output"]
 
@@ -337,11 +337,11 @@ class InputOutputSaver:
 def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.Tensor]:
     old_call_fn = layer.call
 
-    def call(callable_inputs, *args, **kwargs) -> tf.Tensor:
-        layer_input = callable_inputs
-        layer_output = old_call_fn(callable_inputs)
+    def call(inputs, *args, **kwargs) -> tf.Tensor:
+        layer_input = inputs
+        layer_output = old_call_fn(inputs, *args, **kwargs)
         for hook in layer._hooks:
-            hook_result = hook(callable_inputs, layer_input=layer_input, layer_output=layer_output)
+            hook_result = hook(inputs, layer_input=layer_input, layer_output=layer_output)
             if hook_result is not None:
                 layer_output = hook_result
         return layer_output
@@ -384,3 +384,7 @@ def get_keras_mode(mode):
 
 def is_tf_version_2x():
     return version.parse(tf.__version__) >= version.parse("2.0.0")
+
+
+def is_tf_version_2_3_x():
+    return version.parse(tf.__version__) >= version.parse("2.3.0")

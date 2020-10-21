@@ -7,8 +7,7 @@ from tensorflow.python.keras.backend import is_placeholder
 # First Party
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.tfevent.proto.summary_pb2 import Summary
-from smdebug.core.tfevent.util import make_numpy_array
-from smdebug.core.utils import match_inc
+from smdebug.core.utils import make_numpy_array, match_inc
 
 # Local
 from .base_hook import TensorflowBaseHook

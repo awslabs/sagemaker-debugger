@@ -2,6 +2,9 @@
 import shutil
 from datetime import datetime
 
+# Third Party
+from tests.utils import verify_shapes
+
 # First Party
 from smdebug.mxnet import ReductionConfig, SaveConfig
 from smdebug.mxnet.hook import Hook as t_hook
@@ -24,6 +27,7 @@ def test_save_config(hook=None, out_dir=None):
         hook = t_hook(
             out_dir=out_dir,
             save_config=global_save_config,
+            save_all=True,
             include_collections=[
                 "weights",
                 "biases",
@@ -80,6 +84,22 @@ def test_save_config(hook=None, out_dir=None):
     assert l2_norm is not None
     if hook_created:
         shutil.rmtree(out_dir)
+
+
+def test_save_shapes(out_dir):
+    global_reduce_config = ReductionConfig(save_shape=True)
+    global_save_config = SaveConfig(save_steps=[0, 1])
+
+    hook = t_hook(
+        out_dir=out_dir,
+        save_config=global_save_config,
+        save_all=True,
+        reduction_config=global_reduce_config,
+    )
+    run_mnist_gluon_model(hook=hook, num_steps_train=5)
+    verify_shapes(out_dir, 0)
+    verify_shapes(out_dir, 1)
+    shutil.rmtree(out_dir)
 
 
 def test_save_config_hook_from_json():

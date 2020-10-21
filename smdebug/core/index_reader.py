@@ -16,7 +16,7 @@ from smdebug.core.config_constants import (
     MISSING_EVENT_FILE_RETRY_LIMIT,
     MISSING_EVENT_FILE_RETRY_LIMIT_KEY,
 )
-from smdebug.core.locations import IndexFileLocationUtils, TensorLocation
+from smdebug.core.locations import IndexFileLocationUtils, TensorLocation, TensorShape
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
 from smdebug.core.s3_utils import list_s3_objects
@@ -120,11 +120,21 @@ class IndexReader(ABC):
     def list_event_files(self, start_after_prefix):
         pass
 
-    @abstractmethod
     def load_tensor_data_from_index_files(
         self, start_after_key=None, range_steps=None
     ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
         """Return a triply nested dict referring to tensor data."""
+
+        responses, steps, last_index_token, workers = self.read_index_files(
+            start_after_key, range_steps
+        )
+
+        tensor_data = {}
+        for step, response, worker in zip(steps, responses, workers):
+            tensor_data = self._update_tensors_from_json(
+                tensor_data, step, response, self.path, worker
+            )
+        return tensor_data, last_index_token
 
     @abstractmethod
     def _is_event_file_present(self, file_name) -> bool:
@@ -203,8 +213,10 @@ class IndexReader(ABC):
             raise IndexReaderException("meta section is not present")
         if len(index_dict["meta"]) == 0:
             raise IndexReaderException("meta section is empty")
-        if "tensor_payload" not in index_dict:
-            raise IndexReaderException("tensor_payload section is not present")
+        if "tensor_payload" not in index_dict and "shape_payload" not in index_dict:
+            raise IndexReaderException(
+                "neither tensor_payload nor shape_payload sections are present"
+            )
 
     def _update_tensors_from_json(
         self, index_tensors_dict, step, response: bytes, path, worker
@@ -233,28 +245,41 @@ class IndexReader(ABC):
         mode = index_meta["mode"]
         mode = ModeKeys[mode.strip()]
         mode_step = index_meta["mode_step"]
-        event_file_name = os.path.join(path, index_meta["event_file_name"])
-        tensors = index_dict["tensor_payload"]
-        for tensor in tensors:
-            tensor_name = tensor["tensorname"]
-            start_idx = tensor["start_idx"]
-            length = tensor["length"]
-            tensor_location = TensorLocation(
-                tensor_name, mode, mode_step, event_file_name, start_idx, length, worker
-            )
+
+        to_update_index_dict = []
+
+        if "tensor_payload" in index_dict and len(index_dict["tensor_payload"]):
+            event_file_name = os.path.join(path, index_meta["event_file_name"])
+            for tensor in index_dict["tensor_payload"]:
+                tensor_name = tensor["tensorname"]
+                start_idx = tensor["start_idx"]
+                length = tensor["length"]
+                tensor_location = TensorLocation(
+                    tensor_name, mode, mode_step, event_file_name, start_idx, length, worker
+                )
+                to_update_index_dict.append((tensor_name, step, tensor_location))
+
+        if "shape_payload" in index_dict and len(index_dict["shape_payload"]):
+            for tensor in index_dict["shape_payload"]:
+                tensor_name = tensor["tensorname"]
+                original_name = tensor["originalname"]
+                shape = tensor["shape"]
+                ts = TensorShape(tensor_name, mode, mode_step, shape, original_name)
+                to_update_index_dict.append((tensor_name, step, ts))
+
+        for tu in to_update_index_dict:
+            tensor_name, step, obj = tu
+            if isinstance(obj, TensorLocation):
+                obj_dict = {"tensor_location": obj}
+            elif isinstance(obj, TensorShape):
+                obj_dict = {"tensor_shape": obj}
             if tensor_name in index_tensors_dict:
                 if step in index_tensors_dict[tensor_name]:
-                    index_tensors_dict[tensor_name][step].update(
-                        {worker: {"tensor_location": tensor_location}}
-                    )
+                    index_tensors_dict[tensor_name][step].update({worker: obj_dict})
                 else:
-                    index_tensors_dict[tensor_name].update(
-                        {step: {worker: {"tensor_location": tensor_location}}}
-                    )
+                    index_tensors_dict[tensor_name].update({step: {worker: obj_dict}})
             else:
-                index_tensors_dict[tensor_name] = {
-                    step: {worker: {"tensor_location": tensor_location}}
-                }
+                index_tensors_dict[tensor_name] = {step: {worker: obj_dict}}
         return index_tensors_dict
 
 
@@ -284,22 +309,6 @@ class S3IndexReader(IndexReader):
         tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
         return tensor_data
-
-    def load_tensor_data_from_index_files(
-        self, start_after_key=None, range_steps=None
-    ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
-        """Return a triply nested dict referring to tensor data."""
-
-        responses, steps, last_index_token, workers = self.read_index_files(
-            start_after_key, range_steps
-        )
-
-        tensor_data = {}
-        for step, response, worker in zip(steps, responses, workers):
-            tensor_data = self._update_tensors_from_json(
-                tensor_data, step, response, self.path, worker
-            )
-        return tensor_data, last_index_token
 
     def read_index_files(
         self, start_after_key: str, range_steps=None
@@ -397,21 +406,6 @@ class LocalIndexReader(IndexReader):
         tensor_tuple = list(tr.read_tensors())[0]  # Access the only element in the list
         tensor_name, step, tensor_data, mode, mode_step = tensor_tuple
         return tensor_data
-
-    def load_tensor_data_from_index_files(
-        self, start_after_key=None, range_steps=None
-    ) -> Tuple[Dict[str, Dict[int, Dict[str, TensorLocation]]], str]:
-        """Return a triply nested dict referring to tensor data."""
-
-        responses, steps, last_index_token, workers = self.read_index_files(
-            start_after_key, range_steps
-        )
-        tensor_data = {}
-        for step, response, worker in zip(steps, responses, workers):
-            tensor_data = self._update_tensors_from_json(
-                tensor_data, step, response, self.path, worker
-            )
-        return tensor_data, last_index_token
 
     def read_index_files(
         self, start_after_key: str, range_steps=None

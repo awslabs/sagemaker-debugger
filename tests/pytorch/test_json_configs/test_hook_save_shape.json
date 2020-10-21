@@ -1,0 +1,9 @@
+{
+    "S3Path": "s3://kjndjknd_bucket/prefix",
+    "LocalPath": "/tmp/test_output/test_hook_save_shape/jsonloading",
+    "HookParameters": {
+      "save_all": true,
+      "save_shape": true,
+      "save_steps": "0,1"
+    }
+  }

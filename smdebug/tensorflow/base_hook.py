@@ -14,12 +14,12 @@ from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
-from smdebug.core.tfevent.util import make_numpy_array
-from smdebug.core.utils import serialize_tf_device
+from smdebug.core.utils import make_numpy_array, serialize_tf_device
 from smdebug.core.writer import FileWriter
 
 # Local
 from .collection import CollectionKeys, CollectionManager
+from .constants import TF_DEFAULT_SAVED_COLLECTIONS
 from .singleton_utils import set_hook
 from .utils import (
     TFDistributionStrategy,
@@ -86,6 +86,7 @@ class TensorflowBaseHook(BaseHook):
                 Example -> /job:worker/replica:0/task:1/device:GPU:0 : _job-worker_replica-0_task-1_device-GPU-0"""
         self.device_map = {}
         self.writer_map = {}
+
         # This will be None if the var wasn't set, i.e. not param server
         self.tf_config_json = load_tf_config_json(os.getenv("TF_CONFIG"))
         self._hook_supported = None
@@ -217,6 +218,14 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
+    def has_default_hook_configuration(self):
+        # Used in AWS TF to determine if the hook
+        # is using the default hook configuration
+        collections_being_saved = [x.name for x in self._collections_to_save]
+        if set(collections_being_saved) == set(TF_DEFAULT_SAVED_COLLECTIONS):
+            return True
+        return False
+
     def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
         if self._custom_collections is None:
             self._custom_collections = set()
@@ -277,8 +286,8 @@ class TensorflowBaseHook(BaseHook):
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
         ]:
-            if (self.save_all_workers is True or self.worker == self.chief_worker) and self.writer:
-                return [self.writer]
+            if self.save_all_workers is True or self.worker == self.chief_worker:
+                return self._get_main_writer()
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             if len(self.device_map):
                 # else is for metrics in Keras
@@ -294,12 +303,11 @@ class TensorflowBaseHook(BaseHook):
                         return [self.writer_map[self.device_map[self.chief_worker]]]
                 elif self.save_all_workers or worker == self.chief_worker:
                     return [self.writer_map[self.device_map[worker]]]
-            elif self.writer:
+            else:
                 # training on CPU when all device strings have cpu
-                return [self.writer]
+                return self._get_main_writer()
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
-            if self.writer:
-                return [self.writer]
+            return self._get_main_writer()
         else:
             raise NotImplementedError
         # when self.writer is None, returns empty list
@@ -335,6 +343,7 @@ class TensorflowBaseHook(BaseHook):
                     self.writer = FileWriter(
                         trial_dir=self.out_dir, step=self.step, worker=self.worker
                     )
+
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
@@ -353,25 +362,8 @@ class TensorflowBaseHook(BaseHook):
             self.writer.close()
             self.writer = None
 
-        # Delete all the dist training writers
-        to_delete_writers = []
-        for device, writer in self.writer_map.items():
-            writer.flush()
-            writer.close()
-            to_delete_writers.append(device)
-
-        for device in to_delete_writers:
-            del self.writer_map[device]
-
-        to_delete_writers = []
-        # Delete all the tb writers
-        for mode, writer in self.tb_writers.items():
-            if writer is not None:
-                writer.flush()
-                writer.close()
-                to_delete_writers.append(mode)
-        for mode in to_delete_writers:
-            del self.tb_writers[mode]
+        self._close_given_writer_map(self.writer_map)
+        self._close_given_writer_map(self.tb_writers)
 
     def _export_model(self):
         tb_writer = self._maybe_get_tb_writer()
