@@ -4,6 +4,7 @@ from enum import Enum
 # Third Party
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
+from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -15,16 +16,15 @@ logger = get_logger()
 
 
 def get_tf_names(arg):
-    if isinstance(arg, tf.Variable):
+    if isinstance(arg, (tf.Variable, autocast_variable.AutoCastVariable)):
         tf_names = [arg.name]
     elif isinstance(arg, tf.Tensor):
         tf_names = [arg.name]
     elif isinstance(arg, values.DistributedValues):
         tf_names = [v.name for v in arg._values]
     else:
-        raise NotImplementedError(
-            f"Smdebug currenty does not support:{arg} which of type:{type(arg)}"
-        )
+        print(f"Smdebug currenty does not support:{arg} which of type:{type(arg)}")
+        tf_names = []
     return tf_names
 
 
@@ -101,7 +101,13 @@ class TensorRef:
                 # for mirrored variable value this will be the mirrored variable
                 original_tensor = variable
 
-            if is_tf_version_2x() and tf.executing_eagerly() and isinstance(variable, tf.Variable):
+            from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
+
+            if (
+                is_tf_version_2x()
+                and tf.executing_eagerly()
+                and isinstance(variable, (tf.Variable, autocast_variable.AutoCastVariable))
+            ):
                 # In TF 2.X eager mode, TF throws an error if you try to access a tensor's name.
                 # We need to pass it in as a variable, not a tensor, to maintain the name.
                 tf_obj = variable

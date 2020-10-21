@@ -5,6 +5,7 @@ import functools
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 from tensorflow.python.framework.indexed_slices import IndexedSlices
+from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
 from tensorflow.python.util import nest
 
 # First Party
@@ -241,7 +242,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             tensor_refs = []
             for coll in colls_with_tensor:
                 if not tensor_refs:
-                    if isinstance(tensor, tf.Variable):
+                    if isinstance(tensor, (tf.Variable, autocast_variable.AutoCastVariable)):
                         tensor_refs.append(
                             coll.add_variable(tensor, export_name=export_name, mode=mode)
                         )
