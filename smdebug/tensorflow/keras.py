@@ -43,6 +43,7 @@ from .utils import (
     is_keras_optimizer,
     is_tf_version_2_3_x,
     is_tf_version_2x,
+    supported_tf_variables,
 )
 
 python_profiler = None
@@ -263,7 +264,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             tensor_refs = []
             for coll in colls_with_tensor:
                 if not tensor_refs:
-                    if isinstance(tensor, tf.Variable):
+                    if isinstance(tensor, supported_tf_variables()):
                         tensor_refs.append(
                             coll.add_variable(tensor, export_name=export_name, mode=mode)
                         )
@@ -481,7 +482,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if isinstance(v, tf.Tensor):
                     # Tensor.name is meaningless with eager execution
                     layer_name = str(v.numpy(), "utf-8")
-                elif isinstance(v, tf.Variable):
+                elif isinstance(v, supported_tf_variables()):
                     layer_name = v.name
                 elif isinstance(v, bytes):
                     layer_name = str(v, "utf-8")
@@ -861,6 +862,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for layer_name, layer_input, layer_output in logs:
             # Cast layer_name to str since it can also be of type bytes
             # when run with mirrored strategy
+            if isinstance(layer_name, tf.Tensor):
+                # Tensor.name is meaningless with eager execution
+                layer_name = str(layer_name.numpy(), "utf-8")
+            elif isinstance(layer_name, supported_tf_variables()):
+                layer_name = layer_name.name
+            elif isinstance(layer_name, bytes):
+                layer_name = str(layer_name, "utf-8")
             if len(layer_input) == 1:
                 # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
@@ -1102,7 +1110,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (
                 (not grads or not vars)
                 or (not isinstance(grads, list) or not isinstance(vars, list))
-                or (not ((isinstance(vars[0], tf.Variable)) and hasattr(vars[0], "numpy")))
+                or (
+                    not (
+                        (isinstance(vars[0], supported_tf_variables()))
+                        and hasattr(vars[0], "numpy")
+                    )
+                )
                 or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
             ):
                 return grads

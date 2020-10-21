@@ -13,6 +13,21 @@ from tensorflow.python.distribute import values
 from smdebug.core.modes import ModeKeys
 
 
+def does_tf_support_mixed_precision_training():
+    # The Keras mixed precision API is first available in TensorFlow 2.1.0
+    # See: https://www.tensorflow.org/guide/mixed_precision
+    return version.parse(tf.__version__) >= version.parse("2.1.0")
+
+
+def supported_tf_variables():
+    if does_tf_support_mixed_precision_training():
+        from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
+
+        return tf.Variable, autocast_variable.AutoCastVariable
+    else:
+        return tf.Variable
+
+
 class ModelOutput:
     LABELS = "smdebug_y"
     PREDICTIONS = "smdebug_y_pred"
