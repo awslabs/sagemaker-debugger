@@ -1,17 +1,22 @@
 # Third Party
+import pytest
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.tensorflow.utils import does_tf_support_mixed_precision_training
 from smdebug.trials import create_trial
 
 # Test Reference: https://github.com/tensorflow/docs/blob/master/site/en/guide/mixed_precision.ipynb
 
 
+@pytest.mark.skipif(does_tf_support_mixed_precision_training() is False)
 def test_mixed_precision_training(out_dir):
+
+    from tensorflow.keras.mixed_precision import experimental as mixed_precision
+
     hook = smd.KerasHook(out_dir=out_dir, save_all=True)
     policy = mixed_precision.Policy("mixed_float16")
     mixed_precision.set_policy(policy)

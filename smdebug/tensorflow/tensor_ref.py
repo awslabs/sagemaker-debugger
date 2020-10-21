@@ -4,19 +4,18 @@ from enum import Enum
 # Third Party
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
-from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
 
 # First Party
 from smdebug.core.logger import get_logger
 
 # Local
-from .utils import is_tf_version_2x
+from .utils import is_tf_version_2x, supported_tf_variables
 
 logger = get_logger()
 
 
 def get_tf_names(arg):
-    if isinstance(arg, (tf.Variable, autocast_variable.AutoCastVariable)):
+    if isinstance(arg, supported_tf_variables()):
         tf_names = [arg.name]
     elif isinstance(arg, tf.Tensor):
         tf_names = [arg.name]
@@ -104,7 +103,7 @@ class TensorRef:
             if (
                 is_tf_version_2x()
                 and tf.executing_eagerly()
-                and isinstance(variable, (tf.Variable, autocast_variable.AutoCastVariable))
+                and isinstance(variable, supported_tf_variables())
             ):
                 # In TF 2.X eager mode, TF throws an error if you try to access a tensor's name.
                 # We need to pass it in as a variable, not a tensor, to maintain the name.
