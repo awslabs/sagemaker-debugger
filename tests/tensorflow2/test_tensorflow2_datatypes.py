@@ -9,14 +9,12 @@ from smdebug.core.tfevent.util import _get_proto_dtype
 
 
 @pytest.mark.skipif(
-    is_tf_2_2() is False,
-    reason="Brain Float Is Unavailable in lower versions of TF",
+    is_tf_2_2() is False, reason="Brain Float Is Unavailable in lower versions of TF"
 )
 def test_tensorflow2_datatypes():
     # _NP_TO_TF contains all the mappings
     # of numpy to tf types
     try:
-        from tensorflow import __version__ as tf_version
         from tensorflow.python import _pywrap_bfloat16
 
         # TF 2.x.x Implements a Custom Numpy Datatype for Brain Floating Type
@@ -32,4 +30,3 @@ def test_tensorflow2_datatypes():
         except Exception:
             assert False, f"{_type} not supported"
     assert True
-

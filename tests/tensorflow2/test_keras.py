@@ -879,4 +879,3 @@ def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
         "dense_1/inputs"
     ).value(0)
     assert boolean_matrix.all()
-
