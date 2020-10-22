@@ -44,7 +44,13 @@ if [ "$SMDEBUG_S3_BINARY" ]; then
   export RULES_COMMIT=`cat s3_pip_binary/RULES_COMMIT`
   echo "Commit hash on sagemaker-debugger-rules repository being used: $RULES_COMMIT"
   cd $CODEBUILD_SRC_DIR_RULES && git checkout "$RULES_COMMIT"
-  python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+  python setup.py bdist_wheel --universal
+  # on xgboost containers we require rules wheel to be force-reinstalled. Dependencies of rules binary(especially pyYaml) are conflicting with the version on XGBoost container. Force installing the binary seems to be addressing this issue.
+  if [ "$run_pytest_xgboost" = "enable" ]; then
+    pip install --force-reinstall dist/*.whl
+  else
+    pip install dist/*.whl
+  fi
   echo "Commit hash on sagemaker-debugger repository being used: $CORE_COMMIT"
   cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT"
   python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
@@ -54,7 +60,13 @@ else
   echo "Commit hash on sagemaker-debugger repository being used: $CORE_COMMIT"
   if [ -z "$RULES_COMMIT" ]; then export RULES_COMMIT=$(git log -1 --pretty=%h); fi
   echo "Commit hash on sagemaker-debugger-rules repository being used: $RULES_COMMIT"
-  cd $CODEBUILD_SRC_DIR_RULES && git checkout "$RULES_COMMIT"  && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+  cd $CODEBUILD_SRC_DIR_RULES && git checkout "$RULES_COMMIT"  && python setup.py bdist_wheel --universal
+# on xgboost containers we require rules wheel to be force-reinstalled. Dependencies of rules binary(especially pyYaml) are conflicting with the version on XGBoost container. Force installing the binary seems to be addressing this issue.
+  if [ "$run_pytest_xgboost" = "enable" ]; then
+    pip install --force-reinstall dist/*.whl
+  else
+    pip install dist/*.whl
+  fi
   cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT" && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
 fi
 

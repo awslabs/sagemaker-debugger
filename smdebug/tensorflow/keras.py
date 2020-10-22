@@ -33,6 +33,7 @@ from .utils import (
     is_keras_optimizer,
     is_tf_version_2_3_x,
     is_tf_version_2x,
+    supported_tf_variables,
 )
 
 
@@ -146,13 +147,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if match_inc(ts_name, current_coll.include_regex):
                 # In TF 2.x eager mode, we can't put tensors in a set/dictionary as tensor.__hash__()
-                # is no longer available. tensor.experimental_ref() returns a hashable reference
+                # is no longer available. tensor.ref() returns a hashable reference
                 # object to this Tensor.
                 if is_tf_version_2x() and tf.executing_eagerly():
-                    # tensor.experimental_ref is an experimental API
-                    # and can be changed or removed.
-                    # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
-                    tensor = tensor.experimental_ref()
+                    if hasattr(tensor, "ref"):
+                        # See: https://www.tensorflow.org/api_docs/python/tf/Tensor#ref
+                        # experimental_ref is being deprecated for ref
+                        tensor = tensor.ref()
+                    elif hasattr(tensor, "experimental_ref"):
+                        # tensor.experimental_ref is an experimental API
+                        # and can be changed or removed.
+                        # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
+                        tensor = tensor.experimental_ref()
+                    else:
+                        raise Exception(
+                            "Neither ref nor experimental_ref API present. Check TF version"
+                        )
                 if not current_coll.has_tensor(tensor):
                     # tensor will be added to this coll below
                     colls_with_tensor.add(current_coll)
@@ -232,7 +242,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             tensor_refs = []
             for coll in colls_with_tensor:
                 if not tensor_refs:
-                    if isinstance(tensor, tf.Variable):
+                    if isinstance(tensor, supported_tf_variables()):
                         tensor_refs.append(
                             coll.add_variable(tensor, export_name=export_name, mode=mode)
                         )
@@ -341,6 +351,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
+    def _prepare_non_layer_tensors(self):
+        for coll in self.collection_manager.get_collections().values():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
+                if tensor_ref.name not in self.tensor_to_collections:
+                    self.tensor_to_collections[tensor_ref.name] = {coll}
+                elif coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(coll)
+
     def _prepare_tensors_available_post_step(self):
         # for gradients, optimizer_variables
         custom_collections, _ = self._get_custom_and_default_collections()
@@ -350,7 +369,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.get_collection(name=CollectionKeys.OUTPUTS),
             self.get_collection(name=CollectionKeys.INPUTS),
         ]:
-            for tensor_ref in coll.get_tensors():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
@@ -450,7 +470,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if isinstance(v, tf.Tensor):
                     # Tensor.name is meaningless with eager execution
                     layer_name = str(v.numpy(), "utf-8")
-                elif isinstance(v, tf.Variable):
+                elif isinstance(v, supported_tf_variables()):
                     layer_name = v.name
                 elif isinstance(v, bytes):
                     layer_name = str(v, "utf-8")
@@ -537,11 +557,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            if hasattr(tensor, "numpy"):
-                self._save_tensor_to_file(export_name, tensor.numpy(), input_collection)
-            else:
+            t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
+            if hasattr(t, "numpy") is False:
                 self.logger.warning("cannot save layer values during forward pass with tf.function")
                 continue
+            else:
+                self._save_tensor_to_file(export_name, tensor, input_collection)
+
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
@@ -551,8 +573,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            if hasattr(tensor, "numpy"):
-                self._save_tensor_to_file(export_name, tensor.numpy(), output_collection)
+            t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
+            if hasattr(t, "numpy") is False:
+                self.logger.warning("cannot save layer values during forward pass with tf.function")
+            else:
+                self._save_tensor_to_file(export_name, tensor, output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
@@ -720,6 +745,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._get_exec_function(mode)
             ):
                 self._prepare_layers(mode)
+                self._prepare_non_layer_tensors()
                 self._prepare_tensors_available_post_step()
                 self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
@@ -757,6 +783,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         for layer_name, layer_input, layer_output in logs:
             # Cast layer_name to str since it can also be of type bytes
             # when run with mirrored strategy
+            if isinstance(layer_name, tf.Tensor):
+                # Tensor.name is meaningless with eager execution
+                layer_name = str(layer_name.numpy(), "utf-8")
+            elif isinstance(layer_name, supported_tf_variables()):
+                layer_name = layer_name.name
+            elif isinstance(layer_name, bytes):
+                layer_name = str(layer_name, "utf-8")
             if len(layer_input) == 1:
                 # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
@@ -964,7 +997,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (
                 (not grads or not vars)
                 or (not isinstance(grads, list) or not isinstance(vars, list))
-                or (not ((isinstance(vars[0], tf.Variable)) and hasattr(vars[0], "numpy")))
+                or (
+                    not (
+                        (isinstance(vars[0], supported_tf_variables()))
+                        and hasattr(vars[0], "numpy")
+                    )
+                )
                 or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
             ):
                 return grads

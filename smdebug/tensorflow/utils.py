@@ -13,6 +13,21 @@ from tensorflow.python.distribute import values
 from smdebug.core.modes import ModeKeys
 
 
+def does_tf_support_mixed_precision_training():
+    # The Keras mixed precision API is first available in TensorFlow 2.1.0
+    # See: https://www.tensorflow.org/guide/mixed_precision
+    return version.parse(tf.__version__) >= version.parse("2.1.0")
+
+
+def supported_tf_variables():
+    if does_tf_support_mixed_precision_training():
+        from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
+
+        return tf.Variable, autocast_variable.AutoCastVariable
+    else:
+        return tf.Variable
+
+
 class ModelOutput:
     LABELS = "smdebug_y"
     PREDICTIONS = "smdebug_y_pred"
@@ -339,7 +354,7 @@ def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.
 
     def call(inputs, *args, **kwargs) -> tf.Tensor:
         layer_input = inputs
-        layer_output = old_call_fn(inputs)
+        layer_output = old_call_fn(inputs, *args, **kwargs)
         for hook in layer._hooks:
             hook_result = hook(inputs, layer_input=layer_input, layer_output=layer_output)
             if hook_result is not None:
