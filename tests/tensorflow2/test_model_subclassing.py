@@ -2,6 +2,7 @@
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Conv2D, Dense, Flatten
 from tensorflow.keras.models import Model
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -78,7 +79,11 @@ def test_subclassed_model(out_dir):
     trial = smd.create_trial(out_dir)
     assert len(trial.tensor_names(collection=smd.CollectionKeys.LAYERS)) == 8
 
-    assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_input"]
-    assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == ["labels", "predictions"]
     assert trial.tensor_names(collection=smd.CollectionKeys.LOSSES) == ["loss"]
     assert len(trial.tensor_names(collection=smd.CollectionKeys.GRADIENTS)) == 6
+    if is_tf_2_2():
+        assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_input"]
+        assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == [
+            "labels",
+            "predictions",
+        ]
