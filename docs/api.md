@@ -293,9 +293,6 @@ take the same four parameters (save_interval, start_step, end_step, save_steps) 
 Any mode not specified will default to the default configuration. If a mode is provided but not all
 params are specified, we use the default values for non-specified parameters.
 
-#### Configuration using SageMaker Python SDK
-Refer [Configuring Hook using SageMaker Python SDK](#configuring-hook-using-sagemaker-python-sdk) and [Configuring Collection using SageMaker Python SDK](#configuring-collection-using-sagemaker-python-sdk)
-
 ---
 
 ## ReductionConfig
@@ -336,34 +333,6 @@ For example,
 `ReductionConfig(reductions=['std', 'variance'], abs_reductions=['mean'], norms=['l1'])`
 
 will save the standard deviation and variance, the mean of the absolute value, and the l1 norm.
-
-#### Configuration using SageMaker Python SDK
-The reductions are passed as part of the "reductions" parameter to HookParameters or Collection Parameters.
-Refer [Configuring Hook using SageMaker Python SDK](#configuring-hook-using-sagemaker-python-sdk) and [Configuring Collection using SageMaker Python SDK](#configuring-collection-using-sagemaker-python-sdk) for more on that.
-
-The parameter "reductions" can take a comma separated string consisting of the following values:
-```
-min
-max
-median
-mean
-std
-variance
-sum
-prod
-l1
-l2
-abs_min
-abs_max
-abs_median
-abs_mean
-abs_std
-abs_variance
-abs_sum
-abs_prod
-abs_l1
-abs_l2
-```
 
 ---
 
