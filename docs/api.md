@@ -51,73 +51,32 @@ By using AWS Deep Learning Containers, you can directly run your own training sc
 
 However, for some advanced use cases where you need access to customized tensors from targeted parts of a training script, you can manually construct the hook object. The smdebug library provides hook classes to make this process simple and compatible with the SageMaker ecosystem and Debugger.
 
-#### Hook when using the SageMaker Python SDK
+#### Use smdebug framework hooks to debug SageMaker training jobs
 If you create a SageMaker job and specify the hook configuration in the SageMaker Estimator API
-as described in [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html),
+as described in [AWS Docs](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html),
 the CreateTrainingJob API operation containing the hook configuration will be automatically written to the training container.
 
-To capture tensors from your training model, paste the following code to the top or the main function of the training script.
+If using the partially supported AWS Deep Learning Containers or custom containers, paste the following code to the top or the main function of the training script to capture tensors from your training model.
+This creates a smdebug framework hook.
+
 ```python
 import smdebug.Framework as smd
 hook = smd.HookClass.create_from_json_file()
 ```
 
-Depending on your choice of framework, `HookClass` need to be replaced by one of `KerasHook`, `SessionHook` or `EstimatorHook` for TensorFlow, and `Hook` for PyTorch, MXNet, and XGBoost.
+Replace `smd.Framework` with one of `smd.tensorflow`, `smd.mxnet`, `smd.pytorch`, or `smd.xgboost`,
+depending on your choice of framework.
 
-The framework in `smd.Framework` import refers to one of `tensorflow`, `mxnet`, `pytorch`, or `xgboost`.
+Replace `HookClass` with `KerasHook`, `SessionHook` or `EstimatorHook` for TensorFlow, or `Hook` for PyTorch, MXNet, and XGBoost.
 
-After choosing a framework and defining the hook object, you need to embed the hooks into target parts of your training script to retrieve tensors and to use with the SageMaker Debugger Python SDK.
+After choosing a framework and defining the hook object, you need to register the hooks into target parts of your training script to retrieve tensors.
 
-For more information about constructing the hook depending on a framework of your choice and adding the hooks to your model, see the following pages.
+For more information about registering the smdebug hooks depending on frameworks, see the following pages.
 
 * [TensorFlow hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/tensorflow.md)
 * [MXNet hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/mxnet.md)
 * [PyTorch hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/pytorch.md)
 * [XGBoost hook](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/xgboost.md)
-
-#### Configuring Hook using SageMaker Python SDK
-After you make the minimal changes to your training script, you can configure the hook with parameters to the SageMaker Debugger API operation, `DebuggerHookConfig`.
-
-```python
-from sagemaker.debugger import DebuggerHookConfig
-hook_config = DebuggerHookConfig(
-    s3_output_path='s3://smdebug-dev-demo-pdx/mnist',
-    hook_parameters={
-        "parameter": "value"
-    })
-```
-
-The available hook parameters are listed in the following. The meaning of these parameters will be clear as you review the sections of documentation below. Note that all parameters below have to be strings. So for any parameter which accepts a list (such as save_steps, reductions, include_regex), the value needs to be given as strings separated by a comma between them.
-
-```
-dry_run
-save_all
-include_workers
-include_regex
-reductions
-save_raw_tensor
-save_shape
-save_interval
-save_steps
-start_step
-end_step
-train.save_interval
-train.save_steps
-train.start_step
-train.end_step
-eval.save_interval
-eval.save_steps
-eval.start_step
-eval.end_step
-predict.save_interval
-predict.save_steps
-predict.start_step
-predict.end_step
-global.save_interval
-global.save_steps
-global.start_step
-global.end_step
-```
 
 #### Hook from Python constructor
 See the framework-specific pages for more details.
@@ -219,8 +178,8 @@ There are a number of built-in collections that SageMaker Debugger manages by de
 
 You can specify which of these collections to save in the hook's `include_collections` parameter, or through the `collection_configs` parameter to the `DebuggerHookConfig` in the SageMaker Python SDK.
 
-### Built in Collections
-Below is a comprehensive list of the built-in collections that are managed by SageMaker Debugger. The Hook identifes the tensors that should be saved as part of that collection for that framework and saves them if they were requested.
+### Debugger Built-in Tensor Collections
+Below is a comprehensive list of the built-in tensor collections that are managed by SageMaker Debugger. If you specify the tensor collection names to the Debugger hook configuration, Debugger identifies the tensors and saves them to S3.
 
 The names of these collections are all lower case strings.
 
@@ -255,23 +214,6 @@ The following collections are saved regardless of the hook configuration.
 | `MXNet` | LOSSES |
 | `XGBoost` | METRICS |
 
-
- If for some reason, you want to disable the saving of these collections, you can do so by setting end_step to 0 in the collection's SaveConfig.
- When using the SageMaker Python SDK this would look like
- ```python
-from sagemaker.debugger import DebuggerHookConfig, CollectionConfig
-hook_config = DebuggerHookConfig(
-    s3_output_path='s3://smdebug-dev-demo-pdx/mnist',
-    collection_configs=[
-        CollectionConfig(name="metrics", parameters={"end_step": 0})
-    ]
-)
- ```
- When configuring the Collection in your Python script, it would be as follows:
- ```python
- hook.get_collection("metrics").save_config.end_step = 0
- ```
-
 ### Creating or retrieving a Collection
 
 | Function |  Behavior |
@@ -297,44 +239,6 @@ hook_config = DebuggerHookConfig(
 | ```coll.add_keras_layer(layer, inputs=False, outputs=True)```  | **(tf.keras only)** Takes an instance of a tf.keras layer and logs input/output tensors for that module. By default, only outputs are saved. |
 | ```coll.add_module_tensors(module, inputs=False, outputs=True)```  | **(PyTorch only)** Takes an instance of a PyTorch module and logs input/output tensors for that module. By default, only outputs are saved. |
 | ```coll.add_block_tensors(block, inputs=False, outputs=True)``` | **(MXNet only)** Takes an instance of a Gluon block,and logs input/output tensors for that module. By default, only outputs are saved. |
-
-### Configuring Collection using SageMaker Python SDK
-Parameters to configure Collection are passed as below when using the SageMaker Python SDK.
-```python
-from sagemaker.debugger import CollectionConfig
-coll_config = CollectionConfig(
-    name="weights",
-    parameters={ "parameter": "value" })
-```
-The parameters can be one of the following. The meaning of these parameters will be clear as you review the sections of documentation below. Note that all parameters below have to be strings. So any parameter which accepts a list (such as save_steps, reductions, include_regex), needs to be given as strings separated by a comma between them.
-
-```
-include_regex
-save_histogram
-reductions
-save_raw_tensor
-save_interval
-save_steps
-start_step
-end_step
-train.save_interval
-train.save_steps
-train.start_step
-train.end_step
-eval.save_interval
-eval.save_steps
-eval.start_step
-eval.end_step
-predict.save_interval
-predict.save_steps
-predict.start_step
-predict.end_step
-global.save_interval
-global.save_steps
-global.start_step
-global.end_step
-```
-
 
 ---
 
