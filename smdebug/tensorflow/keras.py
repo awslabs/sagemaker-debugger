@@ -727,7 +727,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        if self.has_wrapped_model_with_input_output_saver or self.model is None or self.has_default_hook_configuration():
+        if (
+            self.has_wrapped_model_with_input_output_saver
+            or self.model is None
+            or self.has_default_hook_configuration()
+        ):
             # do not proceed if the model has already been wrapped
             # or the model has not been registered with smdebug yet
             return
