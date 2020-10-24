@@ -1,6 +1,8 @@
 # Third Party
 import numpy as np
+import pytest
 import tensorflow as tf
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -29,6 +31,10 @@ def create_model():
     return model
 
 
+@pytest.mark.skipif(
+    is_tf_2_2() is False,
+    reason="Feature to save model inputs and outputs was first added for TF 2.2.0",
+)
 def test_support_dicts(out_dir):
     model = create_model()
     optimizer = tf.keras.optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0)
