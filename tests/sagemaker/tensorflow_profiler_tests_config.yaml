@@ -1,14 +1,10 @@
 - values:
-  - [mnist_cpu.py: &mnist_cpu
-      tests/sagemaker/scripts/mnist/mnist_cpu.py,
-     mnist_gpu.py: &mnist_gpu
-      tests/sagemaker/scripts/mnist/mnist_gpu.py,
-     mnist_hvd.py: &mnist_hvd
-      tests/sagemaker/scripts/mnist/mnist_hvd.py,
-     keras_resnet_hvd.py: &keras_resnet_hvd
-      tests/sagemaker/scripts/resnet/keras_resnet_hvd.py,
-     keras_resnet_mirrored.py: &keras_resnet_mirrored
-      tests/sagemaker/scripts/resnet/keras_resnet_mirrored.py,
+  - [mnist_folder: &mnist_folder
+      tests/sagemaker/scripts/mnist/,
+     resnet_folder: &resnet_folder
+      tests/sagemaker/scripts/resnet/,
+     nmt_folder: &nmt_folder
+      tests/sagemaker/scripts/nmt/,
      Enable: &Enable # enable the test case
       True,
      Disable: &Disable # disable the test case
@@ -19,7 +15,8 @@
   -
     - smprofiler-IT-mnist-keras-cpu-default
     - *Enable
-    - *mnist_cpu
+    - *mnist_folder
+    - mnist_cpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
     - instance_count: 1
@@ -33,7 +30,8 @@
   -
     - smprofiler-IT-mnist-keras-cpu-disabled
     - *Enable
-    - *mnist_cpu
+    - *mnist_folder
+    - mnist_cpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
     - instance_count: 1
@@ -46,7 +44,8 @@
   -
     - smprofiler-IT-mnist-keras-cpu-absent
     - *Enable
-    - *mnist_cpu
+    - *mnist_folder
+    - mnist_cpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
     - instance_count: 1
@@ -58,7 +57,8 @@
   -
     - smprofiler-IT-mnist-keras-cpu-custom
     - *Enable
-    - *mnist_cpu
+    - *mnist_folder
+    - mnist_cpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
     - instance_count: 1
@@ -75,7 +75,8 @@
   -
     - smprofiler-IT-keras-resnet-cpu-hvd-multinode
     - *Disable
-    - *keras_resnet_hvd
+    - *resnet_folder
+    - keras_resnet_hvd.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
     - instance_count: 2
@@ -93,7 +94,8 @@
   -
     - smprofiler-IT-single-node-multi-gpu-hvd
     - *Enable
-    - *mnist_hvd
+    - *mnist_folder
+    - mnist_hvd.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
@@ -107,7 +109,8 @@
   -
     - smprofiler-IT-keras-resnet-gpu-mirrored
     - *Enable
-    - *keras_resnet_mirrored
+    - *resnet_folder
+    - keras_resnet_mirrored.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
@@ -123,7 +126,8 @@
   -
     - smprofiler-IT-mnist-keras-gpu-default
     - *Enable
-    - *mnist_gpu
+    - *mnist_folder
+    - mnist_gpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
@@ -137,7 +141,8 @@
   -
     - smprofiler-IT-mnist-keras-gpu-disabled
     - *Enable
-    - *mnist_gpu
+    - *mnist_folder
+    - mnist_gpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
@@ -150,7 +155,8 @@
   -
     - smprofiler-IT-mnist-keras-gpu-absent
     - *Enable
-    - *mnist_gpu
+    - *mnist_folder
+    - mnist_gpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
@@ -162,7 +168,8 @@
   -
     - smprofiler-IT-mnist-keras-gpu-custom
     - *Enable
-    - *mnist_gpu
+    - *mnist_folder
+    - mnist_gpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
@@ -179,7 +186,8 @@
   -
     - smprofiler-IT-multi-node-multi-gpu-hvd
     - *Enable
-    - *mnist_hvd
+    - *mnist_folder
+    - mnist_hvd.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 2
@@ -194,18 +202,16 @@
         python_stats_file_count: 64
         horovod_tracefile_count: 1
   -
-    - smprofiler-IT-keras-multi-worker-mirrored
-    - *Disable
-    - *keras_resnet_mirrored
+    - smprofiler-IT-multi-gpu-native-tf2-nmt
+    - *Disable # enable after fixing this - https://sim.amazon.com/issues/P41030156
+    - *nmt_folder
+    - distributed_train.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
-    - ml.p2.8xlarge
-    - instance_count: 2
+    - ml.p3.16xlarge
+    - instance_count: 1
     - profiler_params:
         ProfilerEnabled: "True"
-        RotateMaxFileSizeInBytes: "20485760"
-        RotateFileCloseIntervalInSeconds: "100"
-        FileOpenFailThreshold: "35"
     - expected_values_in_test_artifacts:
-        python_trace_file_count: 2
-        framework_trace_file_count: 14
-        python_stats_file_count: 14
+        python_trace_file_count: 0
+        framework_trace_file_count: 13
+        python_stats_file_count: 1

@@ -8,10 +8,11 @@ from __future__ import absolute_import, division, print_function
 import nmt
 import tensorflow as tf
 import utils
-from absl import app, flags
+from absl import flags
 from train import Train
 
 FLAGS = flags.FLAGS
+assert tf.config.list_physical_devices("GPU")
 
 
 class DistributedTrain(Train):
@@ -112,11 +113,11 @@ def run_main(argv):
 
 
 def main(
-    epochs,
-    enable_function,
-    buffer_size,
-    batch_size,
-    download_path,
+    epochs=3,
+    enable_function=True,
+    buffer_size=70000,
+    batch_size=64,
+    download_path="datasets",
     num_examples=70000,
     embedding_dim=256,
     enc_units=1024,
@@ -171,5 +172,4 @@ def main(
 
 
 if __name__ == "__main__":
-    utils.nmt_flags()
-    app.run(run_main)
+    main()

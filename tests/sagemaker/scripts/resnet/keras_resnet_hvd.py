@@ -7,7 +7,7 @@ import tensorflow_datasets as tfds
 from tensorflow import keras
 from tensorflow.keras import layers
 
-assert tf.test.is_gpu_available()
+assert tf.config.list_physical_devices("GPU")
 
 hvd.init()
 

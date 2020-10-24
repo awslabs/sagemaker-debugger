@@ -29,12 +29,13 @@ CPU_JOBS_INDEX = 1
 GPU_JOBS_INDEX = 2
 JOB_NAME_INDEX = 0
 ENABLE_INDEX = 1
-JOB_SCRIPT_INDEX = 2
-ROLE_INDEX = 3
-INSTANCE_TYPE_INDEX = 4
-INSTANCE_COUNT_INDEX = 5
-PROFILER_PARAMS_INDEX = 6
-EXPECTED_FILE_NUM_INDEX = 7
+JOB_SCRIPT_FOLDER_INDEX = 2
+JOB_SCRIPT_INDEX = 3
+ROLE_INDEX = 4
+INSTANCE_TYPE_INDEX = 5
+INSTANCE_COUNT_INDEX = 6
+PROFILER_PARAMS_INDEX = 7
+EXPECTED_FILE_NUM_INDEX = 8
 
 # Other CONSTANTS and INDICES
 S3_PATH_BUCKET_INDEX = 2
@@ -84,6 +85,7 @@ def _get_estimator_list(index, job_type):
         is_enabled = job[ENABLE_INDEX]
         if not is_enabled:
             continue
+        job_src_folder = job[JOB_SCRIPT_FOLDER_INDEX]
         job_script = job[JOB_SCRIPT_INDEX]
         job_role = job[ROLE_INDEX]
         instance_type = job[INSTANCE_TYPE_INDEX]
@@ -123,6 +125,7 @@ def _get_estimator_list(index, job_type):
             train_instance_count=instance_count,
             train_instance_type=instance_type,
             image_name=image_uri,
+            source_dir=job_src_folder,
             entry_point=job_script,
             framework_version="2.2.0",
             profiler_config=profiler_config,

@@ -2,7 +2,7 @@
 import horovod.tensorflow.keras as hvd
 import tensorflow.compat.v2 as tf
 
-assert tf.test.is_gpu_available()
+assert tf.config.list_physical_devices("GPU")
 
 
 def get_data(batch_size):

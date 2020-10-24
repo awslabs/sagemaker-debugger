@@ -3,7 +3,8 @@
 # Third Party
 import tensorflow as tf
 
-assert tf.test.is_gpu_available()
+assert tf.config.list_physical_devices("GPU")
+
 (mnist_images, mnist_labels), _ = tf.keras.datasets.mnist.load_data(path="mnist-%d.npz")
 
 dataset = tf.data.Dataset.from_tensor_slices(
