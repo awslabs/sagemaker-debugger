@@ -2,7 +2,7 @@
 import time
 
 # First Party
-from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.core.access_layer.utils import has_training_ended, is_rule_signalled_gracetime_passed
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import NoMoreProfilerData
 from smdebug.profiler.algorithm_metrics_reader import (
@@ -21,11 +21,11 @@ class ProfilerTrial:
         self.get_first_timestamp()
 
     def job_finished(self):
-        if has_training_ended(self.path + "/system") or has_training_ended(
+        training_ended = has_training_ended(self.path + "/system") or has_training_ended(
             self.path + "/framework"
-        ):
-            return True
-        return False
+        )
+        # rule job should finish if training job has ended or rule job has been signalled
+        return training_ended or is_rule_signalled_gracetime_passed()
 
     def get_first_timestamp(self):
         while self.first_timestamp == 0:
@@ -81,7 +81,6 @@ class ProfilerTrial:
         if self.job_finished():
             if start_time >= self.get_latest_timestamp():
                 raise NoMoreProfilerData(end_time)
-
         return
 
     def get_system_metrics(self, start_time, end_time):
