@@ -9,6 +9,7 @@ import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 from tensorflow.python.framework.indexed_slices import IndexedSlices
 from tensorflow.python.profiler import profiler_v2 as tf_profiler
+from tensorflow.python.util import nest
 
 # First Party
 from smdebug.core.locations import TraceFileLocation
@@ -108,6 +109,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
+
         self.profiler_config_parser = profiler_config_parser
         self.profiler_config_parser.load_config()
         if python_profiler:
@@ -152,6 +154,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.model = model
         if self.tape is not None:
             self._wrap_model_with_input_output_saver()
+        self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -178,13 +181,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             if match_inc(ts_name, current_coll.include_regex):
                 # In TF 2.x eager mode, we can't put tensors in a set/dictionary as tensor.__hash__()
-                # is no longer available. tensor.experimental_ref() returns a hashable reference
+                # is no longer available. tensor.ref() returns a hashable reference
                 # object to this Tensor.
                 if is_tf_version_2x() and tf.executing_eagerly():
-                    # tensor.experimental_ref is an experimental API
-                    # and can be changed or removed.
-                    # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
-                    tensor = tensor.experimental_ref()
+                    if hasattr(tensor, "ref"):
+                        # See: https://www.tensorflow.org/api_docs/python/tf/Tensor#ref
+                        # experimental_ref is being deprecated for ref
+                        tensor = tensor.ref()
+                    elif hasattr(tensor, "experimental_ref"):
+                        # tensor.experimental_ref is an experimental API
+                        # and can be changed or removed.
+                        # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
+                        tensor = tensor.experimental_ref()
+                    else:
+                        raise Exception(
+                            "Neither ref nor experimental_ref API present. Check TF version"
+                        )
                 if not current_coll.has_tensor(tensor):
                     # tensor will be added to this coll below
                     colls_with_tensor.add(current_coll)
@@ -373,6 +385,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for w in weights:
                 self._check_and_add_layer_tensor(mode, layer, "weight", w)
 
+    def _prepare_non_layer_tensors(self):
+        for coll in self.collection_manager.get_collections().values():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
+                if tensor_ref.name not in self.tensor_to_collections:
+                    self.tensor_to_collections[tensor_ref.name] = {coll}
+                elif coll not in self.tensor_to_collections[tensor_ref.name]:
+                    self.tensor_to_collections[tensor_ref.name].add(coll)
+
     def _prepare_tensors_available_post_step(self):
         # for gradients, optimizer_variables
         custom_collections, _ = self._get_custom_and_default_collections()
@@ -382,7 +403,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.get_collection(name=CollectionKeys.OUTPUTS),
             self.get_collection(name=CollectionKeys.INPUTS),
         ]:
-            for tensor_ref in coll.get_tensors():
+            collection_values = coll.get_tensors()
+            for tensor_ref in collection_values:
                 if tensor_ref.name not in self.tensor_to_collections:
                     self.tensor_to_collections[tensor_ref.name] = {coll}
                 elif coll not in self.tensor_to_collections[tensor_ref.name]:
@@ -529,6 +551,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         else set()
                     )
                 for t_name, t_value in tensors_to_save:
+                    if isinstance(t_value, dict):
+                        # flatten the inputs and labels
+                        # since we cannot convert dicts into numpy
+                        t_value = nest.flatten(t_value)
                     self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
@@ -554,8 +580,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self):
-        # Run only for GradTape
-        if self.tape is None:
+        if is_tf_version_2x() is False:
             return
         for layer_name in self.saved_layers:
             # Save Input
@@ -566,7 +591,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            self._save_tensor_to_file(export_name, tensor.numpy(), input_collection)
+            t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
+            if hasattr(t, "numpy") is False:
+                self.logger.warning("cannot save layer values during forward pass with tf.function")
+                continue
+            else:
+                self._save_tensor_to_file(export_name, tensor, input_collection)
+
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
             export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
@@ -576,15 +607,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            self._save_tensor_to_file(export_name, tensor.numpy(), output_collection)
+            t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
+            if hasattr(t, "numpy") is False:
+                self.logger.warning("cannot save layer values during forward pass with tf.function")
+            else:
+                self._save_tensor_to_file(export_name, tensor, output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
         # weights, metrics
         self._save_metrics(batch, logs)
         self.save_smdebug_logs(logs)
-        self._save_layer_input_and_outputs()
         self._save_custom_tensors_post_step()
+        self._save_layer_input_and_outputs()
 
         if is_tf_version_2x() and tf.executing_eagerly():
             for tensor_ref in self.tensor_refs_to_save_this_step:
@@ -797,6 +832,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             ):
                 self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
+                self._prepare_non_layer_tensors()
                 self._prepare_tensors_available_post_step()
                 self._prepared_tensors[mode] = True
                 # below should be after tensors are processed,
@@ -1178,7 +1214,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :return:
         """
         logs = {ModelOutput.PREDICTIONS: outputs, ModelInput.INPUTS: model_inputs}
-        self.save_smdebug_logs(logs)
+        if is_tf_version_2x() and tf.executing_eagerly():
+            self.save_smdebug_logs(logs)
+        else:
+            self.logger.warn("cannot save model inputs and outputs in non-eager execution mode")
 
     def wrap_tape(self, tape):
         """

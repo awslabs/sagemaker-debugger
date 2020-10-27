@@ -453,17 +453,7 @@ class BaseHook:
             self.writer.close()
             self.writer = None
 
-        to_delete_writers = []
         self._close_given_writer_map(self.tb_writers)
-
-        # Delete all the tb writers
-        for mode, writer in self.tb_writers.items():
-            if writer is not None:
-                writer.flush()
-                writer.close()
-                to_delete_writers.append(mode)
-        for mode in to_delete_writers:
-            del self.tb_writers[mode]
 
     def _initialize_writers(self, only_initialize_if_missing=False) -> None:
         # Function is overridden in smdebug/tensorflow/base_hook.py
@@ -578,6 +568,14 @@ class BaseHook:
     # Called in the internal AWS codebase to determine
     # if a particular tensor value should be saved
     def should_save_tensor_or_collection(self, tensor_name: str, collection_name: str) -> bool:
+        if self.prepared_collections is False:
+            # always return false if an attempt to save a
+            # tensor is made before the collections are prepared.
+            # this can happen if the fn is called before callbacks are init.
+            self.logger.warning(
+                "Tensors cannot be saved with smdebug before callbacks are initialized."
+            )
+            return False
         if self._is_collection_being_saved_for_step(collection_name):
             return True
         return self.is_tensor_saved_for_step(tensor_name)

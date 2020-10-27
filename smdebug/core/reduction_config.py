@@ -98,7 +98,6 @@ class ReductionConfig:
             return None
         if not isinstance(params, dict):
             raise ValueError(f"params={params} must be dict")
-
         save_shape = params.get("save_shape", False)
         save_raw_tensor = params.get("save_raw_tensor", False)
         # Parse comma-separated string into array
@@ -133,7 +132,6 @@ class ReductionConfig:
         return cls.from_dict(d)
 
     def to_json_dict(self) -> Dict[str, Any]:
-        save_raw_tensor = self.save_raw_tensor
         # Convert reductions from various arrays into single comma-separated string
         all_reductions = []
         for red in self.reductions:

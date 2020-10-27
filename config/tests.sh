@@ -67,10 +67,13 @@ if [ "$run_pytest_xgboost" = "enable" ] ; then
 fi
 
 if [ "$run_pytest_tensorflow" = "enable" ] ; then
+    # tensorflow_datasets >= 4.0.0 requires tensorflow >= 2.1.0
+    pip install tensorflow_datasets==3.2.1
     run_for_framework tensorflow
 fi
 
 if [ "$run_pytest_tensorflow2" = "enable" ] ; then
+    pip install tensorflow_datasets
     run_for_framework tensorflow2
     run_profiler_test tensorflow2
 fi
