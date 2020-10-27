@@ -3,6 +3,7 @@
 # Third Party
 import torch
 import torch.distributed as dist
+from torch.nn.modules.loss import _Loss
 
 # First Party
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
@@ -153,6 +154,9 @@ class Hook(CallbackHook):
     def forward_hook(self, module, inputs, outputs):
         if not self._get_collections_to_save_for_step():
             return
+
+        if isinstance(module, _Loss):
+            module._module_name = module._get_name()
 
         module_name = module._module_name
         # This overwhelms the logs; turn back on if you really need it
