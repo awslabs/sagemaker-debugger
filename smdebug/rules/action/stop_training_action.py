@@ -16,7 +16,13 @@ class StopTrainingAction:
         self._logger.info(
             f"StopTrainingAction created with training_job_prefix:{training_job_prefix} and region:{env_region_name}"
         )
-        self._sm_client = boto3.client("sagemaker", region_name=env_region_name)
+        endpoint_url = os.getenv("sagemaker.endpoint_url", None)
+        if endpoint_url:
+            self._sm_client = boto3.client(
+                "sagemaker", region_name=env_region_name, endpoint_url=endpoint_url
+            )
+        else:
+            self._sm_client = boto3.client("sagemaker", region_name=env_region_name)
         self._rule_name = rule_name
         self._found_jobs = self._get_sm_tj_jobs_with_prefix()
 
