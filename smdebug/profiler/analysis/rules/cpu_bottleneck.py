@@ -1,12 +1,9 @@
 # First Party
-# Standard Library
-import shutil
-
 # Third Party
-import matplotlib.pyplot as plt
 import numpy as np
 
 from smdebug.exceptions import RuleEvaluationConditionMet
+from smdebug.profiler.analysis.rules import utils
 from smdebug.rules.rule import Rule
 
 
@@ -39,8 +36,17 @@ class CPUBottleneck(Rule):
 
         # placeholders
         self.cpu_bottlenecks = {}
-        self.total_time_per_phase = {}
-        self.total_time_per_event = {}
+
+        # dicts for correlating framework metrics with CPU bottlenecks
+        self.buffer = {
+            "cpu_events": {},
+            "gpu_events": {},
+            "step_phases": {},
+            "forward_events": {},
+            "backward_events": {},
+            "phase_durations": {},
+            "horovod": {},
+        }
         self.datapoints = 0
         self.low_gpu = 0
         self.timestamp = 0
@@ -126,10 +132,15 @@ class CPUBottleneck(Rule):
                 self.report["Datapoints"] = self.datapoints
 
                 # record CPU bottlenecks
+                self.report["Details"]["bottlenecks"] = {}
                 for timestamp in self.cpu_bottlenecks:
-                    self.report["Details"][timestamp] = {}
-                    self.report["Details"][timestamp]["GPUs"] = self.cpu_bottlenecks[timestamp][0]
-                    self.report["Details"][timestamp]["CPUs"] = self.cpu_bottlenecks[timestamp][1]
+                    self.report["Details"]["bottlenecks"][timestamp] = {}
+                    self.report["Details"]["bottlenecks"][timestamp]["GPUs"] = self.cpu_bottlenecks[
+                        timestamp
+                    ][0]
+                    self.report["Details"]["bottlenecks"][timestamp]["CPUs"] = self.cpu_bottlenecks[
+                        timestamp
+                    ][1]
                     self.report["Details"]["low_gpu_utilization"] = self.low_gpu
 
                 # get framework metric events
@@ -145,146 +156,23 @@ class CPUBottleneck(Rule):
                     timestamp_us = timestamp * 1000 * 1000
 
                     # find framework metrics that may be causing the CPU bottleneck
-                    for event in fw_events:
-                        if event.start_time < timestamp_us and event.end_time > timestamp_us:
-
-                            # aggregate framework metrics by event phase
-                            if event.event_phase not in self.total_time_per_phase:
-                                self.total_time_per_phase[event.event_phase] = 0
-                            self.total_time_per_phase[event.event_phase] += (
-                                event.end_time - event.start_time
-                            )
-
-                            # aggregate framework metrics by event name
-                            if (
-                                "Step" not in event.event_name
-                                and event.event_name not in self.total_time_per_event
-                            ):
-                                self.total_time_per_event[event.event_name] = 0
-                            if "Step" not in event.event_name:
-                                self.total_time_per_event[event.event_name] += (
-                                    event.end_time - event.start_time
-                                )
-
-                framework_metrics = {}
-                training_phase = {}
-
-                for key in self.total_time_per_phase:
-                    if "Step" in key:
-                        training_phase[key] = self.total_time_per_phase[key]
-                    else:
-                        framework_metrics[key] = self.total_time_per_phase[key]
-
-                # create pie chart1: if GPU utilization was low how often was this caused by an CPU bottleneck
-                fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 5))
-                title1 = ax1.set_title("Low GPU usage caused by CPU bottlenecks")
-                ax1.pie(
-                    [
-                        self.report["Datapoints"] - self.report["Details"]["low_gpu_utilization"],
-                        self.report["Details"]["low_gpu_utilization"] - len(self.report["Details"]),
-                        len(self.report["Details"]),
-                    ],
-                    autopct="%1.1f%%",
-                )
-                ax1.legend(
-                    [
-                        "GPU usage above threshold",
-                        "GPU usage below threshold",
-                        "Low GPU usage due to CPU bottlenecks",
-                    ],
-                    loc="lower center",
-                )
-
-                # create pie chart2: framework metrics (aggregated by event phase)
-                labels = list(framework_metrics.keys())
-                values = list(framework_metrics.values())
-                sizes = np.array(values) / float(np.sum(values)) * 100
-                ax2.pie(framework_metrics.values(), autopct="%1.1f%%", labeldistance=1.4)
-                title2 = ax2.set_title(
-                    "Time spent in framework metrics (aggregated by event phase)"
-                )
-                ax2.legend(
-                    loc="lower center",
-                    labels=["%s, %1.1f %%" % (l, s) for l, s in zip(labels, sizes)],
-                    bbox_to_anchor=(0.5, -len(labels) * 0.1),
-                    borderaxespad=len(labels) * 2,
-                )
-
-                # create pie chart3: training phase
-                labels = list(training_phase.keys())
-                values = list(training_phase.values())
-                sizes = np.array(values) / float(np.sum(values)) * 100
-                ax3.pie(values, autopct="%1.1f%%", labeldistance=1.4)
-                title3 = ax3.set_title("Time spent in training and validation phase")
-                ax3.legend(
-                    loc="lower center",
-                    labels=["%s, %1.1f %%" % (l, s) for l, s in zip(labels, sizes)],
-                    bbox_to_anchor=(0.5, -len(labels) * 0.1),
-                    borderaxespad=len(labels) * 2,
-                )
-
-                # output filename
-                filename = "pie_charts_cpu_bottleneck.png"
-
-                # save file
-                try:
-                    plt.savefig(
-                        "/opt/ml/processing/outputs/.sagemaker-ignore" + filename,
-                        bbox_extra_artists=[title1, title2, title3],
-                        # bbox_inches="tight",
+                    utils.aggregate_framework_metrics(
+                        fw_events, self.report, self.buffer, timestamp_us
                     )
-                    shutil.move(
-                        "/opt/ml/processing/outputs/.sagemaker-ignore" + filename,
-                        "/opt/ml/processing/outputs/profiler-reports/" + filename,
-                    )
-                except:
-                    self.logger.info("Error while saving file")
-
-                plt.close()
-
-                # create bar chart for detailed framework metrics
-                plt.rcParams["axes.spines.left"] = False
-                plt.rcParams["axes.spines.right"] = False
-                plt.rcParams["axes.spines.top"] = False
-                plt.rcParams["axes.spines.bottom"] = False
-
-                values = list(self.total_time_per_event.values())
-                if len(values):
-                    fig, ax = plt.subplots(figsize=(15, int(len(values) / 4.0)))
-                    ax.barh(y=list(self.total_time_per_event.keys()), width=(values))
-
-                    for i, v in enumerate(self.total_time_per_event.values()):
-                        ax.text(v, i, str(v), color="black", ha="left", va="center")
-
-                    if max(values) / min(values) > 1000:
-                        ax.set_xscale("log")
-                    ax.set_xlabel("Time in us")
-
-                    # output filename
-                    filename = "histogram_cpu_bottleneck_framework.png"
-
-                    # save file
-                    try:
-                        plt.savefig(
-                            "/opt/ml/processing/outputs/.sagemaker-ignore" + filename,
-                            bbox_inches="tight",
-                        )
-                        shutil.move(
-                            "/opt/ml/processing/outputs/.sagemaker-ignore" + filename,
-                            "/opt/ml/processing/outputs/profiler-reports/" + filename,
-                        )
-                    except:
-                        self.logger.info("Error while saving file")
-
-                    plt.close()
                 return True
 
         self.logger.info(f"Found {len(self.cpu_bottlenecks)} CPU bottlenecks")
         self.report["Violations"] = len(self.cpu_bottlenecks)
         self.report["Datapoints"] = self.datapoints
         self.report["Details"]["low_gpu_utilization"] = self.low_gpu
+
+        self.report["Details"]["bottlenecks"] = {}
         for timestamp in self.cpu_bottlenecks:
-            self.report["Details"][timestamp] = {}
-            self.report["Details"][timestamp]["GPUs"] = self.cpu_bottlenecks[timestamp][0]
-            self.report["Details"][timestamp]["CPUs"] = self.cpu_bottlenecks[timestamp][1]
+            self.report["Details"]["bottlenecks"][timestamp] = {}
+            self.report["Details"]["bottlenecks"][timestamp]["GPUs"] = self.cpu_bottlenecks[
+                timestamp
+            ][0]
+            self.report["Details"]["bottlenecks"][timestamp]["CPUs"] = self.cpu_bottlenecks[
+                timestamp
+            ][1]
         return False

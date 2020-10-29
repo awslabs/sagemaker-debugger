@@ -6,6 +6,7 @@ RUN pip3 install papermill
 RUN pip3 install jupyter==1.0.0
 RUN pip3 install pandas
 RUN pip3 install matplotlib
+RUN pip3 install bokeh
 
 ENV PYTHONUNBUFFERED=TRUE
 

@@ -1,9 +1,5 @@
 # First Party
-# Standard Library
-import shutil
-
 # Third Party
-import matplotlib.pyplot as plt
 import numpy as np
 
 from smdebug.exceptions import RuleEvaluationConditionMet
@@ -31,12 +27,20 @@ class StepOutlier(Rule):
         self.step_numbers = {}
         self.step_intervals = {}
         self.last_timestamp = self.base_trial.first_timestamp
-        self.framework_metrics = {}
-        self.framework_metrics_detailed = {}
+        self.buffer = {
+            "cpu_events": {},
+            "gpu_events": {},
+            "step_phases": {},
+            "forward_events": {},
+            "backward_events": {},
+            "phase_durations": {},
+            "horovod": {},
+        }
+
         self.report[
             "RuleParameters"
-        ] = f"threshold:{self.stddev}\nmode:{self.mode}\nn_outliers:{self.n_outliers}"
-        self.report["Details"] = {}
+        ] = f"threshold:{self.stddev}\nmode:{self.mode}\nn_outliers:{self.n_outliers}\nstddev:{self.stddev}"
+        self.report["Details"] = {"step_details": {}}
 
     def invoke_at_step(self, step):
         pass
@@ -107,9 +111,9 @@ class StepOutlier(Rule):
                     step_outliers = np.where(values > threshold)
 
                     # record step statistics
-                    if node_id not in self.report["Details"]:
-                        self.report["Details"][node_id] = {}
-                    self.report["Details"][node_id] = {
+                    if node_id not in self.report["Details"]["step_details"]:
+                        self.report["Details"]["step_details"][node_id] = {}
+                    self.report["Details"]["step_details"][node_id] = {
                         "step_stats": {
                             "mean": np.mean(values),
                             "max": np.max(values),
@@ -122,164 +126,54 @@ class StepOutlier(Rule):
                     # number of outliers
                     n = len(step_outliers[0])
                     # record information for profiler report
-                    self.report["Details"][node_id]["number_of_outliers"] = n
-                    self.report["Details"][node_id]["phase"] = key
-                    self.report["Details"][node_id]["stddev"] = round(np.std(values), 2)
+
+                    self.report["Details"]["step_details"][node_id]["number_of_outliers"] = n
+                    self.report["Details"]["step_details"][node_id]["phase"] = key
+                    self.report["Details"]["step_details"][node_id]["stddev"] = round(
+                        np.std(values), 2
+                    )
+                    # create step histogram for normal steps
+                    threshold = (
+                        np.mean(values) + np.std(self.step_durations[node_id][key]) * self.stddev
+                    )
+                    steps_normal = np.where(self.step_durations[node_id][key] < threshold)
+
+                    values_normal = values[steps_normal]
+                    probs, binedges = np.histogram(values_normal, bins=100)
+
+                    # record information for profiler report
+                    self.report["Details"]["step_details"][node_id]["probs"] = probs.tolist()
+                    self.report["Details"]["step_details"][node_id]["binedges"] = binedges.tolist()
+
+                    self.report["Details"]["step_details"][node_id]["step_numbers"] = np.array(
+                        self.step_numbers[node_id][key]
+                    )[step_outliers].tolist()
+
                     if n > self.n_outliers:
-
-                        # create step histogram for normal steps
-                        threshold = (
-                            np.mean(values)
-                            + np.std(self.step_durations[node_id][key]) * self.stddev
-                        )
-                        steps_normal = np.where(self.step_durations[node_id][key] < threshold)
-
-                        values_normal = values[steps_normal]
-                        probs, binedges = np.histogram(values_normal, bins=100)
 
                         self.logger.info(
                             f"Found {n} step durations on node {node_id} which exceeded {self.stddev} times the standard deviation of {round(np.std(values),2)} ms"
                         )
-
-                        # record information for profiler report
-                        self.report["Details"][node_id]["probs"] = probs.tolist()
-                        self.report["Details"][node_id]["binedges"] = binedges.tolist()
-                        self.report["Details"][node_id]["outliers"] = (
-                            values[step_outliers].tolist(),
-                        )
-                        self.report["Details"][node_id]["step_numbers"] = np.array(
-                            self.step_numbers[node_id][key]
-                        )[step_outliers].tolist()
                         self.report["Violations"] += len(values[step_outliers].tolist())
                         self.report["RuleTriggered"] += 1
 
                         # find framework metrics that may be causing the step outliers
-                        for outlier_step in self.report["Details"][node_id]["step_numbers"]:
+                        for outlier_step in self.report["Details"]["step_details"][node_id][
+                            "step_numbers"
+                        ]:
                             if outlier_step in self.step_intervals[node_id]:
                                 start_time_us, end_time_us = self.step_intervals[node_id][
                                     outlier_step
                                 ]
-                                for event in events:
-                                    if (
-                                        event.end_time >= start_time_us
-                                        and event.start_time <= end_time_us
-                                    ):
-                                        if "Step" not in event.event_name:
-                                            if event.event_phase not in self.framework_metrics:
-                                                self.framework_metrics[event.event_phase] = 0
-                                            self.framework_metrics[event.event_phase] += (
-                                                event.end_time - event.start_time
-                                            )
-                                            if (
-                                                event.event_name
-                                                not in self.framework_metrics_detailed
-                                            ):
-                                                self.framework_metrics_detailed[
-                                                    event.event_name
-                                                ] = 0
-                                            self.framework_metrics_detailed[event.event_name] += (
-                                                event.end_time - event.start_time
-                                            )
 
-                        # create charts for profiler report
-                        for node_id in self.report["Details"]:
-                            if "binedges" in self.report["Details"][node_id]:
-
-                                labels = list(self.framework_metrics.keys())
-                                values = list(self.framework_metrics.values())
-                                sizes = np.array(values) / float(np.sum(values)) * 100
-
-                                # create pie chart for framework metrics (aggregated by event phase)
-                                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-                                title1 = ax1.set_title(
-                                    f"Framework metrics during step outliers on node {node_id}"
+                                # find framework metrics that may be causing the CPU bottleneck
+                                aggregate_framework_metrics(
+                                    events, self.report, self.buffer, start_time_us, end_time_us
                                 )
-                                ax1.pie(self.framework_metrics.values(), autopct="%1.1f%%")
-                                ax1.legend(
-                                    loc="lower center",
-                                    labels=["%s, %1.1f %%" % (l, s) for l, s in zip(labels, sizes)],
-                                    bbox_to_anchor=(0.5, -len(labels) * 0.1),
-                                    borderaxespad=len(labels) * 2,
-                                )
-
-                                # create histogram for normal step durations
-                                width = (
-                                    self.report["Details"][node_id]["binedges"][1]
-                                    - self.report["Details"][node_id]["binedges"][0]
-                                )
-                                ax2.bar(
-                                    self.report["Details"][node_id]["binedges"][:-1],
-                                    self.report["Details"][node_id]["probs"],
-                                    width,
-                                )
-
-                                axes = plt.gca()
-                                ax2.set_ylim([0, np.max(self.report["Details"][node_id]["probs"])])
-                                ax2.legend([self.report["Details"][node_id]["phase"]])
-                                ax2.set_xlabel("Step duration in s")
-                                ax2.set_ylabel("Counts")
-                                title2 = ax2.set_title(
-                                    "Step duration histogram (without outliers) on node: " + node_id
-                                )
-
-                                # output filename
-                                filename = node_id + "_" + "step_duration_histogram.png"
-
-                                # save file
-                                try:
-                                    plt.savefig(
-                                        "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename,
-                                        box_extra_artists=[title2, title1],
-                                        # bbox_inches="tight",
-                                    )
-                                    shutil.move(
-                                        "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename,
-                                        "/opt/ml/processing/outputs/profiler-reports/" + filename,
-                                    )
-                                except:
-                                    self.logger.info("Error while saving file")
-
-                                plt.close()
-
-                            # bar chart for detailed framework metrics
-                            plt.rcParams["axes.spines.left"] = False
-                            plt.rcParams["axes.spines.right"] = False
-                            plt.rcParams["axes.spines.top"] = False
-                            plt.rcParams["axes.spines.bottom"] = False
-
-                            values = list(self.framework_metrics_detailed.values())
-                            labels = list(self.framework_metrics_detailed.keys())
-                            if len(values) > 0:
-                                fig, ax = plt.subplots(figsize=(15, int(len(values) / 4.0)))
-                                ax.barh(y=labels, width=(values))
-                                for i, v in enumerate(values):
-                                    ax.text(v, i, str(v), color="black", ha="left", va="center")
-
-                                if max(values) / min(values) > 1000:
-                                    ax.set_xscale("log")
-                                ax.set_xlabel("Time in us")
-
-                                # output filename
-                                filename = "histogram_step_outlier_framework.png"
-
-                                # save file
-                                try:
-                                    plt.savefig(
-                                        "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename,
-                                        bbox_inches="tight",
-                                    )
-                                    shutil.move(
-                                        "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename,
-                                        "/opt/ml/processing/outputs/profiler-reports/" + filename,
-                                    )
-                                except:
-                                    self.logger.info("Error while saving file")
-
-                                plt.close()
-                        return True
 
                     self.logger.info(
                         f"Average duration of {key} steps on node {node_id} is: {round(np.mean(self.step_durations[node_id][key]),2)} ms Standard deviation is: {round(np.std(self.step_durations[node_id][key]),2)} ms"
                     )
-
+        if self.report["RuleTriggered"] > 0:
+            return True
         return False

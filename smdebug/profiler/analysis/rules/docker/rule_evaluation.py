@@ -12,6 +12,7 @@ from smdebug.profiler.analysis.rules.io_bottleneck import IOBottleneck
 from smdebug.profiler.analysis.rules.load_balancing import LoadBalancing
 from smdebug.profiler.analysis.rules.low_gpu_utilization import LowGPUUtilization
 from smdebug.profiler.analysis.rules.max_initialization_time import MaxInitializationTime
+from smdebug.profiler.analysis.rules.overall_framework_metrics import OverallFrameworkMetrics
 from smdebug.profiler.analysis.rules.overall_system_usage import OverallSystemUsage
 from smdebug.profiler.analysis.rules.plot_visualizations.plot_visualizations import (
     PlotVisualizations,
@@ -67,6 +68,7 @@ if "TRIGGER_ALL" in os.environ:
     # rules.append(Dataloaders(trial))
     rules.append(LoadBalancing(trial, threshold=0))
     rules.append(OverallSystemUsage(trial))
+    rules.append(OverallFrameworkMetrics(trial))
 else:
     # create list of rules
     rules = []
@@ -80,6 +82,7 @@ else:
     # rules.append(Dataloaders(trial))
     rules.append(LoadBalancing(trial))
     rules.append(OverallSystemUsage(trial))
+    rules.append(OverallFrameworkMetrics(trial))
 
 # create subprocess for each rule
 should_run_parallel = False

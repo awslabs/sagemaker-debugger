@@ -1,9 +1,5 @@
 # First Party
-# Standard Library
-import shutil
-
 # Third Party
-import matplotlib.pyplot as plt
 import numpy as np
 
 from smdebug.exceptions import RuleEvaluationConditionMet
@@ -51,7 +47,7 @@ class BatchSize(Rule):
         self.last_timestamp = self.base_trial.first_timestamp
         self.report[
             "RuleParameters"
-        ] = f"cpu_threshold_p95:{self.cpu_threshold_p95}\ngpu_threshold_p95:{self.gpu_threshold_p95} gpu_memory_threshold_p95:{ self.gpu_memory_threshold_p95}\npatience:{self.patience}\nwindow:{self.window}"
+        ] = f"cpu_threshold_p95:{self.cpu_threshold_p95}\ngpu_threshold_p95:{self.gpu_threshold_p95}\ngpu_memory_threshold_p95:{self.gpu_memory_threshold_p95}\npatience:{self.patience}\nwindow:{self.window}"
 
     def invoke_at_step(self, step):
         pass
@@ -165,54 +161,69 @@ class BatchSize(Rule):
                                 self.report["Violations"] += 1
                                 if node_id not in self.report["Details"]:
                                     self.report["Details"][node_id] = {}
-                                if gpu_id not in self.report["Details"][node_id]:
-                                    self.report["Details"][node_id][gpu_id] = {}
-                                self.report["Details"][node_id][gpu_id] = {
-                                    "cpu_p95": cpu_p95,
-                                    "gpu_p95": gpu_p95,
-                                    "gpu_memory_p95": gpu_memory_p95,
+
+                                self.report["Details"][node_id]["cpu"] = {
+                                    "p25": np.quantile(self.cpu_utilization[node_id], 0.25),
+                                    "p50": np.quantile(self.cpu_utilization[node_id], 0.50),
+                                    "p75": np.quantile(self.cpu_utilization[node_id], 0.75),
+                                    "p95": np.quantile(self.cpu_utilization[node_id], 0.95),
                                 }
-
-                                # create boxplot for profiler report
-                                fig, ax = plt.subplots()
-                                positions = np.arange(3)
-                                plt.title(f"Boxplot for BatchSize rule on node {node_id}")
-                                plt.boxplot(
-                                    [
-                                        self.cpu_utilization[node_id],
-                                        self.gpu_utilization[node_id][gpu_id],
-                                        self.gpu_memory[node_id][gpu_id],
-                                    ],
-                                    positions=positions,
+                                iqr = (
+                                    self.report["Details"][node_id]["cpu"]["p75"]
+                                    - self.report["Details"][node_id]["cpu"]["p25"]
                                 )
-                                ax.set_xticklabels(
-                                    [
-                                        "CPU utilization",
-                                        "GPU Utilization " + gpu_id,
-                                        "GPU Memory " + gpu_id,
-                                    ]
+                                upper = self.report["Details"][node_id]["cpu"]["p75"] + 1.5 * iqr
+                                lower = self.report["Details"][node_id]["cpu"]["p25"] - 1.5 * iqr
+                                self.report["Details"][node_id]["cpu"]["upper"] = min(
+                                    upper, np.quantile(self.cpu_utilization[node_id], 1)
                                 )
-                                ax.set_ylabel("Utilization")
+                                self.report["Details"][node_id]["cpu"]["lower"] = max(
+                                    lower, np.quantile(self.cpu_utilization[node_id], 0.0)
+                                )
 
-                                # output filename
-                                filename = node_id + "_" + gpu_id + "_" + "box_plot_batch_size.png"
+                                self.report["Details"][node_id][gpu_id] = {
+                                    "p25": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.25),
+                                    "p50": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.50),
+                                    "p75": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.75),
+                                    "p95": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.95),
+                                }
+                                iqr = (
+                                    self.report["Details"][node_id][gpu_id]["p75"]
+                                    - self.report["Details"][node_id][gpu_id]["p25"]
+                                )
+                                upper = self.report["Details"][node_id][gpu_id]["p75"] + 1.5 * iqr
+                                lower = self.report["Details"][node_id][gpu_id]["p25"] - 1.5 * iqr
+                                self.report["Details"][node_id][gpu_id]["upper"] = min(
+                                    upper, np.quantile(self.gpu_utilization[node_id][gpu_id], 1)
+                                )
+                                self.report["Details"][node_id][gpu_id]["lower"] = max(
+                                    lower, np.quantile(self.gpu_utilization[node_id][gpu_id], 0.0)
+                                )
+                                key = f"{gpu_id}_memory"
+                                self.report["Details"][node_id][key] = {
+                                    "p25": np.quantile(self.gpu_memory[node_id][gpu_id], 0.25),
+                                    "p50": np.quantile(self.gpu_memory[node_id][gpu_id], 0.50),
+                                    "p75": np.quantile(self.gpu_memory[node_id][gpu_id], 0.75),
+                                    "p95": np.quantile(self.gpu_memory[node_id][gpu_id], 0.95),
+                                }
+                                iqr = (
+                                    self.report["Details"][node_id][key]["p75"]
+                                    - self.report["Details"][node_id][gpu_id]["p25"]
+                                )
+                                upper = self.report["Details"][node_id][key]["p75"] + 1.5 * iqr
+                                lower = self.report["Details"][node_id][key]["p25"] - 1.5 * iqr
+                                self.report["Details"][node_id][key]["upper"] = min(
+                                    upper, np.quantile(self.gpu_memory[node_id][gpu_id], 1)
+                                )
+                                self.report["Details"][node_id][key]["lower"] = max(
+                                    lower, np.quantile(self.gpu_memory[node_id][gpu_id], 0.0)
+                                )
+                                self.report["Details"]["last_timestamp"] = self.last_timestamp
 
-                                # save file
-                                try:
-                                    plt.savefig(
-                                        "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename,
-                                        bbox_inches="tight",
-                                    )
-                                    shutil.move(
-                                        "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename,
-                                        "/opt/ml/processing/outputs/profiler-reports/" + filename,
-                                    )
-                                except:
-                                    self.logger.info("Error while saving file")
-
-                                plt.close()
-                    return True
                 else:
                     self.logger.info(f"Node {node_id} Overall CPU utilization p95 is {cpu_p95}% ")
+
+        if self.report["RuleTriggered"] > 0:
+            return True
 
         return False

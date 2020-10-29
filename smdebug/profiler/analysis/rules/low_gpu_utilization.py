@@ -1,8 +1,4 @@
 # Third Party
-# Standard Library
-import shutil
-
-import matplotlib.pyplot as plt
 import numpy as np
 
 # First Party
@@ -70,35 +66,27 @@ class LowGPUUtilization(Rule):
         if gpu_id not in self.report["Details"][node_id]:
             self.report["Details"][node_id][gpu_id] = {}
 
+        # record data for box plot
         self.report["Details"][node_id][gpu_id] = {
+            "gpu_max": np.max(values),
             "gpu_95": np.quantile(values[-self.window :], 0.95),
             "gpu_5": np.quantile(values[-self.window :], 0.05),
+            "p25": np.quantile(values, 0.25),
+            "p50": np.quantile(values, 0.50),
+            "p75": np.quantile(values, 0.75),
+            "p95": np.quantile(values, 0.95),
         }
+        iqr = (
+            self.report["Details"][node_id][gpu_id]["p75"]
+            - self.report["Details"][node_id][gpu_id]["p25"]
+        )
+        upper = self.report["Details"][node_id][gpu_id]["p75"] + 1.5 * iqr
+        lower = self.report["Details"][node_id][gpu_id]["p25"] - 1.5 * iqr
 
-        # create box plot for gpu utilization
-        fig, ax = plt.subplots()
-        positions = np.arange(len(self.values[node_id]))
-        plt.title(f"Boxplot for GPU utilization on node {node_id}")
-        plt.boxplot(list(self.values[node_id].values()), positions=positions)
-        ax.set_xlabel("GPU")
-        ax.set_ylabel("Utilization")
+        self.report["Details"][node_id][gpu_id]["upper"] = min(upper, np.quantile(values, 1))
+        self.report["Details"][node_id][gpu_id]["lower"] = max(lower, np.quantile(values, 0.0))
 
-        # output filename
-        filename = node_id + "_" + "box_plot_gpu_utilization.png"
-
-        # save file
-        try:
-            plt.savefig(
-                "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename, bbox_inches="tight"
-            )
-            shutil.move(
-                "/opt/ml/processing/outputs/.sagemaker-ignore/" + filename,
-                "/opt/ml/processing/outputs/profiler-reports/" + filename,
-            )
-        except:
-            self.logger.info("Error while saving file")
-
-        plt.close()
+        self.report["Details"]["last_timestamp"] = self.last_timestamp
 
     def invoke_for_timerange(
         self, timestamp_start, timestamp_end, sys_events=None, framework_events=None
@@ -143,7 +131,6 @@ class LowGPUUtilization(Rule):
                             f"{gpu_id} utilization of node-id {node_id}: 95th quantile is {np.quantile(values[-self.window:], 0.95)}% and below {self.threshold_p95}%"
                         )
                         self.record_violations(values, node_id, gpu_id)
-                        return True
 
                     # GPU fluctuations
                     elif (
@@ -154,9 +141,12 @@ class LowGPUUtilization(Rule):
                             f"{gpu_id} utilization of node-id {node_id}: 95th quantile is {np.quantile(values[-self.window:], 0.95)}% and above threshold_p95 {self.threshold_p95} - 5th is {np.quantile(values, 0.05)}% and below threshold_p5 {self.threshold_p5}"
                         )
                         self.record_violations(values, node_id, gpu_id)
-                        return True
                     else:
                         self.logger.info(
                             f"{gpu_id} utilization of node-id {node_id}: 95th quantile of GPU utilization is {np.quantile(values[-self.window:], 0.95)}% - 5th is is {np.quantile(values[-self.window:], 0.05)}%"
                         )
+
+        if self.report["RuleTriggered"] > 0:
+            return True
+
         return False

@@ -123,7 +123,7 @@ class PlotVisualizations(Rule):
         ret = pm.execute_notebook(
             self._notebook_full_path,
             output_notebook_path_tmp,
-            parameters=dict(path=self.base_trial_path, plot_step=last_found_step, s3_path=s3_path),
+            # parameters=dict(path=self.base_trial_path, plot_step=last_found_step, s3_path=s3_path),
         )
         self.logger.info(f"notebook execute return code:{ret}")
         if os.path.exists(output_notebook_path_tmp):
@@ -132,7 +132,7 @@ class PlotVisualizations(Rule):
 
         if self._create_html is True:
             html_dir_name = output_dir
-            output_file_name = "plot_viz_rule"
+            output_file_name = "profiler-report"
             self.logger.info(f"Putting html in {html_dir_name}/output_file_name.html")
             convert_notebook_to_html(
                 notebook_full_path=self._output_full_path,

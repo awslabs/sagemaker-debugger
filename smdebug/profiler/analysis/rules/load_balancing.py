@@ -1,9 +1,5 @@
 # First Party
-# Standard Library
-import shutil
-
 # Third Party
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
@@ -12,12 +8,12 @@ from smdebug.rules.rule import Rule
 
 
 class LoadBalancing(Rule):
-    def __init__(self, base_trial, threshold=0.5, patience=1000, scan_interval_us=60 * 1000 * 1000):
+    def __init__(self, base_trial, threshold=0.2, patience=1000, scan_interval_us=60 * 1000 * 1000):
         """
         This rule helps to detect issues in workload balancing between multiple GPUs.
         It computes a histogram of utilization per GPU and measures the distance between those histograms.
         If the histogram exceeds a pre-defined threshold then rule triggers.
-        :param threshold: difference between 2 histograms 0.5
+        :param threshold: difference between 2 histograms 0.2
         :param patience: how many values to record before checking for loadbalancing issues
         :param base_trial: the trial whose execution will invoke the rule
         :param scan_interval_us: interval with which timeline files are scanned. Default is 60000000 us.
@@ -30,7 +26,7 @@ class LoadBalancing(Rule):
         self.gpus = {}
         self.histogram = {}
         self.max_datapoints = 1000000
-        self.report["RuleParameters"] = f"threshold:{self.threshold}"
+        self.report["RuleParameters"] = f"threshold:{self.threshold}\npatience:{self.patience}"
 
     def invoke_at_step(self, step):
         pass
@@ -109,110 +105,46 @@ class LoadBalancing(Rule):
                             # get keys
                             gpu1 = gpu_ids[gpu_id1]
                             gpu2 = gpu_ids[gpu_id2]
+                            if gpu1 != gpu2:
+                                # compute distance between histograms
+                                m = (self.histogram[node1][gpu1] + self.histogram[node2][gpu2]) / 2
+                                divergence = (
+                                    stats.entropy(self.histogram[node1][gpu1], m)
+                                    + stats.entropy(self.histogram[node2][gpu2], m)
+                                ) / 2
+                                distance = np.sqrt(divergence)
 
-                            # compute distance between histograms
-                            m = (self.histogram[node1][gpu1] + self.histogram[node2][gpu2]) / 2
-                            divergence = (
-                                stats.entropy(self.histogram[node1][gpu1], m)
-                                + stats.entropy(self.histogram[node2][gpu2], m)
-                            ) / 2
-                            distance = np.sqrt(divergence)
-
-                            # compare distance with threshold
-                            if distance > self.threshold:
-                                self.logger.info(
-                                    f"Workload on node {node_id} between GPUs {gpu1} and {gpu2} differs by {distance} which is above the threshold {self.threshold}"
-                                )
-
-                                # record information for profiler report
-                                self.report["Violations"] += 1
-                                self.report["RuleTriggered"] += 1
-
-                                if node1 not in self.report["Details"]:
-                                    self.report["Details"][node1] = {}
-                                if gpu1 not in self.report["Details"][node1]:
-                                    self.report["Details"][node1][gpu1] = {}
-                                self.report["Details"][node1][gpu1][gpu2] = {
-                                    "distance": distance,
-                                    "hist1": self.histogram[node1][gpu1].tolist(),
-                                    "hist2": self.histogram[node2][gpu2].tolist(),
-                                }
-
-                                # create histogram charts for profiler report
-                                if len(self.report["Details"]) > 0:
-                                    for node_id in self.report["Details"]:
-                                        for gpu0 in self.report["Details"][node_id]:
-                                            for gpu1 in self.report["Details"][node_id][gpu0]:
-                                                plt.clf()
-                                                plt.bar(
-                                                    np.arange(0, 100, 2)[:-1],
-                                                    self.report["Details"][node_id][gpu0][gpu1][
-                                                        "hist1"
-                                                    ],
-                                                    alpha=0.5,
-                                                    width=2,
-                                                )
-                                                plt.bar(
-                                                    np.arange(0, 100, 2)[:-1],
-                                                    self.report["Details"][node_id][gpu0][gpu1][
-                                                        "hist2"
-                                                    ],
-                                                    alpha=0.5,
-                                                    width=2,
-                                                )
-                                                plt.legend([gpu0, gpu1])
-                                                plt.xlabel("Utilization")
-                                                plt.ylabel("Counts")
-                                                plt.title(
-                                                    "Workload on node:"
-                                                    + node_id
-                                                    + "\n Difference between "
-                                                    + gpu0
-                                                    + " and "
-                                                    + gpu1
-                                                    + ": "
-                                                    + str(
-                                                        round(
-                                                            self.report["Details"][node_id][gpu0][
-                                                                gpu1
-                                                            ]["distance"],
-                                                            2,
-                                                        )
-                                                    )
-                                                )
-
-                                    # output filename
-                                    filename = (
-                                        node1
-                                        + "_"
-                                        + node2
-                                        + "_"
-                                        + gpu1
-                                        + "_"
-                                        + gpu2
-                                        + "load_balancing_workload.png"
+                                # compare distance with threshold
+                                if distance > self.threshold:
+                                    self.logger.info(
+                                        f"Workload on node {node_id} between GPUs {gpu1} and {gpu2} differs by {distance} which is above the threshold {self.threshold}"
                                     )
 
-                                    # save file
-                                    try:
-                                        plt.savefig(
-                                            "/opt/ml/processing/outputs/.sagemaker-ignore/"
-                                            + filename,
-                                            bbox_inches="tight",
-                                        )
-                                        shutil.move(
-                                            "/opt/ml/processing/outputs/.sagemaker-ignore/"
-                                            + filename,
-                                            "/opt/ml/processing/outputs/profiler-reports/"
-                                            + filename,
-                                        )
-                                    except:
-                                        self.logger.info("Error while saving file")
+                                    # record information for profiler report
+                                    self.report["Violations"] += 1
+                                    self.report["RuleTriggered"] += 1
 
-                                    plt.close()
-                                return True
-                            else:
-                                self.logger.info(
-                                    f"Workload on node {node1} between GPUs {gpu1} and {gpu2} differs by {distance}"
-                                )
+                                    if node1 not in self.report["Details"]:
+                                        self.report["Details"][node1] = {
+                                            "workloads": {},
+                                            "distances": {},
+                                        }
+                                    self.report["Details"][node1]["workloads"][
+                                        gpu1
+                                    ] = self.histogram[node1][gpu1].tolist()
+                                    self.report["Details"][node1]["workloads"][
+                                        gpu2
+                                    ] = self.histogram[node1][gpu2].tolist()
+                                    if gpu1 not in self.report["Details"][node1]["distances"]:
+                                        self.report["Details"][node1]["distances"][gpu1] = {}
+                                    self.report["Details"][node1]["distances"][gpu1][
+                                        gpu2
+                                    ] = distance
+
+                                else:
+                                    self.logger.info(
+                                        f"Workload on node {node1} between GPUs {gpu1} and {gpu2} differs by {distance}"
+                                    )
+        if self.report["RuleTriggered"] > 0:
+            return True
         return False
