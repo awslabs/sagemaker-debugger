@@ -38,8 +38,6 @@ if [ "$SMDEBUG_S3_BINARY" ]; then
   echo "Installing smdebug and smdebug_rules from pre-generated pip wheels located at $SMDEBUG_S3_BINARY"
   mkdir -p s3_pip_binary
   aws s3 cp --recursive "$SMDEBUG_S3_BINARY" s3_pip_binary
-  pip install --upgrade --force-reinstall s3_pip_binary/smdebug_rules-*.whl
-  pip install --upgrade --force-reinstall s3_pip_binary/smdebug-*.whl
   export CORE_COMMIT=`cat s3_pip_binary/CORE_COMMIT`
   export RULES_COMMIT=`cat s3_pip_binary/RULES_COMMIT`
   echo "Commit hash on sagemaker-debugger-rules repository being used: $RULES_COMMIT"
