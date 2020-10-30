@@ -3,6 +3,7 @@
 # Third Party
 import torch
 import torch.distributed as dist
+from torch.nn.parallel.data_parallel import DataParallel
 
 # First Party
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
@@ -199,7 +200,7 @@ class Hook(CallbackHook):
 
     @staticmethod
     def _add_module_name(module, module_name):
-        if isinstance(module, torch.nn.parallel.data_parallel.DataParallel):
+        if isinstance(module, DataParallel):
             module.module._module_name = module_name
         else:
             module._module_name = module_name
