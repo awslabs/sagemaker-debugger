@@ -15,25 +15,18 @@ def get_dataloaders() -> Tuple[torch.utils.data.DataLoader, torch.utils.data.Dat
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
 
-    # Temporary Change to allow the test to run with pytorch 1.7 RC3
-    # Smdebug breaks when num_workers>0 for Pytorch 1.7.0
-    if version.parse(torch.__version__) >= version.parse("1.7.0"):
-        num_workers = 0
-    else:
-        num_workers = 2
-
     trainset = torchvision.datasets.CIFAR10(
         root="./data", train=True, download=True, transform=transform
     )
     trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=4, shuffle=True, num_workers=num_workers
+        trainset, batch_size=4, shuffle=True, num_workers=2
     )
 
     testset = torchvision.datasets.CIFAR10(
         root="./data", train=False, download=True, transform=transform
     )
     testloader = torch.utils.data.DataLoader(
-        testset, batch_size=4, shuffle=False, num_workers=num_workers
+        testset, batch_size=4, shuffle=False, num_workers=2
     )
 
     classes = ("plane", "car", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck")
