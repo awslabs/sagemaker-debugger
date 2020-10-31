@@ -138,24 +138,25 @@ class BatchSize(Rule):
                 if cpu_p95 < self.cpu_threshold_p95:
 
                     # iterate over utilization per GPU
-                    for gpu_id in self.gpu_utilization[node_id]:
-                        if len(self.gpu_utilization[node_id][gpu_id]) > self.window:
-                            # check for GPU underutilization and memory underutilization
-                            gpu_p95 = np.quantile(
-                                self.gpu_utilization[node_id][gpu_id][-self.window :], 0.95
-                            )
-                            gpu_memory_p95 = np.quantile(
-                                self.gpu_memory[node_id][gpu_id][-self.window :], 0.95
-                            )
-
-                            if (
-                                gpu_p95 < self.gpu_threshold_p95
-                                and gpu_memory_p95 < self.gpu_memory_threshold_p95
-                            ):
-                                self.logger.info(
-                                    f"Node {node_id} GPU {gpu_id} utilization p95 is {gpu_p95}% which is below the threshold of {self.gpu_threshold_p95}% and memory p95 is {gpu_memory_p95}% which is below the threshold of {self.gpu_memory_threshold_p95}%. Overall CPU utilization p95 is {cpu_p95}% which is below the threshold of {self.cpu_threshold_p95}%."
+                    if self.gpu_utilization:
+                        for gpu_id in self.gpu_utilization[node_id]:
+                            if len(self.gpu_utilization[node_id][gpu_id]) > self.window:
+                                # check for GPU underutilization and memory underutilization
+                                gpu_p95 = np.quantile(
+                                    self.gpu_utilization[node_id][gpu_id][-self.window :], 0.95
                                 )
 
+                                gpu_memory_p95 = np.quantile(
+                                    self.gpu_memory[node_id][gpu_id][-self.window :], 0.95
+                                )
+
+                                if (
+                                    gpu_p95 < self.gpu_threshold_p95
+                                    and gpu_memory_p95 < self.gpu_memory_threshold_p95
+                                ):
+                                    self.logger.info(
+                                        f"Node {node_id} GPU {gpu_id} utilization p95 is {gpu_p95}% which is below the threshold of {self.gpu_threshold_p95}% and memory p95 is {gpu_memory_p95}% which is below the threshold of {self.gpu_memory_threshold_p95}%. Overall CPU utilization p95 is {cpu_p95}% which is below the threshold of {self.cpu_threshold_p95}%."
+                                    )
                                 # record information for profiler report
                                 self.report["RuleTriggered"] += 1
                                 self.report["Violations"] += 1

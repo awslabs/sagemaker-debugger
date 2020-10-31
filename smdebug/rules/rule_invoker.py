@@ -1,6 +1,7 @@
 # First Party
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import (
+    NoMoreProfilerData,
     RuleEvaluationConditionMet,
     StepUnavailable,
     TensorUnavailable,
@@ -23,6 +24,13 @@ def invoke_rule(rule_obj, start_step=0, end_step=None, raise_eval_cond=False):
                 raise e
             else:
                 logger.debug(str(e))
+        except NoMoreProfilerData:
+            logger.info(
+                "No more profiler data for rule {} at end_step {}".format(
+                    type(rule_obj).__name__, step - 1
+                )
+            )
+            break
         step += 1
     # decrementing because we increment step in the above line
     logger.info(

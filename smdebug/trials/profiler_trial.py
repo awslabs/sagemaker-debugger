@@ -1,4 +1,6 @@
 # Standard Library
+import os
+import pathlib
 import time
 
 # First Party
@@ -13,19 +15,34 @@ from smdebug.profiler.system_metrics_reader import LocalSystemMetricsReader, S3S
 
 
 class ProfilerTrial:
-    def __init__(self, name, dirname):
+    def __init__(self, name, trial_dir, output_dir):
         self.name = name
-        self.path = dirname
+        # Trial dir is the s3/local directory contains profiling data captured during runtime.
+        self.path = trial_dir
+
         self.logger = get_logger()
         self.first_timestamp = 0
         self.get_first_timestamp()
+
+        # Output directory will contains data emitted by rules further published to S3.
+        self.output_dir = output_dir
+        if output_dir and not os.path.exists(output_dir):
+            pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+        # .sagemaker-ignore will not be picked by service code for uploading. It will be used to save temp files.
+        self.temp_dir = os.path.join(output_dir, ".sagemaker-ignore")
+        if not os.path.exists(self.temp_dir):
+            pathlib.Path(self.temp_dir).mkdir(parents=True, exist_ok=True)
+        self.logger.info(
+            "Output files of ProfilerTrial will be saved to {}".format(self.output_dir)
+        )
 
     def job_finished(self):
         training_ended = has_training_ended(self.path + "/system") or has_training_ended(
             self.path + "/framework"
         )
         # rule job should finish if training job has ended or rule job has been signalled
-        return training_ended or is_rule_signalled_gracetime_passed()
+        return training_ended or is_rule_signalled_gracetime_passed(self.path)
 
     def get_first_timestamp(self):
         while self.first_timestamp == 0:

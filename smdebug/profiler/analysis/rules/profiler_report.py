@@ -1,10 +1,28 @@
 # First Party
+# Standard Library
+import json
+import os
+import pathlib
+import shutil
+
 from smdebug.exceptions import RuleEvaluationConditionMet
+from smdebug.profiler.analysis.rules.batch_size import BatchSize
+from smdebug.profiler.analysis.rules.cpu_bottleneck import CPUBottleneck
+from smdebug.profiler.analysis.rules.gpu_memory_increase import GPUMemoryIncrease
+from smdebug.profiler.analysis.rules.io_bottleneck import IOBottleneck
+from smdebug.profiler.analysis.rules.load_balancing import LoadBalancing
+from smdebug.profiler.analysis.rules.low_gpu_utilization import LowGPUUtilization
+from smdebug.profiler.analysis.rules.max_initialization_time import MaxInitializationTime
+from smdebug.profiler.analysis.rules.overall_system_usage import OverallSystemUsage
+from smdebug.profiler.analysis.rules.plot_visualizations.plot_visualizations import (
+    PlotVisualizations,
+)
+from smdebug.profiler.analysis.rules.step_outlier import StepOutlier
 from smdebug.rules.rule import Rule
 
 
 class ProfilerReport(Rule):
-    def __init__(self, base_trial, rules=[], scan_interval_us=60 * 1000 * 1000):
+    def __init__(self, base_trial, scan_interval_us=60 * 1000 * 1000):
         """
         This rule helps to detect if GPU is underulitized because of the batch size being too small.
         To detect this the rule analyzes the average GPU memory footprint, CPU and GPU utilization.
@@ -22,12 +40,30 @@ class ProfilerReport(Rule):
         :param scan_interval: interval with which timeline files are scanned. Default is 60000000.
         """
         super().__init__(base_trial)
-        if len(rules) == 0:
-            raise Exception("You must specify at least one rule to run for profiler report.")
 
-        self.rules = rules
+        # Note that for ProfilerReport, all the following
+        self.rules = [
+            CPUBottleneck(base_trial),
+            IOBottleneck(base_trial),
+            LowGPUUtilization(base_trial),
+            StepOutlier(base_trial),
+            GPUMemoryIncrease(base_trial),
+            BatchSize(base_trial),
+            MaxInitializationTime(base_trial),
+            LoadBalancing(base_trial),
+            OverallSystemUsage(base_trial),
+        ]
         self.last_timestamp = self.base_trial.first_timestamp
         self.scan_interval_us = scan_interval_us
+
+        # report_dir is a local directory path where we could save reports into and allow service to publish.
+        report_dir = os.path.join(self.base_trial.output_dir, "profiler-reports")
+        if report_dir and not os.path.exists(report_dir):
+            pathlib.Path(report_dir).mkdir(parents=True, exist_ok=True)
+        self.report_dir = report_dir
+        self.logger.info(
+            "Output files of ProfilerReport Rule will be saved to {}".format(self.report_dir)
+        )
 
     def invoke_at_step(self, step):
         pass
@@ -40,6 +76,16 @@ class ProfilerReport(Rule):
         self.last_timestamp = current_timestamp
         if rule_condition:
             raise RuleEvaluationConditionMet(self.rule_name, step)
+
+    def _generate_report(self, rule):
+        report_name = rule.rule_name + ".json"
+        temp_path = os.path.join(self.base_trial.temp_dir, report_name)
+        target_path = os.path.join(self.report_dir, report_name)
+        with open(temp_path, "w") as f:
+            json.dump(rule.report, f)
+
+        # Move the temp file to target path
+        shutil.move(temp_path, target_path)
 
     def invoke_for_timerange(self, timestamp_start, timestamp_end):
         # TODO make sure below caches the data
@@ -54,5 +100,9 @@ class ProfilerReport(Rule):
                 f"Invoking rule:{rule.rule_name} for timestamp_start:{timestamp_start} to timestamp_end:{timestamp_end}"
             )
             rule.invoke_for_timerange(timestamp_start, timestamp_end, sys_events, framework_events)
+
+            if self.report_dir:
+                # Only dump the report if the report directory is specified.
+                self._generate_report(rule)
             # TODO finished rule invocation
         return False

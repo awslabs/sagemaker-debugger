@@ -1,5 +1,4 @@
 # Standard Library
-import json
 import os
 from multiprocessing import Process
 
@@ -25,16 +24,8 @@ from smdebug.trials import create_trial
 os.mkdir("/opt/ml/processing/outputs/profiler-reports/")
 os.mkdir("/opt/ml/processing/outputs/.sagemaker-ignore")
 
-
-def dump_report(rule_object):
-    with open(
-        "/opt/ml/processing/outputs/profiler-reports/" + rule_object.rule_name + ".json", "w"
-    ) as fp:
-        json.dump(rule.report, fp)
-
-
 # run the rule
-def run_rule(rule_obj, should_dump_report=False):
+def run_rule(rule_obj):
     try:
         invoke_rule(rule_obj)  # , raise_eval_cond=True)
     except NoMoreProfilerData:
@@ -43,9 +34,6 @@ def run_rule(rule_obj, should_dump_report=False):
         )
     except RuleEvaluationConditionMet as e:
         print(e)
-    if should_dump_report is True:
-        dump_report()
-
     return
 
 
@@ -96,9 +84,7 @@ if should_run_parallel:
     for p in processes:
         p.join()
 else:
-    run_rule(ProfilerReport(trial, rules))
-    for rule in rules:
-        dump_report(rule)
+    run_rule(ProfilerReport(trial))
 
 rule = PlotVisualizations(
     trial,
