@@ -12,6 +12,7 @@ from smdebug.profiler.analysis.rules.load_balancing import LoadBalancing
 from smdebug.profiler.analysis.rules.low_gpu_utilization import LowGPUUtilization
 from smdebug.profiler.analysis.rules.max_initialization_time import MaxInitializationTime
 from smdebug.profiler.analysis.rules.overall_system_usage import OverallSystemUsage
+from smdebug.profiler.analysis.rules.profiler_report import ProfilerReport
 from smdebug.profiler.analysis.rules.step_outlier import StepOutlier
 from smdebug.rules.rule_invoker import invoke_rule
 from smdebug.trials import create_trial
@@ -301,3 +302,36 @@ def test_overall_system_usage_rule():
         assert e.timestamp == 1596668460000000
     except RuleEvaluationConditionMet as e:
         print(e)
+
+
+@pytest.mark.slow
+def test_profiler_report_rule_condition_met():
+    bucket_name = "s3://smdebug-testing/resources/tf2_detailed_profile_0930/profiler-output"
+    trial = create_trial(bucket_name, profiler=True, output_dir="/tmp")
+    rule = ProfilerReport(trial)
+    # Overwrite a sub rule to ensure at least one rule condition is met.
+    rule.rules = [IOBottleneck(trial, gpu_threshold=100, io_threshold=0, patience=0)]
+    try:
+        invoke_rule(rule, raise_eval_cond=True)
+    except RuleEvaluationConditionMet as e:
+        # For this test job, the rule will stop at step 6.
+        assert e.step == 6
+        return
+    # Should not reach the end. Always expect RuleEvaluationConditionMet if any rule condition met.
+    assert False
+
+
+@pytest.mark.slow
+def test_profiler_report_rule_condition_not_met():
+    bucket_name = "s3://smdebug-testing/resources/tf2_detailed_profile_0930/profiler-output"
+    trial = create_trial(bucket_name, profiler=True, output_dir="/tmp")
+    rule = ProfilerReport(trial)
+    # Overwrite a sub rule to ensure NO rule condition met.
+    rule.rules = [IOBottleneck(trial)]
+    try:
+        invoke_rule(rule, raise_eval_cond=True)
+        # If the invoke rule ended without a ruleEvaluation thrown, no rule condition is met.
+        assert not rule.rule_condition_met
+    except RuleEvaluationConditionMet:
+        # The test should not trigger any rule condition.
+        assert False

@@ -139,7 +139,7 @@ class RuleEvaluationConditionMet(Exception):
 class InsufficientInformationForRuleInvocation(Exception):
     def __init__(self, rule_name, message):
         self.rule_name = rule_name
-        self.message = mesage
+        self.message = message
 
     def __str__(self):
         return "Insufficient information to invoke rule {}: {}".format(self.rule_name, self.message)

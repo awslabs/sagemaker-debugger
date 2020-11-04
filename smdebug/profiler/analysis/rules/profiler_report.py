@@ -5,7 +5,7 @@ import os
 import pathlib
 import shutil
 
-from smdebug.exceptions import RuleEvaluationConditionMet
+from smdebug.exceptions import NoMoreProfilerData, RuleEvaluationConditionMet
 from smdebug.profiler.analysis.rules.batch_size import BatchSize
 from smdebug.profiler.analysis.rules.cpu_bottleneck import CPUBottleneck
 from smdebug.profiler.analysis.rules.gpu_memory_increase import GPUMemoryIncrease
@@ -61,6 +61,9 @@ class ProfilerReport(Rule):
         if report_dir and not os.path.exists(report_dir):
             pathlib.Path(report_dir).mkdir(parents=True, exist_ok=True)
         self.report_dir = report_dir
+
+        # boolean flag indicating whether any rule condition has been met so far.
+        self.rule_condition_met = False
         self.logger.info(
             "Output files of ProfilerReport Rule will be saved to {}".format(self.report_dir)
         )
@@ -71,11 +74,21 @@ class ProfilerReport(Rule):
     def invoke(self, step):
         # iterate over timeline events
         current_timestamp = self.last_timestamp + self.scan_interval_us
-        self.base_trial.wait_for_data(current_timestamp, self.last_timestamp)
+
+        # Different from normal rule, when we reach the end of profiling, instead of throw NoMoreProfilerData
+        # we will check whether any rule condition has been met and throw RuleEvaluationConditionMet
+        try:
+            self.base_trial.wait_for_data(current_timestamp, self.last_timestamp)
+        except NoMoreProfilerData as e:
+            if self.rule_condition_met:
+                raise RuleEvaluationConditionMet(self.rule_name, step)
+            else:
+                # End the training job with NoMoreProfilerData
+                raise e
+
         rule_condition = self.invoke_for_timerange(self.last_timestamp, current_timestamp)
+        self.rule_condition_met = self.rule_condition_met or rule_condition
         self.last_timestamp = current_timestamp
-        if rule_condition:
-            raise RuleEvaluationConditionMet(self.rule_name, step)
 
     def _generate_report(self, rule):
         report_name = rule.rule_name + ".json"
@@ -92,6 +105,7 @@ class ProfilerReport(Rule):
         sys_events = self.base_trial.get_system_metrics(timestamp_start, timestamp_end)
         framework_events = self.base_trial.get_framework_metrics(timestamp_start, timestamp_end)
 
+        is_condition_met: bool = False  # The boolean flag indicating whether any sub rule met evaluation condition.
         # get_system_metrics should be able to cache to local dir (.sagemaker-ignore in rule_output directory)
         # read from local dir, delete in memory at end of function
         for rule in self.rules:
@@ -99,10 +113,12 @@ class ProfilerReport(Rule):
             self.logger.info(
                 f"Invoking rule:{rule.rule_name} for timestamp_start:{timestamp_start} to timestamp_end:{timestamp_end}"
             )
-            rule.invoke_for_timerange(timestamp_start, timestamp_end, sys_events, framework_events)
-
+            rule_condition = rule.invoke_for_timerange(
+                timestamp_start, timestamp_end, sys_events, framework_events
+            )
+            is_condition_met = is_condition_met or rule_condition
             if self.report_dir:
                 # Only dump the report if the report directory is specified.
                 self._generate_report(rule)
             # TODO finished rule invocation
-        return False
+        return is_condition_met

@@ -24,10 +24,10 @@ def invoke_rule(rule_obj, start_step=0, end_step=None, raise_eval_cond=False):
                 raise e
             else:
                 logger.debug(str(e))
-        except NoMoreProfilerData:
+        except NoMoreProfilerData as e:
             logger.info(
-                "No more profiler data for rule {} at end_step {}".format(
-                    type(rule_obj).__name__, step - 1
+                "No more profiler data for rule {} at timestamp {}".format(
+                    type(rule_obj).__name__, e.timestamp
                 )
             )
             break
