@@ -279,7 +279,7 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
                 join(root, name)
                 for root, _, files in walk(pevents_dir)
                 for name in files
-                if name.endswith("herring_timeline.json")
+                if name.endswith("smdataparallel_timeline.json")
             ]
             print(f"Number of herring timeline files {len(herring_tracefiles)}")
             assert len(herring_tracefiles) >= expected_num_trace_file["herring_trace_file_count"]

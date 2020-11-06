@@ -339,7 +339,7 @@ def get_distributed_worker():
             pass
 
         try:
-            import herring.torch as herring
+            import herring.torch.distributed as herring
 
             if herring.get_world_size():
                 rank = herring.get_rank()

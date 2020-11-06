@@ -24,7 +24,7 @@ from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data
 
 try:
-    import herring.torch as herring
+    import herring.torch.distributed as herring
 except ImportError:
     herring = None
 
@@ -187,7 +187,7 @@ class Hook(CallbackHook):
 
             # Try herring
             try:
-                import herring.torch as herring
+                import herring.torch.distributed as herring
 
                 if herring.get_world_size():
                     return herring.get_world_size()
@@ -214,7 +214,7 @@ class Hook(CallbackHook):
 
             # Try herring
             try:
-                import herring.torch as herring
+                import herring.torch.distributed as herring
 
                 if herring.get_world_size():
                     return f"worker_{herring.get_rank()}"

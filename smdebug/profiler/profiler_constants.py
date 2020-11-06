@@ -8,7 +8,7 @@ PYTHONTIMELINE_SUFFIX = "pythontimeline.json"
 MODELTIMELINE_SUFFIX = "model_timeline.json"
 TENSORBOARDTIMELINE_SUFFIX = "trace.json.gz"
 HOROVODTIMELINE_SUFFIX = "horovod_timeline.json"
-HERRINGTIMELINE_SUFFIX = "herring_timeline.json"
+HERRINGTIMELINE_SUFFIX = "smdataparallel_timeline.json"
 MERGEDTIMELINE_SUFFIX = "merged_timeline.json"
 
 """

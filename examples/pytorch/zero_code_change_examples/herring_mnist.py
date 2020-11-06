@@ -14,14 +14,16 @@ import argparse
 import time
 
 # Third Party
-import herring.torch as herring
+import herring.torch.distributed as herring
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from herring.torch.parallel import DistributedDataParallel as DDP
+from herring.torch.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import StepLR
 from torchvision import datasets, transforms
+
+herring.init_process_group()
 
 
 class Net(nn.Module):

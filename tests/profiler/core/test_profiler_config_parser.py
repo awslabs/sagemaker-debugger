@@ -312,7 +312,7 @@ def test_herring_profiling_ranges(herring_profiler_config_path, test_case):
     full_config = {
         "ProfilingParameters": {
             "ProfilerEnabled": True,
-            "HerringProfilingConfig": herring_profiler_config,
+            "SMDataparallelProfilingConfig": herring_profiler_config,
         }
     }
 

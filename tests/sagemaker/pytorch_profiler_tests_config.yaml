@@ -268,7 +268,7 @@
     - profiler_params:
         ProfilerEnabled: "True"
         PythonProfilingConfig: "{\"NumSteps\": \"1\", \"ProfilerName\": \"cprofile\"}"
-        HerringProfilingConfig: "{\"StartStep\": \"2\", \"NumSteps\": \"1\"}"
+        SMDataparallelProfilingConfig: "{\"StartStep\": \"2\", \"NumSteps\": \"1\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 4
         framework_trace_file_count: 0

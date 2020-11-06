@@ -65,7 +65,7 @@ def herring_profiler_config_path(config_folder, monkeypatch):
 )
 @pytest.mark.parametrize("mode", ["gpu"])
 @pytest.mark.parametrize("worker_function", [mode_allworkers])
-def test_mode_workers_dynamic_hvd_profiler(
+def test_mode_workers_dynamic_herring_profiler(
     out_dir, herring_profiler_config_path, mode, worker_function
 ):
     """
@@ -88,7 +88,7 @@ def test_mode_workers_dynamic_hvd_profiler(
     full_config = {
         "ProfilingParameters": {
             "ProfilerEnabled": True,
-            "HerringProfilingConfig": herring_profiler_config,
+            "SMDataparallelProfilingConfig": herring_profiler_config,
             "localpath": out_dir,
         }
     }

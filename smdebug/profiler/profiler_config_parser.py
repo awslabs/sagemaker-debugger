@@ -68,7 +68,7 @@ class ProfilingParametersField(Enum):
     DETAILED_PROFILING_CONFIG = "detailedprofilingconfig"
     DATALOADER_METRICS_CONFIG = "dataloadermetricsconfig"
     PYTHON_PROFILING_CONFIG = "pythonprofilingconfig"
-    HERRING_PROFILING_CONFIG = "herringprofilingconfig"
+    HERRING_PROFILING_CONFIG = "smdataparallelprofilingconfig"
 
 
 class ProfilerConfigParser:

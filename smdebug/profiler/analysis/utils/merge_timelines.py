@@ -40,7 +40,7 @@ class MergedTimeline:
             MODELTIMELINE_SUFFIX = "model_timeline.json"
             TENSORBOARDTIMELINE_SUFFIX = "trace.json.gz"
             HOROVODTIMELINE_SUFFIX = "horovod_timeline.json"
-            HERRINGTIMELINE_SUFFIX = "herring_timeline.json".
+            HERRINGTIMELINE_SUFFIX = "smdataparallel_timeline.json".
             Default: None (all files will be merged)
         :param output_directory: Path where merged file should be saved
             Default: None (writes to the same location as the 'path' argument.
