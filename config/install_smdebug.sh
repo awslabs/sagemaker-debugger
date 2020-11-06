@@ -75,7 +75,7 @@ if [ "$run_pytest_mxnet" == 'enable' ]; then
 fi
 if [ "$run_pytest_tensorflow" == 'enable' ]; then
   ./config/check_smdebug_install.sh tensorflow
-  pip install tensorflow_datasets
+  pip install tensorflow_datasets==4.0.1
 fi
 if [ "$run_pytest_pytorch" == 'enable' ]; then
   ./config/check_smdebug_install.sh torch

@@ -152,8 +152,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
-        if self.tape is not None:
-            self._wrap_model_with_input_output_saver()
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 

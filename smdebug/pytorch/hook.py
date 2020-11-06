@@ -28,6 +28,7 @@ try:
 except ImportError:
     herring = None
 
+
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
