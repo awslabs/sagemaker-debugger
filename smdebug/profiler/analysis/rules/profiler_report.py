@@ -81,7 +81,7 @@ class ProfilerReport(Rule):
             self.base_trial.wait_for_data(current_timestamp, self.last_timestamp)
         except NoMoreProfilerData as e:
             if self.rule_condition_met:
-                raise RuleEvaluationConditionMet(self.rule_name, step)
+                raise RuleEvaluationConditionMet(self.rule_name, step, end_of_rule=True)
             else:
                 # End the training job with NoMoreProfilerData
                 raise e

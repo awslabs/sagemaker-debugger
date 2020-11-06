@@ -20,10 +20,14 @@ def invoke_rule(rule_obj, start_step=0, end_step=None, raise_eval_cond=False):
         except (TensorUnavailableForStep, StepUnavailable, TensorUnavailable) as e:
             logger.debug(str(e))
         except RuleEvaluationConditionMet as e:
+            # If raise_eval_cond specified, pop up the exception.
             if raise_eval_cond:
                 raise e
             else:
                 logger.debug(str(e))
+                # In case RuleEvaluationConditionMet indicated the end of the rule, break the execution loop.
+                if e.end_of_rule:
+                    break
         except NoMoreProfilerData as e:
             logger.info(
                 "No more profiler data for rule {} at timestamp {}".format(

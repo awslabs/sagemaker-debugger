@@ -126,9 +126,10 @@ class NoMoreData(Exception):
 
 
 class RuleEvaluationConditionMet(Exception):
-    def __init__(self, rule_name, step):
+    def __init__(self, rule_name, step, end_of_rule=False):
         self.rule_name = rule_name
         self.step = step
+        self.end_of_rule = end_of_rule
 
     def __str__(self):
         return "Evaluation of the rule {} at step {} resulted in the condition being met".format(
