@@ -121,4 +121,15 @@ class ProfilerReport(Rule):
                 # Only dump the report if the report directory is specified.
                 self._generate_report(rule)
             # TODO finished rule invocation
+
+        # As all sub rules processed, generate the report
+        # This indicates the end of rule, before ending, generate a HTML report with sub rules.
+        rule = PlotVisualizations(
+            self.base_trial,
+            create_html=True,
+            nb_full_path="/opt/ml/code/profiler_report.ipynb",
+            output_full_path=os.path.join(self.report_dir, "profiler-report.ipynb"),
+        )
+        rule._plot_visualization(last_found_step=0)
+
         return is_condition_met
