@@ -7,7 +7,7 @@ from bisect import bisect_left
 # First Party
 from smdebug.analysis.utils import refresh
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.core.collection import Collection
+from smdebug.core.collection import Collection, CollectionKeys
 from smdebug.core.config_constants import (
     INCOMPLETE_STEP_WAIT_WINDOW_DEFAULT,
     INCOMPLETE_STEP_WAIT_WINDOW_KEY,
@@ -364,7 +364,31 @@ class Trial(ABC):
             rval.update(self._tensors_matching_regex(regex))
         return rval
 
-    def tensor_names(self, *, step=None, mode=ModeKeys.GLOBAL, regex=None, collection=None) -> list:
+    def inputs(self, step, mode=ModeKeys.GLOBAL):
+        def sorter(t_name):
+            # sorts t_names based on their numerical suffix
+            t_name = t_name.split("_")[-1]
+            return int(t_name)
+
+        input_tensors_names = sorted(
+            self.tensor_names(
+                show_prefixed_inputs=True, step=step, mode=mode, collection=CollectionKeys.INPUTS
+            ),
+            key=sorter,
+        )
+
+        return input_tensors_names
+
+    # * is used in python to force the caller to use named arguments
+    def tensor_names(
+        self,
+        show_prefixed_inputs=False,
+        *,
+        step=None,
+        mode=ModeKeys.GLOBAL,
+        regex=None,
+        collection=None,
+    ) -> list:
         self.maybe_refresh()
         ts = set()
         if step is None and mode == ModeKeys.GLOBAL:

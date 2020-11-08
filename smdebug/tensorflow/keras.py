@@ -492,9 +492,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )
         if isinstance(tensors_to_save, dict):
             tensors_to_save = nest.flatten(tensors_to_save)
-
+        idx = 0
         for t_value in tensors_to_save:
-            self._save_tensor_to_file(t_value.name, t_value, collections_to_write)
+            t_name = f"inputs_{idx}"
+            idx += 0
+            self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def save_smdebug_logs(self, logs):
         if logs is None:
