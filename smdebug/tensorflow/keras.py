@@ -485,11 +485,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._save_tensor_to_file(export_name, g, collections_to_write)
 
     def save_model_inputs_helper(self, tensors_to_save):
-        for t_name, t_value in tensors_to_save:
-            if isinstance(t_value, dict):
-                # flatten the inputs and labels
-                # since we cannot convert dicts into numpy
-                t_value = nest.flatten(t_value)
+        collections_to_write = (
+            {self.get_collection(CollectionKeys.INPUTS)}
+            if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
+            else set()
+        )
+        if isinstance(tensors_to_save, dict):
+            tensors_to_save = nest.flatten(tensors_to_save)
+
+        for t_value in tensors_to_save:
+            self._save_tensor_to_file(t_value.name, t_value, collections_to_write)
 
     def save_smdebug_logs(self, logs):
         if logs is None:
@@ -517,12 +522,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # Save Model Inputs
                 elif key in ModelInputs:
                     export_name = get_model_input_export_name()
-                    tensors_to_save.append((export_name, logs[key]))
-                    collections_to_write = (
-                        {self.get_collection(CollectionKeys.INPUTS)}
-                        if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
-                        else set()
-                    )
+                    self.save_model_inputs_helper(logs[key])
                 for t_name, t_value in tensors_to_save:
                     if isinstance(t_value, dict):
                         # flatten the inputs and labels
