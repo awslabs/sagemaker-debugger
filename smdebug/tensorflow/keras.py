@@ -484,6 +484,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     g = g.values
                 self._save_tensor_to_file(export_name, g, collections_to_write)
 
+    def save_model_inputs_helper(self, tensors_to_save):
+        for t_name, t_value in tensors_to_save:
+            if isinstance(t_value, dict):
+                # flatten the inputs and labels
+                # since we cannot convert dicts into numpy
+                t_value = nest.flatten(t_value)
+
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
