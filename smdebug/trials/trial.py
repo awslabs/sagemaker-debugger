@@ -376,8 +376,10 @@ class Trial(ABC):
             ),
             key=sorter,
         )
-
-        return input_tensors_names
+        input_tensors = []
+        for tensor_name in input_tensors_names:
+            input_tensors.append(self.tensor(tensor_name).value(step))
+        return input_tensors
 
     # * is used in python to force the caller to use named arguments
     def tensor_names(
