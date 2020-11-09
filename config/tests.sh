@@ -87,6 +87,11 @@ if [ "$run_pytest_pytorch" = "enable" ] ; then
     run_profiler_test pytorch
 fi
 
+if [ "$run_pytest_rules" = "enable" ] ; then
+    pip install papermill
+    run_profiler_test rules
+fi
+
 check_logs $REPORT_DIR/*
 
 # Only look at newly added files
