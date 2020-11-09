@@ -22,7 +22,12 @@ from smdebug.rules.rule import Rule
 
 
 class ProfilerReport(Rule):
-    def __init__(self, base_trial, scan_interval_us=60 * 1000 * 1000):
+    def __init__(
+        self,
+        base_trial,
+        scan_interval_us=60 * 1000 * 1000,
+        nb_path="/opt/ml/code/profiler_report.ipynb",
+    ):
         """
         This rule helps to detect if GPU is underulitized because of the batch size being too small.
         To detect this the rule analyzes the average GPU memory footprint, CPU and GPU utilization.
@@ -55,7 +60,7 @@ class ProfilerReport(Rule):
         ]
         self.last_timestamp = self.base_trial.first_timestamp
         self.scan_interval_us = scan_interval_us
-
+        self.nb_path = nb_path
         # report_dir is a local directory path where we could save reports into and allow service to publish.
         report_dir = os.path.join(self.base_trial.output_dir, "profiler-reports")
         if report_dir and not os.path.exists(report_dir):
@@ -124,12 +129,22 @@ class ProfilerReport(Rule):
 
         # As all sub rules processed, generate the report
         # This indicates the end of rule, before ending, generate a HTML report with sub rules.
-        rule = PlotVisualizations(
-            self.base_trial,
-            create_html=True,
-            nb_full_path="/opt/ml/code/profiler_report.ipynb",
-            output_full_path=os.path.join(self.report_dir, "profiler-report.ipynb"),
-        )
-        rule._plot_visualization(last_found_step=0)
+        if os.path.exists(self.nb_path):
+            try:
+                rule = PlotVisualizations(
+                    self.base_trial,
+                    create_html=True,
+                    nb_full_path=self.nb_path,
+                    output_full_path=os.path.join(self.report_dir, "profiler-report.ipynb"),
+                )
+                rule._plot_visualization(last_found_step=0)
+            except Exception as e:
+                self.logger.error("Exception during HTML Report generation: {}".format(e))
+        else:
+            self.logger.error(
+                "Missing profiler report notebook at {}. Skip HTML report generation".format(
+                    self.nb_path
+                )
+            )
 
         return is_condition_met
