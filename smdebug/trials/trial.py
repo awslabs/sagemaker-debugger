@@ -381,7 +381,7 @@ class Trial(ABC):
             input_tensors.append(self.tensor(tensor_name).value(step))
         return input_tensors
 
-    # * is used in python to force the caller to use named arguments
+    # * is used in python to force usage of named arguments
     def tensor_names(
         self,
         show_prefixed_inputs=False,
