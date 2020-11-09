@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from bisect import bisect_left
 
 # First Party
-from smdebug.analysis.utils import refresh
+from smdebug.analysis.utils import refresh, tensor_name_sorter
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.collection import Collection, CollectionKeys
 from smdebug.core.config_constants import (
@@ -365,16 +365,55 @@ class Trial(ABC):
         return rval
 
     def inputs(self, step, mode=ModeKeys.GLOBAL):
-        def sorter(t_name):
-            # sorts t_names based on their numerical suffix
-            t_name = t_name.split("_")[-1]
-            return int(t_name)
-
         input_tensors_names = sorted(
             self.tensor_names(
-                show_prefixed_inputs=True, step=step, mode=mode, collection=CollectionKeys.INPUTS
+                show_prefixed_tensors=True, step=step, mode=mode, collection=CollectionKeys.INPUTS
             ),
-            key=sorter,
+            key=tensor_name_sorter,
+        )
+        input_tensors = []
+        for tensor_name in input_tensors_names:
+            input_tensors.append(self.tensor(tensor_name).value(step))
+        return input_tensors
+
+    def labels(self, step, mode=ModeKeys.GLOBAL):
+        label_tensors_names = sorted(
+            self.tensor_names(
+                show_prefixed_tensors=True,
+                step=step,
+                mode=mode,
+                regex="labels_*",
+                collection=CollectionKeys.INPUTS,
+            ),
+            key=tensor_name_sorter,
+        )
+        input_tensors = []
+        for tensor_name in label_tensors_names:
+            input_tensors.append(self.tensor(tensor_name).value(step))
+        return input_tensors
+
+    def predictions(self, step, mode=ModeKeys.GLOBAL):
+        prediction_tensors_names = sorted(
+            self.tensor_names(
+                show_prefixed_tensors=True,
+                step=step,
+                mode=mode,
+                regex="pred_*",
+                collection=CollectionKeys.OUTPUTS,
+            ),
+            key=tensor_name_sorter,
+        )
+        input_tensors = []
+        for tensor_name in prediction_tensors_names:
+            input_tensors.append(self.tensor(tensor_name).value(step))
+        return input_tensors
+
+    def inputs(self, step, mode=ModeKeys.GLOBAL):
+        input_tensors_names = sorted(
+            self.tensor_names(
+                show_prefixed_tensors=True, step=step, mode=mode, collection=CollectionKeys.OUTPUTS
+            ),
+            key=tensor_name_sorter,
         )
         input_tensors = []
         for tensor_name in input_tensors_names:
@@ -384,7 +423,7 @@ class Trial(ABC):
     # * is used in python to force usage of named arguments
     def tensor_names(
         self,
-        show_prefixed_inputs=False,
+        show_prefixed_tensors=False,
         *,
         step=None,
         mode=ModeKeys.GLOBAL,

@@ -498,6 +498,34 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             idx += 0
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
+    def save_model_predictions_helper(self, tensors_to_save):
+        collections_to_write = (
+            {self.get_collection(CollectionKeys.OUTPUTS)}
+            if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+            else set()
+        )
+        if isinstance(tensors_to_save, dict):
+            tensors_to_save = nest.flatten(tensors_to_save)
+        idx = 0
+        for t_value in tensors_to_save:
+            t_name = f"pred_{idx}"
+            idx += 0
+            self._save_tensor_to_file(t_name, t_value, collections_to_write)
+
+    def save_model_labels_helper(self, tensors_to_save):
+        collections_to_write = (
+            {self.get_collection(CollectionKeys.OUTPUTS)}
+            if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+            else set()
+        )
+        if isinstance(tensors_to_save, dict):
+            tensors_to_save = nest.flatten(tensors_to_save)
+        idx = 0
+        for t_value in tensors_to_save:
+            t_name = f"labels_{idx}"
+            idx += 0
+            self._save_tensor_to_file(t_name, t_value, collections_to_write)
+
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
@@ -507,14 +535,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             collections_to_write = set()
             if SMDEBUG_PREFIX in key:
                 # Save Model Outputs
-                if key in ModelOutputs:
-                    export_name = get_model_output_export_name(key)
-                    tensors_to_save.append((export_name, logs[key]))
-                    collections_to_write = (
-                        {self.get_collection(CollectionKeys.OUTPUTS)}
-                        if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
-                        else set()
-                    )
+                if key == ModelOutput.LABELS:
+                    self.save_model_labels_helper(logs[key])
+                elif key == ModelOutput.PREDICTIONS:
+                    self.save_model_predictions_helper(logs[key])
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
                     self.save_gradients_from_logs(logs[key])
