@@ -495,7 +495,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         idx = 0
         for t_value in tensors_to_save:
             t_name = f"inputs_{idx}"
-            idx += 0
+            idx += 1
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def save_model_predictions_helper(self, tensors_to_save):
@@ -509,7 +509,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         idx = 0
         for t_value in tensors_to_save:
             t_name = f"pred_{idx}"
-            idx += 0
+            idx += 1
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def save_model_labels_helper(self, tensors_to_save):
@@ -523,7 +523,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         idx = 0
         for t_value in tensors_to_save:
             t_name = f"labels_{idx}"
-            idx += 0
+            idx += 1
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def save_smdebug_logs(self, logs):
