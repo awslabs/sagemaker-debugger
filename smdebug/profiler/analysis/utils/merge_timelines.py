@@ -336,9 +336,7 @@ class MergedTimeline:
 
         self.close()
 
-        get_logger("smdebug-profiler").info(f"Merged timeline saved at: {filename}")
-        print(f"Merged timeline saved at: {filename}")
-
+        get_logger().info(f"Merged timeline saved at: {filename}")
         return filename
 
     def close(self):

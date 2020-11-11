@@ -85,9 +85,7 @@ class S3PythonStatsReader(PythonStatsReader):
                 PYINSTRUMENT_JSON_FILENAME,
                 PYINSTRUMENT_HTML_FILENAME,
             ):
-                get_logger("smdebug-profiler").info(
-                    f"Unknown file {full_s3_filepath} found, skipping..."
-                )
+                get_logger().info(f"Unknown file {full_s3_filepath} found, skipping...")
                 continue
 
             path_components = full_s3_filepath.split("/")
@@ -147,9 +145,7 @@ class LocalPythonStatsReader(PythonStatsReader):
                         profiler_name = PYINSTRUMENT_NAME
                         stats_file_path = os.path.join(stats_dir_path, PYINSTRUMENT_HTML_FILENAME)
                     else:
-                        get_logger("smdebug-profiler").info(
-                            f"Unknown file {filename} found, skipping..."
-                        )
+                        get_logger().info(f"Unknown file {filename} found, skipping...")
                         continue
                     python_profile_stats.append(
                         StepPythonProfileStats(

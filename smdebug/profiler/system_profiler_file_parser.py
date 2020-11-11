@@ -31,7 +31,7 @@ class ProfilerSystemEvent:
 class SystemProfilerEventParser:
     def __init__(self):
         self._events = []
-        self.logger = get_logger("smdebug-profiler")
+        self.logger = get_logger()
 
     def _read_event(self, event):
         name = None

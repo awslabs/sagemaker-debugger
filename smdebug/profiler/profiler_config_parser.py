@@ -84,7 +84,7 @@ class ProfilerConfigParser:
         self.config = None
         self.tf_step_number_writer = None
         self.profiling_enabled = False
-        self.logger = get_logger("smdebug-profiler")
+        self.logger = get_logger()
         self.last_logging_statuses = defaultdict(lambda: False)
         self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()

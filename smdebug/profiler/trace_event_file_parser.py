@@ -128,7 +128,7 @@ class TraceEventParser:
         self._pid_stacks = dict()
         self._start_timestamp = 0
         self.type = type
-        self.logger = get_logger("smdebug-profiler")
+        self.logger = get_logger()
 
     def read_trace_file(self):
         pass

@@ -145,7 +145,7 @@ class PandasFrameAnalysis:
         should be of type StatsBy
         """
         if not isinstance(by, StatsBy):
-            get_logger("smdebug-profiler").info(f"{by} should be of type StatsBy")
+            get_logger().info(f"{by} should be of type StatsBy")
             return None
 
         by = by.value
@@ -239,10 +239,10 @@ class PandasFrameAnalysis:
         :return: Dataframe containing utilization stats
         """
         if (by is not None) and (not isinstance(by, StatsBy)):
-            get_logger("smdebug-profiler").info(f"{by} should be of type StatsBy")
+            get_logger().info(f"{by} should be of type StatsBy")
             return None
         if (resource is not None) and (not isinstance(resource, (list, Resource))):
-            get_logger("smdebug-profiler").info(f"{resource} should be of type list or Resource")
+            get_logger().info(f"{resource} should be of type list or Resource")
             return None
 
         if resource is None:
@@ -316,7 +316,7 @@ class PandasFrameAnalysis:
         :param utilization_ranges: list of tuples
         """
         if (device is not None) and (not isinstance(device, (list, Resource))):
-            get_logger("smdebug-profiler").info(f"{device} should be of type list or Resource")
+            get_logger().info(f"{device} should be of type list or Resource")
             return pd.DataFrame()
 
         if device is None:
@@ -329,15 +329,15 @@ class PandasFrameAnalysis:
         if utilization_ranges is None:
             utilization_ranges = [(90, 100), (10, 90), (0, 10)]
         if not isinstance(utilization_ranges, list):
-            get_logger("smdebug-profiler").info(
+            get_logger().info(
                 f"{utilization_ranges} should be a list of tuples containing the ranges"
             )
             return pd.DataFrame()
         if len(utilization_ranges) == 0:
-            get_logger("smdebug-profiler").info(f"{utilization_ranges} cannot be empty")
+            get_logger().info(f"{utilization_ranges} cannot be empty")
             return pd.DataFrame()
         if any(len(utilization_range) != 2 for utilization_range in utilization_ranges):
-            get_logger("smdebug-profiler").info(
+            get_logger().info(
                 f"Each interval in {utilization_ranges} must have a start and end value"
             )
             return pd.DataFrame()
@@ -385,14 +385,14 @@ class PandasFrameAnalysis:
             phase = [phase]
 
         if not isinstance(phase, list):
-            get_logger("smdebug-profiler").info(f"{phase} should be a list of strings")
+            get_logger().info(f"{phase} should be a list of strings")
             return None
 
         # Filter out phases that are not available in process list
         phase = [x for x in phase if x in process_list]
 
         if len(phase) == 0:
-            get_logger("smdebug-profiler").info(
+            get_logger().info(
                 f"None of the phase strings matched the phases available in the framework metrics DataFrame"
             )
             return None

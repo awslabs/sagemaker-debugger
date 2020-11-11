@@ -127,9 +127,7 @@ class TensorboardProfilerEvents(TraceEventParser):
 
         for phase, metrics in training_info.items():
             if not metrics:
-                get_logger("smdebug-profiler").error(
-                    f"No metrics captured after profiling for {phase}!"
-                )
+                get_logger().error(f"No metrics captured after profiling for {phase}!")
                 continue
 
             # Getting the min start_time to get the start_time
@@ -160,7 +158,7 @@ class TensorboardProfilerEvents(TraceEventParser):
                 }
                 data["traceEvents"].append(entry)
 
-        get_logger("smdebug-profiler").info(f"Dumping into file {trace_json_file}")
+        get_logger().info(f"Dumping into file {trace_json_file}")
         with open(trace_json_file, "w+") as outfile:
             json.dump(data, outfile)
 

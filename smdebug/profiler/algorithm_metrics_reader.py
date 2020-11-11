@@ -117,6 +117,7 @@ class AlgorithmMetricsReader(MetricsReaderBase):
         event_files = list()
         for index in timestamps[lower_bound_timestamp_index : upper_bound_timestamp_index + 1]:
             event_files.extend(self._timestamp_to_filename[index])
+        self.logger.debug(f"event files to be fetched:{event_files}")
         return event_files
 
     """
@@ -163,6 +164,7 @@ class LocalAlgorithmMetricsReader(AlgorithmMetricsReader):
     """
 
     def refresh_event_file_list(self):
+        self.logger.debug(f"Refreshing framework metrics from {self.trace_root_folder}")
         self._refresh_event_file_list_local_mode(self.trace_root_folder)
 
     def parse_event_files(self, event_files):
@@ -212,7 +214,9 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
                 file_read_requests.append(ReadObjectRequest(path=event_file))
 
         event_data_list = S3Handler.get_objects(file_read_requests)
+        self.logger.debug(f"Got results back from s3 for {event_files}")
         for event_data, event_file in zip(event_data_list, event_files_to_read):
+            self.logger.debug(f"Will parse events in event file:{event_file}")
             if event_file.endswith("json.gz") and is_valid_tfprof_tracefilename(event_file):
                 self._get_event_parser(event_file).read_events_from_file(event_file)
                 self._parsed_files.add(event_file)
@@ -225,6 +229,8 @@ class S3AlgorithmMetricsReader(AlgorithmMetricsReader):
                         json_data, node_id
                     )
                     self._parsed_files.add(event_file)
+                else:
+                    self.logger.info(f"Invalid tracefilename:{event_file} . Skipping.")
 
     """
     Create a map of timestamp to filename

@@ -179,7 +179,7 @@ class cProfilePythonProfiler(PythonProfiler):
         """Dump the stats by via pstats object to a file `python_stats` in the provided stats directory.
         """
         stats_file_path = os.path.join(stats_dir, CPROFILE_STATS_FILENAME)
-        get_logger("smdebug-profiler").info(f"Dumping cProfile stats to {stats_file_path}.")
+        get_logger().info(f"Dumping cProfile stats to {stats_file_path}.")
         pstats.Stats(self._profiler).dump_stats(stats_file_path)
 
 
@@ -235,21 +235,17 @@ class PyinstrumentPythonProfiler(PythonProfiler):
         try:
             session = self._profiler.last_session
             json_stats = JSONRenderer().render(session)
-            get_logger("smdebug-profiler").info(
-                f"JSON stats collected for pyinstrument: {json_stats}."
-            )
+            get_logger().info(f"JSON stats collected for pyinstrument: {json_stats}.")
             with open(stats_file_path, "w") as json_data:
                 json_data.write(json_stats)
-            get_logger("smdebug-profiler").info(f"Dumping pyinstrument stats to {stats_file_path}.")
+            get_logger().info(f"Dumping pyinstrument stats to {stats_file_path}.")
 
             with open(html_file_path, "w") as html_data:
                 html_data.write(self._profiler.output_html())
-            get_logger("smdebug-profiler").info(
-                f"Dumping pyinstrument output html to {html_file_path}."
-            )
+            get_logger().info(f"Dumping pyinstrument output html to {html_file_path}.")
         except (UnboundLocalError, AssertionError):
             # Handles error that sporadically occurs within pyinstrument.
-            get_logger("smdebug-profiler").info(
+            get_logger().info(
                 f"The pyinstrument profiling session has been corrupted for: {stats_file_path}."
             )
             with open(stats_file_path, "w") as json_data:

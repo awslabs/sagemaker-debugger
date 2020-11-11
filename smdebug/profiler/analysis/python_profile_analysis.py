@@ -60,7 +60,7 @@ class PythonProfileAnalysis:
         """Helper function to load in the most recent python stats via the python stats reader.
         """
         if refresh_stats:
-            get_logger("smdebug-profiler").info("Refreshing python profile stats.")
+            get_logger().info("Refreshing python profile stats.")
             self.python_profile_stats = self.python_stats_reader.load_python_profile_stats()
 
     def _fetch_profile_stats_by_node_id(self, node_id):

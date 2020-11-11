@@ -26,7 +26,7 @@ from smdebug.profiler.utils import (
 
 class MetricsReaderBase:
     def __init__(self, use_in_memory_cache=False):
-        self.logger = get_logger("smdebug-profiler")
+        self.logger = get_logger()
 
         self._event_parsers = []
 
@@ -157,11 +157,11 @@ class MetricsReaderBase:
                         start_time, end_time, TimeUnits.MICROSECONDS
                     )
                 )
-                if not self._cache_events_in_memory:
-                    # clear eventParser events
-                    eventParser.clear_events()
-                    # cleanup parsed files set to force the reading of files again
-                    self._parsed_files = set()
+            if not self._cache_events_in_memory:
+                # clear eventParser events
+                eventParser.clear_events()
+                # cleanup parsed files set to force the reading of files again
+                self._parsed_files = set()
 
         return result
 
@@ -194,7 +194,7 @@ class MetricsReaderBase:
                 break
 
         if start_time_us is None or end_time_us is None:
-            get_logger("smdebug-profiler").info(f"Invalid step interval [{start_step}, {end_step}]")
+            get_logger().info(f"Invalid step interval [{start_step}, {end_step}]")
             start_time_us = end_time_us = 0
         return start_time_us, end_time_us
 
@@ -237,6 +237,7 @@ class MetricsReaderBase:
 
     def _parse_event_files_local_mode(self, event_files):
         for event_file in event_files:
+            self.logger.debug(f"Going to parse file:{event_file}")
             if (
                 is_valid_tracefilename(event_file)
                 or is_valid_tfprof_tracefilename(event_file)
@@ -245,6 +246,10 @@ class MetricsReaderBase:
                 if event_file not in self._parsed_files:
                     self._get_event_parser(event_file).read_events_from_file(event_file)
                     self._parsed_files.add(event_file)
+            else:
+                self.logger.info(
+                    f"Skipping parsing of file {event_file} as this doesn't look like valid file"
+                )
 
     def _get_timestamp_from_filename(self, event_file):
         pass
