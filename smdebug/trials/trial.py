@@ -408,18 +408,6 @@ class Trial(ABC):
             input_tensors.append(self.tensor(tensor_name).value(step))
         return input_tensors
 
-    def inputs(self, step, mode=ModeKeys.GLOBAL):
-        input_tensors_names = sorted(
-            self.tensor_names(
-                show_prefixed_tensors=True, step=step, mode=mode, collection=CollectionKeys.OUTPUTS
-            ),
-            key=tensor_name_sorter,
-        )
-        input_tensors = []
-        for tensor_name in input_tensors_names:
-            input_tensors.append(self.tensor(tensor_name).value(step))
-        return input_tensors
-
     # * is used in python to force usage of named arguments
     def tensor_names(
         self,
