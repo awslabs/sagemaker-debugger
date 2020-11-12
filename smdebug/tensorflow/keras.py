@@ -823,14 +823,35 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 layer_name = layer_name.name
             elif isinstance(layer_name, bytes):
                 layer_name = str(layer_name, "utf-8")
+            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
             if len(layer_input) == 1:
                 # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
                 layer_input = layer_input[0]
-            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
-            self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
+                self._save_tensor_to_file(
+                    layer_input_tensor_name, layer_input, collections_to_write
+                )
+            else:
+                idx = 0
+                for l_name in layer_input:
+                    layer_input_tensor_name = f"{layer_input_tensor_name}_{idx}"
+                    self._save_tensor_to_file(
+                        layer_input_tensor_name, nest.flatten(l_name), collections_to_write
+                    )
+                    idx += 1
             layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
-            self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
+            if isinstance(layer_output, list):
+                idx = 0
+                for l_output in layer_output:
+                    layer_output_tensor_name = f"{layer_output_tensor_name}_{idx}"
+                    self._save_tensor_to_file(
+                        layer_output_tensor_name, nest.flatten(l_output), collections_to_write
+                    )
+                    idx += 1
+            else:
+                self._save_tensor_to_file(
+                    layer_output_tensor_name, layer_output, collections_to_write
+                )
 
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
