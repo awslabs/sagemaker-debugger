@@ -8,8 +8,8 @@ from .system_metrics_reader import (
 )
 from .system_profiler_file_parser import SystemProfilerEventParser
 from .tf_profiler_parser import (
-    HerringProfilerEvents,
     HorovodProfilerEvents,
+    SMDataParallelProfilerEvents,
     SMProfilerEvents,
     TensorboardProfilerEvents,
 )

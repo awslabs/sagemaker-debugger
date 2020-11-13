@@ -231,7 +231,7 @@ class BaseHook:
             profiler_config_parser=self.profiler_config_parser
         )
         self.hvd_reader = None
-        self.is_herring_profiling = False
+        self.is_smdataparallel_profiling = False
 
         if is_sagemaker_job() and SageMakerFileMetricsWriter is not None:
             self.metrics_writer = SageMakerFileMetricsWriter()

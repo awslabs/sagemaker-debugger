@@ -339,18 +339,18 @@ def get_distributed_worker():
             pass
 
         try:
-            import herring.torch.distributed as herring
+            import smdistributed.dataparallel.torch.distributed as smdataparallel
 
-            if herring.get_world_size():
-                rank = herring.get_rank()
+            if smdataparallel.get_world_size():
+                rank = smdataparallel.get_rank()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
         try:
-            import herring.tensorflow as herring
+            import smdistributed.dataparallel.tensorflow as smdataparallel
 
-            if herring.size():
-                rank = herring.rank()
+            if smdataparallel.size():
+                rank = smdataparallel.rank()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
     return rank

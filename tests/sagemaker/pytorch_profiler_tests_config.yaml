@@ -3,8 +3,8 @@
       pt_res50_cifar10.py,
      horovod_test_launcher: &horovod_test_launcher
       horovod_test_launcher.py,
-     herring_mnist: &herring_mnist
-      herring_mnist.py,
+     smdataparallel_mnist: &smdataparallel_mnist
+      smdataparallel_mnist.py,
      distributed_test_launcher: &distributed_test_launcher
       distributed_launch.py,
      Enable: &Enable # enable the test case
@@ -259,9 +259,9 @@
         batch_size: 256
 
   -
-    - smprofiler-IT-pt-herring-gpu-enable
+    - smprofiler-IT-pt-smdataparallel-gpu-enable
     - *Disable
-    - *herring_mnist
+    - *smdataparallel_mnist
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p3.16xlarge
     - instance_count: 1
@@ -273,9 +273,9 @@
         python_trace_file_count: 4
         framework_trace_file_count: 0
         python_stats_file_count: 24
-        herring_trace_file_count: 8
+        smdataparallel_trace_file_count: 8
     - hyper_params:
-        sagemaker_herring_enabled: "True"
+        sagemaker_distributed_dataparallel_enabled: "True"
         epochs: 1
 
   -

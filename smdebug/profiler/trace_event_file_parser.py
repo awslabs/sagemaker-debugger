@@ -152,8 +152,8 @@ class TraceEventParser:
     def _populate_thread_info_for_metaevent(
         self, event, node_id="", phase_tid_default=None, phase_name=""
     ):
-        # The `E` event in horovod and herring does not have a `name` entity. Add an empty `name` in an event dictionary if it is absent.
-        if self.type in ["HerringMetrics", "HorovodMetrics"]:
+        # The `E` event in horovod and SMDataParallel does not have a `name` entity. Add an empty `name` in an event dictionary if it is absent.
+        if self.type in ["SMDataParallelMetrics", "HorovodMetrics"]:
             if "name" not in event and "ph" in event and event["ph"] == "E":
                 event["name"] = ""
         if event["name"] == "thread_name":

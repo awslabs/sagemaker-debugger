@@ -14,16 +14,16 @@ import argparse
 import time
 
 # Third Party
-import herring.torch.distributed as herring
+import smdistributed.dataparallel.torch.distributed as smdataparallel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from herring.torch.parallel.distributed import DistributedDataParallel as DDP
+from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import StepLR
 from torchvision import datasets, transforms
 
-herring.init_process_group()
+smdataparallel.init_process_group()
 
 
 class Net(nn.Module):
@@ -142,7 +142,10 @@ def main():
         "--save-model", action="store_true", default=False, help="For Saving the current Model"
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False, help="For displaying Herring-specific logs"
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="For displaying SMDataParallel-specific logs",
     )
     parser.add_argument(
         "--data-path",
@@ -152,9 +155,9 @@ def main():
     )
 
     args = parser.parse_args()
-    args.world_size = herring.get_world_size()
-    args.rank = rank = herring.get_rank()
-    args.local_rank = local_rank = herring.get_local_rank()
+    args.world_size = smdataparallel.get_world_size()
+    args.rank = rank = smdataparallel.get_rank()
+    args.local_rank = local_rank = smdataparallel.get_local_rank()
     args.lr = 1.0
     args.batch_size //= args.world_size // 8
     args.batch_size = max(args.batch_size, 1)
@@ -168,7 +171,7 @@ def main():
         )
 
     if not torch.cuda.is_available():
-        raise Exception("Must run Herring MNIST example on CUDA-capable devices.")
+        raise Exception("Must run SMDataParallel MNIST example on CUDA-capable devices.")
 
     torch.manual_seed(args.seed)
 

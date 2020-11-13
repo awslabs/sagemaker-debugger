@@ -10,16 +10,16 @@ from smdebug.profiler.metrics_reader_base import MetricsReaderBase
 from smdebug.profiler.profiler_constants import (
     DEFAULT_PREFIX,
     ENV_TIME_BUFFER,
-    HERRINGTIMELINE_SUFFIX,
     HOROVODTIMELINE_SUFFIX,
     MODELTIMELINE_SUFFIX,
     PYTHONTIMELINE_SUFFIX,
+    SMDATAPARALLELTIMELINE_SUFFIX,
     TENSORBOARDTIMELINE_SUFFIX,
     TIME_BUFFER_DEFAULT,
 )
 from smdebug.profiler.tf_profiler_parser import (
-    HerringProfilerEvents,
     HorovodProfilerEvents,
+    SMDataParallelProfilerEvents,
     SMProfilerEvents,
     TensorboardProfilerEvents,
 )
@@ -43,13 +43,13 @@ class AlgorithmMetricsReader(MetricsReaderBase):
         self._DetailedframeworkEventsParser = SMProfilerEvents(type="DetailedframeworkMetrics")
         self._TBEventsParser = TensorboardProfilerEvents()
         self._HorovordEventsParser = HorovodProfilerEvents()
-        self._HerringEventsParser = HerringProfilerEvents()
+        self._SMdataparallelEventsParser = SMDataParallelProfilerEvents()
         self._event_parsers = [
             self._PythontimelineEventsParser,
             self._DetailedframeworkEventsParser,
             self._TBEventsParser,
             self._HorovordEventsParser,
-            self._HerringEventsParser,
+            self._SMdataparallelEventsParser,
         ]
 
     """
@@ -126,7 +126,7 @@ class AlgorithmMetricsReader(MetricsReaderBase):
     2. For Filename containing 'model_timeline.json'  -> SMEventsParser
     3. For Filename containing 'tensorboard' (TBD) -> TensorboardProfilerEvents
     4. For Filename containing 'horovod_timeline.json' -> 'HorovodProfilerEvents
-    5. For Filename containing 'smdataparallel_timeline.json' -> 'HerringProfilerEvents
+    5. For Filename containing 'smdataparallel_timeline.json' -> 'SMDataParallelProfilerEvents
     """
 
     def _get_event_parser(self, filename):
@@ -138,8 +138,8 @@ class AlgorithmMetricsReader(MetricsReaderBase):
             return self._TBEventsParser
         if HOROVODTIMELINE_SUFFIX in filename:
             return self._HorovordEventsParser
-        if HERRINGTIMELINE_SUFFIX in filename:
-            return self._HerringEventsParser
+        if SMDATAPARALLELTIMELINE_SUFFIX in filename:
+            return self._SMdataparallelEventsParser
 
     def _get_timestamp_from_filename(self, event_file):
         return get_timestamp_from_tracefilename(event_file)

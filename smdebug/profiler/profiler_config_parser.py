@@ -41,7 +41,7 @@ class LastProfilingStatus(Enum):
     INVALID_DATALOADER_CONFIG_FIELDS = 15
     INVALID_PYTHON_CONFIG_FIELDS = 16
     DETAILED_CONFIG_NOT_FOUND = 17
-    INVALID_HERRING_PROFILING_CONFIG = 18
+    INVALID_SMDATAPARALLEL_PROFILING_CONFIG = 18
 
 
 class MetricsCategory(Enum):
@@ -51,7 +51,7 @@ class MetricsCategory(Enum):
     DETAILED_PROFILING = 1
     DATALOADER = 2
     PYTHON_PROFILING = 3
-    HERRING_PROFILING = 4
+    SMDATAPARALLEL_PROFILING = 4
 
 
 class ProfilingParametersField(Enum):
@@ -68,7 +68,7 @@ class ProfilingParametersField(Enum):
     DETAILED_PROFILING_CONFIG = "detailedprofilingconfig"
     DATALOADER_METRICS_CONFIG = "dataloadermetricsconfig"
     PYTHON_PROFILING_CONFIG = "pythonprofilingconfig"
-    HERRING_PROFILING_CONFIG = "smdataparallelprofilingconfig"
+    SMDATAPARALLEL_PROFILING_CONFIG = "smdataparallelprofilingconfig"
 
 
 class ProfilerConfigParser:
@@ -234,10 +234,10 @@ class ProfilerConfigParser:
             ProfilingParametersField.PYTHON_PROFILING_CONFIG,
             LastProfilingStatus.INVALID_PYTHON_PROFILING_CONFIG,
         )
-        herring_profiling_config = self._parse_metrics_config(
+        smdataparallel_profiling_config = self._parse_metrics_config(
             config,
-            ProfilingParametersField.HERRING_PROFILING_CONFIG,
-            LastProfilingStatus.INVALID_HERRING_PROFILING_CONFIG,
+            ProfilingParametersField.SMDATAPARALLEL_PROFILING_CONFIG,
+            LastProfilingStatus.INVALID_SMDATAPARALLEL_PROFILING_CONFIG,
         )
 
         self.config = ProfilerConfig(
@@ -249,7 +249,7 @@ class ProfilerConfigParser:
             detailed_profiling_config,
             dataloader_metrics_config,
             python_profiling_config,
-            herring_profiling_config,
+            smdataparallel_profiling_config,
         )
 
         if self.config.general_metrics_config.error_message is not None:
@@ -290,13 +290,13 @@ class ProfilerConfigParser:
             )
 
         if (
-            self.config.herring_profiling_config.error_message is not None
-            and herring_profiling_config != general_metrics_config
+            self.config.smdataparallel_profiling_config.error_message is not None
+            and smdataparallel_profiling_config != general_metrics_config
         ):
             self._log_new_message(
-                LastProfilingStatus.INVALID_HERRING_CONFIG_FIELDS,
+                LastProfilingStatus.INVALID_SMDATAPARALLEL_PROFILING_CONFIG,
                 self.logger.error,
-                self.config.herring_profiling_config.error_message,
+                self.config.smdataparallel_profiling_config.error_message,
             )
 
         self._reset_statuses()
@@ -319,8 +319,8 @@ class ProfilerConfigParser:
                 return False
         elif metrics_category == MetricsCategory.PYTHON_PROFILING:
             metric_config = self.config.python_profiling_config
-        elif metrics_category == MetricsCategory.HERRING_PROFILING:
-            metric_config = self.config.herring_profiling_config
+        elif metrics_category == MetricsCategory.SMDATAPARALLEL_PROFILING:
+            metric_config = self.config.smdataparallel_profiling_config
         else:
             return False  # unrecognized metrics category
 

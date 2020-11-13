@@ -7,12 +7,12 @@ from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
     DATALOADER_PROFILING_START_STEP_DEFAULT,
     DETAILED_PROFILING_START_STEP_DEFAULT,
-    HERRING_PROFILING_START_STEP_DEFAULT,
     PROFILER_DURATION_DEFAULT,
     PROFILING_NUM_STEPS_DEFAULT,
     PYINSTRUMENT_NAME,
     PYTHON_PROFILING_NUM_STEPS_DEFAULT,
     PYTHON_PROFILING_START_STEP_DEFAULT,
+    SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT,
 )
 from smdebug.profiler.python_profiler import cProfileTimer
 
@@ -316,16 +316,16 @@ general_profiling_test_cases = [
     ),
 ]
 
-# These test cases will primarily test the various combinations of start step, num steps that are unique to herring
-# profiling. Each test case consists of (herring_profiling_parameters, expected_herring_profiling_enabled,
+# These test cases will primarily test the various combinations of start step, num steps that are unique to smdataparallel
+# profiling. Each test case consists of (smdataparallel_profiling_parameters, expected_smdataparallel_profiling_enabled,
 # expected_can_profile, expected_values) where:
-#   - herring_profiling_parameters refers to fields (if they exist, `None` otherwise) in the herring profiling config,
+#   - smdataparallel_profiling_parameters refers to fields (if they exist, `None` otherwise) in the smdataparallel profiling config,
 #       i.e. (start_step, num_steps)
-#   - expected_herring_profiling_enabled refers to whether herring profiling is enabled (no errors parsing config).
-#   - expected_can_herring_profile refers to the expected value of should_save_metrics for herring profiling
+#   - expected_smdataparallel_profiling_enabled refers to whether smdataparallel profiling is enabled (no errors parsing config).
+#   - expected_can_smdataparallel_profile refers to the expected value of should_save_metrics for smdataparallel profiling
 #   - expected_values refers to expected values of the profile range after parsing, i.e.
 #       (start_step, end_step)
-herring_profiling_test_cases = [
+smdataparallel_profiling_test_cases = [
     # Valid case where no fields are provided. Default parameters are used, but no profiling takes place on current
     # step.
     (
@@ -333,8 +333,8 @@ herring_profiling_test_cases = [
         True,
         False,
         (
-            HERRING_PROFILING_START_STEP_DEFAULT,
-            HERRING_PROFILING_START_STEP_DEFAULT + PROFILING_NUM_STEPS_DEFAULT,
+            SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT,
+            SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT + PROFILING_NUM_STEPS_DEFAULT,
         ),
     ),
     # Valid case where both start_step and num_steps are provided. Profiler starts at start_step and profiles for

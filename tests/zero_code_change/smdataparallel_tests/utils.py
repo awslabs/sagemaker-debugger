@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 
-def launch_herring_job(script_file_path, script_args, num_workers, config_file_path, mode):
+def launch_smdataparallel_job(script_file_path, script_args, num_workers, config_file_path, mode):
     command = (
         [
             "mpirun",

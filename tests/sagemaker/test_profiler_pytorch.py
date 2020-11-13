@@ -274,18 +274,21 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
             assert len(python_tracefiles) > 0
         python_tracefiles.sort()
 
-        if "herring_trace_file_count" in expected_num_trace_file:
-            herring_tracefiles = [
+        if "smdataparallel_trace_file_count" in expected_num_trace_file:
+            smdataparallel_tracefiles = [
                 join(root, name)
                 for root, _, files in walk(pevents_dir)
                 for name in files
                 if name.endswith("smdataparallel_timeline.json")
             ]
-            print(f"Number of herring timeline files {len(herring_tracefiles)}")
-            assert len(herring_tracefiles) >= expected_num_trace_file["herring_trace_file_count"]
-            herring_tracefiles.sort()
-            print("Validating the generated herring trace files...")
-            _validate_trace_files(herring_tracefiles, profiler_config)
+            print(f"Number of smdataparallel timeline files {len(smdataparallel_tracefiles)}")
+            assert (
+                len(smdataparallel_tracefiles)
+                >= expected_num_trace_file["smdataparallel_trace_file_count"]
+            )
+            smdataparallel_tracefiles.sort()
+            print("Validating the generated smdataparallel trace files...")
+            _validate_trace_files(smdataparallel_tracefiles, profiler_config)
 
         if "horovod_trace_file_count" in expected_num_trace_file:
             horovod_tracefiles = [

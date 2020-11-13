@@ -197,6 +197,6 @@ class HorovodProfilerEvents(TraceEventParser):
         return "HorovodMetrics"
 
 
-class HerringProfilerEvents(TraceEventParser):
+class SMDataParallelProfilerEvents(TraceEventParser):
     def __init__(self):
-        super().__init__(type="HerringMetrics")
+        super().__init__(type="SMDataParallelMetrics")

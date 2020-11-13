@@ -40,7 +40,7 @@ class MergedTimeline:
             MODELTIMELINE_SUFFIX = "model_timeline.json"
             TENSORBOARDTIMELINE_SUFFIX = "trace.json.gz"
             HOROVODTIMELINE_SUFFIX = "horovod_timeline.json"
-            HERRINGTIMELINE_SUFFIX = "smdataparallel_timeline.json".
+            SMDATAPARALLELTIMELINE_SUFFIX = "smdataparallel_timeline.json".
             Default: None (all files will be merged)
         :param output_directory: Path where merged file should be saved
             Default: None (writes to the same location as the 'path' argument.
@@ -249,7 +249,7 @@ class MergedTimeline:
             if self.tensor_table[event.event_phase] == 0:
                 # We will create tensor_idx based on what event_phase is there
                 # tensor idx would be generated to show timeline in order of Step(0), Forward(1)/Backward(2), DataIterator(3), Dataset(4),
-                # TF(/device, /host), PT detailed(cpu_functions/gpu_functions), horovod/herring
+                # TF(/device, /host), PT detailed(cpu_functions/gpu_functions), horovod/SMDataParallel
                 # tensor_idx = len(self.tensor_table)
 
                 found = False
