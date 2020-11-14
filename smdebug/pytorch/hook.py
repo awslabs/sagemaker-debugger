@@ -581,7 +581,14 @@ class Hook(CallbackHook):
 
         # Capture the gradient for each parameter in the net
         self._backward_apply(module)
-        module.apply(self._closure_for_registering_backward_hook)
+
+        # TODO: Registering the backward hook causes issues in certain cases. There is a ‘Warning’ (
+        # https://pytorch.org/docs/stable/generated/torch.nn.Module.html?highlight=register_backward_hook#torch.nn.Module.register_backward_hook) for using this hook in certain cases.
+        # The ‘__call_impl” in PyTorch Module class makes some assumptions about ‘results’ returned from the forward pass of the module.   It can not operate correctly if ‘forward’ pass returns anything other than dictionary of torch.Tensors.   Some of the torchvision.transform classes returned ‘PIL’ image object and backward hook used to crash.
+        # In some cases, we have seen the the training hangs. Hence currently the following functionality is
+        # commented. We can revisit it after understanding the PyTorch's implementation of backward hook.
+
+        # module.apply(self._closure_for_registering_backward_hook)
 
         self.has_registered_module = True
         self.count_parameters(module)
