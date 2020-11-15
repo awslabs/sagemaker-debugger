@@ -131,6 +131,15 @@ class TensorflowBaseHook(BaseHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
+        try:
+            import smdistributed.dataparallel.tensorflow as smdataparallel
+
+            # The total number of GPUs across all the nodes in the cluster
+            if smdataparallel.size():
+                return TFDistributionStrategy.SMDATAPARALLEL
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
+
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
             return TFDistributionStrategy.MIRRORED
@@ -172,6 +181,10 @@ class TensorflowBaseHook(BaseHook):
             import horovod.tensorflow as hvd
 
             return f"worker_{hvd.rank()}"
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
+            import smdistributed.dataparallel.tensorflow as smdataparallel
+
+            return f"worker_{smdataparallel.rank()}"
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             # unused for this strategy
             return DEFAULT_WORKER_NAME
@@ -201,6 +214,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is False and self.worker != self.chief_worker:
                 return
@@ -244,6 +258,10 @@ class TensorflowBaseHook(BaseHook):
             import horovod.tensorflow as hvd
 
             return hvd.size()
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
+            import smdistributed.dataparallel.tensorflow as smdataparallel
+
+            return smdataparallel.size()
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             strategy = tf.distribute.get_strategy()
             return strategy.num_replicas_in_sync
@@ -258,6 +276,8 @@ class TensorflowBaseHook(BaseHook):
         self._assert_distribution_strategy()
         # this won't be used if save_all_workers is True
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            self.chief_worker = DEFAULT_WORKER_NAME
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
             self.chief_worker = DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             assert self._prepared_tensors[self.mode]
@@ -285,6 +305,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 return self._get_main_writer()
@@ -322,6 +343,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 if self.writer is None or only_initialize_if_missing is False:

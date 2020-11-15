@@ -69,6 +69,7 @@ class TFDistributionStrategy(Enum):
     HOROVOD = 1
     MIRRORED = 2
     PARAMETER_SERVER = 3
+    SMDATAPARALLEL = 4
     UNSUPPORTED = 100
 
 

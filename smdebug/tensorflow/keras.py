@@ -631,6 +631,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.distribution_strategy in [
             TFDistributionStrategy.NONE,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if mode == ModeKeys.TRAIN:
                 x = self.model.train_function
