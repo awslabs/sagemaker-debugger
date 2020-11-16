@@ -77,11 +77,11 @@ class OverallSystemUsage(Rule):
             min_value = min_value if min_value > 0 else 0
 
             self.report["Details"][name][node_id] = {
-                "max": max_value,
-                "p99": p99,
-                "p95": p95,
-                "p50": p50,
-                "min": min_value,
+                "max": round(max_value, 2),
+                "p99": round(p99, 2),
+                "p95": round(p95, 2),
+                "p50": round(p50, 2),
+                "min": round(min_value, 2),
             }
 
     def invoke_for_timerange(

@@ -11,6 +11,7 @@ from smdebug.exceptions import (
 )
 from smdebug.profiler.analysis.rules.batch_size import BatchSize
 from smdebug.profiler.analysis.rules.cpu_bottleneck import CPUBottleneck
+from smdebug.profiler.analysis.rules.dataloader import Dataloader
 from smdebug.profiler.analysis.rules.gpu_memory_increase import GPUMemoryIncrease
 from smdebug.profiler.analysis.rules.io_bottleneck import IOBottleneck
 from smdebug.profiler.analysis.rules.load_balancing import LoadBalancing
@@ -300,10 +301,10 @@ def test_overall_system_usage_rule():
     assert report["Datapoints"] == 319
     assert report["Violations"] == 0
     assert report["RuleTriggered"] == 0
-    assert report["Details"]["CPU"]["algo-1"]["max"] == 6.462968750000001
-    assert report["Details"]["CPU"]["algo-1"]["p99"] == 5.492731249999999
-    assert report["Details"]["CPU"]["algo-1"]["p50"] == 2.5025
-    assert report["Details"]["CPU"]["algo-1"]["min"] == 0.42125
+    assert report["Details"]["CPU"]["algo-1"]["max"] == 6.46
+    assert report["Details"]["CPU"]["algo-1"]["p99"] == 5.49
+    assert report["Details"]["CPU"]["algo-1"]["p50"] == 2.50
+    assert report["Details"]["CPU"]["algo-1"]["min"] == 0.42
 
 
 @pytest.mark.slow
@@ -341,3 +342,59 @@ def test_profiler_report_rule_condition_not_met():
     except RuleEvaluationConditionMet:
         # The test should not trigger any rule condition.
         assert False
+
+
+@pytest.mark.slow
+def test_dataloader_rule():
+    bucket_name = "s3://sagemaker-us-east-1-072677473360/smprofiler-IT-pt-resnet-gpu-default-2020-11-11-01-04-27-559/profiler-output"
+    trial = create_trial(bucket_name, profiler=True, output_dir="/tmp")
+    rule = Dataloader(trial, patience=2, min_threshold=5)
+
+    ending_step, ending_timestamp, condition_met_count, unavailability_count = invoke_rule(rule)
+
+    assert ending_step == 8
+    assert ending_timestamp == 1605057360000000
+    assert condition_met_count == 0
+    assert unavailability_count == 0
+    report = rule.report
+    assert report["Datapoints"] == 5
+    assert report["Violations"] == 0
+    assert report["RuleTriggered"] == 0
+    assert report["Details"]["pin_memory"] == False
+    assert report["Details"]["num_workers"] == 2
+    assert report["Details"]["dataloaders"] == 2
+
+    trial = create_trial(bucket_name, profiler=True, output_dir="/tmp")
+    rule = Dataloader(trial, patience=2)
+
+    ending_step, ending_timestamp, condition_met_count, unavailability_count = invoke_rule(rule)
+
+    assert ending_step == 8
+    assert ending_timestamp == 1605057360000000
+    assert condition_met_count == 1
+    assert unavailability_count == 0
+    report = rule.report
+    assert report["Datapoints"] == 5
+    assert report["Violations"] == 1
+    assert report["RuleTriggered"] == 1
+    assert report["Details"]["pin_memory"] == False
+    assert report["Details"]["num_workers"] == 2
+    assert report["Details"]["dataloaders"] == 2
+
+    bucket_name = "s3://smdebug-testing/resources/pt_profile_1103/profiler-output"
+    trial = create_trial(bucket_name, profiler=True, output_dir="/tmp")
+    rule = Dataloader(trial)
+
+    ending_step, ending_timestamp, condition_met_count, unavailability_count = invoke_rule(rule)
+
+    assert ending_step == 6
+    assert ending_timestamp == 1604423340000000
+    assert condition_met_count == 0
+    assert unavailability_count == 0
+    report = rule.report
+    assert report["Datapoints"] == 6
+    assert report["Violations"] == 0
+    assert report["RuleTriggered"] == 0
+    assert report["Details"]["pin_memory"] == False
+    assert report["Details"]["num_workers"] == 2
+    assert report["Details"]["dataloaders"] == 1

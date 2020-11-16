@@ -8,11 +8,13 @@ import shutil
 from smdebug.exceptions import NoMoreProfilerData, RuleEvaluationConditionMet
 from smdebug.profiler.analysis.rules.batch_size import BatchSize
 from smdebug.profiler.analysis.rules.cpu_bottleneck import CPUBottleneck
+from smdebug.profiler.analysis.rules.dataloader import Dataloader
 from smdebug.profiler.analysis.rules.gpu_memory_increase import GPUMemoryIncrease
 from smdebug.profiler.analysis.rules.io_bottleneck import IOBottleneck
 from smdebug.profiler.analysis.rules.load_balancing import LoadBalancing
 from smdebug.profiler.analysis.rules.low_gpu_utilization import LowGPUUtilization
 from smdebug.profiler.analysis.rules.max_initialization_time import MaxInitializationTime
+from smdebug.profiler.analysis.rules.overall_framework_metrics import OverallFrameworkMetrics
 from smdebug.profiler.analysis.rules.overall_system_usage import OverallSystemUsage
 from smdebug.profiler.analysis.rules.plot_visualizations.plot_visualizations import (
     PlotVisualizations,
@@ -57,6 +59,8 @@ class ProfilerReport(Rule):
             MaxInitializationTime(base_trial),
             LoadBalancing(base_trial),
             OverallSystemUsage(base_trial),
+            Dataloader(base_trial),
+            OverallFrameworkMetrics(base_trial),
         ]
         self.last_timestamp = self.base_trial.first_timestamp
         self.scan_interval_us = scan_interval_us

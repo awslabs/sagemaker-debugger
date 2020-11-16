@@ -10,6 +10,10 @@ TENSORBOARDTIMELINE_SUFFIX = "trace.json.gz"
 HOROVODTIMELINE_SUFFIX = "horovod_timeline.json"
 SMDATAPARALLELTIMELINE_SUFFIX = "smdataparallel_timeline.json"
 MERGEDTIMELINE_SUFFIX = "merged_timeline.json"
+PT_DATALOADER_WORKER = "DataLoaderWorker"
+PT_DATALOADER_ITER = "DataLoaderIter"
+PT_DATALOADER_INITIALIZE = "DataLoaderIterInitialize"
+TF_DATALOADER_ITER = "DataIterator"
 
 """
 When users query the events within certain time range, the value TIME BUFFER_SECONDS is used to extend the time range.

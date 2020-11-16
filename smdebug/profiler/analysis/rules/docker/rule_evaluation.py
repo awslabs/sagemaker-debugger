@@ -6,6 +6,7 @@ from multiprocessing import Process
 from smdebug.exceptions import NoMoreProfilerData, RuleEvaluationConditionMet
 from smdebug.profiler.analysis.rules.batch_size import BatchSize
 from smdebug.profiler.analysis.rules.cpu_bottleneck import CPUBottleneck
+from smdebug.profiler.analysis.rules.dataloader import Dataloader
 from smdebug.profiler.analysis.rules.gpu_memory_increase import GPUMemoryIncrease
 from smdebug.profiler.analysis.rules.io_bottleneck import IOBottleneck
 from smdebug.profiler.analysis.rules.load_balancing import LoadBalancing
@@ -23,6 +24,8 @@ from smdebug.trials import create_trial
 
 os.mkdir("/opt/ml/processing/outputs/profiler-reports/")
 os.mkdir("/opt/ml/processing/outputs/.sagemaker-ignore")
+os.mkdir("/opt/ml/code/")
+os.system("cp profiler_report.ipynb /opt/ml/code/")
 
 # run the rule
 def run_rule(rule_obj):
@@ -53,7 +56,7 @@ if "TRIGGER_ALL" in os.environ:
         BatchSize(trial, cpu_threshold_p95=100, gpu_threshold_p95=100, gpu_memory_threshold_p95=100)
     )
     rules.append(MaxInitializationTime(trial))
-    # rules.append(Dataloaders(trial))
+    rules.append(Dataloader(trial))
     rules.append(LoadBalancing(trial, threshold=0))
     rules.append(OverallSystemUsage(trial))
     rules.append(OverallFrameworkMetrics(trial))
@@ -67,7 +70,7 @@ else:
     rules.append(GPUMemoryIncrease(trial))
     rules.append(BatchSize(trial))
     rules.append(MaxInitializationTime(trial))
-    # rules.append(Dataloaders(trial))
+    rules.append(Dataloader(trial))
     rules.append(LoadBalancing(trial))
     rules.append(OverallSystemUsage(trial))
     rules.append(OverallFrameworkMetrics(trial))
