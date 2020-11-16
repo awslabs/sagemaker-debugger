@@ -118,9 +118,13 @@ class ProfilerReport(Rule):
             self.logger.info(
                 f"Invoking rule:{rule.rule_name} for timestamp_start:{timestamp_start} to timestamp_end:{timestamp_end}"
             )
-            rule_condition = rule.invoke_for_timerange(
-                timestamp_start, timestamp_end, sys_events, framework_events
-            )
+            try:
+                rule_condition = rule.invoke_for_timerange(
+                    timestamp_start, timestamp_end, sys_events, framework_events
+                )
+            except:
+                self.logger.error(f"Error running rule {rule.name}")
+
             is_condition_met = is_condition_met or rule_condition
             if self.report_dir:
                 # Only dump the report if the report directory is specified.

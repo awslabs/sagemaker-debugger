@@ -43,6 +43,7 @@ class BatchSize(Rule):
         self.gpu_memory = {}
         self.gpu_utilization = {}
         self.cpu_utilization = {}
+        self.core_ids = {}
         self.max_datapoints = 1000000
         self.last_timestamp = self.base_trial.first_timestamp
         self.report[
@@ -69,13 +70,13 @@ class BatchSize(Rule):
     def invoke_for_timerange(
         self, timestamp_start, timestamp_end, sys_events=None, framework_events=None
     ):
-
         # get system metric events
         if sys_events is None:
             events = self.base_trial.get_system_metrics(timestamp_start, timestamp_end)
         else:
             events = sys_events
-        cpu_cores = {}
+
+        total_cpu = {}
 
         # iterate over events
         for event in events:
@@ -101,27 +102,24 @@ class BatchSize(Rule):
 
             # get cpu utilization values per node
             if event.dimension == "CPUUtilization":
-
-                if event.node_id not in cpu_cores:
-                    cpu_cores[event.node_id] = {}
-
-                if event.name not in cpu_cores[event.node_id]:
-                    cpu_cores[event.node_id][event.name] = []
-
-                cpu_cores[event.node_id][event.name].append(event.value)
+                if event.name not in self.core_ids:
+                    self.core_ids[event.name] = 0
+                if event.node_id not in total_cpu:
+                    total_cpu[event.node_id] = {}
+                if event.timestamp not in total_cpu[event.node_id]:
+                    total_cpu[event.node_id][event.timestamp] = 0
+                total_cpu[event.node_id][event.timestamp] += event.value
 
         # compute cpu total
-        for node_id in cpu_cores:
-            total_cpu = 0
-
-            for cpu_id in cpu_cores[node_id]:
-                total_cpu += np.array(cpu_cores[node_id][cpu_id])
+        for node_id in total_cpu:
 
             if node_id not in self.cpu_utilization:
                 self.cpu_utilization[node_id] = []
 
-            avg_cpu = total_cpu / len(cpu_cores[node_id].keys())
-            self.cpu_utilization[node_id].extend(avg_cpu.tolist())
+            for timestamp in total_cpu[node_id]:
+                self.cpu_utilization[node_id].append(
+                    total_cpu[node_id][timestamp] / len(self.core_ids)
+                )
 
         # iterate over values and compare thresholds
         for node_id in self.cpu_utilization:
@@ -157,69 +155,86 @@ class BatchSize(Rule):
                                     self.logger.info(
                                         f"Node {node_id} GPU {gpu_id} utilization p95 is {gpu_p95}% which is below the threshold of {self.gpu_threshold_p95}% and memory p95 is {gpu_memory_p95}% which is below the threshold of {self.gpu_memory_threshold_p95}%. Overall CPU utilization p95 is {cpu_p95}% which is below the threshold of {self.cpu_threshold_p95}%."
                                     )
-                                # record information for profiler report
-                                self.report["RuleTriggered"] += 1
-                                self.report["Violations"] += 1
-                                if node_id not in self.report["Details"]:
-                                    self.report["Details"][node_id] = {}
+                                    # record information for profiler report
+                                    self.report["RuleTriggered"] += 1
+                                    self.report["Violations"] += 1
+                                    if node_id not in self.report["Details"]:
+                                        self.report["Details"][node_id] = {}
 
-                                self.report["Details"][node_id]["cpu"] = {
-                                    "p25": np.quantile(self.cpu_utilization[node_id], 0.25),
-                                    "p50": np.quantile(self.cpu_utilization[node_id], 0.50),
-                                    "p75": np.quantile(self.cpu_utilization[node_id], 0.75),
-                                    "p95": np.quantile(self.cpu_utilization[node_id], 0.95),
-                                }
-                                iqr = (
-                                    self.report["Details"][node_id]["cpu"]["p75"]
-                                    - self.report["Details"][node_id]["cpu"]["p25"]
-                                )
-                                upper = self.report["Details"][node_id]["cpu"]["p75"] + 1.5 * iqr
-                                lower = self.report["Details"][node_id]["cpu"]["p25"] - 1.5 * iqr
-                                self.report["Details"][node_id]["cpu"]["upper"] = min(
-                                    upper, np.quantile(self.cpu_utilization[node_id], 1)
-                                )
-                                self.report["Details"][node_id]["cpu"]["lower"] = max(
-                                    lower, np.quantile(self.cpu_utilization[node_id], 0.0)
-                                )
+                                    self.report["Details"][node_id]["cpu"] = {
+                                        "p25": np.quantile(self.cpu_utilization[node_id], 0.25),
+                                        "p50": np.quantile(self.cpu_utilization[node_id], 0.50),
+                                        "p75": np.quantile(self.cpu_utilization[node_id], 0.75),
+                                        "p95": np.quantile(self.cpu_utilization[node_id], 0.95),
+                                    }
+                                    iqr = (
+                                        self.report["Details"][node_id]["cpu"]["p75"]
+                                        - self.report["Details"][node_id]["cpu"]["p25"]
+                                    )
+                                    upper = (
+                                        self.report["Details"][node_id]["cpu"]["p75"] + 1.5 * iqr
+                                    )
+                                    lower = (
+                                        self.report["Details"][node_id]["cpu"]["p25"] - 1.5 * iqr
+                                    )
+                                    self.report["Details"][node_id]["cpu"]["upper"] = min(
+                                        upper, np.quantile(self.cpu_utilization[node_id], 1)
+                                    )
+                                    self.report["Details"][node_id]["cpu"]["lower"] = max(
+                                        lower, np.quantile(self.cpu_utilization[node_id], 0.0)
+                                    )
 
-                                self.report["Details"][node_id][gpu_id] = {
-                                    "p25": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.25),
-                                    "p50": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.50),
-                                    "p75": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.75),
-                                    "p95": np.quantile(self.gpu_utilization[node_id][gpu_id], 0.95),
-                                }
-                                iqr = (
-                                    self.report["Details"][node_id][gpu_id]["p75"]
-                                    - self.report["Details"][node_id][gpu_id]["p25"]
-                                )
-                                upper = self.report["Details"][node_id][gpu_id]["p75"] + 1.5 * iqr
-                                lower = self.report["Details"][node_id][gpu_id]["p25"] - 1.5 * iqr
-                                self.report["Details"][node_id][gpu_id]["upper"] = min(
-                                    upper, np.quantile(self.gpu_utilization[node_id][gpu_id], 1)
-                                )
-                                self.report["Details"][node_id][gpu_id]["lower"] = max(
-                                    lower, np.quantile(self.gpu_utilization[node_id][gpu_id], 0.0)
-                                )
-                                key = f"{gpu_id}_memory"
-                                self.report["Details"][node_id][key] = {
-                                    "p25": np.quantile(self.gpu_memory[node_id][gpu_id], 0.25),
-                                    "p50": np.quantile(self.gpu_memory[node_id][gpu_id], 0.50),
-                                    "p75": np.quantile(self.gpu_memory[node_id][gpu_id], 0.75),
-                                    "p95": np.quantile(self.gpu_memory[node_id][gpu_id], 0.95),
-                                }
-                                iqr = (
-                                    self.report["Details"][node_id][key]["p75"]
-                                    - self.report["Details"][node_id][gpu_id]["p25"]
-                                )
-                                upper = self.report["Details"][node_id][key]["p75"] + 1.5 * iqr
-                                lower = self.report["Details"][node_id][key]["p25"] - 1.5 * iqr
-                                self.report["Details"][node_id][key]["upper"] = min(
-                                    upper, np.quantile(self.gpu_memory[node_id][gpu_id], 1)
-                                )
-                                self.report["Details"][node_id][key]["lower"] = max(
-                                    lower, np.quantile(self.gpu_memory[node_id][gpu_id], 0.0)
-                                )
-                                self.report["Details"]["last_timestamp"] = self.last_timestamp
+                                    self.report["Details"][node_id][gpu_id] = {
+                                        "p25": np.quantile(
+                                            self.gpu_utilization[node_id][gpu_id], 0.25
+                                        ),
+                                        "p50": np.quantile(
+                                            self.gpu_utilization[node_id][gpu_id], 0.50
+                                        ),
+                                        "p75": np.quantile(
+                                            self.gpu_utilization[node_id][gpu_id], 0.75
+                                        ),
+                                        "p95": np.quantile(
+                                            self.gpu_utilization[node_id][gpu_id], 0.95
+                                        ),
+                                    }
+                                    iqr = (
+                                        self.report["Details"][node_id][gpu_id]["p75"]
+                                        - self.report["Details"][node_id][gpu_id]["p25"]
+                                    )
+                                    upper = (
+                                        self.report["Details"][node_id][gpu_id]["p75"] + 1.5 * iqr
+                                    )
+                                    lower = (
+                                        self.report["Details"][node_id][gpu_id]["p25"] - 1.5 * iqr
+                                    )
+                                    self.report["Details"][node_id][gpu_id]["upper"] = min(
+                                        upper, np.quantile(self.gpu_utilization[node_id][gpu_id], 1)
+                                    )
+                                    self.report["Details"][node_id][gpu_id]["lower"] = max(
+                                        lower,
+                                        np.quantile(self.gpu_utilization[node_id][gpu_id], 0.0),
+                                    )
+                                    key = f"{gpu_id}_memory"
+                                    self.report["Details"][node_id][key] = {
+                                        "p25": np.quantile(self.gpu_memory[node_id][gpu_id], 0.25),
+                                        "p50": np.quantile(self.gpu_memory[node_id][gpu_id], 0.50),
+                                        "p75": np.quantile(self.gpu_memory[node_id][gpu_id], 0.75),
+                                        "p95": np.quantile(self.gpu_memory[node_id][gpu_id], 0.95),
+                                    }
+                                    iqr = (
+                                        self.report["Details"][node_id][key]["p75"]
+                                        - self.report["Details"][node_id][gpu_id]["p25"]
+                                    )
+                                    upper = self.report["Details"][node_id][key]["p75"] + 1.5 * iqr
+                                    lower = self.report["Details"][node_id][key]["p25"] - 1.5 * iqr
+                                    self.report["Details"][node_id][key]["upper"] = min(
+                                        upper, np.quantile(self.gpu_memory[node_id][gpu_id], 1)
+                                    )
+                                    self.report["Details"][node_id][key]["lower"] = max(
+                                        lower, np.quantile(self.gpu_memory[node_id][gpu_id], 0.0)
+                                    )
+                                    self.report["Details"]["last_timestamp"] = self.last_timestamp
 
                 else:
                     self.logger.info(f"Node {node_id} Overall CPU utilization p95 is {cpu_p95}% ")
