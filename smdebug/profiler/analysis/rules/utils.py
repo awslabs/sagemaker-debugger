@@ -30,7 +30,9 @@ def filter_events(dict_events, threshold):
     return labels_filtered, sizes_filtered, times_filtered
 
 
-def aggregate_framework_metrics(events, report, buffer, timestamp_us=None):
+def aggregate_framework_metrics(
+    events, report, buffer, begin_timestamp_us=None, end_timestamp_us=None
+):
     cpu_events = buffer["cpu_events"]
     gpu_events = buffer["gpu_events"]
     step_phases = buffer["step_phases"]
@@ -41,8 +43,14 @@ def aggregate_framework_metrics(events, report, buffer, timestamp_us=None):
 
     for event in events:
 
-        if timestamp_us != None and (
-            event.start_time < timestamp_us and event.end_time > timestamp_us
+        if (
+            begin_timestamp_us != None
+            and end_timestamp_us == None
+            and (event.start_time < begin_timestamp_us and event.end_time > begin_timestamp_us)
+        ) or (
+            begin_timestamp_us != None
+            and end_timestamp_us != None
+            and (event.end_time >= begin_timestamp_us and event.start_time <= end_timestamp_us)
         ):
             # CPU functions
             if "cpu" in event.event_phase.lower():

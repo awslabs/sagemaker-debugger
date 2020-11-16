@@ -75,11 +75,10 @@ class LoadBalancing(Rule):
         # compute histogram of usage per node_id and per gpu_id
         for node_id in self.gpus:
             for gpu_id in self.gpus[node_id]:
-                if len(self.gpus[node_id][gpu_id]) > self.patience:
-                    values = self.gpus[node_id][gpu_id]
-                    bins = np.arange(0, 100, 2)
-                    probs, binedges = np.histogram(values, bins=bins)
-                    self.histogram[node_id][gpu_id] = probs
+                values = self.gpus[node_id][gpu_id]
+                bins = np.arange(0, 100, 2)
+                probs, binedges = np.histogram(values, bins=bins)
+                self.histogram[node_id][gpu_id] = probs
 
         # list of node ids
         node_ids = list(self.histogram.keys())
@@ -97,54 +96,53 @@ class LoadBalancing(Rule):
                 gpu_ids = list(self.histogram[node1].keys())
                 len_gpu_ids = len(gpu_ids)
 
-                if len(self.histogram[node1][gpu_ids[0]]) > 0:
+                for gpu_id1 in range(len_gpu_ids):
+                    # get keys
+                    gpu1 = gpu_ids[gpu_id1]
 
-                    for gpu_id1 in range(len_gpu_ids):
-                        for gpu_id2 in range(gpu_id1, len_gpu_ids):
+                    # store histogram in profiler report
+                    if node1 not in self.report["Details"]:
+                        self.report["Details"][node1] = {}
+                        self.report["Details"][node1]["workloads"] = {}
+                    self.report["Details"][node1]["workloads"][gpu1] = self.histogram[node1][
+                        gpu1
+                    ].tolist()
 
-                            # get keys
-                            gpu1 = gpu_ids[gpu_id1]
-                            gpu2 = gpu_ids[gpu_id2]
-                            if gpu1 != gpu2:
-                                # compute distance between histograms
-                                m = (self.histogram[node1][gpu1] + self.histogram[node2][gpu2]) / 2
-                                divergence = (
-                                    stats.entropy(self.histogram[node1][gpu1], m)
-                                    + stats.entropy(self.histogram[node2][gpu2], m)
-                                ) / 2
-                                distance = np.sqrt(divergence)
+                for gpu_id2 in range(gpu_id1, len_gpu_ids):
 
-                                # compare distance with threshold
-                                if distance > self.threshold:
-                                    self.logger.info(
-                                        f"Workload on node {node_id} between GPUs {gpu1} and {gpu2} differs by {distance} which is above the threshold {self.threshold}"
-                                    )
+                    # get keys
+                    gpu1 = gpu_ids[gpu_id1]
+                    gpu2 = gpu_ids[gpu_id2]
+                    if gpu1 != gpu2 and len(self.gpus[node1][gpu1]) > self.patience:
 
-                                    # record information for profiler report
-                                    self.report["Violations"] += 1
-                                    self.report["RuleTriggered"] += 1
+                        # compute distance between histograms
+                        m = (self.histogram[node1][gpu1] + self.histogram[node2][gpu2]) / 2
+                        divergence = (
+                            stats.entropy(self.histogram[node1][gpu1], m)
+                            + stats.entropy(self.histogram[node2][gpu2], m)
+                        ) / 2
+                        distance = np.sqrt(divergence)
 
-                                    if node1 not in self.report["Details"]:
-                                        self.report["Details"][node1] = {
-                                            "workloads": {},
-                                            "distances": {},
-                                        }
-                                    self.report["Details"][node1]["workloads"][
-                                        gpu1
-                                    ] = self.histogram[node1][gpu1].tolist()
-                                    self.report["Details"][node1]["workloads"][
-                                        gpu2
-                                    ] = self.histogram[node1][gpu2].tolist()
-                                    if gpu1 not in self.report["Details"][node1]["distances"]:
-                                        self.report["Details"][node1]["distances"][gpu1] = {}
-                                    self.report["Details"][node1]["distances"][gpu1][
-                                        gpu2
-                                    ] = distance
+                        # compare distance with threshold
+                        if distance > self.threshold:
+                            self.logger.info(
+                                f"Workload on node {node_id} between GPUs {gpu1} and {gpu2} differs by {distance} which is above the threshold {self.threshold}"
+                            )
 
-                                else:
-                                    self.logger.info(
-                                        f"Workload on node {node1} between GPUs {gpu1} and {gpu2} differs by {distance}"
-                                    )
+                            # record information for profiler report
+                            self.report["Violations"] += 1
+                            self.report["RuleTriggered"] += 1
+
+                            if "distances" not in self.report["Details"][node1]:
+                                self.report["Details"][node1]["distances"] = {}
+                            if gpu1 not in self.report["Details"][node1]["distances"]:
+                                self.report["Details"][node1]["distances"][gpu1] = {}
+                            self.report["Details"][node1]["distances"][gpu1][gpu2] = distance
+
+                        else:
+                            self.logger.info(
+                                f"Workload on node {node1} between GPUs {gpu1} and {gpu2} differs by {distance}"
+                            )
         if self.report["RuleTriggered"] > 0:
             return True
         return False

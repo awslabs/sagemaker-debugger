@@ -127,7 +127,7 @@ class GPUMemoryIncrease(Rule):
                                 lower, np.quantile(values, 0.0)
                             )
 
-                            self.report["Details"]["last_timestamp"] = self.last_timestamp
+                            self.report["Details"]["last_timestamp"] = timestamp_start
 
         # log current values
         for node_id in self.values:

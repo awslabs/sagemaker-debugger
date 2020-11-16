@@ -55,8 +55,7 @@ class LowGPUUtilization(Rule):
         if rule_condition:
             raise RuleEvaluationConditionMet(self.rule_name, step)
 
-    def record_violations(self, values, node_id, gpu_id):
-
+    def record_violations(self, values, node_id, gpu_id, timestamp_start):
         # record information for profiler report
         self.report["RuleTriggered"] += 1
         self.report["Violations"] += 1
@@ -86,7 +85,7 @@ class LowGPUUtilization(Rule):
         self.report["Details"][node_id][gpu_id]["upper"] = min(upper, np.quantile(values, 1))
         self.report["Details"][node_id][gpu_id]["lower"] = max(lower, np.quantile(values, 0.0))
 
-        self.report["Details"]["last_timestamp"] = self.last_timestamp
+        self.report["Details"]["last_timestamp"] = timestamp_start
 
     def invoke_for_timerange(
         self, timestamp_start, timestamp_end, sys_events=None, framework_events=None
@@ -130,7 +129,7 @@ class LowGPUUtilization(Rule):
                         self.logger.info(
                             f"{gpu_id} utilization of node-id {node_id}: 95th quantile is {np.quantile(values[-self.window:], 0.95)}% and below {self.threshold_p95}%"
                         )
-                        self.record_violations(values, node_id, gpu_id)
+                        self.record_violations(values, node_id, gpu_id, timestamp_start)
 
                     # GPU fluctuations
                     elif (
@@ -140,7 +139,7 @@ class LowGPUUtilization(Rule):
                         self.logger.info(
                             f"{gpu_id} utilization of node-id {node_id}: 95th quantile is {np.quantile(values[-self.window:], 0.95)}% and above threshold_p95 {self.threshold_p95} - 5th is {np.quantile(values, 0.05)}% and below threshold_p5 {self.threshold_p5}"
                         )
-                        self.record_violations(values, node_id, gpu_id)
+                        self.record_violations(values, node_id, gpu_id, timestamp_start)
                     else:
                         self.logger.info(
                             f"{gpu_id} utilization of node-id {node_id}: 95th quantile of GPU utilization is {np.quantile(values[-self.window:], 0.95)}% - 5th is is {np.quantile(values[-self.window:], 0.05)}%"

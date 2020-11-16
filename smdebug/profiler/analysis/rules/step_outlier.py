@@ -3,6 +3,7 @@
 import numpy as np
 
 from smdebug.exceptions import RuleEvaluationConditionMet
+from smdebug.profiler.analysis.rules import utils
 from smdebug.rules.rule import Rule
 
 
@@ -167,7 +168,7 @@ class StepOutlier(Rule):
                                 ]
 
                                 # find framework metrics that may be causing the CPU bottleneck
-                                aggregate_framework_metrics(
+                                utils.aggregate_framework_metrics(
                                     events, self.report, self.buffer, start_time_us, end_time_us
                                 )
 
