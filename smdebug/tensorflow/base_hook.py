@@ -61,6 +61,7 @@ class TensorflowBaseHook(BaseHook):
         include_collections=None,
         save_all=False,
         include_workers="one",
+        profiler_config_parser=None,
     ):
         collection_manager = CollectionManager()
         super().__init__(
@@ -77,6 +78,7 @@ class TensorflowBaseHook(BaseHook):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
+            profiler_config_parser=profiler_config_parser,
         )
         self.optimizer = None
         self._custom_collections = None

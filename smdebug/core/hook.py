@@ -105,6 +105,7 @@ class BaseHook:
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
         include_workers: str = "one",
+        profiler_config_parser: Optional[ProfilerConfigParser] = None,
     ):
         """
         A class used to represent the hook which gets attached to the
@@ -148,6 +149,9 @@ class BaseHook:
             they are all saved in the collection `all`
         include_workers: str
             makes the hook save data from all workers
+
+        profiler_config_parser: ProfilerConfigParser object
+            if passed, use this profiler configuration. by default, set up a new profiler configuration here.
         """
         self.out_dir = verify_and_get_out_dir(out_dir)
         self.tensorboard_dir = get_tensorboard_dir(
@@ -226,10 +230,12 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        self.profiler_config_parser = ProfilerConfigParser()
-        self.timeline_writer = TimelineFileWriter(
-            profiler_config_parser=self.profiler_config_parser
-        )
+        if profiler_config_parser is None:
+            profiler_config_parser = ProfilerConfigParser()
+        profiler_config_parser.load_config()
+        self.profiler_config_parser = profiler_config_parser
+
+        self.timeline_writer = TimelineFileWriter(profiler_config_parser=profiler_config_parser)
         self.hvd_reader = None
         self.is_smdataparallel_profiling = False
 
@@ -985,6 +991,7 @@ class CallbackHook(BaseHook):
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
         include_workers: str = "one",
+        profiler_config_parser=None,
     ):
         super().__init__(
             collection_manager=collection_manager,
@@ -1000,6 +1007,7 @@ class CallbackHook(BaseHook):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
+            profiler_config_parser=profiler_config_parser,
         )
         self.exported_collections = False
         self.data_type_name = data_type_name

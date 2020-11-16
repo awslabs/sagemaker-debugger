@@ -85,6 +85,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
+            profiler_config_parser=profiler_config_parser,
         )
         tf.keras.callbacks.Callback.__init__(self)
         self.tensor_refs_to_save_this_step = set()
@@ -110,8 +111,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
 
-        self.profiler_config_parser = profiler_config_parser
-        self.profiler_config_parser.load_config()
         if python_profiler:
             atexit.register(python_profiler.stop_profiling, StepPhase.END)
 

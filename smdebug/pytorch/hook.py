@@ -92,6 +92,7 @@ class Hook(CallbackHook):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
+            profiler_config_parser=profiler_config_parser,
         )
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
@@ -120,8 +121,6 @@ class Hook(CallbackHook):
             else torch.autograd.ProfilerState.CPU
         )
         self.use_cuda = torch.cuda.is_available()
-        self.profiler_config_parser = profiler_config_parser
-        self.profiler_config_parser.load_config()
         if python_profiler:
             atexit.register(python_profiler.stop_profiling, StepPhase.END)
 
