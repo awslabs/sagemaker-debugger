@@ -103,7 +103,7 @@ def is_s3(path):
         return False, None, None
 
 
-def is_first_process(path):
+def is_first_process(path, is_dir=True):
     """
     This function is used to determine the caller of the process
     is the first process to do so.
@@ -134,10 +134,15 @@ def is_first_process(path):
         )
         return True  # Cannot Implement This Functionality for S3
     else:
-        ensure_dir(path, is_file=False)
-        filename = os.path.join(path, CLAIM_FILENAME)
+        if is_dir:
+            ensure_dir(path, is_file=False)
+            filename = os.path.join(path, CLAIM_FILENAME)
+        else:
+            ensure_dir(path)
+            filename = path
         try:
             fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.fsync(fd)
             os.close(fd)
             return True
         except FileExistsError:

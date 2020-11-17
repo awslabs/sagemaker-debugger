@@ -5,6 +5,8 @@ For CI, we will always run the full test suite.
 """
 
 # Standard Library
+import json
+import os
 import shutil
 import sys
 
@@ -12,6 +14,7 @@ import sys
 import pytest
 
 # First Party
+from smdebug.core.json_config import DEFAULT_RESOURCE_CONFIG_FILE
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 
@@ -61,6 +64,13 @@ def config_folder():
     profiler config parser.
     """
     return "tests/core/json_configs"
+
+
+@pytest.fixture
+def set_up_resource_config():
+    os.makedirs(os.path.dirname(DEFAULT_RESOURCE_CONFIG_FILE), exist_ok=True)
+    with open(DEFAULT_RESOURCE_CONFIG_FILE, "w") as config_file:
+        json.dump({"current_host": "test_hostname"}, config_file)
 
 
 @pytest.fixture()

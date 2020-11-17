@@ -25,7 +25,6 @@ from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     HOROVODTIMELINE_SUFFIX,
     SMDATAPARALLELTIMELINE_SUFFIX,
-    TF_STEP_NUMBER_FILENAME,
 )
 
 logger = get_logger()

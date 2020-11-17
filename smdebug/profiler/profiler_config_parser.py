@@ -5,9 +5,9 @@ from collections import defaultdict
 from enum import Enum
 
 # First Party
-from smdebug.core.access_layer.file import TSAccessFile
+from smdebug.core.json_config import get_node_id_from_resource_config
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import get_node_id
+from smdebug.core.utils import is_first_process
 from smdebug.profiler.profiler_config import ProfilerConfig
 from smdebug.profiler.profiler_constants import (
     BASE_FOLDER_DEFAULT,
@@ -15,7 +15,6 @@ from smdebug.profiler.profiler_constants import (
     CONFIG_PATH_DEFAULT,
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
-    TF_STEP_NUMBER_FILENAME,
 )
 from smdebug.profiler.utils import str2bool
 
@@ -82,7 +81,6 @@ class ProfilerConfigParser:
         """Initialize the parser to be disabled for profiling and detailed profiling.
         """
         self.config = None
-        self.tf_step_number_writer = None
         self.profiling_enabled = False
         self.logger = get_logger()
         self.last_logging_statuses = defaultdict(lambda: False)
@@ -129,7 +127,7 @@ class ProfilerConfigParser:
         Validate the detailed profiling config (if it exists).
         """
         self.config = None
-        self.tf_step_number_writer = None
+        self.tf_dataloader_flag_writer = None
         config_path = os.environ.get("SMPROFILER_CONFIG_PATH", CONFIG_PATH_DEFAULT)
 
         if os.path.isfile(config_path):
@@ -315,7 +313,7 @@ class ProfilerConfigParser:
             metric_config = self.config.detailed_profiling_config
         elif metrics_category == MetricsCategory.DATALOADER:
             metric_config = self.config.dataloader_metrics_config
-            if not metric_config.valid_metrics_name(metrics_name):
+            if metrics_name is not None and not metric_config.valid_metrics_name(metrics_name):
                 return False
         elif metrics_category == MetricsCategory.PYTHON_PROFILING:
             metric_config = self.config.python_profiling_config
@@ -329,20 +327,31 @@ class ProfilerConfigParser:
             current_step, current_time
         )
         can_profile_metric = metric_config.can_start_profiling(current_step, current_time)
+
         return can_profile_general or can_profile_metric
 
-    def write_tf_step_number(self, current_step):
-        """If dataloader metrics collection is enabled, write the current step number to:
-        <local_path>/<node_id>/tf_step_number. We simply update the file but never close the writer,
-        since we don't want the file to be uploaded to s3.
+    def write_tf_dataloader_flag(self, flag_filename):
+        """If dataloader metrics collection is enabled, then write a .tmp file with the provided flag_filename such
+        that is has this path: <local_path>/<node_id>/<flag_filename>. We simply create the file but never close the
+        writer, since we don't want the file to be uploaded to s3.
+
+        If flag_filename is TF_DATALOADER_START_FLAG_FILENAME, we are signaling that dataloader metrics should be
+        collected now. If flag_filename is TF_DATALOADER_END_FLAG_FILENAME, we are signaling that dataloader metrics
+        should not be collected anymore. In AWS TF, we will collect dataloader metrics when only
+        TF_DATALOADER_START_FLAG_FILENAME exists and not collect dataloader metrics when neither or both flags exist.
+
+        Return True if writing the flag was successful, False if unsuccessful.
         """
         if not self.profiling_enabled or not self.config.dataloader_metrics_config.is_enabled():
             return
 
-        if self.tf_step_number_writer is None:
-            self.tf_step_number_writer = TSAccessFile(
-                os.path.join(self.config.local_path, get_node_id(), TF_STEP_NUMBER_FILENAME), "w"
-            )
+        tf_dataloader_flag_path = os.path.join(
+            self.config.local_path, get_node_id_from_resource_config(), flag_filename
+        )
+        success = is_first_process(tf_dataloader_flag_path, is_dir=False)
 
-        self.tf_step_number_writer.write(str(current_step))
-        self.tf_step_number_writer.flush()
+        if not os.path.isfile(tf_dataloader_flag_path):
+            self.logger.error(f"Could not write flag to: {tf_dataloader_flag_path}!")
+            return False
+
+        return success

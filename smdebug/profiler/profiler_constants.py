@@ -66,7 +66,8 @@ PROFILER_DURATION_DEFAULT = float("inf")
 
 TF_METRICS_PREFIX = "aws_marker-"
 
-TF_STEP_NUMBER_FILENAME = "tf_step_number"
+TF_DATALOADER_START_FLAG_FILENAME = "tf_dataloader_start_flag.tmp"
+TF_DATALOADER_END_FLAG_FILENAME = "tf_dataloader_end_flag.tmp"
 
 CPROFILE_STATS_FILENAME = "python_stats"
 PYINSTRUMENT_JSON_FILENAME = "python_stats.json"

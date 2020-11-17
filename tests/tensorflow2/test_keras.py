@@ -884,7 +884,9 @@ def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
     assert boolean_matrix.all()
 
 
-def test_hook_timeline_file_write(set_up_smprofiler_config_path, out_dir, tf_eager_mode):
+def test_hook_timeline_file_write(
+    set_up_smprofiler_config_path, set_up_resource_config, out_dir, tf_eager_mode
+):
     hook = smd.KerasHook(out_dir=out_dir, save_all=False)
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, steps=["train", "eval"])
 

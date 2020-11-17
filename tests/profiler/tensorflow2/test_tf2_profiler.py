@@ -27,7 +27,7 @@ def tf2_profiler_config_parser_by_time(config_folder, monkeypatch):
     return ProfilerConfigParser()
 
 
-def test_tf2_profiler_by_step(tf2_profiler_config_parser_by_step, out_dir):
+def test_tf2_profiler_by_step(set_up_resource_config, tf2_profiler_config_parser_by_step, out_dir):
     """
     This test executes a TF2 training script, enables detailed TF profiling by step, and
     verifies the number of events.

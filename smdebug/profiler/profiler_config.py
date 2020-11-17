@@ -180,7 +180,7 @@ class DataloaderMetricsConfig(ProfileRange):
     def valid_metrics_name(self, metrics_name):
         """Check if the metrics regex matches the provided metrics name. Note: this is case insensitive.
         """
-        if metrics_name is None or self.metrics_regex is None:
+        if self.metrics_regex is None:
             return False
         return self.metrics_regex.match(metrics_name.lower()) is not None
 
