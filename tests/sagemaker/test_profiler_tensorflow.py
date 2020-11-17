@@ -310,7 +310,7 @@ def _run_verify_job(estimator, profiler_config, expected_num_trace_file, out_dir
             join(root, name) for root, _, files in walk(detailed_profiling_dir) for name in files
         ]
         print(f"Number of detailed profiling trace files {len(detailed_profiling_tracefiles)}")
-        if eval(profiler_config.get("ProfilerEnabled", True)):
+        if "DetailedProfilingConfig" in profiler_config:
             assert len(detailed_profiling_tracefiles) > 0
         else:
             assert len(detailed_profiling_tracefiles) == 0

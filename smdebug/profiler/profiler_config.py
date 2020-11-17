@@ -6,13 +6,8 @@ from enum import Enum
 # First Party
 from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
-    DATALOADER_PROFILING_START_STEP_DEFAULT,
-    DETAILED_PROFILING_START_STEP_DEFAULT,
     PROFILING_NUM_STEPS_DEFAULT,
     PYINSTRUMENT_NAME,
-    PYTHON_PROFILING_NUM_STEPS_DEFAULT,
-    PYTHON_PROFILING_START_STEP_DEFAULT,
-    SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT,
 )
 from smdebug.profiler.python_profiler import cProfileTimer
 
@@ -25,6 +20,7 @@ class MetricsConfigsField(Enum):
     NUM_STEPS = "numsteps"
     START_TIME = "starttimeinsecsinceepoch"
     DURATION = "durationinseconds"
+    DEFAULT_PROFILING = "defaultprofiling"
     METRICS_REGEX = "metricsregex"
     PROFILER_NAME = "profilername"
     CPROFILE_TIMER = "cprofiletimer"
@@ -56,6 +52,12 @@ class ProfileRange:
     def __init__(self, name, profile_range):
         self.name = name
         self.error_message = None
+        self.disabled = False
+
+        # user did not specify this config, so it is disabled.
+        if profile_range == {}:
+            self.disabled = True
+            return
 
         # step range
         self.start_step = profile_range.get(MetricsConfigsField.START_STEP.value)
@@ -103,66 +105,53 @@ class ProfileRange:
         self.start_step = self.num_steps = self.start_time_in_sec = self.duration_in_sec = None
 
     def is_enabled(self):
-        return self.error_message is None
+        """Return whether this config is enabled (specified by the user and no errors during parsing"""
+        return not self.disabled and self.error_message is None
 
     def can_start_profiling(self, current_step, current_time):
-        """Determine whether the values from the config are valid for profiling.
-        """
+        """Determine whether the values from the config are valid for profiling."""
         if not self.is_enabled():
             return False
 
         if current_time is None:
             current_time = time.time()
         if self.has_step_range():
-            if not self.start_step:
+            if self.start_step is None:
                 self.start_step = current_step
-            if not self.num_steps:
+            if self.num_steps is None:
                 self.num_steps = PROFILING_NUM_STEPS_DEFAULT
             if not self.end_step:
                 self.end_step = self.start_step + self.num_steps
             return self.start_step <= current_step < self.end_step
         elif self.has_time_range():
-            if not self.start_time_in_sec:
+            if self.start_time_in_sec is None:
                 self.start_time_in_sec = current_time
             if self.duration_in_sec:
-                if not self.end_time:
+                if self.end_time is None:
                     self.end_time = self.start_time_in_sec + self.duration_in_sec
                 return self.start_time_in_sec <= current_time < self.end_time
             else:
                 if self.start_time_in_sec <= current_time:
-                    if not self.end_step:
+                    if self.end_step is None:
                         self.end_step = current_step + 1
                     return current_step < self.end_step
         return False
 
 
 class DetailedProfilingConfig(ProfileRange):
-    """Configuration corresponding to the detailed profiling config. If not specified and no general metrics config was
-    specified, then do detailed profiling for just step 5.
-    """
+    """Configuration corresponding to the detailed profiling config."""
 
-    def __init__(self, general_metrics_config, detailed_profiling_config):
-        if general_metrics_config == detailed_profiling_config == {}:
-            detailed_profiling_config = {
-                MetricsConfigsField.START_STEP.value: DETAILED_PROFILING_START_STEP_DEFAULT,
-                MetricsConfigsField.NUM_STEPS.value: PROFILING_NUM_STEPS_DEFAULT,
-            }
+    def __init__(self, detailed_profiling_config):
         super().__init__("detailed profiling", detailed_profiling_config)
 
 
-class DataloaderMetricsConfig(ProfileRange):
-    """Configuration corresponding to the dataloader config. If not specified and no general metrics config was
-    specified, then collect dataloader metrics for just step 7.
+class DataloaderProfilingConfig(ProfileRange):
+    """Configuration corresponding to the dataloader profiling config.
 
     TODO: Use this config to collect dataloader metrics only for the specified steps.
     """
 
-    def __init__(self, general_metrics_config, dataloader_config):
-        if general_metrics_config == dataloader_config == {}:
-            dataloader_config = {
-                MetricsConfigsField.START_STEP.value: DATALOADER_PROFILING_START_STEP_DEFAULT,
-                MetricsConfigsField.NUM_STEPS.value: PROFILING_NUM_STEPS_DEFAULT,
-            }
+    def __init__(self, dataloader_config):
         super().__init__("dataloader profiling", dataloader_config)
 
         if self.error_message:
@@ -186,19 +175,9 @@ class DataloaderMetricsConfig(ProfileRange):
 
 
 class PythonProfilingConfig(ProfileRange):
-    """Configuration corresponding to the python profiling config. If not specified and no general metrics config was
-    specified, then do python profiling with cProfile for steps 9, 10 and 11. Measure total time, cpu time and off cpu
-    time for each of these steps respectively.
-    """
+    """Configuration corresponding to the python profiling config. """
 
-    def __init__(self, general_metrics_config, python_profiling_config):
-        profile_three_steps = False
-        if general_metrics_config == python_profiling_config == {}:
-            python_profiling_config = {
-                MetricsConfigsField.START_STEP.value: PYTHON_PROFILING_START_STEP_DEFAULT,
-                MetricsConfigsField.NUM_STEPS.value: PYTHON_PROFILING_NUM_STEPS_DEFAULT,
-            }
-            profile_three_steps = True
+    def __init__(self, python_profiling_config):
         super().__init__("python profiling", python_profiling_config)
 
         if self.error_message:
@@ -215,7 +194,7 @@ class PythonProfilingConfig(ProfileRange):
 
         try:
             self.cprofile_timer = None
-            if self.profiler_name == CPROFILE_NAME and not profile_three_steps:
+            if self.profiler_name == CPROFILE_NAME:
                 # only parse this field if pyinstrument is not specified and we are not doing the default three steps
                 # of profiling.
                 self.cprofile_timer = cProfileTimer(
@@ -230,16 +209,9 @@ class PythonProfilingConfig(ProfileRange):
 
 
 class SMDataParallelProfilingConfig(ProfileRange):
-    """Configuration corresponding to the smdataparallel profiling config. If not specified and no general metrics config was
-    specified, then do smdataparallel profiling only for step 15.
-    """
+    """Configuration corresponding to the smdataparallel profiling config."""
 
-    def __init__(self, general_metrics_config, smdataparallel_profiling_config):
-        if general_metrics_config == smdataparallel_profiling_config == {}:
-            smdataparallel_profiling_config = {
-                MetricsConfigsField.START_STEP.value: SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT,
-                MetricsConfigsField.NUM_STEPS.value: PROFILING_NUM_STEPS_DEFAULT,
-            }
+    def __init__(self, smdataparallel_profiling_config):
         super().__init__("smdataparallel profiling", smdataparallel_profiling_config)
 
 
@@ -253,9 +225,8 @@ class ProfilerConfig:
         file_max_size,
         file_close_interval,
         file_open_fail_threshold,
-        general_metrics_config,
         detailed_profiling_config,
-        dataloader_metrics_config,
+        dataloader_profiling_config,
         python_profiling_config,
         smdataparallel_profiling_config,
     ):
@@ -264,25 +235,16 @@ class ProfilerConfig:
         :param file_max_size: Max size a trace file can be, before being rotated.
         :param file_close_interval: Interval in seconds from the last close, before being rotated.
         :param file_open_fail_threshold: Number of times to attempt to open a trace fail before marking the writer as unhealthy.
-        :param general_metrics_config: Dictionary holding the general metrics config.
         :param detailed_profiling_config Dictionary holding the detailed profiling config.
-        :param dataloader_metrics_config Dictionary holding the dataloader config.
+        :param dataloader_profiling_config Dictionary holding the dataloader profiling config.
         :param python_profiling_config Dictionary holding the python profiling config.
         :param smdataparallel_profiling_config Dictionary holding the SMDataParallel profiling config.
         """
         self.local_path = local_path
         self.trace_file = TraceFile(file_max_size, file_close_interval, file_open_fail_threshold)
-        self.general_metrics_config = ProfileRange("general metrics config", general_metrics_config)
-        self.detailed_profiling_config = DetailedProfilingConfig(
-            general_metrics_config, detailed_profiling_config
-        )
-        self.dataloader_metrics_config = DataloaderMetricsConfig(
-            general_metrics_config, dataloader_metrics_config
-        )
-        self.python_profiling_config = PythonProfilingConfig(
-            general_metrics_config, python_profiling_config
-        )
-
+        self.detailed_profiling_config = DetailedProfilingConfig(detailed_profiling_config)
+        self.dataloader_profiling_config = DataloaderProfilingConfig(dataloader_profiling_config)
+        self.python_profiling_config = PythonProfilingConfig(python_profiling_config)
         self.smdataparallel_profiling_config = SMDataParallelProfilingConfig(
-            general_metrics_config, smdataparallel_profiling_config
+            smdataparallel_profiling_config
         )

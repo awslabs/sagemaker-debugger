@@ -732,8 +732,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # have to clear callable cache if we are not caching per mode
         self.callable_cache.change_mode()
 
-        self.profiler_config_parser.load_config()
-
     def on_train_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.TRAIN)
 
@@ -812,8 +810,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self.step_incremented_in_on_train_begin = False
 
+        self.profiler_config_parser.load_config()
+
         if self.profiler_config_parser.should_save_metrics(
-            MetricsCategory.DATALOADER, self.mode_steps[mode]
+            MetricsCategory.DATALOADER_PROFILING, self.mode_steps[mode]
         ) and self.profiler_config_parser.write_tf_dataloader_flag(
             TF_DATALOADER_START_FLAG_FILENAME
         ):

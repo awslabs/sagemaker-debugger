@@ -5,14 +5,8 @@ import time
 # First Party
 from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
-    DATALOADER_PROFILING_START_STEP_DEFAULT,
-    DETAILED_PROFILING_START_STEP_DEFAULT,
-    PROFILER_DURATION_DEFAULT,
     PROFILING_NUM_STEPS_DEFAULT,
     PYINSTRUMENT_NAME,
-    PYTHON_PROFILING_NUM_STEPS_DEFAULT,
-    PYTHON_PROFILING_START_STEP_DEFAULT,
-    SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT,
 )
 from smdebug.profiler.python_profiler import cProfileTimer
 
@@ -28,28 +22,15 @@ duration = 500
 
 
 # These test cases will primarily test the various combinations of start step, num steps, start_time, duration for
-# detailed profiling. Each test case consists of (detailed_profiling_parameters, expected_detailed_profiling_enabled,
+# detailed profiling. Each test case consists of (detailed_profiling_parameters, expected_enabled,
 # expected_can_profile, expected_values) where:
 #   - detailed_profiling_parameters refers to fields (if they exist, `None` otherwise) in the detailed profiling config,
 #       i.e. (start_step, num_steps, start_time, duration)
-#   - expected_detailed_profiling_enabled refers to whether detailed profiling is anebled (no errors parsing config).
-#   - expected_can_detailed_profile refers to the expected value of should_save_metrics for detailed profiling
+#   - expected_enabled refers to whether detailed profiling is enabled (no errors parsing config).
+#   - expected_can_profile refers to the expected value of should_save_metrics for detailed profiling
 #   - expected_values refers to expected values of the profile range after parsing, i.e.
 #       (start_step, end_step, start_time, end_time)
 detailed_profiling_test_cases = [
-    # Valid case where no fields are provided. Default parameters are used, but no profiling takes place on current
-    # step.
-    (
-        (None, None, None, None),
-        True,
-        False,
-        (
-            DETAILED_PROFILING_START_STEP_DEFAULT,
-            DETAILED_PROFILING_START_STEP_DEFAULT + PROFILING_NUM_STEPS_DEFAULT,
-            None,
-            None,
-        ),
-    ),
     # Valid case where both start_step and num_steps are provided. Profiler starts at start_step and profiles for
     # num_steps steps. Profiler will profile current step.
     (
@@ -122,8 +103,8 @@ detailed_profiling_test_cases = [
 ]
 
 # These test cases will primarily test the various combinations of start step, metrics_regex and metrics_name for
-# dataloader metrics. Each test case consists of (dataloader_parameters,
-# expected_enabled, expected_can_profile, expected_values) where:
+# dataloader profiling. Each test case consists of (dataloader_parameters, expected_enabled, expected_can_profile,
+# expected_values) where:
 #   - dataloader_parameters refers to fields (if they exist, `None` otherwise) in the dataloader metrics config,
 #       i.e. (start_step, metrics_regex, metrics__name)
 #   - expected_enabled refers to whether dataloader metrics collection is enabled (no errors parsing config).
@@ -131,18 +112,6 @@ detailed_profiling_test_cases = [
 #   - expected_values refers to expected values of the profile range after parsing, i.e.
 #       (start_step, end_step, metrics_regex)
 dataloader_test_cases = [
-    # Valid case where no fields are provided. Default parameters are used, but no metrics collection takes place on
-    # this step.
-    (
-        (None, None, "Dataloader:Event1"),
-        True,
-        False,
-        (
-            DATALOADER_PROFILING_START_STEP_DEFAULT,
-            DATALOADER_PROFILING_START_STEP_DEFAULT + PROFILING_NUM_STEPS_DEFAULT,
-            re.compile(".*"),
-        ),
-    ),
     # Valid case where start step and metrics regex are provided. Metrics collection is done for the current step for
     # the given metrics name.
     (
@@ -177,27 +146,15 @@ dataloader_test_cases = [
 ]
 
 # These test cases will primarily test the various combinations of start step, num steps, profiler name and cprofile
-# timer for python profiling. Each test case consists of (python_profiling_parameters,
-# expected_detailed_profiling_enabled, expected_can_profile, expected_values) where:
+# timer for python profiling. Each test case consists of (python_profiling_parameters, expected_enabled,
+# expected_can_profile, expected_values) where:
 #   - python_profiling_parameters refers to fields (if they exist, `None` otherwise) in the python profiling config,
 #       i.e. (start_step, num_steps, profiler_name, cprofile_timer)
-#   - expected_python_profiling_enabled refers to whether python profiling is enabled (no errors parsing config).
-#   - expected_can_python_profile refers to the expected value hould_save_metrics for python profiling
+#   - expected_enabled refers to whether python profiling is enabled (no errors parsing config).
+#   - expected_can_profile refers to the expected value hould_save_metrics for python profiling
 #   - expected_values refers to expected values of the profile range after parsing, i.e.
 #       (start_step, end_step, profiler_name, cprofile_timer)
 python_profiling_test_cases = [
-    # Valid case where no fields are provided. Default parameters are used, but no profiling takes place on this step.
-    (
-        (None, None, None, None),
-        True,
-        False,
-        (
-            PYTHON_PROFILING_START_STEP_DEFAULT,
-            PYTHON_PROFILING_START_STEP_DEFAULT + PYTHON_PROFILING_NUM_STEPS_DEFAULT,
-            CPROFILE_NAME,
-            None,
-        ),
-    ),
     # Valid case where step fields, profiler name and cprofile timer are specified. Profiler starts at start step and
     # profiles for num_steps steps with cProfile measuring off cpu time. Profiler will profile current step.
     (
@@ -265,78 +222,16 @@ python_profiling_test_cases = [
     ),
 ]
 
-# These test cases will primarily test the various combinations of general metrics start step and num steps along with
-# detailed profiling start step and num steps Each test case consists of (profiling_parameters,
-# expected_profiling_enabled, expected_can_profile, expected_values) where:
-#   - profiling_parameters refers to fields (if they exist, `None` otherwise) in the general/detailed profiling config,
-#       i.e. (general_start_step, general_num_steps, detailed_start_step, detailed_num_steps)
-#   - expected_can_detailed_profile refers to the expected value of should_save_metrics for detailed profiling
-#   - expected_values refers to expected values of the profile ranges after parsing, i.e.
-#       (general_start_step, general_end_step, detailed_start_step, detailed_end_step)
-general_profiling_test_cases = [
-    # Valid case where general metrics config is specified but detailed profiling config isn't. Profiler starts at
-    # good_start_step and profiles for num_steps. Profiler will profile current step.
-    (
-        ((good_start_step, num_steps), (None, None)),
-        True,
-        ((good_start_step, good_start_step + num_steps), (None, None)),
-    ),
-    # Valid case where general and detailed config are specified. Profiler starts at good_start_step and profiles for
-    # num_steps. Profiler also profiles starting at bad_start_step and profiles for PROFILING_NUM_STEPS_DEFAULT steps.
-    # Profiler will profile current step.
-    (
-        ((bad_start_step, None), (good_start_step, num_steps)),
-        True,
-        (
-            (bad_start_step, bad_start_step + PROFILING_NUM_STEPS_DEFAULT),
-            (good_start_step, good_start_step + num_steps),
-        ),
-    ),
-    # Valid case where general and detailed config are specified. Profiler starts at good_start_step and profiles for
-    # num_steps. Profiler also profiles starting at bad_start_step_2 and profiles for PROFILING_NUM_STEPS_DEFAULT steps.
-    # Profiler will profile current step.
-    (
-        ((good_start_step, num_steps), (bad_start_step_2, None)),
-        True,
-        (
-            (good_start_step, good_start_step + num_steps),
-            (bad_start_step_2, bad_start_step_2 + PROFILING_NUM_STEPS_DEFAULT),
-        ),
-    ),
-    # Valid case where general and detailed config are specified. Profiler starts at bad_start_step and profiles for
-    # PROFILING_NUM_STEPS_DEFAULT steps. Profiler also profiles starting at bad_start_step_2 and profiles for
-    # PROFILING_NUM_STEPS_DEFAULT steps. Profiler does not profile current step.
-    (
-        ((bad_start_step, None), (bad_start_step_2, None)),
-        False,
-        (
-            (bad_start_step, bad_start_step + PROFILING_NUM_STEPS_DEFAULT),
-            (bad_start_step_2, bad_start_step_2 + PROFILING_NUM_STEPS_DEFAULT),
-        ),
-    ),
-]
-
-# These test cases will primarily test the various combinations of start step, num steps that are unique to smdataparallel
-# profiling. Each test case consists of (smdataparallel_profiling_parameters, expected_smdataparallel_profiling_enabled,
+# These test cases will primarily test the various combinations of start step, num steps that are unique to herring
+# profiling. Each test case consists of (herring_profiling_parameters, expected_profiling_enabled,
 # expected_can_profile, expected_values) where:
 #   - smdataparallel_profiling_parameters refers to fields (if they exist, `None` otherwise) in the smdataparallel profiling config,
 #       i.e. (start_step, num_steps)
-#   - expected_smdataparallel_profiling_enabled refers to whether smdataparallel profiling is enabled (no errors parsing config).
-#   - expected_can_smdataparallel_profile refers to the expected value of should_save_metrics for smdataparallel profiling
+#   - expected_profiling_enabled refers to whether herring profiling is enabled (no errors parsing config).
+#   - expected_can_profile refers to the expected value of should_save_metrics for herring profiling
 #   - expected_values refers to expected values of the profile range after parsing, i.e.
 #       (start_step, end_step)
 smdataparallel_profiling_test_cases = [
-    # Valid case where no fields are provided. Default parameters are used, but no profiling takes place on current
-    # step.
-    (
-        (None, None),
-        True,
-        False,
-        (
-            SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT,
-            SMDATAPARALLEL_PROFILING_START_STEP_DEFAULT + PROFILING_NUM_STEPS_DEFAULT,
-        ),
-    ),
     # Valid case where both start_step and num_steps are provided. Profiler starts at start_step and profiles for
     # num_steps steps. Profiler will profile current step.
     ((good_start_step, num_steps), True, True, (good_start_step, good_start_step + num_steps)),

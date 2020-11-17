@@ -329,6 +329,8 @@ class Hook(CallbackHook):
             step_num=str(self.mode_steps[self.mode]),
         )
 
+        self.profiler_config_parser.load_config()
+
         # Disable python profiling if the python profiler is currently profiling.
         if python_profiler:
             python_profiler.stop_profiling(
@@ -632,5 +634,5 @@ class Hook(CallbackHook):
         step since the dataloader metrics for the next step are collected on the current step.
         """
         return self.profiler_config_parser.should_save_metrics(
-            MetricsCategory.DATALOADER, self.step + 1, metrics_name=metrics_name
+            MetricsCategory.DATALOADER_PROFILING, self.step + 1, metrics_name=metrics_name
         )

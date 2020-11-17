@@ -21,23 +21,21 @@
     - ml.c5.4xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "True"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         PythonProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\", \"ProfilerName\": \"cprofile\"}"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 13
         python_stats_file_count: 23
   -
     - smprofiler-IT-mnist-keras-cpu-disabled
-    - *Enable
+    - *Disable # enable with DisableProfiler once we have new SM SDK
     - *mnist_folder
     - mnist_cpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.c5.4xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "False"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 0
         framework_trace_file_count: 0
@@ -64,9 +62,8 @@
     - ml.c5.4xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "True"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         PythonProfilingConfig: "{\"NumSteps\": \"3\", \"ProfilerName\": \"pyinstrument\"}"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         RotateMaxFileSizeInBytes: "12485760.34"
         RotateFileCloseIntervalInSeconds: "100.45"
         FileOpenFailThreshold: "35"
@@ -83,11 +80,10 @@
     - ml.c5.4xlarge
     - instance_count: 2
     - profiler_params:
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         RotateMaxFileSizeInBytes: "15485760"
         RotateFileCloseIntervalInSeconds: "100"
         FileOpenFailThreshold: "35"
-        ProfilerEnabled: "True"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 2
         framework_trace_file_count: 4
@@ -103,12 +99,11 @@
     - ml.p2.8xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "True"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 12
         framework_trace_file_count: 28
-        python_stats_file_count: 32
+        python_stats_file_count: 0
         horovod_tracefile_count: 3
   -
     - smprofiler-IT-keras-resnet-gpu-mirrored
@@ -119,15 +114,14 @@
     - ml.p2.8xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "True"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         RotateMaxFileSizeInBytes: "20485760"
         RotateFileCloseIntervalInSeconds: "100"
         FileOpenFailThreshold: "35"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 7
-        python_stats_file_count: 10
+        python_stats_file_count: 0
   -
     - smprofiler-IT-mnist-keras-gpu-default
     - *Enable
@@ -137,23 +131,21 @@
     - ml.p2.8xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "True"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         PythonProfilingConfig: "{\"StartStep\": \"1\", \"ProfilerName\": \"pyinstrument\"}"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 1
         framework_trace_file_count: 2
         python_stats_file_count: 8
   -
     - smprofiler-IT-mnist-keras-gpu-disabled
-    - *Enable
+    - *Disable # enable with DisableProfiler once we have new SM SDK
     - *mnist_folder
     - mnist_gpu.py
     - AmazonSageMaker-ExecutionRole-20200205T150348
     - ml.p2.8xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "False"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 0
         framework_trace_file_count: 0
@@ -180,9 +172,8 @@
     - ml.p2.8xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "True"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         PythonProfilingConfig: "{\"DurationInSeconds\": \"100\", \"ProfilerName\": \"cprofile\"}"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         RotateMaxFileSizeInBytes: "5485760"
         RotateFileCloseIntervalInSeconds: "50"
         FileOpenFailThreshold: "35"
@@ -199,15 +190,14 @@
     - ml.p2.8xlarge
     - instance_count: 2
     - profiler_params:
-        ProfilerEnabled: "True"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
         RotateMaxFileSizeInBytes: "15485760"
         RotateFileCloseIntervalInSeconds: "100"
         FileOpenFailThreshold: "35"
-        DataloaderMetricsConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 8
         framework_trace_file_count: 24
-        python_stats_file_count: 64
+        python_stats_file_count: 0
         horovod_tracefile_count: 1
   -
     - smprofiler-IT-multi-gpu-native-tf2-nmt
@@ -218,7 +208,7 @@
     - ml.p3.16xlarge
     - instance_count: 1
     - profiler_params:
-        ProfilerEnabled: "True"
+        DataloaderProfilingConfig: "{\"StartStep\": \"1\", \"NumSteps\": \"5\"}"
     - expected_values_in_test_artifacts:
         python_trace_file_count: 0
         framework_trace_file_count: 13

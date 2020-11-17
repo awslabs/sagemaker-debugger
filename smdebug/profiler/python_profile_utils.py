@@ -32,6 +32,7 @@ class cProfileTimer(Enum):
     TOTAL_TIME = "total_time"
     CPU_TIME = "cpu_time"
     OFF_CPU_TIME = "off_cpu_time"
+    DEFAULT = "default"
 
 
 def str_to_python_profile_mode(mode_str):

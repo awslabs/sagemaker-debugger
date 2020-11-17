@@ -137,7 +137,7 @@ class PythonProfiler:
         python_profiling_config = profiler_config.python_profiling_config
         if python_profiling_config.profiler_name == CPROFILE_NAME:
             cprofile_timer = python_profiling_config.cprofile_timer
-            if cprofile_timer is None:
+            if cprofile_timer == cProfileTimer.DEFAULT:
                 return cProfileDefaultPythonProfiler(base_folder, framework)
             else:
                 return cProfilePythonProfiler(base_folder, framework, cprofile_timer)

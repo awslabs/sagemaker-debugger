@@ -16,7 +16,6 @@ from smdebug.profiler.profiler_constants import (
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
 )
-from smdebug.profiler.utils import str2bool
 
 
 class LastProfilingStatus(Enum):
@@ -31,16 +30,14 @@ class LastProfilingStatus(Enum):
     PROFILER_ENABLED = 6
     DEFAULT_VALUES = 7
     DEFAULT_PYTHON_PROFILING = 8
-    INVALID_GENERAL_METRICS_CONFIG = 9
-    INVALID_DETAILED_PROFILING_CONFIG = 10
-    INVALID_DATALOADER_METRICS_CONFIG = 11
-    INVALID_PYTHON_PROFILING_CONFIG = 12
-    INVALID_GENERAL_CONFIG_FIELDS = 13
-    INVALID_DETAILED_CONFIG_FIELDS = 14
-    INVALID_DATALOADER_CONFIG_FIELDS = 15
-    INVALID_PYTHON_CONFIG_FIELDS = 16
-    DETAILED_CONFIG_NOT_FOUND = 17
-    INVALID_SMDATAPARALLEL_PROFILING_CONFIG = 18
+    INVALID_DETAILED_PROFILING_CONFIG = 9
+    INVALID_DATALOADER_PROFILING_CONFIG = 10
+    INVALID_PYTHON_PROFILING_CONFIG = 11
+    INVALID_DETAILED_CONFIG_FIELDS = 12
+    INVALID_DATALOADER_CONFIG_FIELDS = 13
+    INVALID_PYTHON_CONFIG_FIELDS = 14
+    DETAILED_CONFIG_NOT_FOUND = 15
+    INVALID_SMDATAPARALLEL_PROFILING_CONFIG = 16
 
 
 class MetricsCategory(Enum):
@@ -48,7 +45,7 @@ class MetricsCategory(Enum):
     """
 
     DETAILED_PROFILING = 1
-    DATALOADER = 2
+    DATALOADER_PROFILING = 2
     PYTHON_PROFILING = 3
     SMDATAPARALLEL_PROFILING = 4
 
@@ -58,14 +55,13 @@ class ProfilingParametersField(Enum):
     """
 
     PROFILING_PARAMETERS = "profilingparameters"
-    PROFILER_ENABLED = "profilerenabled"
+    DISABLE_PROFILER = "disableprofiler"
     LOCAL_PATH = "localpath"
     FILE_MAX_SIZE = "rotatemaxfilesizeinbytes"
     FILE_CLOSE_INTERVAL = "rotatefilecloseintervalinseconds"
     FILE_OPEN_FAIL_THRESHOLD = "fileopenfailthreshold"
-    GENERAL_METRICS_CONFIG = "generalmetricsconfig"
     DETAILED_PROFILING_CONFIG = "detailedprofilingconfig"
-    DATALOADER_METRICS_CONFIG = "dataloadermetricsconfig"
+    DATALOADER_PROFILING_CONFIG = "dataloaderprofilingconfig"
     PYTHON_PROFILING_CONFIG = "pythonprofilingconfig"
     SMDATAPARALLEL_PROFILING_CONFIG = "smdataparallelprofilingconfig"
 
@@ -80,6 +76,7 @@ class ProfilerConfigParser:
     def __init__(self):
         """Initialize the parser to be disabled for profiling and detailed profiling.
         """
+        self.last_json_config = None
         self.config = None
         self.profiling_enabled = False
         self.logger = get_logger()
@@ -126,44 +123,40 @@ class ProfilerConfigParser:
         Set the provided values for the specified variables and default values for the rest.
         Validate the detailed profiling config (if it exists).
         """
-        self.config = None
-        self.tf_dataloader_flag_writer = None
         config_path = os.environ.get("SMPROFILER_CONFIG_PATH", CONFIG_PATH_DEFAULT)
 
         if os.path.isfile(config_path):
             with open(config_path) as json_data:
                 try:
-                    config = json.loads(json_data.read().lower()).get(
-                        ProfilingParametersField.PROFILING_PARAMETERS.value
-                    )
-                except:
+                    full_config = json.loads(json_data.read().lower())
+
+                    if full_config == self.last_json_config:
+                        return
+
+                    self.last_json_config = full_config
+                    self.config = None
+
+                    if full_config.get(ProfilingParametersField.DISABLE_PROFILER.value, False):
+                        self._log_new_message(
+                            LastProfilingStatus.PROFILER_DISABLED,
+                            self.logger.info,
+                            f"User has disabled profiler.",
+                        )
+                        self._reset_statuses()
+                        self.profiling_enabled = False
+                        return
+                except Exception as e:
                     self._log_new_message(
                         LastProfilingStatus.INVALID_CONFIG,
                         self.logger.error,
-                        f"Error parsing config at {config_path}.",
+                        f"Error parsing config at {config_path}: {str(e)}",
                     )
                     self._reset_statuses()
+                    self.config = None
                     self.profiling_enabled = False
                     return
-            try:
-                profiler_enabled = str2bool(
-                    config.get(ProfilingParametersField.PROFILER_ENABLED.value, True)
-                )
-            except ValueError as e:
-                self._log_new_message(
-                    LastProfilingStatus.DEFAULT_ENABLED,
-                    self.logger.info,
-                    f"{e} in {ProfilingParametersField.PROFILING_PARAMETERS}. Profiler is enabled.",
-                )
-                profiler_enabled = True
-            if profiler_enabled is True:
-                self._log_new_message(
-                    LastProfilingStatus.PROFILER_ENABLED,
-                    self.logger.info,
-                    f"Using config at {config_path}.",
-                )
-                self.profiling_enabled = True
-            else:
+            config = full_config.get(ProfilingParametersField.PROFILING_PARAMETERS.value)
+            if config == {}:
                 self._log_new_message(
                     LastProfilingStatus.PROFILER_DISABLED,
                     self.logger.info,
@@ -172,6 +165,13 @@ class ProfilerConfigParser:
                 self._reset_statuses()
                 self.profiling_enabled = False
                 return
+            else:
+                self._log_new_message(
+                    LastProfilingStatus.PROFILER_ENABLED,
+                    self.logger.info,
+                    f"Using config at {config_path}.",
+                )
+                self.profiling_enabled = True
         else:
             self._log_new_message(
                 LastProfilingStatus.CONFIG_NOT_FOUND,
@@ -212,20 +212,15 @@ class ProfilerConfigParser:
             file_close_interval = CLOSE_FILE_INTERVAL_DEFAULT
             file_open_fail_threshold = FILE_OPEN_FAIL_THRESHOLD_DEFAULT
 
-        general_metrics_config = self._parse_metrics_config(
-            config,
-            ProfilingParametersField.GENERAL_METRICS_CONFIG,
-            LastProfilingStatus.INVALID_GENERAL_METRICS_CONFIG,
-        )
         detailed_profiling_config = self._parse_metrics_config(
             config,
             ProfilingParametersField.DETAILED_PROFILING_CONFIG,
             LastProfilingStatus.INVALID_DETAILED_PROFILING_CONFIG,
         )
-        dataloader_metrics_config = self._parse_metrics_config(
+        dataloader_profiling_config = self._parse_metrics_config(
             config,
-            ProfilingParametersField.DATALOADER_METRICS_CONFIG,
-            LastProfilingStatus.INVALID_DATALOADER_METRICS_CONFIG,
+            ProfilingParametersField.DATALOADER_PROFILING_CONFIG,
+            LastProfilingStatus.INVALID_DATALOADER_PROFILING_CONFIG,
         )
         python_profiling_config = self._parse_metrics_config(
             config,
@@ -243,54 +238,34 @@ class ProfilerConfigParser:
             file_max_size,
             file_close_interval,
             file_open_fail_threshold,
-            general_metrics_config,
             detailed_profiling_config,
-            dataloader_metrics_config,
+            dataloader_profiling_config,
             python_profiling_config,
             smdataparallel_profiling_config,
         )
 
-        if self.config.general_metrics_config.error_message is not None:
-            self._log_new_message(
-                LastProfilingStatus.INVALID_GENERAL_CONFIG_FIELDS,
-                self.logger.error,
-                self.config.general_metrics_config.error_message,
-            )
-
-        if (
-            self.config.detailed_profiling_config.error_message is not None
-            and detailed_profiling_config != general_metrics_config
-        ):
+        if self.config.detailed_profiling_config.error_message is not None:
             self._log_new_message(
                 LastProfilingStatus.INVALID_DETAILED_CONFIG_FIELDS,
                 self.logger.error,
                 self.config.detailed_profiling_config.error_message,
             )
 
-        if (
-            self.config.dataloader_metrics_config.error_message is not None
-            and dataloader_metrics_config != general_metrics_config
-        ):
+        if self.config.dataloader_profiling_config.error_message is not None:
             self._log_new_message(
                 LastProfilingStatus.INVALID_DATALOADER_CONFIG_FIELDS,
                 self.logger.error,
-                self.config.dataloader_metrics_config.error_message,
+                self.config.dataloader_profiling_config.error_message,
             )
 
-        if (
-            self.config.python_profiling_config.error_message is not None
-            and python_profiling_config != general_metrics_config
-        ):
+        if self.config.python_profiling_config.error_message is not None:
             self._log_new_message(
                 LastProfilingStatus.INVALID_PYTHON_CONFIG_FIELDS,
                 self.logger.error,
                 self.config.python_profiling_config.error_message,
             )
 
-        if (
-            self.config.smdataparallel_profiling_config.error_message is not None
-            and smdataparallel_profiling_config != general_metrics_config
-        ):
+        if self.config.smdataparallel_profiling_config.error_message is not None:
             self._log_new_message(
                 LastProfilingStatus.INVALID_SMDATAPARALLEL_PROFILING_CONFIG,
                 self.logger.error,
@@ -311,8 +286,8 @@ class ProfilerConfigParser:
 
         if metrics_category == MetricsCategory.DETAILED_PROFILING:
             metric_config = self.config.detailed_profiling_config
-        elif metrics_category == MetricsCategory.DATALOADER:
-            metric_config = self.config.dataloader_metrics_config
+        elif metrics_category == MetricsCategory.DATALOADER_PROFILING:
+            metric_config = self.config.dataloader_profiling_config
             if metrics_name is not None and not metric_config.valid_metrics_name(metrics_name):
                 return False
         elif metrics_category == MetricsCategory.PYTHON_PROFILING:
@@ -322,13 +297,7 @@ class ProfilerConfigParser:
         else:
             return False  # unrecognized metrics category
 
-        # need to call can_start_profiling for both so that end step/time is updated if necessary
-        can_profile_general = self.config.general_metrics_config.can_start_profiling(
-            current_step, current_time
-        )
-        can_profile_metric = metric_config.can_start_profiling(current_step, current_time)
-
-        return can_profile_general or can_profile_metric
+        return metric_config.can_start_profiling(current_step, current_time)
 
     def write_tf_dataloader_flag(self, flag_filename):
         """If dataloader metrics collection is enabled, then write a .tmp file with the provided flag_filename such
@@ -342,7 +311,7 @@ class ProfilerConfigParser:
 
         Return True if writing the flag was successful, False if unsuccessful.
         """
-        if not self.profiling_enabled or not self.config.dataloader_metrics_config.is_enabled():
+        if not self.profiling_enabled or not self.config.dataloader_profiling_config.is_enabled():
             return
 
         tf_dataloader_flag_path = os.path.join(
