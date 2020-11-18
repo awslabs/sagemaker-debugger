@@ -22,7 +22,8 @@ from smdebug.profiler.analysis.rules.step_outlier import StepOutlier
 from smdebug.rules.rule_invoker import invoke_rule
 from smdebug.trials import create_trial
 
-os.mkdir("/opt/ml/processing/outputs/profiler-reports/")
+os.mkdir("/opt/ml/processing/output/")
+os.mkdir("/opt/ml/processing/output/rule/")
 os.mkdir("/opt/ml/processing/outputs/.sagemaker-ignore")
 os.mkdir("/opt/ml/code/")
 os.system("cp profiler_report.ipynb /opt/ml/code/")
@@ -42,7 +43,7 @@ def run_rule(rule_obj):
 
 # path to profiler data
 profiler_path = os.environ["S3_PATH"]
-trial = create_trial(profiler_path, profiler=True)
+trial = create_trial(profiler_path, profiler=True, output_dir="/opt/ml/processing/output/rule")
 
 if "TRIGGER_ALL" in os.environ:
     # create list of rules
@@ -93,6 +94,8 @@ rule = PlotVisualizations(
     trial,
     create_html=True,
     nb_full_path="profiler_report.ipynb",
-    output_full_path="/opt/ml/processing/outputs/profiler-report.ipynb",
+    output_full_path="/opt/ml/processing/output/rule/profiler-report.ipynb",
 )
 rule._plot_visualization(last_found_step=0)
+
+os.system("cp -r /opt/ml/processing/output/rule/profiler-reports/ /opt/ml/processing/outputs/")
