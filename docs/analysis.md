@@ -30,8 +30,10 @@ This page describes the programming model that SageMaker Debugger provides for y
 		* [steps](#steps-1)
 		* [value](#value)
 		* [reduction_value](#reduction_value)
-		* [reduction_values](#reduction_values)
+		* [shape](#shape)
 		* [values](#values)
+		* [reduction_values](#reduction_values)
+		* [shapes](#shapes)
 		* [workers](#workers-1)
 		* [prev_steps](#prev_steps)
 * [Rules](#Rules)
@@ -356,6 +358,34 @@ trial.tensor(name).reduction_value(step_num, reduction_name,
 ###### Returns
 `numpy.ndarray` The reduction value of tensor at the given step and worker (if the training job saved data from multiple workers) as a 1x1 numpy array. If this reduction was saved for the tensor during training as part of specification through reduction config, it will be loaded and returned. If the given reduction was not saved then, but the full tensor was saved, the reduction will be computed on the fly and returned. If both the chosen reduction and full tensor are not available, this method raises `TensorUnavailableForStep` exception.
 
+#### shape
+Get the shape of the chosen tensor at a particular step.
+
+```python
+trial.tensor(name).shape(step_num, mode=modes.GLOBAL, worker=None)
+
+```
+###### Arguments
+- `step_num (int)` The step number whose value is to be returned for the mode passed through the next parameter.
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
+
+###### Returns
+`tuple(int)`  If only the shape of this tensor was saved through `save_shape` configuration in ReductionConfig, it will be returned. If the full tensor was saved, then shape will be computed and returned today. If both the shape and full tensor are not available, this method raises `TensorUnavailableForStep` exception.
+
+#### values
+Get the values of the tensor for all steps of a given mode.
+
+```python
+trial.tensor(name).values(mode=modes.GLOBAL, worker=None)
+```
+
+###### Arguments
+- `mode (smdebug.modes enum value)` The mode applicable for the step number passed above. Defaults to `modes.GLOBAL`
+- `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
+
+###### Returns
+`dict[int -> numpy.ndarray]` A dictionary with step numbers as keys and numpy arrays representing the value of the tensor as values.
 
 #### reduction_values
 Get all reduction values saved for the chosen tensor at a particular step. A reduction value is a tensor reduced to a single value through reduction or aggregation operations. Please go through the description of the method `reduction_value` for more details.
@@ -372,11 +402,11 @@ trial.tensor(name).reduction_values(step_num, mode=modes.GLOBAL, worker=None)
 ###### Returns
 `dict[(str, bool) -> numpy.ndarray]` A dictionary with keys being tuples of the form `(reduction_name, abs)` to a 1x1 numpy ndarray value. `abs` here is a boolean that denotes whether the reduction was performed on the absolute value of the tensor or not. Note that this method only returns the reductions which were saved from the training job. It does not compute all known reductions and return them if only the raw tensor was saved.
 
-#### values
-Get the values of the tensor for all steps of a given mode.
+#### shapes
+Get the shapes of the tensor for all steps of a given mode.
 
 ```python
-trial.tensor(name).values(mode=modes.GLOBAL, worker=None)
+trial.tensor(name).shapes(mode=modes.GLOBAL, worker=None)
 ```
 
 ###### Arguments
@@ -384,7 +414,7 @@ trial.tensor(name).values(mode=modes.GLOBAL, worker=None)
 - `worker (str)` This parameter is only applicable for distributed training. You can retrieve the value of the tensor from a specific worker by passing the worker name. You can query all the workers seen by the trial with the `trial.workers()` method. You might also be interested in querying the workers which saved a value for the tensor at a specific step, this is possible with the method: `trial.tensor(name).workers(step, mode)`
 
 ###### Returns
-`dict[int -> numpy.ndarray]` A dictionary with step numbers as keys and numpy arrays representing the value of the tensor as values.
+`dict[int -> tuple(int)]` A dictionary with step numbers as keys and tuples of ints representing the shapes of the tensor as values.
 
 #### workers
 Get all the workers for which this tensor was saved at a given step

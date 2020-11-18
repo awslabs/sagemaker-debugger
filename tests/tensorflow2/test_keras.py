@@ -7,14 +7,17 @@ This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
 # Standard Library
+import re
 import time
 
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
-from tests.tensorflow2.utils import is_tf_2_2
+from tests.constants import TEST_DATASET_S3_PATH
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
 from tests.tensorflow.utils import create_trial_fast_refresh
+from tests.utils import use_s3_datasets, verify_shapes
 
 # First Party
 import smdebug.tensorflow as smd
@@ -25,6 +28,19 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
+
+
+def get_model():
+    model = tf.keras.models.Sequential(
+        [
+            # WA for TF issue https://github.com/tensorflow/tensorflow/issues/36279
+            tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+            tf.keras.layers.Dense(128, activation="relu"),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(10, activation="softmax"),
+        ]
+    )
+    return model
 
 
 def helper_keras_fit(
@@ -46,15 +62,7 @@ def helper_keras_fit(
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train, x_test = x_train / 255, x_test / 255
 
-    model = tf.keras.models.Sequential(
-        [
-            tf.keras.layers.Flatten(input_shape=(28, 28)),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(10, activation="softmax"),
-        ]
-    )
-
+    model = get_model()
     if hook is None:
         if save_config is None:
             save_config = SaveConfig(save_interval=3)
@@ -101,6 +109,8 @@ def helper_keras_fit(
         elif step == "predict":
             model.predict(x_test[:100], callbacks=hooks, verbose=0)
 
+    model.save(trial_dir, save_format="tf")
+
     hook.close()
 
 
@@ -120,17 +130,7 @@ def helper_keras_gradtape(
         (tf.cast(x_train[..., tf.newaxis] / 255, tf.float32), tf.cast(y_train, tf.int64))
     )
     dataset = dataset.shuffle(1000).batch(batch_size)
-
-    model = tf.keras.models.Sequential(
-        [
-            # WA for TF issue https://github.com/tensorflow/tensorflow/issues/36279
-            tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(10, activation="softmax"),
-        ]
-    )
-
+    model = get_model()
     if hook is None:
         if save_config is None:
             save_config = SaveConfig(save_interval=3)
@@ -178,7 +178,38 @@ def helper_keras_gradtape(
             )
         train_acc_metric.reset_states()
 
+    model.save(trial_dir, save_format="tf")
     hook.close()
+
+
+@pytest.mark.skip_if_non_eager
+@pytest.mark.slow
+def test_layer_names_gradient_tape(out_dir):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=9),
+        include_collections=[CollectionKeys.LAYERS],
+    )
+    helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
+
+    tr = create_trial_fast_refresh(out_dir)
+    tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+    for tname in tnames:
+        assert re.match(pattern=pattern, string=tname) is not None
+
+
+@pytest.mark.skip_if_non_eager
+def test_keras_gradtape_shapes(out_dir):
+    hook = smd.KerasHook(
+        out_dir=out_dir,
+        save_all=True,
+        save_config=SaveConfig(save_steps=[0]),
+        reduction_config=ReductionConfig(save_shape=True),
+    )
+    helper_keras_gradtape(trial_dir=out_dir, hook=hook)
+    verify_shapes(out_dir, 0)
+    verify_shapes(out_dir, 500)
 
 
 @pytest.mark.skip_if_non_eager
@@ -193,7 +224,7 @@ def test_keras_gradtape(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 15
+        assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
@@ -273,7 +304,7 @@ def test_gradtape_include_regex(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
 
-    assert len(tnames) == 8
+    assert len(tnames) == (12 if is_tf_2_2() else 8)
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
@@ -341,7 +372,7 @@ def test_gradtape_include_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 15
+    assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 15)
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -386,7 +417,7 @@ def test_gradtape_persistent(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == 15
+        assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
@@ -407,7 +438,7 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook,
-        eager=tf_eager_mode,
+        run_eagerly=tf_eager_mode,
         steps=["train", "eval", "predict", "train"],
     )
 
@@ -415,9 +446,16 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            assert len(trial.tensor_names()) == (13 if is_tf_2_2() else 14)
-            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
-            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
+            if is_tf_2_2():
+                assert len(trial.tensor_names()) == 28
+            else:
+                assert len(trial.tensor_names()) == (21 if is_tf_2_3() else 14)
+            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (
+                1 if is_tf_2_2() else 0
+            )
+            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (
+                2 if is_tf_2_2() else 0
+            )
         else:
             assert len(trial.tensor_names()) == 21
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -433,13 +471,27 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
             "No Optimizer Variables Should be Saved in EVAL Mode",
         )
     else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == (4 if is_tf_2_2() and tf_eager_mode else 5)
+        assert len(trial.tensor_names()) == (
+            4 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 5
+        )
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
     )
     for tname in trial.tensor_names():
         assert trial.tensor(tname).value(0) is not None
+
+
+def test_keras_fit_shapes(out_dir):
+    hook = smd.KerasHook(
+        out_dir=out_dir,
+        save_all=True,
+        save_config=SaveConfig(save_steps=[0]),
+        reduction_config=ReductionConfig(save_shape=True),
+    )
+    helper_keras_fit(trial_dir=out_dir, hook=hook)
+    print(create_trial_fast_refresh(out_dir).tensor_names(step=0))
+    verify_shapes(out_dir, 0)
 
 
 @pytest.mark.slow
@@ -506,13 +558,31 @@ def test_include_regex(out_dir, tf_eager_mode):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-
-    if tf_eager_mode:
-        assert len(tnames) == 8
-    else:
-        assert len(tnames) == 8
+    assert len(tnames) == (12 if is_tf_2_2() else 4)
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
+
+
+@pytest.mark.slow
+def test_layer_names(out_dir, tf_eager_mode):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=9),
+        include_collections=[CollectionKeys.LAYERS],
+    )
+    helper_keras_fit(
+        out_dir,
+        hook=hook,
+        save_config=SaveConfig(save_interval=9),
+        steps=["train"],
+        run_eagerly=tf_eager_mode,
+    )
+
+    tr = create_trial_fast_refresh(out_dir)
+    tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+    for tname in tnames:
+        assert re.match(pattern=pattern, string=tname) is not None
 
 
 @pytest.mark.skip_if_non_eager
@@ -532,7 +602,7 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensor_names()) == (7 if is_tf_2_2() else 8)
+    assert len(tr.tensor_names()) == (7 if (is_tf_2_2() or is_tf_2_3()) else 8)
 
 
 @pytest.mark.slow
@@ -558,12 +628,12 @@ def test_weights_collections(out_dir, tf_eager_mode):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
+    assert len(trial.tensor_names()) == (5 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 6)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
     )
 
 
@@ -593,7 +663,10 @@ def test_include_collections(out_dir, tf_eager_mode):
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
     if tf_eager_mode:
-        assert len(trial.tensor_names()) == (12 if is_tf_2_2() else 13)
+        if is_tf_2_2():
+            assert len(trial.tensor_names()) == 16
+        else:
+            assert len(trial.tensor_names()) == (12 if is_tf_2_3() else 13)
     else:
         assert len(trial.tensor_names()) == 18
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
@@ -603,7 +676,7 @@ def test_include_collections(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
     )
 
 
@@ -623,7 +696,7 @@ def test_include_only_custom_collection(out_dir, tf_eager_mode):
     )
 
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (8 if is_tf_2_2() and tf_eager_mode else 9)
+    assert len(trial.tensor_names()) == (8 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 9)
     assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
 
 
@@ -638,12 +711,12 @@ def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (5 if is_tf_2_2() and tf_eager_mode else 6)
+    assert len(trial.tensor_names()) == (5 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 6)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if is_tf_2_2() and tf_eager_mode else 3
+        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
     )
 
 
@@ -656,12 +729,12 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
 
     trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (20 if is_tf_2_2() else 21)
+    assert len(trial.tensor_names()) == (27 if is_tf_2_2() else 13)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 0
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 0
+    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (1 if is_tf_2_2() else 0)
+    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (2 if is_tf_2_2() else 0)
 
 
 @pytest.mark.skip  # skip until aws tf update
@@ -749,7 +822,8 @@ def test_keras_to_estimator(out_dir, tf_eager_mode):
 
     def input_fn():
         split = tfds.Split.TRAIN
-        dataset = tfds.load("iris", split=split, as_supervised=True)
+        data_dir = TEST_DATASET_S3_PATH if use_s3_datasets() else None
+        dataset = tfds.load("iris", data_dir=data_dir, split=split, as_supervised=True)
         dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
         dataset = dataset.batch(32).repeat()
         return dataset

@@ -13,31 +13,51 @@ from tensorflow.python.distribute import values
 from smdebug.core.modes import ModeKeys
 
 
+def does_tf_support_mixed_precision_training():
+    # The Keras mixed precision API is first available in TensorFlow 2.1.0
+    # See: https://www.tensorflow.org/guide/mixed_precision
+    return version.parse(tf.__version__) >= version.parse("2.1.0")
+
+
+def supported_tf_variables():
+    if does_tf_support_mixed_precision_training():
+        from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
+
+        return tf.Variable, autocast_variable.AutoCastVariable
+    else:
+        return tf.Variable
+
+
 class ModelOutput:
-    Y = "smdebug_y"
-    Y_PRED = "smdebug_y_pred"
-    VAL_Y = "val_smdebug_y"
-    VAL_Y_PRED = "val_smdebug_y_pred"
+    LABELS = "smdebug_y"
+    PREDICTIONS = "smdebug_y_pred"
+    VAL_LABELS = "val_smdebug_y"
+    VAL_PREDICTIONS = "val_smdebug_y_pred"
 
 
-ModelOutputs = {ModelOutput.Y, ModelOutput.Y_PRED, ModelOutput.VAL_Y, ModelOutput.VAL_Y_PRED}
+ModelOutputs = {
+    ModelOutput.LABELS,
+    ModelOutput.PREDICTIONS,
+    ModelOutput.VAL_LABELS,
+    ModelOutput.VAL_PREDICTIONS,
+}
 
 
 def get_model_output_export_name(key):
     export_names = {
-        ModelOutput.Y_PRED: "predictions",
-        ModelOutput.Y: "labels",
-        ModelOutput.VAL_Y: "labels",
-        ModelOutput.VAL_Y_PRED: "predictions",
+        ModelOutput.PREDICTIONS: "predictions",
+        ModelOutput.LABELS: "labels",
+        ModelOutput.VAL_LABELS: "labels",
+        ModelOutput.VAL_PREDICTIONS: "predictions",
     }
     return export_names[key]
 
 
 class ModelInput:
-    X = "smdebug_x"
+    INPUTS = "smdebug_x"
 
 
-ModelInputs = {ModelInput.X}
+ModelInputs = {ModelInput.INPUTS}
 
 
 def get_model_input_export_name():
@@ -324,7 +344,7 @@ class InputOutputSaver:
         self.layer_input = None
         self.layer_output = None
 
-    def __call__(self, callable_inputs, *args, **kwargs) -> None:
+    def __call__(self, inputs, *args, **kwargs) -> None:
         self.layer_input = kwargs["layer_input"]
         self.layer_output = kwargs["layer_output"]
 
@@ -332,11 +352,11 @@ class InputOutputSaver:
 def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.Tensor]:
     old_call_fn = layer.call
 
-    def call(callable_inputs, *args, **kwargs) -> tf.Tensor:
-        layer_input = callable_inputs
-        layer_output = old_call_fn(callable_inputs)
+    def call(inputs, *args, **kwargs) -> tf.Tensor:
+        layer_input = inputs
+        layer_output = old_call_fn(inputs, *args, **kwargs)
         for hook in layer._hooks:
-            hook_result = hook(callable_inputs, layer_input=layer_input, layer_output=layer_output)
+            hook_result = hook(inputs, layer_input=layer_input, layer_output=layer_output)
             if hook_result is not None:
                 layer_output = hook_result
         return layer_output
@@ -379,3 +399,7 @@ def get_keras_mode(mode):
 
 def is_tf_version_2x():
     return version.parse(tf.__version__) >= version.parse("2.0.0")
+
+
+def is_tf_version_2_3_x():
+    return version.parse(tf.__version__) >= version.parse("2.3.0")

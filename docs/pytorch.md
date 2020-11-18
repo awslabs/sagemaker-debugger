@@ -9,9 +9,9 @@
 
 ## Support
 ### Versions
-- Zero Script Change experience where you need no modifications to your training script is supported in the official [SageMaker Framework Container for PyTorch 1.3](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html), or the [AWS Deep Learning Container for PyTorch 1.3](https://aws.amazon.com/machine-learning/containers/).
+- Zero Script Change experience where you need no modifications to your training script is supported in the official [AWS Deep Learning Container for PyTorch](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#general-framework-containers).
 
-- The library itself supports the following versions when using changes to the training script: PyTorch 1.2, 1.3.
+- The library itself supports the following versions when using changes to the training script: PyTorch 1.2, 1.3, 1.4, 1.5, and 1.6.
 
 ---
 
@@ -36,8 +36,9 @@ Call `hook.register_module(net)`.
 If using a loss which is a subclass of `nn.Module`, call `hook.register_loss(loss_criterion)` once before starting training.\
 If using a loss which is a subclass of `nn.functional`, call `hook.record_tensor_value(loss)` after each training step.
 
-#### 4. (Optional) Configure Collections, SaveConfig and ReductionConfig
-See the [Common API](api.md) page for details on how to do this.
+#### 4. Take actions using the hook APIs
+
+For a full list of actions that the hook APIs offer to construct hooks and save tensors, see [Common hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#common-hook-api) and [PyTorch specific hook API](https://github.com/awslabs/sagemaker-debugger/blob/master/docs/api.md#pytorch-specific-hook-api).
 
 ---
 

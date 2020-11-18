@@ -10,6 +10,7 @@ import numpy as np
 from smdebug.exceptions import (
     InvalidWorker,
     NoMoreData,
+    ShapeUnavailableForStep,
     StepNotYetAvailable,
     StepUnavailable,
     TensorUnavailableForStep,
@@ -62,6 +63,16 @@ class ModeSteps:
         s = self._steps[step_num][worker]
         s.location = location
 
+    def set_step_shape(self, step_num, worker, shape):
+        step = Step(step_num, shape=shape)
+        if step_num not in self._steps:
+            self._steps[step_num] = {worker: step}
+        elif worker not in self._steps[step_num]:
+            self._steps[step_num].update({worker: step})
+
+        s = self._steps[step_num][worker]
+        s.shape = shape
+
     def set_step_reduction_value(self, step_num, worker, red_name, abs, red_value):
         if step_num not in self._steps:
             s = Step(step_num)
@@ -88,10 +99,11 @@ class ModeSteps:
 class Step:
     """Contains the step number, value, location, and reduction values/locations."""
 
-    def __init__(self, step_num, value=None, location=None):
+    def __init__(self, step_num, value=None, location=None, shape=None):
         self.step_num = step_num
         self.value = value
         self.location = location
+        self.shape = shape
 
         # mapping from (red_name, abs) to value
         self._reduction_values = {}
@@ -126,6 +138,10 @@ class Tensor:
     def __init__(self, name, trial, cache):
         self._mode_steps = {}
         self.name = name
+        # In TF Keras and Variables in all interfaces of TF,
+        # SMDebug modifies some names of tensors to be more descriptive.
+        # In such cases we save here the original name.
+        self.original_name = None
         self.trial = trial
         self.cache = cache
 
@@ -264,6 +280,16 @@ class Tensor:
             has_reductions = has_reduction_locations or has_reduction_values
             raise TensorUnavailableForStep(self.name, step_num, mode, has_reductions)
 
+    def shape(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
+        s = self._step(step_num=step_num, mode=mode, worker=worker)
+        if s.shape is not None:
+            return s.shape
+        try:
+            value = self.value(step_num, mode, worker)
+            return value.shape
+        except TensorUnavailableForStep:
+            raise ShapeUnavailableForStep(self.name, step_num, mode)
+
     def reduction_values(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
         s = self._step(step_num=step_num, mode=mode, worker=worker)
         if s is not None:
@@ -334,9 +360,13 @@ class Tensor:
         if mode not in self._mode_steps:
             self._mode_steps[mode] = ModeSteps(mode)
 
-    def add_step(self, mode, mode_step, worker, location):
+    def add_step(self, mode, mode_step, worker, tensor_location, tensor_shape):
         self._create_mode_step(mode, mode_step)
-        self._mode_steps[mode].set_step_location(mode_step, worker, location)
+        if tensor_location is not None:
+            self._mode_steps[mode].set_step_location(mode_step, worker, tensor_location)
+        if tensor_shape is not None:
+            self._mode_steps[mode].set_step_shape(mode_step, worker, tensor_shape.shape)
+            self.original_name = tensor_shape.original_name
 
     def add_reduction_step(self, mode, mode_step, worker, red_name, abs, red_location):
         self._create_mode_step(mode, mode_step)

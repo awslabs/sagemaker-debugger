@@ -30,7 +30,7 @@ phases:
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
-        - pip install -q pytest wheel pytest-html pre-commit awscli tensorflow_datasets pytest-cov
+        - pip install -q pytest wheel pytest-html pre-commit awscli pytest-cov
 
   pre_build:
     commands:
@@ -39,7 +39,8 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
+      - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --force-reinstall $RULES_CODEBUILD_SRC_DIR/dist/*.whl; else pip install $RULES_CODEBUILD_SRC_DIR/dist/*.whl; fi
       - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - pip show smdebug
