@@ -7,6 +7,7 @@ import time
 import pytest
 import torch
 import torch.nn as nn
+from tests.profiler.pytorch.utils import is_pt_1_5, is_pt_1_6
 
 # First Party
 import smdebug.pytorch as smd
@@ -72,5 +73,8 @@ def test_pytorch_profiler_rnn(pytorch_profiler_config_parser, out_dir):
     lt.refresh_event_file_list()
     events = lt.get_events(0, time.time() * 1000000)
     print(f"Number of events {len(events)}")
-    assert len(events) <= 64
+    if is_pt_1_5():
+        assert len(events) <= 64
+    elif is_pt_1_6():
+        assert len(events) <= 85
     shutil.rmtree(out_dir, ignore_errors=True)

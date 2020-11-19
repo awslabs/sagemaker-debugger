@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from tests.profiler.pytorch.utils import is_pt_1_5, is_pt_1_6
 from torch.autograd import Variable
 
 # First Party
@@ -81,4 +82,7 @@ def test_pytorch_profiler(pytorch_profiler_config_parser, out_dir):
     lt.refresh_event_file_list()
     events = lt.get_events(0, time.time() * 1000000)
     print(f"Number of events {len(events)}")
-    assert len(events) == 386
+    if is_pt_1_5():
+        assert len(events) == 386
+    elif is_pt_1_6():
+        assert len(events) == 672
