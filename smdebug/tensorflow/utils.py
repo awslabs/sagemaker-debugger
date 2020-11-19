@@ -402,5 +402,13 @@ def is_tf_version_2x():
     return version.parse(tf.__version__) >= version.parse("2.0.0")
 
 
+def is_tf_version_2_2_x():
+    return version.parse("2.2.0") <= version.parse(tf.__version__) < version.parse("2.3.0")
+
+
 def is_tf_version_2_3_x():
-    return version.parse(tf.__version__) >= version.parse("2.3.0")
+    return version.parse("2.3.0") <= version.parse(tf.__version__) < version.parse("2.4.0")
+
+
+def is_profiler_supported_for_tf_version():
+    return is_tf_version_2_2_x() or is_tf_version_2_3_x()

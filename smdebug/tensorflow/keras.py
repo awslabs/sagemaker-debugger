@@ -8,7 +8,6 @@ import time
 import tensorflow.compat.v1 as tf
 from tensorflow.python.distribute import values
 from tensorflow.python.framework.indexed_slices import IndexedSlices
-from tensorflow.python.profiler import profiler_v2 as tf_profiler
 from tensorflow.python.util import nest
 
 # First Party
@@ -46,6 +45,7 @@ from .utils import (
     get_model_input_export_name,
     get_model_output_export_name,
     is_keras_optimizer,
+    is_profiler_supported_for_tf_version,
     is_tf_version_2_3_x,
     is_tf_version_2x,
     supported_tf_variables,
@@ -102,6 +102,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.has_registered_model = False
 
         # Profiling vars
+        self.tf_profiler = None
+        if is_profiler_supported_for_tf_version():
+            from tensorflow.python.profiler import profiler_v2 as tf_profiler
+
+            self.tf_profiler = tf_profiler
         self._log_dir = None
         self.is_detailed_profiling = False
         self.is_dataloader_profiling = False
@@ -759,10 +764,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.TRAIN)
 
-        if self.is_detailed_profiling:
+        if is_profiler_supported_for_tf_version() and self.is_detailed_profiling:
             self.logger.info("Disabling profiler, reached end of training.")
             stop_tf_profiler(
-                tf_profiler=tf_profiler,
+                tf_profiler=self.tf_profiler,
                 log_dir=self._log_dir,
                 start_time_us=self.tf_profiler_start_time_in_micros,
             )
@@ -871,33 +876,36 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
 
-        if self.profiler_config_parser.should_save_metrics(
-            MetricsCategory.DETAILED_PROFILING, self.mode_steps[ModeKeys.TRAIN]
-        ):
-            if not self.is_detailed_profiling:
-                self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
-                    self.profiler_config_parser.config.local_path,
-                    "tensorflow",
-                    self.mode_steps[ModeKeys.TRAIN],
-                )
+        if is_profiler_supported_for_tf_version():
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.DETAILED_PROFILING, self.mode_steps[ModeKeys.TRAIN]
+            ):
+                if not self.is_detailed_profiling:
+                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
+                        self.profiler_config_parser.config.local_path,
+                        "tensorflow",
+                        self.mode_steps[ModeKeys.TRAIN],
+                    )
+                    self.logger.info(
+                        f"Enabling TF profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}"
+                    )
+                    if not self.warm_up_completed:
+                        # warming up profiler before it will be profiling.
+                        self.tf_profiler.warmup()
+                        self.warm_up_completed = True
+                    self.tf_profiler.start(self._log_dir)
+                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
+                    self.is_detailed_profiling = True
+            elif self.is_detailed_profiling:
                 self.logger.info(
-                    f"Enabling TF profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}"
+                    f"Disabling TF profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}"
                 )
-                if not self.warm_up_completed:
-                    # warming up profiler before it will be profiling.
-                    tf_profiler.warmup()
-                    self.warm_up_completed = True
-                tf_profiler.start(self._log_dir)
-                self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
-                self.is_detailed_profiling = True
-        elif self.is_detailed_profiling:
-            self.logger.info(f"Disabling TF profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}")
-            stop_tf_profiler(
-                tf_profiler=tf_profiler,
-                log_dir=self._log_dir,
-                start_time_us=self.tf_profiler_start_time_in_micros,
-            )
-            self.is_detailed_profiling = False
+                stop_tf_profiler(
+                    tf_profiler=self.tf_profiler,
+                    log_dir=self._log_dir,
+                    start_time_us=self.tf_profiler_start_time_in_micros,
+                )
+                self.is_detailed_profiling = False
 
     def on_test_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.EVAL, logs=logs)
