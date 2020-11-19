@@ -168,7 +168,7 @@ class TraceEventParser:
             name = node_id + "_" + str(phase_tid_default)
             t_id = hash(name + str(phase_name))
         else:
-            self.logger.info(
+            self.logger.debug(
                 f"Event:{event} doesn't have thread_name nor phase_tid_default. Returning"
             )
             return
