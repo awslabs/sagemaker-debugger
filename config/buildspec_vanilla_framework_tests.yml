@@ -8,6 +8,7 @@ env:
     run_integration_pytest_pytorch: "enable"
     run_integration_pytest_mxnet: "enable"
     run_pytest_profiler: "disable"
+    run_integration_pytest_tensorflow2: "disable"
     run_integration_pytest_tensorflow: "enable"
     run_integration_pytest_xgboost: "enable"
     zero_code_change_test: "disable"
