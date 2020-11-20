@@ -156,7 +156,7 @@ class ProfilerConfigParser:
                     self.profiling_enabled = False
                     return
             config = full_config.get(ProfilingParametersField.PROFILING_PARAMETERS.value)
-            if config == {}:
+            if config is None or config == {}:
                 self._log_new_message(
                     LastProfilingStatus.PROFILER_DISABLED,
                     self.logger.info,
