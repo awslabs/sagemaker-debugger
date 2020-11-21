@@ -133,14 +133,21 @@ class TensorflowBaseHook(BaseHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
-        try:
-            import smdistributed.dataparallel.tensorflow as smdataparallel
+        # smdistributed.dataparallel should be invoked via `mpirun`.
+        # It supports EC2 machines with 8 GPUs per machine.
+        _is_invoked_via_mpi = (
+            os.getenv("OMPI_COMM_WORLD_SIZE") is not None
+            and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
+        )
+        if _is_invoked_via_mpi:
+            try:
+                import smdistributed.dataparallel.tensorflow as smdataparallel
 
-            # The total number of GPUs across all the nodes in the cluster
-            if smdataparallel.size():
-                return TFDistributionStrategy.SMDATAPARALLEL
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
+                # The total number of GPUs across all the nodes in the cluster
+                if smdataparallel.size():
+                    return TFDistributionStrategy.SMDATAPARALLEL
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
 
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
