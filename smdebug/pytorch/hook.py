@@ -23,10 +23,16 @@ from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data
 
-try:
-    import smdistributed.dataparallel.torch.distributed as smdataparallel
-except ImportError:
-    smdataparallel = None
+# smdistributed.dataparallel should be invoked via `mpirun`.
+# It supports EC2 machines with 8 GPUs per machine.
+_is_invoked_via_mpi = (
+    os.getenv("OMPI_COMM_WORLD_SIZE") is not None and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
+)
+if _is_invoked_via_mpi:
+    try:
+        import smdistributed.dataparallel.torch.distributed as smdataparallel
+    except ImportError:
+        smdataparallel = None
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
@@ -185,13 +191,20 @@ class Hook(CallbackHook):
                 pass
 
             # Try smdataparallel
-            try:
-                import smdistributed.dataparallel.torch.distributed as smdataparallel
+            # smdistributed.dataparallel should be invoked via `mpirun`.
+            # It supports EC2 machines with 8 GPUs per machine.
+            _is_invoked_via_mpi = (
+                os.getenv("OMPI_COMM_WORLD_SIZE") is not None
+                and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
+            )
+            if _is_invoked_via_mpi:
+                try:
+                    import smdistributed.dataparallel.torch.distributed as smdataparallel
 
-                if smdataparallel.get_world_size():
-                    return smdataparallel.get_world_size()
-            except (ModuleNotFoundError, ValueError, ImportError):
-                pass
+                    if smdataparallel.get_world_size():
+                        return smdataparallel.get_world_size()
+                except (ModuleNotFoundError, ValueError, ImportError):
+                    pass
         # Return default
         return 1
 
@@ -212,13 +225,20 @@ class Hook(CallbackHook):
                 pass
 
             # Try smdataparallel
-            try:
-                import smdistributed.dataparallel.torch.distributed as smdataparallel
+            # smdistributed.dataparallel should be invoked via `mpirun`.
+            # It supports EC2 machines with 8 GPUs per machine.
+            _is_invoked_via_mpi = (
+                os.getenv("OMPI_COMM_WORLD_SIZE") is not None
+                and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
+            )
+            if _is_invoked_via_mpi:
+                try:
+                    import smdistributed.dataparallel.torch.distributed as smdataparallel
 
-                if smdataparallel.get_world_size():
-                    return f"worker_{smdataparallel.get_rank()}"
-            except (ModuleNotFoundError, ValueError, ImportError):
-                pass
+                    if smdataparallel.get_world_size():
+                        return f"worker_{smdataparallel.get_rank()}"
+                except (ModuleNotFoundError, ValueError, ImportError):
+                    pass
         # Return default
         return DEFAULT_WORKER_NAME
 

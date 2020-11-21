@@ -343,21 +343,28 @@ def get_distributed_worker():
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
-        try:
-            import smdistributed.dataparallel.torch.distributed as smdataparallel
+        # smdistributed.dataparallel should be invoked via `mpirun`.
+        # It supports EC2 machines with 8 GPUs per machine.
+        _is_invoked_via_mpi = (
+            os.getenv("OMPI_COMM_WORLD_SIZE") is not None
+            and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
+        )
+        if _is_invoked_via_mpi:
+            try:
+                import smdistributed.dataparallel.torch.distributed as smdataparallel
 
-            if smdataparallel.get_world_size():
-                rank = smdataparallel.get_rank()
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
+                if smdataparallel.get_world_size():
+                    rank = smdataparallel.get_rank()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
 
-        try:
-            import smdistributed.dataparallel.tensorflow as smdataparallel
+            try:
+                import smdistributed.dataparallel.tensorflow as smdataparallel
 
-            if smdataparallel.size():
-                rank = smdataparallel.rank()
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
+                if smdataparallel.size():
+                    rank = smdataparallel.rank()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
     return rank
 
 
