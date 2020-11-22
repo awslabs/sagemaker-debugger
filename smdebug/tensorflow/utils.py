@@ -6,6 +6,7 @@ from typing import Callable, List, Optional
 
 # Third Party
 import tensorflow as tf
+import tensorflow.compat.v1 as tf_v1
 from packaging import version
 from tensorflow.python.distribute import values
 
@@ -23,9 +24,9 @@ def supported_tf_variables():
     if does_tf_support_mixed_precision_training():
         from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
 
-        return tf.Variable, autocast_variable.AutoCastVariable
+        return tf_v1.Variable, autocast_variable.AutoCastVariable
     else:
-        return tf.Variable
+        return tf_v1.Variable
 
 
 class ModelOutput:
