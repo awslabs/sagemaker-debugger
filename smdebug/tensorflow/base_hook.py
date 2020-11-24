@@ -14,7 +14,7 @@ from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
-from smdebug.core.utils import make_numpy_array, serialize_tf_device
+from smdebug.core.utils import check_smdataparallel_env, make_numpy_array, serialize_tf_device
 from smdebug.core.writer import FileWriter
 
 # Local
@@ -135,11 +135,7 @@ class TensorflowBaseHook(BaseHook):
 
         # smdistributed.dataparallel should be invoked via `mpirun`.
         # It supports EC2 machines with 8 GPUs per machine.
-        _is_invoked_via_mpi = (
-            os.getenv("OMPI_COMM_WORLD_SIZE") is not None
-            and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
-        )
-        if _is_invoked_via_mpi:
+        if check_smdataparallel_env():
             try:
                 import smdistributed.dataparallel.tensorflow as smdataparallel
 

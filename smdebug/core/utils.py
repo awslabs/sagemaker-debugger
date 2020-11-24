@@ -22,6 +22,7 @@ from smdebug.core.config_constants import (
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
+_is_invoked_via_smddp = None
 logger = get_logger()
 
 
@@ -345,16 +346,12 @@ def get_distributed_worker():
 
         # smdistributed.dataparallel should be invoked via `mpirun`.
         # It supports EC2 machines with 8 GPUs per machine.
-        _is_invoked_via_mpi = (
-            os.getenv("OMPI_COMM_WORLD_SIZE") is not None
-            and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
-        )
-        if _is_invoked_via_mpi:
+        if check_smdataparallel_env():
             try:
                 import smdistributed.dataparallel.torch.distributed as smdataparallel
 
                 if smdataparallel.get_world_size():
-                    rank = smdataparallel.get_rank()
+                    return smdataparallel.get_rank()
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
 
@@ -362,7 +359,7 @@ def get_distributed_worker():
                 import smdistributed.dataparallel.tensorflow as smdataparallel
 
                 if smdataparallel.size():
-                    rank = smdataparallel.rank()
+                    return smdataparallel.rank()
             except (ModuleNotFoundError, ValueError, ImportError):
                 pass
     return rank
@@ -474,3 +471,29 @@ class ScriptSimulator(object):
         shutil.rmtree(self.out_dir, ignore_errors=True)
         if self.tensorboard_dir:
             shutil.rmtree(self.tensorboard_dir, ignore_errors=True)
+
+
+def check_smdataparallel_env():
+    # Check to ensure it is invoked by mpi and the SM distribution is `dataparallel`
+    global _is_invoked_via_smddp
+    if _is_invoked_via_smddp is None:
+        _is_invoked_via_mpi = (
+            os.getenv("OMPI_COMM_WORLD_SIZE") is not None
+            and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
+        )
+        if os.getenv("SM_FRAMEWORK_PARAMS") is None:
+            _is_invoked_via_smddp = False
+        else:
+            try:
+                smddp_flag = json.loads(os.getenv("SM_FRAMEWORK_PARAMS"))
+            except:
+                _is_invoked_via_smddp = False
+                return _is_invoked_via_smddp
+            if (
+                smddp_flag.get("sagemaker_distributed_dataparallel_enabled", False)
+                and _is_invoked_via_mpi
+            ):
+                _is_invoked_via_smddp = True
+            else:
+                _is_invoked_via_smddp = False
+    return _is_invoked_via_smddp
