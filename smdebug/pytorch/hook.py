@@ -12,7 +12,7 @@ from packaging import version
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
-from smdebug.core.utils import make_numpy_array
+from smdebug.core.utils import check_smdataparallel_env, make_numpy_array
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
@@ -25,14 +25,12 @@ from smdebug.pytorch.utils import get_reduction_of_data
 
 # smdistributed.dataparallel should be invoked via `mpirun`.
 # It supports EC2 machines with 8 GPUs per machine.
-_is_invoked_via_mpi = (
-    os.getenv("OMPI_COMM_WORLD_SIZE") is not None and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
-)
-if _is_invoked_via_mpi:
+smdataparallel = None
+if check_smdataparallel_env():
     try:
         import smdistributed.dataparallel.torch.distributed as smdataparallel
     except ImportError:
-        smdataparallel = None
+        pass
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
@@ -193,11 +191,7 @@ class Hook(CallbackHook):
             # Try smdataparallel
             # smdistributed.dataparallel should be invoked via `mpirun`.
             # It supports EC2 machines with 8 GPUs per machine.
-            _is_invoked_via_mpi = (
-                os.getenv("OMPI_COMM_WORLD_SIZE") is not None
-                and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
-            )
-            if _is_invoked_via_mpi:
+            if check_smdataparallel_env():
                 try:
                     import smdistributed.dataparallel.torch.distributed as smdataparallel
 
@@ -227,11 +221,7 @@ class Hook(CallbackHook):
             # Try smdataparallel
             # smdistributed.dataparallel should be invoked via `mpirun`.
             # It supports EC2 machines with 8 GPUs per machine.
-            _is_invoked_via_mpi = (
-                os.getenv("OMPI_COMM_WORLD_SIZE") is not None
-                and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
-            )
-            if _is_invoked_via_mpi:
+            if check_smdataparallel_env():
                 try:
                     import smdistributed.dataparallel.torch.distributed as smdataparallel
 
