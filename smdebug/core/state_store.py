@@ -27,9 +27,13 @@ class StateStore:
         checkpoint_files = []
         for child, _, files in os.walk(cp_dir):
             for file in files:
-                if file != METADATA_FILENAME and file != METADATA_FILENAME_S3_UPLOADED:
+                if (
+                    file != METADATA_FILENAME
+                    and file != METADATA_FILENAME_S3_UPLOADED
+                    and "sagemaker-uploaded" not in file
+                ):
                     checkpoint_files.append(os.path.join(child, file))
-        return checkpoint_files
+        return sorted(checkpoint_files)
 
     def __init__(self):
         self._saved_states = []
@@ -49,7 +53,7 @@ class StateStore:
                     self._last_seen_cp_files_size.append(os.path.getsize(file))
                 except Exception as e:
                     self._last_seen_cp_files_size.append(0)
-                    logger.warning(e)
+                    logger.debug(e)
 
     def _retrieve_path_to_checkpoint(self):
         """
@@ -99,14 +103,13 @@ class StateStore:
                     "Checkpoints not updated. There are no checkpoint files created yet, to be updated"
                 )
                 return False
-            checkpoint_files = sorted(checkpoint_files)
             timestamps = []
             for file in checkpoint_files:
                 try:
                     timestamps.append(os.path.getmtime(file))
                 except FileNotFoundError as e:
                     timestamps.append(0)
-                    logger.warning(e)
+                    logger.debug(e)
             logger.info(
                 f"Timestamps of different checkpoint files {[i for i in zip(checkpoint_files, timestamps)]}"
             )
@@ -115,9 +118,11 @@ class StateStore:
                 self._last_seen_checkpoint_files = checkpoint_files
                 for file in checkpoint_files:
                     try:
-                        self._last_seen_cp_files_size.append(os.path.getsize(file))
+                        sz = os.path.getsize(file)
+                        self._last_seen_cp_files_size.append(sz)
                     except FileNotFoundError as e:
-                        logger.warning(e)
+                        self._last_seen_cp_files_size.append(0)
+                        logger.debug(e)
                 logger.info(
                     f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
                 )
