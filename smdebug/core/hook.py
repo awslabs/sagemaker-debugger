@@ -559,7 +559,8 @@ class BaseHook:
             )
             return False
         if self._is_collection_being_saved_for_step(collection_name):
-            return True
+            c = self.collection_manager.get(collection_name)
+            return match_inc(tensor_name, c.include_regex) or c.include_regex==[]
         return self.is_tensor_saved_for_step(tensor_name)
 
     def _write_state(self):
@@ -1010,3 +1011,4 @@ class CallbackHook(BaseHook):
     @staticmethod
     def _make_numpy_array(tensor_value):
         pass
+
