@@ -587,7 +587,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self):
-        if is_tf_version_2x() is False:
+        if is_tf_version_2x() is False or (self.tape is False and self.model.run_eagerly is False):
             return
         for layer_name in self.saved_layers:
             # Save Input

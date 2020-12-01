@@ -233,28 +233,7 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
                 },
                 "CollectionConfigurations": [
                     {
-                        "CollectionName": "gradients"
-                    },
-                    {
-                        "CollectionName": "weights"
-                    },
-                    {
-                        "CollectionName": "losses"
-                    },
-                    {
-                        "CollectionName": "biases"
-                    },
-                    {
-                        "CollectionName": "optimizer_variables"
-                    },
-                    {
-                        "CollectionName": "outputs"
-                    },
-                    {
-                        "CollectionName": "inputs"
-                    },
-                    {
-                        "CollectionName": "dense_layers",
+                        "CollectionName": "layers",
                         "CollectionParameters": {
                             "include_regex": ".*dense.*"
                         }
