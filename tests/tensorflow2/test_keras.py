@@ -447,8 +447,6 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
             if is_tf_2_2():
-                import pdb
-                pdb.set_trace()
                 assert len(trial.tensor_names()) == 28
             else:
                 assert len(trial.tensor_names()) == (21 if is_tf_2_3() else 14)
