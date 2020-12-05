@@ -82,6 +82,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
+        self.has_wrapped_model_with_input_output_saver = False
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -548,36 +549,56 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _save_layer_input_and_outputs(self):
         if is_tf_version_2x() is False:
             return
+        layer_collection = (
+            {self.get_collection(CollectionKeys.LAYERS)}
+            if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
+            else set()
+        )
         for layer_name in self.saved_layers:
             # Save Input
-            tensor = self.saved_layers[layer_name].layer_input
-            export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
-            input_collection = (
-                {self.get_collection(CollectionKeys.LAYERS)}
-                if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
-                else set()
-            )
-            t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
-            if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
-                continue
-            else:
-                self._save_tensor_to_file(export_name, tensor, input_collection)
-
+            layer_inputs = self.saved_layers[layer_name].layer_input
+            for layer_idx, tensor in enumerate(layer_inputs):
+                if isinstance(tensor, list):
+                    tensor_list = tensor
+                else:
+                    tensor_list = [tensor]
+                if hasattr(tensor_list[0], "numpy") is False:
+                    self.logger.warning(
+                        "cannot save layer values during forward pass with tf.function"
+                    )
+                    continue
+                else:
+                    for t_idx, t in enumerate(tensor_list):
+                        export_name = get_export_name_for_keras(
+                            layer_name,
+                            tensor_type="input",
+                            tensor=tensor,
+                            layer_idx=layer_idx,
+                            tensor_idx=t_idx,
+                        )
+                        self._save_tensor_to_file(export_name, t, layer_collection)
             # Save Output
-            tensor = self.saved_layers[layer_name].layer_output
-            export_name = get_export_name_for_keras(layer_name, tensor_type="output", tensor=tensor)
-            self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
-            output_collection = (
-                {self.get_collection(CollectionKeys.LAYERS)}
-                if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
-                else set()
-            )
-            t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
-            if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
-            else:
-                self._save_tensor_to_file(export_name, tensor, output_collection)
+            layer_outputs = self.saved_layers[layer_name].layer_output
+            for layer_idx, tensor in enumerate(layer_outputs):
+                if isinstance(tensor, list):
+                    tensor_list = tensor
+                else:
+                    tensor_list = [tensor]
+                if hasattr(tensor_list[0], "numpy") is False:
+                    self.logger.warning(
+                        "cannot save layer values during forward pass with tf.function"
+                    )
+                    continue
+                else:
+                    for t_idx, t in enumerate(tensor_list):
+                        export_name = get_export_name_for_keras(
+                            layer_name,
+                            tensor_type="output",
+                            tensor=tensor,
+                            layer_idx=layer_idx,
+                            tensor_idx=t_idx,
+                        )
+                        self._save_tensor_to_file(export_name, t, layer_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
@@ -707,15 +728,31 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        if self.has_registered_model:
+        if (
+            self.has_wrapped_model_with_input_output_saver
+            or self.model is None
+            or self.has_default_hook_configuration()
+        ):
+            # do not proceed if the model has already been wrapped
+            # or the model has not been registered with smdebug yet
             return
-        for layer in self.model.layers:
+        for layer in self.model._flatten_layers(include_self=False, recursive=True):
             layer._hooks = []
+            layer._old_call = layer.call
             layer.call = get_layer_call_fn(layer)
             layer.register_hook = lambda hook: layer._hooks.append(hook)
             saver = InputOutputSaver()
             layer.register_hook(saver)
             self.saved_layers[layer.name] = saver
+        self.has_wrapped_model_with_input_output_saver = True
+
+    def _unwrap_model_with_input_output_saver(self):
+        if self.has_wrapped_model_with_input_output_saver is False:
+            return
+        for layer in self.model._flatten_layers(include_self=False, recursive=True):
+            layer._hooks = []
+            layer.call = layer._old_call
+        self.has_wrapped_model_with_input_output_saver = False
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         if self._is_not_supported():
@@ -780,6 +817,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         step_collections = self._get_collections_to_save_for_step()
         layer_collection = self.get_collection(CollectionKeys.LAYERS)
         collections_to_write = {layer_collection} if layer_collection in step_collections else set()
+        layer_name_dict = dict()
         for layer_name, layer_input, layer_output in logs:
             # Cast layer_name to str since it can also be of type bytes
             # when run with mirrored strategy
@@ -794,9 +832,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
                 layer_input = layer_input[0]
-            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
+            layer_name = str(layer_name)
+            idx = layer_name_dict.get(layer_name, 0)
+            layer_name_dict[layer_name] = idx + 1
+            layer_input_tensor_name = get_export_name_for_keras(
+                layer_name, "input", layer_idx=idx, tensor_idx=idx
+            )
             self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
-            layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
+            layer_output_tensor_name = get_export_name_for_keras(
+                layer_name, "output", layer_idx=idx, tensor_idx=idx
+            )
             self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
 
     def _write_optimizer_variables(self):
@@ -848,6 +893,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # estimator and to make it easier when seeing tensorboard
                 self._export_model()
                 self._exported_model[self.mode] = True
+
+        if is_tf_version_2x():
+            self._unwrap_model_with_input_output_saver()
 
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)
@@ -978,6 +1026,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # this means sometimes collections will be exported after 1 step
                 self.export_collections()
                 self._exported_collections = True
+            self._wrap_model_with_input_output_saver()
 
         return run
 
@@ -1054,6 +1103,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return
 
             self.last_saved_step = self.step
+            self._unwrap_model_with_input_output_saver()
 
         return run
 

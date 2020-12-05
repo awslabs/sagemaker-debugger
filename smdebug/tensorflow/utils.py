@@ -293,11 +293,11 @@ def is_keras_optimizer(obj):
     return False
 
 
-def get_export_name_for_keras(layer, tensor_type, tensor=None):
+def get_export_name_for_keras(layer, tensor_type, tensor=None, layer_idx=None, tensor_idx=None):
     if tensor_type in ["input", "output", "weight"]:
         if isinstance(layer, str):
             # Tensor.name is meaningless when eager execution is enabled.
-            return f"{layer}/{tensor_type}s"
+            return f"{layer}_{layer_idx}/{tensor_type}_{tensor_idx}"
         else:
             return f"{layer.name}/{tensor_type}s/{tensor.name}"
     else:
@@ -341,12 +341,12 @@ class LayerWithHooks(tf.keras.layers.Layer):
 
 class InputOutputSaver:
     def __init__(self):
-        self.layer_input = None
-        self.layer_output = None
+        self.layer_input = []
+        self.layer_output = []
 
     def __call__(self, inputs, *args, **kwargs) -> None:
-        self.layer_input = kwargs["layer_input"]
-        self.layer_output = kwargs["layer_output"]
+        self.layer_input.append(kwargs["layer_input"])
+        self.layer_output.append(kwargs["layer_output"])
 
 
 def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.Tensor]:
