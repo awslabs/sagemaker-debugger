@@ -114,7 +114,6 @@ def test_gpu_allworkers_saveall(out_dir):
 def test_cpu_allworkers_saveall(out_dir):
     mode_allworkers_saveall(out_dir, "cpu")
 
-
 """
 HVD event file rotation tests
 """
