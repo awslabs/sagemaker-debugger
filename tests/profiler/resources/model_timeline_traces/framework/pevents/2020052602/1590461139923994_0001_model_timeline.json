@@ -1,0 +1,7 @@
+[
+{"name": "process_name", "ph": "M", "pid": 0, "args": {"start_time_since_epoch_in_micros":1590461107892211}},
+{"name": "process_sort_index", "ph": "M", "pid": 0, "args": {"sort_index": 0}},
+{"name": "process_name", "ph": "M", "pid": 1, "args": {"name": "NcclManager"}},
+{"name": "process_sort_index", "ph": "M", "pid": 1, "args": {"sort_index": 1}},
+{"ph": "X", "name": "kAllReduce", "ts": 31901600, "pid": 1, "dur": 130183}
+]

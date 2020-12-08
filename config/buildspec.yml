@@ -10,7 +10,7 @@ env:
     run_pytest_tensorflow: "disable"
     run_pytest_tensorflow2: "disable"
     run_pytest_xgboost: "disable"
-    run_pytest_profiler: "disable"
+    run_pytest_profiler: "enable"
     run_integration_pytest_pytorch: "disable"
     run_integration_pytest_mxnet: "disable"
     run_integration_pytest_tensorflow: "disable"
@@ -41,6 +41,8 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
+      # We do not need to force install smdebug-rules. The container used for PR builds do not have smdebug rules binary.
+      # Force installing rules binary attempts to re-install ipython-genutils which fails on PyTorch Ubuntu 16.04 containers.
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
       - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --force-reinstall $RULES_CODEBUILD_SRC_DIR/dist/*.whl; else pip install $RULES_CODEBUILD_SRC_DIR/dist/*.whl; fi
       - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..

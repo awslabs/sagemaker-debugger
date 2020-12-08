@@ -1,0 +1,6 @@
+{
+    "ProfilingParameters": {
+        "ProfilerEnabled": true,
+        "LocalPath": "/tmp/test"
+    }
+}
