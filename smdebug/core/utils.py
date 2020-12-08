@@ -317,7 +317,8 @@ def get_tb_worker():
 
 
 def get_distributed_worker():
-    """Get the rank for horovod or torch distributed. If none of them are being used,
+    """This fn should only be used for torch.
+    Get the rank for horovod or torch distributed. If none of them are being used,
     return None"""
     rank = None
     try:

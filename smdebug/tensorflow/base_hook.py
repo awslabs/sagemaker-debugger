@@ -183,6 +183,17 @@ class TensorflowBaseHook(BaseHook):
         """
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            try:
+                # when model parallel is being used, there will be multiple processes
+                # with same hvd rank, hence use smp.rank
+                import smdistributed.modelparallel.tensorflow as smp
+
+                if smp.state.initialized:
+                    # if smp is in use
+                    return f"worker_{smp.rank()}"
+            except ImportError:
+                pass
+
             import horovod.tensorflow as hvd
 
             return f"worker_{hvd.rank()}"
