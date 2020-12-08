@@ -6,6 +6,7 @@ from typing import Callable, List, Optional
 
 # Third Party
 import tensorflow as tf
+import tensorflow.compat.v1 as tf_v1
 from packaging import version
 from tensorflow.python.distribute import values
 
@@ -23,9 +24,9 @@ def supported_tf_variables():
     if does_tf_support_mixed_precision_training():
         from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
 
-        return tf.Variable, autocast_variable.AutoCastVariable
+        return tf_v1.Variable, autocast_variable.AutoCastVariable
     else:
-        return tf.Variable
+        return tf_v1.Variable
 
 
 class ModelOutput:
@@ -69,6 +70,7 @@ class TFDistributionStrategy(Enum):
     HOROVOD = 1
     MIRRORED = 2
     PARAMETER_SERVER = 3
+    SMDATAPARALLEL = 4
     UNSUPPORTED = 100
 
 
@@ -401,5 +403,13 @@ def is_tf_version_2x():
     return version.parse(tf.__version__) >= version.parse("2.0.0")
 
 
+def is_tf_version_2_2_x():
+    return version.parse("2.2.0") <= version.parse(tf.__version__) < version.parse("2.3.0")
+
+
 def is_tf_version_2_3_x():
-    return version.parse(tf.__version__) >= version.parse("2.3.0")
+    return version.parse("2.3.0") <= version.parse(tf.__version__) < version.parse("2.4.0")
+
+
+def is_profiler_supported_for_tf_version():
+    return is_tf_version_2_2_x() or is_tf_version_2_3_x()

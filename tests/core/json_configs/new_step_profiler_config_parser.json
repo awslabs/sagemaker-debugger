@@ -1,0 +1,7 @@
+{
+    "ProfilingParameters": {
+        "ProfilerEnabled": true,
+        "LocalPath": "/tmp/test",
+        "DetailedProfilingConfig": "{\"StartStep\": 10, \"NumSteps\": 5}"
+    }
+}
