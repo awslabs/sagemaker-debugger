@@ -609,8 +609,6 @@ def test_regex_filtering_for_default_collections(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     layer_tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
     gradient_tnames = tr.tensor_names(collection=CollectionKeys.GRADIENTS)
-    import pdb
-    # pdb.set_trace()
     assert len(layer_tnames) == (8 if is_tf_2_2() else 0)
     assert len(gradient_tnames) == (4 if is_tf_2_2() else 0)
     for tname in layer_tnames + gradient_tnames:

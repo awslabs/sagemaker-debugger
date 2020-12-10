@@ -587,7 +587,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self):
-        if is_tf_version_2x() is False or (self.tape is False and self.model.run_eagerly is False):
+        if is_tf_version_2x() is False:
             return
         for layer_name in self.saved_layers:
             # Save Input
@@ -612,7 +612,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                #self.logger.warning("cannot save layer values during forward pass with tf.function")
+                self.logger.warning("cannot save layer values during forward pass with tf.function")
                 continue
             else:
                 self._save_tensor_to_file(export_name, tensor, input_collection)
@@ -628,8 +628,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                #self.logger.warning("cannot save layer values during forward pass with tf.function")
-                continue
+                self.logger.warning("cannot save layer values during forward pass with tf.function")
             else:
                 self._save_tensor_to_file(export_name, tensor, output_collection)
 
