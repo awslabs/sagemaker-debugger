@@ -263,9 +263,15 @@ class Hook(CallbackHook):
             return
         records = torch.autograd._disable_profiler()
         self.autograd_profiler_enabled = False
-        function_events = torch.autograd.profiler.EventList(
-            torch.autograd.profiler.parse_cpu_trace(records), use_cuda=self.use_cuda
-        )
+        if version.parse(torch.__version__) >= version.parse("1.7"):
+            function_events = torch.autograd.profiler.EventList(
+                torch.autograd.profiler.parse_event_records(records), use_cuda=self.use_cuda
+            )
+        else:
+            function_events = torch.autograd.profiler.EventList(
+                torch.autograd.profiler.parse_cpu_trace(records), use_cuda=self.use_cuda
+            )
+
         for index, event in enumerate(function_events):
             self.record_trace_events(
                 training_phase="cpu_functions",
@@ -368,14 +374,26 @@ class Hook(CallbackHook):
             )
             and not self.autograd_profiler_enabled
         ):
+            self.autograd_profiler_enabled = True
             if version.parse(torch.__version__) <= version.parse("1.5.1"):
                 torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
-            elif version.parse(torch.__version__) >= version.parse("1.6"):
+                self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
+            elif version.parse(torch.__version__) >= version.parse("1.7"):
+                torch.autograd._enable_profiler(
+                    torch.autograd.ProfilerConfig(self.profiler, False, False, False)
+                )
+                self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
+            elif version.parse("1.7") > version.parse(torch.__version__) >= version.parse("1.6"):
                 torch.autograd._enable_profiler(
                     torch.autograd.ProfilerConfig(self.profiler, False, False)
                 )
-            self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
-            self.autograd_profiler_enabled = True
+                self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
+            else:
+                self.logger.warn(
+                    f"The detailed profiling using autograd profiler is not supported for torch version "
+                    f"{torch.__version}"
+                )
+                self.autograd_profiler_enabled = False
 
         if self.is_smdataparallel_profiling:
             # Stop smdataparallel profiling at end step
