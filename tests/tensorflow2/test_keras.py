@@ -588,6 +588,29 @@ def test_layer_names(out_dir, tf_eager_mode):
         assert re.match(pattern=pattern, string=tname) is not None
 
 
+@pytest.mark.slow
+def test_regex_filtering_for_default_collections(out_dir):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=9),
+        include_collections=["layers", "gradients"],
+    )
+    hook.get_collection("layers").include("dense")
+    helper_keras_fit(
+        out_dir,
+        hook=hook,
+        save_config=SaveConfig(save_interval=10),
+        steps=["train"],
+        run_eagerly=True,
+    )
+
+    tr = create_trial_fast_refresh(out_dir)
+    tnames = tr.tensor_names(collection="layers")
+    assert len(tnames) == (12 if is_tf_2_2() else 4)
+    for tname in tnames:
+        assert tr.tensor(tname).value(0) is not None
+
+
 @pytest.mark.skip_if_non_eager
 @pytest.mark.slow
 def test_clash_with_tb_callback(out_dir):
