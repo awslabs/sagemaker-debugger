@@ -197,6 +197,8 @@ def helper_test_keras_v2_json_config(
         trial = smd.create_trial(path=sim.out_dir)
         assert len(trial.steps()) > 0, "Nothing saved at any step."
         assert len(trial.tensor_names()) > 0, "Tensors were not saved."
+        import pdb
+        pdb.set_trace()
         if not eager_mode and is_tf_2_2():
             assert len(trial.tensor_names(collection="gradients")) > 0
         assert len(trial.tensor_names(collection="weights")) > 0
