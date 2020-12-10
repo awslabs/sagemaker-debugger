@@ -593,10 +593,14 @@ def test_regex_filtering_for_default_collections(out_dir):
     hook = smd.KerasHook(
         out_dir,
         save_config=SaveConfig(save_interval=9),
-        include_collections=["layers", "gradients"],
+        include_collections=[
+        CollectionKeys.LAYERS, 
+        CollectionKeys.GRADIENTS
+        ],
     )
     hook.get_collection("layers").include("^dense")
-    hook.get_collection("layers").include("^gradients/dense/.+")
+    hook.get_collection("gradients").include("gradients/dense")
+    # hook.get_collection(CollectionKeys.LAYERS).include("dense")
     helper_keras_fit(
         out_dir,
         hook=hook,
@@ -606,8 +610,12 @@ def test_regex_filtering_for_default_collections(out_dir):
     )
 
     tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensor_names(collection="layers")
-    assert len(tnames) == (12 if is_tf_2_2() else 4)
+    layer_tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+    gradient_tnames = tr.tensor_names(collection=CollectionKeys.GRADIENTS)
+    import pdb
+    pdb.set_trace()
+    assert len(layer_tnames) == (12 if is_tf_2_2() else 4)
+    assert len(gradient_tnames) == (12 if is_tf_2_2() else 4)
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 

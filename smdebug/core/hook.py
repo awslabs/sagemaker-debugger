@@ -582,6 +582,9 @@ class BaseHook:
                 "Tensors cannot be saved with smdebug before callbacks are initialized."
             )
             return False
+        if collection_name == 'gradients':
+            layer_name = tensor_name.split(":")[0]
+            tensor_name = "gradients/" + layer_name + "Grad"
         if self._is_collection_being_saved_for_step(collection_name):
             c = self.collection_manager.get(collection_name)
             return match_inc(tensor_name, c.include_regex) or c.include_regex == []
