@@ -595,7 +595,8 @@ def test_regex_filtering_for_default_collections(out_dir):
         save_config=SaveConfig(save_interval=9),
         include_collections=["layers", "gradients"],
     )
-    hook.get_collection("layers").include("dense")
+    hook.get_collection("layers").include("^dense")
+    hook.get_collection("layers").include("^gradients/dense/.+")
     helper_keras_fit(
         out_dir,
         hook=hook,

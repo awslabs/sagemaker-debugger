@@ -11,7 +11,6 @@ from tensorflow.python.framework.indexed_slices import IndexedSlices
 from tensorflow.python.util import nest
 
 # First Party
-from smdebug.core.collection import DEFAULT_TF_COLLECTIONS
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
@@ -480,7 +479,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         collections_to_write = collections.copy()
         collections_to_save = self._get_collections_to_save_for_step()
         for c in collections_to_save:
-            if match_inc(tensor_name, c.include_regex) and c.name not in DEFAULT_TF_COLLECTIONS:
+            if match_inc(tensor_name, c.include_regex):
                 collections_to_write.add(c)
         self._initialize_writers(only_initialize_if_missing=True)
         tensor_refs = []
