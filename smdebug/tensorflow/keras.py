@@ -587,10 +587,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_for_tensor(key, logs[key], check_before_write=False)
 
     def _save_layer_input_and_outputs(self):
-        if is_tf_version_2x() is False or bool(self.tape) is False:
+        if is_tf_version_2x() is False or (self.tape is False and self.model.run_eagerly is False):
             return
         for layer_name in self.saved_layers:
             # Save Input
+            input_collection = (
+                {self.get_collection(CollectionKeys.LAYERS)}
+                if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
+                else set()
+            )
+            if bool(input_collection):
+                c = self.get_collection(CollectionKeys.LAYERS)
+                if match_inc(layer_name, c.include_regex) or c.include_regex == []:
+                    pass
+                else:
+                    continue
+
             tensor = self.saved_layers[layer_name].layer_input
             export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
             input_collection = (
@@ -600,7 +612,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
+                #self.logger.warning("cannot save layer values during forward pass with tf.function")
                 continue
             else:
                 self._save_tensor_to_file(export_name, tensor, input_collection)
@@ -616,7 +628,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
+                #self.logger.warning("cannot save layer values during forward pass with tf.function")
+                continue
             else:
                 self._save_tensor_to_file(export_name, tensor, output_collection)
 
