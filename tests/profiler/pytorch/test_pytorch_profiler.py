@@ -11,13 +11,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from tests.profiler.pytorch.utils import is_pt_1_5, is_pt_1_6
 from torch.autograd import Variable
 
 # First Party
 from smdebug.profiler.algorithm_metrics_reader import LocalAlgorithmMetricsReader
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.pytorch import Hook, modes
+from smdebug.pytorch.utils import is_pt_1_5, is_pt_1_6, is_pt_1_7
 
 
 class Net(nn.Module):
@@ -86,3 +86,5 @@ def test_pytorch_profiler(pytorch_profiler_config_parser, out_dir):
         assert len(events) == 386
     elif is_pt_1_6():
         assert len(events) == 672
+    elif is_pt_1_7():
+        assert 220 <= len(events)
