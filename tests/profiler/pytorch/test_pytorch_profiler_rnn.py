@@ -7,12 +7,12 @@ import time
 import pytest
 import torch
 import torch.nn as nn
-from tests.profiler.pytorch.utils import is_pt_1_5, is_pt_1_6, is_pt_1_7
 
 # First Party
 import smdebug.pytorch as smd
 from smdebug.profiler import LocalAlgorithmMetricsReader
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.pytorch.utils import is_pt_1_5, is_pt_1_6, is_pt_1_7
 
 
 class RNN(nn.Module):

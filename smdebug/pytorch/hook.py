@@ -6,7 +6,6 @@ import time
 # Third Party
 import torch
 import torch.distributed as dist
-from packaging import version
 
 # First Party
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
@@ -21,7 +20,7 @@ from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.profiler.utils import start_smdataparallel_profiler, stop_smdataparallel_profiler
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
-from smdebug.pytorch.utils import get_reduction_of_data
+from smdebug.pytorch.utils import get_reduction_of_data, is_pt_1_5, is_pt_1_6, is_pt_1_7
 
 # smdistributed.dataparallel should be invoked via `mpirun`.
 # It supports EC2 machines with 8 GPUs per machine.
@@ -263,7 +262,7 @@ class Hook(CallbackHook):
             return
         records = torch.autograd._disable_profiler()
         self.autograd_profiler_enabled = False
-        if version.parse(torch.__version__) >= version.parse("1.7"):
+        if is_pt_1_7():
             function_events = torch.autograd.profiler.EventList(
                 torch.autograd.profiler.parse_event_records(records), use_cuda=self.use_cuda
             )
@@ -375,15 +374,15 @@ class Hook(CallbackHook):
             and not self.autograd_profiler_enabled
         ):
             self.autograd_profiler_enabled = True
-            if version.parse(torch.__version__) <= version.parse("1.5.1"):
+            if is_pt_1_5():
                 torch.autograd._enable_profiler(torch.autograd.ProfilerConfig(self.profiler, False))
                 self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
-            elif version.parse(torch.__version__) >= version.parse("1.7"):
+            elif is_pt_1_7():
                 torch.autograd._enable_profiler(
                     torch.autograd.ProfilerConfig(self.profiler, False, False, False)
                 )
                 self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
-            elif version.parse("1.7") > version.parse(torch.__version__) >= version.parse("1.6"):
+            elif is_pt_1_6():
                 torch.autograd._enable_profiler(
                     torch.autograd.ProfilerConfig(self.profiler, False, False)
                 )
