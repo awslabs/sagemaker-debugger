@@ -391,7 +391,7 @@ class Hook(CallbackHook):
             else:
                 self.logger.warn(
                     f"The detailed profiling using autograd profiler is not supported for torch version "
-                    f"{torch.__version}"
+                    f"{torch.__version__}"
                 )
                 self.autograd_profiler_enabled = False
 
