@@ -51,7 +51,7 @@ if [ "$SMDEBUG_S3_BINARY" ]; then
   fi
   echo "Commit hash on sagemaker-debugger repository being used: $CORE_COMMIT"
   cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT"
-  python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+  python setup.py bdist_wheel --universal && pip install -U dist/*.whl
 else
   # if the env var stable_release is not set, then this else block is executed.
   if [ -z "$CORE_COMMIT" ]; then export CORE_COMMIT=$(git log -1 --pretty=%h); fi
@@ -65,7 +65,7 @@ else
   else
     pip install dist/*.whl
   fi
-  cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT" && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+  cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT" && python setup.py bdist_wheel --universal && pip install -U dist/*.whl
 fi
 
 if [ "$run_pytest_mxnet" == 'enable' ]; then
