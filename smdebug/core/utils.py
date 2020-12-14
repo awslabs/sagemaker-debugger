@@ -333,6 +333,8 @@ def get_distributed_worker():
 
             if hvd.size():
                 rank = hvd.rank()
+
+            return rank
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
@@ -341,6 +343,8 @@ def get_distributed_worker():
 
             if hvd.size():
                 rank = hvd.rank()
+
+            return rank
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
