@@ -332,9 +332,7 @@ def get_distributed_worker():
             import horovod.torch as hvd
 
             if hvd.size():
-                rank = hvd.rank()
-
-            return rank
+                return hvd.rank()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
@@ -342,9 +340,7 @@ def get_distributed_worker():
             import horovod.tensorflow as hvd
 
             if hvd.size():
-                rank = hvd.rank()
-
-            return rank
+                return hvd.rank()
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
