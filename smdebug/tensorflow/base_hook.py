@@ -188,7 +188,7 @@ class TensorflowBaseHook(BaseHook):
                 # with same hvd rank, hence use smp.rank
                 import smdistributed.modelparallel.tensorflow as smp
 
-                if smp.state.initialized:
+                if smp.core.initialized:
                     # if smp is in use
                     return f"worker_{smp.rank()}"
             except ImportError:
