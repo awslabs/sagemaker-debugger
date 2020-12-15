@@ -33,7 +33,7 @@ from .utils import (
 )
 
 try:
-    pass
+    import smdistributed.modelparallel.tensorflow as smp  # noqa isort:skip
 
     _smp_importable = True
 except ImportError:
