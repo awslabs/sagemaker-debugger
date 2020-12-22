@@ -1,11 +1,22 @@
 # Standard Library
 import os
 import re
+import time
 from abc import ABC, abstractmethod
+from datetime import datetime
+
+# First Party
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    DEFAULT_PREFIX,
+    MERGEDTIMELINE_SUFFIX,
+    PYTHONTIMELINE_SUFFIX,
+    TRACE_DIRECTORY_FORMAT,
+)
 
 # Local
 from .logger import get_logger
-from .utils import get_immediate_subdirectories
+from .utils import ensure_dir, get_immediate_subdirectories, get_node_id
 
 logger = get_logger()
 
@@ -115,6 +126,103 @@ class TensorboardFileLocation(EventFileLocation):
             event_key_prefix = os.path.join(self.type, self.mode.name)
 
         return os.path.join(event_key_prefix, self.get_filename())
+
+
+class TraceFileLocation:
+    # File path generated based on
+    # $ENV_BASE_FOLDER/framework/pevents/$START_TIME_YYYYMMDDHR/
+    # $FILEEVENTENDTIMEUTCINEPOCH_{$ENV_NODE_ID}_model_timeline.json
+    @staticmethod
+    def get_file_location(timestamp, base_dir, suffix=PYTHONTIMELINE_SUFFIX):
+        env_base_location = base_dir
+        date_hour = time.strftime(
+            TRACE_DIRECTORY_FORMAT, time.gmtime(timestamp / CONVERT_TO_MICROSECS)
+        )
+        timestamp = int(round(timestamp))
+        worker_id = get_node_id()
+        file_path = os.path.join(
+            env_base_location,
+            DEFAULT_PREFIX
+            + "/"
+            + date_hour
+            + "/"
+            + str(timestamp)
+            + "_"
+            + worker_id
+            + "_"
+            + suffix,
+        )
+        return file_path
+
+    @staticmethod
+    def get_detailed_profiling_log_dir(base_folder, framework, current_step):
+        current_time = datetime.today().strftime("%Y%m%d%H")
+        padded_start_step = str(current_step).zfill(9)
+        log_dir = os.path.join(
+            base_folder,
+            "framework",
+            framework,
+            "detailed_profiling",
+            current_time,
+            padded_start_step,
+        )
+        ensure_dir(log_dir, is_file=False)
+        return log_dir
+
+    @staticmethod
+    def get_tf_profiling_metadata_file(base_folder, start_time_us, end_time_us):
+        metadata_file = os.path.join(
+            base_folder,
+            get_node_id()
+            + "_"
+            + str(int(round(start_time_us)))
+            + "_"
+            + str(int(round(end_time_us)))
+            + ".metadata",
+        )
+        ensure_dir(metadata_file, is_file=True)
+        return metadata_file
+
+    @staticmethod
+    def get_python_profiling_stats_dir(
+        base_folder,
+        profiler_name,
+        framework,
+        start_mode,
+        start_step,
+        start_phase,
+        start_time_since_epoch_in_micros,
+        end_mode,
+        end_step,
+        end_phase,
+        end_time_since_epoch_in_micros,
+    ):
+        node_id = get_node_id()
+        stats_dir = "{0}-{1}-{2}-{3}_{4}-{5}-{6}-{7}".format(
+            start_mode,
+            start_step,
+            start_phase,
+            start_time_since_epoch_in_micros,
+            end_mode,
+            end_step,
+            end_phase,
+            end_time_since_epoch_in_micros,
+        )
+        stats_dir_path = os.path.join(
+            base_folder, "framework", framework, profiler_name, node_id, stats_dir
+        )
+        ensure_dir(stats_dir_path, is_file=False)
+        return stats_dir_path
+
+    @staticmethod
+    def get_merged_trace_file_location(base_dir, timestamp_in_us):
+        env_base_location = base_dir
+        timestamp = int(round(timestamp_in_us))
+        worker_id = get_node_id()
+        file_path = os.path.join(
+            env_base_location, str(timestamp) + "_" + worker_id + "_" + MERGEDTIMELINE_SUFFIX
+        )
+        return file_path
 
 
 class IndexFileLocationUtils:
