@@ -14,7 +14,6 @@
 - [TensorBoard Visualization](#tensorboard-visualization)
 - [Example Notebooks](#example-notebooks)
 
-
 ## Configuring SageMaker Debugger
 
 Regardless of which of the two above ways you have enabled SageMaker Debugger, you can configure it using the SageMaker python SDK. There are two aspects to this configuration.

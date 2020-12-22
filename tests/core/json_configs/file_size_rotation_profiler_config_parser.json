@@ -1,0 +1,8 @@
+{
+    "ProfilingParameters": {
+        "ProfilerEnabled": true,
+        "LocalPath": "/tmp/test",
+        "RotateMaxFileSizeInBytes": 800,
+        "FileOpenFailThreshold": 2
+    }
+}

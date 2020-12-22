@@ -1,0 +1,8 @@
+{
+    "ProfilingParameters": {
+        "ProfilerEnabled": true,
+        "LocalPath": "/tmp/test",
+        "RotateMaxFileSizeInBytes": 100000,
+        "RotateFileCloseIntervalInSeconds": 1
+    }
+}
