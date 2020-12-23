@@ -602,8 +602,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
                 continue
-            else:
-                self._save_tensor_to_file(export_name, tensor, input_collection)
+            self._save_tensor_to_file(export_name, tensor, input_collection)
 
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
@@ -617,8 +616,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
                 continue
-            else:
-                self._save_tensor_to_file(export_name, tensor, output_collection)
+            self._save_tensor_to_file(export_name, tensor, output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
