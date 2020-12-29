@@ -23,6 +23,20 @@ from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
 _is_invoked_via_smddp = None
+
+_smp_imported = None
+try:
+    import smdistributed.modelparallel.tensorflow as smp  # noqa isort:skip
+
+    _smp_imported = smp
+except ImportError:
+    import smdistributed.modelparallel.torch as smp  # noqa isort:skip
+
+    _smp_imported = smp
+except ImportError:
+    pass
+
+
 logger = get_logger()
 
 
@@ -317,7 +331,7 @@ def get_tb_worker():
 
 
 def get_distributed_worker():
-    """This fn should only be used for torch.
+    """
     Get the rank for horovod or torch distributed. If none of them are being used,
     return None"""
     rank = None
@@ -329,21 +343,24 @@ def get_distributed_worker():
     if dist and hasattr(dist, "is_initialized") and dist.is_initialized():
         rank = dist.get_rank()
     else:
-        try:
-            import horovod.torch as hvd
+        if _smp_imported is not None and smp.core.initialized:
+            rank = smp.rank()
+        else:
+            try:
+                import horovod.torch as hvd
 
-            if hvd.size():
-                rank = hvd.rank()
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
+                if hvd.size():
+                    rank = hvd.rank()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
 
-        try:
-            import horovod.tensorflow as hvd
+            try:
+                import horovod.tensorflow as hvd
 
-            if hvd.size():
-                rank = hvd.rank()
-        except (ModuleNotFoundError, ValueError, ImportError):
-            pass
+                if hvd.size():
+                    rank = hvd.rank()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
 
         # smdistributed.dataparallel should be invoked via `mpirun`.
         # It supports EC2 machines with 8 GPUs per machine.
