@@ -279,8 +279,12 @@ def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
     event_time_in_timezone = time.mktime(time.localtime())
     time_in_utc = event_time_in_utc = calendar.timegm(time.gmtime())
 
+    print("1", event_time_in_timezone, time_in_utc)
+
     timeline_writer = TimelineFileWriter(profiler_config_parser=simple_profiler_config_parser)
     assert timeline_writer
+
+    print("2", time.mktime(time.localtime()), calendar.timegm(time.gmtime()))
 
     event_times_in_utc = []
     for i in range(1, 3):
@@ -293,6 +297,7 @@ def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
         )
         event_time_in_timezone = time.mktime(time.localtime())
         event_time_in_utc = calendar.timegm(time.gmtime())
+        print("3", event_time_in_timezone, time_in_utc)
 
     timeline_writer.flush()
     timeline_writer.close()
