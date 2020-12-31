@@ -268,7 +268,7 @@ def test_rotation_policy(rotation_profiler_config_parser, policy, out_dir):
 
 
 @pytest.mark.parametrize("timezone", ["Europe/Dublin", "Australia/Melbourne", "US/Eastern"])
-def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
+def test_utc_timestamp(monkeypatch, simple_profiler_config_parser, timezone, out_dir):
     """
     This test is meant to set to create files/events in different timezones and check if timeline writer stores
     them in UTC.
