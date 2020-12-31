@@ -277,14 +277,14 @@ def test_utc_timestamp(monkeypatch, simple_profiler_config_parser, timezone, out
     assert simple_profiler_config_parser.profiling_enabled
 
     time.tzset()
-    event_time_in_timezone = time.mktime(time.localtime())
-    event_time_in_utc = calendar.timegm(time.gmtime())
 
     timeline_writer = TimelineFileWriter(profiler_config_parser=simple_profiler_config_parser)
     assert timeline_writer
 
     event_times_in_utc = []
     for i in range(1, 3):
+        event_time_in_timezone = time.mktime(time.localtime())
+        event_time_in_utc = time_in_utc = calendar.timegm(time.gmtime())
         event_times_in_utc.append(event_time_in_utc)
         timeline_writer.write_trace_events(
             training_phase=f"TimestampTest",
@@ -292,10 +292,7 @@ def test_utc_timestamp(monkeypatch, simple_profiler_config_parser, timezone, out
             timestamp=event_time_in_timezone,
             duration=20,
         )
-        event_time_in_timezone = time.mktime(time.localtime())
-        event_time_in_utc = calendar.timegm(time.gmtime())
 
-    time_in_utc = calendar.timegm(time.gmtime())
     timeline_writer.flush()
     timeline_writer.close()
 
