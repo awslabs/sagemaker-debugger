@@ -58,9 +58,9 @@ export SMDEBUG_LOG_LEVEL=info
 
 export OUT_DIR=upload/$CURRENT_COMMIT_PATH
 export REPORT_DIR=$OUT_DIR/pytest_reports
-python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
+#python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
 
-run_for_framework core
+#run_for_framework core
 
 if [ "$run_pytest_xgboost" = "enable" ] ; then
     run_for_framework xgboost
@@ -83,8 +83,9 @@ if [ "$run_pytest_mxnet" = "enable" ] ; then
 fi
 
 if [ "$run_pytest_pytorch" = "enable" ] ; then
-    run_for_framework pytorch
-    run_profiler_test pytorch
+  python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/core/test_timeline_writer.py::test_utc_timestamp
+#    run_for_framework pytorch
+#    run_profiler_test pytorch
 fi
 
 check_logs $REPORT_DIR/*
