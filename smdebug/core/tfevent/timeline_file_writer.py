@@ -82,6 +82,7 @@ class TimelineRecord:
         self.event_end_ts_micros = abs_ts_micros + self.duration
         self.pid = 0
         self.tid = 0
+        print("4", abs_ts_micros, self.duration, self.event_end_ts_micros)
 
     def to_json(self):
         json_dict = {
