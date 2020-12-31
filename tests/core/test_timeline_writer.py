@@ -307,6 +307,8 @@ def test_utc_timestamp(simple_profiler_config_parser, timezone, out_dir):
     for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
         files.append(path)
 
+    print(files)
+
     file_path = files[0]
     path = file_path.name.split(DEFAULT_PREFIX)
     file_timestamp = int(path[0].split("_")[0])
