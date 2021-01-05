@@ -122,8 +122,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
-        # this flag indicates to debugging for tensorflow2 native training
-        self.debugger_native_training = False
+        # this flag is used to handle step number increment in the tensorflow native training
+        # it indicated to profiling for tensorflow2 native training
+        self.profiling_native_training = False
 
         if self.python_profiler:
             atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
@@ -1110,7 +1111,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 start_mode=mode_keys_to_python_profile_mode(self.mode),
                 start_step=self.mode_steps[self.mode],
             )
-        self.debugger_native_training = False
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1149,7 +1149,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._prepare_collections()
                 self.prepared_collections = True
 
-            self._increment_step()
+            if not self.profiling_native_training:
+                self._increment_step()
 
             if self._get_collections_to_save_for_step():
                 self._initialize_writers()
@@ -1267,7 +1268,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         from tensorflow.python.eager.backprop import GradientTape
 
-        self.debugger_native_training = True
         self.set_mode(ModeKeys.TRAIN)
 
         if isinstance(tape, GradientTape):
@@ -1349,3 +1349,4 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.close()
         self._end_dataloader_profiling()
         self._end_detailed_profiling()
+
