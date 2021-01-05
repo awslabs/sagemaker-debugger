@@ -1300,7 +1300,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :return: Wrapped tape of same type as passed.
             This tape should be used for training
         """
-        # Third Party
         from tensorflow.python.eager.backprop import GradientTape
 
         self.debugger_native_training = True
@@ -1414,4 +1413,3 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.close()
         self._end_dataloader_profiling()
         self._end_detailed_profiling()
-
