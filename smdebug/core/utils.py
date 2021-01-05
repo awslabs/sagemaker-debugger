@@ -24,17 +24,17 @@ from smdebug.exceptions import IndexReaderException
 
 _is_invoked_via_smddp = None
 
-
 try:
-    import smdistributed.modelparallel.tensorflow as smp  # noqa isort:skip
+    import smdistributed.modelparallel.tensorflow as smp
 
     _smp_imported = smp
 except (ImportError, ModuleNotFoundError):
-    import smdistributed.modelparallel.torch as smp  # noqa isort:skip
+    try:
+        import smdistributed.modelparallel.torch as smp
 
-    _smp_imported = smp
-except (ImportError, ModuleNotFoundError):
-    _smp_imported = None
+        _smp_imported = smp
+    except (ImportError, ModuleNotFoundError):
+        _smp_imported = None
 
 
 try:
@@ -50,11 +50,12 @@ try:
 
     _hvd_imported = hvd
 except (ModuleNotFoundError, ImportError):
-    import horovod.tensorflow as hvd
+    try:
+        import horovod.tensorflow as hvd
 
-    _hvd_imported = hvd
-except (ModuleNotFoundError, ImportError):
-    _hvd_imported = None
+        _hvd_imported = hvd
+    except (ModuleNotFoundError, ImportError):
+        _hvd_imported = None
 
 
 try:
@@ -62,11 +63,12 @@ try:
 
     _smdataparallel_imported = smdataparallel
 except (ModuleNotFoundError, ImportError):
-    import smdistributed.dataparallel.tensorflow as smdataparallel
+    try:
+        import smdistributed.dataparallel.tensorflow as smdataparallel
 
-    _smdataparallel_imported = smdataparallel
-except (ModuleNotFoundError, ImportError):
-    _smdataparallel_imported = None
+        _smdataparallel_imported = smdataparallel
+    except (ModuleNotFoundError, ImportError):
+        _smdataparallel_imported = None
 
 
 logger = get_logger()
