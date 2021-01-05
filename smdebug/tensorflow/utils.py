@@ -26,13 +26,13 @@ def supported_tf_variables():
         tensorflow mixed preicison api is experimental in versions below 2.4.0
         :return: bool
         """
-        return version.parse("2.4.0") <= version.parse(tf.__version__)
+        return version.parse(tf.__version__) < version.parse("2.4.0")
 
     if does_tf_support_mixed_precision_training():
         if is_mixed_precision_api_experimental():
-            from tensorflow.python.keras.mixed_precision import autocast_variable
-        else:
             from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
+        else:
+            from tensorflow.python.keras.mixed_precision import autocast_variable
 
         return tf_v1.Variable, autocast_variable.AutoCastVariable
     else:
