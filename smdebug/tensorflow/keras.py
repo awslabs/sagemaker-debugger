@@ -1271,7 +1271,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :return: Wrapped tape of same type as passed.
             This tape should be used for training
         """
-        # Third Party
         from tensorflow.python.eager.backprop import GradientTape
 
         self.debugger_native_training = True
@@ -1356,7 +1355,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if is_profiler_supported_for_tf_version():
             if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
+                    MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
             ):
                 if not self.is_detailed_profiling:
                     self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
@@ -1386,7 +1385,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Enabling profiler at the end of train batch when native tf2 training is used.
         """
         # print("Step Number in end train batch: ", self.mode_steps[mode])
-
         if self._is_not_supported():
             return
 
@@ -1427,7 +1425,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.close()
 
         if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
+                TF_DATALOADER_END_FLAG_FILENAME
         ):
             # print("Stop Dataloader profiling")
             self.is_dataloader_profiling = False
@@ -1440,3 +1438,4 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 start_time_us=self.tf_profiler_start_time_in_micros,
             )
             self.is_detailed_profiling = False
+
