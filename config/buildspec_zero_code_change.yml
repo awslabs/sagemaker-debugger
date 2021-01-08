@@ -21,6 +21,8 @@ env:
 phases:
   install:
     commands:
+      # The recent update to XGBoost container is requiring to update the PUB_KEY for successfully running the apt-get update
+      - if [ "$run_pytest_xgboost" = "enable" ]; then su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D; fi
       - apt-get update
       - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
       - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
