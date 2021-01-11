@@ -122,8 +122,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
-        # this flag is used to handle step number increment in the tensorflow native training
-        # it indicated to profiling for tensorflow2 native training
+        # this flag is used to handle step number increment in the tensorflow native training when profiler is on
+        # it indicates to profiling for tensorflow2 native training
         self.profiling_native_training = False
 
         if self.python_profiler:
@@ -1297,24 +1297,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
 
+
     def profiling_start_batch(self, mode=ModeKeys.TRAIN):
         """
         Enabling profiler at the start of train batch when native tf2 training is used.
         """
-        self.start = time.time()
+        self.set_mode(ModeKeys.TRAIN)
 
-        if self._is_not_supported():
-            return
-
-        self.set_mode(mode)
-
-        # When only profiler is enabled in the native tf2 training,
-        # increasing the step number in the TRAIN and GLOBAL mode
-        # and not writing the state.
-        if not self.debugger_native_training:
-            self._increment_step(write_state=self.debugger_native_training)
-
-        self.profiler_config_parser.load_config()
+        self.profiling_native_training = True
+        if self.profiling_native_training:
+            self._increment_step()
 
         self._begin_dataloader_profiling(mode=mode)
 
@@ -1326,6 +1318,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Enabling profiler at the end of train batch when native tf2 training is used.
         """
+
         if self._is_not_supported():
             return
 
