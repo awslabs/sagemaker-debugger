@@ -33,9 +33,11 @@ from .utils import (
 )
 
 try:
-    pass
+    import smdistributed.modelparallel.tensorflow as smp  # noqa isort:skip
+
+    _smp_importable = True
 except ImportError:
-    pass
+    _smp_importable = False
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [
@@ -183,6 +185,15 @@ class TensorflowBaseHook(BaseHook):
         """
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if _smp_importable:
+                # when model parallel is being used, there will be multiple processes
+                # with same hvd rank, hence use smp.rank
+                import smdistributed.modelparallel.tensorflow as smp
+
+                if smp.core.initialized:
+                    # if smp is in use
+                    return f"worker_{smp.rank()}"
+
             import horovod.tensorflow as hvd
 
             return f"worker_{hvd.rank()}"
@@ -260,6 +271,15 @@ class TensorflowBaseHook(BaseHook):
     def _get_num_workers(self):
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if _smp_importable:
+                # when model parallel is being used, there will be multiple hvd process groups,
+                # hence use smp.size
+                import smdistributed.modelparallel.tensorflow as smp
+
+                if smp.core.initialized:
+                    # if smp is in use
+                    return smp.size()
+
             import horovod.tensorflow as hvd
 
             return hvd.size()
