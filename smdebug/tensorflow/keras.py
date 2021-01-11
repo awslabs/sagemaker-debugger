@@ -121,8 +121,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
-        # this flag is used to handle step number increment in the tensorflow native training
-        # it indicated to profiling for tensorflow2 native training
+        # this flag is used to handle step number increment in the tensorflow native training when profiler is on
+        # it indicates to profiling for tensorflow2 native training
         self.profiling_native_training = False
 
         if python_profiler:
@@ -1044,7 +1044,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if isinstance(optimizer, tf.train.Optimizer):
             optimizer = self._wrap_apply_gradients(optimizer)
         elif isinstance(optimizer, tf.keras.optimizers.Optimizer) or is_keras_optimizer(optimizer):
-            # either subclasse of optimizerV2 class in tf.keras
+            # either subclass of optimizerV2 class in tf.keras
             # or keras.optimizers.Optimizer
             original_get_grads = optimizer.__class__.get_gradients
 
@@ -1305,30 +1305,25 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
 
     def start_profiling_start_train_batch(self):
+        """
+        Enabling profiler at the start of train batch when native tf2 training is used.
+        """
         print('Start profiling train batch')
 
         self.start = time.time()
-        # santiy check
+
         if self._is_not_supported():
             return
-        # set mode to TRAIN
         self.set_mode(ModeKeys.TRAIN)
 
         self.profiling_native_training = True
         if self.profiling_native_training:
             self._increment_step()
-        # if self.step_incremented_in_on_train_begin is False:
-        #     self._increment_step()
-        # else:
-        #     self.step_incremented_in_on_train_begin = False
 
         print('\nStep Number in start train batch: ', self.mode_steps[ModeKeys.TRAIN])
 
-        # load the profiler config
         self.profiler_config_parser.load_config()
 
-
-        # Dataloader
         if self.profiler_config_parser.should_save_metrics(
                 MetricsCategory.DATALOADER_PROFILING, self.mode_steps[ModeKeys.TRAIN]
         ) and self.profiler_config_parser.write_tf_dataloader_flag(
@@ -1341,7 +1336,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         ):
             self.is_dataloader_profiling = False
 
-        # python profiling
         if python_profiler:
             print('Stop python profiling in start train batch')
             python_profiler.stop_profiling(
@@ -1359,7 +1353,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     start_step=self.mode_steps[ModeKeys.TRAIN],
                 )
 
-        # detail profiling
         if is_profiler_supported_for_tf_version():
             if self.profiler_config_parser.should_save_metrics(
                     MetricsCategory.DETAILED_PROFILING, self.mode_steps[ModeKeys.TRAIN]
@@ -1392,9 +1385,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.is_detailed_profiling = False
 
     def start_profiling_end_train_batch(self):
+        """
+        Enabling profiler at the end of train batch when native tf2 training is used.
+        """
         print('End profiling train batch')
         print('\nStep Number in end train batch: ', self.mode_steps[ModeKeys.TRAIN])
-        # sanity check
+
         if self._is_not_supported():
             return
 
@@ -1426,10 +1422,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
 
     def stop_profiling_end_of_training(self):
+        """
+        Stop profiler at the end of training when native tf2 training is used.
+        """
         print('\nEnd of training!')
         print('\nStep Number at the end of training: ', self.step)
 
-        # Alternatively, use self.close to close the python profiling
+        # Unwrap the tape before closing and close the python profiling
         self.close()
 
         if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
