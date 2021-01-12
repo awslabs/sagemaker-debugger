@@ -61,7 +61,6 @@ if profiler_config_parser.profiling_enabled:
     if config.python_profiling_config.is_enabled():
         python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
         python_profiler.start_profiling(StepPhase.START)
-# print('prezero-step start profiling object outside: ', python_profiler)
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -1138,6 +1137,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def close(self):
         self._cleanup()
+
         if self.python_profiler:
             self.python_profiler.start_profiling(
                 StepPhase.STEP_END,
@@ -1145,6 +1145,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 start_step=self.mode_steps[self.mode],
             )
         self.debugger_native_training = False
+
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1368,7 +1369,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.is_dataloader_profiling = False
 
         if self.python_profiler:
-            # print("Stop python profiling in start train batch")
             self.python_profiler.stop_profiling(
                 StepPhase.STEP_START,
                 end_mode=mode_keys_to_python_profile_mode(mode),
@@ -1377,7 +1377,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self.profiler_config_parser.should_save_metrics(
                 MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
             ):
-                # print("Start python profiling in start train batch")
                 self.python_profiler.start_profiling(
                     StepPhase.STEP_START,
                     start_mode=mode_keys_to_python_profile_mode(mode),
@@ -1403,7 +1402,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             pid=os.getpid(),
             step_num=str(self.mode_steps[mode]),
         )
-
 
     def profiling_end(self):
         """
