@@ -173,6 +173,8 @@ def helper_native_tf2_profiler(trial_dir, hook):
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
 
+
+    # print('\nTraining script: ', hook.python_profiler)
     n_epochs = 1
     for epoch in range(n_epochs):
         for data, labels in dataset:
@@ -338,6 +340,7 @@ def test_native_python_profiling_cprofiler(
     print('\nnum_steps: ', config.python_profiling_config.num_steps)
 
     python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
+    print('\ntest function: ', python_profiler)
     start_step = config.python_profiling_config.start_step
     num_steps = config.python_profiling_config.num_steps
     end_step = start_step + num_steps
@@ -347,6 +350,7 @@ def test_native_python_profiling_cprofiler(
     python_stats_dir = os.path.join(out_dir, 'framework/', 'tensorflow/', profiler_name)
 
     hook = Hook(out_dir=out_dir)
+    hook.python_profiler = python_profiler
     helper_native_tf2_profiler(trial_dir=out_dir, hook=hook)
 
     # Test that directory and corresponding files exist.
@@ -384,7 +388,7 @@ def test_native_python_profiling_pyinstrument(
     print('\nstart_step: ', config.python_profiling_config.start_step)
     print('\nnum_steps: ', config.python_profiling_config.num_steps)
 
-    python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
+    # python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
     start_step = config.python_profiling_config.start_step
     num_steps = config.python_profiling_config.num_steps
     end_step = start_step + num_steps
