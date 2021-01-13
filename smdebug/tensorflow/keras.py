@@ -61,10 +61,6 @@ if profiler_config_parser.profiling_enabled:
     if config.python_profiling_config.is_enabled():
         python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
         python_profiler.start_profiling(StepPhase.START)
-<<<<<<< HEAD
-=======
-# print('prezero-step start profiling object outside: ', python_profiler)
->>>>>>> update profiler for native tf training
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -148,7 +144,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
-<<<<<<< HEAD
                     if is_tf_version_greater_than_2_4_x():
                         # distributed_training_utils.py renamed to distributed_training_utils_v1 in tf 2.4.0
                         from tensorflow.python.keras.distribute.distributed_training_utils_v1 import (
@@ -159,12 +154,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                             get_distributed_model,
                         )
 
-=======
-                    # Third Party
-                    from tensorflow.python.keras.distribute.distributed_training_utils import (
-                        get_distributed_model,
-                    )
->>>>>>> update profiler for native tf training
                 except ImportError:
                     # for tf1.13 we can't import this, so we can't support mirrored strategy
                     self.logger.info(
