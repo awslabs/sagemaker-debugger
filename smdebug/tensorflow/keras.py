@@ -131,7 +131,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if self.python_profiler:
             print('exit stop profiling object inside: ', self.python_profiler, self.step)
-            atexit.register(python_profiler.stop_profiling, StepPhase.END)
+            atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
