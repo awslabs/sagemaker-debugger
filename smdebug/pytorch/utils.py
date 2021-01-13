@@ -7,7 +7,6 @@ from packaging import version
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.core.reductions import get_numpy_reduction
 
-
 # Cached Pytorch Version
 PT_VERSION = version.parse(torch.__version__)
 
