@@ -2,6 +2,6 @@
     "ProfilingParameters": {
         "ProfilerEnabled": true,
         "LocalPath": "/tmp/test",
-        "PythonProfilingConfig": "{\"StartStep\": 9, \"NumSteps\": 2, \"ProfilerName\": \"cProfile\"}"
+        "PythonProfilingConfig": "{\"StartStep\": 8, \"NumSteps\": 2, \"ProfilerName\": \"Pyinstrument\"}"
     }
 }
