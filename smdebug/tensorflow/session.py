@@ -13,6 +13,7 @@ from smdebug.core.utils import make_numpy_array, match_inc
 from .base_hook import TensorflowBaseHook
 from .tensor_ref import TensorType
 from .utils import (
+    TF_VERSION,
     TFDistributionStrategy,
     build_fetches_tuple,
     extract_graph_summary,
@@ -241,7 +242,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 from packaging import version
 
-                if version.parse(tf.__version__) < version.parse("1.14.0"):
+                if TF_VERSION < version.parse("1.14.0"):
                     self._hook_supported = False
                     # in tf 1.13, we can't support mirrored strategy as
                     # MirroredVariable does not have _values attribute
