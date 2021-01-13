@@ -3,6 +3,9 @@
 import tensorflow.compat.v2 as tf
 from packaging import version
 
+# Cached TF Version
+TF_VERSION = version.parse(tf.__version__)
+
 
 def is_tf_2_2():
     """
@@ -12,12 +15,12 @@ def is_tf_2_2():
     number of tensor_names emitted by 1.
     :return: bool
     """
-    if version.parse(tf.__version__) >= version.parse("2.2.0"):
+    if TF_VERSION >= version.parse("2.2.0"):
         return True
     return False
 
 
 def is_tf_2_3():
-    if version.parse(tf.__version__) == version.parse("2.3.0"):
+    if TF_VERSION == version.parse("2.3.0"):
         return True
     return False

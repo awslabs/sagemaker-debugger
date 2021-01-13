@@ -8,6 +8,10 @@ from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.core.reductions import get_numpy_reduction
 
 
+# Cached Pytorch Version
+PT_VERSION = version.parse(torch.__version__)
+
+
 def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
     if isinstance(tensor_data, np.ndarray):
         return get_numpy_reduction(reduction_name, tensor_data, abs)
@@ -42,7 +46,7 @@ def is_pt_1_5():
     Determine whether the version of torch is 1.5.x
     :return: bool
     """
-    return version.parse("1.5.0") <= version.parse(torch.__version__) < version.parse("1.6.0")
+    return version.parse("1.5.0") <= PT_VERSION < version.parse("1.6.0")
 
 
 def is_pt_1_6():
@@ -50,7 +54,7 @@ def is_pt_1_6():
     Determine whether the version of torch is 1.6.x
     :return: bool
     """
-    return version.parse("1.6.0") <= version.parse(torch.__version__) < version.parse("1.7.0")
+    return version.parse("1.6.0") <= PT_VERSION < version.parse("1.7.0")
 
 
 def is_pt_1_7():
@@ -58,4 +62,4 @@ def is_pt_1_7():
     Determine whether the version of torch is 1.7.x
     :return: bool
     """
-    return version.parse("1.7.0") <= version.parse(torch.__version__) < version.parse("1.8.0")
+    return version.parse("1.7.0") <= PT_VERSION < version.parse("1.8.0")
