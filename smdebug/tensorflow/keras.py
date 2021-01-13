@@ -316,7 +316,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             for t in tensor_refs:
                 self.tensor_to_collections[t.name] = colls_with_tensor
         elif colls_with_tensor:
-            # we should only readd tensors which were already added if these are variables
+            # we should only read tensors which were already added if these are variables
             # other tensors are part of a different mode, and will cause a crash if fetched
             # because their input placeholders will not be passed.
             if any(
