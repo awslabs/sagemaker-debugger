@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 import pstats
+import atexit
 
 # Third Party
 import tensorflow as tf
@@ -84,6 +85,18 @@ def framework_dir(out_dir, test_framework):
     return "{0}/framework/{1}".format(out_dir, test_framework)
 
 
+def set_up_profiling(profilerconfig):
+    profiler_config_parser = profilerconfig
+    python_profiler = None
+    if profiler_config_parser.profiling_enabled:
+        config = profiler_config_parser.config
+        if config.python_profiling_config.is_enabled():
+            python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
+            python_profiler.start_profiling(StepPhase.START)
+            atexit.register(python_profiler.stop_profiling, StepPhase.END)
+    return profiler_config_parser, python_profiler
+
+
 def create_model():
     model = tf.keras.models.Sequential(
         [
@@ -131,7 +144,7 @@ def helper_native_tf2_profiler_debugger(trial_dir, hook):
             hook.start_profiling_end_train_batch()
     hook.stop_profiling_end_of_training()
 
-    model.save(trial_dir, save_format="tf")
+    # model.save(trial_dir, save_format="tf")
 
     trial = smd.create_trial(trial_dir)
     assert trial.tensor_names(collection=CollectionKeys.LOSSES) == ["loss"]
@@ -173,8 +186,6 @@ def helper_native_tf2_profiler(trial_dir, hook):
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
 
-
-    # print('\nTraining script: ', hook.python_profiler)
     n_epochs = 1
     for epoch in range(n_epochs):
         for data, labels in dataset:
@@ -196,7 +207,7 @@ def test_native_tf2_profiler_by_step_profiler_debugger(tf2_profiler_config_parse
     """
     assert tf2_profiler_config_parser_by_step.profiling_enabled
 
-    hook = Hook(out_dir=out_dir)
+    hook = Hook(out_dir=out_dir, save_all=True)
     helper_native_tf2_profiler_debugger(trial_dir=out_dir, hook=hook)
 
     t_events = TensorboardProfilerEvents()
@@ -333,13 +344,13 @@ def test_native_python_profiling_cprofiler(
 ):
     assert tf2_python_cprofiler_config_parser_by_step.profiling_enabled
 
-    config = tf2_python_cprofiler_config_parser_by_step.config
+    profiler_config_parser, python_profiler = set_up_profiling(tf2_python_cprofiler_config_parser_by_step)
+
+    config = profiler_config_parser.config
     print('\npath: ', os.environ["SMPROFILER_CONFIG_PATH"])
     print('\nname: ', config.python_profiling_config.name)
     print('\nstart_step: ', config.python_profiling_config.start_step)
     print('\nnum_steps: ', config.python_profiling_config.num_steps)
-
-    python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
     print('\ntest function: ', python_profiler)
     start_step = config.python_profiling_config.start_step
     num_steps = config.python_profiling_config.num_steps
@@ -382,13 +393,9 @@ def test_native_python_profiling_pyinstrument(
 ):
     assert tf2_python_pyinstrument_config_parser_by_step.profiling_enabled
 
-    config = tf2_python_pyinstrument_config_parser_by_step.config
-    print('\npath: ', os.environ["SMPROFILER_CONFIG_PATH"])
-    print('\nname: ', config.python_profiling_config.profiler_name)
-    print('\nstart_step: ', config.python_profiling_config.start_step)
-    print('\nnum_steps: ', config.python_profiling_config.num_steps)
+    profiler_config_parser, python_profiler = set_up_profiling(tf2_python_pyinstrument_config_parser_by_step)
 
-    # python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
+    config = profiler_config_parser.config
     start_step = config.python_profiling_config.start_step
     num_steps = config.python_profiling_config.num_steps
     end_step = start_step + num_steps
@@ -398,6 +405,7 @@ def test_native_python_profiling_pyinstrument(
     python_stats_dir = os.path.join(out_dir, 'framework/', 'tensorflow/', profiler_name)
 
     hook = Hook(out_dir=out_dir)
+    hook.python_profiler = python_profiler
     helper_native_tf2_profiler(trial_dir=out_dir, hook=hook)
 
     # Test that directory and corresponding files exist.
