@@ -146,11 +146,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
-
-                    # Third Party
-                    from tensorflow.python.keras.distribute.distributed_training_utils import (
-                        get_distributed_model,
-                    )
+                    if is_tf_version_greater_than_2_4_x():
+                        # distributed_training_utils.py renamed to distributed_training_utils_v1 in tf 2.4.0
+                        from tensorflow.python.keras.distribute.distributed_training_utils_v1 import (
+                            get_distributed_model,
+                        )
+                    else:
+                        from tensorflow.python.keras.distribute.distributed_training_utils import (
+                            get_distributed_model,
+                        )
                 except ImportError:
                     # for tf1.13 we can't import this, so we can't support mirrored strategy
                     self.logger.info(
