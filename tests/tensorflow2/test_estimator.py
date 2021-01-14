@@ -71,10 +71,11 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
         # vanilla TF 2.2: all = 214, loss = 2, weights = 1, gradients = 0, biases = 12, optimizer variables = 0, metrics = 0, others = 199
         # AWS-TF 2.2: all = 219, loss = 2, weights = 1, gradients = 2, biases = 12, optimizer variables = 5, metrics = 0, others = 197
         # AWS-TF 2.1: all = 226, loss = 2, weights = 1, gradients = 2, biases = 12, optimizer variables = 5, metrics = 0, others = 204
+        # AWS-TF 2.4: all = 229, loss = 2, weights = 1, gradients = 2, biases = 16, optimizer variables = 5, metrics = 0, others = 197
         assert len(tnames) >= 2 + 1 + 12
         assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 1
-        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 12
+        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) >= 12
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) >= 0
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) >= 0
     else:
