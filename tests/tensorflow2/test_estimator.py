@@ -75,7 +75,9 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
         assert len(tnames) >= 2 + 1 + 12
         assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 1
-        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) >= 12
+        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == (
+            16 if is_tf_2_2() else 12
+        )
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) >= 0
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) >= 0
     else:
