@@ -428,4 +428,4 @@ def is_tf_version_greater_than_2_4_x():
 
 
 def is_profiler_supported_for_tf_version():
-    return is_tf_version_2_2_x() or is_tf_version_2_3_x()
+    return is_tf_version_2_2_x() or is_tf_version_2_3_x() or is_tf_version_greater_than_2_4_x()
