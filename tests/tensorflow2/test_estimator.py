@@ -2,6 +2,7 @@
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
+from tests.tensorflow2.utils import is_tf_version_greater_than_2_4_x
 from tests.zero_code_change.tf_utils import get_estimator, get_input_fns
 
 # First Party
@@ -76,7 +77,7 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
         assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 1
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == (
-            16 if is_tf_2_2() else 12
+            16 if is_tf_version_greater_than_2_4_x() else 12
         )
         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) >= 0
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) >= 0
