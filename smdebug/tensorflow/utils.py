@@ -13,26 +13,24 @@ from tensorflow.python.distribute import values
 # First Party
 from smdebug.core.modes import ModeKeys
 
+# Cached TF Version
+TF_VERSION = version.parse(tf.__version__)
+
 
 def does_tf_support_mixed_precision_training():
     # The Keras mixed precision API is first available in TensorFlow 2.1.0
     # See: https://www.tensorflow.org/guide/mixed_precision
-    return version.parse(tf.__version__) >= version.parse("2.1.0")
+    return TF_VERSION >= version.parse("2.1.0")
 
 
 def supported_tf_variables():
-    def is_mixed_precision_api_experimental():
-        """
-        tensorflow mixed preicison api is experimental in versions below 2.4.0
-        :return: bool
-        """
-        return version.parse(tf.__version__) < version.parse("2.4.0")
-
     if does_tf_support_mixed_precision_training():
-        if is_mixed_precision_api_experimental():
-            from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
-        else:
+        if is_tf_version_greater_than_2_4_x():
+            # tensorflow mixed preicison api is experimental in versions below 2.4.0
             from tensorflow.python.keras.mixed_precision import autocast_variable
+
+        else:
+            from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
 
         return tf_v1.Variable, autocast_variable.AutoCastVariable
     else:
@@ -410,19 +408,23 @@ def get_keras_mode(mode):
 
 
 def is_tf_version_2x():
-    return version.parse(tf.__version__) >= version.parse("2.0.0")
+    return TF_VERSION >= version.parse("2.0.0")
 
 
 def is_tf_version_2_2_x():
-    return version.parse("2.2.0") <= version.parse(tf.__version__) < version.parse("2.3.0")
+    return version.parse("2.2.0") <= TF_VERSION < version.parse("2.3.0")
 
 
 def is_tf_version_2_3_x():
-    return version.parse("2.3.0") <= version.parse(tf.__version__) < version.parse("2.4.0")
+    return version.parse("2.3.0") <= TF_VERSION < version.parse("2.4.0")
 
 
 def is_tf_version_2_4_x():
-    return version.parse("2.4.0") <= version.parse(tf.__version__) < version.parse("2.5.0")
+    return version.parse("2.4.0") <= TF_VERSION < version.parse("2.5.0")
+
+
+def is_tf_version_greater_than_2_4_x():
+    return version.parse("2.4.0") <= TF_VERSION
 
 
 def is_profiler_supported_for_tf_version():
