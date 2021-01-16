@@ -23,6 +23,7 @@ from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
 _is_invoked_via_smddp = None
+_smdataparallel_imported = None
 
 try:
     import smdistributed.modelparallel.tensorflow as smp
@@ -56,22 +57,6 @@ except (ModuleNotFoundError, ImportError):
         _hvd_imported = hvd
     except (ModuleNotFoundError, ImportError):
         _hvd_imported = None
-
-
-if check_smdataparallel_env():
-    try:
-        import smdistributed.dataparallel.torch.distributed as smdataparallel
-
-        _smdataparallel_imported = smdataparallel
-    except (ModuleNotFoundError, ImportError):
-        try:
-            import smdistributed.dataparallel.tensorflow as smdataparallel
-
-            _smdataparallel_imported = smdataparallel
-        except (ModuleNotFoundError, ImportError):
-            _smdataparallel_imported = None
-else:
-    _smdataparallel_imported = None
 
 
 logger = get_logger()
@@ -372,6 +357,7 @@ def get_distributed_worker():
     Get the rank for horovod or torch distributed. If none of them are being used,
     return None"""
     rank = None
+
     if (
         _torch_dist_imported
         and hasattr(_torch_dist_imported, "is_initialized")
@@ -380,7 +366,7 @@ def get_distributed_worker():
         rank = _torch_dist_imported.get_rank()
     elif _smp_imported and _smp_imported.core.initialized:
         rank = _smp_imported.rank()
-    elif _smdataparallel_imported:
+    elif check_smdataparallel_env():
         # smdistributed.dataparallel should be invoked via `mpirun`.
         # It supports EC2 machines with 8 GPUs per machine.
         try:
@@ -509,6 +495,7 @@ class ScriptSimulator(object):
 def check_smdataparallel_env():
     # Check to ensure it is invoked by mpi and the SM distribution is `dataparallel`
     global _is_invoked_via_smddp
+    global _smdataparallel_imported
     if _is_invoked_via_smddp is None:
         _is_invoked_via_mpi = (
             os.getenv("OMPI_COMM_WORLD_SIZE") is not None
@@ -529,4 +516,20 @@ def check_smdataparallel_env():
                 _is_invoked_via_smddp = True
             else:
                 _is_invoked_via_smddp = False
+
+        if _is_invoked_via_smddp:
+            try:
+                import smdistributed.dataparallel.torch.distributed as smdataparallel
+
+                _smdataparallel_imported = smdataparallel
+            except (ModuleNotFoundError, ImportError):
+                try:
+                    import smdistributed.dataparallel.tensorflow as smdataparallel
+
+                    _smdataparallel_imported = smdataparallel
+                except (ModuleNotFoundError, ImportError):
+                    _smdataparallel_imported = None
+        else:
+            _smdataparallel_imported = None
+
     return _is_invoked_via_smddp
