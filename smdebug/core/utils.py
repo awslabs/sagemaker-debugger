@@ -27,51 +27,51 @@ _is_invoked_via_smddp = None
 try:
     import smdistributed.modelparallel.tensorflow as smp
 
-    _smp_imported = True
+    _smp_imported = smp
 except (ImportError, ModuleNotFoundError):
     try:
         import smdistributed.modelparallel.torch as smp
 
-        _smp_imported = True
+        _smp_imported = smp
     except (ImportError, ModuleNotFoundError):
-        _smp_imported = False
+        _smp_imported = None
 
 
 try:
     import torch.distributed as torch_dist
 
-    _torch_dist_imported = True
+    _torch_dist_imported = torch_dist
 except (ImportError, ModuleNotFoundError):
-    _torch_dist_imported = False
+    _torch_dist_imported = None
 
 
 try:
     import horovod.torch as hvd
 
-    _hvd_imported = True
+    _hvd_imported = hvd
 except (ModuleNotFoundError, ImportError):
     try:
         import horovod.tensorflow as hvd
 
-        _hvd_imported = True
+        _hvd_imported = hvd
     except (ModuleNotFoundError, ImportError):
-        _hvd_imported = False
+        _hvd_imported = None
 
 
 if check_smdataparallel_env():
     try:
         import smdistributed.dataparallel.torch.distributed as smdataparallel
 
-        _smdataparallel_imported = True
+        _smdataparallel_imported = smdataparallel
     except (ModuleNotFoundError, ImportError):
         try:
             import smdistributed.dataparallel.tensorflow as smdataparallel
 
-            _smdataparallel_imported = True
+            _smdataparallel_imported = smdataparallel
         except (ModuleNotFoundError, ImportError):
-            _smdataparallel_imported = False
+            _smdataparallel_imported = None
 else:
-    _smdataparallel_imported = False
+    _smdataparallel_imported = None
 
 
 logger = get_logger()
@@ -374,24 +374,24 @@ def get_distributed_worker():
     rank = None
     if (
         _torch_dist_imported
-        and hasattr(torch_dist, "is_initialized")
-        and torch_dist.is_initialized()
+        and hasattr(_torch_dist_imported, "is_initialized")
+        and _torch_dist_imported.is_initialized()
     ):
-        rank = torch_dist.get_rank()
-    elif _smp_imported and smp.core.initialized:
-        rank = smp.rank()
+        rank = _torch_dist_imported.get_rank()
+    elif _smp_imported and _smp_imported.core.initialized:
+        rank = _smp_imported.rank()
     elif _smdataparallel_imported:
         # smdistributed.dataparallel should be invoked via `mpirun`.
         # It supports EC2 machines with 8 GPUs per machine.
         try:
-            if smdataparallel.get_world_size():
-                return smdataparallel.get_rank()
+            if _smdataparallel_imported.get_world_size():
+                return _smdataparallel_imported.get_rank()
         except ValueError:
             pass
     elif _hvd_imported:
         try:
-            if hvd.size():
-                rank = hvd.rank()
+            if _hvd_imported.size():
+                rank = _hvd_imported.rank()
         except ValueError:
             pass
 
