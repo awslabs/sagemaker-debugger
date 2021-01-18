@@ -146,16 +146,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
-                    if is_tf_version_greater_than_2_4_x():
-                        # distributed_training_utils.py renamed to distributed_training_utils_v1 in tf 2.4.0
-                        from tensorflow.python.keras.distribute.distributed_training_utils_v1 import (
-                            get_distributed_model,
-                        )
-                    else:
-                        from tensorflow.python.keras.distribute.distributed_training_utils import (
-                            get_distributed_model,
-                        )
 
+                    # Third Party
+                    from tensorflow.python.keras.distribute.distributed_training_utils import (
+                        get_distributed_model,
+                    )
                 except ImportError:
                     # for tf1.13 we can't import this, so we can't support mirrored strategy
                     self.logger.info(
@@ -1139,13 +1134,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._cleanup()
 
         if self.python_profiler:
+            # print("python profiling for end of last train step to end of training")
             self.python_profiler.start_profiling(
                 StepPhase.STEP_END,
                 start_mode=mode_keys_to_python_profile_mode(self.mode),
                 start_step=self.mode_steps[self.mode],
             )
         self.debugger_native_training = False
-
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1353,7 +1348,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self.mode != ModeKeys.GLOBAL:
                 self.mode_steps[ModeKeys.GLOBAL] = self.step
 
-        # print("Step Number in start train batch: ", self.mode_steps[mode])
+        print("Step Number in start train batch: ", self.mode_steps[mode])
 
         self.profiler_config_parser.load_config()
 
@@ -1369,6 +1364,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.is_dataloader_profiling = False
 
         if self.python_profiler:
+            # print("Stop python profiling in start train batch")
             self.python_profiler.stop_profiling(
                 StepPhase.STEP_START,
                 end_mode=mode_keys_to_python_profile_mode(mode),
@@ -1389,7 +1385,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Enabling profiler at the end of train batch when native tf2 training is used.
         """
-
         if self._is_not_supported():
             return
 
@@ -1411,3 +1406,4 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.close()
         self._end_dataloader_profiling()
         self._end_detailed_profiling()
+
