@@ -6,6 +6,7 @@ import os
 import shutil
 
 # Third Party
+import boto3
 import torch
 import torch.multiprocessing as mp
 import torch.nn as nn
@@ -51,7 +52,7 @@ def train(rank, model, device, dataloader_kwargs):
         datasets.MNIST(
             data_dir,
             train=True,
-            download=True,
+            download=False,
             transform=transforms.Compose(
                 [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
             ),
@@ -59,7 +60,7 @@ def train(rank, model, device, dataloader_kwargs):
         batch_size=batch_size,
         shuffle=True,
         num_workers=1,
-        **dataloader_kwargs
+        **dataloader_kwargs,
     )
 
     optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
@@ -81,6 +82,16 @@ def train_epoch(epoch, model, device, data_loader, optimizer):
 
 def test_no_failure_with_torch_mp(out_dir):
     shutil.rmtree(out_dir, ignore_errors=True)
+    shutil.rmtree(data_dir, ignore_errors=True)
+
+    print("Downloading the MNIST dataset")
+    os.system(f"mkdir {data_dir}")
+    s3_client = boto3.client("s3")
+    s3_client.download_file(
+        "smdebug-testing", "datasets/MNIST_pytorch.tar.gz", f"{data_dir}/MNIST_pytorch.tar.gz"
+    )
+    os.system(f"tar -zxf {data_dir}/MNIST_pytorch.tar.gz")
+    os.system(f"mv MNIST {data_dir}")
     path = build_json(out_dir, save_all=True, save_interval="1")
     path = str(path)
     os.environ["SMDEBUG_CONFIG_FILE_PATH"] = path
@@ -89,11 +100,11 @@ def test_no_failure_with_torch_mp(out_dir):
     cpu_count = 2 if mp.cpu_count() > 2 else mp.cpu_count()
 
     torch.manual_seed(1)
-
     model = Net().to(device)
     model.share_memory()  # gradients are allocated lazily, so they are not shared here
 
     processes = []
+    print(f"Starting the training for {cpu_count} ")
     for rank in range(cpu_count):
         p = mp.Process(target=train, args=(rank, model, device, dataloader_kwargs))
         # We first train the model across `num_processes` processes
@@ -101,6 +112,7 @@ def test_no_failure_with_torch_mp(out_dir):
         processes.append(p)
     for p in processes:
         p.join()
+    print("Finished the training..")
 
     trial = create_trial(out_dir)
 

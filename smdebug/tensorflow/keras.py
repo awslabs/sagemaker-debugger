@@ -48,6 +48,7 @@ from .utils import (
     is_profiler_supported_for_tf_version,
     is_tf_version_2_3_x,
     is_tf_version_2x,
+    is_tf_version_greater_than_2_4_x,
     supported_tf_variables,
 )
 
@@ -139,9 +140,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
-                    from tensorflow.python.keras.distribute.distributed_training_utils import (
-                        get_distributed_model,
-                    )
+                    if is_tf_version_greater_than_2_4_x():
+                        # distributed_training_utils.py renamed to distributed_training_utils_v1 in tf 2.4.0
+                        from tensorflow.python.keras.distribute.distributed_training_utils_v1 import (
+                            get_distributed_model,
+                        )
+                    else:
+                        from tensorflow.python.keras.distribute.distributed_training_utils import (
+                            get_distributed_model,
+                        )
+
                 except ImportError:
                     # for tf1.13 we can't import this, so we can't support mirrored strategy
                     self.logger.info(
@@ -589,6 +597,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _save_layer_input_and_outputs(self):
         if is_tf_version_2x() is False:
             return
+
         for layer_name in self.saved_layers:
             # Save Input
             input_collection = (
@@ -607,10 +616,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
                 continue
-            else:
-                self._save_tensor_to_file(export_name, tensor, input_collection)
+            self._save_tensor_to_file(export_name, tensor, input_collection)
 
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
@@ -623,9 +630,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
-            else:
-                self._save_tensor_to_file(export_name, tensor, output_collection)
+                continue
+            self._save_tensor_to_file(export_name, tensor, output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
