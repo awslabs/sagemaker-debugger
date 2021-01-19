@@ -1,0 +1,10 @@
+{
+    "profilingparameters": {
+        "PROFILERENABLED": true,
+        "localPath": "/tmp/test",
+        "rotateMaxFileSizeInBYTES": 100,
+        "RotatefileCloseintervalInseconds": 1,
+        "FILEopenFAILthreshold": 5,
+        "detailedProfilingconfig": "{\"startstep\": \"2\", \"NUMSTEPS\": \"3\"}"
+    }
+}

@@ -26,6 +26,13 @@ class Rule(ABC):
         self.logger = get_logger()
         self.rule_name = self.__class__.__name__
         self._actions = Actions(actions_str=action_str, rule_name=self.rule_name)
+        self.report = {
+            "RuleTriggered": 0,
+            "Violations": 0,
+            "Details": {},
+            "Datapoints": 0,
+            "RuleParameters": "",
+        }
 
     def set_required_tensors(self, step):
         pass

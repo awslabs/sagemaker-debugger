@@ -1,0 +1,14 @@
+{"Type": "cpu", "Name":"cpu0", "Dimension": "CPUUtilization", "Value":4.76,"NodeId":"algo-1","Timestamp":1591160699.4570894}
+{"Type": "cpu", "Name":"cpu1", "Dimension": "CPUUtilization", "Value":5.30,"NodeId":"algo-1","Timestamp":1591160799.5570894}
+{"Type": "gpu", "Name":"gpu0", "Dimension": "GPUUtilization", "Value":8.00,"NodeId":"algo-1","Timestamp":1591160899.7570894}
+{"Type": "gpu", "Name":"gpu1", "Dimension": "GPUUtilization", "Value":14.76,"NodeId":"algo-1","Timestamp":1591160999.6570894}
+{"Type": "gpu", "Name":"gpu0", "Dimension": "GPUMemoryUtilization", "Value":14.76,"NodeId":"algo-1","Timestamp":1591161699.1570894}
+{"Type": "gpu", "Name":"gpu1", "Dimension": "GPUMemoryUtilization", "Value":24.76,"NodeId":"algo-1","Timestamp":1591162699.2570894}
+{"Type": "gpu", "Name":"gpu1", "Dimension": "GPUMemoryUtilization", "Value":43.76,"NodeId":"algo-1","Timestamp":1591163699.4577894}
+{"Type": "cpu", "Name":"cpu0", "Dimension": "CPUUtilization", "Value":54.76,"NodeId":"algo-1","Timestamp":1591164699.4560894}
+{"Type": "cpu", "Name":"cpu1", "Dimension": "CPUUtilization", "Value":44.76,"NodeId":"algo-1","Timestamp":1591165699.4570594}
+{"Type": "gpu", "Name":"gpu0", "Dimension": "GPUUtilization", "Value":34.76,"NodeId":"algo-1","Timestamp":1591166699.4570394}
+{"Type": "gpu", "Name":"gpu1", "Dimension": "GPUUtilization", "Value":24.76,"NodeId":"algo-1","Timestamp":1591167699.4572894}
+{"Type": "gpu", "Name":"gpu0", "Dimension": "GPUMemoryUtilization", "Value":74.76,"NodeId":"algo-1","Timestamp":1591168699.4578894}
+{"Type": "gpu", "Name":"gpu1", "Dimension": "GPUMemoryUtilization", "Value":84.76,"NodeId":"algo-1","Timestamp":1591169699.4579994}
+{"Type": "gpu", "Name":"gpu1", "Dimension": "GPUMemoryUtilization", "Value":47.76,"NodeId":"algo-1","Timestamp":1591170699.4570800}

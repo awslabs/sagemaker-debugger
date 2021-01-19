@@ -1,5 +1,8 @@
 # Standard Library
+import atexit
 import functools
+import os
+import time
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -8,8 +11,19 @@ from tensorflow.python.framework.indexed_slices import IndexedSlices
 from tensorflow.python.util import nest
 
 # First Party
+from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import match_inc
+from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
+from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    TF_DATALOADER_END_FLAG_FILENAME,
+    TF_DATALOADER_START_FLAG_FILENAME,
+)
+from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
+from smdebug.profiler.python_profiler import PythonProfiler
+from smdebug.profiler.utils import stop_tf_profiler
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
@@ -31,10 +45,22 @@ from .utils import (
     get_model_input_export_name,
     get_model_output_export_name,
     is_keras_optimizer,
+    is_profiler_supported_for_tf_version,
     is_tf_version_2_3_x,
     is_tf_version_2x,
+    is_tf_version_greater_than_2_4_x,
     supported_tf_variables,
 )
+
+python_profiler = None
+
+# Enable python profiling if profiling is enabled.
+profiler_config_parser = ProfilerConfigParser()
+if profiler_config_parser.profiling_enabled:
+    config = profiler_config_parser.config
+    if config.python_profiling_config.is_enabled():
+        python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
+        python_profiler.start_profiling(StepPhase.START)
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
@@ -64,6 +90,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
+            profiler_config_parser=profiler_config_parser,
         )
         tf.keras.callbacks.Callback.__init__(self)
         self.tensor_refs_to_save_this_step = set()
@@ -74,6 +101,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
+
+        # Profiling vars
+        self.tf_profiler = None
+        if is_profiler_supported_for_tf_version():
+            from tensorflow.python.profiler import profiler_v2 as tf_profiler
+
+            self.tf_profiler = tf_profiler
+        self._log_dir = None
+        self.is_detailed_profiling = False
+        self.is_dataloader_profiling = False
+        self.tf_profiler_start_time_in_micros = 0
+        self.warm_up_completed = False
         # supports_tf_logs property was introduced in TF 2.3.0
         # it indicates to the framework that the callback is not
         # limited to reading only numpy logs
@@ -82,6 +121,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
+
+        if python_profiler:
+            atexit.register(python_profiler.stop_profiling, StepPhase.END)
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -98,9 +140,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
             elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 try:
-                    from tensorflow.python.keras.distribute.distributed_training_utils import (
-                        get_distributed_model,
-                    )
+                    if is_tf_version_greater_than_2_4_x():
+                        # distributed_training_utils.py renamed to distributed_training_utils_v1 in tf 2.4.0
+                        from tensorflow.python.keras.distribute.distributed_training_utils_v1 import (
+                            get_distributed_model,
+                        )
+                    else:
+                        from tensorflow.python.keras.distribute.distributed_training_utils import (
+                            get_distributed_model,
+                        )
+
                 except ImportError:
                     # for tf1.13 we can't import this, so we can't support mirrored strategy
                     self.logger.info(
@@ -581,6 +630,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _save_layer_input_and_outputs(self):
         if is_tf_version_2x() is False:
             return
+
         for layer_name in self.saved_layers:
             # Save Input
             tensor = self.saved_layers[layer_name].layer_input
@@ -592,10 +642,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
                 continue
-            else:
-                self._save_tensor_to_file(export_name, tensor, input_collection)
+            self._save_tensor_to_file(export_name, tensor, input_collection)
 
             # Save Output
             tensor = self.saved_layers[layer_name].layer_output
@@ -608,9 +656,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
-                self.logger.warning("cannot save layer values during forward pass with tf.function")
-            else:
-                self._save_tensor_to_file(export_name, tensor, output_collection)
+                continue
+            self._save_tensor_to_file(export_name, tensor, output_collection)
 
     def _save_tensors_post_step(self, batch, logs):
         # some tensors available as value from within hook are saved here
@@ -632,6 +679,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.distribution_strategy in [
             TFDistributionStrategy.NONE,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if mode == ModeKeys.TRAIN:
                 x = self.model.train_function
@@ -709,6 +757,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
         self.worker = self._get_worker_name()
+
+        # Only the chief worker will read the Horovod timeline file
+        # if HOROVOD_TIMELINE is a valid file and SM Profiler is enabled
+        if not self.hvd_reader and self.worker == self.chief_worker:
+            self.hvd_reader = HvdTraceFileRotation(self.profiler_config_parser)
+
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
@@ -728,13 +782,43 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def on_test_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
+    def _on_any_mode_end(self, mode):
+        if python_profiler:
+            python_profiler.stop_profiling(
+                StepPhase.STEP_END,
+                end_mode=mode_keys_to_python_profile_mode(mode),
+                end_step=self.mode_steps[mode],
+            )
+            python_profiler.start_profiling(
+                StepPhase.STEP_END,
+                start_mode=mode_keys_to_python_profile_mode(mode),
+                start_step=self.mode_steps[mode],
+            )
+
+        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_END_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = False
+
+    def on_train_end(self, logs=None):
+        self._on_any_mode_end(ModeKeys.TRAIN)
+
+        if is_profiler_supported_for_tf_version() and self.is_detailed_profiling:
+            self.logger.info("Disabling profiler, reached end of training.")
+            stop_tf_profiler(
+                tf_profiler=self.tf_profiler,
+                log_dir=self._log_dir,
+                start_time_us=self.tf_profiler_start_time_in_micros,
+            )
+            self.is_detailed_profiling = False
+
     # throws error in keras if this fn is absent
     def on_test_end(self, logs=None):
-        pass
+        self._on_any_mode_end(ModeKeys.EVAL)
 
     # throws error in keras if this fn is absent
     def on_predict_end(self, logs=None):
-        pass
+        self._on_any_mode_end(ModeKeys.PREDICT)
 
     def on_predict_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.PREDICT)
@@ -751,6 +835,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.saved_layers[layer.name] = saver
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
+        self.start = time.time()
         if self._is_not_supported():
             return
 
@@ -769,6 +854,34 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self.step_incremented_in_on_train_begin = False
 
+        self.profiler_config_parser.load_config()
+
+        if self.profiler_config_parser.should_save_metrics(
+            MetricsCategory.DATALOADER_PROFILING, self.mode_steps[mode]
+        ) and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_START_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = True
+        elif self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_END_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = False
+
+        if python_profiler:
+            python_profiler.stop_profiling(
+                StepPhase.STEP_START,
+                end_mode=mode_keys_to_python_profile_mode(mode),
+                end_step=self.mode_steps[mode],
+            )
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
+            ):
+                python_profiler.start_profiling(
+                    StepPhase.STEP_START,
+                    start_mode=mode_keys_to_python_profile_mode(mode),
+                    start_step=self.mode_steps[mode],
+                )
+
         if self.prepared_collections is False:
             # sets prepared_collections to True here
             self._prepare_collections()
@@ -777,6 +890,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
+                self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepare_tensors_available_post_step()
@@ -800,6 +914,37 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
+
+        if is_profiler_supported_for_tf_version():
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.DETAILED_PROFILING, self.mode_steps[ModeKeys.TRAIN]
+            ):
+                if not self.is_detailed_profiling:
+                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
+                        self.profiler_config_parser.config.local_path,
+                        "tensorflow",
+                        self.mode_steps[ModeKeys.TRAIN],
+                    )
+                    self.logger.info(
+                        f"Enabling TF profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}"
+                    )
+                    if not self.warm_up_completed:
+                        # warming up profiler before it will be profiling.
+                        self.tf_profiler.warmup()
+                        self.warm_up_completed = True
+                    self.tf_profiler.start(self._log_dir)
+                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
+                    self.is_detailed_profiling = True
+            elif self.is_detailed_profiling:
+                self.logger.info(
+                    f"Disabling TF profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}"
+                )
+                stop_tf_profiler(
+                    tf_profiler=self.tf_profiler,
+                    log_dir=self._log_dir,
+                    start_time_us=self.tf_profiler_start_time_in_micros,
+                )
+                self.is_detailed_profiling = False
 
     def on_test_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.EVAL, logs=logs)
@@ -875,6 +1020,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
+        self.record_trace_events(
+            training_phase="Step:" + str(mode),
+            op_name="Step:" + str(mode),
+            phase="X",
+            timestamp=self.start,  # this is start time for step
+            duration=time.time() - self.start,
+            pid=os.getpid(),
+            step_num=str(self.mode_steps[mode]),
+        )
+
         if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
             self._remove_fetches_and_callbacks(mode)
 
@@ -902,6 +1057,21 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # estimator and to make it easier when seeing tensorboard
                 self._export_model()
                 self._exported_model[self.mode] = True
+
+        if python_profiler:
+            python_profiler.stop_profiling(
+                StepPhase.STEP_END,
+                end_mode=mode_keys_to_python_profile_mode(mode),
+                end_step=self.mode_steps[mode],
+            )
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
+            ):
+                python_profiler.start_profiling(
+                    StepPhase.STEP_END,
+                    start_mode=mode_keys_to_python_profile_mode(mode),
+                    start_step=self.mode_steps[mode],
+                )
 
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)
@@ -980,6 +1150,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape.__class__._push_tape = unwrap(self.tape.__class__._push_tape)
         self.tape.__class__._pop_tape = unwrap(self.tape.__class__._pop_tape)
         self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
+
+    def close(self):
+        self._cleanup()
+        if python_profiler:
+            python_profiler.start_profiling(
+                StepPhase.STEP_END,
+                start_mode=mode_keys_to_python_profile_mode(self.mode),
+                start_step=self.mode_steps[self.mode],
+            )
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1134,6 +1313,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :return: Wrapped tape of same type as passed.
             This tape should be used for training
         """
+        # Disable python profiling, because now we are starting wrap tape.
+        if python_profiler:
+            python_profiler.stop_profiling(
+                StepPhase.STEP_START,
+                end_mode=mode_keys_to_python_profile_mode(self.mode),
+                end_step=0,
+            )
+
         from tensorflow.python.eager.backprop import GradientTape
 
         if isinstance(tape, GradientTape):

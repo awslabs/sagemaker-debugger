@@ -1,0 +1,7 @@
+{
+    "ProfilingParameters": {
+        "ProfilerEnabled": true,
+        "LocalPath": "/tmp/test",
+        "DetailedProfilingConfig": "{\"StartTimeInSecSinceEpoch\": 1700000000, \"DurationInSeconds\": 5}"
+    }
+}

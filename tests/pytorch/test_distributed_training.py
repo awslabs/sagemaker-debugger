@@ -7,8 +7,11 @@ The key methods are
     torch.distributed.get_rank() - when manually spawning processes
 """
 # Standard Library
+import json
 import os
 import shutil
+import time
+from pathlib import Path
 
 # Third Party
 import numpy as nn
@@ -23,9 +26,8 @@ from torch.multiprocessing import Process
 
 # First Party
 import smdebug.pytorch as smd
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX, HOROVODTIMELINE_SUFFIX
 from smdebug.trials import create_trial
-
-out_dir = "/tmp/run"
 
 
 class Net(nn.Module):
@@ -63,7 +65,16 @@ def train(model, device, optimizer, num_steps=10):
         optimizer.step()
 
 
-def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_batches=10):
+def run(
+    out_dir,
+    rank,
+    size,
+    include_workers="one",
+    test_timeline=False,
+    num_epochs=10,
+    batch_size=128,
+    num_batches=10,
+):
     """Distributed function to be implemented later."""
     torch.manual_seed(1234)
     device = torch.device("cpu")
@@ -83,6 +94,16 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
 
     for epoch in range(num_epochs):
         epoch_loss = 0.0
+        start_time = time.time()
+        if test_timeline:
+            hook.record_trace_events(
+                training_phase="Training",
+                op_name="TrainingEpochStart",
+                phase="B",
+                timestamp=start_time,
+                rank=rank,
+                epoch=epoch,
+            )
         for _ in range(num_batches):
             optimizer.zero_grad()
             data, target = dataset(batch_size)
@@ -92,6 +113,17 @@ def run(rank, size, include_workers="one", num_epochs=10, batch_size=128, num_ba
             loss.backward()
             average_gradients(model)
             optimizer.step()
+        end_time = time.time()
+        if test_timeline:
+            hook.record_trace_events(
+                training_phase="Training",
+                op_name="TrainingEpochEnd",
+                phase="E",
+                timestamp=end_time,
+                rank=rank,
+                duration=end_time - start_time,
+                epoch=epoch,
+            )
         # print(f"Rank {dist.get_rank()}, epoch {epoch}: {epoch_loss / num_batches}")
 
     assert hook._get_worker_name() == f"worker_{dist.get_rank()}"
@@ -111,15 +143,15 @@ def average_gradients(model):
         param.grad.data /= size
 
 
-def init_processes(rank, size, include_workers, fn, backend="gloo"):
+def init_processes(out_dir, rank, size, include_workers, test_timeline, fn, backend="gloo"):
     """Initialize the distributed environment."""
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
-    fn(rank, size, include_workers)
+    fn(out_dir, rank, size, include_workers, test_timeline)
 
 
-def _run_net_distributed(include_workers="one"):
+def _run_net_distributed(out_dir, include_workers="one", test_timeline=False):
     """Runs a single linear layer on 2 processes."""
     # torch.distributed is empty on Mac on Torch <= 1.2
     if not hasattr(dist, "is_initialized"):
@@ -128,7 +160,9 @@ def _run_net_distributed(include_workers="one"):
     size = 2
     processes = []
     for rank in range(size):
-        p = Process(target=init_processes, args=(rank, size, include_workers, run))
+        p = Process(
+            target=init_processes, args=(out_dir, rank, size, include_workers, test_timeline, run)
+        )
         p.start()
         processes.append(p)
 
@@ -139,13 +173,12 @@ def _run_net_distributed(include_workers="one"):
     # https://stackoverflow.com/questions/13400546/py-test-how-to-automatically-detect-an-exception-in-a-child-process
     assert all([not p.exitcode for p in processes]), f"Some processes failed. processes={processes}"
 
-    out_dir = "/tmp/run"
     trial = create_trial(path=out_dir)
     return trial
 
 
 @pytest.mark.slow  # 0:05 to run
-def test_run_net_single_process():
+def test_run_net_single_process(out_dir):
     """Runs a single linear layer."""
     device = torch.device("cpu")
     model = Net().to(device)
@@ -168,14 +201,45 @@ def test_run_net_single_process():
 
 
 @pytest.mark.slow  # 0:07 to run
-def test_run_net_distributed_save_all_workers():
-    trial = _run_net_distributed(include_workers="all")
+def test_run_net_distributed_save_all_workers(out_dir):
+    trial = _run_net_distributed(out_dir, include_workers="all")
     assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
 
 @pytest.mark.slow  # 0:07 to run
-def test_run_net_distributed_save_one_worker():
-    trial = _run_net_distributed(include_workers="one")
+def test_run_net_distributed_save_one_worker(out_dir):
+    trial = _run_net_distributed(out_dir, include_workers="one")
     assert len(trial.workers()) == 1, f"trial.workers() = {trial.workers()}"
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+
+@pytest.mark.slow
+def test_run_net_distributed_save_all_test_timeline(set_up_smprofiler_config_path, out_dir):
+    """
+    This test checks if any of the timestamps recorded are negative
+    """
+    trial = _run_net_distributed(out_dir, include_workers="all", test_timeline=True)
+    assert len(trial.workers()) == 2, f"trial.workers() = {trial.workers()}"
+    assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
+
+    files = []
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
+        files.append(path)
+
+    assert len(files) >= 2
+
+    for file_name in files:
+        with open(file_name) as timeline_file:
+            events_dict = json.load(timeline_file)
+            for e in events_dict:
+                if e["name"].startswith("event"):
+                    assert int(e["ts"]) >= 0
+
+    # ensure that no horovod timeline files are written to when horovod is
+    # not used
+    files = []
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(f"*{HOROVODTIMELINE_SUFFIX}"):
+        files.append(path)
+
+    assert not files
