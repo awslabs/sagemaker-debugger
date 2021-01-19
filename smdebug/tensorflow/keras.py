@@ -1185,7 +1185,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self._increment_step()
 
-
             if self._get_collections_to_save_for_step():
                 # print('\n Collections saved for this step: ', self._get_collections_to_save_for_step())
                 self._initialize_writers()
@@ -1354,7 +1353,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self.mode != ModeKeys.GLOBAL:
                 self.mode_steps[ModeKeys.GLOBAL] = self.step
 
-        print("Step Number in start train batch: ", self.mode_steps[mode])
+        # print("Step Number in start train batch: ", self.mode_steps[mode])
 
         self.profiler_config_parser.load_config()
 
