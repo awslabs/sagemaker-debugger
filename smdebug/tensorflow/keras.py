@@ -1184,8 +1184,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.prepared_collections = True
 
             self._increment_step()
-            # print("\nStep number in the push tape: ", self.step)
-
 
             if self._get_collections_to_save_for_step():
                 # print('\n Collections saved for this step: ', self._get_collections_to_save_for_step())
@@ -1276,7 +1274,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return
 
             self.last_saved_step = self.step
-            # print("\nStep number in the pop tape: ", self.step)
 
         return run
 
@@ -1348,14 +1345,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         self.set_mode(mode)
 
+        # When only profiler is enabled in the native tf2 training,
+        # increasing the step number in the TRAIN and GLOBAL mode.
         if not self.debugger_native_training:
             self.step += 1
             self.mode_steps[self.mode] += 1
             # Increment Global step number irrespective of what mode it is
             if self.mode != ModeKeys.GLOBAL:
                 self.mode_steps[ModeKeys.GLOBAL] = self.step
-
-        # print("Step Number in start train batch: ", self.mode_steps[mode])
 
         self.profiler_config_parser.load_config()
 
@@ -1371,7 +1368,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.is_dataloader_profiling = False
 
         if self.python_profiler:
-            # print("Stop python profiling in start train batch")
             self.python_profiler.stop_profiling(
                 StepPhase.STEP_START,
                 end_mode=mode_keys_to_python_profile_mode(mode),
@@ -1386,13 +1382,39 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     start_step=self.mode_steps[mode],
                 )
 
+        if is_profiler_supported_for_tf_version():
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
+            ):
+                if not self.is_detailed_profiling:
+                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
+                        self.profiler_config_parser.config.local_path,
+                        "tensorflow",
+                        self.mode_steps[mode],
+                    )
+                    self.logger.info(f"Enabling TF profiler on step: = {self.mode_steps[mode]}")
+                    if not self.warm_up_completed:
+                        # warming up profiler before it will be profiling.
+                        self.tf_profiler.warmup()
+                        self.warm_up_completed = True
+                    self.tf_profiler.start(self._log_dir)
+                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
+                    self.is_detailed_profiling = True
+            elif self.is_detailed_profiling:
+                self.logger.info(f"Disabling TF profiler on step: ={self.mode_steps[mode]}")
+                stop_tf_profiler(
+                    tf_profiler=self.tf_profiler,
+                    log_dir=self._log_dir,
+                    start_time_us=self.tf_profiler_start_time_in_micros,
+                )
+                self.is_detailed_profiling = False
+>>>>>>> clean up the code
 
 
     def profiling_end_batch(self, mode=ModeKeys.TRAIN):
         """
         Enabling profiler at the end of train batch when native tf2 training is used.
         """
-        # print("Step Number in end train batch: ", self.mode_steps[mode])
         if self._is_not_supported():
             return
 
@@ -1410,9 +1432,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Stop profiler at the end of training when native tf2 training is used.
         """
-        # print("Step Number at the end of training: ", self.step)
         # Unwrap the tape before closing and close the python profiling
         self.close()
         self._end_dataloader_profiling()
         self._end_detailed_profiling()
-
