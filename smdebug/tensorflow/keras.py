@@ -105,7 +105,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Profiling vars
         self.tf_profiler = None
         if is_profiler_supported_for_tf_version():
-            # Third Party
             from tensorflow.python.profiler import profiler_v2 as tf_profiler
 
             self.tf_profiler = tf_profiler
@@ -337,7 +336,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _get_distributed_model(self, mode):
         # not available in tf 1.13, code shouldn't reach here for 1.13
         # because of _is_not_supported
-        # Third Party
         from tensorflow.python.keras.distribute.distributed_training_utils import (
             get_distributed_model,
         )
@@ -1136,9 +1134,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def close(self):
         self._cleanup()
-        # print("\nStep Number in the close function: ", self.step)
+
         if self.python_profiler:
-            # print("python profiling for end of last train step to end of training")
             self.python_profiler.start_profiling(
                 StepPhase.STEP_END,
                 start_mode=mode_keys_to_python_profile_mode(self.mode),
@@ -1186,7 +1183,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._increment_step()
 
             if self._get_collections_to_save_for_step():
-                # print('\n Collections saved for this step: ', self._get_collections_to_save_for_step())
                 self._initialize_writers()
 
             if self.last_saved_step is not None and self._exported_collections is False:
