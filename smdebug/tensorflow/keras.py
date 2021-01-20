@@ -1152,8 +1152,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.prepared_collections = True
 
             self._increment_step()
-            # print("\nStep number in the push tape: ", self.step)
-
 
             if self._get_collections_to_save_for_step():
                 # print('\n Collections saved for this step: ', self._get_collections_to_save_for_step())
@@ -1244,7 +1242,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return
 
             self.last_saved_step = self.step
-            # print("\nStep number in the pop tape: ", self.step)
 
         return run
 
@@ -1314,14 +1311,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         self.set_mode(mode)
 
+        # When only profiler is enabled in the native tf2 training,
+        # increasing the step number in the TRAIN and GLOBAL mode.
         if not self.debugger_native_training:
             self.step += 1
             self.mode_steps[self.mode] += 1
             # Increment Global step number irrespective of what mode it is
             if self.mode != ModeKeys.GLOBAL:
                 self.mode_steps[ModeKeys.GLOBAL] = self.step
-
-        # print("Step Number in start train batch: ", self.mode_steps[mode])
 
         self.profiler_config_parser.load_config()
 
@@ -1337,7 +1334,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.is_dataloader_profiling = False
 
         if self.python_profiler:
-            # print("Stop python profiling in start train batch")
             self.python_profiler.stop_profiling(
                 StepPhase.STEP_START,
                 end_mode=mode_keys_to_python_profile_mode(mode),
@@ -1354,7 +1350,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if is_profiler_supported_for_tf_version():
             if self.profiler_config_parser.should_save_metrics(
-                    MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
+                MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
             ):
                 if not self.is_detailed_profiling:
                     self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
@@ -1383,7 +1379,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Enabling profiler at the end of train batch when native tf2 training is used.
         """
-        # print("Step Number in end train batch: ", self.mode_steps[mode])
         if self._is_not_supported():
             return
 
@@ -1416,14 +1411,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Stop profiler at the end of training when native tf2 training is used.
         """
-        # print("Step Number at the end of training: ", self.step)
         # Unwrap the tape before closing and close the python profiling
         self.close()
 
         if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
             TF_DATALOADER_END_FLAG_FILENAME
         ):
-            # print("Stop Dataloader profiling")
             self.is_dataloader_profiling = False
 
         if is_profiler_supported_for_tf_version() and self.is_detailed_profiling:
