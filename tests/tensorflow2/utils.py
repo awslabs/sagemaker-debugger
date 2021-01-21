@@ -24,3 +24,7 @@ def is_tf_2_3():
     if TF_VERSION == version.parse("2.3.0"):
         return True
     return False
+
+
+def is_tf_version_greater_than_2_4_x():
+    return version.parse("2.4.0") <= TF_VERSION
