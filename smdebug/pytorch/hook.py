@@ -663,3 +663,6 @@ class Hook(CallbackHook):
         return self.profiler_config_parser.should_save_metrics(
             MetricsCategory.DATALOADER_PROFILING, self.step + 1, metrics_name=metrics_name
         )
+
+    def dummy_hook_method(self):
+        pass
