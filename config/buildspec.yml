@@ -1,5 +1,7 @@
 # Build Spec for AWS CodeBuild CI which will run for every PR.
 
+# Adding dummy comment.
+
 version: 0.2
 env:
   variables:
