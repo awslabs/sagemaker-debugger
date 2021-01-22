@@ -714,6 +714,94 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             x.fetch_callbacks.pop(tf_obj)
         self._fetches_added.clear()
 
+    def _start_phase_python_profiling(self, mode):
+        if self.python_profiler:
+            self.python_profiler.stop_profiling(
+                StepPhase.STEP_START,
+                end_mode=mode_keys_to_python_profile_mode(mode),
+                end_step=self.mode_steps[mode],
+            )
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
+            ):
+                self.python_profiler.start_profiling(
+                    StepPhase.STEP_START,
+                    start_mode=mode_keys_to_python_profile_mode(mode),
+                    start_step=self.mode_steps[mode],
+                )
+
+    def _end_phase_python_profiling(self, mode):
+        if self.python_profiler:
+            self.python_profiler.stop_profiling(
+                StepPhase.STEP_END,
+                end_mode=mode_keys_to_python_profile_mode(mode),
+                end_step=self.mode_steps[mode],
+            )
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
+            ):
+                self.python_profiler.start_profiling(
+                    StepPhase.STEP_END,
+                    start_mode=mode_keys_to_python_profile_mode(mode),
+                    start_step=self.mode_steps[mode],
+                )
+
+    def _begin_detailed_profiling(self, mode=ModeKeys.TRAIN):
+        if is_profiler_supported_for_tf_version():
+            if self.profiler_config_parser.should_save_metrics(
+                MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
+            ):
+                if not self.is_detailed_profiling:
+                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
+                        self.profiler_config_parser.config.local_path,
+                        "tensorflow",
+                        self.mode_steps[mode],
+                    )
+                    self.logger.info(f"Enabling TF profiler on step: = {self.mode_steps[mode]}")
+                    if not self.warm_up_completed:
+                        # warming up profiler before it will be profiling.
+                        self.tf_profiler.warmup()
+                        self.warm_up_completed = True
+                    self.tf_profiler.start(self._log_dir)
+                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
+                    self.is_detailed_profiling = True
+            elif self.is_detailed_profiling:
+                self.logger.info(f"Disabling TF profiler on step: ={self.mode_steps[mode]}")
+                stop_tf_profiler(
+                    tf_profiler=self.tf_profiler,
+                    log_dir=self._log_dir,
+                    start_time_us=self.tf_profiler_start_time_in_micros,
+                )
+                self.is_detailed_profiling = False
+
+    def _end_detailed_profiling(self):
+        if is_profiler_supported_for_tf_version() and self.is_detailed_profiling:
+            self.logger.info("Disabling profiler, reached end of training.")
+            stop_tf_profiler(
+                tf_profiler=self.tf_profiler,
+                log_dir=self._log_dir,
+                start_time_us=self.tf_profiler_start_time_in_micros,
+            )
+            self.is_detailed_profiling = False
+
+    def _begin_dataloader_profiling(self, mode):
+        if self.profiler_config_parser.should_save_metrics(
+            MetricsCategory.DATALOADER_PROFILING, self.mode_steps[mode]
+        ) and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_START_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = True
+        elif self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_END_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = False
+
+    def _end_dataloader_profiling(self):
+        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_END_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = False
+
     def on_epoch_begin(self, batch, logs=None):
         pass
 
@@ -753,34 +841,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
     def _on_any_mode_end(self, mode):
-        if self.python_profiler:
-            self.python_profiler.stop_profiling(
-                StepPhase.STEP_END,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            self.python_profiler.start_profiling(
-                StepPhase.STEP_END,
-                start_mode=mode_keys_to_python_profile_mode(mode),
-                start_step=self.mode_steps[mode],
-            )
-
-        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
+        self._end_phase_python_profiling(mode=mode)
+        self._end_detailed_profiling()
 
     def on_train_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.TRAIN)
-
-        if is_profiler_supported_for_tf_version() and self.is_detailed_profiling:
-            self.logger.info("Disabling profiler, reached end of training.")
-            stop_tf_profiler(
-                tf_profiler=self.tf_profiler,
-                log_dir=self._log_dir,
-                start_time_us=self.tf_profiler_start_time_in_micros,
-            )
-            self.is_detailed_profiling = False
+        self._end_detailed_profiling()
 
     # throws error in keras if this fn is absent
     def on_test_end(self, logs=None):
@@ -826,31 +892,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         self.profiler_config_parser.load_config()
 
-        if self.profiler_config_parser.should_save_metrics(
-            MetricsCategory.DATALOADER_PROFILING, self.mode_steps[mode]
-        ) and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_START_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = True
-        elif self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
+        self._begin_dataloader_profiling(mode=mode)
 
-        if self.python_profiler:
-            self.python_profiler.stop_profiling(
-                StepPhase.STEP_START,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
-            ):
-                self.python_profiler.start_profiling(
-                    StepPhase.STEP_START,
-                    start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
-                )
+        self._start_phase_python_profiling(mode=mode)
 
         if self.prepared_collections is False:
             # sets prepared_collections to True here
@@ -884,37 +928,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
-
-        if is_profiler_supported_for_tf_version():
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.DETAILED_PROFILING, self.mode_steps[ModeKeys.TRAIN]
-            ):
-                if not self.is_detailed_profiling:
-                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
-                        self.profiler_config_parser.config.local_path,
-                        "tensorflow",
-                        self.mode_steps[ModeKeys.TRAIN],
-                    )
-                    self.logger.info(
-                        f"Enabling TF profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}"
-                    )
-                    if not self.warm_up_completed:
-                        # warming up profiler before it will be profiling.
-                        self.tf_profiler.warmup()
-                        self.warm_up_completed = True
-                    self.tf_profiler.start(self._log_dir)
-                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
-                    self.is_detailed_profiling = True
-            elif self.is_detailed_profiling:
-                self.logger.info(
-                    f"Disabling TF profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}"
-                )
-                stop_tf_profiler(
-                    tf_profiler=self.tf_profiler,
-                    log_dir=self._log_dir,
-                    start_time_us=self.tf_profiler_start_time_in_micros,
-                )
-                self.is_detailed_profiling = False
+        self._begin_detailed_profiling()
 
     def on_test_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.EVAL, logs=logs)
@@ -1007,20 +1021,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._export_model()
                 self._exported_model[self.mode] = True
 
-        if self.python_profiler:
-            self.python_profiler.stop_profiling(
-                StepPhase.STEP_END,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
-            ):
-                self.python_profiler.start_profiling(
-                    StepPhase.STEP_END,
-                    start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
-                )
+        self._end_phase_python_profiling(mode=mode)
 
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)
@@ -1296,7 +1297,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
 
-    def profiling_start_batch(self, mode):
+    def profiling_start_batch(self, mode=ModeKeys.TRAIN):
         """
         Enabling profiler at the start of train batch when native tf2 training is used.
         """
@@ -1308,70 +1309,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.set_mode(mode)
 
         # When only profiler is enabled in the native tf2 training,
-        # increasing the step number in the TRAIN and GLOBAL mode.
+        # increasing the step number in the TRAIN and GLOBAL mode
+        # and not writing the state.
         if not self.debugger_native_training:
-            self.step += 1
-            self.mode_steps[self.mode] += 1
-            # Increment Global step number irrespective of what mode it is
-            if self.mode != ModeKeys.GLOBAL:
-                self.mode_steps[ModeKeys.GLOBAL] = self.step
+            self._increment_step(write_state=self.debugger_native_training)
 
         self.profiler_config_parser.load_config()
 
-        if self.profiler_config_parser.should_save_metrics(
-            MetricsCategory.DATALOADER_PROFILING, self.mode_steps[mode]
-        ) and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_START_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = True
-        elif self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
+        self._begin_dataloader_profiling(mode=mode)
 
-        if self.python_profiler:
-            self.python_profiler.stop_profiling(
-                StepPhase.STEP_START,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
-            ):
-                self.python_profiler.start_profiling(
-                    StepPhase.STEP_START,
-                    start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
-                )
+        self._start_phase_python_profiling(mode=mode)
 
-        if is_profiler_supported_for_tf_version():
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
-            ):
-                if not self.is_detailed_profiling:
-                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
-                        self.profiler_config_parser.config.local_path,
-                        "tensorflow",
-                        self.mode_steps[mode],
-                    )
-                    self.logger.info(f"Enabling TF profiler on step: = {self.mode_steps[mode]}")
-                    if not self.warm_up_completed:
-                        # warming up profiler before it will be profiling.
-                        self.tf_profiler.warmup()
-                        self.warm_up_completed = True
-                    self.tf_profiler.start(self._log_dir)
-                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
-                    self.is_detailed_profiling = True
-            elif self.is_detailed_profiling:
-                self.logger.info(f"Disabling TF profiler on step: ={self.mode_steps[mode]}")
-                stop_tf_profiler(
-                    tf_profiler=self.tf_profiler,
-                    log_dir=self._log_dir,
-                    start_time_us=self.tf_profiler_start_time_in_micros,
-                )
-                self.is_detailed_profiling = False
+        self._begin_detailed_profiling(mode=mode)
 
-    def profiling_end_batch(self, mode):
+    def profiling_end_batch(self, mode=ModeKeys.TRAIN):
         """
         Enabling profiler at the end of train batch when native tf2 training is used.
         """
@@ -1388,20 +1339,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             step_num=str(self.mode_steps[mode]),
         )
 
-        if self.python_profiler:
-            self.python_profiler.stop_profiling(
-                StepPhase.STEP_END,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
-            ):
-                self.python_profiler.start_profiling(
-                    StepPhase.STEP_END,
-                    start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
-                )
+        self._end_phase_python_profiling(mode=mode)
 
     def profiling_end(self):
         """
@@ -1409,17 +1347,5 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         # Unwrap the tape before closing and close the python profiling
         self.close()
-
-        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
-
-        if is_profiler_supported_for_tf_version() and self.is_detailed_profiling:
-            self.logger.info("Disabling profiler, reached end of training.")
-            stop_tf_profiler(
-                tf_profiler=self.tf_profiler,
-                log_dir=self._log_dir,
-                start_time_us=self.tf_profiler_start_time_in_micros,
-            )
-            self.is_detailed_profiling = False
+        self._end_dataloader_profiling()
+        self._end_detailed_profiling()
