@@ -241,7 +241,7 @@ def verify_num_trace_events(profilerconfig):
     # get tensorboard timeline files
     files = []
 
-    for path in Path(profilerconfig.config.local_path + "/framework").rglob(
+    for path in Path(os.path.join(profilerconfig.config.local_path + "/framework")).rglob(
         f"*{TENSORBOARDTIMELINE_SUFFIX}"
     ):
         files.append(path)
@@ -294,7 +294,7 @@ def verify_timeline_file(out_dir):
     It reads backs the file contents to make sure it is in valid JSON format.
     """
     files = []
-    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
+    for path in Path(os.path.join(out_dir + "/" + DEFAULT_PREFIX)).rglob("*.json"):
         files.append(path)
 
     assert len(files) == 1

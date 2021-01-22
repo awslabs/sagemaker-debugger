@@ -123,7 +123,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
         # this flag indicates to debugging for tensorflow2 native training
-        self.debugger_native_training = False
+        self.is_debugger_enabled_for_native_training = False
 
         if self.python_profiler:
             atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
@@ -1121,7 +1121,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 start_mode=mode_keys_to_python_profile_mode(self.mode),
                 start_step=self.mode_steps[self.mode],
             )
-        self.debugger_native_training = False
+        self.is_debugger_enabled_for_native_training = False
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1278,7 +1278,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         from tensorflow.python.eager.backprop import GradientTape
 
-        self.debugger_native_training = True
+        self.is_debugger_enabled_for_native_training = True
         self.set_mode(ModeKeys.TRAIN)
 
         if isinstance(tape, GradientTape):
@@ -1322,8 +1322,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # When only profiler is enabled in the native tf2 training,
         # increasing the step number in the TRAIN and GLOBAL mode
         # and not writing the state.
-        if not self.debugger_native_training:
-            self._increment_step(write_state=self.debugger_native_training)
+        if not self.is_debugger_enabled_for_native_training:
+            self._increment_step(write_state=self.is_debugger_enabled_for_native_training)
 
         self.profiler_config_parser.load_config()
 
