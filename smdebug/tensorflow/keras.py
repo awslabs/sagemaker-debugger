@@ -1295,3 +1295,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
+
+    def dummy_hook_method(self):
+        pass
