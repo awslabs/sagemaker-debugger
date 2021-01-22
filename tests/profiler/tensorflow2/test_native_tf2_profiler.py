@@ -145,8 +145,8 @@ def generate_profiler_config_parser_all_params(
     return profiler_config_parser
 
 
-def set_up_profiling(profiler_config_parser):
-    profiler_config_parser = profiler_config_parser
+def set_up_profiling(profilerconfig):
+    profiler_config_parser = profilerconfig
     python_profiler = None
     if profiler_config_parser.profiling_enabled:
         config = profiler_config_parser.config
@@ -195,7 +195,7 @@ def helper_native_tf2_gradtape(
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
 
-    step = 0
+    current_step = 0
     n_epochs = 1
     for epoch in range(n_epochs):
         for data, labels in dataset:
@@ -204,8 +204,8 @@ def helper_native_tf2_gradtape(
                 with hook.wrap_tape(tf.GradientTape()) as tape:
                     hook.profiling_start_batch()
                     logits = train_step(data, labels)
-                    if python_profiler and start_step <= step < end_step:
-                        assert python_profiler._start_step == step
+                    if python_profiler and start_step <= current_step < end_step:
+                        assert python_profiler._start_step == current_step
                         assert python_profiler._start_phase == StepPhase.STEP_START
                 grads = tape.gradient(logits, model.variables)
                 opt.apply_gradients(zip(grads, model.variables))
@@ -216,19 +216,19 @@ def helper_native_tf2_gradtape(
                 with tf.GradientTape() as tape:
                     hook.profiling_start_batch()
                     logits = train_step(data, labels)
-                    if python_profiler and start_step <= step < end_step:
-                        assert python_profiler._start_step == step
+                    if python_profiler and start_step <= current_step < end_step:
+                        assert python_profiler._start_step == current_step
                         assert python_profiler._start_phase == StepPhase.STEP_START
                 grads = tape.gradient(logits, model.variables)
                 opt.apply_gradients(zip(grads, model.variables))
             hook.profiling_end_batch()
-            if python_profiler and start_step <= step < end_step:
-                assert python_profiler._start_step == step
+            if python_profiler and start_step <= current_step < end_step:
+                assert python_profiler._start_step == current_step
                 assert python_profiler._start_phase == StepPhase.STEP_END
-            step += 1
+            current_step += 1
     hook.profiling_end()
     if python_profiler:
-        assert python_profiler._start_step == step - 1
+        assert python_profiler._start_step == current_step - 1
         assert python_profiler._start_phase == StepPhase.STEP_END
 
 
@@ -240,6 +240,7 @@ def verify_num_trace_events(profilerconfig):
 
     # get tensorboard timeline files
     files = []
+
     for path in Path(profilerconfig.config.local_path + "/framework").rglob(
         f"*{TENSORBOARDTIMELINE_SUFFIX}"
     ):
@@ -344,12 +345,12 @@ def verify_python_profiling(profiler_name, out_dir, profilerconfig, debugger=Fal
         debugger=debugger,
     )
 
-    # Test that directory and corresponding files exist.
     assert os.path.isdir(python_stats_dir)
 
     for node_id in os.listdir(python_stats_dir):
         node_dir_path = os.path.join(python_stats_dir, node_id)
         stats_dirs = os.listdir(node_dir_path)
+
         # Since python_profiler.stop_profiling for the posthookclose step automatically executed
         # upon normal interpreter termination,
         # the number of the files is num_steps * 2 + 2 - 1.
