@@ -845,6 +845,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         self._end_phase_python_profiling(mode=mode)
         self._end_detailed_profiling()
+        self._end_dataloader_profiling()
 
     def on_train_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.TRAIN)
