@@ -122,10 +122,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
-        # this flag is used to handle step number increment in the tensorflow native training when profiler is on
-        # it indicates to profiling for tensorflow2 native training
-        self.profiling_native_training = False
-
 
         if self.python_profiler:
             atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
@@ -1142,7 +1138,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 start_mode=mode_keys_to_python_profile_mode(self.mode),
                 start_step=self.mode_steps[self.mode],
             )
-        self.debugger_native_training = False
+        self.is_debugger_enabled_for_native_training = False
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1299,7 +1295,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         from tensorflow.python.eager.backprop import GradientTape
 
-        self.debugger_native_training = True
+        self.is_debugger_enabled_for_native_training = True
         self.set_mode(ModeKeys.TRAIN)
 
         if isinstance(tape, GradientTape):
@@ -1341,15 +1337,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
 
         self.set_mode(mode)
-
-        # When only profiler is enabled in the native tf2 training,
-        # increasing the step number in the TRAIN and GLOBAL mode.
-        if not self.debugger_native_training:
-            self.step += 1
-            self.mode_steps[self.mode] += 1
-            # Increment Global step number irrespective of what mode it is
-            if self.mode != ModeKeys.GLOBAL:
-                self.mode_steps[ModeKeys.GLOBAL] = self.step
 
         self.profiler_config_parser.load_config()
 

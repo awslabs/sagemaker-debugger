@@ -323,10 +323,15 @@ def test_native_tf2_profiler_by_step_profiler(tf2_profiler_config_parser_by_step
     # get tensorboard timeline files
     files = []
 <<<<<<< HEAD
+<<<<<<< HEAD
     for path in Path(profilerconfig.config.local_path + "/framework").rglob(
 =======
     for path in Path(tf2_profiler_config_parser_by_step.config.local_path + "/framework").rglob(
 >>>>>>> update profiler for native tf training
+=======
+
+    for path in Path(os.path.join(profilerconfig.config.local_path + "/framework")).rglob(
+>>>>>>> rename the debugger native training flag and update the path join in the unit test
         f"*{TENSORBOARDTIMELINE_SUFFIX}"
     ):
         files.append(path)
@@ -538,7 +543,7 @@ def test_create_timeline_file(simple_profiler_config_parser, out_dir):
 
 >>>>>>> update profiler for native tf training
     files = []
-    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
+    for path in Path(os.path.join(out_dir + "/" + DEFAULT_PREFIX)).rglob("*.json"):
         files.append(path)
 
     assert len(files) == 1
