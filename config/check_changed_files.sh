@@ -12,7 +12,7 @@ fi
 
 # To manually disable profiler integration tests from running in the PR CI, set this environment variable to "true".
 # If you do this, remember to reset it back to "false" before merging the PR.
-disable_integration_tests="false"
+disable_integration_tests="true"
 if [ $disable_integration_tests = "true" ]; then
   echo "false"
   exit 0
