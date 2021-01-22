@@ -1057,3 +1057,6 @@ class CallbackHook(BaseHook):
     @staticmethod
     def _make_numpy_array(tensor_value):
         pass
+
+    def dummy_hook_method(self):
+        pass
