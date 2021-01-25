@@ -122,10 +122,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
-        # this flag indicates to debugging for tensorflow2 native training
-        # self.is_debugger_enabled_for_native_training = False
+        # this flag indicates to profiler for tensorflow2 native training
         self.is_profiler_enabled_for_native_training = False
-        # self.step_incremented_in_profiling_begin = False
 
         if self.python_profiler:
             atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
