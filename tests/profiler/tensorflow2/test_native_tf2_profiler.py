@@ -200,9 +200,9 @@ def helper_native_tf2_gradtape(
     for epoch in range(n_epochs):
         for data, labels in dataset:
             labels = tf.one_hot(labels, depth=10)
+            hook.profiling_start_batch()
             if debugger:
                 with hook.wrap_tape(tf.GradientTape()) as tape:
-                    hook.profiling_start_batch()
                     logits = train_step(data, labels)
                     if python_profiler and start_step <= current_step < end_step:
                         assert python_profiler._start_step == current_step
@@ -214,7 +214,6 @@ def helper_native_tf2_gradtape(
                 hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
             else:
                 with tf.GradientTape() as tape:
-                    hook.profiling_start_batch()
                     logits = train_step(data, labels)
                     if python_profiler and start_step <= current_step < end_step:
                         assert python_profiler._start_step == current_step
