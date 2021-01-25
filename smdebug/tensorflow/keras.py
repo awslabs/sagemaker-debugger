@@ -122,6 +122,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
+        # this flag indicates to debugging for tensorflow2 native training
+        # self.is_debugger_enabled_for_native_training = False
+        self.is_profiler_enabled_for_native_training = False
+
 
         if self.python_profiler:
             atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
@@ -711,6 +715,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             x.fetch_callbacks.pop(tf_obj)
         self._fetches_added.clear()
 
+    def _decrement_step(self):
+        # Called when both profiler and debugger are enabled in the native training loop
+        # to adjust the step number
+        self.step -= 1
+        self.mode_steps[self.mode] -= 1
+
+        # Increment Global step number irrespective of what mode it is
+        if self.mode != ModeKeys.GLOBAL:
+            self.mode_steps[ModeKeys.GLOBAL] = self.step
+
     def _start_phase_python_profiling(self, mode):
         if self.python_profiler:
             self.python_profiler.stop_profiling(
@@ -1138,7 +1152,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 start_mode=mode_keys_to_python_profile_mode(self.mode),
                 start_step=self.mode_steps[self.mode],
             )
-        self.is_debugger_enabled_for_native_training = False
+        self.is_profiler_enabled_for_native_training = False
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1295,8 +1309,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         from tensorflow.python.eager.backprop import GradientTape
 
-        self.is_debugger_enabled_for_native_training = True
         self.set_mode(ModeKeys.TRAIN)
+
+        # When both profiler and debugger are enabled in the native training, step number is firstly increased by 1 in
+        # the profiling_start_batch() function, and should be decreased by 1 here in order to keep the step number
+        # correct when calling _increment_step() function inside _wrap_push_tape() function.
+        if self.is_profiler_enabled_for_native_training:
+            self._decrement_step()
 
         if isinstance(tape, GradientTape):
             # unwrap tape before wrapping new tape to avoid recursive wrap tapes
@@ -1338,61 +1357,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         self.set_mode(mode)
 
-        self.profiler_config_parser.load_config()
+        self.is_profiler_enabled_for_native_training = True
 
-        if self.profiler_config_parser.should_save_metrics(
-            MetricsCategory.DATALOADER_PROFILING, self.mode_steps[mode]
-        ) and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_START_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = True
-        elif self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
-
-        if self.python_profiler:
-            self.python_profiler.stop_profiling(
-                StepPhase.STEP_START,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
-            ):
-                self.python_profiler.start_profiling(
-                    StepPhase.STEP_START,
-                    start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
-                )
-
-        if is_profiler_supported_for_tf_version():
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.DETAILED_PROFILING, self.mode_steps[mode]
-            ):
-                if not self.is_detailed_profiling:
-                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
-                        self.profiler_config_parser.config.local_path,
-                        "tensorflow",
-                        self.mode_steps[mode],
-                    )
-                    self.logger.info(f"Enabling TF profiler on step: = {self.mode_steps[mode]}")
-                    if not self.warm_up_completed:
-                        # warming up profiler before it will be profiling.
-                        self.tf_profiler.warmup()
-                        self.warm_up_completed = True
-                    self.tf_profiler.start(self._log_dir)
-                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
-                    self.is_detailed_profiling = True
-            elif self.is_detailed_profiling:
-                self.logger.info(f"Disabling TF profiler on step: ={self.mode_steps[mode]}")
-                stop_tf_profiler(
-                    tf_profiler=self.tf_profiler,
-                    log_dir=self._log_dir,
-                    start_time_us=self.tf_profiler_start_time_in_micros,
-                )
-                self.is_detailed_profiling = False
->>>>>>> clean up the code
+        # When only profiler is enabled in the native tf2 training,
+        # increasing the step number in the TRAIN and GLOBAL mode
+        # and not writing the state.
+        if self.is_profiler_enabled_for_native_training:
+            self._increment_step(write_state=False)
 
 
     def profiling_end_batch(self, mode=ModeKeys.TRAIN):
