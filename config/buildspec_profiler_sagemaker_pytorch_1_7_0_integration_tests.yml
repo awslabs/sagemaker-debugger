@@ -3,7 +3,7 @@
 version: 0.2
 env:
   variables:
-    override_smdebug: "true" # should we install the latest version of smdebug or use the existing version of smdebug?
+    override_smdebug_version: "true" # should we install the latest version of smdebug or use the existing version of smdebug?
     enable_smdataparallel_tests: "false"
     force_run_tests: "false"
 phases:
@@ -29,8 +29,7 @@ phases:
       # build pip wheel of the latest smdebug
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
       - echo "horovod==0.19.5" > $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
-      - if [ "$override_smdebug" = "true" ]; then cd $CODEBUILD_SRC_DIR/dist &&  echo "./"`ls smdebug*` >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/requirements.txt ; fi
-      - if [ "$override_smdebug" = "true" ]; then cd $CODEBUILD_SRC_DIR/dist &&  cp smdebug*  $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/. ; fi
+      - if [ "$override_smdebug_version" = "true" ]; then cd $CODEBUILD_SRC_DIR/dist &&  echo "./"`ls smdebug*` >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/requirements.txt &&  cp smdebug*  $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/. ; fi
       # Runs the smprofiler sagemaker integration tests
       - if [ "$run_tests" = "true" ]; then cd $CODEBUILD_SRC_DIR_TESTS  && echo "Running profiler integration tests!" && python -m pytest -n auto -v -s -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/test_profiler_pytorch.py ; else echo "Skipping profiler integration tests!" ; fi
 

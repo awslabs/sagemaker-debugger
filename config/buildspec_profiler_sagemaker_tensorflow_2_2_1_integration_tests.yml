@@ -3,7 +3,7 @@
 version: 0.2
 env:
   variables:
-    override_smdebug: "true" # should we install the latest version of smdebug or use the existing version of smdebug?
+    override_smdebug_version: "true" # should we install the latest version of smdebug or use the existing version of smdebug?
     force_run_tests: "false"
 phases:
   install:
@@ -24,8 +24,7 @@ phases:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
       - echo "horovod==0.19.5" > $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
       - echo "tensorflow-datasets==4.0.1" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt
-      - if [ "$override_smdebug" = "true" ]; then cd $CODEBUILD_SRC_DIR/dist &&  echo "./"`ls smdebug*` >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt ; fi
-      - if [ "$override_smdebug" = "true" ]; then cd $CODEBUILD_SRC_DIR/dist &&  cp smdebug*  $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/. ; fi
+      - if [ "$override_smdebug_version" = "true" ]; then cd $CODEBUILD_SRC_DIR/dist &&  echo "./"`ls smdebug*` >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt &&  cp smdebug*  $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/. ; fi
       # Runs the smprofiler sagemaker integration tests
       - if [ "$run_tests" = "true" ]; then cd $CODEBUILD_SRC_DIR_TESTS  && echo "Running profiler integration tests!" && python -m pytest -n auto -v -s -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/test_profiler_tensorflow.py; else echo "Skipping profiler integration tests!"; fi
 
