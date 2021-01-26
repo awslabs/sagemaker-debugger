@@ -145,8 +145,8 @@ def generate_profiler_config_parser_all_params(
     return profiler_config_parser
 
 
-def set_up_profiling(profilerconfig):
-    profiler_config_parser = profilerconfig
+def set_up_profiling(profiler_config):
+    profiler_config_parser = profiler_config
     python_profiler = None
     if profiler_config_parser.profiling_enabled:
         config = profiler_config_parser.config
@@ -199,8 +199,8 @@ def helper_native_tf2_gradtape(
     n_epochs = 1
     for epoch in range(n_epochs):
         for data, labels in dataset:
-            labels = tf.one_hot(labels, depth=10)
             hook.profiling_start_batch()
+            labels = tf.one_hot(labels, depth=10)
             if debugger:
                 with hook.wrap_tape(tf.GradientTape()) as tape:
                     logits = train_step(data, labels)
@@ -231,7 +231,26 @@ def helper_native_tf2_gradtape(
         assert python_profiler._start_phase == StepPhase.STEP_END
 
 
-def verify_num_trace_events(profilerconfig):
+def initiate_python_profiling(profiler_config):
+    assert profiler_config.profiling_enabled
+    profiler_config_parser, python_profiler = set_up_profiling(profiler_config)
+    config = profiler_config_parser.config
+    start_step = config.python_profiling_config.start_step
+    num_steps = config.python_profiling_config.num_steps
+    end_step = start_step + num_steps
+    return python_profiler, start_step, end_step
+
+
+def train_loop(out_dir, debugger=False, python_profiler=None, start_step=None, end_step=None):
+    hook = Hook(out_dir=out_dir, save_all=True)
+    if python_profiler:
+        hook.python_profiler = python_profiler
+    helper_native_tf2_gradtape(
+        hook=hook, debugger=debugger, start_step=start_step, end_step=end_step
+    )
+
+
+def verify_num_trace_events(profiler_config):
     """
     This verifies the number of events when detailed profiling is enabled.
     """
@@ -240,7 +259,7 @@ def verify_num_trace_events(profilerconfig):
     # get tensorboard timeline files
     files = []
 
-    for path in Path(os.path.join(profilerconfig.config.local_path + "/framework")).rglob(
+    for path in Path(os.path.join(profiler_config.config.local_path + "/framework")).rglob(
         f"*{TENSORBOARDTIMELINE_SUFFIX}"
     ):
         files.append(path)
@@ -258,11 +277,6 @@ def verify_num_trace_events(profilerconfig):
     # The number of events is varying by a small number on
     # consecutive runs. Hence, the approximation in the below asserts.
     assert num_trace_events >= 230
-
-
-def train_loop(out_dir, debugger=False):
-    hook = Hook(out_dir=out_dir, save_all=True)
-    helper_native_tf2_gradtape(hook=hook, debugger=debugger)
 
 
 def verify_tensor_names(out_dir):
@@ -313,19 +327,11 @@ def verify_timeline_file(out_dir):
     assert events_dict
 
 
-def verify_python_profiling(profiler_name, out_dir, profilerconfig, debugger=False):
+def verify_python_profiling(profiler_name, out_dir, num_steps):
     """
     This executes a TF2 native training script with profiler or both profiler and debugger,
     enables python profiling by step, and verifies the python profiling's steps and expected output files.
     """
-    assert profilerconfig.profiling_enabled
-
-    profiler_config_parser, python_profiler = set_up_profiling(profilerconfig)
-
-    config = profiler_config_parser.config
-    start_step = config.python_profiling_config.start_step
-    num_steps = config.python_profiling_config.num_steps
-    end_step = start_step + num_steps
 
     if profiler_name == CPROFILE_NAME:
         allowed_files = [CPROFILE_STATS_FILENAME]
@@ -334,15 +340,6 @@ def verify_python_profiling(profiler_name, out_dir, profilerconfig, debugger=Fal
         allowed_files = [PYINSTRUMENT_JSON_FILENAME, PYINSTRUMENT_HTML_FILENAME]
 
     python_stats_dir = os.path.join(out_dir, "framework/", "tensorflow/", profiler_name)
-    hook = Hook(out_dir=out_dir, save_all=True)
-    hook.python_profiler = python_profiler
-    helper_native_tf2_gradtape(
-        hook=hook,
-        python_profiler=python_profiler,
-        start_step=start_step,
-        end_step=end_step,
-        debugger=debugger,
-    )
 
     assert os.path.isdir(python_stats_dir)
 
@@ -395,19 +392,33 @@ def test_native_tf2_profiling_debugger(
                 profiler_config_parser = generate_profiler_config_parser(
                     "PythonProfiling", profiler_config_path, (5, 2, CPROFILE_NAME, None)
                 )
-                verify_python_profiling(CPROFILE_NAME, out_dir, profiler_config_parser)
-                verify_timeline_file(out_dir)
             if enable_python_profiling == PYINSTRUMENT_NAME:
                 profiler_config_parser = generate_profiler_config_parser(
                     "PythonProfiling", profiler_config_path, (10, 3, PYINSTRUMENT_NAME, None)
                 )
-                verify_python_profiling(PYINSTRUMENT_NAME, out_dir, profiler_config_parser)
-                verify_timeline_file(out_dir)
+            python_profiler, start_step, end_step = initiate_python_profiling(
+                profiler_config_parser
+            )
+            train_loop(
+                out_dir, python_profiler=python_profiler, start_step=start_step, end_step=end_step
+            )
+            verify_python_profiling(
+                enable_python_profiling, out_dir, num_steps=end_step - start_step
+            )
+            verify_timeline_file(out_dir)
         elif enable_detailed_profiling and enable_python_profiling:
             profiler_config_parser = generate_profiler_config_parser_all_params(
                 profiler_config_path, (4, 2, enable_python_profiling, None), (8, 1, None, None)
             )
-            verify_python_profiling(enable_python_profiling, out_dir, profiler_config_parser)
+            python_profiler, start_step, end_step = initiate_python_profiling(
+                profiler_config_parser
+            )
+            train_loop(
+                out_dir, python_profiler=python_profiler, start_step=start_step, end_step=end_step
+            )
+            verify_python_profiling(
+                enable_python_profiling, out_dir, num_steps=end_step - start_step
+            )
             verify_num_trace_events(profiler_config_parser)
             verify_timeline_file(out_dir)
         else:
@@ -426,26 +437,41 @@ def test_native_tf2_profiling_debugger(
                 profiler_config_parser = generate_profiler_config_parser(
                     "PythonProfiling", profiler_config_path, (5, 2, CPROFILE_NAME, None)
                 )
-                verify_python_profiling(
-                    CPROFILE_NAME, out_dir, profiler_config_parser, debugger=True
-                )
-                verify_timeline_file(out_dir)
-                verify_tensor_names(out_dir)
             if enable_python_profiling == PYINSTRUMENT_NAME:
                 profiler_config_parser = generate_profiler_config_parser(
                     "PythonProfiling", profiler_config_path, (10, 3, PYINSTRUMENT_NAME, None)
                 )
-                verify_python_profiling(
-                    PYINSTRUMENT_NAME, out_dir, profiler_config_parser, debugger=True
-                )
-                verify_timeline_file(out_dir)
-                verify_tensor_names(out_dir)
+            python_profiler, start_step, end_step = initiate_python_profiling(
+                profiler_config_parser
+            )
+            train_loop(
+                out_dir,
+                debugger=True,
+                python_profiler=python_profiler,
+                start_step=start_step,
+                end_step=end_step,
+            )
+            verify_python_profiling(
+                enable_python_profiling, out_dir, num_steps=end_step - start_step
+            )
+            verify_timeline_file(out_dir)
+            verify_tensor_names(out_dir)
         elif enable_detailed_profiling and enable_python_profiling:
             profiler_config_parser = generate_profiler_config_parser_all_params(
                 profiler_config_path, (4, 2, enable_python_profiling, None), (8, 1, None, None)
             )
+            python_profiler, start_step, end_step = initiate_python_profiling(
+                profiler_config_parser
+            )
+            train_loop(
+                out_dir,
+                debugger=True,
+                python_profiler=python_profiler,
+                start_step=start_step,
+                end_step=end_step,
+            )
             verify_python_profiling(
-                enable_python_profiling, out_dir, profiler_config_parser, debugger=True
+                enable_python_profiling, out_dir, num_steps=end_step - start_step
             )
             verify_num_trace_events(profiler_config_parser)
             verify_timeline_file(out_dir)
