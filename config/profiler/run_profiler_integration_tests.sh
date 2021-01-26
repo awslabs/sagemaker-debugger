@@ -4,7 +4,7 @@ then
   run_tests="true"
 else
   chmod +x config/profiler/check_changed_files.sh
-  run_tests=`./config/check_changed_files.sh $framework`
+  run_tests=`./config/profiler/check_changed_files.sh $framework`
 fi
 
 apt-get update

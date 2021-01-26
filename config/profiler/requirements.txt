@@ -1,4 +1,4 @@
-pip=20.3.3
+pip==20.3.3
 wheel==0.35.1
 pyYaml==5.3.1
 pytest-html==3.0.0
