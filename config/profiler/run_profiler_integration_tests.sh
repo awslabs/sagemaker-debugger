@@ -25,7 +25,9 @@ check_changed_files() {
   # smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
   for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH)
   do
+    echo "heh"
     folders=(${file//// })
+    echo "heh 2"
     root_folder=${folders[0]}
     framework_folder=${folders[1]}
     if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = $framework ]]; then
