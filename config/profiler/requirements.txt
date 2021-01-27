@@ -10,3 +10,4 @@ pytest-cov==2.10.1
 flaky==3.7.0
 pytest-xdist==2.2.0
 pandas==1.1.5
+numpy==1.18.5
