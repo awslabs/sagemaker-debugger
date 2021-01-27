@@ -7,12 +7,6 @@ else
   run_tests=`./config/profiler/check_changed_files.sh $framework`
 fi
 
-apt-get update
-apt-get install sudo -qq -o=Dpkg::Use-Pty=0
-sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
-
-pip install -r config/profiler/requirements.txt
-
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
 ./config/protoc_downloader.sh
