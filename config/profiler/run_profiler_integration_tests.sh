@@ -7,22 +7,6 @@ then
   exit 0
 fi
 
-# Otherwise, check to see what files have changed in this branch. If files in smdebug/core or smdebug/profiler or
-# smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
-for file in $(git diff --name-only master debug_script2)
-do
-  root_folder=$(echo $file | cut -d/ -f 1)
-  framework_folder=$(echo $file | cut -d/ -f 2)
-  echo "folders" $root_folder $framework_folder
-  if [ $root_folder = "smdebug" ];
-  then
-    echo "heh1"
-    if [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
-    echo "true"
-    fi
-  fi
-done
-
 check_changed_files() {
   # Get the branch we're running integration tests on.
   export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
@@ -43,9 +27,11 @@ check_changed_files() {
   do
     root_folder=$(echo $file | cut -d/ -f 1)
     framework_folder=$(echo $file | cut -d/ -f 2)
-    if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
+    if [ $root_folder = "smdebug" ]; then
+      if [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
       echo "true"
       return
+      fi
     fi
   done
 
