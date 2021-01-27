@@ -1,15 +1,51 @@
-# If we are not force running the tests, determine whether to run the tests based on the files changed in the branch compared to master.
-if [ "$force_run_tests" = "true" ]
+# To manually disable profiler integration tests from running in the PR CI, set this environment variable to "true".
+# If you do this, remember to reset it back to "false" before merging the PR.
+disable_integration_tests="false"
+if [ $disable_integration_tests = "true" ]
 then
-  run_tests="true"
-else
-  chmod +x config/profiler/check_changed_files.sh
-  run_tests=`./config/profiler/check_changed_files.sh $framework`
+  echo "PROFILER INTEGRATION TESTS MANUALLY DISABLED!"
+  exit 0
+fi
+
+check_changed_files() {
+  # Get the branch we're running integration tests on.
+  export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
+  if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
+    CODEBUILD_GIT_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }')";
+    export CODEBUILD_GIT_BRANCH=${CODEBUILD_GIT_BRANCH#remotes/origin/};
+  fi
+
+  # If the branch is master, then just run integration tests.
+  if [ $CODEBUILD_GIT_BRANCH = "master" ]; then
+    echo "true"
+    return
+  fi
+
+  # Otherwise, check to see what files have changed in this branch. If files in smdebug/core or smdebug/profiler or
+  # smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
+  for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH)
+  do
+    folders=(${file//// })
+    root_folder=${folders[0]}
+    framework_folder=${folders[1]}
+    if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = $framework ]]; then
+      echo "true"
+      return
+    fi
+  done
+
+  echo "false"
+}
+
+# If we are not force running the tests, determine whether to run the tests based on the files changed in the branch compared to master.
+run_tests="true"
+if [ $force_run_tests = "false" ]; then
+  run_tests=$( check_changed_files )
 fi
 
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
-./config/protoc_downloader.sh
+./config/protoc_downloader.sh >/dev/null # mask output
 
 touch $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt
 
@@ -35,10 +71,11 @@ fi
  # build pip wheel of the latest smdebug
 cd $CODEBUILD_SRC_DIR
 python setup.py bdist_wheel --universal
-pip install --force-reinstall dist/*.whl
+pip install -q --force-reinstall dist/*.whl
 
 echo "horovod==0.19.5" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
 
+# install smdebug from current branch in the container or use the smdebug that's already in the container
 if [ "$use_current_branch" = "true" ]; then
   cd $CODEBUILD_SRC_DIR/dist
   echo "./"`ls smdebug*` >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder/requirements.txt
