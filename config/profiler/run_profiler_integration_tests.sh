@@ -48,14 +48,18 @@ if [ $force_run_tests = "false" ]; then
   run_tests=$( check_changed_files )
 fi
 
-apt-get update >/dev/null # mask output
-apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null # mask output
-sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null # mask output
-pip install -q -r config/profiler/requirements.txt >/dev/null # mask output
+echo "test1"
+
+apt-get update >/dev/null 2>/dev/null # mask output
+apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
+sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
+pip install -q -r config/profiler/requirements.txt >/dev/null 2>/dev/null # mask output
+
+echo "test2"
 
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
-./config/protoc_downloader.sh >/dev/null # mask output
+./config/protoc_downloader.sh >/dev/null 2>/dev/null # mask output
 
 touch $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt
 
