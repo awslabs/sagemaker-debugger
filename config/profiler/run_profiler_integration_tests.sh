@@ -27,6 +27,12 @@ check_changed_files() {
   do
     root_folder=$(file | cut -d/ -f 1)
     framework_folder=$(file | cut -d/ -f 2)
+    echo "folder1"
+    echo $root_folder
+    echo "heh1"
+    echo $framework_folder
+    echo "eh2"
+    echo $file
     if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = $framework ]]; then
       echo "true"
       return

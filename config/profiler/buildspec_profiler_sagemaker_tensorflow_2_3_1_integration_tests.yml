@@ -8,6 +8,14 @@ env:
     force_run_tests: "false"
     framework: "tensorflow"
 phases:
+  install:
+    commands:
+      - apt-get update -qq -o=Dpkg::Use-Pty=0
+      - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
+      - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
+      - pip install -q -r config/profiler/requirements.txt
+      - # build pip wheel of the latest smdebug
+      - cd $CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install -q --force-reinstall dist/*.whl
   build:
     commands:
       - chmod +x config/profiler/run_profiler_integration_tests.sh && ./config/profiler/run_profiler_integration_tests.sh
