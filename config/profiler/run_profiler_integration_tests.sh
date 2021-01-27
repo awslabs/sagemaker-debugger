@@ -25,8 +25,8 @@ check_changed_files() {
   # smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
   for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH)
   do
-    root_folder=$($file | cut -d/ -f 1)
-    framework_folder=$($file | cut -d/ -f 2)
+    root_folder=$(echo $file | cut -d/ -f 1)
+    framework_folder=$(echo $file | cut -d/ -f 2)
     echo "folder1"
     echo $root_folder
     echo "heh1"
