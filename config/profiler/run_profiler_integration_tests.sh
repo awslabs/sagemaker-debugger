@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # To manually disable profiler integration tests from running in the PR CI, set this environment variable to "true".
 # If you do this, remember to reset it back to "false" before merging the PR.
 disable_integration_tests="false"
@@ -27,11 +29,9 @@ check_changed_files() {
   do
     root_folder=$(echo $file | cut -d/ -f 1)
     framework_folder=$(echo $file | cut -d/ -f 2)
-    if [ $root_folder = "smdebug" ]; then
-      if [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
+    if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
       echo "true"
       return
-      fi
     fi
   done
 
