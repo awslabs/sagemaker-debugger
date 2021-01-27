@@ -8,12 +8,6 @@ env:
     force_run_tests: "false"
     framework: "pytorch"
 phases:
-  install:
-    commands:
-      - apt-get update
-      - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
-      - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
-      - pip install -q -r config/profiler/requirements.txt
   build:
     commands:
       - chmod +x config/profiler/run_profiler_integration_tests.sh && ./config/profiler/run_profiler_integration_tests.sh
