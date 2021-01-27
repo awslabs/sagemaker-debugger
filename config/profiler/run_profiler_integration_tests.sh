@@ -14,9 +14,12 @@ do
   root_folder=$(echo $file | cut -d/ -f 1)
   framework_folder=$(echo $file | cut -d/ -f 2)
   echo "folders" $root_folder $framework_folder
-  if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
+  if [ $root_folder = "smdebug" ];
+  then
+    echo "heh1"
+    if [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
     echo "true"
-    return
+    fi
   fi
 done
 
