@@ -25,11 +25,13 @@ check_changed_files() {
   # smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
   for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH)
   do
-    root_folder=$(file | cut -d/ -f 1)
-    framework_folder=$(file | cut -d/ -f 2)
-    if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = $framework ]]; then
+    root_folder=$(echo $file | cut -d/ -f 1)
+    framework_folder=$(echo $file | cut -d/ -f 2)
+    if [ $root_folder = "smdebug" ]; then
+      if [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
       echo "true"
       return
+      fi
     fi
   done
 
@@ -42,14 +44,14 @@ if [ $force_run_tests = "false" ]; then
   run_tests=$( check_changed_files )
 fi
 
-apt-get update >/dev/null # mask output
-apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null # mask output
-sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null # mask output
-pip install -q -r config/profiler/requirements.txt >/dev/null # mask output
+apt-get update >/dev/null 2>/dev/null # mask output
+apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
+sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
+pip install -q -r config/profiler/requirements.txt >/dev/null 2>/dev/null # mask output
 
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
-./config/protoc_downloader.sh >/dev/null # mask output
+./config/protoc_downloader.sh >/dev/null 2>/dev/null # mask output
 
 touch $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt
 
@@ -74,8 +76,8 @@ fi
 
  # build pip wheel of the latest smdebug
 cd $CODEBUILD_SRC_DIR
-python setup.py bdist_wheel --universal
-pip install -q --force-reinstall dist/*.whl >/dev/null # mask output
+python setup.py bdist_wheel --universal >/dev/null 2>/dev/null
+pip install -q --force-reinstall dist/*.whl >/dev/null 2>/dev/null # mask output
 
 echo "horovod==0.19.5" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
 
