@@ -62,12 +62,12 @@ then
   # download the data from s3 bucket.
   cd $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder
   mkdir -p data
-  aws s3 cp s3://smdebug-testing/datasets/cifar-10-python.tar.gz data/cifar-10-batches-py.tar.gz
-  aws s3 cp s3://smdebug-testing/datasets/MNIST_pytorch.tar.gz data/MNIST_pytorch.tar.gz
+  aws s3 cp s3://smdebug-testing/datasets/cifar-10-python.tar.gz data/cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
+  aws s3 cp s3://smdebug-testing/datasets/MNIST_pytorch.tar.gz data/MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   cd $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/data
   cd data
-  tar -zxf MNIST_pytorch.tar.gz
-  tar -zxf cifar-10-batches-py.tar.gz
+  tar -zxf MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
+  tar -zxf cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
 else
   scripts_folder="tf_scripts"
   test_file="test_profiler_tensorflow.py"
