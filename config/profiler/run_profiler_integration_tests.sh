@@ -26,7 +26,7 @@ check_changed_files() {
   for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH)
   do
     echo "heh"
-    folders=(${file//// })
+    folders=${file//// }
     echo "heh 2"
     root_folder=${folders[0]}
     framework_folder=${folders[1]}
