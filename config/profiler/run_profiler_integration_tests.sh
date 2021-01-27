@@ -25,8 +25,8 @@ check_changed_files() {
   # smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
   for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH)
   do
-    root_folder=$(file | cut -d/ -f 1)
-    framework_folder=$(file | cut -d/ -f 2)
+    root_folder=$($file | cut -d/ -f 1)
+    framework_folder=$($file | cut -d/ -f 2)
     echo "folder1"
     echo $root_folder
     echo "heh1"
@@ -84,8 +84,8 @@ fi
 
  # build pip wheel of the latest smdebug
 cd $CODEBUILD_SRC_DIR
-python setup.py bdist_wheel --universal
-pip install -q --force-reinstall dist/*.whl >/dev/null # mask output
+python setup.py bdist_wheel --universal >/dev/null 2>/dev/null
+pip install -q --force-reinstall dist/*.whl >/dev/null 2>/dev/null # mask output
 
 echo "horovod==0.19.5" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
 
