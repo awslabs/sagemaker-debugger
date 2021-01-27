@@ -27,7 +27,7 @@ phases:
       - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
       - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
-      - pip install --upgrade pip==19.3.1
+      - pip install --upgrade pip==20.3.3
       - pip install -q pytest wheel pyYaml pytest-html pre-commit awscli pytest-cov
       - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh;
 
