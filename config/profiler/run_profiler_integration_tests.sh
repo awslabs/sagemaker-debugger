@@ -7,8 +7,18 @@ then
   exit 0
 fi
 
-test_var=$(echo "a/b/c/d" | cut -d/ -f 1)
-echo "$test_var"
+# Otherwise, check to see what files have changed in this branch. If files in smdebug/core or smdebug/profiler or
+# smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
+for file in $(git diff --name-only master debug_script2)
+do
+  root_folder=$(echo $file | cut -d/ -f 1)
+  framework_folder=$(echo $file | cut -d/ -f 2)
+  echo "folders" $root_folder $framework_folder
+  if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
+    echo "true"
+    return
+  fi
+done
 
 check_changed_files() {
   # Get the branch we're running integration tests on.
