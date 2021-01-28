@@ -383,14 +383,13 @@ class Trial(ABC):
                 step=step,
                 mode=mode,
                 regex="labels_*",
-                collection=CollectionKeys.INPUTS,
             ),
             key=tensor_name_sorter,
         )
-        input_tensors = []
+        label_tensors = []
         for tensor_name in label_tensors_names:
-            input_tensors.append(self.tensor(tensor_name).value(step))
-        return input_tensors
+            label_tensors.append(self.tensor(tensor_name).value(step))
+        return label_tensors
 
     def predictions(self, step, mode=ModeKeys.GLOBAL):
         prediction_tensors_names = sorted(
@@ -399,14 +398,13 @@ class Trial(ABC):
                 step=step,
                 mode=mode,
                 regex="pred_*",
-                collection=CollectionKeys.OUTPUTS,
             ),
             key=tensor_name_sorter,
         )
-        input_tensors = []
+        prediction_tensors = []
         for tensor_name in prediction_tensors_names:
-            input_tensors.append(self.tensor(tensor_name).value(step))
-        return input_tensors
+            prediction_tensors.append(self.tensor(tensor_name).value(step))
+        return prediction_tensors
 
     # * is used in python to force usage of named arguments
     def tensor_names(

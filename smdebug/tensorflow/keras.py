@@ -541,6 +541,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )
         if isinstance(tensors_to_save, dict):
             tensors_to_save = nest.flatten(tensors_to_save)
+        else:
+            tensors_to_save = [tensors_to_save]
         idx = 0
         for t_value in tensors_to_save:
             t_name = f"inputs_{idx}"
@@ -555,6 +557,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )
         if isinstance(tensors_to_save, dict):
             tensors_to_save = nest.flatten(tensors_to_save)
+        else:
+            tensors_to_save = [tensors_to_save]
         idx = 0
         for t_value in tensors_to_save:
             t_name = f"pred_{idx}"
@@ -569,6 +573,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )
         if isinstance(tensors_to_save, dict):
             tensors_to_save = nest.flatten(tensors_to_save)
+        else:
+            tensors_to_save = [tensors_to_save]
         idx = 0
         for t_value in tensors_to_save:
             t_name = f"labels_{idx}"
