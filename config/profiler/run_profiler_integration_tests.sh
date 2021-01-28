@@ -2,13 +2,7 @@
 
 # To manually disable profiler integration tests from running in the PR CI, set this environment variable to "true".
 # If you do this, remember to reset it back to "false" before merging the PR.
-echo "Start profiler integration tests script."
-
-echo "base ref" $CODEBUILD_WEBHOOK_HEAD_REF
-CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/}
-echo $CODEBUILD_GIT_BRANCH
-
-disable_integration_tests="true"
+disable_integration_tests="false"
 if [ $disable_integration_tests = "true" ]
 then
   echo "PROFILER INTEGRATION TESTS MANUALLY DISABLED!"
@@ -20,7 +14,7 @@ check_changed_files() {
   export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
   if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
     CODEBUILD_GIT_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }' 2>/dev/null)";
-    export CODEBUILD_GIT_BRANCH=${CODEBUILD_GIT_BRANCH#remotes/origin/};
+    export CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/};
   fi
 
   # If the branch is master, then just run integration tests.
