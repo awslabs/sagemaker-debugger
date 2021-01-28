@@ -256,3 +256,7 @@ smdataparallel_profiling_test_cases = [
         (bad_start_step_2, bad_start_step_2 + PROFILING_NUM_STEPS_DEFAULT),
     ),
 ]
+
+
+def build_metrics_config(**config_parameters):
+    return str({key: value for key, value in config_parameters.items() if value is not None})
