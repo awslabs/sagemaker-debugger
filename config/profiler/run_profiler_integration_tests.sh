@@ -4,13 +4,6 @@
 # If you do this, remember to reset it back to "false" before merging the PR.
 echo "Start profiler integration tests script."
 
-disable_integration_tests="true"
-if [ $disable_integration_tests = "true" ]
-then
-  echo "PROFILER INTEGRATION TESTS MANUALLY DISABLED!"
-  exit 0
-fi
-
 check_changed_files() {
   # Get the branch we're running integration tests on.
   export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
@@ -52,7 +45,15 @@ check_changed_files() {
 # If we are not force running the tests, determine whether to run the tests based on the files changed in the branch compared to master.
 run_tests="true"
 if [ $force_run_tests = "false" ]; then
+  echo "Running check changed files"
   run_tests=$( check_changed_files )
+fi
+
+disable_integration_tests="true"
+if [ $disable_integration_tests = "true" ]
+then
+  echo "PROFILER INTEGRATION TESTS MANUALLY DISABLED!"
+  exit 0
 fi
 
 apt-get update >/dev/null 2>/dev/null # mask output
