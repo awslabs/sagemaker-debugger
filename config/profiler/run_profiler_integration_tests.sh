@@ -4,6 +4,8 @@
 # If you do this, remember to reset it back to "false" before merging the PR.
 echo "Start profiler integration tests script."
 
+echo "base ref" $CODEBUILD_WEBHOOK_BASE_REF
+
 CODEBUILD_GIT_BRANCH=$(git branch | grep '^*' | sed 's/* //' )
 echo $CODEBUILD_GIT_BRANCH
 
