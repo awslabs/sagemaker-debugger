@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # To manually disable profiler integration tests from running in the PR CI, set this environment variable to "true".
 # If you do this, remember to reset it back to "false" before merging the PR.
 disable_integration_tests="false"
@@ -27,12 +29,20 @@ check_changed_files() {
   do
     root_folder=$(echo $file | cut -d/ -f 1)
     framework_folder=$(echo $file | cut -d/ -f 2)
-    if [ $root_folder = "smdebug" ]; then
-      if [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
+
+    # Check if any relevant smdebug files were modified.
+    if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
       echo "true"
       return
       fi
     fi
+
+    # Check if relevant files for running profiler integration tests were modified.
+    if [ $root_folder = "config" ] && [ $framework_folder = "profiler" ]; then
+      echo "true"
+      return
+    fi
+
   done
 
   echo "false"
@@ -44,14 +54,10 @@ if [ $force_run_tests = "false" ]; then
   run_tests=$( check_changed_files )
 fi
 
-echo "test1"
-
 apt-get update >/dev/null 2>/dev/null # mask output
 apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
 sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
 pip install -q -r config/profiler/requirements.txt >/dev/null 2>/dev/null # mask output
-
-echo "test2"
 
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
@@ -66,16 +72,16 @@ then
   # download the data from s3 bucket.
   cd $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder
   mkdir -p data
-  aws s3 cp s3://smdebug-testing/datasets/cifar-10-python.tar.gz data/cifar-10-batches-py.tar.gz
-  aws s3 cp s3://smdebug-testing/datasets/MNIST_pytorch.tar.gz data/MNIST_pytorch.tar.gz
+  aws s3 cp s3://smdebug-testing/datasets/cifar-10-python.tar.gz data/cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
+  aws s3 cp s3://smdebug-testing/datasets/MNIST_pytorch.tar.gz data/MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   cd $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/data
   cd data
-  tar -zxf MNIST_pytorch.tar.gz
-  tar -zxf cifar-10-batches-py.tar.gz
+  tar -zxf MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
+  tar -zxf cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
 else
   scripts_folder="tf_scripts"
   test_file="test_profiler_tensorflow.py"
-  echo "tensorflow-datasets==4.0.1" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt
+  echo "tensorflow-datasets==4.0.1" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt # Install tensorflow-datasets in container
 fi
 
  # build pip wheel of the latest smdebug
