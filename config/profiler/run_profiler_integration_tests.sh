@@ -5,7 +5,7 @@
 echo "Start profiler integration tests script."
 
 echo "base ref" $CODEBUILD_WEBHOOK_HEAD_REF
-CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#remotes/origin/}
+CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/}
 echo $CODEBUILD_GIT_BRANCH
 
 disable_integration_tests="true"
