@@ -378,12 +378,7 @@ class Trial(ABC):
 
     def labels(self, step, mode=ModeKeys.GLOBAL):
         label_tensors_names = sorted(
-            self.tensor_names(
-                show_prefixed_tensors=True,
-                step=step,
-                mode=mode,
-                regex="labels_*",
-            ),
+            self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="labels_*"),
             key=tensor_name_sorter,
         )
         label_tensors = []
@@ -393,12 +388,7 @@ class Trial(ABC):
 
     def predictions(self, step, mode=ModeKeys.GLOBAL):
         prediction_tensors_names = sorted(
-            self.tensor_names(
-                show_prefixed_tensors=True,
-                step=step,
-                mode=mode,
-                regex="pred_*",
-            ),
+            self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="pred_*"),
             key=tensor_name_sorter,
         )
         prediction_tensors = []
