@@ -1,0 +1,1 @@
+{"meta": {"mode": "GLOBAL", "mode_step": 0, "event_file_name": "events/000000000000/000000000000_worker_0.tfevents"}, "tensor_payload": [{"tensorname": "loss/mul:0", "start_idx": 0, "length": 100}], "shape_payload": []}
