@@ -4,43 +4,9 @@
 # If you do this, remember to reset it back to "false" before merging the PR.
 echo "Start profiler integration tests script."
 
-export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
-echo "Finished git command 1"
-if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
-  CODEBUILD_GIT_BRANCH=$(git describe --contains --all HEAD);
-  export CODEBUILD_GIT_BRANCH=${CODEBUILD_GIT_BRANCH#remotes/origin/};
-fi
-echo "Finished git command 2"
+sleep 1m
 
-# If the branch is master, then just run integration tests.
-if [ $CODEBUILD_GIT_BRANCH = "master" ]; then
-  echo "true"
-#  return
-fi
-
-# Otherwise, check to see what files have changed in this branch. If files in smdebug/core or smdebug/profiler or
-# smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
-for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH 2>/dev/null)
-do
-  echo "Finished git command 3"
-  root_folder=$(echo $file | cut -d/ -f 1)
-  framework_folder=$(echo $file | cut -d/ -f 2)
-
-  # Check if any relevant smdebug files were modified.
-  if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
-    echo "true"
-#    return
-  fi
-
-  # Check if relevant files for running profiler integration tests were modified.
-  if [ $root_folder = "config" ] && [ $framework_folder = "profiler" ]; then
-    echo "true"
-#    return
-  fi
-
-done
-
-echo "false"
+CODEBUILD_GIT_BRANCH=$(git describe --contains --all HEAD);
 
 disable_integration_tests="true"
 if [ $disable_integration_tests = "true" ]
