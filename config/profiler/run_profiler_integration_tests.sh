@@ -46,7 +46,6 @@ check_changed_files() {
 # If we are not force running the tests, determine whether to run the tests based on the files changed in the branch compared to master.
 run_tests="true"
 if [ $force_run_tests = "false" ]; then
-  echo "Running check changed files"
   run_tests=$( check_changed_files )
 fi
 
@@ -71,7 +70,6 @@ then
   aws s3 cp s3://smdebug-testing/datasets/cifar-10-python.tar.gz data/cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
   aws s3 cp s3://smdebug-testing/datasets/MNIST_pytorch.tar.gz data/MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   cd $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/data
-  cd data
   tar -zxf MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   tar -zxf cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
 else
