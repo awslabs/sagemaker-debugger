@@ -7,7 +7,7 @@ echo "Start profiler integration tests script."
 export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
 echo "Finished git command 1"
 if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
-  CODEBUILD_GIT_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }' 2>/dev/null)";
+  CODEBUILD_GIT_BRANCH=$(git describe --contains --all HEAD);
   export CODEBUILD_GIT_BRANCH=${CODEBUILD_GIT_BRANCH#remotes/origin/};
 fi
 echo "Finished git command 2"
