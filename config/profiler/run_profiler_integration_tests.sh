@@ -4,7 +4,7 @@
 # If you do this, remember to reset it back to "false" before merging the PR.
 echo "Start profiler integration tests script."
 
-disable_integration_tests="false"
+disable_integration_tests="true"
 if [ $disable_integration_tests = "true" ]
 then
   echo "PROFILER INTEGRATION TESTS MANUALLY DISABLED!"
