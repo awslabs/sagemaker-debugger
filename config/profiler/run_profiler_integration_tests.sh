@@ -5,6 +5,7 @@
 echo "Start profiler integration tests script."
 
 CODEBUILD_GIT_BRANCH="$(git symbolic-ref --short -q HEAD)"
+echo $CODEBUILD_GIT_BRANCH
 
 disable_integration_tests="true"
 if [ $disable_integration_tests = "true" ]
