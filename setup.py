@@ -21,8 +21,8 @@ from datetime import date
 # Third Party
 import setuptools
 
-# First Party
-import smdebug
+exec(open("smdebug/_version.py").read())
+CURRENT_VERSION = __version__
 
 DOCLINES = (__doc__ or "").split("\n")
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
@@ -111,9 +111,9 @@ if scan_git_secrets() != 0:
 def detect_smdebug_version():
     if "--release" in sys.argv:
         sys.argv.remove("--release")
-        return smdebug.__version__.strip()
+        return CURRENT_VERSION
 
-    return smdebug.__version__.strip() + "b" + str(date.today()).replace("-", "")
+    return CURRENT_VERSION + "b" + str(date.today()).replace("-", "")
 
 
 version = detect_smdebug_version()
