@@ -4,7 +4,7 @@
 # If you do this, remember to reset it back to "false" before merging the PR.
 echo "Start profiler integration tests script."
 
-CODEBUILD_GIT_BRANCH=$(git describe --contains --all HEAD);
+CODEBUILD_GIT_BRANCH="$(git describe --contains --all HEAD)"
 
 disable_integration_tests="true"
 if [ $disable_integration_tests = "true" ]
