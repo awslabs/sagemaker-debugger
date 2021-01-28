@@ -11,11 +11,7 @@ fi
 
 check_changed_files() {
   # Get the branch we're running integration tests on.
-  export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
-  if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
-    CODEBUILD_GIT_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }' 2>/dev/null)";
-    export CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/};
-  fi
+  export CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/};
 
   # If the branch is master, then just run integration tests.
   if [ $CODEBUILD_GIT_BRANCH = "master" ]; then
@@ -25,7 +21,7 @@ check_changed_files() {
 
   # Otherwise, check to see what files have changed in this branch. If files in smdebug/core or smdebug/profiler or
   # smdebug/$framework have been modified, run the integration tests. Otherwise, don't run the integration tests.
-  for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH 2>/dev/null)
+  for file in $(git diff --name-only master $CODEBUILD_GIT_BRANCH)
   do
     root_folder=$(echo $file | cut -d/ -f 1)
     framework_folder=$(echo $file | cut -d/ -f 2)
