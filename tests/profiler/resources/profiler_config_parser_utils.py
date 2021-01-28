@@ -258,5 +258,5 @@ smdataparallel_profiling_test_cases = [
 ]
 
 
-def form_config(**config_parameters):
+def build_metrics_config(**config_parameters):
     return str({key: value for key, value in config_parameters.items() if value is not None})

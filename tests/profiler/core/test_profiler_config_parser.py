@@ -6,11 +6,11 @@ import time
 # Third Party
 import pytest
 from tests.profiler.resources.profiler_config_parser_utils import (
+    build_metrics_config,
     current_step,
     current_time,
     dataloader_test_cases,
     detailed_profiling_test_cases,
-    form_config,
     python_profiling_test_cases,
     smdataparallel_profiling_test_cases,
 )
@@ -100,7 +100,7 @@ def new_time_profiler_config_parser_path(config_folder):
 def test_detailed_profiling_ranges(profiler_config_path, test_case):
     profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
     start_step, num_steps, start_time, duration = profiling_parameters
-    detailed_profiling_config = form_config(
+    detailed_profiling_config = build_metrics_config(
         StartStep=start_step,
         NumSteps=num_steps,
         StartTimeInSecSinceEpoch=start_time,
@@ -140,7 +140,9 @@ def test_detailed_profiling_ranges(profiler_config_path, test_case):
 def test_dataloader_profiling_ranges(profiler_config_path, test_case):
     profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
     start_step, metrics_regex, metrics_name = profiling_parameters
-    dataloader_profiling_config = form_config(StartStep=start_step, MetricsRegex=metrics_regex)
+    dataloader_profiling_config = build_metrics_config(
+        StartStep=start_step, MetricsRegex=metrics_regex
+    )
 
     full_config = {
         "ProfilingParameters": {
@@ -174,7 +176,7 @@ def test_dataloader_profiling_ranges(profiler_config_path, test_case):
 def test_python_profiling_ranges(profiler_config_path, test_case):
     profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
     start_step, num_steps, profiler_name, cprofile_timer = profiling_parameters
-    python_profiling_config = form_config(
+    python_profiling_config = build_metrics_config(
         StartStep=start_step,
         NumSteps=num_steps,
         ProfilerName=profiler_name,
@@ -215,7 +217,7 @@ def test_smdataparallel_profiling_ranges(profiler_config_path, test_case):
     profiling_parameters, expected_enabled, expected_can_save, expected_values = test_case
     start_step, num_steps = profiling_parameters
 
-    smdataparallel_profiling_config = form_config(StartStep=start_step, NumSteps=num_steps)
+    smdataparallel_profiling_config = build_metrics_config(StartStep=start_step, NumSteps=num_steps)
 
     full_config = {
         "ProfilingParameters": {
