@@ -5,8 +5,9 @@
 echo "Start profiler integration tests script."
 
 echo "base ref" $CODEBUILD_WEBHOOK_BASE_REF
+echo $(git diff --name-only master $CODEBUILD_WEBHOOK_BASE_REF 2>/dev/null)
 
-CODEBUILD_GIT_BRANCH=$(git branch | grep '^*' | sed 's/* //' )
+CODEBUILD_GIT_BRANCH$(git branch -q -a --contains HEAD | sed -n 2p | awk '{ printf $1 }' 2>/dev/null)
 echo $CODEBUILD_GIT_BRANCH
 
 disable_integration_tests="true"
