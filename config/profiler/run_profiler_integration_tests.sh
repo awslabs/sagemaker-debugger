@@ -34,7 +34,6 @@ check_changed_files() {
     if [ $root_folder = "smdebug" ] && [[ $framework_folder = "core" || $framework_folder = "profiler" || $framework_folder = "$framework" ]]; then
       echo "true"
       return
-      fi
     fi
 
     # Check if relevant files for running profiler integration tests were modified.
@@ -54,14 +53,20 @@ if [ $force_run_tests = "false" ]; then
   run_tests=$( check_changed_files )
 fi
 
+echo "1"
+
 apt-get update >/dev/null 2>/dev/null # mask output
 apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
 sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
 pip install -q -r config/profiler/requirements.txt >/dev/null 2>/dev/null # mask output
 
+echo "2"
+
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
 ./config/protoc_downloader.sh >/dev/null 2>/dev/null # mask output
+
+echo "3"
 
 touch $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt
 
@@ -75,7 +80,6 @@ then
   aws s3 cp s3://smdebug-testing/datasets/cifar-10-python.tar.gz data/cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
   aws s3 cp s3://smdebug-testing/datasets/MNIST_pytorch.tar.gz data/MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   cd $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/data
-  cd data
   tar -zxf MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   tar -zxf cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
 else
@@ -84,12 +88,16 @@ else
   echo "tensorflow-datasets==4.0.1" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt # Install tensorflow-datasets in container
 fi
 
+echo "4"
+
  # build pip wheel of the latest smdebug
 cd $CODEBUILD_SRC_DIR
 python setup.py bdist_wheel --universal >/dev/null 2>/dev/null
 pip install -q --force-reinstall dist/*.whl >/dev/null 2>/dev/null # mask output
 
 echo "horovod==0.19.5" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
+
+echo "5"
 
 # install smdebug from current branch in the container or use the smdebug that's already in the container
 if [ "$use_current_branch" = "true" ]; then
