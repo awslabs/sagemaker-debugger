@@ -4,7 +4,7 @@
 # If you do this, remember to reset it back to "false" before merging the PR.
 echo "Start profiler integration tests script."
 
-CODEBUILD_GIT_BRANCH="$(git symbolic-ref --short -q HEAD)"
+CODEBUILD_GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 echo $CODEBUILD_GIT_BRANCH
 
 disable_integration_tests="true"
