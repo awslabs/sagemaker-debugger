@@ -371,9 +371,9 @@ class Trial(ABC):
             ),
             key=tensor_name_sorter,
         )
-        input_tensors = []
-        for tensor_name in input_tensors_names:
-            input_tensors.append(self.tensor(tensor_name).value(step))
+        input_tensors = [
+            self.tensor(tensor_name).value(step) for tensor_name in input_tensors_names
+        ]
         return input_tensors
 
     def labels(self, step, mode=ModeKeys.GLOBAL):
@@ -381,9 +381,9 @@ class Trial(ABC):
             self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="labels_*"),
             key=tensor_name_sorter,
         )
-        label_tensors = []
-        for tensor_name in label_tensors_names:
-            label_tensors.append(self.tensor(tensor_name).value(step))
+        label_tensors = [
+            self.tensor(tensor_name).value(step) for tensor_name in label_tensors_names
+        ]
         return label_tensors
 
     def predictions(self, step, mode=ModeKeys.GLOBAL):
@@ -391,9 +391,9 @@ class Trial(ABC):
             self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="pred_*"),
             key=tensor_name_sorter,
         )
-        prediction_tensors = []
-        for tensor_name in prediction_tensors_names:
-            prediction_tensors.append(self.tensor(tensor_name).value(step))
+        prediction_tensors = [
+            self.tensor(tensor_name).value(step) for tensor_name in prediction_tensors_names
+        ]
         return prediction_tensors
 
     # * is used in python to force usage of named arguments
