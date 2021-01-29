@@ -152,6 +152,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         from tensorflow.python.keras.distribute.distributed_training_utils import (
                             get_distributed_model,
                         )
+
                 except ImportError:
                     # for tf1.13 we can't import this, so we can't support mirrored strategy
                     self.logger.info(
@@ -876,11 +877,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
     def _on_any_mode_end(self, mode):
-        self._end_phase_python_profiling(mode=mode)
-        self._end_detailed_profiling()
-        self._end_dataloader_profiling()
-        self._stop_dataloader_profiling()
+        if self.python_profiler:
+            self.python_profiler.stop_profiling(
+                StepPhase.STEP_END,
+                end_mode=mode_keys_to_python_profile_mode(mode),
+                end_step=self.mode_steps[mode],
+            )
+            self.python_profiler.start_profiling(
+                StepPhase.STEP_END,
+                start_mode=mode_keys_to_python_profile_mode(mode),
+                start_step=self.mode_steps[mode],
+            )
 
+        self._stop_dataloader_profiling()
 
     def on_train_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.TRAIN)
@@ -929,6 +938,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.step_incremented_in_on_train_begin = False
 
         self.profiler_config_parser.load_config()
+        self._handle_dataloader_profiling(mode=mode)
+        self._handle_start_step_python_profiling(mode=mode)
 
         if self.prepared_collections is False:
             # sets prepared_collections to True here
@@ -1055,6 +1066,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._export_model()
                 self._exported_model[self.mode] = True
 
+        self._handle_end_step_python_profiling(mode=mode)
 
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)
@@ -1335,13 +1347,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
 
-
     def profiling_start_batch(self, mode=ModeKeys.TRAIN):
         """
         Enabling profiler at the start of train batch when native tf2 training is used.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
         """
-
         self.start = time.time()
 
         if self._is_not_supported():
@@ -1353,13 +1363,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # When only profiler is enabled in the native tf2 training,
         # increasing the step number in the TRAIN and GLOBAL mode
         # and not writing the state.
-
         self._increment_step(write_state=False)
         self.profiler_config_parser.load_config()
         self._handle_dataloader_profiling(mode=mode)
         self._handle_start_step_python_profiling(mode=mode)
         self._handle_detailed_profiling(mode=mode)
-
 
     def profiling_end_batch(self, mode=ModeKeys.TRAIN):
         """
@@ -1378,7 +1386,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             pid=os.getpid(),
             step_num=str(self.mode_steps[mode]),
         )
-
+        self._handle_end_step_python_profiling(mode=mode)
 
     def profiling_end(self):
         """
