@@ -11,11 +11,7 @@ fi
 
 check_changed_files() {
   # Get the branch we're running integration tests on.
-  export CODEBUILD_GIT_BRANCH="$(git symbolic-ref HEAD --short 2>/dev/null)"
-  if [ "$CODEBUILD_GIT_BRANCH" = "" ] ; then
-    CODEBUILD_GIT_BRANCH="$(git branch -a --contains HEAD | sed -n 2p | awk '{ printf $1 }')";
-    export CODEBUILD_GIT_BRANCH=${CODEBUILD_GIT_BRANCH#remotes/origin/};
-  fi
+  export CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/};
 
   # If the branch is master, then just run integration tests.
   if [ $CODEBUILD_GIT_BRANCH = "master" ]; then
@@ -74,7 +70,6 @@ then
   aws s3 cp s3://smdebug-testing/datasets/cifar-10-python.tar.gz data/cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
   aws s3 cp s3://smdebug-testing/datasets/MNIST_pytorch.tar.gz data/MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   cd $CODEBUILD_SRC_DIR_TESTS/tests/scripts/pytorch_scripts/data
-  cd data
   tar -zxf MNIST_pytorch.tar.gz >/dev/null 2>/dev/null # mask output
   tar -zxf cifar-10-batches-py.tar.gz >/dev/null 2>/dev/null # mask output
 else
