@@ -533,51 +533,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     g = g.values
                 self._save_tensor_to_file(export_name, g, collections_to_write)
 
-    def save_model_inputs_helper(self, tensors_to_save):
+    def save_model_inputs_and_outputs_helper(self, collection_key, tensors_to_save, prefix):
         collections_to_write = (
             {self.get_collection(CollectionKeys.INPUTS)}
-            if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
+            if self._is_collection_being_saved_for_step(collection_key)
             else set()
         )
-        if isinstance(tensors_to_save, dict):
+        if isinstance(tensors_to_save, (dict, list)):
             tensors_to_save = nest.flatten(tensors_to_save)
         else:
             tensors_to_save = [tensors_to_save]
         idx = 0
         for t_value in tensors_to_save:
-            t_name = f"inputs_{idx}"
-            idx += 1
-            self._save_tensor_to_file(t_name, t_value, collections_to_write)
-
-    def save_model_predictions_helper(self, tensors_to_save):
-        collections_to_write = (
-            {self.get_collection(CollectionKeys.OUTPUTS)}
-            if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
-            else set()
-        )
-        if isinstance(tensors_to_save, dict):
-            tensors_to_save = nest.flatten(tensors_to_save)
-        else:
-            tensors_to_save = [tensors_to_save]
-        idx = 0
-        for t_value in tensors_to_save:
-            t_name = f"pred_{idx}"
-            idx += 1
-            self._save_tensor_to_file(t_name, t_value, collections_to_write)
-
-    def save_model_labels_helper(self, tensors_to_save):
-        collections_to_write = (
-            {self.get_collection(CollectionKeys.OUTPUTS)}
-            if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
-            else set()
-        )
-        if isinstance(tensors_to_save, dict):
-            tensors_to_save = nest.flatten(tensors_to_save)
-        else:
-            tensors_to_save = [tensors_to_save]
-        idx = 0
-        for t_value in tensors_to_save:
-            t_name = f"labels_{idx}"
+            t_name = f"{prefix}_{idx}"
             idx += 1
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
@@ -586,14 +554,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             return
 
         for key in logs:
-            tensors_to_save = []
-            collections_to_write = set()
             if SMDEBUG_PREFIX in key:
                 # Save Model Outputs
                 if key == ModelOutput.LABELS:
-                    self.save_model_labels_helper(logs[key])
+                    self.save_model_inputs_and_outputs_helper(
+                        CollectionKeys.OUTPUTS, logs[key], prefix="labels"
+                    )
                 elif key == ModelOutput.PREDICTIONS:
-                    self.save_model_predictions_helper(logs[key])
+                    self.save_model_inputs_and_outputs_helper(
+                        CollectionKeys.OUTPUTS, logs[key], prefix="pred"
+                    )
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
                     self.save_gradients_from_logs(logs[key])
@@ -602,14 +572,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_layer_values(logs[key])
                 # Save Model Inputs
                 elif key in ModelInputs:
-                    export_name = get_model_input_export_name()
-                    self.save_model_inputs_helper(logs[key])
-                for t_name, t_value in tensors_to_save:
-                    if isinstance(t_value, dict):
-                        # flatten the inputs and labels
-                        # since we cannot convert dicts into numpy
-                        t_value = nest.flatten(t_value)
-                    self._save_tensor_to_file(t_name, t_value, collections_to_write)
+                    self.save_model_inputs_and_outputs_helper(
+                        CollectionKeys.OUTPUTS, logs[key], prefix="inputs"
+                    )
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
