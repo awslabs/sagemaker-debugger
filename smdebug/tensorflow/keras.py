@@ -573,7 +573,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # Save Model Inputs
                 elif key in ModelInputs:
                     self.save_model_inputs_and_outputs_helper(
-                        CollectionKeys.OUTPUTS, logs[key], prefix="inputs"
+                        CollectionKeys.INPUTS, logs[key], prefix="inputs"
                     )
 
     def _save_metrics(self, batch, logs, force_save=False):
