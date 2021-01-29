@@ -535,7 +535,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def save_model_inputs_and_outputs_helper(self, collection_key, tensors_to_save, prefix):
         collections_to_write = (
-            {self.get_collection(CollectionKeys.INPUTS)}
+            {self.get_collection(collection_key)}
             if self._is_collection_being_saved_for_step(collection_key)
             else set()
         )
