@@ -21,7 +21,7 @@ def no_refresh(trials):
         trial.dynamic_refresh = True
 
 
-def tensor_name_sorter(t_name):
+def _tensor_name_sorter(t_name):
     # sorts t_names based on their numerical suffix
     # currently used to sort internally named input
     # and output tensors

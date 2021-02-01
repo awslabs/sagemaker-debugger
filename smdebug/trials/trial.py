@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from bisect import bisect_left
 
 # First Party
-from smdebug.analysis.utils import refresh, tensor_name_sorter
+from smdebug.analysis.utils import _tensor_name_sorter, refresh
 from smdebug.core.access_layer.utils import has_training_ended
 from smdebug.core.collection import Collection, CollectionKeys
 from smdebug.core.config_constants import (
@@ -369,32 +369,28 @@ class Trial(ABC):
             self.tensor_names(
                 show_prefixed_tensors=True, step=step, mode=mode, collection=CollectionKeys.INPUTS
             ),
-            key=tensor_name_sorter,
+            key=_tensor_name_sorter,
         )
         input_tensors = [
             self.tensor(tensor_name).value(step) for tensor_name in input_tensors_names
         ]
         return input_tensors
 
-    def labels(self, step, mode=ModeKeys.GLOBAL):
-        label_tensors_names = sorted(
+    def _get_output_tensors_helper(self, step, mode, regex):
+        output_tensors_names = sorted(
             self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="labels_*"),
-            key=tensor_name_sorter,
+            key=_tensor_name_sorter,
         )
-        label_tensors = [
-            self.tensor(tensor_name).value(step) for tensor_name in label_tensors_names
+        output_tensors = [
+            self.tensor(tensor_name).value(step) for tensor_name in output_tensors_names
         ]
-        return label_tensors
+        return output_tensors
+
+    def labels(self, step, mode=ModeKeys.GLOBAL):
+        return self._get_output_tensors_helper(step, mode, regex="labels_*")
 
     def predictions(self, step, mode=ModeKeys.GLOBAL):
-        prediction_tensors_names = sorted(
-            self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="pred_*"),
-            key=tensor_name_sorter,
-        )
-        prediction_tensors = [
-            self.tensor(tensor_name).value(step) for tensor_name in prediction_tensors_names
-        ]
-        return prediction_tensors
+        return self._get_output_tensors_helper(step, mode, regex="pred_*")
 
     # * is used in python to force usage of named arguments
     def tensor_names(
