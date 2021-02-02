@@ -605,7 +605,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
-            if bool(input_collection):
+            if len(input_collection) > 0:
                 c = self.get_collection(CollectionKeys.LAYERS)
                 if match_inc(layer_name, c.include_regex) or c.include_regex == []:
                     pass
