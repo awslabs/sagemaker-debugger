@@ -595,8 +595,8 @@ def test_regex_filtering_for_default_collections(out_dir):
         save_config=SaveConfig(save_interval=9),
         include_collections=[CollectionKeys.LAYERS, CollectionKeys.GRADIENTS],
     )
-    hook.get_collection("layers").include("^dense")
-    hook.get_collection("gradients").include("gradients/dense")
+    hook.get_collection(CollectionKeys.LAYERS).include("^dense")
+    hook.get_collection(CollectionKeys.GRADIENTS).include("gradients/dense")
     helper_keras_fit(
         out_dir,
         hook=hook,
@@ -610,8 +610,10 @@ def test_regex_filtering_for_default_collections(out_dir):
     gradient_tnames = tr.tensor_names(collection=CollectionKeys.GRADIENTS)
     assert len(layer_tnames) == (8 if is_tf_2_2() else 0)
     assert len(gradient_tnames) == (4 if is_tf_2_2() else 0)
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
     for tname in layer_tnames + gradient_tnames:
         assert tr.tensor(tname).value(0) is not None
+        assert re.match(pattern=pattern, string=tname) is not None
 
 
 @pytest.mark.skip_if_non_eager
