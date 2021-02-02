@@ -29,7 +29,7 @@ FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = [
     "protobuf>=3.6.0",
-    "numpy>1.16.0,<2.0.0",
+    "numpy>1.16.0,<1.19.0",
     "packaging",
     "boto3>=1.10.32",
     "pyinstrument>=3.1.3",
