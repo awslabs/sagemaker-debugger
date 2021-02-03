@@ -189,7 +189,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             colls_with_tensor.add(self.collection_manager.get(CollectionKeys.OUTPUTS))
 
         for current_coll in self.collection_manager.get_collections().values():
-            if current_coll.name in [CollectionKeys.WEIGHTS, CollectionKeys.BIASES]:
+            if current_coll.name in [
+                CollectionKeys.WEIGHTS,
+                CollectionKeys.BIASES,
+                CollectionKeys.GRADIENTS,
+                CollectionKeys.LAYERS,
+            ]:
                 # don't match regex for these as these are added specially above
                 # we also don't want users to make mistakes configuring these collections
                 continue

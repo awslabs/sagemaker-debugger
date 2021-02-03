@@ -608,12 +608,16 @@ def test_regex_filtering_for_default_collections(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     layer_tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
     gradient_tnames = tr.tensor_names(collection=CollectionKeys.GRADIENTS)
-    assert len(layer_tnames) == (8 if is_tf_2_2() else 0)
+    assert len(layer_tnames) == (4 if is_tf_2_2() else 0)
     assert len(gradient_tnames) == (4 if is_tf_2_2() else 0)
-    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
-    for tname in layer_tnames + gradient_tnames:
+    layer_pattern = r"^(dense)(_\d+)?\/(inputs|outputs)"
+    gradient_pattern = r"gradients/dense"
+    for tname in layer_tnames:
         assert tr.tensor(tname).value(0) is not None
-        assert re.match(pattern=pattern, string=tname) is not None
+        assert re.match(pattern=layer_pattern, string=tname) is not None
+    for tname in gradient_tnames:
+        assert tr.tensor(tname).value(0) is not None
+        assert re.match(pattern=gradient_pattern, string=tname) is not None
 
 
 @pytest.mark.skip_if_non_eager
