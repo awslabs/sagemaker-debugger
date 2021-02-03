@@ -550,7 +550,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             tensors_to_save = [tensors_to_save]
         for idx, t_value in enumerate(tensors_to_save):
             t_name = f"{prefix}_{idx}"
-            idx += 1
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def save_smdebug_logs(self, logs):
@@ -956,28 +955,21 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
                 layer_input = layer_input[0]
                 self._save_tensor_to_file(
-                    layer_input_tensor_name, layer_input, collections_to_write
+                    f"{layer_input_tensor_name}_{0}", layer_input, collections_to_write
                 )
             else:
-                idx = 0
-                for l_name in layer_input:
+                for idx, layer_input_tensor in enumerate(layer_input):
                     layer_input_tensor_name_with_idx = f"{layer_input_tensor_name}_{idx}"
                     self._save_tensor_to_file(
-                        layer_input_tensor_name_with_idx, l_name, collections_to_write
+                        layer_input_tensor_name_with_idx, layer_input_tensor, collections_to_write
                     )
-                    idx += 1
             layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
-            if isinstance(layer_output, list):
-                idx = 0
-                for l_output in layer_output:
-                    layer_output_tensor_name_with_idx = f"{layer_output_tensor_name}_{idx}"
-                    self._save_tensor_to_file(
-                        layer_output_tensor_name_with_idx, l_output, collections_to_write
-                    )
-                    idx += 1
-            else:
+            if not isinstance(layer_output, list):
+                layer_output = [layer_output]
+            for idx, l_output in enumerate(layer_output):
+                layer_output_tensor_name_with_idx = f"{layer_output_tensor_name}_{idx}"
                 self._save_tensor_to_file(
-                    layer_output_tensor_name, layer_output, collections_to_write
+                    layer_output_tensor_name_with_idx, l_output, collections_to_write
                 )
 
     def _write_optimizer_variables(self):
