@@ -189,7 +189,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             colls_with_tensor.add(self.collection_manager.get(CollectionKeys.OUTPUTS))
 
         for current_coll in self.collection_manager.get_collections().values():
-            if current_coll.name in [CollectionKeys.WEIGHTS, CollectionKeys.BIASES]:
+            if current_coll.name in [
+                CollectionKeys.WEIGHTS,
+                CollectionKeys.BIASES,
+                CollectionKeys.GRADIENTS,
+                CollectionKeys.LAYERS,
+            ]:
                 # don't match regex for these as these are added specially above
                 # we also don't want users to make mistakes configuring these collections
                 continue
@@ -600,13 +605,20 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         for layer_name in self.saved_layers:
             # Save Input
-            tensor = self.saved_layers[layer_name].layer_input
-            export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
             input_collection = (
                 {self.get_collection(CollectionKeys.LAYERS)}
                 if self._is_collection_being_saved_for_step(CollectionKeys.LAYERS)
                 else set()
             )
+            if len(input_collection) > 0:
+                c = self.get_collection(CollectionKeys.LAYERS)
+                if match_inc(layer_name, c.include_regex) or c.include_regex == []:
+                    pass
+                else:
+                    continue
+
+            tensor = self.saved_layers[layer_name].layer_input
+            export_name = get_export_name_for_keras(layer_name, tensor_type="input", tensor=tensor)
             t = tensor[0] if isinstance(tensor, list) and len(tensor) else tensor
             if hasattr(t, "numpy") is False:
                 continue
