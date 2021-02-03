@@ -1247,7 +1247,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x() and tf.executing_eagerly():
             self.save_smdebug_logs(logs)
         else:
-            self.logger.warn("cannot save model inputs and outputs in non-eager execution mode")
+            self.logger.info("cannot save model inputs and outputs in non-eager execution mode")
 
     def wrap_tape(self, tape):
         """
