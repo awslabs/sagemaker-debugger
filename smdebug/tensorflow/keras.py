@@ -533,7 +533,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     g = g.values
                 self._save_tensor_to_file(export_name, g, collections_to_write)
 
-    def save_model_inputs_and_outputs_helper(self, collection_key, tensors_to_save, prefix):
+    def _save_model_inputs_and_outputs_helper(self, collection_key, tensors_to_save, prefix):
         collections_to_write = (
             {self.get_collection(collection_key)}
             if self._is_collection_being_saved_for_step(collection_key)
@@ -557,11 +557,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if SMDEBUG_PREFIX in key:
                 # Save Model Outputs
                 if key == ModelOutput.LABELS:
-                    self.save_model_inputs_and_outputs_helper(
+                    self._save_model_inputs_and_outputs_helper(
                         CollectionKeys.OUTPUTS, logs[key], prefix="labels"
                     )
                 elif key == ModelOutput.PREDICTIONS:
-                    self.save_model_inputs_and_outputs_helper(
+                    self._save_model_inputs_and_outputs_helper(
                         CollectionKeys.OUTPUTS, logs[key], prefix="pred"
                     )
                 # Save Gradients
@@ -572,7 +572,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_layer_values(logs[key])
                 # Save Model Inputs
                 elif key in ModelInputs:
-                    self.save_model_inputs_and_outputs_helper(
+                    self._save_model_inputs_and_outputs_helper(
                         CollectionKeys.INPUTS, logs[key], prefix="inputs"
                     )
 
