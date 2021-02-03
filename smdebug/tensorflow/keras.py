@@ -548,8 +548,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             tensors_to_save = nest.flatten(tensors_to_save)
         else:
             tensors_to_save = [tensors_to_save]
-        idx = 0
-        for t_value in tensors_to_save:
+        for idx, t_value in enumerate(tensors_to_save):
             t_name = f"{prefix}_{idx}"
             idx += 1
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
