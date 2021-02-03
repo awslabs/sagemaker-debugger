@@ -12,7 +12,7 @@ ALLOWED_ACTIONS = ["stoptraining", "sms", "email"]
 
 
 class Actions:
-    def __init__(self, actions_str="", rule_name=""):
+    def __init__(self, actions_str, rule_name):
         self._actions = []
         self._logger = get_logger()
         actions_str = actions_str.strip() if actions_str is not None else ""
