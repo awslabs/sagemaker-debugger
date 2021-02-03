@@ -21,8 +21,7 @@ class Actions:
             return
         self._register_actions(actions_str, rule_name)
 
-    def _register_actions(self, actions_str="", rule_name=""):
-
+    def _register_actions(self, actions_str, rule_name):
         actions_str = actions_str.lower()
         self._logger.info(f"Action string: {actions_str} and rule_name:{rule_name}")
         action_json = json.loads(actions_str)

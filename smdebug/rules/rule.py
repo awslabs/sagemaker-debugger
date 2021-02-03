@@ -14,6 +14,7 @@ from .req_tensors import RequiredTensors
 # This is Rule interface
 class Rule(ABC):
     def __init__(self, base_trial, other_trials=None, action_str=""):
+        assert action_str is not ""
         self.base_trial = base_trial
         self.other_trials = other_trials
 
