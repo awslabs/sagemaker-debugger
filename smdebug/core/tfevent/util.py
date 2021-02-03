@@ -13,7 +13,7 @@ logger = get_logger()
 # hash value of ndarray.dtype is not the same as np.float class
 # so we need to convert the type classes below to np.dtype object
 _NP_DATATYPE_TO_PROTO_DATATYPE = {
-    np.dtype(np.float16): "DT_INT32",
+    np.dtype(np.float16): "DT_HALF",
     np.dtype(np.float32): "DT_FLOAT",
     np.dtype(np.float64): "DT_DOUBLE",
     np.dtype(np.int32): "DT_INT32",
