@@ -121,6 +121,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # this flag indicated to the train_batch_begin callback
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
+        self.has_logged_unsupported_tensors_in_non_eager_execution = False
 
         if python_profiler:
             atexit.register(python_profiler.stop_profiling, StepPhase.END)
@@ -1248,6 +1249,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         return run
 
+    def _log_unsupported_tensors_in_non_eager_execution(self):
+        if not self.has_logged_unsupported_tensors_in_non_eager_execution:
+            self.logger.warning("cannot save model inputs and outputs in non-eager execution mode")
+        self.has_logged_unsupported_tensors_in_non_eager_execution = True
+
     def save_tape_logs(self, model_inputs=None, outputs=None):
         """
         called by AWS TF to save model inputs and outputs
@@ -1259,7 +1265,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if is_tf_version_2x() and tf.executing_eagerly():
             self.save_smdebug_logs(logs)
         else:
-            self.logger.info("cannot save model inputs and outputs in non-eager execution mode")
+            self._log_unsupported_tensors_in_non_eager_execution()
 
     def wrap_tape(self, tape):
         """
