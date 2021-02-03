@@ -1,8 +1,11 @@
 # Build Spec for AWS CodeBuild CI TF 2.3.1 CPU and GPU Containers
-# Containers Used:
+# Target Containers:
     # CPU Container: 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.3.1-cpu-py37-ubuntu18.04
     # GPU Container 1: 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.3.1-gpu-py37-cu110-ubuntu18.04
     # GPU Container 2: 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.3.1-gpu-py37-cu102-ubuntu18.04
+
+# The PR CI Uses:
+  # 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.3.1-gpu-py37-cu110-ubuntu18.04
 
 version: 0.2
 env:
