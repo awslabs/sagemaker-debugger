@@ -5,9 +5,9 @@ from abc import ABC, abstractmethod
 from bisect import bisect_left
 
 # First Party
-from smdebug.analysis.utils import refresh
+from smdebug.analysis.utils import _tensor_name_sorter, refresh
 from smdebug.core.access_layer.utils import has_training_ended
-from smdebug.core.collection import Collection
+from smdebug.core.collection import Collection, CollectionKeys
 from smdebug.core.config_constants import (
     INCOMPLETE_STEP_WAIT_WINDOW_DEFAULT,
     INCOMPLETE_STEP_WAIT_WINDOW_KEY,
@@ -364,7 +364,44 @@ class Trial(ABC):
             rval.update(self._tensors_matching_regex(regex))
         return rval
 
-    def tensor_names(self, *, step=None, mode=ModeKeys.GLOBAL, regex=None, collection=None) -> list:
+    def inputs(self, step, mode=ModeKeys.GLOBAL):
+        input_tensors_names = sorted(
+            self.tensor_names(
+                show_prefixed_tensors=True, step=step, mode=mode, collection=CollectionKeys.INPUTS
+            ),
+            key=_tensor_name_sorter,
+        )
+        input_tensors = [
+            self.tensor(tensor_name).value(step) for tensor_name in input_tensors_names
+        ]
+        return input_tensors
+
+    def _get_output_tensors_helper(self, step, mode, regex):
+        output_tensors_names = sorted(
+            self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="labels_*"),
+            key=_tensor_name_sorter,
+        )
+        output_tensors = [
+            self.tensor(tensor_name).value(step) for tensor_name in output_tensors_names
+        ]
+        return output_tensors
+
+    def labels(self, step, mode=ModeKeys.GLOBAL):
+        return self._get_output_tensors_helper(step, mode, regex="labels_*")
+
+    def predictions(self, step, mode=ModeKeys.GLOBAL):
+        return self._get_output_tensors_helper(step, mode, regex="pred_*")
+
+    # * is used in python to force usage of named arguments
+    def tensor_names(
+        self,
+        show_prefixed_tensors=False,
+        *,
+        step=None,
+        mode=ModeKeys.GLOBAL,
+        regex=None,
+        collection=None,
+    ) -> list:
         self.maybe_refresh()
         ts = set()
         if step is None and mode == ModeKeys.GLOBAL:

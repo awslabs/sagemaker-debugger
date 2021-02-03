@@ -21,6 +21,14 @@ def no_refresh(trials):
         trial.dynamic_refresh = True
 
 
+def _tensor_name_sorter(t_name):
+    # sorts t_names based on their numerical suffix
+    # currently used to sort internally named input
+    # and output tensors
+    t_name = t_name.split("_")[-1]
+    return int(t_name)
+
+
 @contextmanager
 def refresh(trials):
     if isinstance(trials, list):
