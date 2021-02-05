@@ -25,6 +25,7 @@ from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python
 from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.profiler.utils import stop_tf_profiler
 from smdebug.tensorflow.callable_cache import CallableCache
+from smdebug.tensorflow.context_manager import ProfilerContextManager
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
 # Local
@@ -124,6 +125,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.step_incremented_in_on_train_begin = False
         # this flag indicates to profiling for tensorflow2 native training
         self.is_profiler_enabled_for_native_training = False
+
+        self.closed = False
+
+        self.is_callback_registered = False
 
         if self.python_profiler:
             atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
@@ -1147,8 +1152,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
 
     def close(self):
+        print("hmm")
         self._cleanup()
-
+        print("o")
         if self.python_profiler:
             self.python_profiler.start_profiling(
                 StepPhase.STEP_END,
@@ -1347,7 +1353,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
 
-    def profiling_start_batch(self, mode=ModeKeys.TRAIN):
+    def profiling_start_batch(self, mode):
         """
         Enabling profiler at the start of train batch when native tf2 training is used.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
@@ -1369,7 +1375,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._handle_start_step_python_profiling(mode=mode)
         self._handle_detailed_profiling(mode=mode)
 
-    def profiling_end_batch(self, mode=ModeKeys.TRAIN):
+    def profiling_end_batch(self, mode):
         """
         Enabling profiler at the end of train batch when native tf2 training is used.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
@@ -1392,7 +1398,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Stop profiler at the end of training when native tf2 training is used.
         """
-        # Unwrap the tape before closing and close the python profiling
-        self.close()
+
+        # If the hook is closed twice, the process will hang.
+        if self.closed:
+            return
+        self.close()  # Unwrap the tape before closing and close the python profiling
+        self.closed = True
         self._stop_dataloader_profiling()
         self._stop_detailed_profiling()
+
+    def profiler(self, mode=ModeKeys.TRAIN):
+        self.set_mode(mode)
+
+        return ProfilerContextManager(self)

@@ -174,32 +174,31 @@ def helper_native_tf2_gradtape(
     n_epochs = 1
     for epoch in range(n_epochs):
         for data, labels in dataset:
-            hook.profiling_start_batch()
-            labels = tf.one_hot(labels, depth=10)
-            if debugger:
-                with hook.wrap_tape(tf.GradientTape()) as tape:
-                    logits = train_step(data, labels)
-                    if python_profiler and start_step <= current_step < end_step:
-                        assert python_profiler._start_step == current_step
-                        assert python_profiler._start_phase == StepPhase.STEP_START
-                grads = tape.gradient(logits, model.variables)
-                opt.apply_gradients(zip(grads, model.variables))
-                hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
-                hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
-                hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
-            else:
-                with tf.GradientTape() as tape:
-                    logits = train_step(data, labels)
-                    if python_profiler and start_step <= current_step < end_step:
-                        assert python_profiler._start_step == current_step
-                        assert python_profiler._start_phase == StepPhase.STEP_START
-                grads = tape.gradient(logits, model.variables)
-                opt.apply_gradients(zip(grads, model.variables))
-            hook.profiling_end_batch()
-            if python_profiler and start_step <= current_step < end_step:
-                assert python_profiler._start_step == current_step
-                assert python_profiler._start_phase == StepPhase.STEP_END
-            current_step += 1
+            with hook.profiler():
+                labels = tf.one_hot(labels, depth=10)
+                if debugger:
+                    with hook.wrap_tape(tf.GradientTape()) as tape:
+                        logits = train_step(data, labels)
+                        if python_profiler and start_step <= current_step < end_step:
+                            assert python_profiler._start_step == current_step
+                            assert python_profiler._start_phase == StepPhase.STEP_START
+                    grads = tape.gradient(logits, model.variables)
+                    opt.apply_gradients(zip(grads, model.variables))
+                    hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
+                    hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
+                    hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
+                else:
+                    with tf.GradientTape() as tape:
+                        logits = train_step(data, labels)
+                        if python_profiler and start_step <= current_step < end_step:
+                            assert python_profiler._start_step == current_step
+                            assert python_profiler._start_phase == StepPhase.STEP_START
+                    grads = tape.gradient(logits, model.variables)
+                    opt.apply_gradients(zip(grads, model.variables))
+                if python_profiler and start_step <= current_step < end_step:
+                    assert python_profiler._start_step == current_step
+                    assert python_profiler._start_phase == StepPhase.STEP_END
+                current_step += 1
     hook.profiling_end()
     if python_profiler:
         assert python_profiler._start_step == current_step - 1
@@ -223,6 +222,7 @@ def train_loop(out_dir, debugger=False, python_profiler=None, start_step=None, e
     helper_native_tf2_gradtape(
         hook=hook, debugger=debugger, start_step=start_step, end_step=end_step
     )
+    hook.logger.disabled = True
 
 
 def verify_num_trace_events(profiler_config):
