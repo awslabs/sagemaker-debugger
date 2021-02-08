@@ -49,6 +49,7 @@ phases:
       # Force installing rules binary attempts to re-install ipython-genutils which fails on PyTorch Ubuntu 16.04 containers.
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
       - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
+      - pip install --force-reinstall numpy==1.18.5 # hard requirement for TF 2.3.1
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - pip show smdebug
       - pip show smdebug_rules
