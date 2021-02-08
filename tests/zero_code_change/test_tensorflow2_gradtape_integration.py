@@ -119,7 +119,7 @@ def helper_test_keras_v2_gradienttape(
                 # Inputs and Outputs are not saved with the default collection configurations.
                 assert len(trial.tensor_names(collection="inputs")) > 0
                 assert len(trial.tensor_names(collection="outputs")) > 0
-                assert trial.tensor_names(collection="outputs") == ["predictions"]
+                assert trial.tensor_names(collection="outputs") == ["pred_0"]
                 if "dense_layers" in json_file_contents:
                     # Only assert for test_keras_v2_multi_collections
                     # which defines this custom collection
