@@ -539,34 +539,22 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     g = g.values
                 self._save_tensor_to_file(export_name, g, collections_to_write)
 
-    def _save_model_inputs_and_outputs_helper(self, collection_key, tensors_to_save, prefix):
-        collections_to_write = (
-            {self.get_collection(collection_key)}
-            if self._is_collection_being_saved_for_step(collection_key)
-            else set()
-        )
-        if isinstance(tensors_to_save, (dict, list)):
-            tensors_to_save = nest.flatten(tensors_to_save)
-        else:
-            tensors_to_save = [tensors_to_save]
-        for idx, t_value in enumerate(tensors_to_save):
-            t_name = f"{prefix}_{idx}"
-            self._save_tensor_to_file(t_name, t_value, collections_to_write)
-
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
 
         for key in logs:
+            tensors_to_save = []
+            collections_to_write = set()
             if SMDEBUG_PREFIX in key:
                 # Save Model Outputs
-                if key == ModelOutput.LABELS:
-                    self._save_model_inputs_and_outputs_helper(
-                        CollectionKeys.OUTPUTS, logs[key], prefix="labels"
-                    )
-                elif key == ModelOutput.PREDICTIONS:
-                    self._save_model_inputs_and_outputs_helper(
-                        CollectionKeys.OUTPUTS, logs[key], prefix="pred"
+                if key in ModelOutputs:
+                    export_name = get_model_output_export_name(key)
+                    tensors_to_save.append((export_name, logs[key]))
+                    collections_to_write = (
+                        {self.get_collection(CollectionKeys.OUTPUTS)}
+                        if self._is_collection_being_saved_for_step(CollectionKeys.OUTPUTS)
+                        else set()
                     )
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
@@ -576,9 +564,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     self._save_layer_values(logs[key])
                 # Save Model Inputs
                 elif key in ModelInputs:
-                    self._save_model_inputs_and_outputs_helper(
-                        CollectionKeys.INPUTS, logs[key], prefix="inputs"
+                    export_name = get_model_input_export_name()
+                    tensors_to_save.append((export_name, logs[key]))
+                    collections_to_write = (
+                        {self.get_collection(CollectionKeys.INPUTS)}
+                        if self._is_collection_being_saved_for_step(CollectionKeys.INPUTS)
+                        else set()
                     )
+                for t_name, t_value in tensors_to_save:
+                    if isinstance(t_value, dict):
+                        # flatten the inputs and labels
+                        # since we cannot convert dicts into numpy
+                        t_value = nest.flatten(t_value)
+                    self._save_tensor_to_file(t_name, t_value, collections_to_write)
 
     def _save_metrics(self, batch, logs, force_save=False):
         # if force_save is True, doesn't check whether collection needs to be saved for steps
@@ -950,34 +948,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 layer_name = layer_name.name
             elif isinstance(layer_name, bytes):
                 layer_name = str(layer_name, "utf-8")
-            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
             if len(layer_input) == 1:
                 # Layer Inputs are flattened and passed as a list into
                 # the next layer. Unpacking it speeds up the _make_numpy fn.
                 layer_input = layer_input[0]
-                self._save_tensor_to_file(
-                    f"{layer_input_tensor_name}_{0}", layer_input, collections_to_write
-                )
-            else:
-                for idx, layer_input_tensor in enumerate(layer_input):
-                    layer_input_tensor_name_with_idx = f"{layer_input_tensor_name}_{idx}"
-                    self._save_tensor_to_file(
-                        layer_input_tensor_name_with_idx, layer_input_tensor, collections_to_write
-                    )
+            layer_input_tensor_name = get_export_name_for_keras(str(layer_name), "input")
+            self._save_tensor_to_file(layer_input_tensor_name, layer_input, collections_to_write)
             layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
-            if isinstance(layer_output, list):
-                for idx, l_output in enumerate(layer_output):
-                    layer_output_tensor_name_with_idx = f"{layer_output_tensor_name}_{idx}"
-                    self._save_tensor_to_file(
-                        layer_output_tensor_name_with_idx, l_output, collections_to_write
-                    )
-            else:
-                # Saving layer output values as a list using the _make_numpy fn
-                # is slow. Saving them as tensors when they're not lists improved performance.
-                layer_output_tensor_name_with_idx = f"{layer_output_tensor_name}_{0}"
-                self._save_tensor_to_file(
-                    layer_output_tensor_name_with_idx, layer_output, collections_to_write
-                )
+            self._save_tensor_to_file(layer_output_tensor_name, layer_output, collections_to_write)
 
     def _write_optimizer_variables(self):
         optimizer_collections = self.collection_manager.get(CollectionKeys.OPTIMIZER_VARIABLES)
