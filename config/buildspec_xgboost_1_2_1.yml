@@ -41,8 +41,8 @@ phases:
 
   pre_build:
     commands:
-      - cd $CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
-      - cd $RULES_CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
+      - cd $CODEBUILD_SRC_DIR
+      - cd $RULES_CODEBUILD_SRC_DIR
 
   build:
     commands:
