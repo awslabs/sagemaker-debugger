@@ -28,9 +28,10 @@ phases:
     commands:
         # The XGBoost container requires an update PUB_KEY to run the apt-get update
         - if [ "$run_pytest_xgboost" = "enable" ]; then su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D; fi
-        -  . config/change_branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
         - su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D && apt-get update
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
+        - pip install awscli==1.19.5
+        - . config/change_branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
         - cd $CODEBUILD_SRC_DIR && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
         - pip install -q pytest==6.1.2 pytest-cov==2.10.1 wheel==0.35.1 pyYaml==5.3.1 pytest-html==3.0.0 sagemaker==2.16.3 pre-commit==2.6.0
@@ -40,13 +41,13 @@ phases:
 
   pre_build:
     commands:
-      - cd $CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
-      - cd $RULES_CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
+      - cd $CODEBUILD_SRC_DIR
+      - cd $RULES_CODEBUILD_SRC_DIR
 
   build:
     commands:
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --upgrade -U dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install dist/*.whl && cd ..
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --upgrade --force-reinstall dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
       - cd $RULES_CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - cd $CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - echo 'Connect to CodeCov'
