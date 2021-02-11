@@ -971,8 +971,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         layer_output_tensor_name_with_idx, l_output, collections_to_write
                     )
             else:
-                # Saving layer output values as a list using the _make_numpy fn
-                # is slow. Saving them as tensors when they're not lists improved performance.
                 layer_output_tensor_name_with_idx = f"{layer_output_tensor_name}_{0}"
                 self._save_tensor_to_file(
                     layer_output_tensor_name_with_idx, layer_output, collections_to_write
