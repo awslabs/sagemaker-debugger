@@ -960,22 +960,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     layer_input_tensor_name, layer_input, collections_to_write
                 )
             else:
-                idx = 0
-                for l_name in layer_input:
+                for idx, l_name in enumerate(layer_input):
                     layer_input_tensor_name_with_idx = f"{layer_input_tensor_name}_{idx}"
                     self._save_tensor_to_file(
                         layer_input_tensor_name_with_idx, l_name, collections_to_write
                     )
-                    idx += 1
             layer_output_tensor_name = get_export_name_for_keras(str(layer_name), "output")
             if isinstance(layer_output, list):
-                idx = 0
-                for l_output in layer_output:
+                for idx, l_output in enumerate(layer_output):
                     layer_output_tensor_name_with_idx = f"{layer_output_tensor_name}_{idx}"
                     self._save_tensor_to_file(
                         layer_output_tensor_name_with_idx, l_output, collections_to_write
                     )
-                    idx += 1
             else:
                 self._save_tensor_to_file(
                     layer_output_tensor_name, layer_output, collections_to_write
