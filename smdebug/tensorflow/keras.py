@@ -550,8 +550,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 t_name = f"{prefix}_{idx}"
                 self._save_tensor_to_file(t_name, t_value, collections_to_write)
         else:
-            t_name = f"{prefix}"
-            self._save_tensor_to_file(t_name, tensors_to_save, collections_to_write)
+            self._save_tensor_to_file(prefix, tensors_to_save, collections_to_write)
 
     def save_smdebug_logs(self, logs):
         if logs is None:
