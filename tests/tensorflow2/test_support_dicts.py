@@ -45,4 +45,4 @@ def test_support_dicts(out_dir):
     model.save(out_dir, save_format="tf")
     trial = create_trial(out_dir)
     assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["inputs_0"]
-    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels_0", "pred_0"]
+    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels_0", "predictions"]
