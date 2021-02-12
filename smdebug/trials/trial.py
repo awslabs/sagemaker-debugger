@@ -387,10 +387,10 @@ class Trial(ABC):
         return output_tensors
 
     def labels(self, step, mode=ModeKeys.GLOBAL):
-        return self._get_output_tensors_helper(step, mode, regex="labels_*")
+        return self._get_output_tensors_helper(step, mode, regex="labels*")
 
     def predictions(self, step, mode=ModeKeys.GLOBAL):
-        return self._get_output_tensors_helper(step, mode, regex="pred_*")
+        return self._get_output_tensors_helper(step, mode, regex="predictions*")
 
     # * is used in python to force usage of named arguments
     def tensor_names(
