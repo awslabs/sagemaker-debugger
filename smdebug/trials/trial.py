@@ -378,7 +378,7 @@ class Trial(ABC):
 
     def _get_output_tensors_helper(self, step, mode, regex):
         output_tensors_names = sorted(
-            self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex="labels_*"),
+            self.tensor_names(show_prefixed_tensors=True, step=step, mode=mode, regex=regex),
             key=_tensor_name_sorter,
         )
         output_tensors = [
