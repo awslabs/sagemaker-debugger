@@ -547,7 +547,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if isinstance(tensors_to_save, (dict, list)):
             tensors_to_save = nest.flatten(tensors_to_save)
         else:
-            tensors_to_save = [tensors_to_save]
+            t_name = f"{prefix}"
+            self._save_tensor_to_file(t_name, [tensors_to_save], collections_to_write)
         for idx, t_value in enumerate(tensors_to_save):
             t_name = f"{prefix}_{idx}"
             self._save_tensor_to_file(t_name, t_value, collections_to_write)
@@ -565,7 +566,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 elif key == ModelOutput.PREDICTIONS:
                     self._save_model_inputs_and_outputs_helper(
-                        CollectionKeys.OUTPUTS, logs[key], prefix="pred"
+                        CollectionKeys.OUTPUTS, logs[key], prefix="predictions"
                     )
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
@@ -1326,3 +1327,4 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
+
