@@ -790,7 +790,7 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
 
     # Check the shape of output tensors
     assert trial.labels(step=0)[0].shape == (6000, 1)
-    assert trial.predictions(step=0)[0].shape == (6000, 1)
+    assert trial.predictions(step=0)[0].shape == (6000, 10)
     # Check the shape of input tensors
     assert trial.inputs(step=0)[0].shape == (6000, 28, 28)
 
