@@ -82,7 +82,7 @@ def test_subclassed_model(out_dir):
     assert trial.tensor_names(collection=smd.CollectionKeys.LOSSES) == ["loss"]
     if is_tf_2_2():
         # Feature to save model inputs and outputs was first added for TF 2.2.0
-        assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_input"]
+        assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["inputs"]
         assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == [
             "labels",
             "predictions",
