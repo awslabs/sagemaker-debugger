@@ -1,4 +1,5 @@
 # Standard Library
+import re
 from contextlib import contextmanager
 
 
@@ -19,6 +20,16 @@ def no_refresh(trials):
     else:
         trial = trials
         trial.dynamic_refresh = True
+
+
+def _tensor_name_sorter(t_name):
+    # sorts t_names based on their numerical suffix
+    # currently used to sort internally named input
+    # and output tensors
+    if not bool(re.match(r".+_\d+", t_name)):
+        t_name = f"{t_name}_0"
+    t_name = t_name.split("_")[-1]
+    return int(t_name)
 
 
 @contextmanager
