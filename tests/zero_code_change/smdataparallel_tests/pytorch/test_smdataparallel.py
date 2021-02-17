@@ -44,9 +44,6 @@ def mode_allworkers(out_dir, mode):
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
 
 
-@pytest.mark.skip(
-    reason="Requires SMDataParallel docker image which is private as of now. It would be available in general DLC sometime in mid of November 2020"
-)
 def test_gpu_allworkers(out_dir):
     mode_allworkers(out_dir, "gpu")
 
@@ -60,9 +57,6 @@ def smdataparallel_profiler_config_path(config_folder, monkeypatch):
         os.remove(config_path)
 
 
-@pytest.mark.skip(
-    reason="Requires SMDataParallel docker image which is private as of now. It would be available in general DLC sometime in mid of November 2020"
-)
 @pytest.mark.parametrize("mode", ["gpu"])
 @pytest.mark.parametrize("worker_function", [mode_allworkers])
 def test_mode_workers_dynamic_smdataparallel_profiler(
@@ -141,8 +135,5 @@ def mode_allworkers_saveall(out_dir, mode):
     assert len(tr.tensor(tr.tensor_names(collection="losses")[0]).workers(0)) == num_workers
 
 
-@pytest.mark.skip(
-    reason="Requires SMDataParallel docker image which is private as of now. It would be available in general DLC sometime in mid of November 2020"
-)
 def test_gpu_allworkers_saveall(out_dir):
     mode_allworkers_saveall(out_dir, "gpu")

@@ -38,9 +38,6 @@ def basic_test(out_dir, mode):
     tf.__version__ < "2.3.0",
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
 )
-@pytest.mark.skip(
-    reason="Requires SMDataParallel docker image which is private as of now. It would be available in general DLC sometime in mid of November 2020"
-)
 def test_gpu(out_dir):
     basic_test(out_dir, "gpu")
 
@@ -69,9 +66,6 @@ def mode_allworkers(out_dir, mode):
     tf.__version__ < "2.3.0",
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
 )
-@pytest.mark.skip(
-    reason="Requires SMDataParallel docker image which is private as of now. It would be available in general DLC sometime in mid of November 2020"
-)
 def test_gpu_allworkers(out_dir):
     mode_allworkers(out_dir, "gpu")
 
@@ -97,9 +91,6 @@ def mode_allworkers_saveall(out_dir, mode):
 @pytest.mark.skipif(
     tf.__version__ < "2.3.0",
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
-)
-@pytest.mark.skip(
-    reason="Requires SMDataParallel docker image which is private as of now. It would be available in general DLC sometime in mid of November 2020"
 )
 def test_gpu_allworkers_saveall(out_dir):
     mode_allworkers_saveall(out_dir, "gpu")
@@ -127,9 +118,6 @@ def mode_allworkers_default_collections(out_dir, mode):
 @pytest.mark.skipif(
     tf.__version__ < "2.3.0",
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
-)
-@pytest.mark.skip(
-    reason="Requires SMDataParallel docker image which is private as of now. It would be available in general DLC sometime in mid of November 2020"
 )
 def test_gpu_allworkers_default_collections(out_dir):
     mode_allworkers_default_collections(out_dir, "gpu")
