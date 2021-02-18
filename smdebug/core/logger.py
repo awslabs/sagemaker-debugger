@@ -5,6 +5,9 @@ import socket
 import sys
 from collections import defaultdict
 
+# First Party
+from smdebug.core.config_constants import LOG_DUPLICATION_THRESHOLD
+
 _logger_initialized = False
 
 
@@ -25,11 +28,11 @@ class DuplicateLogFilter:
 
     def __init__(self):
         self.msgs = defaultdict(int)
-        self.repeat_threshold = 5
+        self.repeat_threshold = LOG_DUPLICATION_THRESHOLD
 
     def filter(self, record):
         self.msgs[record.msg] += 1
-        return self.msgs[record.msg] > self.repeat_threshold
+        return self.msgs[record.msg] <= self.repeat_threshold
 
 
 def _get_log_level():

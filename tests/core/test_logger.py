@@ -2,6 +2,7 @@
 import types
 
 # First Party
+from smdebug.core.config_constants import LOG_DUPLICATION_THRESHOLD
 from smdebug.core.logger import DuplicateLogFilter
 from smdebug.core.utils import get_logger
 
@@ -15,12 +16,13 @@ def test_dup_filter():
             dup_filter = _filter
     dup_filter.test_counter = 0
 
+    dup_filter.old_filter = dup_filter.filter
+
     def filter(self, record):
-        self.msgs[record.msg] += 1
-        if self.msgs[record.msg] > self.repeat_threshold:
+        if self.old_filter(record):
+            self.test_counter += 1
             return True
         else:
-            self.test_counter += 1
             return False
 
     dup_filter.filter = types.MethodType(filter, dup_filter)
@@ -28,4 +30,4 @@ def test_dup_filter():
     for _ in range(10):
         logger.warning("I love spam musubi")
 
-    assert dup_filter.test_counter == 5
+    assert dup_filter.test_counter == LOG_DUPLICATION_THRESHOLD
