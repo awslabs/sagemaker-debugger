@@ -29,6 +29,7 @@ METADATA_FILENAME_S3_UPLOADED = "metadata.json.sagemaker-uploaded"
 LATEST_GLOBAL_STEP_SEEN = "latest-global-step-seen"
 LATEST_GLOBAL_STEP_SAVED = "latest-global-step-saved"
 LATEST_MODE_STEP = "latest-mode-step"
+LOG_DUPLICATION_THRESHOLD = 3
 TRAINING_RUN = "training-run"
 
 INCOMPLETE_STEP_WAIT_WINDOW_KEY = "SMDEBUG_INCOMPLETE_STEP_WAIT_WINDOW"
