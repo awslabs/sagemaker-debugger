@@ -17,6 +17,8 @@ from smdebug.core.config_constants import (
 from smdebug.core.logger import get_logger
 
 logger = get_logger()
+
+
 # This is 'predicate' for sorting the list of states based on seen steps.
 def _rule_for_sorting(state):
     return state[LATEST_GLOBAL_STEP_SEEN]
@@ -99,7 +101,7 @@ class StateStore:
         if self._checkpoint_dir is not None:
             checkpoint_files = self._get_checkpoint_files_in_dir(self._checkpoint_dir)
             if not checkpoint_files:
-                logger.info(
+                logger.debug(
                     "Checkpoints not updated. There are no checkpoint files created yet, to be updated"
                 )
                 return False
