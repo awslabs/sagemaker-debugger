@@ -42,7 +42,7 @@ def basic_test(out_dir, mode):
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
 )
 @pytest.mark.skipif(
-    is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
+    not is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
 )
 def test_gpu(out_dir):
     basic_test(out_dir, "gpu")
@@ -73,7 +73,7 @@ def mode_allworkers(out_dir, mode):
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
 )
 @pytest.mark.skipif(
-    is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
+    not is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
 )
 def test_gpu_allworkers(out_dir):
     mode_allworkers(out_dir, "gpu")
@@ -102,7 +102,7 @@ def mode_allworkers_saveall(out_dir, mode):
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
 )
 @pytest.mark.skipif(
-    is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
+    not is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
 )
 def test_gpu_allworkers_saveall(out_dir):
     mode_allworkers_saveall(out_dir, "gpu")
@@ -132,7 +132,7 @@ def mode_allworkers_default_collections(out_dir, mode):
     reason="smdistributed.dataparallel supports TF version 2.3.0 and above",
 )
 @pytest.mark.skipif(
-    is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
+    not is_gpu_available("tensorflow2"), reason="This test needs GPUs to run correctly."
 )
 def test_gpu_allworkers_default_collections(out_dir):
     mode_allworkers_default_collections(out_dir, "gpu")
