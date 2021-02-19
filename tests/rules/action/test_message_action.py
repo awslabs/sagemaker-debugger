@@ -6,13 +6,13 @@ from smdebug.rules.action.stop_training_action import StopTrainingAction
 
 def test_action_stop_training_job():
     action_str = '{"name": "stoptraining" , "training_job_prefix":"training_prefix"}'
-    action = Actions(actions_str=action_str)
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     action.invoke()
 
 
 def test_action_stop_training_job_invalid_params():
     action_str = '{"name": "stoptraining" , "invalid_job_prefix":"training_prefix"}'
-    action = Actions(actions_str=action_str)
+    action = Actions(actions_str=action_str, rule_name="test_rule")
     action.invoke()
 
 

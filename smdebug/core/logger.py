@@ -3,6 +3,10 @@ import logging
 import os
 import socket
 import sys
+from collections import defaultdict
+
+# First Party
+from smdebug.core.config_constants import LOG_DUPLICATION_THRESHOLD
 
 _logger_initialized = False
 
@@ -17,6 +21,18 @@ class MaxLevelFilter(logging.Filter):
     def filter(self, record):
         # "<" instead of "<=": since logger.setLevel is inclusive, this should be exclusive
         return record.levelno < self.level
+
+
+class DuplicateLogFilter:
+    """Filters duplicate messages to prevent spamming users"""
+
+    def __init__(self):
+        self.msgs = defaultdict(int)
+        self.repeat_threshold = LOG_DUPLICATION_THRESHOLD
+
+    def filter(self, record):
+        self.msgs[record.msg] += 1
+        return self.msgs[record.msg] <= self.repeat_threshold
 
 
 def _get_log_level():
@@ -75,6 +91,7 @@ def get_logger(name="smdebug"):
             logger.addHandler(stderr_handler)
 
         logger.addHandler(stdout_handler)
+        logger.addFilter(DuplicateLogFilter())
 
         # SMDEBUG_LOG_PATH is the full path to log file
         # by default, log is only written to stdout&stderr

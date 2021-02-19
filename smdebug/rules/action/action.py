@@ -12,12 +12,12 @@ ALLOWED_ACTIONS = ["stoptraining", "sms", "email"]
 
 
 class Actions:
-    def __init__(self, actions_str="", rule_name=""):
+    def __init__(self, actions_str, rule_name):
         self._actions = []
         self._logger = get_logger()
         actions_str = actions_str.strip() if actions_str is not None else ""
         if actions_str == "":
-            self._logger.info(f"No action specified. Action str is {actions_str}")
+            self._logger.info(f"No action specified for rule {rule_name}.")
             return
         self._register_actions(actions_str, rule_name)
 
@@ -77,7 +77,7 @@ class Actions:
                         f"Action :{action_dict['name']} not supported. Allowed action names are: {ALLOWED_ACTIONS}"
                     )
 
-    def invoke(self):
+    def invoke(self, message=""):
         self._logger.info("Invoking actions")
         for action in self._actions:
-            action.invoke()
+            action.invoke(message)
