@@ -16,7 +16,7 @@ def is_gpu_available(framework):
     if framework == "tensorflow2":
         import tensorflow as tf
 
-        return tf.config.list_physical_devices("GPU") > 0
+        return len(tf.config.list_physical_devices("GPU")) > 0
     elif framework == "pytorch":
         import torch
 
