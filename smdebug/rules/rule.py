@@ -13,7 +13,7 @@ from .req_tensors import RequiredTensors
 
 # This is Rule interface
 class Rule(ABC):
-    def __init__(self, base_trial, other_trials=None, action_str=""):
+    def __init__(self, base_trial, action_str, other_trials=None):
         self.base_trial = base_trial
         self.other_trials = other_trials
 
@@ -25,7 +25,7 @@ class Rule(ABC):
 
         self.logger = get_logger()
         self.rule_name = self.__class__.__name__
-        self._actions = Actions(actions_str=action_str, rule_name=self.rule_name)
+        self._actions = Actions(action_str, rule_name=self.rule_name)
         self.report = {
             "RuleTriggered": 0,
             "Violations": 0,
