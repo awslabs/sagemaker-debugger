@@ -14,7 +14,7 @@ from smdebug.trials import create_trial
 def test_no_refresh_invocation():
     class TestRule(Rule):
         def __init__(self, base_trial):
-            super().__init__(base_trial=base_trial)
+            super().__init__(base_trial=base_trial, action_str="")
 
         def set_required_tensors(self, step):
             for t in self.base_trial.tensor_names():
