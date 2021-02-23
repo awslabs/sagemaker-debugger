@@ -23,42 +23,6 @@ from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
 _is_invoked_via_smddp = None
-_smdataparallel_imported = None
-
-try:
-    import smdistributed.modelparallel.tensorflow as smp
-
-    _smp_imported = smp
-except (ImportError, ModuleNotFoundError):
-    try:
-        import smdistributed.modelparallel.torch as smp
-
-        _smp_imported = smp
-    except (ImportError, ModuleNotFoundError):
-        _smp_imported = None
-
-
-try:
-    import torch.distributed as torch_dist
-
-    _torch_dist_imported = torch_dist
-except (ImportError, ModuleNotFoundError):
-    _torch_dist_imported = None
-
-
-try:
-    import horovod.torch as hvd
-
-    _hvd_imported = hvd
-except (ModuleNotFoundError, ImportError):
-    try:
-        import horovod.tensorflow as hvd
-
-        _hvd_imported = hvd
-    except (ModuleNotFoundError, ImportError):
-        _hvd_imported = None
-
-
 logger = get_logger()
 
 
@@ -353,34 +317,51 @@ def get_tb_worker():
 
 
 def get_distributed_worker():
-    """
-    Get the rank for horovod or torch distributed. If none of them are being used,
+    """Get the rank for horovod or torch distributed. If none of them are being used,
     return None"""
     rank = None
+    try:
+        import torch.distributed as dist
+    except (ImportError, ModuleNotFoundError):
+        dist = None
+    rank = None
+    if dist and hasattr(dist, "is_initialized") and dist.is_initialized():
+        rank = dist.get_rank()
+    else:
+        try:
+            import horovod.torch as hvd
 
-    if (
-        _torch_dist_imported
-        and hasattr(_torch_dist_imported, "is_initialized")
-        and _torch_dist_imported.is_initialized()
-    ):
-        rank = _torch_dist_imported.get_rank()
-    elif _smp_imported and _smp_imported.core.initialized:
-        rank = _smp_imported.rank()
-    elif check_smdataparallel_env():
+            if hvd.size():
+                rank = hvd.rank()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
+
+        try:
+            import horovod.tensorflow as hvd
+
+            if hvd.size():
+                rank = hvd.rank()
+        except (ModuleNotFoundError, ValueError, ImportError):
+            pass
+
         # smdistributed.dataparallel should be invoked via `mpirun`.
         # It supports EC2 machines with 8 GPUs per machine.
-        try:
-            if _smdataparallel_imported.get_world_size():
-                return _smdataparallel_imported.get_rank()
-        except ValueError:
-            pass
-    elif _hvd_imported:
-        try:
-            if _hvd_imported.size():
-                rank = _hvd_imported.rank()
-        except ValueError:
-            pass
+        if check_smdataparallel_env():
+            try:
+                import smdistributed.dataparallel.torch.distributed as smdataparallel
 
+                if smdataparallel.get_world_size():
+                    return smdataparallel.get_rank()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
+
+            try:
+                import smdistributed.dataparallel.tensorflow as smdataparallel
+
+                if smdataparallel.size():
+                    return smdataparallel.rank()
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
     return rank
 
 
@@ -495,7 +476,6 @@ class ScriptSimulator(object):
 def check_smdataparallel_env():
     # Check to ensure it is invoked by mpi and the SM distribution is `dataparallel`
     global _is_invoked_via_smddp
-    global _smdataparallel_imported
     if _is_invoked_via_smddp is None:
         _is_invoked_via_mpi = (
             os.getenv("OMPI_COMM_WORLD_SIZE") is not None
@@ -516,20 +496,4 @@ def check_smdataparallel_env():
                 _is_invoked_via_smddp = True
             else:
                 _is_invoked_via_smddp = False
-
-        if _is_invoked_via_smddp:
-            try:
-                import smdistributed.dataparallel.torch.distributed as smdataparallel
-
-                _smdataparallel_imported = smdataparallel
-            except (ModuleNotFoundError, ImportError):
-                try:
-                    import smdistributed.dataparallel.tensorflow as smdataparallel
-
-                    _smdataparallel_imported = smdataparallel
-                except (ModuleNotFoundError, ImportError):
-                    _smdataparallel_imported = None
-        else:
-            _smdataparallel_imported = None
-
     return _is_invoked_via_smddp
