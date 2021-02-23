@@ -23,7 +23,8 @@ from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
 _is_invoked_via_smddp = None
-_smdataparallel_imported = None
+_smddp_tf_imported = None
+_smddp_pt_imported = None
 
 try:
     import smdistributed.modelparallel.tensorflow as smp
@@ -369,11 +370,10 @@ def get_distributed_worker():
     elif check_smdataparallel_env():
         # smdistributed.dataparallel should be invoked via `mpirun`.
         # It supports EC2 machines with 8 GPUs per machine.
-        try:
-            if _smdataparallel_imported.get_world_size():
-                return _smdataparallel_imported.get_rank()
-        except ValueError:
-            pass
+        if _smddp_pt_imported is not None and _smddp_pt_imported.get_world_size():
+            return _smddp_pt_imported.get_rank()
+        elif _smddp_tf_imported is not None and _smddp_tf_imported.size():
+            return _smddp_tf_imported.rank()
     elif _hvd_imported:
         try:
             if _hvd_imported.size():
@@ -495,7 +495,8 @@ class ScriptSimulator(object):
 def check_smdataparallel_env():
     # Check to ensure it is invoked by mpi and the SM distribution is `dataparallel`
     global _is_invoked_via_smddp
-    global _smdataparallel_imported
+    global _smddp_tf_imported
+    global _smddp_pt_imported
     if _is_invoked_via_smddp is None:
         _is_invoked_via_mpi = (
             os.getenv("OMPI_COMM_WORLD_SIZE") is not None
@@ -521,12 +522,12 @@ def check_smdataparallel_env():
             try:
                 import smdistributed.dataparallel.torch.distributed as smdataparallel
 
-                _smdataparallel_imported = smdataparallel
+                _smddp_pt_imported = smdataparallel
             except (ModuleNotFoundError, ImportError):
                 try:
                     import smdistributed.dataparallel.tensorflow as smdataparallel
 
-                    _smdataparallel_imported = smdataparallel
+                    _smddp_tf_imported = smdataparallel
                 except (ModuleNotFoundError, ImportError):
                     _smdataparallel_imported = None
         else:
