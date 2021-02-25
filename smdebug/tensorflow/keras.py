@@ -749,7 +749,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.prepared_collections is False and is_tf_version_2_3_x():
             # Addresses ordering issues in TF 2.3.0
             # sets prepared_collections to True here
-            self._prepare_collections()
+            self._prepare_collections_and_wrap_model()
             self._increment_step()
             self.step_incremented_in_on_train_begin = True
 
@@ -804,7 +804,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        if self.has_wrapped_model:
+        if self.has_wrapped_model or self.has_default_hook_configuration():
             return
         for layer in self.model.layers:
             layer._hooks = []
@@ -814,6 +814,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             layer.register_hook(saver)
             self.saved_layers[layer.name] = saver
         self.has_wrapped_model = True
+
+    def _prepare_collections_and_wrap_model(self):
+        self.prepared_collections()
+        self._wrap_model_with_input_output_saver()
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         self.start = time.time()
@@ -865,14 +869,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if self.prepared_collections is False:
             # sets prepared_collections to True here
-            self._prepare_collections()
+            self._prepare_collections_and_wrap_model()
 
         if self._prepared_tensors[mode] is False:
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
-                if self.has_default_hook_configuration() is False:
-                    self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepare_tensors_available_post_step()
@@ -1172,10 +1174,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
                 self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
                 self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
-                self._prepare_collections()
+                self._prepare_collections_and_wrap_model()
                 self.prepared_collections = True
-                if self.has_default_hook_configuration():
-                    self._wrap_model_with_input_output_saver()
 
             self._increment_step()
 
