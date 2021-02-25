@@ -816,7 +816,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.has_wrapped_model = True
 
     def _prepare_collections_and_wrap_model(self):
-        self.prepared_collections()
+        self._prepare_collections()
         self._wrap_model_with_input_output_saver()
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
