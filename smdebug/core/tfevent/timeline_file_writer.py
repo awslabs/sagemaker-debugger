@@ -79,7 +79,7 @@ class TimelineRecord:
             if duration is not None
             else int(round(time.time() * CONVERT_TO_MICROSECS) - abs_ts_micros)
         )
-        self.event_end_ts_micros = abs_ts_micros + self.duration
+        self.event_end_ts_micros = abs_ts_micros #+ self.duration
         self.pid = 0
         self.tid = 0
 
