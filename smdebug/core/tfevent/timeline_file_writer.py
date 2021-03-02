@@ -72,14 +72,14 @@ class TimelineRecord:
         self.op_name = operator_name
         self.args = args
         self.base_start_time = base_start_time
-        abs_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
-        self.rel_ts_micros = abs_ts_micros - self.base_start_time
+        self.event_start_ts_micros = int(timestamp * CONVERT_TO_MICROSECS)
+        self.rel_ts_micros = self.event_start_ts_micros - self.base_start_time
         self.duration = (
             duration
             if duration is not None
-            else int(round(time.time() * CONVERT_TO_MICROSECS) - abs_ts_micros)
+            else int(round(time.time() * CONVERT_TO_MICROSECS) - self.event_start_ts_micros)
         )
-        self.event_end_ts_micros = abs_ts_micros + self.duration
+        self.event_end_ts_micros = self.event_start_ts_micros + self.duration
         self.pid = 0
         self.tid = 0
 
@@ -231,6 +231,7 @@ class _TimelineLoggerThread(threading.Thread):
         self._profiler_config_parser = profiler_config_parser
         self.node_id = get_node_id()
         self.suffix = suffix
+        self.start_event_end_time_in_us = None
 
     def _update_base_start_time(self, base_start_time_in_us):
         """
@@ -397,8 +398,8 @@ class _TimelineLoggerThread(threading.Thread):
         # write the trace event record
         position_and_length_of_record = self._writer.write(record.to_json() + ",\n")
         self.flush()
-        if record.event_end_ts_micros > self.last_event_end_time_in_us:
-            self.last_event_end_time_in_us = record.event_end_ts_micros
+        if self.start_event_end_time_in_us is None:
+            self.start_event_end_time_in_us = record.event_start_ts_micros
         return position_and_length_of_record
 
     def flush(self):
@@ -433,7 +434,7 @@ class _TimelineLoggerThread(threading.Thread):
                 # ensure that there's a directory for the new file name
                 new_file_name = TraceFileLocation().get_file_location(
                     base_dir=self._profiler_config_parser.config.local_path,
-                    timestamp=self.last_event_end_time_in_us,
+                    timestamp=self.start_event_end_time_in_us,
                     suffix=self.suffix,
                 )
                 ensure_dir(new_file_name)
