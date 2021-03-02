@@ -231,7 +231,7 @@ class _TimelineLoggerThread(threading.Thread):
         self._profiler_config_parser = profiler_config_parser
         self.node_id = get_node_id()
         self.suffix = suffix
-        self.start_event_end_time_in_us = None
+        self.first_event_start_time_in_us = None
 
     def _update_base_start_time(self, base_start_time_in_us):
         """
@@ -398,8 +398,10 @@ class _TimelineLoggerThread(threading.Thread):
         # write the trace event record
         position_and_length_of_record = self._writer.write(record.to_json() + ",\n")
         self.flush()
-        if self.start_event_end_time_in_us is None:
-            self.start_event_end_time_in_us = record.event_start_ts_micros
+        if self.first_event_start_time_in_us is None:
+            self.first_event_start_time_in_us = record.event_start_ts_micros
+        if record.event_end_ts_micros > self.last_event_end_time_in_us:
+            self.last_event_end_time_in_us = record.event_end_ts_micros
         return position_and_length_of_record
 
     def flush(self):
@@ -434,7 +436,7 @@ class _TimelineLoggerThread(threading.Thread):
                 # ensure that there's a directory for the new file name
                 new_file_name = TraceFileLocation().get_file_location(
                     base_dir=self._profiler_config_parser.config.local_path,
-                    timestamp=self.start_event_end_time_in_us,
+                    timestamp=self.first_event_start_time_in_us,
                     suffix=self.suffix,
                 )
                 ensure_dir(new_file_name)
