@@ -726,6 +726,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _prepare_collections_for_tf2(self):
         self._prepare_collections()
         if self.has_default_hook_configuration():
+            # wrapping the model is only supported if the hook does not have the default hook configuration
             self._unwrap_model_with_input_output_saver()
 
     def on_epoch_begin(self, batch, logs=None):
