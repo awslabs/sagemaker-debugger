@@ -1,25 +1,4 @@
-# Build Spec for AWS CodeBuild CI TF 2.4.x CPU and GPU Containers
-# Containers Used:
-    # Note: The public DLC is not yet available so this buildspec is currently consuming a custom built container
-
 version: 0.2
-env:
-  variables:
-    run_pytest_pytorch: "disable"
-    run_pytest_mxnet: "disable"
-    run_pytest_tensorflow: "disable"
-    run_pytest_tensorflow2: "enable"
-    run_pytest_xgboost: "disable"
-    run_pytest_profiler: "enable"
-    run_integration_pytest_pytorch: "disable"
-    run_integration_pytest_mxnet: "disable"
-    run_integration_pytest_tensorflow: "disable"
-    run_integration_pytest_tensorflow2: "enable"
-    run_integration_pytest_xgboost: "disable"
-    # below needs to be enabled
-    zero_code_change_test: "enable"
-    # set code coverage flag
-    code_coverage_smdebug: "true"
 phases:
   install:
     commands:
