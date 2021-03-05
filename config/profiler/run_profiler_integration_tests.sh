@@ -34,8 +34,11 @@ check_changed_files() {
 
     # Check if relevant files for running profiler integration tests were modified.
     if [ $root_folder = "config" ] && [ $framework_folder = "profiler" ]; then
-      echo "true"
-      return
+      filename=$(echo $file | cut -d/ -f 3)
+      if [[ $filename = "requirements.txt"  ||  $filename = "run_profiler_integration_tests.sh" ||  $filename =~ $framework ]]; then
+        echo "true"
+        return
+      fi
     fi
 
   done
