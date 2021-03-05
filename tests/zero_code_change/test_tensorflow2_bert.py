@@ -28,7 +28,7 @@ def test_bert_simple():
         optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5)
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         model.compile(optimizer=optimizer, loss=loss)
-        model.fit(train_dataset, epochs=epochs, steps_per_epoch=115)
+        model.fit(train_dataset, epochs=epochs, steps_per_epoch=10)
 
     hook = smd.get_hook()
     assert hook.has_default_hook_configuration()
