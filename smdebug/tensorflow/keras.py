@@ -98,6 +98,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )  # stores tensors custom tensors saved by users every step
         self.saved_layers = dict()
         self.has_registered_model = False
+        self.has_wrapped_model = False
 
         # Profiling vars
         self.tf_profiler = None
@@ -808,7 +809,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
     def _wrap_model_with_input_output_saver(self):
-        if self.has_registered_model:
+        if self.has_registered_model or self.has_wrapped_model:
             return
         for layer in self.model.layers:
             layer._hooks = []
@@ -817,13 +818,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             saver = InputOutputSaver()
             layer.register_hook(saver)
             self.saved_layers[layer.name] = saver
+        self.has_wrapped_model = True
 
     def _unwrap_model_with_input_output_saver(self):
-        if self.has_registered_model is False:
+        if self.has_registered_model is True:
             return
         for layer in self.model.layers:
             layer.call = layer.old_call
-        self.has_registered_model = False
+        self.has_wrapped_model = False
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         self.start = time.time()
