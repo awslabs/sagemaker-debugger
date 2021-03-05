@@ -36,22 +36,12 @@ phases:
 
   pre_build:
     commands:
-      - cd $CODEBUILD_SRC_DIR
+      - cd $CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
+      - cd $RULES_CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
 
   build:
     commands:
-      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
-      # We do not need to force install smdebug-rules. The container used for PR builds do not have smdebug rules binary.
-      # Force installing rules binary attempts to re-install ipython-genutils which fails on PyTorch Ubuntu 16.04 containers.
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
-      - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --force-reinstall $RULES_CODEBUILD_SRC_DIR/dist/*.whl; else pip install $RULES_CODEBUILD_SRC_DIR/dist/*.whl; fi
-      - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
-      - pip show smdebug
-      - pip show smdebug_rules
-      - echo 'Uploading Coverage to CodeCov'
-      - bash $CODEBUILD_SRC_DIR/config/codecov.sh
-      - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - echo "PRE COMMIT SUCCESSFUL"
 
   post_build:
     commands:
