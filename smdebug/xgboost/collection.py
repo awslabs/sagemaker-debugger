@@ -1,5 +1,5 @@
 # First Party
-from smdebug.core.collection import DEFAULT_XGBOOST_COLLECTIONS, CollectionKeys
+from smdebug.core.collection import CollectionKeys
 from smdebug.core.collection_manager import CollectionManager as BaseCollectionManager
 
 
@@ -10,8 +10,6 @@ class CollectionManager(BaseCollectionManager):
             self._register_default_collections()
 
     def _register_default_collections(self):
-        for c in DEFAULT_XGBOOST_COLLECTIONS:
-            self.create_collection(c)
         self.get(CollectionKeys.HYPERPARAMETERS).include("^hyperparameters/.*$")
         self.get(CollectionKeys.METRICS).include("^[a-zA-z]+-[a-zA-z0-9]+$")
         self.get(CollectionKeys.PREDICTIONS).include("^predictions$")
