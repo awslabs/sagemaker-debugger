@@ -167,7 +167,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # It attaches a hook to every layer of the model to capture
         # layer values
         self.model = model
-        self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -725,8 +724,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_collections_for_tf2(self):
         self._prepare_collections()
-        if self.has_default_hook_configuration():
-            self._unwrap_model_with_input_output_saver()
+        if self.has_default_hook_configuration() is False:
+            self._wrap_model_with_input_output_saver()
 
     def on_epoch_begin(self, batch, logs=None):
         pass
@@ -817,12 +816,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             saver = InputOutputSaver()
             layer.register_hook(saver)
             self.saved_layers[layer.name] = saver
-
-    def _unwrap_model_with_input_output_saver(self):
-        if self.has_registered_model is False:
-            return
-        for layer in self.model.layers:
-            layer.call = layer.old_call
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
         self.start = time.time()
