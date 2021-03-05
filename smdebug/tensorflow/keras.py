@@ -819,7 +819,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.saved_layers[layer.name] = saver
 
     def _unwrap_model_with_input_output_saver(self):
-        if self.has_registered_model is True:
+        if self.has_registered_model is False:
             return
         for layer in self.model.layers:
             layer.call = layer.old_call
