@@ -1,0 +1,4 @@
+{"MetricName": "batch_TRAIN", "Value": 0.0, "Timestamp": 1614919309.1450195, "IterationNumber": 0}
+{"MetricName": "loss_TRAIN", "Value": 0.7228637933731079, "Timestamp": 1614919309.1460998, "IterationNumber": 0}
+{"MetricName": "batch_TRAIN", "Value": 0.0, "Timestamp": 1614919311.8004625, "IterationNumber": 9}
+{"MetricName": "loss_TRAIN", "Value": 0.6577014923095703, "Timestamp": 1614919311.8011003, "IterationNumber": 9}
