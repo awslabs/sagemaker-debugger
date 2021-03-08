@@ -62,11 +62,3 @@ def is_pt_1_7():
     :return: bool
     """
     return version.parse("1.7.0") <= PT_VERSION < version.parse("1.8.0")
-
-
-def is_pt_1_8():
-    """
-    Determine whether the version of torch is 1.8.x
-    :return: bool
-    """
-    return version.parse("1.8.0") <= PT_VERSION < version.parse("1.9.0")
