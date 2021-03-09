@@ -127,7 +127,7 @@ def hvd_rotation_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser()
 
 
-@pytest.mark.parametrize("mode", ["cpu", "gpu"])
+@pytest.mark.parametrize("mode", ["gpu"])
 @pytest.mark.parametrize("worker_function", [basic_test, mode_allworkers])
 def test_mode_workers_event_file_rotation(
     out_dir, monkeypatch, hvd_rotation_profiler_config_parser, mode, worker_function
