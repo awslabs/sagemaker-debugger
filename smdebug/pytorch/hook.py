@@ -11,13 +11,22 @@ import torch.distributed as dist
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
-from smdebug.core.utils import check_smdataparallel_env, make_numpy_array
+from smdebug.core.utils import (
+    check_smdataparallel_env,
+    is_horovod_dynamic_timeline_supported,
+    make_numpy_array,
+)
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
 from smdebug.profiler.python_profiler import PythonProfiler
-from smdebug.profiler.utils import start_smdataparallel_profiler, stop_smdataparallel_profiler
+from smdebug.profiler.utils import (
+    start_horovod_profiler,
+    start_smdataparallel_profiler,
+    stop_horovod_profiler,
+    stop_smdataparallel_profiler,
+)
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, is_pt_1_5, is_pt_1_6, is_pt_1_7
@@ -31,6 +40,10 @@ if check_smdataparallel_env():
     except ImportError:
         pass
 
+try:
+    import horovod.pytorch as hvd
+except ImportError:
+    hvd = None
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
@@ -107,8 +120,15 @@ class Hook(CallbackHook):
 
         # Only the chief worker will read the Horovod timeline file
         # if HOROVOD_TIMELINE is a valid file and SM Profiler is enabled
-        if not self.hvd_reader and self.worker == self.chief_worker:
+        if (
+            not is_horovod_dynamic_timeline_supported()
+            and not self.hvd_reader
+            and self.worker == self.chief_worker
+        ):
             self.hvd_reader = HvdTraceFileRotation(self.profiler_config_parser)
+
+        if is_horovod_dynamic_timeline_supported():
+            start_horovod_profiler(hvd, self.profiler_config_parser.config.local_path)
 
         set_hook(self)
         self.parent_forward_event = None
@@ -644,6 +664,8 @@ class Hook(CallbackHook):
             )
 
     def _cleanup(self):
+        if is_horovod_dynamic_timeline_supported():
+            stop_horovod_profiler(hvd, self.profiler_config_parser.config.local_path)
         super()._cleanup()
 
     @staticmethod

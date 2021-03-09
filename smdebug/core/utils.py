@@ -10,6 +10,7 @@ from typing import Dict, List
 
 # Third Party
 import numpy as np
+from packaging import version
 
 # First Party
 from smdebug.core.config_constants import (
@@ -58,6 +59,13 @@ except (ModuleNotFoundError, ImportError):
         _hvd_imported = hvd
     except (ModuleNotFoundError, ImportError):
         _hvd_imported = None
+
+try:
+    import horovod
+
+    hvd_version = horovod.__version__
+except ImportError:
+    hvd_version = None
 
 
 logger = get_logger()
@@ -534,3 +542,16 @@ def check_smdataparallel_env():
             _smdataparallel_imported = None
 
     return _is_invoked_via_smddp
+
+
+def is_horovod_dynamic_timeline_supported():
+    """Return whether the horovod version (if installed) supports dynamic timeline.
+    """
+    if hvd_version is not None:
+        return version.parse(hvd_version) >= version.parse("0.20.1")
+    else:
+        return False
+
+
+def is_horovod_initialized():
+    return hvd is not None and hvd.is_initialized()

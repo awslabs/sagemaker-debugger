@@ -6,9 +6,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 # First Party
+from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     DEFAULT_PREFIX,
+    HOROVODTIMELINE_SUFFIX,
     MERGEDTIMELINE_SUFFIX,
     PYTHONTIMELINE_SUFFIX,
     TRACE_DIRECTORY_FORMAT,
@@ -223,6 +225,14 @@ class TraceFileLocation:
             env_base_location, str(timestamp) + "_" + worker_id + "_" + MERGEDTIMELINE_SUFFIX
         )
         return file_path
+
+    @staticmethod
+    def get_hvd_tmp_file_location(base_dir):
+        hvd_temp_file = os.path.join(
+            base_dir, f"{get_node_id()}_{HOROVODTIMELINE_SUFFIX}{SMDEBUG_TEMP_PATH_SUFFIX}"
+        )
+        ensure_dir(hvd_temp_file)
+        return hvd_temp_file
 
 
 class IndexFileLocationUtils:

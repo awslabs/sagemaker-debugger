@@ -300,3 +300,28 @@ def stop_smdataparallel_profiler(smdataparallel, base_dir):
         ensure_dir(new_file_name)
         if os.path.exists(smdataparallel_temp_file):
             shutil.move(smdataparallel_temp_file, new_file_name)
+
+
+def start_horovod_profiler(hvd, base_dir):
+    from smdebug.core.locations import TraceFileLocation
+
+    hvd_temp_file = TraceFileLocation.get_hvd_tmp_file_location(base_dir)
+    hvd.start_timeline(hvd_temp_file, mark_cycles=False)
+
+
+def stop_horovod_profiler(hvd, base_dir):
+    print(1)
+    print(os.listdir(base_dir))
+    from smdebug.core.locations import TraceFileLocation
+
+    hvd_temp_file = TraceFileLocation.get_hvd_tmp_file_location(base_dir)
+    hvd.stop_timeline()
+    new_file_name = TraceFileLocation.get_file_location(
+        time.time() * CONVERT_TO_MICROSECS, base_dir, suffix=HOROVODTIMELINE_SUFFIX
+    )
+    ensure_dir(new_file_name)
+    print(2)
+    if os.path.exists(hvd_temp_file):
+        print(3)
+        shutil.copy(hvd_temp_file, new_file_name)
+    print(4)
