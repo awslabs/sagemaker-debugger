@@ -13,7 +13,7 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import is_horovod_dynamic_timeline_supported, match_inc
+from smdebug.core.utils import match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
@@ -23,7 +23,7 @@ from smdebug.profiler.profiler_constants import (
 )
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
 from smdebug.profiler.python_profiler import PythonProfiler
-from smdebug.profiler.utils import start_horovod_profiler, stop_horovod_profiler, stop_tf_profiler
+from smdebug.profiler.utils import stop_tf_profiler
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
@@ -750,11 +750,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         # Only the chief worker will read the Horovod timeline file
         # if HOROVOD_TIMELINE is a valid file and SM Profiler is enabled
-        if (
-            not is_horovod_dynamic_timeline_supported()
-            and not self.hvd_reader
-            and self.worker == self.chief_worker
-        ):
+        if not self.hvd_reader and self.worker == self.chief_worker:
             self.hvd_reader = HvdTraceFileRotation(self.profiler_config_parser)
 
         self.graph = tf.get_default_graph()
@@ -771,8 +767,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.callable_cache.change_mode()
 
     def on_train_begin(self, logs=None):
-        if is_horovod_dynamic_timeline_supported():
-            start_horovod_profiler(hvd, self.profiler_config_parser.config.local_path)
+        # if is_horovod_dynamic_timeline_supported():
+        #     start_horovod_profiler(hvd, self.profiler_config_parser.config.local_path)
         self._on_any_mode_begin(ModeKeys.TRAIN)
 
     def on_test_begin(self, logs=None):
@@ -801,8 +797,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         print(0)
 
-        if is_horovod_dynamic_timeline_supported():
-            stop_horovod_profiler(hvd, self.profiler_config_parser.config.local_path)
+        # if is_horovod_dynamic_timeline_supported():
+        #     stop_horovod_profiler(hvd, self.profiler_config_parser.config.local_path)
 
         print(5)
 
