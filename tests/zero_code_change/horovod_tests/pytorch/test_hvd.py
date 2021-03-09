@@ -243,3 +243,61 @@ def test_event_file_rotation_hvd_timeline_disabled(simple_profiler_config_parser
 
     # ensure that no horovod_timeline files have been generated
     assert not files
+
+
+# @pytest.mark.parametrize("mode", ["cpu", "gpu"])
+# @pytest.mark.parametrize("worker_function", [basic_test, mode_allworkers])
+# def test_mode_workers_dynamic_hvd_profiler(
+#     out_dir, horovod_profiler_config_path, mode, worker_function
+# ):
+#     """
+#         This test is meant to verify dynamically turning ON/OFF Horovod profiler with Tensorflow 2.x.
+#         :param mode: cpu or gpu
+#         :param worker_function: basic test (one worker) or all workers
+#     """
+#
+#     def _convert_to_string(item):
+#         return '"{0}"'.format(item) if isinstance(item, str) else item
+#
+#     def _convert_key_and_value(key, value):
+#         return "{0}: {1}, ".format(_convert_to_string(key), _convert_to_string(value))
+#
+#     horovod_profiler_config = "{"
+#     horovod_profiler_config += _convert_key_and_value("StartStep", 2)
+#     horovod_profiler_config += _convert_key_and_value("NumSteps", 2)
+#     horovod_profiler_config += "}"
+#
+#     metrics_config = '{ "HorovodProfilingConfig": ' + horovod_profiler_config + "}"
+#
+#     full_config = {
+#         "ProfilingParameters": {"ProfilerEnabled": True, "MetricsConfig": metrics_config}
+#     }
+#
+#     with open(horovod_profiler_config_path, "w") as f:
+#         json.dump(full_config, f)
+#
+#     profiler_config_parser = ProfilerConfigParser()
+#     assert profiler_config_parser.profiling_enabled
+#
+#     # start the training job
+#     worker_function(out_dir, mode)
+#
+#     files = []
+#     for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(f"*{HOROVODTIMELINE_SUFFIX}"):
+#         files.append(path)
+#
+#     assert len(files) == 1
+#
+#     trace_file = str(files[0])
+#     t_events = HorovodProfilerEvents()
+#
+#     t_events.read_events_from_file(trace_file)
+#
+#     all_trace_events = t_events.get_all_events()
+#     num_trace_events = len(all_trace_events)
+#
+#     print(f"Number of events read = {num_trace_events}")
+#
+#     # The number of events is varying by a small number on
+#     # consecutive runs. Hence, the approximation in the below asserts.
+#     # assert num_trace_events >= 700

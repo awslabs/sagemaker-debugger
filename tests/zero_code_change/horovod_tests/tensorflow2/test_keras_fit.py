@@ -45,12 +45,12 @@ def basic_test(out_dir, mode):
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == 1
 
 
-def test_cpu(out_dir):
-    basic_test(out_dir, "cpu")
-
-
-def test_gpu(out_dir):
-    basic_test(out_dir, "gpu")
+# def test_cpu(out_dir):
+#     basic_test(out_dir, "cpu")
+#
+#
+# def test_gpu(out_dir):
+#     basic_test(out_dir, "gpu")
 
 
 def mode_allworkers(out_dir, mode):
@@ -74,12 +74,12 @@ def mode_allworkers(out_dir, mode):
     assert len(tr.tensor(tr.tensor_names(collection="weights")[0]).workers(0)) == num_workers
 
 
-def test_cpu_allworkers(out_dir):
-    mode_allworkers(out_dir, "cpu")
-
-
-def test_gpu_allworkers(out_dir):
-    mode_allworkers(out_dir, "gpu")
+# def test_cpu_allworkers(out_dir):
+#     mode_allworkers(out_dir, "cpu")
+#
+#
+# def test_gpu_allworkers(out_dir):
+#     mode_allworkers(out_dir, "gpu")
 
 
 def mode_allworkers_saveall(out_dir, mode):
@@ -107,12 +107,12 @@ def mode_allworkers_saveall(out_dir, mode):
     assert len(tr.tensor("loss").workers(0)) == num_workers
 
 
-def test_gpu_allworkers_saveall(out_dir):
-    mode_allworkers_saveall(out_dir, "gpu")
-
-
-def test_cpu_allworkers_saveall(out_dir):
-    mode_allworkers_saveall(out_dir, "cpu")
+# def test_gpu_allworkers_saveall(out_dir):
+#     mode_allworkers_saveall(out_dir, "gpu")
+#
+#
+# def test_cpu_allworkers_saveall(out_dir):
+#     mode_allworkers_saveall(out_dir, "cpu")
 
 
 """
