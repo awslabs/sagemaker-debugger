@@ -79,7 +79,7 @@ class TimelineRecord:
             if duration is not None
             else int(round(time.time() * CONVERT_TO_MICROSECS) - abs_ts_micros)
         )
-        self.event_end_ts_micros = abs_ts_micros  # + self.duration
+        self.event_end_ts_micros = abs_ts_micros + self.duration
         self.pid = 0
         self.tid = 0
 
@@ -313,6 +313,8 @@ class _TimelineLoggerThread(threading.Thread):
             return True
 
         if file_size > rotation_policy.file_max_size:
+            if now_in_us != self.last_event_end_time_in_us:
+                self.last_event_end_time_in_us = now_in_us
             return True
 
         return False
