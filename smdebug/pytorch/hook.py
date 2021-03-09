@@ -20,7 +20,7 @@ from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.profiler.utils import start_smdataparallel_profiler, stop_smdataparallel_profiler
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
-from smdebug.pytorch.utils import get_reduction_of_data, is_pt_1_5, is_pt_1_6, is_pt_1_7
+from smdebug.pytorch.utils import get_reduction_of_data, is_pt_1_5, is_pt_1_6, is_pt_1_7, is_pt_1_8
 
 # smdistributed.dataparallel should be invoked via `mpirun`.
 # It supports EC2 machines with 8 GPUs per machine.
@@ -260,11 +260,18 @@ class Hook(CallbackHook):
     def _collect_torch_profiling_data_if_profiler_enabled(self):
         if self.autograd_profiler_enabled is False:
             return
-        records = torch.autograd._disable_profiler()
+        if is_pt_1_8():
+            records = torch.autograd._disable_profiler_legacy()
+        else:
+            records = torch.autograd._disable_profiler()
         self.autograd_profiler_enabled = False
         if is_pt_1_7():
             function_events = torch.autograd.profiler.EventList(
                 torch.autograd.profiler.parse_event_records(records), use_cuda=self.use_cuda
+            )
+        elif is_pt_1_8():
+            function_events = torch.autograd.profiler.EventList(
+                torch.autograd.profiler.parse_legacy_records(records), use_cuda=self.use_cuda
             )
         else:
             function_events = torch.autograd.profiler.EventList(
@@ -272,16 +279,21 @@ class Hook(CallbackHook):
             )
 
         for index, event in enumerate(function_events):
+            if is_pt_1_8():
+                cpu_time = event.time_range.start + self.start_profiler_time_us
+                duration = event.time_range.elapsed_us() / float(CONVERT_TO_MICROSECS)
+            else:
+                cpu_time = event.cpu_interval.start + self.start_profiler_time_us
+                # event.cpu_interval.start is in microseconds
+                duration = event.cpu_interval.elapsed_us() / float(CONVERT_TO_MICROSECS)
+            # timestamp is expected in seconds for record_trace_events
+            timestamp = cpu_time / float(CONVERT_TO_MICROSECS)
             self.record_trace_events(
                 training_phase="cpu_functions",
                 op_name=event.name,
                 phase="X",
-                # event.cpu_interval.start is in microseconds
-                timestamp=(event.cpu_interval.start + self.start_profiler_time_us)
-                / float(
-                    CONVERT_TO_MICROSECS
-                ),  # timestamp expected is in seconds for record_trace_events
-                duration=event.cpu_interval.elapsed_us() / float(CONVERT_TO_MICROSECS),
+                timestamp=timestamp,
+                duration=duration,
                 tid=event.thread,
                 step_num=self.step,
                 device="cpu",
@@ -301,7 +313,7 @@ class Hook(CallbackHook):
                     event_name=event.name,
                     device=k.device,
                     start_cpu_thread=event.thread,
-                    cpu_thread_start_time=event.cpu_interval.start + self.start_profiler_time_us,
+                    cpu_thread_start_time=cpu_time,
                 )
 
     # This hook is invoked by trainer prior to running the forward pass.
@@ -380,6 +392,11 @@ class Hook(CallbackHook):
             elif is_pt_1_7():
                 torch.autograd._enable_profiler(
                     torch.autograd.ProfilerConfig(self.profiler, False, False, False)
+                )
+                self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
+            elif is_pt_1_8():
+                torch.autograd._enable_profiler_legacy(
+                    torch.autograd.ProfilerConfig(self.profiler, False, False, False, False)
                 )
                 self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
             elif is_pt_1_6():
