@@ -116,6 +116,7 @@ class HvdTraceFileRotation:
                                 if line.endswith(",\n")
                                 else json.loads(line[:-1])
                             )
+                            print("loaded event!")
 
                             # the timestamp of the 1st event is considered as base timestamp
                             if self._base_timestamp_in_us is None:
@@ -157,7 +158,7 @@ class HvdTraceFileRotation:
                                 )
                         except ValueError:
                             # invalid JSON string, skip
-                            print("json error")
+                            print("json error", line)
                     # update file seek position for the next read
                     self.file_seek_pos = max(self.file_seek_pos, json_data.tell())
 
