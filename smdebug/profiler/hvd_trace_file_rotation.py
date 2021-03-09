@@ -107,7 +107,7 @@ class HvdTraceFileRotation:
                     # set the file pointer to the position up to which the reader
                     # thread has read.
                     json_data.seek(self.file_seek_pos)
-
+                    print("file found!")
                     # for every line read, verify that it is a valid JSON.
                     for line in json_data:
                         try:
@@ -157,7 +157,7 @@ class HvdTraceFileRotation:
                                 )
                         except ValueError:
                             # invalid JSON string, skip
-                            pass
+                            print("json error")
                     # update file seek position for the next read
                     self.file_seek_pos = max(self.file_seek_pos, json_data.tell())
 
@@ -166,7 +166,7 @@ class HvdTraceFileRotation:
                         break
             except (OSError, IOError) as e:
                 # unable to open timeline file, try again
-                pass
+                print("can't find file")
 
             time.sleep(15)
 
