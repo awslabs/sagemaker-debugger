@@ -36,14 +36,11 @@ from .utils import (
     ModelInput,
     ModelInputs,
     ModelOutput,
-    ModelOutputs,
     TFDistributionStrategy,
     get_export_name_for_keras,
     get_keras_layer_inputs,
     get_keras_layer_outputs,
     get_keras_mode,
-    get_model_input_export_name,
-    get_model_output_export_name,
     is_keras_optimizer,
     is_profiler_supported_for_tf_version,
     is_tf_version_2_3_x,
@@ -726,6 +723,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             x.fetch_callbacks.pop(tf_obj)
         self._fetches_added.clear()
 
+    def _prepare_collections_for_tf2(self):
+        self._prepare_collections()
+        if self.has_default_hook_configuration():
+            # wrapping the model is only supported if the hook does not have the default hook configuration
+            self._unwrap_model_with_input_output_saver()
+
     def on_epoch_begin(self, batch, logs=None):
         pass
 
@@ -751,7 +754,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.prepared_collections is False and is_tf_version_2_3_x():
             # Addresses ordering issues in TF 2.3.0
             # sets prepared_collections to True here
-            self._prepare_collections()
+            self._prepare_collections_for_tf2()
             self._increment_step()
             self.step_incremented_in_on_train_begin = True
 
@@ -816,6 +819,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             layer.register_hook(saver)
             self.saved_layers[layer.name] = saver
 
+    def _unwrap_model_with_input_output_saver(self):
+        if self.has_registered_model is False:
+            return
+        for layer in self.model.layers:
+            layer.call = layer.old_call
+
     def _on_any_batch_begin(self, batch, mode, logs=None):
         self.start = time.time()
         if self._is_not_supported():
@@ -866,13 +875,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         if self.prepared_collections is False:
             # sets prepared_collections to True here
-            self._prepare_collections()
+            self._prepare_collections_for_tf2()
 
         if self._prepared_tensors[mode] is False:
             if (is_tf_version_2x() and tf.executing_eagerly()) or self._validate_exec_function(
                 self._get_exec_function(mode)
             ):
-                self._wrap_model_with_input_output_saver()
                 self._prepare_layers(mode)
                 self._prepare_non_layer_tensors()
                 self._prepare_tensors_available_post_step()
@@ -1172,7 +1180,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
                 self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
                 self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
-                self._prepare_collections()
+                self._prepare_collections_for_tf2()
                 self.prepared_collections = True
 
             self._increment_step()
