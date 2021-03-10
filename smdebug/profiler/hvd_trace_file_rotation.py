@@ -112,6 +112,7 @@ class HvdTraceFileRotation:
                     # for every line read, verify that it is a valid JSON.
                     line = json_data.readline()
                     while line:
+                        print(line)
                         try:
                             if line != ",\n":
                                 cur_event += line
