@@ -111,6 +111,7 @@ class HvdTraceFileRotation:
                     print("file found!")
                     # for every line read, verify that it is a valid JSON.
                     line = json_data.readline()
+                    cur_event = ""
                     while line:
                         print(line)
                         try:
