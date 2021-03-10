@@ -110,7 +110,8 @@ class HvdTraceFileRotation:
                     json_data.seek(self.file_seek_pos)
                     print("file found!")
                     # for every line read, verify that it is a valid JSON.
-                    for line in json_data:
+                    line = json_data.readline()
+                    while line:
                         events = []
                         cur_event = ""
                         for event_line in line.split("\n"):
@@ -165,6 +166,7 @@ class HvdTraceFileRotation:
                                 print("json error", line)
                         # update file seek position for the next read
                         self.file_seek_pos = max(self.file_seek_pos, json_data.tell())
+                        line = json_data.readline()
 
                         # stop event has been set, exiting the thread
                         if self._stopper.isSet():
