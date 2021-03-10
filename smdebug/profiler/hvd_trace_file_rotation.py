@@ -112,6 +112,7 @@ class HvdTraceFileRotation:
                     events = []
                     cur_event = ""
                     for line in json_data:
+                        print(line)
                         try:
                             if line == ",\n":
                                 event = json.loads(cur_event)
