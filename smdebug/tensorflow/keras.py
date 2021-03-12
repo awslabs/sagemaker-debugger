@@ -1414,15 +1414,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
-        self.record_trace_events(
-            training_phase="Step:" + str(mode),
-            op_name="Step:" + str(mode),
-            phase="X",
-            timestamp=self.start,  # this is start time for step
-            duration=time.time() - self.start,
-            pid=os.getpid(),
-            step_num=str(self.mode_steps[mode]),
-        )
         self._handle_end_step_python_profiling(mode=mode)
 
     def profiling_end(self):
