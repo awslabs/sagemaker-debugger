@@ -14,6 +14,7 @@ class CollectionManager(BaseCollectionManager):
             self.create_collection(c)
         self.get(CollectionKeys.HYPERPARAMETERS).include("^hyperparameters/.*$")
         self.get(CollectionKeys.METRICS).include("^[a-zA-z]+-[a-zA-z0-9]+$")
+        self.get(CollectionKeys.LOSSES).include("^[a-zA-z]+-[a-zA-z0-9]+$")
         self.get(CollectionKeys.PREDICTIONS).include("^predictions$")
         self.get(CollectionKeys.LABELS).include("^labels$")
         self.get(CollectionKeys.FEATURE_IMPORTANCE).include("^feature_importance/.*")
