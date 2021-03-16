@@ -16,6 +16,7 @@ from smdebug.profiler.profiler_constants import (
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
 )
+from smdebug.profiler.utils import get_last_modified_time
 
 
 class LastProfilingStatus(Enum):
@@ -76,7 +77,7 @@ class ProfilerConfigParser:
     def __init__(self):
         """Initialize the parser to be disabled for profiling and detailed profiling.
         """
-        self.last_json_config = None
+        self.last_modified_time = None
         self.config = None
         self.profiling_enabled = False
         self.logger = get_logger()
@@ -126,14 +127,15 @@ class ProfilerConfigParser:
         config_path = os.environ.get("SMPROFILER_CONFIG_PATH", CONFIG_PATH_DEFAULT)
 
         if os.path.isfile(config_path):
+            last_modified_time = get_last_modified_time(config_path)
+            if self.last_modified_time == last_modified_time:
+                return
+            self.last_modified_time = last_modified_time
+
             with open(config_path) as json_data:
                 try:
                     full_config = json.loads(json_data.read().lower())
 
-                    if full_config == self.last_json_config:
-                        return
-
-                    self.last_json_config = full_config
                     self.config = None
 
                     if full_config.get(ProfilingParametersField.DISABLE_PROFILER.value, False):

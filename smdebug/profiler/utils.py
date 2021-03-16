@@ -300,3 +300,11 @@ def stop_smdataparallel_profiler(smdataparallel, base_dir):
         ensure_dir(new_file_name)
         if os.path.exists(smdataparallel_temp_file):
             shutil.move(smdataparallel_temp_file, new_file_name)
+
+
+def get_last_modified_time(filepath):
+    """
+    Get the last time that the file at the given filepath was modified, in the form of a datetime object.
+    """
+    last_modified_time = Path(filepath).stat().st_mtime
+    return datetime.fromtimestamp(last_modified_time)  # get the last time the config was modified
