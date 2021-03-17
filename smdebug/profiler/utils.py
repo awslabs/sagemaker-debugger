@@ -306,5 +306,5 @@ def get_last_modified_time(filepath):
     """
     Get the last time that the file at the given filepath was modified, in the form of a datetime object.
     """
-    last_modified_time = Path(filepath).stat().st_mtime
+    last_modified_time = os.path.getmtime(filepath)
     return datetime.fromtimestamp(last_modified_time)  # get the last time the config was modified
