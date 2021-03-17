@@ -417,11 +417,16 @@ def test_update_step_profiler_config_parser(
     assert profiler_config_parser.config.detailed_profiling_config.start_step == 5
     assert profiler_config_parser.config.detailed_profiling_config.num_steps == 2
 
-    time.sleep(5)  # allow time to pass so new modified time will be different
-    with open(step_profiler_config_parser_path, "w") as dst:
-        with open(new_step_profiler_config_parser_path, "r") as src:
-            json.dump(json.load(src), dst)
+    from smdebug.profiler.utils import get_last_modified_time
+
+    mtime = get_last_modified_time(time_profiler_config_parser_path)
+
+    time.sleep(0.001)  # allow time to pass so new modified time will be different
+    shutil.copy(new_step_profiler_config_parser_path, step_profiler_config_parser_path)
     profiler_config_parser.load_config()
+
+    mtime2 = get_last_modified_time(time_profiler_config_parser_path)
+    assert mtime != mtime2
 
     # verify that the config was loaded into memory again.
     last_accessed_time = get_last_accessed_time(step_profiler_config_parser_path)
@@ -475,11 +480,16 @@ def test_update_time_profiler_config_parser(
     assert profiler_config_parser.config.detailed_profiling_config.start_time_in_sec == timestamp1
     assert profiler_config_parser.config.detailed_profiling_config.duration_in_sec == 0.1
 
-    time.sleep(5)  # allow time to pass so new modified time will be different
-    with open(time_profiler_config_parser_path, "w") as dst:
-        with open(new_time_profiler_config_parser_path, "r") as src:
-            json.dump(json.load(src), dst)
+    from smdebug.profiler.utils import get_last_modified_time
+
+    mtime = get_last_modified_time(time_profiler_config_parser_path)
+
+    time.sleep(1)  # allow time to pass so new modified time will be different
+    shutil.copy(new_time_profiler_config_parser_path, time_profiler_config_parser_path)
     profiler_config_parser.load_config()
+
+    mtime2 = get_last_modified_time(time_profiler_config_parser_path)
+    assert mtime != mtime2
 
     # verify that the config was loaded into memory again.
     last_accessed_time = get_last_accessed_time(time_profiler_config_parser_path)
