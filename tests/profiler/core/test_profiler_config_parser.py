@@ -417,21 +417,9 @@ def test_update_step_profiler_config_parser(
     assert profiler_config_parser.config.detailed_profiling_config.start_step == 5
     assert profiler_config_parser.config.detailed_profiling_config.num_steps == 2
 
-    from smdebug.profiler.utils import get_last_modified_time
-
-    mtime = get_last_modified_time(step_profiler_config_parser_path)
-    atime = get_last_accessed_time(step_profiler_config_parser_path)
-
     time.sleep(1)  # allow time to pass so new modified time will be different
     shutil.copy(new_step_profiler_config_parser_path, step_profiler_config_parser_path)
     profiler_config_parser.load_config()
-
-    print(vars(profiler_config_parser.config.detailed_profiling_config))
-
-    mtime2 = get_last_modified_time(step_profiler_config_parser_path)
-    atime2 = get_last_accessed_time(step_profiler_config_parser_path)
-    assert mtime != mtime2
-    assert atime != atime2
 
     # check that reloading the config when it has changed will update the config fields.
     assert profiler_config_parser.profiling_enabled
@@ -481,21 +469,9 @@ def test_update_time_profiler_config_parser(
     assert profiler_config_parser.config.detailed_profiling_config.start_time_in_sec == timestamp1
     assert profiler_config_parser.config.detailed_profiling_config.duration_in_sec == 0.1
 
-    from smdebug.profiler.utils import get_last_modified_time
-
-    mtime = get_last_modified_time(time_profiler_config_parser_path)
-    atime = get_last_accessed_time(time_profiler_config_parser_path)
-
     time.sleep(1)  # allow time to pass so new modified time will be different
     shutil.copy(new_time_profiler_config_parser_path, time_profiler_config_parser_path)
     profiler_config_parser.load_config()
-
-    print(vars(profiler_config_parser.config.detailed_profiling_config))
-
-    mtime2 = get_last_modified_time(time_profiler_config_parser_path)
-    atime2 = get_last_accessed_time(time_profiler_config_parser_path)
-    assert mtime != mtime2
-    assert atime != atime2
 
     # check that reloading the config when it has changed will update the config fields.
     assert profiler_config_parser.profiling_enabled
