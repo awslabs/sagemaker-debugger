@@ -6,6 +6,7 @@ import csv
 import logging
 import os
 import re
+from typing import List, Tuple
 
 # Third Party
 import numpy as np
@@ -126,6 +127,13 @@ def _get_num_valid_libsvm_features(libsvm_line):
         return num_sparse_features
     else:
         return 0
+
+
+def _filter_increasing_metric_names(metrics: List[Tuple]):
+    # auc and map are metrics that increase in value
+    # and should not be classified as losses
+    p = re.compile("^[a-zA-z]+-(auc|map)$")
+    return [metric_name for metric_name, metric_value in metrics if p.match(metric_name)]
 
 
 def _is_valid_libsvm_label(libsvm_label):

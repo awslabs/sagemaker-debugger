@@ -18,7 +18,13 @@ from smdebug.xgboost.singleton_utils import set_hook
 
 # Local
 from .collection import CollectionManager
-from .utils import get_content_type, get_dmatrix, parse_tree_model, validate_data_file_path
+from .utils import (
+    _filter_increasing_metric_names,
+    get_content_type,
+    get_dmatrix,
+    parse_tree_model,
+    validate_data_file_path,
+)
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.METRICS]
 DEFAULT_SAVE_CONFIG_INTERVAL = 10
@@ -185,6 +191,9 @@ class Hook(CallbackHook):
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self.write_metrics(env)
 
+        if self._is_collection_being_saved_for_step(CollectionKeys.LOSSES):
+            self.write_losses(env)
+
         if self._is_collection_being_saved_for_step(CollectionKeys.PREDICTIONS):
             self.write_predictions(env)
 
@@ -218,6 +227,18 @@ class Hook(CallbackHook):
             return
         for param_name, param_value in self.hyperparameters.items():
             self._save_for_tensor("hyperparameters/{}".format(param_name), param_value)
+
+    def write_losses(self, env: CallbackEnv):
+        # Get loss metric at the current boosting round
+        # loss metrics will have already been saved by write_metrics if the metrics collection is included.
+        if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
+            return
+        else:
+            evaluation_metrics = env.evaluation_result_list
+            increasing_metric_names = _filter_increasing_metric_names(evaluation_metrics)
+            for metric_name, metric_data in evaluation_metrics:
+                if metric_name not in increasing_metric_names:
+                    self._save_for_tensor(metric_name, metric_data)
 
     def write_metrics(self, env: CallbackEnv):
         # Get metrics measured at current boosting round
