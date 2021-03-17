@@ -421,10 +421,6 @@ def test_update_step_profiler_config_parser(
     shutil.copy(new_step_profiler_config_parser_path, step_profiler_config_parser_path)
     profiler_config_parser.load_config()
 
-    # verify that the config was loaded into memory again.
-    last_accessed_time = get_last_accessed_time(step_profiler_config_parser_path)
-    assert first_accessed_time != last_accessed_time
-
     # check that reloading the config when it has changed will update the config fields.
     assert profiler_config_parser.profiling_enabled
     assert profiler_config_parser.config.detailed_profiling_config.is_enabled()
@@ -476,10 +472,6 @@ def test_update_time_profiler_config_parser(
     time.sleep(0.001)  # allow time to pass so new modified time will be different
     shutil.copy(new_time_profiler_config_parser_path, time_profiler_config_parser_path)
     profiler_config_parser.load_config()
-
-    # verify that the config was loaded into memory again.
-    last_accessed_time = get_last_accessed_time(time_profiler_config_parser_path)
-    assert first_accessed_time != last_accessed_time
 
     # check that reloading the config when it has changed will update the config fields.
     assert profiler_config_parser.profiling_enabled
