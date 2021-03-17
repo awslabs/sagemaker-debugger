@@ -44,7 +44,7 @@ check_changed_files() {
 }
 
 # If we are not force running the tests, determine whether to run the tests based on the files changed in the branch compared to master.
-run_tests="true"
+run_tests="false"
 if [ $force_run_tests = "false" ]; then
   run_tests=$( check_changed_files )
 fi
