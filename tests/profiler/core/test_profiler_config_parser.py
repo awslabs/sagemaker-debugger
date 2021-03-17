@@ -422,7 +422,7 @@ def test_update_step_profiler_config_parser(
     mtime = get_last_modified_time(step_profiler_config_parser_path)
     atime = get_last_accessed_time(step_profiler_config_parser_path)
 
-    time.sleep(0.001)  # allow time to pass so new modified time will be different
+    time.sleep(1)  # allow time to pass so new modified time will be different
     shutil.copy(new_step_profiler_config_parser_path, step_profiler_config_parser_path)
     profiler_config_parser.load_config()
 
@@ -490,8 +490,8 @@ def test_update_time_profiler_config_parser(
     mtime = get_last_modified_time(time_profiler_config_parser_path)
     atime = get_last_accessed_time(time_profiler_config_parser_path)
 
-    time.sleep(0.001)  # allow time to pass so new modified time will be different
-    shutil.copy(new_step_profiler_config_parser_path, step_profiler_config_parser_path)
+    time.sleep(1)  # allow time to pass so new modified time will be different
+    shutil.copy(new_time_profiler_config_parser_path, time_profiler_config_parser_path)
     profiler_config_parser.load_config()
 
     print(vars(profiler_config_parser.config.detailed_profiling_config))
