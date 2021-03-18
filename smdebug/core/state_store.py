@@ -83,7 +83,11 @@ class StateStore:
         """
         if os.path.exists(self._states_file):
             with open(self._states_file) as json_data:
-                parameters = json.load(json_data)
+                try:
+                    parameters = json.load(json_data)
+                except json.decoder.JSONDecodeError:
+                    logger.warning(f"{self._states_file} was empty")
+                    return
             for param in parameters:
                 ts_state = dict()
                 ts_state[TRAINING_RUN] = param[TRAINING_RUN]
