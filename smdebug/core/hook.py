@@ -1033,7 +1033,7 @@ class CallbackHook(BaseHook):
             for val in var:
                 idx = self._write(module_name, val, suffix, idx)
         else:
-            logger.warning(
+            logger.debug(
                 f"var is not {self.data_type_name} or list or tuple "
                 f"of {self.data_type_name}s, "
                 f"module_name:{module_name} {var.__class__.__name__}"
