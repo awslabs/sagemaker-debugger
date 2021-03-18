@@ -1,5 +1,6 @@
 # Standard Library
 import os
+import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Third Party
@@ -18,13 +19,8 @@ from smdebug.xgboost.singleton_utils import set_hook
 
 # Local
 from .collection import CollectionManager
-from .utils import (
-    _filter_increasing_metric_names,
-    get_content_type,
-    get_dmatrix,
-    parse_tree_model,
-    validate_data_file_path,
-)
+from .constants import INCREASING_METRICS_REGEX
+from .utils import get_content_type, get_dmatrix, parse_tree_model, validate_data_file_path
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.METRICS]
 DEFAULT_SAVE_CONFIG_INTERVAL = 10
@@ -235,10 +231,13 @@ class Hook(CallbackHook):
             return
         else:
             evaluation_metrics = env.evaluation_result_list
-            increasing_metric_names = _filter_increasing_metric_names(evaluation_metrics)
+            p = re.compile(
+                INCREASING_METRICS_REGEX
+            )  # regex for matching metrics that increase in value
             for metric_name, metric_data in evaluation_metrics:
-                if metric_name not in increasing_metric_names:
-                    self._save_for_tensor(metric_name, metric_data)
+                if p.match(metric_name):
+                    continue
+                self._save_for_tensor(metric_name, metric_data)
 
     def write_metrics(self, env: CallbackEnv):
         # Get metrics measured at current boosting round
