@@ -361,6 +361,7 @@ class InputOutputSaver:
 
 def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.Tensor]:
     old_call_fn = layer.call
+    layer.old_call = old_call_fn
 
     def call(inputs, *args, **kwargs) -> tf.Tensor:
         layer_input = inputs
