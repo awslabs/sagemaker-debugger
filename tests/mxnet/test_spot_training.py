@@ -138,7 +138,7 @@ def run_mnist(
             net.save_parameters("{0}/params_{1}.params".format(save_path, epoch))
 
 
-@pytest.mark.slow  # 0:01 to run
+@pytest.mark.skip  # 0:01 to run
 def test_spot_hook():
     os.environ[
         CHECKPOINT_CONFIG_FILE_PATH_ENV_VAR
