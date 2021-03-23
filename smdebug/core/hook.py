@@ -563,6 +563,7 @@ class BaseHook:
         self._write_state()
 
         self.step += 1
+        self.logger.debug(f"Smdebug: Increment Step: {self.step}")
         self.mode_steps[self.mode] += 1
         self.written_tensor_name_for_step.clear()
 
@@ -592,6 +593,7 @@ class BaseHook:
 
     def _write_state(self):
         if self.state_store.is_checkpoint_updated():
+            self.logger.debug(f"smdebug: writing checkpoint")
             current_state = dict()
             current_state[TRAINING_RUN] = self.training_run
             current_state[LATEST_GLOBAL_STEP_SAVED] = self.last_saved_step
