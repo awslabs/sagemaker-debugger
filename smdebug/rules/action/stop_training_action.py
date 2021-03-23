@@ -81,15 +81,19 @@ class StopTrainingAction:
 
         return list(found_job_dict.keys())
 
-    def _stop_training_job(self):
+    def _stop_training_job(self, message):
         if len(self._found_jobs) != 1:
             return
-        self._logger.info(f"Invoking StopTrainingJob action on SM jobname:{self._found_jobs}")
+        if message != "":
+            message = f"with message {message}"
+        self._logger.info(
+            f"Invoking StopTrainingJob action on SM jobname {self._found_jobs} {message}"
+        )
         try:
             res = self._sm_client.stop_training_job(TrainingJobName=self._found_jobs[0])
             self._logger.info(f"Stop Training job response:{res}")
         except Exception as e:
             self._logger.info(f"Got exception while stopping training job{self._found_jobs[0]}:{e}")
 
-    def invoke(self, message=None):
-        self._stop_training_job()
+    def invoke(self, message):
+        self._stop_training_job(message)

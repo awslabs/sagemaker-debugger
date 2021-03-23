@@ -11,11 +11,14 @@ from smdebug.core.config_constants import (
     LATEST_GLOBAL_STEP_SEEN,
     LATEST_MODE_STEP,
     METADATA_FILENAME,
+    METADATA_FILENAME_S3_UPLOADED,
     TRAINING_RUN,
 )
 from smdebug.core.logger import get_logger
 
 logger = get_logger()
+
+
 # This is 'predicate' for sorting the list of states based on seen steps.
 def _rule_for_sorting(state):
     return state[LATEST_GLOBAL_STEP_SEEN]
@@ -26,9 +29,13 @@ class StateStore:
         checkpoint_files = []
         for child, _, files in os.walk(cp_dir):
             for file in files:
-                if file != METADATA_FILENAME:
+                if (
+                    file != METADATA_FILENAME
+                    and file != METADATA_FILENAME_S3_UPLOADED
+                    and "sagemaker-uploaded" not in file
+                ):
                     checkpoint_files.append(os.path.join(child, file))
-        return checkpoint_files
+        return sorted(checkpoint_files)
 
     def __init__(self):
         self._saved_states = []
@@ -43,9 +50,12 @@ class StateStore:
             self._last_seen_checkpoint_files = self._get_checkpoint_files_in_dir(
                 self._checkpoint_dir
             )
-            self._last_seen_cp_files_size = [
-                os.path.getsize(file) for file in self._last_seen_checkpoint_files
-            ]
+            for file in self._last_seen_checkpoint_files:
+                try:
+                    self._last_seen_cp_files_size.append(os.path.getsize(file))
+                except Exception as e:
+                    self._last_seen_cp_files_size.append(0)
+                    logger.debug(e)
 
     def _retrieve_path_to_checkpoint(self):
         """
@@ -91,25 +101,42 @@ class StateStore:
         if self._checkpoint_dir is not None:
             checkpoint_files = self._get_checkpoint_files_in_dir(self._checkpoint_dir)
             if not checkpoint_files:
-                logger.info(
+                logger.debug(
                     "Checkpoints not updated. There are no checkpoint files created yet, to be updated"
                 )
                 return False
-            checkpoint_files = sorted(checkpoint_files)
-            timestamps = [os.path.getmtime(file) for file in checkpoint_files]
+            timestamps = []
+            for file in checkpoint_files:
+                try:
+                    timestamps.append(os.path.getmtime(file))
+                except FileNotFoundError as e:
+                    timestamps.append(0)
+                    logger.debug(e)
             logger.info(
                 f"Timestamps of different checkpoint files {[i for i in zip(checkpoint_files, timestamps)]}"
             )
 
             if len(self._last_seen_checkpoint_files) != len(checkpoint_files):
                 self._last_seen_checkpoint_files = checkpoint_files
-                self._last_seen_cp_files_size = [os.path.getsize(file) for file in checkpoint_files]
+                for file in checkpoint_files:
+                    try:
+                        sz = os.path.getsize(file)
+                        self._last_seen_cp_files_size.append(sz)
+                    except FileNotFoundError as e:
+                        self._last_seen_cp_files_size.append(0)
+                        logger.debug(e)
                 logger.info(
                     f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
                 )
                 return True
             # check for each file if file size has changed
-            cp_file_sizes = [os.path.getsize(file) for file in checkpoint_files]
+            cp_file_sizes = []
+            for file in checkpoint_files:
+                try:
+                    cp_file_sizes.append(os.path.getsize(file))
+                except FileNotFoundError as e:
+                    cp_file_sizes.append(0)
+                    logger.warning(e)
             i = 0
             for size in cp_file_sizes:
                 if size != self._last_seen_cp_files_size[i]:
@@ -125,9 +152,12 @@ class StateStore:
             for file in checkpoint_files:
                 if file != self._last_seen_checkpoint_files[i]:
                     self._last_seen_checkpoint_files = checkpoint_files
-                    self._last_seen_cp_files_size = [
-                        os.path.getsize(file) for file in checkpoint_files
-                    ]
+                    for file in checkpoint_files:
+                        try:
+                            self._last_seen_cp_files_size.append(os.path.getsize(file))
+                        except FileNotFoundError as e:
+                            self._last_seen_cp_files_size.append(0)
+                            logger.warning(e)
                     logger.info(
                         f"sizes of different checkpoint files {[i for i in zip(checkpoint_files, self._last_seen_cp_files_size)]}"
                     )

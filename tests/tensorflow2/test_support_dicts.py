@@ -44,5 +44,5 @@ def test_support_dicts(out_dir):
     model.fit(inputs, labels, batch_size=16, epochs=10, callbacks=[smdebug_hook])
     model.save(out_dir, save_format="tf")
     trial = create_trial(out_dir)
-    assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["model_input"]
-    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "predictions"]
+    assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["inputs_0"]
+    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels_0", "predictions"]

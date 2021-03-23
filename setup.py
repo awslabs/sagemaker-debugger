@@ -21,13 +21,19 @@ from datetime import date
 # Third Party
 import setuptools
 
-# First Party
-import smdebug
+exec(open("smdebug/_version.py").read())
+CURRENT_VERSION = __version__
 
 DOCLINES = (__doc__ or "").split("\n")
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
-INSTALL_REQUIRES = ["protobuf>=3.6.0", "numpy>1.16.0,<2.0.0", "packaging", "boto3>=1.10.32"]
+INSTALL_REQUIRES = [
+    "protobuf>=3.6.0",
+    "numpy>=1.16.0",
+    "packaging",
+    "boto3>=1.10.32",
+    "pyinstrument>=3.1.3",
+]
 
 
 def compile_summary_protobuf():
@@ -105,9 +111,9 @@ if scan_git_secrets() != 0:
 def detect_smdebug_version():
     if "--release" in sys.argv:
         sys.argv.remove("--release")
-        return smdebug.__version__.strip()
+        return CURRENT_VERSION
 
-    return smdebug.__version__.strip() + "b" + str(date.today()).replace("-", "")
+    return CURRENT_VERSION + "b" + str(date.today()).replace("-", "")
 
 
 version = detect_smdebug_version()

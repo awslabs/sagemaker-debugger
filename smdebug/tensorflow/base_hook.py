@@ -14,7 +14,7 @@ from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
-from smdebug.core.utils import make_numpy_array, serialize_tf_device
+from smdebug.core.utils import check_smdataparallel_env, make_numpy_array, serialize_tf_device
 from smdebug.core.writer import FileWriter
 
 # Local
@@ -33,9 +33,11 @@ from .utils import (
 )
 
 try:
-    pass
+    import smdistributed.modelparallel.tensorflow as smp  # noqa isort:skip
+
+    _smp_imported = smp
 except ImportError:
-    pass
+    _smp_imported = None
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [
@@ -61,6 +63,7 @@ class TensorflowBaseHook(BaseHook):
         include_collections=None,
         save_all=False,
         include_workers="one",
+        profiler_config_parser=None,
     ):
         collection_manager = CollectionManager()
         super().__init__(
@@ -77,6 +80,7 @@ class TensorflowBaseHook(BaseHook):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
+            profiler_config_parser=profiler_config_parser,
         )
         self.optimizer = None
         self._custom_collections = None
@@ -131,6 +135,18 @@ class TensorflowBaseHook(BaseHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
+        # smdistributed.dataparallel should be invoked via `mpirun`.
+        # It supports EC2 machines with 8 GPUs per machine.
+        if check_smdataparallel_env():
+            try:
+                import smdistributed.dataparallel.tensorflow as smdataparallel
+
+                # The total number of GPUs across all the nodes in the cluster
+                if smdataparallel.size():
+                    return TFDistributionStrategy.SMDATAPARALLEL
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
+
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
             return TFDistributionStrategy.MIRRORED
@@ -169,9 +185,18 @@ class TensorflowBaseHook(BaseHook):
         """
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if _smp_imported and _smp_imported.core.initialized:
+                # when model parallel is being used, there will be multiple processes
+                # with same hvd rank, hence use smp.rank
+                return f"worker_{smp.rank()}"
+
             import horovod.tensorflow as hvd
 
             return f"worker_{hvd.rank()}"
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
+            import smdistributed.dataparallel.tensorflow as smdataparallel
+
+            return f"worker_{smdataparallel.rank()}"
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             # unused for this strategy
             return DEFAULT_WORKER_NAME
@@ -201,6 +226,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is False and self.worker != self.chief_worker:
                 return
@@ -241,9 +267,18 @@ class TensorflowBaseHook(BaseHook):
     def _get_num_workers(self):
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if _smp_imported and smp.core.initialized:
+                # when model parallel is being used, there will be multiple hvd process groups,
+                # hence use smp.size
+                return smp.size()
+
             import horovod.tensorflow as hvd
 
             return hvd.size()
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
+            import smdistributed.dataparallel.tensorflow as smdataparallel
+
+            return smdataparallel.size()
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             strategy = tf.distribute.get_strategy()
             return strategy.num_replicas_in_sync
@@ -258,6 +293,8 @@ class TensorflowBaseHook(BaseHook):
         self._assert_distribution_strategy()
         # this won't be used if save_all_workers is True
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            self.chief_worker = DEFAULT_WORKER_NAME
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
             self.chief_worker = DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             assert self._prepared_tensors[self.mode]
@@ -285,6 +322,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 return self._get_main_writer()
@@ -322,6 +360,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 if self.writer is None or only_initialize_if_missing is False:

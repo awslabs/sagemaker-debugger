@@ -10,12 +10,13 @@ import xgboost
 # First Party
 from smdebug import SaveConfig, modes
 from smdebug.core.access_layer.utils import has_training_ended
+from smdebug.core.collection import CollectionKeys
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.trials import create_trial
 from smdebug.xgboost import Hook
 
 # Local
-from .json_config import get_json_config, get_json_config_full
+from .json_config import get_json_config, get_json_config_for_losses, get_json_config_full
 from .run_xgboost_model import run_xgboost_model
 
 
@@ -47,6 +48,33 @@ def test_hook_from_json_config_full(tmpdir, monkeypatch):
     run_xgboost_model(hook=hook)
 
 
+@pytest.mark.parametrize(
+    "params", [{"eval_metric": "rmse"}, {"eval_metric": "auc"}, {"eval_metric": "map"}]
+)
+def test_hook_from_json_config_for_losses(tmpdir, monkeypatch, params):
+    out_dir = tmpdir.join("test_hook_from_json_config_for_losses")
+    config_file = tmpdir.join("config.json")
+    config_file.write(get_json_config_for_losses(str(out_dir)))
+    monkeypatch.setenv(CONFIG_FILE_PATH_ENV_STR, str(config_file))
+    hook = Hook.create_from_json_file()
+    assert has_training_ended(out_dir) is False
+    run_xgboost_model(hook=hook, params=params)
+    trial = create_trial(str(out_dir))
+    eval_metric = params["eval_metric"]
+    test_metric = f"test-{eval_metric}"
+    train_metric = f"train-{eval_metric}"
+    if eval_metric == "rmse":
+        assert train_metric in trial.tensor_names(collection=CollectionKeys.METRICS)
+        assert train_metric in trial.tensor_names(collection=CollectionKeys.LOSSES)
+        assert test_metric in trial.tensor_names(collection=CollectionKeys.METRICS)
+        assert test_metric in trial.tensor_names(collection=CollectionKeys.LOSSES)
+    if eval_metric == "auc" or eval_metric == "map":
+        assert train_metric in trial.tensor_names(collection=CollectionKeys.METRICS)
+        assert train_metric not in trial.tensor_names(collection=CollectionKeys.LOSSES)
+        assert test_metric in trial.tensor_names(collection=CollectionKeys.METRICS)
+        assert test_metric not in trial.tensor_names(collection=CollectionKeys.LOSSES)
+
+
 def test_hook_save_every_step(tmpdir):
     save_config = SaveConfig(save_interval=1)
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
@@ -70,6 +98,7 @@ def test_hook_save_all(tmpdir):
     assert len(trial.steps()) == 4
     assert "all" in collections
     assert "metrics" in collections
+    assert "losses" in collections
     assert "feature_importance" in collections
     assert "train-rmse" in tensors
     assert any(t.startswith("feature_importance/") for t in tensors)

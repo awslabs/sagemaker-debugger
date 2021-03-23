@@ -34,6 +34,7 @@ def as_dtype(t):
         types_pb2.DT_HALF: np.float16,
         types_pb2.DT_FLOAT: np.float32,
         types_pb2.DT_DOUBLE: np.float64,
+        types_pb2.DT_INT8: np.uint8,
         types_pb2.DT_INT32: np.int32,
         types_pb2.DT_INT64: np.int64,
         types_pb2.DT_STRING: np.str,

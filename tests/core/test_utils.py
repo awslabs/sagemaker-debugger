@@ -1,14 +1,21 @@
 # Third Party
 # Standard Library
+import os
 import shutil
 import tempfile
+import time
 from multiprocessing import Manager, Process
 from os import makedirs
 
 import pytest
 
 # First Party
-from smdebug.core.access_layer import check_dir_exists
+from smdebug.core.access_layer import (
+    DEFAULT_GRACETIME_FOR_RULE_STOP_SEC,
+    ENV_RULE_STOP_SIGNAL_FILENAME,
+    check_dir_exists,
+    is_rule_signalled_gracetime_passed,
+)
 from smdebug.core.collection_manager import CollectionManager
 from smdebug.core.index_reader import ReadIndexFilesCache
 from smdebug.core.json_config import (
@@ -67,6 +74,53 @@ def test_check_dir_not_exists_s3():
 def test_check_dir_exists_s3():
     # This file should exist in the bucket for proper testing
     check_dir_exists("s3://smdebug-testing/resources/exists")
+
+
+def setup_rule_stop_file(temp_file, time_str, monkeypatch, write=True):
+    dir = os.path.dirname(temp_file.name)
+    rel_filename = os.path.relpath(temp_file.name, start=dir)
+    if write is True:
+        # write timestamp in temp file
+        temp_file.write(str(time_str))
+        temp_file.flush()
+    monkeypatch.setenv(ENV_RULE_STOP_SIGNAL_FILENAME, rel_filename)
+
+
+def test_is_rule_signalled_gracetime_not_passed(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    time_str = str(int(time.time()))
+    setup_rule_stop_file(temp_file, time_str, monkeypatch)
+    dir = os.path.dirname(temp_file.name)
+    assert is_rule_signalled_gracetime_passed(dir) is False
+
+
+def test_is_rule_signalled_gracetime_passed(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    time_str = str(int(time.time() - 2 * DEFAULT_GRACETIME_FOR_RULE_STOP_SEC))
+    setup_rule_stop_file(temp_file, time_str, monkeypatch)
+    dir = os.path.dirname(temp_file.name)
+    assert is_rule_signalled_gracetime_passed(dir) is True
+
+
+def test_is_rule_signalled_no_env_var_set(monkeypatch):
+    assert is_rule_signalled_gracetime_passed("/fake-file") is False
+
+
+def test_is_rule_signalled_no_signal_file(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    time_str = str(int(time.time() - 2 * DEFAULT_GRACETIME_FOR_RULE_STOP_SEC))
+    setup_rule_stop_file(temp_file, time_str, monkeypatch, write=False)
+    dir = os.path.dirname(temp_file.name)
+    # env variable is set, remove the file.
+    temp_file.close()
+    assert is_rule_signalled_gracetime_passed(dir) is False
+
+
+def test_is_rule_signalled_invalid_gracetime(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    setup_rule_stop_file(temp_file, "Invalid_time", monkeypatch)
+    dir = os.path.dirname(temp_file.name)
+    assert is_rule_signalled_gracetime_passed(dir) is True
 
 
 @pytest.mark.skip(reason="It's unclear what this is testing.")

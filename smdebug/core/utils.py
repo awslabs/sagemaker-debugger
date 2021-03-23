@@ -22,6 +22,44 @@ from smdebug.core.config_constants import (
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
+_is_invoked_via_smddp = None
+_smddp_tf_imported = None
+_smddp_pt_imported = None
+
+try:
+    import smdistributed.modelparallel.tensorflow as smp
+
+    _smp_imported = smp
+except (ImportError, ModuleNotFoundError):
+    try:
+        import smdistributed.modelparallel.torch as smp
+
+        _smp_imported = smp
+    except (ImportError, ModuleNotFoundError):
+        _smp_imported = None
+
+
+try:
+    import torch.distributed as torch_dist
+
+    _torch_dist_imported = torch_dist
+except (ImportError, ModuleNotFoundError):
+    _torch_dist_imported = None
+
+
+try:
+    import horovod.torch as hvd
+
+    _hvd_imported = hvd
+except (ModuleNotFoundError, ImportError):
+    try:
+        import horovod.tensorflow as hvd
+
+        _hvd_imported = hvd
+    except (ModuleNotFoundError, ImportError):
+        _hvd_imported = None
+
+
 logger = get_logger()
 
 
@@ -103,7 +141,7 @@ def is_s3(path):
         return False, None, None
 
 
-def is_first_process(path):
+def is_first_process(path, is_dir=True):
     """
     This function is used to determine the caller of the process
     is the first process to do so.
@@ -134,10 +172,15 @@ def is_first_process(path):
         )
         return True  # Cannot Implement This Functionality for S3
     else:
-        ensure_dir(path, is_file=False)
-        filename = os.path.join(path, CLAIM_FILENAME)
+        if is_dir:
+            ensure_dir(path, is_file=False)
+            filename = os.path.join(path, CLAIM_FILENAME)
+        else:
+            ensure_dir(path)
+            filename = path
         try:
             fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.fsync(fd)
             os.close(fd)
             return True
         except FileExistsError:
@@ -310,6 +353,51 @@ def get_tb_worker():
     return f"{os.getpid()}_{socket.gethostname()}"
 
 
+def get_distributed_worker():
+    """
+    Get the rank for horovod or torch distributed. If none of them are being used,
+    return None"""
+    rank = None
+
+    if (
+        _torch_dist_imported
+        and hasattr(_torch_dist_imported, "is_initialized")
+        and _torch_dist_imported.is_initialized()
+    ):
+        rank = _torch_dist_imported.get_rank()
+    elif _smp_imported and _smp_imported.core.initialized:
+        rank = _smp_imported.rank()
+    elif check_smdataparallel_env():
+        # smdistributed.dataparallel should be invoked via `mpirun`.
+        # It supports EC2 machines with 8 GPUs per machine.
+        if _smddp_pt_imported is not None and _smddp_pt_imported.get_world_size():
+            return _smddp_pt_imported.get_rank()
+        elif _smddp_tf_imported is not None and _smddp_tf_imported.size():
+            return _smddp_tf_imported.rank()
+    elif _hvd_imported:
+        try:
+            if _hvd_imported.size():
+                rank = _hvd_imported.rank()
+        except ValueError:
+            pass
+
+    return rank
+
+
+def get_node_id():
+    """Gets current host ID from SM config and set node ID as pid-hostID.
+    If config is not available, use pid-hostname.
+    """
+    from smdebug.core.json_config import get_node_id_from_resource_config  # prevent circular import
+
+    rank = get_distributed_worker()
+
+    node_id = get_node_id_from_resource_config()
+    rank = rank if rank is not None else os.getpid()
+    node_id = f"{rank}-{node_id}" if node_id else f"{rank}_{socket.gethostname()}"
+    return node_id.replace("_", "-")
+
+
 def remove_file_if_exists(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)
@@ -402,3 +490,47 @@ class ScriptSimulator(object):
         shutil.rmtree(self.out_dir, ignore_errors=True)
         if self.tensorboard_dir:
             shutil.rmtree(self.tensorboard_dir, ignore_errors=True)
+
+
+def check_smdataparallel_env():
+    # Check to ensure it is invoked by mpi and the SM distribution is `dataparallel`
+    global _is_invoked_via_smddp
+    global _smddp_tf_imported
+    global _smddp_pt_imported
+    if _is_invoked_via_smddp is None:
+        _is_invoked_via_mpi = (
+            os.getenv("OMPI_COMM_WORLD_SIZE") is not None
+            and int(os.getenv("OMPI_COMM_WORLD_SIZE")) >= 8
+        )
+        if os.getenv("SM_FRAMEWORK_PARAMS") is None:
+            _is_invoked_via_smddp = False
+        else:
+            try:
+                smddp_flag = json.loads(os.getenv("SM_FRAMEWORK_PARAMS"))
+            except:
+                _is_invoked_via_smddp = False
+                return _is_invoked_via_smddp
+            if (
+                smddp_flag.get("sagemaker_distributed_dataparallel_enabled", False)
+                and _is_invoked_via_mpi
+            ):
+                _is_invoked_via_smddp = True
+            else:
+                _is_invoked_via_smddp = False
+
+        if _is_invoked_via_smddp:
+            try:
+                import smdistributed.dataparallel.torch.distributed as smdataparallel
+
+                _smddp_pt_imported = smdataparallel
+            except (ModuleNotFoundError, ImportError):
+                try:
+                    import smdistributed.dataparallel.tensorflow as smdataparallel
+
+                    _smddp_tf_imported = smdataparallel
+                except (ModuleNotFoundError, ImportError):
+                    _smdataparallel_imported = None
+        else:
+            _smdataparallel_imported = None
+
+    return _is_invoked_via_smddp

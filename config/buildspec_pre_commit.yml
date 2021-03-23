@@ -1,0 +1,26 @@
+version: 0.2
+phases:
+  install:
+    commands:
+        -  . config/change_branch.sh
+        - su && apt-get update
+        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
+        - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
+        - pip install --upgrade pip==19.3.1
+        - pip install -q pre-commit awscli
+
+  pre_build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR && pre-commit install && pre-commit run --all-files
+
+  build:
+    commands:
+      - echo "PRE COMMIT SUCCESSFUL"
+
+  post_build:
+    commands:
+      - . $CODEBUILD_SRC_DIR/config/upload_on_end.sh
+      - rm -rf $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - rm -rf $RULES_CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
