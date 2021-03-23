@@ -88,6 +88,7 @@ class FileWriter:
         self.flush_secs = flush_secs
         self.verbose = verbose
         self.write_checksum = write_checksum
+        self.logger = get_logger()
 
         self._proto_writer = None
 
