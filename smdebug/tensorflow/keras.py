@@ -1297,8 +1297,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         :param outputs:
         :return:
         """
-        if self.has_default_hook_configuration():
-            return
         logs = {ModelOutput.PREDICTIONS: outputs, ModelInput.INPUTS: model_inputs}
         if is_tf_version_2x() and tf.executing_eagerly():
             self.save_smdebug_logs(logs)
