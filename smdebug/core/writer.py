@@ -155,6 +155,7 @@ class FileWriter:
         tag = tname
         tensor_proto = make_tensor_proto(nparray_data=value, tag=tag)
         s = Summary(value=[Summary.Value(tag=tag, metadata=smd, tensor=tensor_proto)])
+        self.logger.debug(f"smdebug: writing tensor: {tname}")
         if write_index:
             self.proto_writer.write_summary_with_index(
                 s, self.step, tname, mode, mode_step, timestamp=timestamp
