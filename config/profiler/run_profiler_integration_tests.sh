@@ -56,10 +56,12 @@ pip install -q -r config/profiler/requirements.txt >/dev/null 2>/dev/null # mask
 
 if [ "$sagemaker_version_override" = "" ]
 then
-  pip install -q sagemaker
+  pip install -U sagemaker
 else
-  pip install -q sagemaker==$sagemaker_version_override
+  pip install sagemaker==$sagemaker_version_override
 fi
+
+pip show sagemaker
 
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh

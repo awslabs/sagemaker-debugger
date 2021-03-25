@@ -11,4 +11,5 @@ env:
 phases:
   build:
     commands:
-      - chmod +x config/profiler/run_profiler_integration_tests.sh && ./config/profiler/run_profiler_integration_tests.sh
+      -  pip install -U sagemaker
+      -  chmod +x config/profiler/run_profiler_integration_tests.sh && ./config/profiler/run_profiler_integration_tests.sh
