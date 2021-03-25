@@ -2,7 +2,6 @@ pip==20.3.3
 wheel==0.35.1
 pyYaml==5.3.1
 pytest-html==3.0.0
-sagemaker==2.23.0
 pre-commit==2.6.0
 awscli==1.18.203
 pytest==6.1.2

@@ -54,6 +54,13 @@ apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
 sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
 pip install -q -r config/profiler/requirements.txt >/dev/null 2>/dev/null # mask output
 
+if [ "$sagemaker_version_override" = "" ]
+then
+  pip install -q sagemaker
+else
+  pip install -q sagemaker==$sagemaker_version_override
+fi
+
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
 ./config/protoc_downloader.sh >/dev/null 2>/dev/null # mask output
