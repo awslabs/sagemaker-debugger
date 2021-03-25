@@ -83,10 +83,6 @@ cd $CODEBUILD_SRC_DIR
 python setup.py bdist_wheel --universal >/dev/null 2>/dev/null
 pip install -q --force-reinstall dist/*.whl >/dev/null 2>/dev/null # mask output
 
-if [ "$use_default_horovod_version" = "false" ]; then
-  echo "horovod==0.19.5" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
-fi
-
 # install smdebug from current branch in the container or use the smdebug that's already in the container
 if [ "$use_current_branch" = "true" ]; then
   cd $CODEBUILD_SRC_DIR/dist
