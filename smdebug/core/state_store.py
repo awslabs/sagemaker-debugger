@@ -33,6 +33,7 @@ class StateStore:
                     file != METADATA_FILENAME
                     and file != METADATA_FILENAME_S3_UPLOADED
                     and "sagemaker-uploaded" not in file
+                    and "sagemaker-uploading" not in file
                 ):
                     checkpoint_files.append(os.path.join(child, file))
         return sorted(checkpoint_files)
