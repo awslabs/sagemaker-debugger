@@ -560,7 +560,8 @@ class BaseHook:
 
     def _increment_step(self):
         # Update the last_state to the last step number that was saved or seen
-        self._write_state()
+        # TODO: Turn this back on if non-issue
+        # self._write_state()
 
         self.step += 1
         self.mode_steps[self.mode] += 1
