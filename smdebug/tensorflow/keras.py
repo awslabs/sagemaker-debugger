@@ -166,6 +166,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # This function is called by the hook in the AWS TF codebase
         # It attaches a hook to every layer of the model to capture
         # layer values
+        self.logger.debug("Smdebug Register Model")
         self.model = model
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
@@ -553,6 +554,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
+        self.logger.debug(f"Length of logs shared to debugger: {len(logs)}")
 
         for key in logs:
             if SMDEBUG_PREFIX in key:
@@ -725,6 +727,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_collections_for_tf2(self):
         self._prepare_collections()
+        self.logger.debug("SMDEBUG: Preparing Collections")
         if self.has_default_hook_configuration():
             # wrapping the model is only supported if the hook does not have the default hook configuration
             self._unwrap_model_with_input_output_saver()
@@ -750,6 +753,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
+        self.logger.debug(f"SMDEBUG: Set mode: {mode}")
 
         if self.prepared_collections is False and is_tf_version_2_3_x():
             # Addresses ordering issues in TF 2.3.0
@@ -762,9 +766,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.callable_cache.change_mode()
 
     def on_train_begin(self, logs=None):
+        self.logger.debug("SMDEBUG: Entering On Train Begin")
         self._on_any_mode_begin(ModeKeys.TRAIN)
 
     def on_test_begin(self, logs=None):
+        self.logger.debug("SMDEBUG: Entering On Test Begin")
         self._on_any_mode_begin(ModeKeys.EVAL)
 
     def _on_any_mode_end(self, mode):
@@ -811,6 +817,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _wrap_model_with_input_output_saver(self):
         if self.has_registered_model:
             return
+        self.logger.debug("SMDEBUG: Attach Model Layers With Hooks")
         for layer in self.model.layers:
             layer._hooks = []
             layer.call = get_layer_call_fn(layer)
@@ -822,10 +829,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
     def _unwrap_model_with_input_output_saver(self):
         if self.has_registered_model is False:
             return
+        self.logger.debug("SMDEBUG: Remove Hooks From Model Layers")
         for layer in self.model.layers:
             layer.call = layer.old_call
 
     def _on_any_batch_begin(self, batch, mode, logs=None):
+        self.logger.debug(f"SMDEBUG: On Any Batch Begin: {mode}")
         self.start = time.time()
         if self._is_not_supported():
             return
