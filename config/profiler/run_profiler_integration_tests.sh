@@ -14,7 +14,7 @@ check_changed_files() {
   export CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/};
 
   # If the branch is master, then just run integration tests.
-  if [ $CODEBUILD_GIT_BRANCH = "" ]; then
+  if [[ $CODEBUILD_GIT_BRANCH = "" ]]; then
     echo "true"
     return
   fi
