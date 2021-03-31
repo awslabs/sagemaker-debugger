@@ -306,13 +306,12 @@ class _TimelineLoggerThread(threading.Thread):
         file_size, diff_in_seconds, diff_in_hours = self._get_rotation_info(now_in_us)
         rotation_policy = self._profiler_config_parser.config.trace_file.rotation_policy
 
-        if diff_in_hours != 0:
-            return True
-
         if diff_in_seconds > rotation_policy.file_close_interval:
             return True
 
         if file_size > rotation_policy.file_max_size:
+            if now_in_us != self.last_event_end_time_in_us:
+                self.last_event_end_time_in_us = now_in_us
             return True
 
         return False
