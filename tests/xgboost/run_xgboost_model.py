@@ -3,7 +3,7 @@ import numpy as np
 import xgboost
 
 
-def run_xgboost_model(hook, num_round=10, seed=42):
+def run_xgboost_model(hook, num_round=10, seed=42, params=None):
 
     np.random.seed(seed)
 
@@ -15,7 +15,7 @@ def run_xgboost_model(hook, num_round=10, seed=42):
     test_label = np.random.randint(2, size=5)
     dtest = xgboost.DMatrix(test_data, label=test_label)
 
-    params = {}
+    params = params if params else {}
 
     xgboost.train(
         params,
