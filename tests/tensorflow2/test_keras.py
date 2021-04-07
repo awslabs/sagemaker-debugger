@@ -14,7 +14,7 @@ from pathlib import Path
 
 # Third Party
 import pytest
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 import tensorflow_datasets as tfds
 from tests.constants import TEST_DATASET_S3_PATH
 from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
