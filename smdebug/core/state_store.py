@@ -1,6 +1,8 @@
 # Standard Library
+import fcntl
 import json
 import os
+import shutil
 
 # First Party
 from smdebug.core.config_constants import (
@@ -33,20 +35,32 @@ class StateStore:
                     file != METADATA_FILENAME
                     and file != METADATA_FILENAME_S3_UPLOADED
                     and "sagemaker-uploaded" not in file
+                    and "sagemaker-uploading" not in file
                 ):
                     checkpoint_files.append(os.path.join(child, file))
         return sorted(checkpoint_files)
 
-    def __init__(self):
+    def __init__(self, chief_worker_name):
         self._saved_states = []
+        self.chief_worker_name = chief_worker_name
         self._states_file = None
         self._checkpoint_dir = None
-        self._retrieve_path_to_checkpoint()
+        try:
+            self._retrieve_path_to_checkpoint()
+        except json.JSONDecodeError:
+            # above operation is no-op in case of failure
+            logger.debug("_retrieve_path_to_checkpoint failed due to malformed json")
         self._last_seen_checkpoint_files = []
         self._last_seen_cp_files_size = []
         if self._checkpoint_dir is not None:
-            self._states_file = os.path.join(self._checkpoint_dir, METADATA_FILENAME)
-            self._read_states_file()
+            self._states_file = os.path.join(
+                self._checkpoint_dir, METADATA_FILENAME + "_" + self.chief_worker_name
+            )
+            try:
+                self._read_states_file()
+            except json.JSONDecodeError:
+                # above operation is no-op in case of failure
+                logger.debug("_read_states_file failed due to malformed json")
             self._last_seen_checkpoint_files = self._get_checkpoint_files_in_dir(
                 self._checkpoint_dir
             )
@@ -175,11 +189,39 @@ class StateStore:
             return self._saved_states[-1]
         return None
 
-    def update_state(self, ts_state):
+    def update_state(self, ts_state, worker_name):
+        # TODO: make update state an atomic write
         """
         Write the passed state to state file. Since the state file is stored in the same folder as
         that of checkpoints, we update the checkpoint update timestamp after state is written to the file.
         """
         self._saved_states.append(ts_state)
-        with open(self._states_file, "w") as out_file:
-            json.dump(self._saved_states, out_file)
+        metadata_filename_with_worker_prefix = METADATA_FILENAME + "_" + worker_name
+        metadata_filename_with_worker_prefix = os.path.join(
+            self._checkpoint_dir, metadata_filename_with_worker_prefix
+        )
+
+        # TODO: remove if duplicate during code review
+        # we update the states file name here because the fi
+        self._states_file = metadata_filename_with_worker_prefix
+
+        # temporary files are ignored by upload agent
+        tmp_metadata_filename_with_worker_prefix = metadata_filename_with_worker_prefix + ".tmp"
+        try:
+            with open(tmp_metadata_filename_with_worker_prefix, "r") as read_file_handler:
+                # F-Lock is placed on the file-descriptor.
+                # Adds an additional barrier if the file is opened by another process.
+                fcntl.flock(read_file_handler, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with open(tmp_metadata_filename_with_worker_prefix, "w") as out_file:
+                    json.dump(tmp_metadata_filename_with_worker_prefix, out_file)
+                # Move operation for atomic file writes.
+                shutil.move(
+                    tmp_metadata_filename_with_worker_prefix, metadata_filename_with_worker_prefix
+                )
+
+        except BlockingIOError:
+            logger.debug(
+                f"{tmp_metadata_filename_with_worker_prefix} was already opened by another process"
+            )
+        except Exception:
+            logger.debug(f"Exception while updatiing {tmp_metadata_filename_with_worker_prefix}")
