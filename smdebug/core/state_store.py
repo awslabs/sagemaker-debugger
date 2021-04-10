@@ -219,7 +219,7 @@ class StateStore:
                     tmp_metadata_filename_with_worker_prefix, metadata_filename_with_worker_prefix
                 )
 
-        except BlockingIOError:
+        except BlockingIOError:  # raised by flock.
             logger.debug(
                 f"{tmp_metadata_filename_with_worker_prefix} was already opened by another process"
             )
