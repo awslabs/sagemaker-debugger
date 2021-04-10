@@ -161,7 +161,7 @@ class BaseHook:
         )
 
         self.dry_run = dry_run
-        self.worker = None
+        self.worker = None  # worker name
         # when smdebug is used during an unsupported dist training process
         # we write data only from the process that has self.first_process set to True.
         self.first_process = None
@@ -263,7 +263,7 @@ class BaseHook:
         return {}
 
     def _initialize_to_last_saved_state(self):
-        self.state_store = StateStore()
+        self.state_store = StateStore(chief_worker_name=self.chief_worker)
         last_state = self.state_store.get_last_saved_state()
         if last_state is not None:
             self.last_saved_step = last_state[LATEST_GLOBAL_STEP_SAVED]
@@ -319,6 +319,9 @@ class BaseHook:
     @abstractmethod
     def _is_not_supported(self):
         pass
+
+    def _is_chief_worker(self):
+        return self.worker == self.chief_worker
 
     #### Save Manager methods ####
 
@@ -560,7 +563,8 @@ class BaseHook:
 
     def _increment_step(self):
         # Update the last_state to the last step number that was saved or seen
-        self._write_state()
+        if self._is_chief_worker():
+            self._write_state()
 
         self.step += 1
         self.mode_steps[self.mode] += 1
@@ -591,7 +595,7 @@ class BaseHook:
         return self.is_tensor_saved_for_step(tensor_name)
 
     def _write_state(self):
-        if self.state_store.is_checkpoint_updated():
+        if self.state_store.is_checkpoint_updated() and self._is_chief_worker():
             current_state = dict()
             current_state[TRAINING_RUN] = self.training_run
             current_state[LATEST_GLOBAL_STEP_SAVED] = self.last_saved_step
@@ -600,7 +604,9 @@ class BaseHook:
             for (mode, step) in self.mode_steps.items():
                 mode_step[mode.name] = step
             current_state[LATEST_MODE_STEP] = mode_step
-            self.state_store.update_state(current_state)
+            if self._is_chief_worker():
+                # smdebug state_store updates will only be performed by chief worker.
+                self.state_store.update_state(current_state, self.worker)
 
     def save_tensor(self, tensor_name, tensor_value, collections_to_write=CollectionKeys.DEFAULT):
         if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
