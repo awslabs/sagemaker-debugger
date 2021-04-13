@@ -134,7 +134,7 @@ class Heatmap:
 
         return system_metrics
 
-    def create_plot(self, max_width=5500):
+    def create_plot(self):
 
         # define list of metric names (needed for tooltip)
         tmp = []
@@ -168,7 +168,7 @@ class Heatmap:
             plot_width=1000,
             tools="crosshair,reset,xwheel_zoom, box_edit",
         )
-        self.plot.xaxis.axis_label = "Time since training start"
+        self.plot.xaxis.axis_label = "Indices"
         # tooltip
         hover = HoverTool(
             tooltips=[("usage", "@image"), ("metric", "@metric"), ("index", "$x{10}")]
@@ -198,7 +198,7 @@ class Heatmap:
         self.plot.add_tools(hover)
         self.plot.xgrid.visible = False
         self.plot.ygrid.visible = False
-        self.plot.yaxis.ticker = FixedTicker(ticks=np.arange(0, ymax + 2).tolist())
+        self.plot.yaxis.ticker = FixedTicker(ticks=np.arange(0, ymax).tolist())
         self.plot.yaxis.major_label_text_font_size = "7pt"
         self.plot.yaxis.major_label_overrides = yaxis
         self.plot.xaxis.major_label_text_font_size = "0pt"
