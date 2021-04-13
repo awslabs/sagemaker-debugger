@@ -1,16 +1,15 @@
 # Standard Library
 import re
+from copy import deepcopy
 
 # Third Party
 import bokeh
 import numpy as np
-from bokeh.io import output_notebook, show
+from bokeh.io import show
 from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.models.glyphs import Image
 from bokeh.models.tickers import FixedTicker
 from bokeh.plotting import figure, show
-
-output_notebook(hide_banner=True)
 
 
 class Heatmap:
@@ -20,7 +19,7 @@ class Heatmap:
         select_metrics=[],
         starttime=0,
         endtime=None,
-        select_dimensions=[".*CPU", ".*GPU", ".*Memory"],
+        select_dimensions=[".*CPU", ".*GPU"],
         select_events=[".*"],
         plot_height=350,
         show_workers=True,
@@ -32,7 +31,7 @@ class Heatmap:
         self.metrics_reader = metrics_reader
         self.available_dimensions = []
         self.available_events = []
-        self.start = 0  # replace with system_metrics_reader.get_first_available_timestamp()/1000000
+        self.start = 0  # system_metrics_reader.get_first_available_timestamp()
 
         if endtime == None:
             # get timestamp of latest file and events
@@ -47,7 +46,6 @@ class Heatmap:
 
         # get timestamp of latest file and events
         self.last_timestamp = self.metrics_reader.get_timestamp_of_latest_available_file()
-        events = self.metrics_reader.get_events(0, self.last_timestamp)
 
         self.system_metrics = self.preprocess_system_metrics(events, system_metrics={})
         self.create_plot()
@@ -62,36 +60,34 @@ class Heatmap:
                 system_metrics[event.node_id][event.dimension] = {}
             if event.name not in system_metrics[event.node_id][event.dimension]:
                 system_metrics[event.node_id][event.dimension][event.name] = []
-            system_metrics[event.node_id][event.dimension][event.name].append(
-                [event.timestamp, event.value]
-            )
+            system_metrics[event.node_id][event.dimension][event.name].append(event.value)
 
         for node in system_metrics:
             for dimension in system_metrics[node]:
+
                 if dimension not in self.available_dimensions:
                     self.available_dimensions.append(dimension)
+
                 for event in system_metrics[node][dimension]:
+
                     if event not in self.available_events:
                         self.available_events.append(event)
+
                     # convert to numpy
                     system_metrics[node][dimension][event] = np.array(
                         system_metrics[node][dimension][event]
                     )
 
-                    # Convert network and I/O metrics into percentage (max color value in heatmap is 100)
+                    # convert metrics to percentages
                     if dimension in ["Algorithm", "Platform", ""]:
                         max_value = np.max(system_metrics[node][dimension][event])
-                        system_metrics[node][dimension][event] = (
-                            system_metrics[node][dimension][event] / max_value
-                        )
+                        if max_value != 0:
+                            system_metrics[node][dimension][event] = (
+                                system_metrics[node][dimension][event] / max_value
+                            )
                         system_metrics[node][dimension][event] = (
                             system_metrics[node][dimension][event] * 100
                         )
-
-                    # subtract first timestamp
-                    system_metrics[node][dimension][event][:, 0] = (
-                        system_metrics[node][dimension][event][:, 0] - self.start
-                    )
 
         # compute total utilization per event dimension
         for node in system_metrics:
@@ -101,9 +97,9 @@ class Heatmap:
                 system_metrics[node][dimension]["total"] = np.array(total) / n
                 self.available_events.append("total")
 
-        # compute total utilization per node
         nodes = list(system_metrics.keys())
         system_metrics["node_total"] = {}
+
         for dimension in system_metrics[nodes[0]]:
             system_metrics["node_total"][dimension] = {}
             node_total = []
@@ -118,8 +114,7 @@ class Heatmap:
                     else:
                         node_total = node_total + system_metrics[node][dimension]["total"][:len2]
                 else:
-                    node_total = system_metrics[node][dimension]["total"]
-
+                    node_total = deepcopy(system_metrics[node][dimension]["total"])
             system_metrics["node_total"][dimension]["total"] = node_total / (len(nodes))
 
         self.filtered_events = []
@@ -139,7 +134,7 @@ class Heatmap:
 
         return system_metrics
 
-    def create_plot(self):
+    def create_plot(self, max_width=5500):
 
         # define list of metric names (needed for tooltip)
         tmp = []
@@ -147,27 +142,19 @@ class Heatmap:
         yaxis = {}
 
         # number of datapoints
-        max_width = 0
-        for key in self.system_metrics.keys():
-            if key.startswith("CPUUtilization"):
-                width = self.system_metrics[key]["total"].shape[0]
-                if width >= max_width:
-                    max_width = width
         self.width = max_width
 
         for node in self.system_metrics:
-            for dimension in self.filtered_dimensions:
-                for event in self.system_metrics[node][dimension]:
-                    if event in self.filtered_events:
-                        values = self.system_metrics[node][dimension][event][: self.width, 1]
-                        tmp.append(values)
-                        metric_names.insert(0, dimension + "_" + event + "_" + node),
-                        timestamps = self.system_metrics[node][dimension][event][: self.width, 0]
+            for dimension in self.system_metrics[node]:
+                if dimension in self.filtered_dimensions:
+                    for event in self.system_metrics[node][dimension]:
+                        if event in self.filtered_events:
+                            values = self.system_metrics[node][dimension][event][: self.width]
+                            tmp.append(values)
+                            metric_names.append(dimension + "_" + event + "_" + node)
+                            yaxis[len(tmp)] = dimension + "_" + event + "_" + node
 
-        for index, metric in enumerate(metric_names):
-            yaxis[len(tmp) - index] = metric
-
-        ymax = len(tmp) + 1
+        ymax = len(tmp)
         yaxis[ymax] = ""
 
         # define figure
@@ -181,7 +168,7 @@ class Heatmap:
             plot_width=1000,
             tools="crosshair,reset,xwheel_zoom, box_edit",
         )
-        self.plot.xaxis.axis_label = "Indices"
+        self.plot.xaxis.axis_label = "Time since training start"
         # tooltip
         hover = HoverTool(
             tooltips=[("usage", "@image"), ("metric", "@metric"), ("index", "$x{10}")]
@@ -211,8 +198,8 @@ class Heatmap:
         self.plot.add_tools(hover)
         self.plot.xgrid.visible = False
         self.plot.ygrid.visible = False
-        self.plot.yaxis.ticker = FixedTicker(ticks=np.arange(0, ymax).tolist())
-        self.plot.yaxis.major_label_text_font_size = "5pt"
+        self.plot.yaxis.ticker = FixedTicker(ticks=np.arange(0, ymax + 2).tolist())
+        self.plot.yaxis.major_label_text_font_size = "7pt"
         self.plot.yaxis.major_label_overrides = yaxis
-
+        self.plot.xaxis.major_label_text_font_size = "0pt"
         self.target = show(self.plot, notebook_handle=True)
