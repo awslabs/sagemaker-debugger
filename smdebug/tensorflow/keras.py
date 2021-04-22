@@ -477,7 +477,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
-    @error_handler.catch_smdebug_errors
+    @error_handler.catch_smdebug_errors()
     def should_save_layer(self, layer_name):
         # Called in AWS TF to determine
         # if a particular layer value

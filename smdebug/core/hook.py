@@ -395,8 +395,6 @@ class BaseHook:
         # Used in the internal framework forks to determine if the hook
         # is using the default hook configuration
         collections_being_saved = [x.name for x in self._collections_to_save]
-        print(collections_being_saved)
-        print(DEFAULT_SAVED_COLLECTIONS)
         if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
             return True
         return False
@@ -405,8 +403,6 @@ class BaseHook:
         return self.profiler_config_parser.config is None
 
     def has_default_configuration(self):
-        print(self.has_default_hook_configuration(), self.has_default_profiler_configuration())
-        print(self.has_default_hook_configuration() and self.has_default_profiler_configuration())
         return self.has_default_hook_configuration() and self.has_default_profiler_configuration()
 
     def _prepare_collections(self):
@@ -587,7 +583,7 @@ class BaseHook:
 
     # Called in the internal AWS codebase to determine
     # if a particular tensor value should be saved
-    @error_handler.catch_smdebug_errors
+    @error_handler.catch_smdebug_errors()
     def should_save_tensor_or_collection(self, tensor_name: str, collection_name: str) -> bool:
         if self.prepared_collections is False:
             # always return false if an attempt to save a
