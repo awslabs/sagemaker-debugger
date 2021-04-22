@@ -14,7 +14,12 @@ from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
-from smdebug.core.utils import check_smdataparallel_env, make_numpy_array, serialize_tf_device
+from smdebug.core.utils import (
+    check_smdataparallel_env,
+    error_handler,
+    make_numpy_array,
+    serialize_tf_device,
+)
 from smdebug.core.writer import FileWriter
 
 # Local
@@ -244,10 +249,12 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
+    @error_handler.catch_smdebug_errors(return_type=bool)
     def has_default_hook_configuration(self):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
         collections_being_saved = [x.name for x in self._collections_to_save]
+        print(collections_being_saved, TF_DEFAULT_SAVED_COLLECTIONS)
         if set(collections_being_saved) == set(TF_DEFAULT_SAVED_COLLECTIONS):
             return True
         return False

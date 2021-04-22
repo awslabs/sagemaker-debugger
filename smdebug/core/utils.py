@@ -19,6 +19,7 @@ from smdebug.core.config_constants import (
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.core.error_handler import ErrorHandler
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
@@ -61,6 +62,7 @@ except (ModuleNotFoundError, ImportError):
 
 
 logger = get_logger()
+error_handler = ErrorHandler()
 
 
 def make_numpy_array(x):

@@ -40,6 +40,7 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.utils import (
+    error_handler,
     flatten,
     get_tb_worker,
     is_first_process,
@@ -150,9 +151,11 @@ class BaseHook:
         include_workers: str
             makes the hook save data from all workers
 
+
         profiler_config_parser: ProfilerConfigParser object
             if passed, use this profiler configuration. by default, set up a new profiler configuration here.
         """
+        error_handler.set_hook(self)
         self.out_dir = verify_and_get_out_dir(out_dir)
         self.tensorboard_dir = get_tensorboard_dir(
             export_tensorboard=export_tensorboard,
@@ -332,6 +335,7 @@ class BaseHook:
         self._assert_prep()
         return self._collections_to_save
 
+    @error_handler.catch_smdebug_errors(return_type=bool)
     def _is_collection_being_saved_for_step(self, name):
         # if saving all, all collections will be part of colls_for_step
         colls_for_step = self._get_collections_to_save_for_step()
@@ -359,7 +363,7 @@ class BaseHook:
                 )
         return self._collections_to_save_for_step
 
-    def is_tensor_saved_for_step(self, tensor_name):
+    def _is_tensor_saved_for_step(self, tensor_name):
         collections_to_save = self._get_collections_to_save_for_step()
         for c in collections_to_save:
             if match_inc(tensor_name, c.include_regex):
@@ -391,9 +395,19 @@ class BaseHook:
         # Used in the internal framework forks to determine if the hook
         # is using the default hook configuration
         collections_being_saved = [x.name for x in self._collections_to_save]
+        print(collections_being_saved)
+        print(DEFAULT_SAVED_COLLECTIONS)
         if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
             return True
         return False
+
+    def has_default_profiler_configuration(self):
+        return self.profiler_config_parser.config is None
+
+    def has_default_configuration(self):
+        print(self.has_default_hook_configuration(), self.has_default_profiler_configuration())
+        print(self.has_default_hook_configuration() and self.has_default_profiler_configuration())
+        return self.has_default_hook_configuration() and self.has_default_profiler_configuration()
 
     def _prepare_collections(self):
         """Populate collections_to_save and ensure every collection has
@@ -573,6 +587,7 @@ class BaseHook:
 
     # Called in the internal AWS codebase to determine
     # if a particular tensor value should be saved
+    @error_handler.catch_smdebug_errors
     def should_save_tensor_or_collection(self, tensor_name: str, collection_name: str) -> bool:
         if self.prepared_collections is False:
             # always return false if an attempt to save a
@@ -588,7 +603,7 @@ class BaseHook:
         if self._is_collection_being_saved_for_step(collection_name):
             c = self.collection_manager.get(collection_name)
             return match_inc(tensor_name, c.include_regex) or c.include_regex == []
-        return self.is_tensor_saved_for_step(tensor_name)
+        return self._is_tensor_saved_for_step(tensor_name)
 
     def _write_state(self):
         if self.state_store.is_checkpoint_updated():
@@ -602,6 +617,7 @@ class BaseHook:
             current_state[LATEST_MODE_STEP] = mode_step
             self.state_store.update_state(current_state)
 
+    @error_handler.catch_smdebug_errors()
     def save_tensor(self, tensor_name, tensor_value, collections_to_write=CollectionKeys.DEFAULT):
         if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:
             self.logger.warn("The tensor value could not be converted into a numpy value")
@@ -619,6 +635,7 @@ class BaseHook:
             self._write_raw_tensor(tensor_name, tensor_value, [c])
         self.custom_tensors_to_save.clear()
 
+    @error_handler.catch_smdebug_errors()
     def set_mode(self, mode):
         # train
         if mode in ALLOWED_MODES:
@@ -633,6 +650,7 @@ class BaseHook:
 
         self._collections_to_save_for_step = None
 
+    @error_handler.catch_smdebug_errors()
     def export_collections(self):
         num_workers = self._get_num_workers()
         if num_workers == 1 and self.first_process is False:
@@ -727,6 +745,7 @@ class BaseHook:
                     )
                     break
 
+    @error_handler.catch_smdebug_errors()
     def record_trace_events(
         self, timestamp, training_phase="", op_name="", phase="X", duration=1, **kwargs
     ):
@@ -787,6 +806,7 @@ class BaseHook:
         self.scalar_cache = []
 
     # Fix step number for saving scalar and tensor
+    @error_handler.catch_smdebug_errors()
     def save_scalar(self, name, value, sm_metric=False, timestamp: float = None):
         """
         Call save_scalar at any point in the training script to log a scalar value,
