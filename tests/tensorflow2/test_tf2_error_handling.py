@@ -122,7 +122,9 @@ def test_tf2_keras_callback_error_handling(
     # Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(Hook.on_train_batch_begin)
     assert error_handler.disabled is False
 
+    print(hook_with_keras_callback_error._collections_to_save)
     hook_with_keras_callback_error._prepare_collections_for_tf2()
+    print(hook_with_keras_callback_error._collections_to_save)
     assert hook_with_keras_callback_error.has_default_configuration()
 
     helper_keras_fit(
