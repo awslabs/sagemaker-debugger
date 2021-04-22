@@ -74,7 +74,7 @@ def set_up(out_dir, stack_trace_filepath):
     Path(stack_trace_filepath).touch()
     file_handler = logging.FileHandler(filename=stack_trace_filepath)
     logger.addHandler(file_handler)
-    error_handler.reset()
+    error_handler.disabled = False
 
 
 def test_no_smdebug_error(stack_trace_filepath, dummy_clean_function):

@@ -87,7 +87,7 @@ def set_up(out_dir):
     os.makedirs(out_dir)
     file_handler = logging.FileHandler(filename=f"{out_dir}/tmp.log")
     logger.addHandler(file_handler)
-    error_handler.reset()
+    error_handler.disabled = False
 
 
 @pytest.fixture
