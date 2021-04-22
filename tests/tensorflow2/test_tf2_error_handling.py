@@ -122,6 +122,9 @@ def test_tf2_keras_callback_error_handling(
     # Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(Hook.on_train_batch_begin)
     assert error_handler.disabled is False
 
+    hook_with_keras_callback_error._prepare_collections_for_tf2()
+    assert hook_with_keras_callback_error.has_default_configuration()
+
     helper_keras_fit(
         trial_dir=out_dir,
         hook=hook_with_keras_callback_error,
@@ -146,6 +149,9 @@ def test_tf2_layer_callback_error_handling(
     """
     # Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(Hook.on_train_batch_begin)
     assert error_handler.disabled is False
+
+    hook_with_layer_callback_error._prepare_collections_for_tf2()
+    assert hook_with_layer_callback_error.has_default_configuration()
 
     helper_keras_fit(
         trial_dir=out_dir,

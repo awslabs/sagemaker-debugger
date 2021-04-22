@@ -101,7 +101,7 @@ def helper_keras_fit(
                 )
             )
     hooks.append(hook)
-
+    hook.register_model(model)
     if steps is None:
         steps = ["train"]
     for step in steps:

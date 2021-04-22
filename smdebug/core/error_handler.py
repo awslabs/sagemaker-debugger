@@ -25,7 +25,6 @@ class ErrorHandler(object):
         def wrapper(func, *wrapper_args, **wrapper_kwargs):
             @functools.wraps(func)
             def error_handler(*handler_args, **handler_kwargs):
-                print(func.__name__)
                 a = wrapper_args + handler_args
                 kw = {**wrapper_kwargs, **handler_kwargs}
 
