@@ -254,7 +254,6 @@ class TensorflowBaseHook(BaseHook):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
         collections_being_saved = [x.name for x in self._collections_to_save]
-        print(collections_being_saved, TF_DEFAULT_SAVED_COLLECTIONS)
         if set(collections_being_saved) == set(TF_DEFAULT_SAVED_COLLECTIONS):
             return True
         return False
