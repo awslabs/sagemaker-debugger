@@ -11,14 +11,12 @@ from tests.tensorflow2.test_keras import helper_keras_fit
 from smdebug.core.error_handler import BASE_ERROR_MESSAGE
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import error_handler
-from smdebug.tensorflow import KerasHook as Hook
 
 
-def _get_on_train_batch_begin_error_fn(on_train_batch_begin):
-    @error_handler.catch_smdebug_errors
+def _get_on_train_batch_begin_error_fn(error_message):
+    @error_handler.catch_smdebug_errors()
     def on_train_batch_begin_error(self, batch, logs=None):
-        on_train_batch_begin(batch, logs=logs)
-        assert False
+        raise RuntimeError(error_message)
 
     return on_train_batch_begin_error
 
@@ -31,17 +29,9 @@ def _get_wrap_model_with_input_output_saver_error_fn(
             # assert False, 2
             old_call_fn = layer.old_call
 
-            # @error_handler.catch_smdebug_layer_call_errors(old_call_fn=old_call_fn)
+            @error_handler.catch_smdebug_layer_call_errors(old_call_fn=old_call_fn)
             def call(inputs, *args, **kwargs):
-                assert False, 1
-                layer_input = inputs
-                layer_output = old_call_fn(inputs, *args, **kwargs)
-                for hook in layer._hooks:
-                    hook_result = hook(inputs, layer_input=layer_input, layer_output=layer_output)
-                    if hook_result is not None:
-                        layer_output = hook_result
-                raise RuntimeError(error_message)
-                return layer_output
+                raise ValueError(error_message)
 
             return call
 
@@ -69,9 +59,16 @@ def set_up(out_dir, stack_trace_filepath):
 
 
 @pytest.fixture
-def error_message():
+def runtime_error_message():
     return (
         "If this RuntimeError causes the test to fail, the error handler failed to catch the error!"
+    )
+
+
+@pytest.fixture
+def value_error_message():
+    return (
+        "If this ValueError causes the test to fail, the error handler failed to catch the error!"
     )
 
 
@@ -93,22 +90,73 @@ def set_up(out_dir):
     error_handler.reset()
 
 
-def test_tf2_error_handling(out_dir, stack_trace_filepath, error_message):
+@pytest.fixture
+def hook_with_keras_callback_error(out_dir, runtime_error_message):
+    from smdebug.tensorflow import KerasHook as Hook
+
+    old_on_train_batch_begin = Hook.on_train_batch_begin
+    Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(runtime_error_message)
+    yield Hook(out_dir=out_dir)
+    Hook.on_train_batch_begin = old_on_train_batch_begin
+
+
+@pytest.fixture
+def hook_with_layer_callback_error(out_dir, value_error_message):
+    from smdebug.tensorflow import KerasHook as Hook
+
+    old_wrap_model_with_input_output_saver = Hook._wrap_model_with_input_output_saver
+    Hook._wrap_model_with_input_output_saver = _get_wrap_model_with_input_output_saver_error_fn(
+        Hook._wrap_model_with_input_output_saver, value_error_message
+    )
+    yield Hook(out_dir=out_dir)
+    Hook._wrap_model_with_input_output_saver = old_wrap_model_with_input_output_saver
+
+
+def test_tf2_keras_callback_error_handling(
+    hook_with_keras_callback_error, out_dir, stack_trace_filepath, runtime_error_message
+):
     """
     This test executes a TF2 training script, enables detailed TF profiling by step, and
     verifies the number of events.
     """
     # Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(Hook.on_train_batch_begin)
     assert error_handler.disabled is False
-    Hook._wrap_model_with_input_output_saver = _get_wrap_model_with_input_output_saver_error_fn(
-        Hook._wrap_model_with_input_output_saver, error_message
+
+    helper_keras_fit(
+        trial_dir=out_dir,
+        hook=hook_with_keras_callback_error,
+        eager=True,
+        steps=["train", "eval", "predict"],
     )
-    hook = Hook(out_dir=out_dir)
-    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=True, steps=["train", "eval", "predict"])
-    hook.close()
+    hook_with_keras_callback_error.close()
 
     # assert error_handler.disabled is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
-        assert error_message in stack_trace_logs
+        assert runtime_error_message in stack_trace_logs
+
+
+def test_tf2_layer_callback_error_handling(
+    hook_with_layer_callback_error, out_dir, stack_trace_filepath, value_error_message
+):
+    """
+    This test executes a TF2 training script, enables detailed TF profiling by step, and
+    verifies the number of events.
+    """
+    # Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(Hook.on_train_batch_begin)
+    assert error_handler.disabled is False
+
+    helper_keras_fit(
+        trial_dir=out_dir,
+        hook=hook_with_layer_callback_error,
+        eager=True,
+        steps=["train", "eval", "predict"],
+    )
+    hook_with_layer_callback_error.close()
+
+    # assert error_handler.disabled is True
+    with open(stack_trace_filepath) as logs:
+        stack_trace_logs = logs.read()
+        assert BASE_ERROR_MESSAGE in stack_trace_logs
+        assert value_error_message in stack_trace_logs

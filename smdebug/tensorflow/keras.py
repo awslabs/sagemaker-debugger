@@ -170,6 +170,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # layer values
         self.model = model
         self._wrap_model_with_input_output_saver()
+        print(model.layers[0].call)
         self.has_registered_model = True
 
     def _get_matching_collections(
@@ -729,9 +730,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _prepare_collections_for_tf2(self):
         self._prepare_collections()
-        if self.has_default_hook_configuration():
-            # wrapping the model is only supported if the hook does not have the default hook configuration
-            self._unwrap_model_with_input_output_saver()
+        # if self.has_default_hook_configuration():
+        # wrapping the model is only supported if the hook does not have the default hook configuration
+        # self._unwrap_model_with_input_output_saver()
 
     @error_handler.catch_smdebug_errors()
     def on_epoch_begin(self, batch, logs=None):
