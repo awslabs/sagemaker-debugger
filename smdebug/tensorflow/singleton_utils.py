@@ -14,7 +14,7 @@ from smdebug.core.singleton_utils import del_hook, set_hook  # noqa
 from smdebug.core.utils import error_handler
 
 
-@error_handler.catch_smdebug_errors
+@error_handler.catch_smdebug_errors()
 def get_hook(
     hook_type: str = None, json_config_path: str = None, create_if_not_exists: bool = False
 ) -> "SessionHook":
