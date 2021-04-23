@@ -29,7 +29,7 @@ def _get_wrap_model_with_input_output_saver_error_fn(
             # assert False, 2
             old_call_fn = layer.old_call
 
-            @error_handler.catch_smdebug_layer_call_errors(old_call_fn=old_call_fn)
+            @error_handler.catch_smdebug_errors(return_type="layer_call", old_call_fn=old_call_fn)
             def call(inputs, *args, **kwargs):
                 raise ValueError(error_message)
 
@@ -87,7 +87,7 @@ def set_up(out_dir):
     os.makedirs(out_dir)
     file_handler = logging.FileHandler(filename=f"{out_dir}/tmp.log")
     logger.addHandler(file_handler)
-    error_handler.disabled = False
+    error_handler.disable_smdebug = False
 
 
 @pytest.fixture
@@ -119,8 +119,7 @@ def test_tf2_keras_callback_error_handling(
     This test executes a TF2 training script, enables detailed TF profiling by step, and
     verifies the number of events.
     """
-    # Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(Hook.on_train_batch_begin)
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
 
     print(hook_with_keras_callback_error._collections_to_save)
     hook_with_keras_callback_error._prepare_collections_for_tf2()
@@ -149,8 +148,7 @@ def test_tf2_layer_callback_error_handling(
     This test executes a TF2 training script, enables detailed TF profiling by step, and
     verifies the number of events.
     """
-    # Hook.on_train_batch_begin = _get_on_train_batch_begin_error_fn(Hook.on_train_batch_begin)
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
 
     hook_with_layer_callback_error._prepare_collections_for_tf2()
     assert hook_with_layer_callback_error.has_default_configuration()

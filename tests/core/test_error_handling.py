@@ -74,23 +74,23 @@ def set_up(out_dir, stack_trace_filepath):
     Path(stack_trace_filepath).touch()
     file_handler = logging.FileHandler(filename=stack_trace_filepath)
     logger.addHandler(file_handler)
-    error_handler.disabled = False
+    error_handler.disable_smdebug = False
 
 
 def test_no_smdebug_error(stack_trace_filepath, dummy_clean_function):
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
     return_val = dummy_clean_function()
     assert return_val is None
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         assert logs.read() == ""
 
 
 def test_smdebug_error(stack_trace_filepath, dummy_error_function, runtime_error_message):
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
     return_val = dummy_error_function()
     assert return_val is None
-    assert error_handler.disabled is True
+    assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
@@ -100,10 +100,10 @@ def test_smdebug_error(stack_trace_filepath, dummy_error_function, runtime_error
 def test_no_smdebug_error_with_return_val(
     stack_trace_filepath, dummy_clean_function_with_return_val
 ):
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
     return_val = dummy_clean_function_with_return_val()
     assert return_val is True
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         assert logs.read() == ""
 
@@ -111,10 +111,10 @@ def test_no_smdebug_error_with_return_val(
 def test_smdebug_error_with_return_val(
     stack_trace_filepath, dummy_error_function_with_return_val, value_error_message
 ):
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
     return_val = dummy_error_function_with_return_val()
     assert return_val is False
-    assert error_handler.disabled is True
+    assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
@@ -129,10 +129,10 @@ def test_disabled_smdebug(
     runtime_error_message,
     value_error_message,
 ):
-    assert error_handler.disabled is False
+    assert error_handler.disable_smdebug is False
     return_val = dummy_error_function()
     assert return_val is None
-    assert error_handler.disabled is True
+    assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
@@ -143,12 +143,12 @@ def test_disabled_smdebug(
 
     return_val = dummy_clean_function_with_return_val()
     assert return_val is False
-    assert error_handler.disabled is True
+    assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         assert logs.read() == ""
 
     return_val = dummy_error_function_with_return_val()
     assert return_val is False
-    assert error_handler.disabled is True
+    assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         assert logs.read() == ""

@@ -61,7 +61,7 @@ if profiler_config_parser.profiling_enabled:
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
-    @error_handler.catch_smdebug_constructor_errors
+    @error_handler.catch_smdebug_errors()
     def __init__(
         self,
         out_dir,

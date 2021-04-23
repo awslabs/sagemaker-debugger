@@ -41,7 +41,7 @@ class ErrorHandler(object):
         """
         self.hook = hook
 
-    def catch_smdebug_errors(self, return_type=None, *args, **kwargs):
+    def catch_smdebug_errors(self, return_type=None, **handler_kwargs):
         """
         This function is designed to be wrapped around all smdebug functions that are called externally, so that any
         errors arising from the wrapped functions or the resulting smdebug or third party functions called are caught
@@ -71,14 +71,17 @@ class ErrorHandler(object):
             return True
         """
 
-        def wrapper(func, *wrapper_args, **wrapper_kwargs):
+        def wrapper(func, **wrapper_kwargs):
             @functools.wraps(func)
-            def error_handler(*handler_args, **handler_kwargs):
-                a = wrapper_args + handler_args
-                kw = {**wrapper_kwargs, **handler_kwargs}
+            def error_handler(*args, **fn_kwargs):
+                # Get all kwargs passed to the wrapper or the actual function.
+                kwargs = {**wrapper_kwargs, **fn_kwargs}
 
+                # Determine default return value based on the return type.
                 if return_type == bool:
                     return_val = False
+                elif return_type == "layer_call":
+                    return_val = handler_kwargs["old_call_fn"](*args, **kwargs)
                 else:
                     return_val = None
 
@@ -87,89 +90,19 @@ class ErrorHandler(object):
                     return return_val
 
                 try:
-                    return func(*a, **kw)
+                    # Attempt calling the smdebug function and returning the output
+                    return func(*args, **kwargs)
                 except Exception as e:
-                    # If an smdebug error occurred with the default configuration or it occurred before the configuration
-                    # can even be determined (i.e. the constructor), catch the error and log it.
+                    # If an smdebug error occurred with the default configuration or it occurred before the
+                    # configuration can even be determined (i.e. the constructor), catch the error and log it.
                     if self.hook is None or self.hook.has_default_configuration():
                         self.logger.error(BASE_ERROR_MESSAGE)
                         self.logger.exception(e)  # Log stack trace.
                         self.disable_smdebug = True  # Disable smdebug
                         return return_val
                     else:
-                        raise e
+                        raise e  # Raise the error normally
 
             return error_handler
 
         return wrapper
-
-    def catch_smdebug_layer_call_errors(self, *args, **kwargs):
-        def wrapper(func):
-            @functools.wraps(func)
-            def error_handler(*a, **kw):
-                return_val = kwargs["old_call_fn"](*a, **kw)
-
-                # Return immediately if smdebug is disabled.
-                if self.disabled:
-                    return return_val
-
-                try:
-                    return func(*a, **kw)
-                except Exception as e:
-                    # If an smdebug error occurred with the default configuration or it occurred before the configuration
-                    # can even be determined (i.e. the constructor), catch the error and log it.
-                    if self.hook is None or self.hook.has_default_configuration():
-                        self.logger.error(BASE_ERROR_MESSAGE)
-                        self.logger.exception(e)  # Log stack trace.
-                        self.disabled = True  # Disable smdebug
-                        return return_val
-                    else:
-                        raise e
-
-            return error_handler
-
-        return wrapper
-
-    def catch_smdebug_constructor_errors(self, func, return_type=None, *args, **kwargs):
-        @functools.wraps(func)
-        def error_handler(*a, **kw):
-            # Return immediately if smdebug is disabled.
-            if self.disabled:
-                return
-
-            try:
-                func(*a, **kw)
-            except Exception as e:
-                # If an smdebug error occurred with the default configuration or it occurred before the configuration
-                # can even be determined (i.e. the constructor), catch the error and log it.
-                if self.hook is None or self.hook.has_default_configuration():
-                    self.logger.error(BASE_ERROR_MESSAGE)
-                    self.logger.exception(e)  # Log stack trace.
-                    self.disabled = True  # Disable smdebug
-                else:
-                    raise e
-
-        return error_handler
-
-
-# class GetHookErrorHandler(ErrorHandler):
-#     def catch_smdebug_errors(self, func):
-#         @functools.wraps(func)
-#         def error_handler(*a, **kw):
-#             # Return immediately if smdebug is disabled.
-#             if self.disabled:
-#                 return
-#
-#             try:
-#                 func(*a, **kw)
-#             except Exception as e:
-#                 # If an smdebug error occurred with the default configuration or it occurred before the configuration
-#                 # can even be determined (i.e. the constructor), catch the error and log it.
-#                 if self.hook is None or self.hook.has_default_configuration():
-#                     self.logger.error(BASE_ERROR_MESSAGE)
-#                     self.logger.exception(e)  # Log stack trace.
-#                     self.disabled = True  # Disable smdebug
-#                 else:
-#                     raise e
-#
-#         return error_handler
