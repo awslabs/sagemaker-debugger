@@ -47,7 +47,7 @@ def hook_with_layer_callback_error(out_dir, value_error_message):
     class HookWithBadLayerCallback(Hook):
         def _wrap_model_with_input_output_saver(self):
             def _get_layer_call_fn_error(layer):
-                old_call_fn = layer.old_call
+                old_call_fn = layer.call
 
                 @error_handler.catch_smdebug_errors(
                     return_type="layer_call", old_call_fn=old_call_fn
@@ -81,13 +81,7 @@ def test_tf2_keras_callback_error_handling(
     """
     assert error_handler.disable_smdebug is False
 
-    print(hook_with_keras_callback_error._collections_to_save)
     hook_with_keras_callback_error._prepare_collections_for_tf2()
-    print(hook_with_keras_callback_error._collections_to_save)
-    print(
-        hook_with_keras_callback_error.has_default_hook_configuration(),
-        hook_with_keras_callback_error.has_default_profiler_configuration(),
-    )
     assert hook_with_keras_callback_error.has_default_configuration()
 
     helper_keras_fit(
@@ -98,7 +92,7 @@ def test_tf2_keras_callback_error_handling(
     )
     hook_with_keras_callback_error.close()
 
-    # assert error_handler.disabled is True
+    assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
@@ -124,7 +118,7 @@ def test_tf2_layer_callback_error_handling(
     )
     hook_with_layer_callback_error.close()
 
-    # assert error_handler.disabled is True
+    assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
