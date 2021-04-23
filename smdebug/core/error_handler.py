@@ -71,12 +71,9 @@ class ErrorHandler(object):
             return True
         """
 
-        def wrapper(func, **wrapper_kwargs):
+        def wrapper(func):
             @functools.wraps(func)
-            def error_handler(*args, **fn_kwargs):
-                # Get all kwargs passed to the wrapper or the actual function.
-                kwargs = {**wrapper_kwargs, **fn_kwargs}
-
+            def error_handler(*args, **kwargs):
                 # Determine default return value based on the return type.
                 if return_type == bool:
                     return_val = False
