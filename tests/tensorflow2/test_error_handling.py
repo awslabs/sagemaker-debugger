@@ -123,6 +123,10 @@ def test_tf2_keras_callback_error_handling(
     print(hook_with_keras_callback_error._collections_to_save)
     hook_with_keras_callback_error._prepare_collections_for_tf2()
     print(hook_with_keras_callback_error._collections_to_save)
+    print(
+        hook_with_keras_callback_error.has_default_hook_configuration(),
+        hook_with_keras_callback_error.has_default_profiler_configuration(),
+    )
     assert hook_with_keras_callback_error.has_default_configuration()
 
     helper_keras_fit(
