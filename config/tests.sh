@@ -61,7 +61,7 @@ export OUT_DIR=upload/$CURRENT_COMMIT_PATH
 export REPORT_DIR=$OUT_DIR/pytest_reports
 #python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
 
-#run_for_framework core
+run_for_framework core
 
 if [ "$run_pytest_xgboost" = "enable" ] ; then
     run_for_framework xgboost

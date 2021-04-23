@@ -62,7 +62,7 @@ except (ModuleNotFoundError, ImportError):
 
 
 logger = get_logger()
-error_handler = ErrorHandler()
+error_handler = ErrorHandler()  # set up error handler to wrap smdebug functions
 
 
 def make_numpy_array(x):

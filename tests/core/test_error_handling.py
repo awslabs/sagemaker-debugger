@@ -69,6 +69,11 @@ def dummy_error_function_with_return_val(value_error_message):
 
 @pytest.fixture(autouse=True)
 def set_up(out_dir, stack_trace_filepath):
+    """
+    Setup function run before each test that:
+        - Adds a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
+        - Reenable the error handler if it was disabled before.
+    """
     logger = get_logger()
     os.makedirs(out_dir)
     Path(stack_trace_filepath).touch()
@@ -78,6 +83,10 @@ def set_up(out_dir, stack_trace_filepath):
 
 
 def test_no_smdebug_error(stack_trace_filepath, dummy_clean_function):
+    """
+    Test that wrapping the error handler around a function that doesn't throw an error will allow the function to
+    execute successfully without any errors thrown.
+    """
     assert error_handler.disable_smdebug is False
     return_val = dummy_clean_function()
     assert return_val is None
@@ -87,6 +96,10 @@ def test_no_smdebug_error(stack_trace_filepath, dummy_clean_function):
 
 
 def test_smdebug_error(stack_trace_filepath, dummy_error_function, runtime_error_message):
+    """
+        Test that wrapping the error handler around a function that throws an error will allow the error handler to
+        catch the error and log the stack trace correctly.
+        """
     assert error_handler.disable_smdebug is False
     return_val = dummy_error_function()
     assert return_val is None
