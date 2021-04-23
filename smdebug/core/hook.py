@@ -151,7 +151,6 @@ class BaseHook:
         include_workers: str
             makes the hook save data from all workers
 
-
         profiler_config_parser: ProfilerConfigParser object
             if passed, use this profiler configuration. by default, set up a new profiler configuration here.
         """
