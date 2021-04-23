@@ -75,9 +75,8 @@ fi
 
 if [ "$run_pytest_tensorflow2" = "enable" ] ; then
     pip install tensorflow_datasets==4.0.1
-    python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_profiler_core.html -v -s --self-contained-html tests/tensorflow2/test_tf2_error_handling.py
-#    run_for_framework tensorflow2
-#    run_profiler_test tensorflow2
+    run_for_framework tensorflow2
+    run_profiler_test tensorflow2
 fi
 
 if [ "$run_pytest_mxnet" = "enable" ] ; then
