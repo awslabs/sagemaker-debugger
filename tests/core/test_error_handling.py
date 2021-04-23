@@ -97,9 +97,9 @@ def test_no_smdebug_error(stack_trace_filepath, dummy_clean_function):
 
 def test_smdebug_error(stack_trace_filepath, dummy_error_function, runtime_error_message):
     """
-        Test that wrapping the error handler around a function that throws an error will allow the error handler to
-        catch the error and log the stack trace correctly.
-        """
+    Test that wrapping the error handler around a function that throws an error will allow the error handler to
+    catch the error and log the stack trace correctly.
+    """
     assert error_handler.disable_smdebug is False
     return_val = dummy_error_function()
     assert return_val is None
@@ -113,6 +113,10 @@ def test_smdebug_error(stack_trace_filepath, dummy_error_function, runtime_error
 def test_no_smdebug_error_with_return_val(
     stack_trace_filepath, dummy_clean_function_with_return_val
 ):
+    """
+    Test that wrapping the error handler around a function with a return value that doesn't throw an error will allow
+    the function to execute successfully and return the correct value without any errors thrown.
+    """
     assert error_handler.disable_smdebug is False
     return_val = dummy_clean_function_with_return_val()
     assert return_val is True
@@ -124,6 +128,10 @@ def test_no_smdebug_error_with_return_val(
 def test_smdebug_error_with_return_val(
     stack_trace_filepath, dummy_error_function_with_return_val, value_error_message
 ):
+    """
+    Test that wrapping the error handler around a function with a return value that throws an error will allow
+    the error handler to catch the error, log the stack trace correctly, and return the default value.
+    """
     assert error_handler.disable_smdebug is False
     return_val = dummy_error_function_with_return_val()
     assert return_val is False
@@ -142,6 +150,13 @@ def test_disabled_smdebug(
     runtime_error_message,
     value_error_message,
 ):
+    """
+    Test that disabling smdebug after an error is caught does the following:
+        - If an smdebug function that doesn't throw an error is called, the default return value is returned without
+          the function even being executed.
+        - If an smdebug function that does return an error is called, the default return value is returned and no
+          additional error is caught/logged.
+    """
     assert error_handler.disable_smdebug is False
     return_val = dummy_error_function()
     assert return_val is None

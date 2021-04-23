@@ -116,8 +116,7 @@ def test_tf2_keras_callback_error_handling(
     hook_with_keras_callback_error, out_dir, stack_trace_filepath, runtime_error_message
 ):
     """
-    This test executes a TF2 training script, enables detailed TF profiling by step, and
-    verifies the number of events.
+    Test that an error thrown by an smdebug Keras callback is caught and logged correctly by the error handler.
     """
     assert error_handler.disable_smdebug is False
 
@@ -145,8 +144,7 @@ def test_tf2_layer_callback_error_handling(
     hook_with_layer_callback_error, out_dir, stack_trace_filepath, value_error_message
 ):
     """
-    This test executes a TF2 training script, enables detailed TF profiling by step, and
-    verifies the number of events.
+    Test that an error thrown by an smdebug layer callback is caught and logged correctly by the error handler.
     """
     assert error_handler.disable_smdebug is False
 
