@@ -170,7 +170,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # layer values
         self.model = model
         self._wrap_model_with_input_output_saver()
-        print(model.layers[0].call)
         self.has_registered_model = True
 
     def _get_matching_collections(

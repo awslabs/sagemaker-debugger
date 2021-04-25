@@ -41,10 +41,10 @@ def dummy_clean_function():
 
 
 @pytest.fixture
-def dummy_error_function(runtime_error_message):
+def dummy_error_function(keras_callback_error_message):
     @error_handler.catch_smdebug_errors()
     def raise_error():
-        raise RuntimeError(runtime_error_message)
+        raise RuntimeError(keras_callback_error_message)
 
     return raise_error
 
@@ -95,7 +95,7 @@ def test_no_smdebug_error(stack_trace_filepath, dummy_clean_function):
         assert logs.read() == ""
 
 
-def test_smdebug_error(stack_trace_filepath, dummy_error_function, runtime_error_message):
+def test_smdebug_error(stack_trace_filepath, dummy_error_function, keras_callback_error_message):
     """
     Test that wrapping the error handler around a function that throws an error will allow the error handler to
     catch the error and log the stack trace correctly.
@@ -107,7 +107,7 @@ def test_smdebug_error(stack_trace_filepath, dummy_error_function, runtime_error
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
-        assert runtime_error_message in stack_trace_logs
+        assert keras_callback_error_message in stack_trace_logs
 
 
 def test_no_smdebug_error_with_return_val(
@@ -147,7 +147,7 @@ def test_disabled_smdebug(
     dummy_error_function,
     dummy_clean_function_with_return_val,
     dummy_error_function_with_return_val,
-    runtime_error_message,
+    keras_callback_error_message,
     value_error_message,
 ):
     """
@@ -164,7 +164,7 @@ def test_disabled_smdebug(
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert BASE_ERROR_MESSAGE in stack_trace_logs
-        assert runtime_error_message in stack_trace_logs
+        assert keras_callback_error_message in stack_trace_logs
 
     os.remove(stack_trace_filepath)
     Path(stack_trace_filepath).touch()
