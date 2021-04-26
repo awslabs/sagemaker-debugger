@@ -398,11 +398,11 @@ class BaseHook:
             return True
         return False
 
-    def has_default_profiler_configuration(self):
+    def _has_default_profiler_configuration(self):
         return self.profiler_config_parser.config is None
 
     def has_default_configuration(self):
-        return self.has_default_hook_configuration() and self.has_default_profiler_configuration()
+        return self.has_default_hook_configuration() and self._has_default_profiler_configuration()
 
     def _prepare_collections(self):
         """Populate collections_to_save and ensure every collection has
