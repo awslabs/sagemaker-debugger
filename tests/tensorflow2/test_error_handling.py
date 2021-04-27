@@ -157,7 +157,7 @@ def hook_class_with_keras_callback_error_and_custom_debugger_configuration(
     ):
         def __init__(self, *args, **kwargs):
             super().__init__(
-                keras_callback_error_message=custom_configuration_error_message, *args, **kwargs
+                keras_error_message=custom_configuration_error_message, *args, **kwargs
             )
 
         @classmethod
@@ -187,7 +187,7 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
     ):
         def __init__(self, *args, **kwargs):
             super().__init__(
-                keras_callback_error_message=custom_configuration_error_message, *args, **kwargs
+                keras_error_message=custom_configuration_error_message, *args, **kwargs
             )
 
         @classmethod
