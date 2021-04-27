@@ -100,6 +100,8 @@ class SMDebugErrorHandler(object):
 
                     # Return immediately if smdebug is disabled.
                     if self.disable_smdebug:
+                        if return_type == "tape":
+                            handler_kwargs["function"](*args, **kwargs)
                         return return_val
 
                     try:
@@ -111,8 +113,7 @@ class SMDebugErrorHandler(object):
 
                         if self.hook is None or self.hook.has_default_configuration():
                             if return_type == "tape":
-                                self.hook._unwrap_tape()
-                                return handler_kwargs["function"](*args, **kwargs)
+                                handler_kwargs["function"](*args, **kwargs)
                             self.logger.error(BASE_ERROR_MESSAGE)
                             self.logger.exception(e)  # Log stack trace.
                             self.disable_smdebug = True  # Disable smdebug

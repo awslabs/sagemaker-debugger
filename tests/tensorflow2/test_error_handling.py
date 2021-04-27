@@ -1,5 +1,4 @@
 # Standard Library
-import functools
 import logging
 import os
 
@@ -97,7 +96,6 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             self.gradient_tape_callback_error_message = gradient_tape_message
 
         def _wrap_push_tape(self, function):
-            @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
@@ -105,7 +103,6 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             return run
 
         def _wrap_tape_gradient(self, function):
-            @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
@@ -113,7 +110,6 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             return run
 
         def _wrap_pop_tape(self, function):
-            @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
@@ -286,8 +282,6 @@ def test_tf2_callback_error_handling(
         )  # only on_train_batch_begin should error and get caught
 
     Hook.create_from_json_file = hook_class.create_from_json_file
-    # assert type(Hook.create_from_json_file()) == hook_class
-    # del_hook()
 
     # hook = hook_class(out_dir=out_dir)
     # hook._prepare_collections_for_tf2()
@@ -337,12 +331,6 @@ def test_non_default_smdebug_configuration(
         hook_class = hook_class_with_keras_callback_error_and_custom_profiler_configuration
 
     Hook.create_from_json_file = hook_class.create_from_json_file
-
-    import inspect
-
-    print("ABC", inspect.getsource(Hook.create_from_json_file))
-    # assert type(Hook.create_from_json_file()) == hook_class
-    # del_hook()
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
