@@ -26,6 +26,10 @@ def _create_hook(json_config_path, hook_class):
     # Either returns a hook or None
     try:
         hook = hook_class.create_from_json_file(json_file_path=json_config_path)
+        print(type(hook), type(hook_class))
+        import inspect
+
+        print("DEF", inspect.getsource(hook_class.create_from_json_file))
         set_hook(custom_hook=hook)
     except FileNotFoundError:
         pass

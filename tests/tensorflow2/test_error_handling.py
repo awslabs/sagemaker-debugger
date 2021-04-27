@@ -337,6 +337,10 @@ def test_non_default_smdebug_configuration(
         hook_class = hook_class_with_keras_callback_error_and_custom_profiler_configuration
 
     Hook.create_from_json_file = hook_class.create_from_json_file
+
+    import inspect
+
+    print("ABC", inspect.getsource(Hook.create_from_json_file))
     # assert type(Hook.create_from_json_file()) == hook_class
     # del_hook()
 
