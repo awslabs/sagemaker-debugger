@@ -150,27 +150,52 @@ def hook_class_with_keras_and_layer_callback_error(
 
 @pytest.fixture
 def hook_class_with_keras_callback_error_and_custom_debugger_configuration(
-    out_dir, keras_callback_error_message
+    out_dir, custom_configuration_error_message, hook_class_with_keras_callback_error
 ):
-    class HookWithBadKerasCallback(Hook):
-        def __init__(self, keras_error_message=keras_callback_error_message, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.keras_callback_error_message = keras_error_message
-
-        @error_handler.catch_smdebug_errors()
-        def on_train_batch_begin(self, batch, logs=None):
-            raise RuntimeError(self.keras_callback_error_message)
+    class HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
+        hook_class_with_keras_callback_error
+    ):
+        def __init__(self, *args, **kwargs):
+            super().__init__(
+                keras_callback_error_message=custom_configuration_error_message, *args, **kwargs
+            )
 
         @classmethod
         def create_from_json_file(cls, json_file_path=None):
-            return HookWithBadKerasCallback(out_dir=out_dir)
+            return HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
+                out_dir=out_dir, include_collections=[CollectionKeys.ALL]
+            )
 
-    return HookWithBadKerasCallback
+    return HookWithBadKerasCallbackAndCustomDebuggerConfiguration
 
 
 @pytest.fixture
 def profiler_config_path(config_folder):
     return os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
+
+
+@pytest.fixture
+def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
+    out_dir,
+    custom_configuration_error_message,
+    monkeypatch,
+    profiler_config_path,
+    hook_class_with_keras_callback_error,
+):
+    class HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
+        hook_class_with_keras_callback_error
+    ):
+        def __init__(self, *args, **kwargs):
+            super().__init__(
+                keras_callback_error_message=custom_configuration_error_message, *args, **kwargs
+            )
+
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            monkeypatch.setenv("SMPROFILER_CONFIG_PATH", profiler_config_path)
+            return HookWithBadKerasCallbackAndCustomDebuggerConfiguration(out_dir=out_dir)
+
+    return HookWithBadKerasCallbackAndCustomDebuggerConfiguration
 
 
 @pytest.fixture(autouse=True)
@@ -291,7 +316,8 @@ def test_non_default_smdebug_configuration(
     monkeypatch,
     profiler_config_path,
     out_dir,
-    hook_class_with_keras_callback_error,
+    hook_class_with_keras_callback_error_and_custom_debugger_configuration,
+    hook_class_with_keras_callback_error_and_custom_profiler_configuration,
     custom_configuration_error_message,
     stack_trace_filepath,
 ):
@@ -302,20 +328,15 @@ def test_non_default_smdebug_configuration(
     during the hook initialization.
     """
     if custom_configuration == "debugger":
-        hook = hook_class_with_keras_callback_error(
-            keras_error_message=custom_configuration_error_message,
-            out_dir=out_dir,
-            include_collections=[CollectionKeys.ALL],
-        )
+        hook_class = hook_class_with_keras_callback_error_and_custom_debugger_configuration
     else:
-        monkeypatch.setenv("SMPROFILER_CONFIG_PATH", profiler_config_path)
-        hook = hook_class_with_keras_callback_error(
-            keras_error_message=custom_configuration_error_message, out_dir=out_dir
-        )
+        hook_class = hook_class_with_keras_callback_error_and_custom_profiler_configuration
+
+    Hook.create_from_json_file = hook_class.create_from_json_file
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
-        helper_keras_fit(out_dir, hook=hook)
+        helper_keras_fit(out_dir)
     assert error_handler.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
