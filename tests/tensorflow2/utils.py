@@ -94,7 +94,7 @@ def helper_gradtape_tf(trial_dir, hook):
         for data, labels in dataset:
             dataset_labels = labels
             labels = tf.one_hot(labels, depth=10)
-            with tf.GradientTape() as tape:
+            with hook.wrap_tape(tf.GradientTape()) as tape:
                 logits = train_step(data, labels)
             grads = tape.gradient(logits, model.variables)
             opt.apply_gradients(zip(grads, model.variables))

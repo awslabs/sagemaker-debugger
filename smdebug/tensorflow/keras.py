@@ -1316,7 +1316,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self._log_unsupported_tensors_in_non_eager_execution()
 
-    @error_handler.catch_smdebug_errors()
+    @error_handler.catch_smdebug_errors(return_type="wrap_tape")
     def wrap_tape(self, tape):
         """
         Wrapping your GradientTape with this method enables finding gradient tensors and optimizer

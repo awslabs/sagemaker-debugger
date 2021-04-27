@@ -8,7 +8,7 @@ import pytest
 
 # First Party
 from smdebug.core.error_handler import BASE_ERROR_MESSAGE
-from smdebug.core.logger import get_logger
+from smdebug.core.logger import DuplicateLogFilter, get_logger
 from smdebug.core.utils import error_handler
 
 
@@ -68,17 +68,26 @@ def dummy_error_function_with_return_val(value_error_message):
 
 
 @pytest.fixture(autouse=True)
-def set_up(out_dir, stack_trace_filepath):
+def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     """
-    Setup function run before each test that:
-        - Adds a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
-        - Reenable the error handler if it was disabled before.
+    Setup up each test to:
+        - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
+        - Remove the duplicate logging filter
+        - Reset the error handler after the test so it that it is reenabled.
     """
     logger = get_logger()
     os.makedirs(out_dir)
-    Path(stack_trace_filepath).touch()
     file_handler = logging.FileHandler(filename=stack_trace_filepath)
     logger.addHandler(file_handler)
+    duplicate_log_filter = None
+    for log_filter in logger.filters:
+        if isinstance(log_filter, DuplicateLogFilter):
+            duplicate_log_filter = log_filter
+            break
+    logger.removeFilter(duplicate_log_filter)
+    yield
+    logger.removeHandler(file_handler)
+    logger.addFilter(duplicate_log_filter)
     error_handler.disable_smdebug = False
 
 

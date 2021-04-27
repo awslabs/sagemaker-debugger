@@ -91,6 +91,10 @@ class SMDebugErrorHandler(object):
                         return_val = False
                     elif return_type == "layer_call":
                         return_val = handler_kwargs["old_call_fn"](*args, **kwargs)
+                    elif return_type == "tape":
+                        return_val = handler_kwargs["function"](*args, **kwargs)
+                    elif return_type == "wrap_tape":
+                        return_val = args[1]
                     else:
                         return_val = None
 
