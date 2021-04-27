@@ -159,6 +159,7 @@ def hook_class_with_keras_callback_error_and_custom_debugger_configuration(
             super().__init__(
                 keras_error_message=custom_configuration_error_message, *args, **kwargs
             )
+            assert self.keras_callback_error_message == custom_configuration_error_message
 
         @classmethod
         def create_from_json_file(cls, json_file_path=None):
@@ -189,6 +190,7 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
             super().__init__(
                 keras_error_message=custom_configuration_error_message, *args, **kwargs
             )
+            assert self.keras_callback_error_message == custom_configuration_error_message
 
         @classmethod
         def create_from_json_file(cls, json_file_path=None):
