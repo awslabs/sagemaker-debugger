@@ -104,6 +104,7 @@ class SMDebugErrorHandler(object):
                     except Exception as e:
                         # If an smdebug error occurred with the default configuration or it occurred before the
                         # configuration can even be determined (i.e. the constructor), catch the error and log it.
+
                         if self.hook is None or self.hook.has_default_configuration():
                             if return_type == "tape":
                                 self.hook._unwrap_tape()
