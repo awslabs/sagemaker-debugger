@@ -10,6 +10,7 @@ from tests.tensorflow2.utils import helper_gradtape_tf, helper_keras_fit
 # First Party
 from smdebug.core.error_handler import BASE_ERROR_MESSAGE
 from smdebug.core.logger import DuplicateLogFilter, get_logger
+from smdebug.core.singleton_utils import del_hook
 from smdebug.core.utils import error_handler
 from smdebug.tensorflow import KerasHook as Hook
 from smdebug.tensorflow.collection import CollectionKeys
@@ -286,6 +287,7 @@ def test_tf2_callback_error_handling(
         )  # only on_train_batch_begin should error and get caught
 
     Hook.create_from_json_file = hook_class.create_from_json_file
+    del_hook()
 
     assert type(Hook.create_from_json_file()) == hook_class
 
@@ -338,6 +340,7 @@ def test_non_default_smdebug_configuration(
 
     Hook.create_from_json_file = hook_class.create_from_json_file
     assert type(Hook.create_from_json_file()) == hook_class
+    del_hook()
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
