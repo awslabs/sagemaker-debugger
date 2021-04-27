@@ -287,9 +287,8 @@ def test_tf2_callback_error_handling(
         )  # only on_train_batch_begin should error and get caught
 
     Hook.create_from_json_file = hook_class.create_from_json_file
-    del_hook()
-
     assert type(Hook.create_from_json_file()) == hook_class
+    del_hook()
 
     # hook = hook_class(out_dir=out_dir)
     # hook._prepare_collections_for_tf2()
