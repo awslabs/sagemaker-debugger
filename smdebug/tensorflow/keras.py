@@ -1225,7 +1225,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Using this wrapper to get gradients, loss, weights, and bias values.
         """
 
-        @error_handler.catch_smdebug_errors(return_type="gradient_tape", function=function)
+        @error_handler.catch_smdebug_errors(return_type="tape", function=function)
         def run(*args, **kwargs):
             grads = function(*args, **kwargs)
             if self._is_not_supported():

@@ -12,6 +12,7 @@ from smdebug.core.logger import DuplicateLogFilter, get_logger
 from smdebug.core.utils import error_handler
 from smdebug.tensorflow import KerasHook as Hook
 from smdebug.tensorflow.collection import CollectionKeys
+from smdebug.tensorflow.singleton_utils import del_hook
 
 
 @pytest.fixture
@@ -220,6 +221,7 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     logger.addFilter(duplicate_log_filter)
     error_handler.disable_smdebug = False
     Hook.create_from_json_file = old_create_from_json
+    del_hook()
 
 
 @pytest.mark.parametrize(
