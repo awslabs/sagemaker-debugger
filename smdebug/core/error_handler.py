@@ -91,6 +91,8 @@ class SMDebugErrorHandler(object):
                         return_val = False
                     elif return_type == "layer_call":
                         return_val = handler_kwargs["old_call_fn"](*args, **kwargs)
+                    elif return_type == "tape":
+                        return_val = handler_kwargs["function"](*args, **kwargs)
                     else:
                         return_val = None
 
@@ -105,6 +107,8 @@ class SMDebugErrorHandler(object):
                         # If an smdebug error occurred with the default configuration or it occurred before the
                         # configuration can even be determined (i.e. the constructor), catch the error and log it.
                         if self.hook is None or self.hook.has_default_configuration():
+                            if return_type == "tape":
+                                self.hook._unwrap_tape()
                             self.logger.error(BASE_ERROR_MESSAGE)
                             self.logger.exception(e)  # Log stack trace.
                             self.disable_smdebug = True  # Disable smdebug
