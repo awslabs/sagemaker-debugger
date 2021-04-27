@@ -43,7 +43,7 @@ def _get_model():
     return model
 
 
-def helper_keras_fit(trial_dir):
+def helper_keras_fit(trial_dir, hook=None):
 
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -59,12 +59,15 @@ def helper_keras_fit(trial_dir):
         metrics=["accuracy"],
         run_eagerly=False,
     )
-    # hooks = []
-    # hooks.append(hook)
 
-    model.fit(x_train, y_train, epochs=1, steps_per_epoch=10, verbose=0)
-    model.evaluate(x_test, y_test, steps=10, verbose=0)
-    model.predict(x_test[:100], verbose=0)
+    hooks = []
+
+    if hook is not None:
+        hooks.append(hook)
+
+    model.fit(x_train, y_train, epochs=1, steps_per_epoch=10, callbacks=hooks, verbose=0)
+    model.evaluate(x_test, y_test, steps=10, callbacks=hooks, verbose=0)
+    model.predict(x_test[:100], callbacks=hooks, verbose=0)
 
     model.save(trial_dir, save_format="tf")
 

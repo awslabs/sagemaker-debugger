@@ -153,6 +153,7 @@ def profiler_config_path(config_folder):
     return os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
 
 
+@pytest.fixture(autouse=True)
 def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     """
     Setup up each test to:
@@ -290,7 +291,7 @@ def test_non_default_smdebug_configuration(
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
-        helper_keras_fit(out_dir, hook)
+        helper_keras_fit(out_dir, hook=hook)
     assert error_handler.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
