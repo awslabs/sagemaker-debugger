@@ -149,6 +149,26 @@ def hook_class_with_keras_and_layer_callback_error(
 
 
 @pytest.fixture
+def hook_class_with_keras_callback_error_and_custom_debugger_configuration(
+    out_dir, keras_callback_error_message
+):
+    class HookWithBadKerasCallback(Hook):
+        def __init__(self, keras_error_message=keras_callback_error_message, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.keras_callback_error_message = keras_error_message
+
+        @error_handler.catch_smdebug_errors()
+        def on_train_batch_begin(self, batch, logs=None):
+            raise RuntimeError(self.keras_callback_error_message)
+
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            return HookWithBadKerasCallback(out_dir=out_dir)
+
+    return HookWithBadKerasCallback
+
+
+@pytest.fixture
 def profiler_config_path(config_folder):
     return os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
 
@@ -161,6 +181,7 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
         - Remove the duplicate logging filter
         - Reset the error handler after the test so it that it is reenabled.
     """
+    old_create_from_json = Hook.create_from_json_file
     logger = get_logger()
     os.makedirs(out_dir)
     file_handler = logging.FileHandler(filename=stack_trace_filepath)
@@ -175,6 +196,7 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     logger.removeHandler(file_handler)
     logger.addFilter(duplicate_log_filter)
     error_handler.disable_smdebug = False
+    Hook.create_from_json_file = old_create_from_json
 
 
 @pytest.mark.parametrize(
@@ -235,6 +257,8 @@ def test_tf2_callback_error_handling(
         error_message = (
             keras_callback_error_message
         )  # only on_train_batch_begin should error and get caught
+
+    Hook.create_from_json_file = hook_class.create_from_json_file
 
     # hook = hook_class(out_dir=out_dir)
     # hook._prepare_collections_for_tf2()
