@@ -287,6 +287,8 @@ def test_tf2_callback_error_handling(
 
     Hook.create_from_json_file = hook_class.create_from_json_file
 
+    assert type(Hook.create_from_json_file()) == hook_class
+
     # hook = hook_class(out_dir=out_dir)
     # hook._prepare_collections_for_tf2()
     # assert (
@@ -335,6 +337,7 @@ def test_non_default_smdebug_configuration(
         hook_class = hook_class_with_keras_callback_error_and_custom_profiler_configuration
 
     Hook.create_from_json_file = hook_class.create_from_json_file
+    assert type(Hook.create_from_json_file()) == hook_class
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
