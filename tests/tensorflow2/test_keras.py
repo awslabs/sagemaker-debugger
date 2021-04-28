@@ -8,8 +8,6 @@ This was tested with TensorFlow 2.1, by running
 """
 # Standard Library
 import json
-import re
-import time
 from pathlib import Path
 
 # Third Party
@@ -17,20 +15,14 @@ import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tests.constants import TEST_DATASET_S3_PATH
-from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
-from tests.tensorflow.utils import create_trial_fast_refresh
-from tests.utils import use_s3_datasets, verify_shapes
+from tests.utils import use_s3_datasets
 
 # First Party
 import smdebug.tensorflow as smd
-from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.modes import ModeKeys
-from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
-from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
-from smdebug.tensorflow import ReductionConfig, SaveConfig
+from smdebug.tensorflow import SaveConfig
 
 
 def get_model():
@@ -185,591 +177,591 @@ def helper_keras_gradtape(
     hook.close()
 
 
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_layer_names_gradient_tape(out_dir):
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=9),
-        include_collections=[CollectionKeys.LAYERS],
-    )
-    helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
-
-    tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
-    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
-    for tname in tnames:
-        assert re.match(pattern=pattern, string=tname) is not None
-
-
-@pytest.mark.skip_if_non_eager
-def test_keras_gradtape_shapes(out_dir):
-    hook = smd.KerasHook(
-        out_dir=out_dir,
-        save_all=True,
-        save_config=SaveConfig(save_steps=[0]),
-        reduction_config=ReductionConfig(save_shape=True),
-    )
-    helper_keras_gradtape(trial_dir=out_dir, hook=hook)
-    verify_shapes(out_dir, 0)
-    verify_shapes(out_dir, 500)
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-@pytest.mark.parametrize("saveall", [True, False])
-def test_keras_gradtape(out_dir, saveall):
-    """
-    Test save all and save default collection
-    """
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=SaveConfig(save_interval=3))
-    helper_keras_gradtape(trial_dir=out_dir, hook=hook)
-
-    trial = smd.create_trial(path=out_dir)
-    if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
-        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_gradtape_base_reductions(out_dir):
-    """
-    Test reduction config
-    """
-    helper_keras_gradtape(
-        trial_dir=out_dir,
-        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
-    )
-    tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
-    try:
-        tr.tensor(weight_name).value(0)
-        assert False
-    except TensorUnavailableForStep:
-        assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
-        assert len(tr.tensor(weight_name).reduction_values(0)) == len(ALLOWED_REDUCTIONS) + len(
-            ALLOWED_NORMS
-        )
-
-    loss_name = tr.tensor_names(collection=CollectionKeys.LOSSES)[0]
-    assert tr.tensor(loss_name).value(0) is not None
-
-    metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
-    assert tr.tensor(metric_name).value(0) is not None
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_gradtape_collection_reductions(out_dir):
-    """
-    Test reduction config for weights collection
-    """
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=3),
-        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES],
-    )
-    hook.get_collection(CollectionKeys.WEIGHTS).reduction_config = ReductionConfig(norms=["l1"])
-    helper_keras_gradtape(out_dir, hook=hook)
-
-    tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
-    bias_name = tr.tensor_names(collection=CollectionKeys.BIASES)[0]
-
-    assert tr.tensor(bias_name).value(0) is not None
-    try:
-        tr.tensor(weight_name).value(0)
-        assert False
-    except TensorUnavailableForStep:
-        assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_gradtape_include_regex(out_dir):
-    """
-    Test custom collection with regex
-    """
-    hook = smd.KerasHook(
-        out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
-    )
-    hook.get_collection("custom_coll").include("dense")
-    helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
-
-    tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensor_names(collection="custom_coll")
-
-    assert len(tnames) == (12 if is_tf_2_2() else 8)
-    for tname in tnames:
-        assert tr.tensor(tname).value(0) is not None
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_gradtape_training_end(out_dir):
-    """
-    Verify enf of training file
-    """
-    helper_keras_gradtape(out_dir, include_collections=[CollectionKeys.OUTPUTS])
-    assert has_training_ended(out_dir) is True
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_gradtape_weights_collections(out_dir):
-    """
-    This test ensures that a training script written with GradientTape
-    handles the case where only weight and default collections are saved.
-    The aim is to distinguish between weights and biases.
-    """
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=3),
-        include_collections=[CollectionKeys.WEIGHTS],
-    )
-
-    helper_keras_gradtape(out_dir, hook=hook)
-
-    trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_gradtape_include_collections(out_dir):
-    """
-    This test ensures that a training script written with GradientTape
-    handles the case where hook config contains all collections mentioned
-    through include collections
-    """
-    include_collections = [
-        CollectionKeys.WEIGHTS,
-        CollectionKeys.BIASES,
-        CollectionKeys.GRADIENTS,
-        CollectionKeys.LOSSES,
-        CollectionKeys.OUTPUTS,
-        CollectionKeys.METRICS,
-        CollectionKeys.OPTIMIZER_VARIABLES,
-    ]
-    save_config = SaveConfig(save_interval=3)
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=save_config,
-        include_collections=include_collections,
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
-    )
-    helper_keras_gradtape(out_dir, hook=hook)
-
-    trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 15)
-    assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_gradtape_hook_from_json(out_dir, monkeypatch):
-    """
-    This test ensures that a training script written with GradientTape
-    handles the case where hook config is provided through a JSON and saves
-    only weights and losses
-    """
-    monkeypatch.setenv(
-        CONFIG_FILE_PATH_ENV_STR,
-        "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
-    )
-    hook = smd.KerasHook.create_from_json_file()
-    helper_keras_gradtape(out_dir, hook=hook)
-
-    trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-@pytest.mark.parametrize("saveall", [True, False])
-def test_gradtape_persistent(out_dir, saveall):
-    """
-    Test save all and save default collection
-    """
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=SaveConfig(save_interval=3))
-    helper_keras_gradtape(trial_dir=out_dir, hook=hook, persistent=True)
-
-    trial = smd.create_trial(path=out_dir)
-    if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
-        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("saveall", [True, False])
-def test_keras_fit(out_dir, tf_eager_mode, saveall):
-    hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
-    ts = time.time()
-    hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
-    scalars_to_be_saved = dict()
-    scalars_to_be_saved["scalar/foobar"] = (ts, 0)
-    helper_keras_fit(
-        trial_dir=out_dir,
-        hook=hook,
-        run_eagerly=tf_eager_mode,
-        steps=["train", "eval", "predict", "train"],
-    )
-
-    trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x eager mode
-    if saveall:  # save losses, metrics, weights, biases, scalar
-        if tf_eager_mode:
-            if is_tf_2_2():
-                assert len(trial.tensor_names()) == 28
-            else:
-                assert len(trial.tensor_names()) == (21 if is_tf_2_3() else 14)
-            assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (
-                1 if is_tf_2_2() else 0
-            )
-            assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (
-                2 if is_tf_2_2() else 0
-            )
-        else:
-            assert len(trial.tensor_names()) == 21
-        assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-        assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-        assert (
-            len(
-                trial.tensor_names(
-                    collection=CollectionKeys.OPTIMIZER_VARIABLES, mode=ModeKeys.EVAL
-                )
-            )
-            == 0,
-            "No Optimizer Variables Should be Saved in EVAL Mode",
-        )
-    else:  # save the default losses and metrics
-        assert len(trial.tensor_names()) == (
-            4 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 5
-        )
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
-    )
-    for tname in trial.tensor_names():
-        assert trial.tensor(tname).value(0) is not None
-
-
-def test_keras_fit_shapes(out_dir):
-    hook = smd.KerasHook(
-        out_dir=out_dir,
-        save_all=True,
-        save_config=SaveConfig(save_steps=[0]),
-        reduction_config=ReductionConfig(save_shape=True),
-    )
-    helper_keras_fit(trial_dir=out_dir, hook=hook)
-    print(create_trial_fast_refresh(out_dir).tensor_names(step=0))
-    verify_shapes(out_dir, 0)
-
-
-@pytest.mark.slow
-def test_base_reductions(out_dir, tf_eager_mode):
-    helper_keras_fit(
-        trial_dir=out_dir,
-        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
-        run_eagerly=tf_eager_mode,
-    )
-    tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
-    try:
-        tr.tensor(weight_name).value(0)
-        assert False
-    except TensorUnavailableForStep:
-        assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
-        assert len(tr.tensor(weight_name).reduction_values(0)) == len(ALLOWED_REDUCTIONS) + len(
-            ALLOWED_NORMS
-        )
-
-    loss_name = tr.tensor_names(collection=CollectionKeys.LOSSES)[0]
-    assert tr.tensor(loss_name).value(0) is not None
-
-    metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
-    assert tr.tensor(metric_name).value(0) is not None
-
-
-@pytest.mark.slow
-def test_collection_reductions(out_dir, tf_eager_mode):
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=3),
-        include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES],
-    )
-    hook.get_collection(CollectionKeys.WEIGHTS).reduction_config = ReductionConfig(norms=["l1"])
-    helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
-
-    tr = create_trial_fast_refresh(out_dir)
-    weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
-    bias_name = tr.tensor_names(collection=CollectionKeys.BIASES)[0]
-
-    assert tr.tensor(bias_name).value(0) is not None
-    try:
-        tr.tensor(weight_name).value(0)
-        assert False
-    except TensorUnavailableForStep:
-        assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
-
-
-@pytest.mark.slow
-def test_include_regex(out_dir, tf_eager_mode):
-    hook = smd.KerasHook(
-        out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
-    )
-    hook.get_collection("custom_coll").include("dense")
-    helper_keras_fit(
-        out_dir,
-        hook=hook,
-        save_config=SaveConfig(save_interval=9),
-        steps=["train"],
-        run_eagerly=tf_eager_mode,
-    )
-
-    tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensor_names(collection="custom_coll")
-    assert len(tnames) == (12 if is_tf_2_2() else 4)
-    for tname in tnames:
-        assert tr.tensor(tname).value(0) is not None
-
-
-@pytest.mark.slow
-def test_layer_names(out_dir, tf_eager_mode):
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=9),
-        include_collections=[CollectionKeys.LAYERS],
-    )
-    helper_keras_fit(
-        out_dir,
-        hook=hook,
-        save_config=SaveConfig(save_interval=9),
-        steps=["train"],
-        run_eagerly=tf_eager_mode,
-    )
-
-    tr = create_trial_fast_refresh(out_dir)
-    tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
-    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
-    for tname in tnames:
-        assert re.match(pattern=pattern, string=tname) is not None
-
-
-@pytest.mark.slow
-def test_regex_filtering_for_default_collections(out_dir):
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=9),
-        include_collections=[CollectionKeys.LAYERS, CollectionKeys.GRADIENTS],
-    )
-    hook.get_collection(CollectionKeys.LAYERS).include("^dense")
-    hook.get_collection(CollectionKeys.GRADIENTS).include("gradients/dense")
-    helper_keras_fit(
-        out_dir,
-        hook=hook,
-        save_config=SaveConfig(save_interval=10),
-        steps=["train"],
-        run_eagerly=True,
-    )
-
-    tr = create_trial_fast_refresh(out_dir)
-    layer_tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
-    gradient_tnames = tr.tensor_names(collection=CollectionKeys.GRADIENTS)
-    assert len(layer_tnames) == (4 if is_tf_2_2() else 0)
-    assert len(gradient_tnames) == (4 if is_tf_2_2() else 0)
-    layer_pattern = r"^(dense)(_\d+)?\/(inputs|outputs)"
-    gradient_pattern = r"gradients/dense"
-    for tname in layer_tnames:
-        assert tr.tensor(tname).value(0) is not None
-        assert re.match(pattern=layer_pattern, string=tname) is not None
-    for tname in gradient_tnames:
-        assert tr.tensor(tname).value(0) is not None
-        assert re.match(pattern=gradient_pattern, string=tname) is not None
-
-
-@pytest.mark.skip_if_non_eager
-@pytest.mark.slow
-def test_clash_with_tb_callback(out_dir):
-    # this test cannot be run in non-eager mode
-    helper_keras_fit(
-        out_dir,
-        save_config=SaveConfig(save_interval=9),
-        steps=["train"],
-        include_collections=[
-            CollectionKeys.WEIGHTS,
-            CollectionKeys.BIASES,
-            CollectionKeys.LOSSES,
-            CollectionKeys.METRICS,
-        ],
-        add_callbacks=["tensorboard"],
-    )
-    tr = create_trial_fast_refresh(out_dir)
-    assert len(tr.tensor_names()) == (7 if (is_tf_2_2() or is_tf_2_3()) else 8)
-
-
-@pytest.mark.slow
-def test_training_end(out_dir, tf_eager_mode):
-    helper_keras_fit(
-        out_dir,
-        include_collections=[CollectionKeys.OUTPUTS],
-        steps=["train"],
-        run_eagerly=tf_eager_mode,
-    )
-    assert has_training_ended(out_dir) is True
-
-
-@pytest.mark.slow
-def test_weights_collections(out_dir, tf_eager_mode):
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=SaveConfig(save_interval=3),
-        include_collections=[CollectionKeys.WEIGHTS],
-    )
-
-    helper_keras_fit(out_dir, hook=hook, steps=["train"], run_eagerly=tf_eager_mode)
-
-    trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (5 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 6)
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
-    )
-
-
-@pytest.mark.slow
-def test_include_collections(out_dir, tf_eager_mode):
-    include_collections = [
-        CollectionKeys.WEIGHTS,
-        CollectionKeys.BIASES,
-        CollectionKeys.GRADIENTS,
-        CollectionKeys.LOSSES,
-        CollectionKeys.METRICS,
-        CollectionKeys.OPTIMIZER_VARIABLES,
-        "custom_optimizer_variables",
-    ]
-    save_config = SaveConfig(save_interval=3)
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=save_config,
-        include_collections=include_collections,
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
-    )
-    hook.get_collection("custom_optimizer_variables").include("Adam")
-    helper_keras_fit(
-        out_dir, hook=hook, steps=["train", "eval", "predict"], run_eagerly=tf_eager_mode
-    )
-
-    trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x
-    if tf_eager_mode:
-        if is_tf_2_2():
-            assert len(trial.tensor_names()) == 16
-        else:
-            assert len(trial.tensor_names()) == (12 if is_tf_2_3() else 13)
-    else:
-        assert len(trial.tensor_names()) == 18
-        assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
-    )
-
-
-@pytest.mark.slow
-def test_include_only_custom_collection(out_dir, tf_eager_mode):
-    include_collections = ["custom_optimizer_variables"]
-    save_config = SaveConfig(save_interval=3)
-    hook = smd.KerasHook(
-        out_dir,
-        save_config=save_config,
-        include_collections=include_collections,
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
-    )
-    hook.get_collection("custom_optimizer_variables").include("Adam")
-    helper_keras_fit(
-        out_dir, hook=hook, steps=["train", "eval", "predict"], run_eagerly=tf_eager_mode
-    )
-
-    trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (8 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 9)
-    assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
-
-
-@pytest.mark.slow
-def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
-    monkeypatch.setenv(
-        CONFIG_FILE_PATH_ENV_STR,
-        "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
-    )
-    hook = smd.KerasHook.create_from_json_file()
-    helper_keras_fit(out_dir, hook=hook, steps=["train"], run_eagerly=tf_eager_mode)
-
-    trial = smd.create_trial(path=out_dir)
-    # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (5 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 6)
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
-    assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
-        2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
-    )
-
-
-@pytest.mark.skip_if_non_eager
-def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
-    """
-    Test save all and save default collection in fit() pure eager mode
-    """
-    hook = smd.KerasHook(out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=3))
-    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
-
-    trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names()) == (27 if is_tf_2_2() else 13)
-    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
-    assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (1 if is_tf_2_2() else 0)
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (2 if is_tf_2_2() else 0)
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_layer_names_gradient_tape(out_dir):
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=9),
+#         include_collections=[CollectionKeys.LAYERS],
+#     )
+#     helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
+#
+#     tr = create_trial_fast_refresh(out_dir)
+#     tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+#     pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+#     for tname in tnames:
+#         assert re.match(pattern=pattern, string=tname) is not None
+#
+#
+# @pytest.mark.skip_if_non_eager
+# def test_keras_gradtape_shapes(out_dir):
+#     hook = smd.KerasHook(
+#         out_dir=out_dir,
+#         save_all=True,
+#         save_config=SaveConfig(save_steps=[0]),
+#         reduction_config=ReductionConfig(save_shape=True),
+#     )
+#     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
+#     verify_shapes(out_dir, 0)
+#     verify_shapes(out_dir, 500)
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# @pytest.mark.parametrize("saveall", [True, False])
+# def test_keras_gradtape(out_dir, saveall):
+#     """
+#     Test save all and save default collection
+#     """
+#     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=SaveConfig(save_interval=3))
+#     helper_keras_gradtape(trial_dir=out_dir, hook=hook)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     if saveall:  # save losses, metrics, weights, biases
+#         assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
+#         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+#         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+#     else:  # save the default losses and metrics
+#         assert len(trial.tensor_names()) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_gradtape_base_reductions(out_dir):
+#     """
+#     Test reduction config
+#     """
+#     helper_keras_gradtape(
+#         trial_dir=out_dir,
+#         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
+#         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+#     )
+#     tr = create_trial_fast_refresh(out_dir)
+#     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
+#     try:
+#         tr.tensor(weight_name).value(0)
+#         assert False
+#     except TensorUnavailableForStep:
+#         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
+#         assert len(tr.tensor(weight_name).reduction_values(0)) == len(ALLOWED_REDUCTIONS) + len(
+#             ALLOWED_NORMS
+#         )
+#
+#     loss_name = tr.tensor_names(collection=CollectionKeys.LOSSES)[0]
+#     assert tr.tensor(loss_name).value(0) is not None
+#
+#     metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
+#     assert tr.tensor(metric_name).value(0) is not None
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_gradtape_collection_reductions(out_dir):
+#     """
+#     Test reduction config for weights collection
+#     """
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=3),
+#         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES],
+#     )
+#     hook.get_collection(CollectionKeys.WEIGHTS).reduction_config = ReductionConfig(norms=["l1"])
+#     helper_keras_gradtape(out_dir, hook=hook)
+#
+#     tr = create_trial_fast_refresh(out_dir)
+#     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
+#     bias_name = tr.tensor_names(collection=CollectionKeys.BIASES)[0]
+#
+#     assert tr.tensor(bias_name).value(0) is not None
+#     try:
+#         tr.tensor(weight_name).value(0)
+#         assert False
+#     except TensorUnavailableForStep:
+#         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_gradtape_include_regex(out_dir):
+#     """
+#     Test custom collection with regex
+#     """
+#     hook = smd.KerasHook(
+#         out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
+#     )
+#     hook.get_collection("custom_coll").include("dense")
+#     helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
+#
+#     tr = create_trial_fast_refresh(out_dir)
+#     tnames = tr.tensor_names(collection="custom_coll")
+#
+#     assert len(tnames) == (12 if is_tf_2_2() else 8)
+#     for tname in tnames:
+#         assert tr.tensor(tname).value(0) is not None
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_gradtape_training_end(out_dir):
+#     """
+#     Verify enf of training file
+#     """
+#     helper_keras_gradtape(out_dir, include_collections=[CollectionKeys.OUTPUTS])
+#     assert has_training_ended(out_dir) is True
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_gradtape_weights_collections(out_dir):
+#     """
+#     This test ensures that a training script written with GradientTape
+#     handles the case where only weight and default collections are saved.
+#     The aim is to distinguish between weights and biases.
+#     """
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=3),
+#         include_collections=[CollectionKeys.WEIGHTS],
+#     )
+#
+#     helper_keras_gradtape(out_dir, hook=hook)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     # can't save gradients in TF 2.x
+#     assert len(trial.tensor_names()) == 4
+#     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+#     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_gradtape_include_collections(out_dir):
+#     """
+#     This test ensures that a training script written with GradientTape
+#     handles the case where hook config contains all collections mentioned
+#     through include collections
+#     """
+#     include_collections = [
+#         CollectionKeys.WEIGHTS,
+#         CollectionKeys.BIASES,
+#         CollectionKeys.GRADIENTS,
+#         CollectionKeys.LOSSES,
+#         CollectionKeys.OUTPUTS,
+#         CollectionKeys.METRICS,
+#         CollectionKeys.OPTIMIZER_VARIABLES,
+#     ]
+#     save_config = SaveConfig(save_interval=3)
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=save_config,
+#         include_collections=include_collections,
+#         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+#     )
+#     helper_keras_gradtape(out_dir, hook=hook)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     # can't save gradients in TF 2.x
+#     assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 15)
+#     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
+#     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+#     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_gradtape_hook_from_json(out_dir, monkeypatch):
+#     """
+#     This test ensures that a training script written with GradientTape
+#     handles the case where hook config is provided through a JSON and saves
+#     only weights and losses
+#     """
+#     monkeypatch.setenv(
+#         CONFIG_FILE_PATH_ENV_STR,
+#         "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
+#     )
+#     hook = smd.KerasHook.create_from_json_file()
+#     helper_keras_gradtape(out_dir, hook=hook)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     # can't save gradients in TF 2.x
+#     assert len(trial.tensor_names()) == 4
+#     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+#     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# @pytest.mark.parametrize("saveall", [True, False])
+# def test_gradtape_persistent(out_dir, saveall):
+#     """
+#     Test save all and save default collection
+#     """
+#     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall, save_config=SaveConfig(save_interval=3))
+#     helper_keras_gradtape(trial_dir=out_dir, hook=hook, persistent=True)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     if saveall:  # save losses, metrics, weights, biases
+#         assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
+#         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+#         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+#     else:  # save the default losses and metrics
+#         assert len(trial.tensor_names()) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == 1
+#
+#
+# @pytest.mark.slow
+# @pytest.mark.parametrize("saveall", [True, False])
+# def test_keras_fit(out_dir, tf_eager_mode, saveall):
+#     hook = smd.KerasHook(out_dir=out_dir, save_all=saveall)
+#     ts = time.time()
+#     hook.save_scalar("foobar", 1, sm_metric=True, timestamp=ts)
+#     scalars_to_be_saved = dict()
+#     scalars_to_be_saved["scalar/foobar"] = (ts, 0)
+#     helper_keras_fit(
+#         trial_dir=out_dir,
+#         hook=hook,
+#         run_eagerly=tf_eager_mode,
+#         steps=["train", "eval", "predict", "train"],
+#     )
+#
+#     trial = smd.create_trial(path=out_dir)
+#     # can't save gradients in TF 2.x eager mode
+#     if saveall:  # save losses, metrics, weights, biases, scalar
+#         if tf_eager_mode:
+#             if is_tf_2_2():
+#                 assert len(trial.tensor_names()) == 28
+#             else:
+#                 assert len(trial.tensor_names()) == (21 if is_tf_2_3() else 14)
+#             assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (
+#                 1 if is_tf_2_2() else 0
+#             )
+#             assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (
+#                 2 if is_tf_2_2() else 0
+#             )
+#         else:
+#             assert len(trial.tensor_names()) == 21
+#         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+#         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+#         assert (
+#             len(
+#                 trial.tensor_names(
+#                     collection=CollectionKeys.OPTIMIZER_VARIABLES, mode=ModeKeys.EVAL
+#                 )
+#             )
+#             == 0,
+#             "No Optimizer Variables Should be Saved in EVAL Mode",
+#         )
+#     else:  # save the default losses and metrics
+#         assert len(trial.tensor_names()) == (
+#             4 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 5
+#         )
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
+#         2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
+#     )
+#     for tname in trial.tensor_names():
+#         assert trial.tensor(tname).value(0) is not None
+#
+#
+# def test_keras_fit_shapes(out_dir):
+#     hook = smd.KerasHook(
+#         out_dir=out_dir,
+#         save_all=True,
+#         save_config=SaveConfig(save_steps=[0]),
+#         reduction_config=ReductionConfig(save_shape=True),
+#     )
+#     helper_keras_fit(trial_dir=out_dir, hook=hook)
+#     print(create_trial_fast_refresh(out_dir).tensor_names(step=0))
+#     verify_shapes(out_dir, 0)
+#
+#
+# @pytest.mark.slow
+# def test_base_reductions(out_dir, tf_eager_mode):
+#     helper_keras_fit(
+#         trial_dir=out_dir,
+#         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
+#         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+#         run_eagerly=tf_eager_mode,
+#     )
+#     tr = create_trial_fast_refresh(out_dir)
+#     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
+#     try:
+#         tr.tensor(weight_name).value(0)
+#         assert False
+#     except TensorUnavailableForStep:
+#         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
+#         assert len(tr.tensor(weight_name).reduction_values(0)) == len(ALLOWED_REDUCTIONS) + len(
+#             ALLOWED_NORMS
+#         )
+#
+#     loss_name = tr.tensor_names(collection=CollectionKeys.LOSSES)[0]
+#     assert tr.tensor(loss_name).value(0) is not None
+#
+#     metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
+#     assert tr.tensor(metric_name).value(0) is not None
+#
+#
+# @pytest.mark.slow
+# def test_collection_reductions(out_dir, tf_eager_mode):
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=3),
+#         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.BIASES],
+#     )
+#     hook.get_collection(CollectionKeys.WEIGHTS).reduction_config = ReductionConfig(norms=["l1"])
+#     helper_keras_fit(out_dir, hook=hook, steps=["train"], eager=tf_eager_mode)
+#
+#     tr = create_trial_fast_refresh(out_dir)
+#     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
+#     bias_name = tr.tensor_names(collection=CollectionKeys.BIASES)[0]
+#
+#     assert tr.tensor(bias_name).value(0) is not None
+#     try:
+#         tr.tensor(weight_name).value(0)
+#         assert False
+#     except TensorUnavailableForStep:
+#         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
+#
+#
+# @pytest.mark.slow
+# def test_include_regex(out_dir, tf_eager_mode):
+#     hook = smd.KerasHook(
+#         out_dir, save_config=SaveConfig(save_interval=9), include_collections=["custom_coll"]
+#     )
+#     hook.get_collection("custom_coll").include("dense")
+#     helper_keras_fit(
+#         out_dir,
+#         hook=hook,
+#         save_config=SaveConfig(save_interval=9),
+#         steps=["train"],
+#         run_eagerly=tf_eager_mode,
+#     )
+#
+#     tr = create_trial_fast_refresh(out_dir)
+#     tnames = tr.tensor_names(collection="custom_coll")
+#     assert len(tnames) == (12 if is_tf_2_2() else 4)
+#     for tname in tnames:
+#         assert tr.tensor(tname).value(0) is not None
+#
+#
+# @pytest.mark.slow
+# def test_layer_names(out_dir, tf_eager_mode):
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=9),
+#         include_collections=[CollectionKeys.LAYERS],
+#     )
+#     helper_keras_fit(
+#         out_dir,
+#         hook=hook,
+#         save_config=SaveConfig(save_interval=9),
+#         steps=["train"],
+#         run_eagerly=tf_eager_mode,
+#     )
+#
+#     tr = create_trial_fast_refresh(out_dir)
+#     tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+#     pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+#     for tname in tnames:
+#         assert re.match(pattern=pattern, string=tname) is not None
+#
+#
+# @pytest.mark.slow
+# def test_regex_filtering_for_default_collections(out_dir):
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=9),
+#         include_collections=[CollectionKeys.LAYERS, CollectionKeys.GRADIENTS],
+#     )
+#     hook.get_collection(CollectionKeys.LAYERS).include("^dense")
+#     hook.get_collection(CollectionKeys.GRADIENTS).include("gradients/dense")
+#     helper_keras_fit(
+#         out_dir,
+#         hook=hook,
+#         save_config=SaveConfig(save_interval=10),
+#         steps=["train"],
+#         run_eagerly=True,
+#     )
+#
+#     tr = create_trial_fast_refresh(out_dir)
+#     layer_tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+#     gradient_tnames = tr.tensor_names(collection=CollectionKeys.GRADIENTS)
+#     assert len(layer_tnames) == (4 if is_tf_2_2() else 0)
+#     assert len(gradient_tnames) == (4 if is_tf_2_2() else 0)
+#     layer_pattern = r"^(dense)(_\d+)?\/(inputs|outputs)"
+#     gradient_pattern = r"gradients/dense"
+#     for tname in layer_tnames:
+#         assert tr.tensor(tname).value(0) is not None
+#         assert re.match(pattern=layer_pattern, string=tname) is not None
+#     for tname in gradient_tnames:
+#         assert tr.tensor(tname).value(0) is not None
+#         assert re.match(pattern=gradient_pattern, string=tname) is not None
+#
+#
+# @pytest.mark.skip_if_non_eager
+# @pytest.mark.slow
+# def test_clash_with_tb_callback(out_dir):
+#     # this test cannot be run in non-eager mode
+#     helper_keras_fit(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=9),
+#         steps=["train"],
+#         include_collections=[
+#             CollectionKeys.WEIGHTS,
+#             CollectionKeys.BIASES,
+#             CollectionKeys.LOSSES,
+#             CollectionKeys.METRICS,
+#         ],
+#         add_callbacks=["tensorboard"],
+#     )
+#     tr = create_trial_fast_refresh(out_dir)
+#     assert len(tr.tensor_names()) == (7 if (is_tf_2_2() or is_tf_2_3()) else 8)
+#
+#
+# @pytest.mark.slow
+# def test_training_end(out_dir, tf_eager_mode):
+#     helper_keras_fit(
+#         out_dir,
+#         include_collections=[CollectionKeys.OUTPUTS],
+#         steps=["train"],
+#         run_eagerly=tf_eager_mode,
+#     )
+#     assert has_training_ended(out_dir) is True
+#
+#
+# @pytest.mark.slow
+# def test_weights_collections(out_dir, tf_eager_mode):
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=SaveConfig(save_interval=3),
+#         include_collections=[CollectionKeys.WEIGHTS],
+#     )
+#
+#     helper_keras_fit(out_dir, hook=hook, steps=["train"], run_eagerly=tf_eager_mode)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     # can't save gradients in TF 2.x
+#     assert len(trial.tensor_names()) == (5 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 6)
+#     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+#     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
+#         2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
+#     )
+#
+#
+# @pytest.mark.slow
+# def test_include_collections(out_dir, tf_eager_mode):
+#     include_collections = [
+#         CollectionKeys.WEIGHTS,
+#         CollectionKeys.BIASES,
+#         CollectionKeys.GRADIENTS,
+#         CollectionKeys.LOSSES,
+#         CollectionKeys.METRICS,
+#         CollectionKeys.OPTIMIZER_VARIABLES,
+#         "custom_optimizer_variables",
+#     ]
+#     save_config = SaveConfig(save_interval=3)
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=save_config,
+#         include_collections=include_collections,
+#         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+#     )
+#     hook.get_collection("custom_optimizer_variables").include("Adam")
+#     helper_keras_fit(
+#         out_dir, hook=hook, steps=["train", "eval", "predict"], run_eagerly=tf_eager_mode
+#     )
+#
+#     trial = smd.create_trial(path=out_dir)
+#     # can't save gradients in TF 2.x
+#     if tf_eager_mode:
+#         if is_tf_2_2():
+#             assert len(trial.tensor_names()) == 16
+#         else:
+#             assert len(trial.tensor_names()) == (12 if is_tf_2_3() else 13)
+#     else:
+#         assert len(trial.tensor_names()) == 18
+#         assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
+#     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+#     assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
+#     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
+#         2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
+#     )
+#
+#
+# @pytest.mark.slow
+# def test_include_only_custom_collection(out_dir, tf_eager_mode):
+#     include_collections = ["custom_optimizer_variables"]
+#     save_config = SaveConfig(save_interval=3)
+#     hook = smd.KerasHook(
+#         out_dir,
+#         save_config=save_config,
+#         include_collections=include_collections,
+#         reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+#     )
+#     hook.get_collection("custom_optimizer_variables").include("Adam")
+#     helper_keras_fit(
+#         out_dir, hook=hook, steps=["train", "eval", "predict"], run_eagerly=tf_eager_mode
+#     )
+#
+#     trial = smd.create_trial(path=out_dir)
+#     assert len(trial.tensor_names()) == (8 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 9)
+#     assert len(trial.tensor_names(collection="custom_optimizer_variables")) == 5
+#
+#
+# @pytest.mark.slow
+# def test_hook_from_json(out_dir, tf_eager_mode, monkeypatch):
+#     monkeypatch.setenv(
+#         CONFIG_FILE_PATH_ENV_STR,
+#         "tests/tensorflow/hooks/test_json_configs/test_collection_defaults.json",
+#     )
+#     hook = smd.KerasHook.create_from_json_file()
+#     helper_keras_fit(out_dir, hook=hook, steps=["train"], run_eagerly=tf_eager_mode)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     # can't save gradients in TF 2.x
+#     assert len(trial.tensor_names()) == (5 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 6)
+#     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 0
+#     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
+#     assert len(trial.tensor_names(collection=CollectionKeys.METRICS)) == (
+#         2 if (is_tf_2_2() or is_tf_2_3()) and tf_eager_mode else 3
+#     )
+#
+#
+# @pytest.mark.skip_if_non_eager
+# def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
+#     """
+#     Test save all and save default collection in fit() pure eager mode
+#     """
+#     hook = smd.KerasHook(out_dir=out_dir, save_all=True, save_config=SaveConfig(save_interval=3))
+#     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
+#
+#     trial = smd.create_trial(path=out_dir)
+#     assert len(trial.tensor_names()) == (27 if is_tf_2_2() else 13)
+#     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+#     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
+#     assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (1 if is_tf_2_2() else 0)
+#     assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (2 if is_tf_2_2() else 0)
 
 
 def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
