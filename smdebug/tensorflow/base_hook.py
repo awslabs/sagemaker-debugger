@@ -253,6 +253,9 @@ class TensorflowBaseHook(BaseHook):
     def has_default_hook_configuration(self):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
+        if not self.prepared_collections:
+            self._prepare_collections()
+
         collections_being_saved = [x.name for x in self._collections_to_save]
         if set(collections_being_saved) == set(TF_DEFAULT_SAVED_COLLECTIONS):
             return True
@@ -504,6 +507,7 @@ class TensorflowBaseHook(BaseHook):
         optimizer.__class__.apply_gradients = new_apply_gradients
         return optimizer
 
+    @error_handler.catch_smdebug_errors()
     def set_gradients(self, gradients=None, gradients_and_variables=None):
         """
         This method helps find the gradient tensors.
@@ -535,6 +539,7 @@ class TensorflowBaseHook(BaseHook):
                 )
             self._gradients_set = True
 
+    @error_handler.catch_smdebug_errors()
     def set_optimizer_variables(self, optimizer_variables):
         """
         This method helps find the optimizer variables (such as momentum)

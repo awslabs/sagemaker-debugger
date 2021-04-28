@@ -120,6 +120,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
         self.has_logged_unsupported_tensors_in_non_eager_execution = False
+        self.prepared_tf2_collections = False
+        self.prepared_gradient_tape_collections = False
 
         if python_profiler:
             atexit.register(python_profiler.stop_profiling, StepPhase.END)
@@ -732,6 +734,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.has_default_hook_configuration():
             # wrapping the model is only supported if the hook does not have the default hook configuration
             self._unwrap_model_with_input_output_saver()
+        self.prepared_tf2_collections = True
 
     @error_handler.catch_smdebug_errors()
     def on_epoch_begin(self, batch, logs=None):
@@ -757,7 +760,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
-        if self.prepared_collections is False and is_tf_version_2_3_x():
+        if self.prepared_tf2_collections is False and is_tf_version_2_3_x():
             # Addresses ordering issues in TF 2.3.0
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
@@ -885,7 +888,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     start_step=self.mode_steps[mode],
                 )
 
-        if self.prepared_collections is False:
+        if self.prepared_tf2_collections is False:
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
 
@@ -1179,6 +1182,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
+        @error_handler.catch_smdebug_errors(return_type="tape", function=function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1190,7 +1194,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._save_custom_tensors_post_step()
                 self._close_writers()
 
-            if not self.prepared_collections:
+            if not self.prepared_gradient_tape_collections:
                 # at this point we need all collections to be ready
                 # this may not be the case at creation of hook
                 # as user's code after hook might add collections
@@ -1200,7 +1204,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
                 self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
                 self._prepare_collections_for_tf2()
-                self.prepared_collections = True
+                self.prepared_gradient_tape_collections = True
 
             self._increment_step()
 
@@ -1226,6 +1230,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
+        @error_handler.catch_smdebug_errors(return_type="tape", function=function)
         def run(*args, **kwargs):
             grads = function(*args, **kwargs)
             if self._is_not_supported():
@@ -1286,6 +1291,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
+        @error_handler.catch_smdebug_errors(return_type="tape", function=function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1313,6 +1319,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self._log_unsupported_tensors_in_non_eager_execution()
 
+    @error_handler.catch_smdebug_errors(return_type="wrap_tape")
     def wrap_tape(self, tape):
         """
         Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
