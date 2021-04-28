@@ -5,7 +5,6 @@ import os
 
 # Third Party
 import pytest
-from tensorflow import GradientTape
 from tests.tensorflow2.utils import (
     helper_gradtape_tf_default_configuration,
     helper_keras_fit_default_configuration,
@@ -270,16 +269,12 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
 def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     """
     Setup up each test to:
-        - Store modified KerasHook functions so that they are reset after the test
         - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
         - Remove the duplicate logging filter
         - Reset the error handler after the test so it that it is reenabled.
     """
     old_create_from_json = Hook.create_from_json_file
     del_hook()
-    _push_tape = GradientTape._push_tape
-    gradient = GradientTape.gradient
-    _pop_tape = GradientTape._pop_tape
 
     logger = get_logger()
     os.makedirs(out_dir)
@@ -294,15 +289,12 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
 
     yield
 
-    GradientTape._push_tape = _push_tape
-    GradientTape.gradient = gradient
-    GradientTape._pop_tape = _pop_tape
+    Hook.create_from_json_file = old_create_from_json
+    error_handler.disable_smdebug = False
+    error_handler.hook = None
 
     logger.removeHandler(file_handler)
     logger.addFilter(duplicate_log_filter)
-    error_handler.disable_smdebug = False
-    error_handler.hook = None
-    Hook.create_from_json_file = old_create_from_json
 
 
 @pytest.mark.parametrize(
