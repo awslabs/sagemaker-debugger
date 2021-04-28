@@ -72,10 +72,10 @@ def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
 
         def _wrap_model_with_input_output_saver(self):
             def _get_layer_call_fn_error(layer):
-                old_call_fn = layer.call
+                layer.old_call = layer.call
 
                 @error_handler.catch_smdebug_errors(
-                    return_type="layer_call", old_call_fn=old_call_fn
+                    return_type="layer_call", old_call_fn=layer.old_call
                 )
                 def call(inputs, *args, **kwargs):
                     raise RuntimeError(self.layer_callback_error_message)
