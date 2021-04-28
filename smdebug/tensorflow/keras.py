@@ -120,6 +120,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
         self.has_logged_unsupported_tensors_in_non_eager_execution = False
+        self.prepared_tf2_collections = False
         self.prepared_gradient_tape_collections = False
 
         if python_profiler:
@@ -733,6 +734,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.has_default_hook_configuration():
             # wrapping the model is only supported if the hook does not have the default hook configuration
             self._unwrap_model_with_input_output_saver()
+        self.prepared_tf2_collections = True
 
     @error_handler.catch_smdebug_errors()
     def on_epoch_begin(self, batch, logs=None):
@@ -758,7 +760,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
-        if self.prepared_collections is False and is_tf_version_2_3_x():
+        if self.prepared_tf2_collections is False and is_tf_version_2_3_x():
             # Addresses ordering issues in TF 2.3.0
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
