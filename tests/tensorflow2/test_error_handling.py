@@ -48,12 +48,20 @@ def custom_configuration_error_message():
 @pytest.fixture
 def hook_class_with_keras_callback_error(out_dir, keras_callback_error_message):
     class HookWithBadKerasCallback(Hook):
+        """
+        KerasHook subclass with error callbacks called directly from tensorflow.keras at regular intervals in
+        training.
+        """
+
         def __init__(self, keras_error_message=keras_callback_error_message, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.keras_callback_error_message = keras_error_message
 
         @error_handler.catch_smdebug_errors()
         def on_train_batch_begin(self, batch, logs=None):
+            """
+            Override the KerasHook's on_train_batch_begin callback to fail immediately.
+            """
             raise RuntimeError(self.keras_callback_error_message)
 
         @classmethod
@@ -66,16 +74,28 @@ def hook_class_with_keras_callback_error(out_dir, keras_callback_error_message):
 @pytest.fixture
 def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
     class HookWithBadLayerCallback(Hook):
+        """
+        KerasHook subclass with error callbacks on the model's layers. There are two ways for such an error to occur
+        with the default debugger configuration:
+            - An error that would occur in the layer callback itself
+            - Failure by the hook to unwrap the layer callback for the default debugger configuration.
+        """
+
         def __init__(self, layer_error_message=layer_callback_error_message, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.layer_callback_error_message = layer_error_message
 
         def _wrap_model_with_input_output_saver(self):
+            """
+            Override the KerasHook's _wrap_model_with_input_saver function to wrap the model's layers in a callback
+            that fails immediately.
+            """
+
             def _get_layer_call_fn_error(layer):
                 layer.old_call = layer.call
 
                 @error_handler.catch_smdebug_errors(
-                    return_type="layer_call", old_call_fn=layer.old_call
+                    return_type="layer_call", old_call_fn=layer.call
                 )
                 def call(inputs, *args, **kwargs):
                     raise RuntimeError(self.layer_callback_error_message)
@@ -84,6 +104,13 @@ def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
 
             for layer in self.model.layers:
                 layer.call = _get_layer_call_fn_error(layer)
+
+        def _unwrap_model_with_input_output_saver(self):
+            """
+            For the default debugger configuration, the KerasHook unwraps the layer callback wrapped in the above
+            function. This function overrides the hook's _unwrap_model_with_input_output_saver so that the layer
+            callback wrapped will not get unwrapped and will cause an error.
+            """
 
         @classmethod
         def create_from_json_file(cls, json_file_path=None):
