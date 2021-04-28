@@ -308,10 +308,10 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
 @pytest.mark.parametrize(
     "hook_type",
     [
-        "keras_callback_error",
-        "layer_callback_error",
-        #        "gradient_tape_callback_error",
-        "keras_and_layer_callback_error",
+        # "keras_callback_error",
+        # "layer_callback_error",
+        "gradient_tape_callback_error",
+        # "keras_and_layer_callback_error",
     ],
 )
 def test_tf2_callback_error_handling(
