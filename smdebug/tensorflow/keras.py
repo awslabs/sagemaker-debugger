@@ -888,7 +888,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     start_step=self.mode_steps[mode],
                 )
 
-        if self.prepared_collections is False:
+        if self.prepared_tf2_collections is False:
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
 
