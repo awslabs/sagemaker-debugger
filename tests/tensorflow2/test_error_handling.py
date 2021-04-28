@@ -215,6 +215,7 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
         - Reset the error handler after the test so it that it is reenabled.
     """
     old_create_from_json = Hook.create_from_json_file
+    del_hook()
     _push_tape = GradientTape._push_tape
     gradient = GradientTape.gradient
     _pop_tape = GradientTape._pop_tape
@@ -232,7 +233,6 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
 
     yield
 
-    del_hook()
     GradientTape._push_tape = _push_tape
     GradientTape.gradient = gradient
     GradientTape._pop_tape = _pop_tape
