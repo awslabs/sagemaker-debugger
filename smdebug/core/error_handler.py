@@ -51,16 +51,22 @@ class SMDebugErrorHandler(object):
             """
             self.hook = hook
 
-        def catch_smdebug_errors(self, return_type=None, **handler_kwargs):
+        def catch_smdebug_errors(self, default_return_val=None, return_type=None):
             """
             This function is designed to be wrapped around all smdebug functions that are called externally, so that any
-            errors arising from the wrapped functions or the resulting smdebug or third party functions called are caught
-            here.
+            errors arising from the wrapped functions or the resulting smdebug or third party functions called are
+            caught here.
 
-            The return type of the function being wrapped must be specified in `return_type` if it isn't valid for the
-            wrapped function to return `None`. Based on the return type specified, a default return value is determined. If
-            the error handler has caught an error or smdebug has already been disabled, the default return value is
-            returned.
+            When an error is caught during the execution of the wrapped function, smdebug is disabled for
+            the rest of training. A default return value is returned when an error is caught or a wrapped function is
+            called when smdebug is already disabled.
+
+            The default return value of the wraooed function (in the event of an error) must be specified in
+            `default_return_value` if it isn't valid for the wrapped function to return `None`.
+
+            If the default return value can only be determined at runtime (i.e. layer or tape callback), a function
+            can be provided in `default_return_value` and the default return value will be determined dynamically by
+            calling that function with the inputs provided to the wrapped function.
 
             Currently, the error handler will only catch errors if the default smdebug configuration is being used.
             Otherwise, the error will be raised normally. When an error is caught, the stack trace of the error will still
@@ -72,35 +78,33 @@ class SMDebugErrorHandler(object):
             error_handler = SMDebugErrorHandler.get_error_handler()
             ...
             @error_handler.catch_smdebug_errors()
-            def foo():
+            def foo(*args, **kwargs):
                 ...
                 return
 
-            @error_handler.catch_smdebug_errors(return_value=bool)
-            def bar():
+            @error_handler.catch_smdebug_errors(default_return_val=False)
+            def bar(*args, **kwargs):
                 ...
                 return True
+
+            def foobar(*args, **kwargs):
+                default_func = lambda *args, **kwargs: {"args": args, "kwargs": kwargs}
+
+                @error_handler.catch_smdebug_errors(default_return_val=default_func)
+                def baz()
+                    ...
+                return baz
             ```
             """
 
             def wrapper(func):
                 @functools.wraps(func)
                 def error_handler(*args, **kwargs):
-                    # Determine default return value based on the return type.
-                    if return_type == bool:
-                        return_val = False
-                    elif return_type == "layer_call":
-                        return_val = handler_kwargs["old_call_fn"](*args, **kwargs)
-                    elif return_type == "wrap_tape":
-                        return_val = args[1]
-                    else:
-                        return_val = None
-
                     # Return immediately if smdebug is disabled.
                     if self.disable_smdebug:
-                        if return_type == "tape":
-                            return handler_kwargs["function"](*args, **kwargs)
-                        return return_val
+                        if callable(default_return_val):
+                            return default_return_val(*args, **kwargs)
+                        return default_return_val
 
                     try:
                         # Attempt calling the smdebug function and returning the output
@@ -114,9 +118,9 @@ class SMDebugErrorHandler(object):
                             self.logger.exception(e)  # Log stack trace.
                             self.disable_smdebug = True  # Disable smdebug
 
-                            if return_type == "tape":
-                                return handler_kwargs["function"](*args, **kwargs)
-                            return return_val
+                            if callable(default_return_val):
+                                return default_return_val(*args, **kwargs)
+                            return default_return_val
                         else:
                             raise e  # Raise the error normally
 

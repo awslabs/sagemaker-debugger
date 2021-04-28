@@ -3,6 +3,7 @@ import atexit
 import functools
 import os
 import time
+from copy import deepcopy
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -1182,7 +1183,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
-        @error_handler.catch_smdebug_errors(return_type="tape", function=function)
+        @error_handler.catch_smdebug_errors(default_return_val=function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1230,7 +1231,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
-        @error_handler.catch_smdebug_errors(return_type="tape", function=function)
+        @error_handler.catch_smdebug_errors(default_return_val=function)
         def run(*args, **kwargs):
             grads = function(*args, **kwargs)
             if self._is_not_supported():
@@ -1291,7 +1292,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
-        @error_handler.catch_smdebug_errors(return_type="tape", function=function)
+        @error_handler.catch_smdebug_errors(default_return_val=function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1319,39 +1320,52 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self._log_unsupported_tensors_in_non_eager_execution()
 
-    @error_handler.catch_smdebug_errors(return_type="wrap_tape")
     def wrap_tape(self, tape):
-        """
-        Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
-        variables.
+        # Don't modify the original tape object. If an error occurs when wrapping the tape functions, we simply return
+        # the original tape object.
+        wrapped_tape = deepcopy(tape)
 
-        :param tape: tensorflow.python.eager.backprop.GradientTape
-            the tape object used for training
-        :return: Wrapped tape of same type as passed.
-            This tape should be used for training
-        """
-        # Disable python profiling, because now we are starting wrap tape.
-        if python_profiler:
-            python_profiler.stop_profiling(
-                StepPhase.STEP_START,
-                end_mode=mode_keys_to_python_profile_mode(self.mode),
-                end_step=0,
-            )
+        @error_handler.catch_smdebug_errors(default_return_val=tape)
+        def _wrap_tape():
+            """
+            Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
+            variables.
 
-        from tensorflow.python.eager.backprop import GradientTape
+            :param tape: tensorflow.python.eager.backprop.GradientTape
+                the tape object used for training
+            :return: Wrapped tape of same type as passed.
+                This tape should be used for training
+            """
+            # Disable python profiling, because now we are starting wrap tape.
+            if python_profiler:
+                python_profiler.stop_profiling(
+                    StepPhase.STEP_START,
+                    end_mode=mode_keys_to_python_profile_mode(self.mode),
+                    end_step=0,
+                )
 
-        if isinstance(tape, GradientTape):
-            # unwrap tape before wrapping new tape to avoid recursive wrap tapes
-            if self.tape:
-                self._unwrap_tape()
+            from tensorflow.python.eager.backprop import GradientTape
 
-            self.tape = tape
-            self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
-            self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
-            self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
-        else:
-            self._log_unsupported_tape(tape)
-        return tape
+            if isinstance(tape, GradientTape):
+                # unwrap tape before wrapping new tape to avoid recursive wrap tapes
+                if self.tape:
+                    self._unwrap_tape()
+
+                self.tape = wrapped_tape
+                self.tape.__class__._push_tape = self._wrap_push_tape(
+                    wrapped_tape.__class__._push_tape
+                )
+                self.tape.__class__.gradient = self._wrap_tape_gradient(
+                    wrapped_tape.__class__.gradient
+                )
+                self.tape.__class__._pop_tape = self._wrap_pop_tape(
+                    wrapped_tape.__class__._pop_tape
+                )
+            else:
+                self._log_unsupported_tape(tape)
+            return wrapped_tape
+
+        return _wrap_tape()
 
     def record_tensor_value(self, tensor_name, tensor_value):
         # To be used to save metrics of type EagerTensor
