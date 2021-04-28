@@ -5,6 +5,7 @@ import os
 
 # Third Party
 import pytest
+from tensorflow import GradientTape
 from tests.tensorflow2.utils import helper_gradtape_tf, helper_keras_fit
 
 # First Party
@@ -220,12 +221,19 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
             duplicate_log_filter = log_filter
             break
     logger.removeFilter(duplicate_log_filter)
+    _push_tape = GradientTape._push_tape
+    gradient = GradientTape.gradient
+    _pop_tape = GradientTape._pop_tape
     yield
     logger.removeHandler(file_handler)
     logger.addFilter(duplicate_log_filter)
     error_handler.disable_smdebug = False
+    error_handler.hook = None
     Hook.create_from_json_file = old_create_from_json
     del_hook()
+    GradientTape._push_tape = _push_tape
+    GradientTape.gradient = gradient
+    GradientTape._pop_tape = _pop_tape
 
 
 @pytest.mark.parametrize(
