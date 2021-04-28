@@ -61,8 +61,6 @@ def helper_keras_fit_default_configuration(trial_dir):
     )
 
     model.fit(x_train, y_train, epochs=1, steps_per_epoch=10, verbose=0)
-    model.evaluate(x_test, y_test, steps=10, verbose=0)
-    model.predict(x_test[:100], verbose=0)
 
     model.save(trial_dir, save_format="tf")
 
