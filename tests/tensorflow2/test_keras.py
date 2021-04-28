@@ -6,22 +6,13 @@ before pushing to master.
 This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
-# Standard Library
-import json
-from pathlib import Path
-
 # Third Party
-import pytest
 import tensorflow.compat.v2 as tf
-import tensorflow_datasets as tfds
-from tests.constants import TEST_DATASET_S3_PATH
-from tests.utils import use_s3_datasets
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
-from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.tensorflow import SaveConfig
 
 
@@ -787,137 +778,137 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
     assert trial.inputs(step=0)[0].shape == (6000, 28, 28)
 
 
-@pytest.mark.skip  # skip until aws tf update
-def test_save_gradients(out_dir, tf_eager_mode):
-    # explicitly save INPUTS and OUTPUTS
-    include_collections = [CollectionKeys.GRADIENTS]
-    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
-
-    helper_keras_fit(
-        trial_dir=out_dir,
-        hook=hook,
-        eager=tf_eager_mode,
-        steps=["train", "eval", "predict", "train"],
-    )
-    trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
-
-    for tname in trial.tensor_names(collection=CollectionKeys.GRADIENTS):
-        output = trial.tensor(tname)
-        assert output.value(0) is not None
-
-
-def test_save_tensors(out_dir, tf_eager_mode):
-    include_collections = ["custom_coll"]
-    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
-    t1 = tf.constant([0, 1, 1, 2, 3, 5, 8, 13, 21, 34])
-    t2 = tf.Variable([5 + 4j, 6 + 1j])
-    t3 = tf.Variable([False, False, False, True])
-    hook.save_tensor("custom_tensor_1", t1, include_collections)
-    hook.save_tensor("custom_tensor_2", t2, include_collections)
-    hook.save_tensor("custom_tensor_3", t3, include_collections)
-
-    helper_keras_fit(
-        trial_dir=out_dir,
-        hook=hook,
-        eager=tf_eager_mode,
-        steps=["train", "eval", "predict", "train"],
-    )
-    trial = smd.create_trial(path=out_dir)
-    assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
-    for tname in trial.tensor_names(collection="custom_coll"):
-        assert trial.tensor(tname).value(0) is not None
-
-
-def test_keras_to_estimator(out_dir, tf_eager_mode):
-    if not tf_eager_mode:
-        tf.compat.v1.disable_eager_execution()
-        tf.compat.v1.reset_default_graph()
-
-    tf.keras.backend.clear_session()
-
-    model = tf.keras.models.Sequential(
-        [
-            tf.keras.layers.Dense(16, activation="relu", input_shape=(4,)),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(1, activation="sigmoid"),
-        ]
-    )
-
-    def input_fn():
-        split = tfds.Split.TRAIN
-        data_dir = TEST_DATASET_S3_PATH if use_s3_datasets() else None
-        dataset = tfds.load("iris", data_dir=data_dir, split=split, as_supervised=True)
-        dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
-        dataset = dataset.batch(32).repeat()
-        return dataset
-
-    model.compile(loss="categorical_crossentropy", optimizer="adam")
-    model.summary()
-
-    keras_estimator = tf.keras.estimator.model_to_estimator(keras_model=model, model_dir=out_dir)
-
-    hook = smd.EstimatorHook(out_dir)
-
-    hook.set_mode(smd.modes.TRAIN)
-    keras_estimator.train(input_fn=input_fn, steps=25, hooks=[hook])
-
-    hook.set_mode(smd.modes.EVAL)
-    eval_result = keras_estimator.evaluate(input_fn=input_fn, steps=10, hooks=[hook])
-
-    from smdebug.trials import create_trial
-
-    tr = create_trial(out_dir)
-    assert len(tr.tensor_names()) == 1
-    assert len(tr.steps()) == 2
-    assert len(tr.steps(smd.modes.TRAIN)) == 1
-    assert len(tr.steps(smd.modes.EVAL)) == 1
-
-
-@pytest.mark.skip
-def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
-    # explicitly save INPUTS and OUTPUTS
-    include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
-    hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
-
-    helper_keras_fit(
-        trial_dir=out_dir,
-        hook=hook,
-        eager=tf_eager_mode,
-        steps=["train", "eval", "predict", "train"],
-    )
-    trial = smd.create_trial(path=out_dir)
-    assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
-    assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
-
-    # Check that output of layer is equal to the input of the next
-    boolean_matrix = trial.tensor("flatten/outputs").value(0) == trial.tensor("dense/inputs").value(
-        0
-    )
-    assert boolean_matrix.all()
-    boolean_matrix = trial.tensor("dense/outputs").value(0) == trial.tensor("dropout/inputs").value(
-        0
-    )
-    assert boolean_matrix.all()
-    boolean_matrix = trial.tensor("dropout/outputs").value(0) == trial.tensor(
-        "dense_1/inputs"
-    ).value(0)
-    assert boolean_matrix.all()
-
-
-def test_hook_timeline_file_write(
-    set_up_smprofiler_config_path, set_up_resource_config, out_dir, tf_eager_mode
-):
-    hook = smd.KerasHook(out_dir=out_dir, save_all=False)
-    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, steps=["train", "eval"])
-
-    files = []
-    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
-        files.append(path)
-
-    assert len(files) == 1
-
-    with open(files[0]) as timeline_file:
-        events_dict = json.load(timeline_file)
-
-    assert events_dict
+# @pytest.mark.skip  # skip until aws tf update
+# def test_save_gradients(out_dir, tf_eager_mode):
+#     # explicitly save INPUTS and OUTPUTS
+#     include_collections = [CollectionKeys.GRADIENTS]
+#     hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+#
+#     helper_keras_fit(
+#         trial_dir=out_dir,
+#         hook=hook,
+#         eager=tf_eager_mode,
+#         steps=["train", "eval", "predict", "train"],
+#     )
+#     trial = smd.create_trial(path=out_dir)
+#     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
+#
+#     for tname in trial.tensor_names(collection=CollectionKeys.GRADIENTS):
+#         output = trial.tensor(tname)
+#         assert output.value(0) is not None
+#
+#
+# def test_save_tensors(out_dir, tf_eager_mode):
+#     include_collections = ["custom_coll"]
+#     hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+#     t1 = tf.constant([0, 1, 1, 2, 3, 5, 8, 13, 21, 34])
+#     t2 = tf.Variable([5 + 4j, 6 + 1j])
+#     t3 = tf.Variable([False, False, False, True])
+#     hook.save_tensor("custom_tensor_1", t1, include_collections)
+#     hook.save_tensor("custom_tensor_2", t2, include_collections)
+#     hook.save_tensor("custom_tensor_3", t3, include_collections)
+#
+#     helper_keras_fit(
+#         trial_dir=out_dir,
+#         hook=hook,
+#         eager=tf_eager_mode,
+#         steps=["train", "eval", "predict", "train"],
+#     )
+#     trial = smd.create_trial(path=out_dir)
+#     assert len(trial.steps(mode=ModeKeys.TRAIN)) == 3
+#     for tname in trial.tensor_names(collection="custom_coll"):
+#         assert trial.tensor(tname).value(0) is not None
+#
+#
+# def test_keras_to_estimator(out_dir, tf_eager_mode):
+#     if not tf_eager_mode:
+#         tf.compat.v1.disable_eager_execution()
+#         tf.compat.v1.reset_default_graph()
+#
+#     tf.keras.backend.clear_session()
+#
+#     model = tf.keras.models.Sequential(
+#         [
+#             tf.keras.layers.Dense(16, activation="relu", input_shape=(4,)),
+#             tf.keras.layers.Dropout(0.2),
+#             tf.keras.layers.Dense(1, activation="sigmoid"),
+#         ]
+#     )
+#
+#     def input_fn():
+#         split = tfds.Split.TRAIN
+#         data_dir = TEST_DATASET_S3_PATH if use_s3_datasets() else None
+#         dataset = tfds.load("iris", data_dir=data_dir, split=split, as_supervised=True)
+#         dataset = dataset.map(lambda features, labels: ({"dense_input": features}, labels))
+#         dataset = dataset.batch(32).repeat()
+#         return dataset
+#
+#     model.compile(loss="categorical_crossentropy", optimizer="adam")
+#     model.summary()
+#
+#     keras_estimator = tf.keras.estimator.model_to_estimator(keras_model=model, model_dir=out_dir)
+#
+#     hook = smd.EstimatorHook(out_dir)
+#
+#     hook.set_mode(smd.modes.TRAIN)
+#     keras_estimator.train(input_fn=input_fn, steps=25, hooks=[hook])
+#
+#     hook.set_mode(smd.modes.EVAL)
+#     eval_result = keras_estimator.evaluate(input_fn=input_fn, steps=10, hooks=[hook])
+#
+#     from smdebug.trials import create_trial
+#
+#     tr = create_trial(out_dir)
+#     assert len(tr.tensor_names()) == 1
+#     assert len(tr.steps()) == 2
+#     assert len(tr.steps(smd.modes.TRAIN)) == 1
+#     assert len(tr.steps(smd.modes.EVAL)) == 1
+#
+#
+# @pytest.mark.skip
+# def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
+#     # explicitly save INPUTS and OUTPUTS
+#     include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
+#     hook = smd.KerasHook(out_dir=out_dir, include_collections=include_collections)
+#
+#     helper_keras_fit(
+#         trial_dir=out_dir,
+#         hook=hook,
+#         eager=tf_eager_mode,
+#         steps=["train", "eval", "predict", "train"],
+#     )
+#     trial = smd.create_trial(path=out_dir)
+#     assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 4
+#     assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 4
+#
+#     # Check that output of layer is equal to the input of the next
+#     boolean_matrix = trial.tensor("flatten/outputs").value(0) == trial.tensor("dense/inputs").value(
+#         0
+#     )
+#     assert boolean_matrix.all()
+#     boolean_matrix = trial.tensor("dense/outputs").value(0) == trial.tensor("dropout/inputs").value(
+#         0
+#     )
+#     assert boolean_matrix.all()
+#     boolean_matrix = trial.tensor("dropout/outputs").value(0) == trial.tensor(
+#         "dense_1/inputs"
+#     ).value(0)
+#     assert boolean_matrix.all()
+#
+#
+# def test_hook_timeline_file_write(
+#     set_up_smprofiler_config_path, set_up_resource_config, out_dir, tf_eager_mode
+# ):
+#     hook = smd.KerasHook(out_dir=out_dir, save_all=False)
+#     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, steps=["train", "eval"])
+#
+#     files = []
+#     for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
+#         files.append(path)
+#
+#     assert len(files) == 1
+#
+#     with open(files[0]) as timeline_file:
+#         events_dict = json.load(timeline_file)
+#
+#     assert events_dict
