@@ -66,8 +66,6 @@ def helper_keras_fit_default_configuration(trial_dir):
 
     model.save(trial_dir, save_format="tf")
 
-    hook.close()
-
 
 def helper_gradtape_tf_default_configuration(trial_dir):
     def get_grads(images, labels):
