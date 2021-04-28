@@ -137,6 +137,7 @@ def profiler_config_path(config_folder):
     return os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
 
 
+@pytest.fixture(autouse=True)
 def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     """
     Setup up each test to:
