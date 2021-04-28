@@ -51,7 +51,7 @@ def dummy_error_function(runtime_error_message):
 
 @pytest.fixture
 def dummy_clean_function_with_return_val():
-    @error_handler.catch_smdebug_errors(return_type=bool)
+    @error_handler.catch_smdebug_errors(default_return_val=False)
     def do_nothing():
         return True
 
@@ -60,7 +60,7 @@ def dummy_clean_function_with_return_val():
 
 @pytest.fixture
 def dummy_error_function_with_return_val(value_error_message):
-    @error_handler.catch_smdebug_errors(return_type=bool)
+    @error_handler.catch_smdebug_errors(default_return_val=False)
     def raise_error():
         raise ValueError(value_error_message)
 

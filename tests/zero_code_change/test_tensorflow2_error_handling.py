@@ -5,7 +5,6 @@ import os
 
 # Third Party
 import pytest
-from tensorflow import GradientTape
 from tests.tensorflow2.utils import (
     helper_gradtape_tf_default_configuration,
     helper_keras_fit_default_configuration,
@@ -75,10 +74,11 @@ def hook_class_with_keras_callback_error(out_dir, keras_callback_error_message):
 def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
     class HookWithBadLayerCallback(Hook):
         """
-        KerasHook subclass with error callbacks on the model's layers. There are two ways for such an error to occur
-        with the default debugger configuration:
+        KerasHook subclass with an error callback on the model's layers. Two conditions need to happen for such an error
+        to occur with the default debugger configuration:
             - An error that would occur in the layer callback itself
             - Failure by the hook to unwrap the layer callback for the default debugger configuration.
+        This subclass simulates those conditions so that the layer callback will error.
         """
 
         def __init__(self, layer_error_message=layer_callback_error_message, *args, **kwargs):
@@ -94,9 +94,7 @@ def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
             def _get_layer_call_fn_error(layer):
                 layer.old_call = layer.call
 
-                @error_handler.catch_smdebug_errors(
-                    return_type="layer_call", old_call_fn=layer.call
-                )
+                @error_handler.catch_smdebug_errors(default_return_val=layer.call)
                 def call(inputs, *args, **kwargs):
                     raise RuntimeError(self.layer_callback_error_message)
 
@@ -109,7 +107,7 @@ def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
             """
             For the default debugger configuration, the KerasHook unwraps the layer callback wrapped in the above
             function. This function overrides the hook's _unwrap_model_with_input_output_saver so that the layer
-            callback wrapped will not get unwrapped and will cause an error.
+            callback wrapped above will not get unwrapped and will cause an error.
             """
 
         @classmethod
@@ -139,7 +137,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             """
 
             @functools.wraps(function)
-            @error_handler.catch_smdebug_errors(return_type="tape", function=function)
+            @error_handler.catch_smdebug_errors(default_return_val=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
 
@@ -152,7 +150,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             """
 
             @functools.wraps(function)
-            @error_handler.catch_smdebug_errors(return_type="tape", function=function)
+            @error_handler.catch_smdebug_errors(default_return_val=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
 
@@ -165,7 +163,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             """
 
             @functools.wraps(function)
-            @error_handler.catch_smdebug_errors(return_type="tape", function=function)
+            @error_handler.catch_smdebug_errors(default_return_val=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
 
@@ -245,7 +243,7 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
     profiler_config_path,
     hook_class_with_keras_callback_error,
 ):
-    class HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
+    class HookWithBadKerasCallbackAndCustomProfilerConfiguration(
         hook_class_with_keras_callback_error
     ):
         """
@@ -262,25 +260,21 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
         @classmethod
         def create_from_json_file(cls, json_file_path=None):
             monkeypatch.setenv("SMPROFILER_CONFIG_PATH", profiler_config_path)
-            return HookWithBadKerasCallbackAndCustomDebuggerConfiguration(out_dir=out_dir)
+            return HookWithBadKerasCallbackAndCustomProfilerConfiguration(out_dir=out_dir)
 
-    return HookWithBadKerasCallbackAndCustomDebuggerConfiguration
+    return HookWithBadKerasCallbackAndCustomProfilerConfiguration
 
 
 @pytest.fixture(autouse=True)
 def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     """
     Setup up each test to:
-        - Store modified KerasHook functions so that they are reset after the test
         - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
         - Remove the duplicate logging filter
         - Reset the error handler after the test so it that it is reenabled.
     """
     old_create_from_json = Hook.create_from_json_file
     del_hook()
-    _push_tape = GradientTape._push_tape
-    gradient = GradientTape.gradient
-    _pop_tape = GradientTape._pop_tape
 
     logger = get_logger()
     os.makedirs(out_dir)
@@ -295,15 +289,12 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
 
     yield
 
-    GradientTape._push_tape = _push_tape
-    GradientTape.gradient = gradient
-    GradientTape._pop_tape = _pop_tape
+    Hook.create_from_json_file = old_create_from_json
+    error_handler.disable_smdebug = False
+    error_handler.hook = None
 
     logger.removeHandler(file_handler)
     logger.addFilter(duplicate_log_filter)
-    error_handler.disable_smdebug = False
-    error_handler.hook = None
-    Hook.create_from_json_file = old_create_from_json
 
 
 @pytest.mark.parametrize(
@@ -403,7 +394,7 @@ def test_non_default_smdebug_configuration(
     """
     Test that the error handler does not catch errors when a custom smdebug configuration of smdebug is used.
 
-    This hook needs to be initialized during its corresponding test, because the error handler is configured to a hook
+    Each hook needs to be initialized during its corresponding test, because the error handler is configured to a hook
     during the hook initialization.
     """
     if custom_configuration == "debugger":

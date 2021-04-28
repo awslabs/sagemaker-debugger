@@ -334,7 +334,7 @@ class BaseHook:
         self._assert_prep()
         return self._collections_to_save
 
-    @error_handler.catch_smdebug_errors(return_type=bool)
+    @error_handler.catch_smdebug_errors(default_return_val=False)
     def _is_collection_being_saved_for_step(self, name):
         # if saving all, all collections will be part of colls_for_step
         colls_for_step = self._get_collections_to_save_for_step()

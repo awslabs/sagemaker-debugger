@@ -249,7 +249,7 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
-    @error_handler.catch_smdebug_errors(return_type=bool)
+    @error_handler.catch_smdebug_errors(default_return_val=False)
     def has_default_hook_configuration(self):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
