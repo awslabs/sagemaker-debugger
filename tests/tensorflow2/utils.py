@@ -43,7 +43,7 @@ def _get_model():
     return model
 
 
-def helper_keras_fit(trial_dir, hook):
+def helper_keras_fit_default_configuration(trial_dir):
 
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -59,19 +59,17 @@ def helper_keras_fit(trial_dir, hook):
         metrics=["accuracy"],
         run_eagerly=False,
     )
-    hooks = []
-    hooks.append(hook)
 
-    model.fit(x_train, y_train, epochs=1, steps_per_epoch=10, callbacks=hooks, verbose=0)
-    model.evaluate(x_test, y_test, steps=10, callbacks=hooks, verbose=0)
-    model.predict(x_test[:100], callbacks=hooks, verbose=0)
+    model.fit(x_train, y_train, epochs=1, steps_per_epoch=10, verbose=0)
+    model.evaluate(x_test, y_test, steps=10, verbose=0)
+    model.predict(x_test[:100], verbose=0)
 
     model.save(trial_dir, save_format="tf")
 
     hook.close()
 
 
-def helper_gradtape_tf(trial_dir, hook):
+def helper_gradtape_tf_default_configuration(trial_dir):
     def get_grads(images, labels):
         # with tf.GradientTape() as tape:
         return model(images, training=True)
@@ -94,10 +92,9 @@ def helper_gradtape_tf(trial_dir, hook):
         for data, labels in dataset:
             dataset_labels = labels
             labels = tf.one_hot(labels, depth=10)
-            with hook.wrap_tape(tf.GradientTape()) as tape:
+            with tf.GradientTape(persistent=True) as tape:
                 logits = train_step(data, labels)
             grads = tape.gradient(logits, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
 
     model.save(trial_dir, save_format="tf")
-    hook.close()

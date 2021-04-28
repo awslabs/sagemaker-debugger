@@ -393,6 +393,9 @@ class BaseHook:
     def has_default_hook_configuration(self):
         # Used in the internal framework forks to determine if the hook
         # is using the default hook configuration
+        if not self.prepared_collections:
+            self._prepare_collections()
+
         collections_being_saved = [x.name for x in self._collections_to_save]
         if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
             return True

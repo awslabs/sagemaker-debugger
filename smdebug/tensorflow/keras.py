@@ -120,6 +120,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
         self.has_logged_unsupported_tensors_in_non_eager_execution = False
+        self.prepared_gradient_tape_collections = False
 
         if python_profiler:
             atexit.register(python_profiler.stop_profiling, StepPhase.END)
@@ -1191,7 +1192,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._save_custom_tensors_post_step()
                 self._close_writers()
 
-            if not self.prepared_collections:
+            if not self.prepared_gradient_tape_collections:
                 # at this point we need all collections to be ready
                 # this may not be the case at creation of hook
                 # as user's code after hook might add collections
@@ -1201,7 +1202,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
                 self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
                 self._prepare_collections_for_tf2()
-                self.prepared_collections = True
+                self.prepared_gradient_tape_collections = True
 
             self._increment_step()
 

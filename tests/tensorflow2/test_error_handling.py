@@ -5,7 +5,11 @@ import os
 
 # Third Party
 import pytest
-from tests.tensorflow2.utils import helper_gradtape_tf, helper_keras_fit
+from tensorflow import GradientTape
+from tests.tensorflow2.utils import (
+    helper_gradtape_tf_default_configuration,
+    helper_keras_fit_default_configuration,
+)
 
 # First Party
 from smdebug.core.error_handler import BASE_ERROR_MESSAGE
@@ -13,6 +17,7 @@ from smdebug.core.logger import DuplicateLogFilter, get_logger
 from smdebug.core.utils import error_handler
 from smdebug.tensorflow import KerasHook as Hook
 from smdebug.tensorflow.collection import CollectionKeys
+from smdebug.tensorflow.singleton_utils import del_hook
 
 
 @pytest.fixture
@@ -41,7 +46,7 @@ def custom_configuration_error_message():
 
 
 @pytest.fixture
-def hook_class_with_keras_callback_error(keras_callback_error_message):
+def hook_class_with_keras_callback_error(out_dir, keras_callback_error_message):
     class HookWithBadKerasCallback(Hook):
         def __init__(self, keras_error_message=keras_callback_error_message, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -51,11 +56,15 @@ def hook_class_with_keras_callback_error(keras_callback_error_message):
         def on_train_batch_begin(self, batch, logs=None):
             raise RuntimeError(self.keras_callback_error_message)
 
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            return HookWithBadKerasCallback(out_dir=out_dir)
+
     return HookWithBadKerasCallback
 
 
 @pytest.fixture
-def hook_class_with_layer_callback_error(layer_callback_error_message):
+def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
     class HookWithBadLayerCallback(Hook):
         def __init__(self, layer_error_message=layer_callback_error_message, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -76,24 +85,11 @@ def hook_class_with_layer_callback_error(layer_callback_error_message):
             for layer in self.model.layers:
                 layer.call = _get_layer_call_fn_error(layer)
 
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            return HookWithBadLayerCallback(out_dir=out_dir)
+
     return HookWithBadLayerCallback
-
-
-@pytest.fixture
-def hook_class_with_keras_and_layer_callback_error(
-    out_dir,
-    hook_class_with_keras_callback_error,
-    hook_class_with_layer_callback_error,
-    keras_callback_error_message,
-    layer_callback_error_message,
-):
-    class HookWithBadKerasAndLayerCallback(
-        hook_class_with_keras_callback_error, hook_class_with_layer_callback_error
-    ):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-    return HookWithBadKerasAndLayerCallback
 
 
 @pytest.fixture
@@ -129,7 +125,54 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
 
             return run
 
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            return HookWithBadGradientTapeCallbacks(out_dir=out_dir)
+
     return HookWithBadGradientTapeCallbacks
+
+
+@pytest.fixture
+def hook_class_with_keras_and_layer_callback_error(
+    out_dir,
+    hook_class_with_keras_callback_error,
+    hook_class_with_layer_callback_error,
+    keras_callback_error_message,
+    layer_callback_error_message,
+):
+    class HookWithBadKerasAndLayerCallback(
+        hook_class_with_keras_callback_error, hook_class_with_layer_callback_error
+    ):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            return HookWithBadKerasAndLayerCallback(out_dir=out_dir)
+
+    return HookWithBadKerasAndLayerCallback
+
+
+@pytest.fixture
+def hook_class_with_keras_callback_error_and_custom_debugger_configuration(
+    out_dir, custom_configuration_error_message, hook_class_with_keras_callback_error
+):
+    class HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
+        hook_class_with_keras_callback_error
+    ):
+        def __init__(self, *args, **kwargs):
+            super().__init__(
+                keras_error_message=custom_configuration_error_message, *args, **kwargs
+            )
+            assert self.keras_callback_error_message == custom_configuration_error_message
+
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            return HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
+                out_dir=out_dir, include_collections=[CollectionKeys.ALL]
+            )
+
+    return HookWithBadKerasCallbackAndCustomDebuggerConfiguration
 
 
 @pytest.fixture
@@ -137,14 +180,45 @@ def profiler_config_path(config_folder):
     return os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
 
 
+@pytest.fixture
+def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
+    out_dir,
+    custom_configuration_error_message,
+    monkeypatch,
+    profiler_config_path,
+    hook_class_with_keras_callback_error,
+):
+    class HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
+        hook_class_with_keras_callback_error
+    ):
+        def __init__(self, *args, **kwargs):
+            super().__init__(
+                keras_error_message=custom_configuration_error_message, *args, **kwargs
+            )
+            assert self.keras_callback_error_message == custom_configuration_error_message
+
+        @classmethod
+        def create_from_json_file(cls, json_file_path=None):
+            monkeypatch.setenv("SMPROFILER_CONFIG_PATH", profiler_config_path)
+            return HookWithBadKerasCallbackAndCustomDebuggerConfiguration(out_dir=out_dir)
+
+    return HookWithBadKerasCallbackAndCustomDebuggerConfiguration
+
+
 @pytest.fixture(autouse=True)
 def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     """
     Setup up each test to:
+        - Store modified KerasHook functions so that they are reset after the test
         - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
         - Remove the duplicate logging filter
         - Reset the error handler after the test so it that it is reenabled.
     """
+    old_create_from_json = Hook.create_from_json_file
+    _push_tape = GradientTape._push_tape
+    gradient = GradientTape.gradient
+    _pop_tape = GradientTape._pop_tape
+
     logger = get_logger()
     os.makedirs(out_dir)
     file_handler = logging.FileHandler(filename=stack_trace_filepath)
@@ -155,10 +229,19 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
             duplicate_log_filter = log_filter
             break
     logger.removeFilter(duplicate_log_filter)
+
     yield
+
+    del_hook()
+    GradientTape._push_tape = _push_tape
+    GradientTape.gradient = gradient
+    GradientTape._pop_tape = _pop_tape
+
     logger.removeHandler(file_handler)
     logger.addFilter(duplicate_log_filter)
     error_handler.disable_smdebug = False
+    error_handler.hook = None
+    Hook.create_from_json_file = old_create_from_json
 
 
 @pytest.mark.parametrize(
@@ -220,15 +303,14 @@ def test_tf2_callback_error_handling(
             keras_callback_error_message
         )  # only on_train_batch_begin should error and get caught
 
-    hook = hook_class(out_dir=out_dir)
-    hook._prepare_collections_for_tf2()
-    assert (
-        hook.has_default_configuration()
-    )  # error handler should only catch errors for default smdebug configuration
+    Hook.create_from_json_file = hook_class.create_from_json_file
 
-    helper = helper_gradtape_tf if hook_type == "gradient_tape_callback_error" else helper_keras_fit
-    helper(out_dir, hook)
-    hook.close()
+    helper = (
+        helper_gradtape_tf_default_configuration
+        if hook_type == "gradient_tape_callback_error"
+        else helper_keras_fit_default_configuration
+    )
+    helper(out_dir)
 
     assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
@@ -251,7 +333,8 @@ def test_non_default_smdebug_configuration(
     monkeypatch,
     profiler_config_path,
     out_dir,
-    hook_class_with_keras_callback_error,
+    hook_class_with_keras_callback_error_and_custom_debugger_configuration,
+    hook_class_with_keras_callback_error_and_custom_profiler_configuration,
     custom_configuration_error_message,
     stack_trace_filepath,
 ):
@@ -262,20 +345,15 @@ def test_non_default_smdebug_configuration(
     during the hook initialization.
     """
     if custom_configuration == "debugger":
-        hook = hook_class_with_keras_callback_error(
-            keras_error_message=custom_configuration_error_message,
-            out_dir=out_dir,
-            include_collections=[CollectionKeys.ALL],
-        )
+        hook_class = hook_class_with_keras_callback_error_and_custom_debugger_configuration
     else:
-        monkeypatch.setenv("SMPROFILER_CONFIG_PATH", profiler_config_path)
-        hook = hook_class_with_keras_callback_error(
-            keras_error_message=custom_configuration_error_message, out_dir=out_dir
-        )
+        hook_class = hook_class_with_keras_callback_error_and_custom_profiler_configuration
+
+    Hook.create_from_json_file = hook_class.create_from_json_file
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
-        helper_keras_fit(out_dir, hook)
+        helper_keras_fit_default_configuration(out_dir)
     assert error_handler.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
