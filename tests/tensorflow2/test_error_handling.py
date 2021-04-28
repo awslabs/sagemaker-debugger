@@ -49,7 +49,7 @@ def custom_configuration_error_message():
 def hook_class_with_keras_callback_error(out_dir, keras_callback_error_message):
     class HookWithBadKerasCallback(Hook):
         """
-        KerasHook subclass with error callbacks called directly from tensorflow.keras at regular intervals in
+        KerasHook subclass with error callbacks called directly from TF Keras at regular intervals in
         training.
         """
 
@@ -122,6 +122,10 @@ def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
 @pytest.fixture
 def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback_error_message):
     class HookWithBadGradientTapeCallbacks(Hook):
+        """
+        KerasHook subclass with error callbacks wrapped around the TF GradientTape tape functions.
+        """
+
         def __init__(
             self, gradient_tape_message=gradient_tape_callback_error_message, *args, **kwargs
         ):
@@ -129,6 +133,11 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             self.gradient_tape_callback_error_message = gradient_tape_message
 
         def _wrap_push_tape(self, function):
+            """
+            Override the KerasHook's _wrap_push_tape function to return a tape callback that fails immediately.
+            This callback gets called in __enter__ of tf.GradientTape
+            """
+
             @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
@@ -137,6 +146,11 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             return run
 
         def _wrap_tape_gradient(self, function):
+            """
+            Override the KerasHook's _wrap_tape_gradient function to return a tape callback that fails immediately.
+            This callback gets called directly in the users's training script via `tape.gradient`.
+            """
+
             @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
@@ -145,6 +159,11 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             return run
 
         def _wrap_pop_tape(self, function):
+            """
+            Override the KerasHook's _wrap_pop_tape function to return a tape callback that fails immediately.
+            This callback gets called in __exit__ of tf.GradientTape
+            """
+
             @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
@@ -170,6 +189,12 @@ def hook_class_with_keras_and_layer_callback_error(
     class HookWithBadKerasAndLayerCallback(
         hook_class_with_keras_callback_error, hook_class_with_layer_callback_error
     ):
+        """
+        KerasHook subclass with error callbacks called from both TF Keras and the model's layers.
+
+        Due to the ordering, the first callback to error is a TF Keras callback.
+        """
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
@@ -187,6 +212,11 @@ def hook_class_with_keras_callback_error_and_custom_debugger_configuration(
     class HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
         hook_class_with_keras_callback_error
     ):
+        """
+        KerasHook subclass that extends off of the TF Keras callback error subclass above to return a hook with a
+        custom debugger configuration. Thus, any errors thrown should not be caught by the error handler.
+        """
+
         def __init__(self, *args, **kwargs):
             super().__init__(
                 keras_error_message=custom_configuration_error_message, *args, **kwargs
@@ -218,6 +248,11 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
     class HookWithBadKerasCallbackAndCustomDebuggerConfiguration(
         hook_class_with_keras_callback_error
     ):
+        """
+        KerasHook subclass that extends off of the TF Keras callback error subclass above to return a hook with a
+        custom profiler configuration. Thus, any errors thrown should not be caught by the error handler.
+        """
+
         def __init__(self, *args, **kwargs):
             super().__init__(
                 keras_error_message=custom_configuration_error_message, *args, **kwargs
