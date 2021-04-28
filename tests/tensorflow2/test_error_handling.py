@@ -1,4 +1,5 @@
 # Standard Library
+import functools
 import logging
 import os
 
@@ -97,6 +98,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             self.gradient_tape_callback_error_message = gradient_tape_message
 
         def _wrap_push_tape(self, function):
+            @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
@@ -104,6 +106,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             return run
 
         def _wrap_tape_gradient(self, function):
+            @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
@@ -111,6 +114,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             return run
 
         def _wrap_pop_tape(self, function):
+            @functools.wraps(function)
             @error_handler.catch_smdebug_errors(return_type="tape", function=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
