@@ -28,16 +28,3 @@ def is_tf_2_3():
 
 def is_tf_version_greater_than_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION
-
-
-def _get_model():
-    model = tf.keras.models.Sequential(
-        [
-            # WA for TF issue https://github.com/tensorflow/tensorflow/issues/36279
-            tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(10, activation="softmax"),
-        ]
-    )
-    return model
