@@ -147,7 +147,7 @@ def hook_class_with_profiler_config_parser_error(out_dir, profiler_config_parser
 
 @pytest.fixture
 def hook_class_with_torch_callback_error_and_custom_debugger_configuration(
-    out_dir, custom_configuration_error_message
+    out_dir, custom_configuration_error_message, hook_class_with_torch_callback_error
 ):
     class HookWithBadTorchCallbackAndCustomDebuggerConfiguration(
         hook_class_with_torch_callback_error
