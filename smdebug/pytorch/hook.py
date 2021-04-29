@@ -67,6 +67,7 @@ class Hook(CallbackHook):
         def update_end_time(self, end_time=time.time()):
             self.end_time = end_time
 
+    @error_handler.catch_smdebug_errors()
     def __init__(
         self,
         out_dir=None,
@@ -317,6 +318,7 @@ class Hook(CallbackHook):
                 )
 
     # This hook is invoked by trainer prior to running the forward pass.
+    @error_handler.catch_smdebug_errors()
     def forward_pre_hook(self, module, inputs):
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
@@ -445,6 +447,7 @@ class Hook(CallbackHook):
         self._write_outputs(tensor_name, tensor_value)
 
     # This hook is invoked by trainer after running the forward pass.
+    @error_handler.catch_smdebug_errors()
     def forward_hook(self, module, inputs, outputs):
         # if this is first forward we will use start time of parent as start time, and end time as now
         cur_time = time.time()
@@ -486,6 +489,7 @@ class Hook(CallbackHook):
         self._save_custom_tensors_post_step()
         self.last_saved_step = self.step
 
+    @error_handler.catch_smdebug_errors()
     def backward_hook(self, tname):
         # Helper function that has access to the parameter name via
         # the scope in which it's defined.
@@ -517,6 +521,7 @@ class Hook(CallbackHook):
         # for compatibility with ZCC patches which call this
         self.register_module(module)
 
+    @error_handler.catch_smdebug_errors()
     def fhook(self, module, inputs, outputs):
         # we would stop profiling and restart from this phase
         if python_profiler:
@@ -534,6 +539,7 @@ class Hook(CallbackHook):
                     start_step=self.step,
                 )
 
+    @error_handler.catch_smdebug_errors()
     def bhook(self, module, grad_input, grad_output):
         now = time.time()
         backward_st_time = now
@@ -676,7 +682,7 @@ class Hook(CallbackHook):
             return tensor_value.to(torch.device("cpu")).data.numpy()
         return make_numpy_array(tensor_value)
 
-    @error_handler.catch_smdebug_errors(return_type=bool)
+    @error_handler.catch_smdebug_errors(default_return_val=False)
     def should_save_dataloader_metrics(self, metrics_name):
         """Determine whether dataloader metrics for the provided metrics_name should be saved. We check for the next
         step since the dataloader metrics for the next step are collected on the current step.
