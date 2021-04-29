@@ -53,7 +53,7 @@ def hook_class_with_torch_callback_error(out_dir, torch_callback_error_message):
             self.torch_callback_error_message = torch_error_message
 
         @error_handler.catch_smdebug_errors()
-        def fhook(self, batch, logs=None):
+        def fhook(self, module, inputs, outputs):
             """
             Override the Hook's fhook callback to fail immediately.
             """
