@@ -3,7 +3,6 @@ import atexit
 import functools
 import os
 import time
-from copy import deepcopy
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -14,7 +13,7 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import error_handler, match_inc
+from smdebug.core.utils import match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
@@ -62,7 +61,6 @@ if profiler_config_parser.profiling_enabled:
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
-    @error_handler.catch_smdebug_errors()
     def __init__(
         self,
         out_dir,
@@ -121,8 +119,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
         self.has_logged_unsupported_tensors_in_non_eager_execution = False
-        self.prepared_tf2_collections = False
-        self.prepared_gradient_tape_collections = False
 
         if python_profiler:
             atexit.register(python_profiler.stop_profiling, StepPhase.END)
@@ -166,7 +162,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
         return not self._hook_supported
 
-    @error_handler.catch_smdebug_errors()
     def register_model(self, model):
         # This function is called by the hook in the AWS TF codebase
         # It attaches a hook to every layer of the model to capture
@@ -480,7 +475,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
-    @error_handler.catch_smdebug_errors()
     def should_save_layer(self, layer_name):
         # Called in AWS TF to determine
         # if a particular layer value
@@ -515,7 +509,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 collection.set_tensor_ref(tensor_ref)
             self._save_for_tensor(tensor_name, t, check_before_write=True)
 
-    def _save_gradients_from_logs(self, gradients):
+    def save_gradients_from_logs(self, gradients):
         if gradients is not None:
             gradient_collection = self.get_collection(CollectionKeys.GRADIENTS)
             step_collections = self._get_collections_to_save_for_step()
@@ -556,7 +550,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self._save_tensor_to_file(prefix, tensors_to_save, collections_to_write)
 
-    @error_handler.catch_smdebug_errors()
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
@@ -574,7 +567,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
-                    self._save_gradients_from_logs(logs[key])
+                    self.save_gradients_from_logs(logs[key])
                 # Save Intermediate Layers
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
                     self._save_layer_values(logs[key])
@@ -735,13 +728,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.has_default_hook_configuration():
             # wrapping the model is only supported if the hook does not have the default hook configuration
             self._unwrap_model_with_input_output_saver()
-        self.prepared_tf2_collections = True
 
-    @error_handler.catch_smdebug_errors()
     def on_epoch_begin(self, batch, logs=None):
         pass
 
-    @error_handler.catch_smdebug_errors()
     def on_epoch_end(self, batch, logs=None):
         if self._is_not_supported():
             return
@@ -761,7 +751,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
-        if self.prepared_tf2_collections is False and is_tf_version_2_3_x():
+        if self.prepared_collections is False and is_tf_version_2_3_x():
             # Addresses ordering issues in TF 2.3.0
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
@@ -771,11 +761,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # have to clear callable cache if we are not caching per mode
         self.callable_cache.change_mode()
 
-    @error_handler.catch_smdebug_errors()
     def on_train_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.TRAIN)
 
-    @error_handler.catch_smdebug_errors()
     def on_test_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
@@ -797,7 +785,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         ):
             self.is_dataloader_profiling = False
 
-    @error_handler.catch_smdebug_errors()
     def on_train_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.TRAIN)
 
@@ -810,17 +797,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             )
             self.is_detailed_profiling = False
 
-    @error_handler.catch_smdebug_errors()
     # throws error in keras if this fn is absent
     def on_test_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.EVAL)
 
-    @error_handler.catch_smdebug_errors()
     # throws error in keras if this fn is absent
     def on_predict_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.PREDICT)
 
-    @error_handler.catch_smdebug_errors()
     def on_predict_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
@@ -889,7 +873,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     start_step=self.mode_steps[mode],
                 )
 
-        if self.prepared_tf2_collections is False:
+        if self.prepared_collections is False:
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
 
@@ -918,7 +902,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 self._add_callbacks(mode)
 
-    @error_handler.catch_smdebug_errors()
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
 
@@ -953,11 +936,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 )
                 self.is_detailed_profiling = False
 
-    @error_handler.catch_smdebug_errors()
     def on_test_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.EVAL, logs=logs)
 
-    @error_handler.catch_smdebug_errors()
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
@@ -1078,15 +1059,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     start_step=self.mode_steps[mode],
                 )
 
-    @error_handler.catch_smdebug_errors()
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)
 
-    @error_handler.catch_smdebug_errors()
     def on_test_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.EVAL, logs=logs)
 
-    @error_handler.catch_smdebug_errors()
     def on_predict_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.PREDICT, logs=logs)
 
@@ -1159,7 +1137,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape.__class__._pop_tape = unwrap(self.tape.__class__._pop_tape)
         self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
 
-    @error_handler.catch_smdebug_errors()
     def close(self):
         self._cleanup()
         if python_profiler:
@@ -1183,7 +1160,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
-        @error_handler.catch_smdebug_errors(default_return_val=function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1195,7 +1171,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._save_custom_tensors_post_step()
                 self._close_writers()
 
-            if not self.prepared_gradient_tape_collections:
+            if not self.prepared_collections:
                 # at this point we need all collections to be ready
                 # this may not be the case at creation of hook
                 # as user's code after hook might add collections
@@ -1205,7 +1181,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
                 self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
                 self._prepare_collections_for_tf2()
-                self.prepared_gradient_tape_collections = True
+                self.prepared_collections = True
 
             self._increment_step()
 
@@ -1231,7 +1207,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
-        @error_handler.catch_smdebug_errors(default_return_val=function)
         def run(*args, **kwargs):
             grads = function(*args, **kwargs)
             if self._is_not_supported():
@@ -1292,7 +1267,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
-        @error_handler.catch_smdebug_errors(default_return_val=function)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1321,51 +1295,37 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._log_unsupported_tensors_in_non_eager_execution()
 
     def wrap_tape(self, tape):
-        # Don't modify the original tape object. If an error occurs when wrapping the tape functions, we simply return
-        # the original tape object.
-        wrapped_tape = deepcopy(tape)
+        """
+        Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
+        variables.
 
-        @error_handler.catch_smdebug_errors(default_return_val=tape)
-        def _wrap_tape():
-            """
-            Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
-            variables.
+        :param tape: tensorflow.python.eager.backprop.GradientTape
+            the tape object used for training
+        :return: Wrapped tape of same type as passed.
+            This tape should be used for training
+        """
+        # Disable python profiling, because now we are starting wrap tape.
+        if python_profiler:
+            python_profiler.stop_profiling(
+                StepPhase.STEP_START,
+                end_mode=mode_keys_to_python_profile_mode(self.mode),
+                end_step=0,
+            )
 
-            :param tape: tensorflow.python.eager.backprop.GradientTape
-                the tape object used for training
-            :return: Wrapped tape of same type as passed.
-                This tape should be used for training
-            """
-            # Disable python profiling, because now we are starting wrap tape.
-            if python_profiler:
-                python_profiler.stop_profiling(
-                    StepPhase.STEP_START,
-                    end_mode=mode_keys_to_python_profile_mode(self.mode),
-                    end_step=0,
-                )
+        from tensorflow.python.eager.backprop import GradientTape
 
-            from tensorflow.python.eager.backprop import GradientTape
+        if isinstance(tape, GradientTape):
+            # unwrap tape before wrapping new tape to avoid recursive wrap tapes
+            if self.tape:
+                self._unwrap_tape()
 
-            if isinstance(tape, GradientTape):
-                # unwrap tape before wrapping new tape to avoid recursive wrap tapes
-                if self.tape:
-                    self._unwrap_tape()
-
-                self.tape = wrapped_tape
-                self.tape.__class__._push_tape = self._wrap_push_tape(
-                    wrapped_tape.__class__._push_tape
-                )
-                self.tape.__class__.gradient = self._wrap_tape_gradient(
-                    wrapped_tape.__class__.gradient
-                )
-                self.tape.__class__._pop_tape = self._wrap_pop_tape(
-                    wrapped_tape.__class__._pop_tape
-                )
-            else:
-                self._log_unsupported_tape(tape)
-            return wrapped_tape
-
-        return _wrap_tape()
+            self.tape = tape
+            self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
+            self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
+            self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
+        else:
+            self._log_unsupported_tape(tape)
+        return tape
 
     def record_tensor_value(self, tensor_name, tensor_value):
         # To be used to save metrics of type EagerTensor

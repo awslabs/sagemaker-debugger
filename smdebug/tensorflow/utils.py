@@ -12,7 +12,6 @@ from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import error_handler
 
 # Cached TF Version
 TF_VERSION = version.parse(tf.__version__)
@@ -364,7 +363,6 @@ def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.
     old_call_fn = layer.call
     layer.old_call = old_call_fn
 
-    @error_handler.catch_smdebug_errors(default_return_val=old_call_fn)
     def call(inputs, *args, **kwargs) -> tf.Tensor:
         layer_input = inputs
         layer_output = old_call_fn(inputs, *args, **kwargs)
