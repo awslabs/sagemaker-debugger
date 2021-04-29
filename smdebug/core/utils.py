@@ -5,11 +5,13 @@ import os
 import re
 import shutil
 import socket
+import urllib.parse
 from pathlib import Path
 from typing import Dict, List
 
 # Third Party
 import numpy as np
+import requests
 
 # First Party
 from smdebug.core.config_constants import (
@@ -17,6 +19,8 @@ from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
+    PROFILER_REPORT_VERSION,
+    PROFILER_TELEMETRY_URL,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
 from smdebug.core.logger import get_logger
@@ -76,6 +80,25 @@ def make_numpy_array(x):
         return np.array(x)
     else:
         raise TypeError("_make_numpy_array does not support the" " type {}".format(str(type(x))))
+
+
+def get_aws_region_from_processing_job_arn(processing_job_arn):
+    region_match_regex_pattern = (
+        r"(us(-gov)?|ap|ca|cn|eu|sa)-(central|(north|south)?(east|west)?)-\d+"
+    )
+    return re.search(region_match_regex_pattern, processing_job_arn).group(0)
+
+
+def setup_profiler_report(processing_job_arn, opt_out=False):
+    if opt_out is False and bool(processing_job_arn):
+        current_aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
+        profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=current_aws_region)
+        payload = {"x-artifact-id": PROFILER_REPORT_VERSION, "x-arn": processing_job_arn}
+        payload_str = urllib.parse.urlencode(payload, safe=":+")
+        try:
+            return requests.get(profiler_telemetry_url, params=payload_str)
+        except requests.exceptions.RequestException:
+            pass
 
 
 def ensure_dir(file_path, is_file=True):

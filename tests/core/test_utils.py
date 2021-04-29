@@ -26,7 +26,12 @@ from smdebug.core.json_config import (
     get_json_config_as_dict,
 )
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import SagemakerSimulator, is_first_process, is_s3
+from smdebug.core.utils import (
+    SagemakerSimulator,
+    get_aws_region_from_processing_job_arn,
+    is_first_process,
+    is_s3,
+)
 
 
 def test_normal():
@@ -254,3 +259,8 @@ def helper_test_is_first_process(dir):
         p.join()
 
     assert results.count(True) == 1, f"Failed for path: {path}"
+
+
+def test_get_aws_region_from_processing_job_arn():
+    test_arn = "arn:aws:sagemaker:us-east-1:072677473360:processing-job/random-test-arn"
+    assert get_aws_region_from_processing_job_arn(test_arn) == "us-east-1"
