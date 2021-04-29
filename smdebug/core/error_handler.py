@@ -102,6 +102,7 @@ class SMDebugErrorHandler(object):
                 def error_handler(*args, **kwargs):
                     # Return immediately if smdebug is disabled.
                     if self.disable_smdebug:
+                        # If `default_return_val` is a function, call it with the inputs and return the output.
                         if callable(default_return_val):
                             return default_return_val(*args, **kwargs)
                         return default_return_val
@@ -118,6 +119,7 @@ class SMDebugErrorHandler(object):
                             self.logger.exception(e)  # Log stack trace.
                             self.disable_smdebug = True  # Disable smdebug
 
+                            # If `default_return_val` is a function, call it with the inputs and return the output.
                             if callable(default_return_val):
                                 return default_return_val(*args, **kwargs)
                             return default_return_val
