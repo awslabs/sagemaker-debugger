@@ -4,7 +4,7 @@ import os
 
 # Third Party
 import pytest
-from tests.pytorch.utils import train_default_configuration
+from tests.zero_code_change.pt_utils import helper_torch_train
 
 # First Party
 from smdebug.core.error_handler import BASE_ERROR_MESSAGE
@@ -298,7 +298,7 @@ def test_pytorch_error_handling(
 
     Hook.create_from_json_file = hook_class.create_from_json_file
 
-    train_default_configuration()
+    helper_torch_train()
 
     assert error_handler.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
@@ -341,7 +341,7 @@ def test_non_default_smdebug_configuration(
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
-        train_default_configuration()
+        helper_torch_train()
     assert error_handler.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
