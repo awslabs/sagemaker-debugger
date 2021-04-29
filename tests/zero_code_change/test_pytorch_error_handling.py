@@ -95,8 +95,12 @@ def hook_class_with_register_module_error(out_dir, register_module_error_message
 
 
 @pytest.fixture
-def hook_class_with_torch_callback_and_register_module_error(out_dir, torch_callback_error_message):
-    class HookWithBadTorchCallbackAndRegisterModule(Hook):
+def hook_class_with_torch_callback_and_register_module_error(
+    out_dir, hook_class_with_torch_callback_error, hook_class_with_register_module_error
+):
+    class HookWithBadTorchCallbackAndRegisterModule(
+        hook_class_with_torch_callback_error, hook_class_with_register_module_error
+    ):
         """
         Hook subclass with error callbacks called from PyTorch.
 
