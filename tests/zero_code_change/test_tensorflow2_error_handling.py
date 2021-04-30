@@ -11,9 +11,9 @@ from tests.zero_code_change.test_tensorflow2_gradtape_integration import (
 from tests.zero_code_change.test_tensorflow2_integration import helper_keras_fit
 
 # First Party
-from smdebug.core.error_handler import BASE_ERROR_MESSAGE
+from smdebug.core.error_handling_agent import BASE_ERROR_MESSAGE
 from smdebug.core.logger import DuplicateLogFilter, get_logger
-from smdebug.core.utils import error_handler
+from smdebug.core.utils import error_handling_agent
 from smdebug.tensorflow import KerasHook as Hook
 from smdebug.tensorflow.collection import CollectionKeys
 from smdebug.tensorflow.singleton_utils import del_hook
@@ -26,22 +26,22 @@ def stack_trace_filepath(out_dir):
 
 @pytest.fixture
 def keras_callback_error_message():
-    return "If this Keras callback error causes the test to fail, the error handler failed to catch the error!"
+    return "If this Keras callback error causes the test to fail, the error handling agent failed to catch the error!"
 
 
 @pytest.fixture
 def layer_callback_error_message():
-    return "If this layer callback error causes the test to fail, the error handler failed to catch the error!"
+    return "If this layer callback error causes the test to fail, the error handling agent failed to catch the error!"
 
 
 @pytest.fixture
 def gradient_tape_callback_error_message():
-    return "If this GradientTape callback error causes the test to fail, the error handler failed to catch the error!"
+    return "If this GradientTape callback error causes the test to fail, the error handling agent failed to catch the error!"
 
 
 @pytest.fixture
 def custom_configuration_error_message():
-    return "This error should have been thrown and not caught by the error handler!"
+    return "This error should have been thrown and not caught by the error handling agent!"
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def hook_class_with_keras_callback_error(out_dir, keras_callback_error_message):
             super().__init__(*args, **kwargs)
             self.keras_callback_error_message = keras_error_message
 
-        @error_handler.catch_smdebug_errors()
+        @error_handling_agent.catch_smdebug_errors()
         def on_train_batch_begin(self, batch, logs=None):
             """
             Override the KerasHook's on_train_batch_begin callback to fail immediately.
@@ -94,7 +94,7 @@ def hook_class_with_layer_callback_error(out_dir, layer_callback_error_message):
             def _get_layer_call_fn_error(layer):
                 layer.old_call = layer.call
 
-                @error_handler.catch_smdebug_errors(default_return_val=layer.call)
+                @error_handling_agent.catch_smdebug_errors(default_return_val=layer.call)
                 def call(inputs, *args, **kwargs):
                     raise RuntimeError(self.layer_callback_error_message)
 
@@ -137,7 +137,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             """
 
             @functools.wraps(function)
-            @error_handler.catch_smdebug_errors(default_return_val=function)
+            @error_handling_agent.catch_smdebug_errors(default_return_val=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
 
@@ -150,7 +150,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             """
 
             @functools.wraps(function)
-            @error_handler.catch_smdebug_errors(default_return_val=function)
+            @error_handling_agent.catch_smdebug_errors(default_return_val=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
 
@@ -163,7 +163,7 @@ def hook_class_with_gradient_tape_callback_error(out_dir, gradient_tape_callback
             """
 
             @functools.wraps(function)
-            @error_handler.catch_smdebug_errors(default_return_val=function)
+            @error_handling_agent.catch_smdebug_errors(default_return_val=function)
             def run(*args, **kwargs):
                 raise RuntimeError(self.gradient_tape_callback_error_message)
 
@@ -208,7 +208,7 @@ def hook_class_with_keras_callback_error_and_custom_debugger_configuration(
     ):
         """
         KerasHook subclass that extends off of the TF Keras callback error subclass above to return a hook with a
-        custom debugger configuration. Thus, any errors thrown should not be caught by the error handler.
+        custom debugger configuration. Thus, any errors thrown should not be caught by the error handling agent.
         """
 
         def __init__(self, *args, **kwargs):
@@ -243,7 +243,7 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
     ):
         """
         KerasHook subclass that extends off of the TF Keras callback error subclass above to return a hook with a
-        custom profiler configuration. Thus, any errors thrown should not be caught by the error handler.
+        custom profiler configuration. Thus, any errors thrown should not be caught by the error handling agent.
         """
 
         def __init__(self, *args, **kwargs):
@@ -262,10 +262,10 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
 @pytest.fixture(autouse=True)
 def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     """
-    Setup up each test to:
+    Set up each test to:
         - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
         - Remove the duplicate logging filter
-        - Reset the error handler after the test so it that it is reenabled.
+        - Reset the error handling agent after the test so that smdebug is reenabled.
     """
     old_create_from_json = Hook.create_from_json_file
     del_hook()
@@ -284,8 +284,8 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     yield
 
     Hook.create_from_json_file = old_create_from_json
-    error_handler.disable_smdebug = False
-    error_handler.hook = None
+    error_handling_agent.disable_smdebug = False
+    error_handling_agent.hook = None
 
     logger.removeHandler(file_handler)
     logger.addFilter(duplicate_log_filter)
@@ -312,27 +312,27 @@ def test_tf2_callback_error_handling(
     gradient_tape_callback_error_message,
 ):
     """
-    Test that an error thrown by an smdebug callback is caught and logged correctly by the error handler. This test
-    has four test cases:
+    Test that an error thrown by an smdebug callback is caught and logged correctly by the error handling agent. This
+    test has four test cases:
 
-    keras_callback_error: The Keras hook's `on_train_batch_begin` is overridden to always fail. The error handler should
-    catch this error and log it once, and then disable smdebug for the rest of training.
+    keras_callback_error: The Keras hook's `on_train_batch_begin` is overridden to always fail. The error handling agent
+    should catch this error and log it once, and then disable smdebug for the rest of training.
 
-    layer_callback_error: The Keras hook's layer callback `call` is overridden to always fail. The error handler should
-    catch this error and log it once, and then disable smdebug for the rest of training.
+    layer_callback_error: The Keras hook's layer callback `call` is overridden to always fail. The error handling agent
+    should catch this error and log it once, and then disable smdebug for the rest of training.
 
     gradient_tape_error: The Keras hook's GradientTape callbacks `_wrap_tape_*` are overriden to always fail. The error
     handler should catch this error and log it once, and then disable smdebug for the rest of training.
 
     keras_and_layer_callback_error: Both the keras and layer callback functions are overridden to always fail. However,
-    the `on_train_batch_begin` function is called first, so the error handler should only catch that error. Then
+    the `on_train_batch_begin` function is called first, so the error handling agent should only catch that error. Then
     because smdebug is disabled, the error raised by `call` should not be caught because the function shouldn't be even
     be called in the first place.
 
-    Each hook needs to be initialized during its corresponding test, because the error handler is configured to a hook
-    during the hook initialization.
+    Each hook needs to be initialized during its corresponding test, because the error handling agentr is configured to
+    a hook during the hook initialization.
     """
-    assert error_handler.disable_smdebug is False
+    assert error_handling_agent.disable_smdebug is False
 
     if hook_type == "keras_callback_error":
         hook_class = hook_class_with_keras_callback_error
@@ -358,7 +358,7 @@ def test_tf2_callback_error_handling(
     )
     helper()
 
-    assert error_handler.disable_smdebug is True
+    assert error_handling_agent.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
 
@@ -384,10 +384,10 @@ def test_non_default_smdebug_configuration(
     stack_trace_filepath,
 ):
     """
-    Test that the error handler does not catch errors when a custom smdebug configuration of smdebug is used.
+    Test that the error handling agent does not catch errors when a custom smdebug configuration of smdebug is used.
 
-    Each hook needs to be initialized during its corresponding test, because the error handler is configured to a hook
-    during the hook initialization.
+    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured to
+    a hook during the hook initialization.
     """
     if custom_configuration == "debugger":
         hook_class = hook_class_with_keras_callback_error_and_custom_debugger_configuration
@@ -399,7 +399,7 @@ def test_non_default_smdebug_configuration(
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
         helper_keras_fit()
-    assert error_handler.disable_smdebug is False
+    assert error_handling_agent.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 0

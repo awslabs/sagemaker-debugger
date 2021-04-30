@@ -17,6 +17,7 @@ from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.core.logger import get_logger
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -28,6 +29,7 @@ def get_keras_data():
 
 
 def helper_keras_gradienttape_train(script_mode: bool = False, json_file_contents="{}", sim=None):
+    logger = get_logger()
     model = tf.keras.models.Sequential(
         [
             tf.keras.layers.Flatten(input_shape=(28, 28, 1)),  # WA for TF issue #36279
@@ -53,7 +55,7 @@ def helper_keras_gradienttape_train(script_mode: bool = False, json_file_content
             hook = smd.KerasHook.create_from_json_file()
 
         for epoch in range(n_epochs):
-            print("Epoch %d/%d" % (epoch + 1, n_epochs))
+            logger.info("Epoch %d/%d" % (epoch + 1, n_epochs))
             for data, labels in dataset:
                 dataset_labels = labels
                 labels = tf.one_hot(labels, depth=10)
@@ -68,12 +70,12 @@ def helper_keras_gradienttape_train(script_mode: bool = False, json_file_content
                 )
             log = "Epoch %d " % (epoch + 1)
             log += "Accuracy %.4f" % train_acc_metric.result()
-            print(log)
+            logger.info(log)
             train_acc_metric.reset_states()
     else:
         # ZCC support added from smdebug v0.8.0)
         for epoch in range(n_epochs):
-            print("Epoch %d/%d" % (epoch + 1, n_epochs))
+            logger.info("Epoch %d/%d" % (epoch + 1, n_epochs))
             for data, labels in dataset:
                 dataset_labels = labels
                 labels = tf.one_hot(labels, depth=10)
@@ -85,7 +87,7 @@ def helper_keras_gradienttape_train(script_mode: bool = False, json_file_content
                 acc = train_acc_metric(dataset_labels, logits)
             log = "Epoch %d " % (epoch + 1)
             log += "Accuracy %.4f" % train_acc_metric.result()
-            print(log)
+            logger.info(log)
             train_acc_metric.reset_states()
 
 

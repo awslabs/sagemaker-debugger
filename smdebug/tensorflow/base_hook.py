@@ -16,7 +16,7 @@ from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
 from smdebug.core.utils import (
     check_smdataparallel_env,
-    error_handler,
+    error_handling_agent,
     make_numpy_array,
     serialize_tf_device,
 )
@@ -249,7 +249,7 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
-    @error_handler.catch_smdebug_errors(default_return_val=False)
+    @error_handling_agent.catch_smdebug_errors(default_return_val=False)
     def has_default_hook_configuration(self):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
@@ -507,7 +507,7 @@ class TensorflowBaseHook(BaseHook):
         optimizer.__class__.apply_gradients = new_apply_gradients
         return optimizer
 
-    @error_handler.catch_smdebug_errors()
+    @error_handling_agent.catch_smdebug_errors()
     def set_gradients(self, gradients=None, gradients_and_variables=None):
         """
         This method helps find the gradient tensors.
@@ -539,7 +539,7 @@ class TensorflowBaseHook(BaseHook):
                 )
             self._gradients_set = True
 
-    @error_handler.catch_smdebug_errors()
+    @error_handling_agent.catch_smdebug_errors()
     def set_optimizer_variables(self, optimizer_variables):
         """
         This method helps find the optimizer variables (such as momentum)
