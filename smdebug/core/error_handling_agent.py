@@ -4,7 +4,7 @@ import functools
 # First Party
 from smdebug.core.logger import get_logger
 
-# Base message logged when the error handler has caught an error.
+# Base message logged when the error handling agent has caught an error.
 BASE_ERROR_MESSAGE = (
     "SMDebug error has occurred, disabling SMDebug for the rest of the training job. Stack trace:"
 )
@@ -12,7 +12,7 @@ BASE_ERROR_MESSAGE = (
 
 class ErrorHandlingAgent(object):
     """
-    Error handler to catch all errors originating from smdebug and its dependencies. This is instantiated as a
+    Error handling agent to catch all errors originating from smdebug and its dependencies. This is instantiated as a
     global util object and wrapped around smdebug functions.
 
     Currently, the error handling agent is designed to catch all errors that could come up for the default smdebug
@@ -20,15 +20,15 @@ class ErrorHandlingAgent(object):
     around all externally facing smdebug functions (i.e. called from the ML framework).
 
     Only one instance of the error handling agent is allowed. The agent cannot be instantiated directly. To get an
-    object of the error handling agent, `get_error_handler` must be called:
+    object of the error handling agent, `get_error_handling_agent` must be called:
 
     ```
-    error_handling_agent = ErrorHandlingAgent.get_error_handler()
+    error_handling_agent = ErrorHandlingAgent.get_error_handling_agent()
     ```
 
     If the error handling agent catches an error, smdebug functionality is disabled for the rest of training.
 
-    TODO: Wrap the error handler around all smdebug functions called from all frameworks.
+    TODO: Wrap the error handling agent around all smdebug functions called from all frameworks.
     """
 
     _error_handling_agent = None
@@ -45,7 +45,7 @@ class ErrorHandlingAgent(object):
             training is using the default smdebug configuration or a custom smdebug configuration.
 
             This is meant to be called in the constructor of the relevant hook used for training. If an error occurs
-            before this function is called, the error handler will catch the error.
+            before this function is called, the error handling agent will catch the error.
             """
             self.hook = hook
 
@@ -88,7 +88,7 @@ class ErrorHandlingAgent(object):
             def foobar(*args, **kwargs):
                 default_func = lambda *args, **kwargs: {"args": args, "kwargs": kwargs}
 
-                @error_handling.catch_smdebug_errors(default_return_val=default_func)
+                @error_handling_agent.catch_smdebug_errors(default_return_val=default_func)
                 def baz()
                     ...
                 return baz
@@ -97,7 +97,7 @@ class ErrorHandlingAgent(object):
 
             def wrapper(func):
                 @functools.wraps(func)
-                def error_handler(*args, **kwargs):
+                def error_handling_agent(*args, **kwargs):
                     # Return immediately if smdebug is disabled.
                     if self.disable_smdebug:
                         # If `default_return_val` is a function, call it with the inputs and return the output.
@@ -124,7 +124,7 @@ class ErrorHandlingAgent(object):
                         else:
                             raise e  # Raise the error normally
 
-                return error_handler
+                return error_handling_agent
 
             return wrapper
 
