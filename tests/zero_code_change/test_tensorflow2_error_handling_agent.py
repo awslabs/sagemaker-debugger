@@ -260,7 +260,7 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
 
 
 @pytest.fixture(autouse=True)
-def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
+def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     """
     Set up each test to:
         - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
