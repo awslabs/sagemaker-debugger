@@ -93,5 +93,5 @@ def helper_torch_train(sim=None, script_mode=False, use_loss_module=False):
         loss.backward()
         optimizer.step()
 
-        if i == 499:  # print every 2000 mini-batches
+        if i == 499:
             break

@@ -10,32 +10,30 @@ BASE_ERROR_MESSAGE = (
 )
 
 
-class SMDebugErrorHandler(object):
+class ErrorHandlingAgent(object):
     """
     Error handler to catch all errors originating from smdebug and its dependencies. This is instantiated as a
     global util object and wrapped around smdebug functions.
 
-    Currently, the error handler is designed to catch all errors that could come up for the default smdebug
-    configuration, or in other words, the default debugger and profiler configuration. The error handler is wrapped
+    Currently, the error handling agent is designed to catch all errors that could come up for the default smdebug
+    configuration, or in other words, the default debugger and profiler configuration. The agent is wrapped
     around all externally facing smdebug functions (i.e. called from the ML framework).
 
-    Only one instance of the error handler is allowed. The error handler cannot be instantiated directly. To get the
-    error handler, `get_error_handler` must be called:
+    Only one instance of the error handling agent is allowed. The agent cannot be instantiated directly. To get an
+    object of the error handling agent, `get_error_handler` must be called:
 
     ```
-    error_handler = SMDebugErrorHandler.get_error_handler()
+    error_handling_agent = ErrorHandlingAgent.get_error_handler()
     ```
 
-    If an error handler catches an error, smdebug functionality is disabled for the rest of training.
-
-    At this time, the error handler is only implemented for TF2.
+    If the error handling agent catches an error, smdebug functionality is disabled for the rest of training.
 
     TODO: Wrap the error handler around all smdebug functions called from all frameworks.
     """
 
-    _error_handler = None
+    _error_handling_agent = None
 
-    class _SMDebugErrorHandler(object):
+    class _ErrorHandlingAgent(object):
         def __init__(self):
             self.disable_smdebug = False
             self.logger = get_logger()
@@ -43,11 +41,11 @@ class SMDebugErrorHandler(object):
 
         def set_hook(self, hook):
             """
-            Set the hook to be used by the error handler. The hook is used to determine whether the ongoing training is
-            using the default smdebug configuration or a custom smdebug configuration.
+            Set the hook to be used by the error handling agent. The hook is used to determine whether the ongoing
+            training is using the default smdebug configuration or a custom smdebug configuration.
 
-            This is meant to be called in the constructor of the relevant hook used for training. If an error occurs before
-            this function is called, the error handler will catch the error.
+            This is meant to be called in the constructor of the relevant hook used for training. If an error occurs
+            before this function is called, the error handler will catch the error.
             """
             self.hook = hook
 
@@ -68,21 +66,21 @@ class SMDebugErrorHandler(object):
             can be provided in `default_return_value` and the default return value will be determined dynamically by
             calling that function with the inputs provided to the wrapped function.
 
-            Currently, the error handler will only catch errors if the default smdebug configuration is being used.
-            Otherwise, the error will be raised normally. When an error is caught, the stack trace of the error will still
-            be logged for tracking purposes.
+            Currently, the error handling agent will only catch errors if the default smdebug configuration is being
+            used. Otherwise, the error will be raised normally. When an error is caught, the stack trace of the error
+            will still be logged for tracking purposes.
 
             Examples:
 
             ```
-            error_handler = SMDebugErrorHandler.get_error_handler()
+            error_handling_agent = ErrorHandlingAgent.get_error_handling_agent()
             ...
-            @error_handler.catch_smdebug_errors()
+            @error_handling_agent.catch_smdebug_errors()
             def foo(*args, **kwargs):
                 ...
                 return
 
-            @error_handler.catch_smdebug_errors(default_return_val=False)
+            @error_handling_agent.catch_smdebug_errors(default_return_val=False)
             def bar(*args, **kwargs):
                 ...
                 return True
@@ -90,7 +88,7 @@ class SMDebugErrorHandler(object):
             def foobar(*args, **kwargs):
                 default_func = lambda *args, **kwargs: {"args": args, "kwargs": kwargs}
 
-                @error_handler.catch_smdebug_errors(default_return_val=default_func)
+                @error_handling.catch_smdebug_errors(default_return_val=default_func)
                 def baz()
                     ...
                 return baz
@@ -131,8 +129,8 @@ class SMDebugErrorHandler(object):
             return wrapper
 
     @classmethod
-    def get_error_handler(cls):
-        if cls._error_handler is None:
-            cls._error_handler = cls._SMDebugErrorHandler()
+    def get_error_handling_agent(cls):
+        if cls._error_handling_agent is None:
+            cls._error_handling_agent = cls._ErrorHandlingAgent()
 
-        return cls._error_handler
+        return cls._error_handling_agent
