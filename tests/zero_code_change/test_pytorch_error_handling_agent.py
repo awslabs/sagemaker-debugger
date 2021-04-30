@@ -7,9 +7,9 @@ import pytest
 from tests.zero_code_change.pt_utils import helper_torch_train
 
 # First Party
-from smdebug.core.error_handler import BASE_ERROR_MESSAGE
+from smdebug.core.error_handling_agent import BASE_ERROR_MESSAGE
 from smdebug.core.logger import DuplicateLogFilter, get_logger
-from smdebug.core.utils import error_handler
+from smdebug.core.utils import error_handling_agent
 from smdebug.pytorch import Hook
 from smdebug.pytorch.collection import CollectionKeys
 from smdebug.pytorch.singleton_utils import del_hook
@@ -22,22 +22,22 @@ def stack_trace_filepath(out_dir):
 
 @pytest.fixture
 def torch_callback_error_message():
-    return "If this PyTorch callback error causes the test to fail, the error handler failed to catch the error!"
+    return "If this PyTorch callback error causes the test to fail, the error handling agent failed to catch the error!"
 
 
 @pytest.fixture
 def register_module_error_message():
-    return "If this register module error causes the test to fail, the error handler failed to catch the error!"
+    return "If this register module error causes the test to fail, the error handling agent failed to catch the error!"
 
 
 @pytest.fixture
 def profiler_config_parser_error_message():
-    return "If this profiler config parser error causes the test to fail, the error handler failed to catch the error!"
+    return "If this profiler config parser error causes the test to fail, the error handling agent failed to catch the error!"
 
 
 @pytest.fixture
 def custom_configuration_error_message():
-    return "This error should have been thrown and not caught by the error handler!"
+    return "This error should have been thrown and not caught by the error handling agent!"
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def hook_class_with_torch_callback_error(out_dir, torch_callback_error_message):
             super().__init__(*args, **kwargs)
             self.torch_callback_error_message = torch_error_message
 
-        @error_handler.catch_smdebug_errors()
+        @error_handling_agent.catch_smdebug_errors()
         def fhook(self, module, inputs, outputs):
             """
             Override the Hook's fhook callback to fail immediately.
@@ -79,7 +79,7 @@ def hook_class_with_register_module_error(out_dir, register_module_error_message
             super().__init__(*args, **kwargs)
             self.register_module_error_message = torch_register_module_error_message
 
-        @error_handler.catch_smdebug_errors()
+        @error_handling_agent.catch_smdebug_errors()
         def register_module(self, module):
             """
             Override the Hook's register_module function to fail immediately. This simulates a failure to register
@@ -133,7 +133,7 @@ def hook_class_with_profiler_config_parser_error(out_dir, profiler_config_parser
             super().__init__(*args, **kwargs)
             self.profiler_config_parser_error_message = torch_profiler_config_parser_error_message
 
-        @error_handler.catch_smdebug_errors(default_return_val=False)
+        @error_handling_agent.catch_smdebug_errors(default_return_val=False)
         def should_save_dataloader_metrics(self, metrics_name):
             """
             Override the Hook's should_save_dataloader_metrics function to fail immediately. This simulates a failure
@@ -158,7 +158,7 @@ def hook_class_with_torch_callback_error_and_custom_debugger_configuration(
     ):
         """
         Hook subclass that extends off of the PyTorch callback error subclass above to return a hook with a
-        custom debugger configuration. Thus, any errors thrown should not be caught by the error handler.
+        custom debugger configuration. Thus, any errors thrown should not be caught by the error handling agent.
         """
 
         def __init__(self, *args, **kwargs):
@@ -193,7 +193,7 @@ def hook_class_with_torch_callback_error_and_custom_profiler_configuration(
     ):
         """
         Hook subclass that extends off of the PyTorch callback error subclass above to return a hook with a
-        custom profiler configuration. Thus, any errors thrown should not be caught by the error handler.
+        custom profiler configuration. Thus, any errors thrown should not be caught by the error handling agent.
         """
 
         def __init__(self, *args, **kwargs):
@@ -210,12 +210,12 @@ def hook_class_with_torch_callback_error_and_custom_profiler_configuration(
 
 
 @pytest.fixture(autouse=True)
-def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
+def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     """
-    Setup up each test to:
+    Set up each test to:
         - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
         - Remove the duplicate logging filter
-        - Reset the error handler after the test so it that it is reenabled.
+        - Reset the error handling agent after the test so that smdebug is reenabled.
     """
     old_create_from_json = Hook.create_from_json_file
     del_hook()
@@ -234,8 +234,8 @@ def set_up_logging_and_error_handler(out_dir, stack_trace_filepath):
     yield
 
     Hook.create_from_json_file = old_create_from_json
-    error_handler.disable_smdebug = False
-    error_handler.hook = None
+    error_handling_agent.disable_smdebug = False
+    error_handling_agent.hook = None
 
     logger.removeHandler(file_handler)
     logger.addFilter(duplicate_log_filter)
@@ -263,27 +263,27 @@ def test_pytorch_error_handling(
     profiler_config_parser_error_message,
 ):
     """
-    Test that an error thrown by an smdebug function is caught and logged correctly by the error handler. This test
-    has four test cases:
+    Test that an error thrown by an smdebug function is caught and logged correctly by the error handling agent. This
+    test has four test cases:
 
-    torch_callback_error: The PyTorch hook's `fhook` is overridden to always fail. The error handler should catch this
-    error and log it once, and then disable smdebug for the rest of training.
-
-    register_module_error: The PyTorch hook's `register_module` is overridden to always fail. The error handler should
+    torch_callback_error: The PyTorch hook's `fhook` is overridden to always fail. The error handling agent should
     catch this error and log it once, and then disable smdebug for the rest of training.
+
+    register_module_error: The PyTorch hook's `register_module` is overridden to always fail. The error handling
+    agent should catch this error and log it once, and then disable smdebug for the rest of training.
 
     profiler_config_error: The PyTorch hook's `should_save_dataloader_metrics` is overridden to always fail. The error
     handler should catch this error and log it once, and then disable smdebug for the rest of training.
 
     torch_callback_and_register_module_error: Both the `fhook` and `register_module` functions are overridden to always
-    fail. However, the `register_module` function is called first, so the error handler should only catch that error.
-    Then because smdebug is disabled, the error raised by `fhook` should not be caught because the function shouldn't
-    be even be called in the first place.
+    fail. However, the `register_module` function is called first, so the error handling agent should only catch that
+    error. Then because smdebug is disabled, the error raised by `fhook` should not be caught because the function
+    shouldn't be even be called in the first place.
 
-    Each hook needs to be initialized during its corresponding test, because the error handler is configured to a hook
-    during the hook initialization.
+    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
+    to a hook during the hook initialization.
     """
-    assert error_handler.disable_smdebug is False
+    assert error_handling_agent.disable_smdebug is False
 
     if hook_type == "torch_callback_error":
         hook_class = hook_class_with_torch_callback_error
@@ -304,7 +304,7 @@ def test_pytorch_error_handling(
 
     helper_torch_train()
 
-    assert error_handler.disable_smdebug is True
+    assert error_handling_agent.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
 
@@ -331,10 +331,10 @@ def test_non_default_smdebug_configuration(
     stack_trace_filepath,
 ):
     """
-    Test that the error handler does not catch errors when a custom smdebug configuration of smdebug is used.
+    Test that the error handling agent does not catch errors when a custom smdebug configuration of smdebug is used.
 
-    Each hook needs to be initialized during its corresponding test, because the error handler is configured to a hook
-    during the hook initialization.
+    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
+    to a hook during the hook initialization.
     """
     if custom_configuration == "debugger":
         hook_class = hook_class_with_torch_callback_error_and_custom_debugger_configuration
@@ -346,7 +346,7 @@ def test_non_default_smdebug_configuration(
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
         helper_torch_train()
-    assert error_handler.disable_smdebug is False
+    assert error_handling_agent.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
         assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 0
