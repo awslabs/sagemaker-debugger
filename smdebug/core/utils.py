@@ -90,6 +90,7 @@ def get_aws_region_from_processing_job_arn(processing_job_arn):
 
 
 def setup_profiler_report(processing_job_arn, opt_out=False):
+    # This function is used externally in the profiler report
     if opt_out is False and bool(processing_job_arn):
         current_aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
         profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=current_aws_region)
