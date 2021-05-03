@@ -15,9 +15,14 @@ from smdebug.core.singleton_utils import del_hook, set_hook  # noqa
 
 def get_hook(json_config_path=None, create_if_not_exists: bool = False) -> "Hook":
     from smdebug.pytorch.hook import Hook
+    from smdebug.core.config_validator import ConfigValidator
 
-    return sutils.get_hook(
-        json_config_path=json_config_path,
-        hook_class=Hook,
-        create_if_not_exists=create_if_not_exists,
-    )
+    validator = ConfigValidator(framework="pytorch")
+    if validator.validate_training_Job():
+        return sutils.get_hook(
+            json_config_path=json_config_path,
+            hook_class=Hook,
+            create_if_not_exists=create_if_not_exists,
+        )
+    else:
+        return None
