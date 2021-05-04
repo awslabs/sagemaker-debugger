@@ -84,6 +84,11 @@ def simple_profiler_config_parser(set_up_smprofiler_config_path):
     return ProfilerConfigParser()
 
 
+@pytest.fixture
+def stack_trace_filepath(out_dir):
+    return f"{out_dir}/tmp.log"
+
+
 # In TF, once we disable eager execution, we cannot re-enable eager execution.
 # The following two fixtures will enable the script `tests.sh` to execute all
 # tests in eager mode first followed by non-eager mode.
