@@ -13,13 +13,13 @@ from smdebug.core.utils import error_handling_agent
 
 
 @pytest.fixture
-def runtime_error_message():
-    return "If this RuntimeError causes the test to fail, the error handling agent failed to catch the error!"
+def runtime_error_message(error_handling_message):
+    return error_handling_message.format("RuntimeError")
 
 
 @pytest.fixture
-def value_error_message():
-    return "If this ValueError causes the test to fail, the error handling agent failed to catch the error!"
+def value_error_message(error_handling_message):
+    return error_handling_message.format("ValueError")
 
 
 @pytest.fixture
