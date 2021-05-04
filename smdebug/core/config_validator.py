@@ -19,18 +19,18 @@ class ConfigValidator(object):
             from smdebug.pytorch.utils import PT_VERSION, is_current_version_supported
 
             if is_current_version_supported() is False:
-                logger.warning(f"The available {PT_VERSION} is not supported.")
+                logger.warning(f"The available pytorch version {PT_VERSION} is not supported.")
                 self._create_hook = False
             else:
-                logger.info(f"The available {PT_VERSION} is supported.")
+                logger.info(f"The available pytorch {PT_VERSION} is supported.")
         if self._framework == "tensorflow":
             from smdebug.tensorflow.utils import TF_VERSION, is_current_version_supported
 
             if is_current_version_supported() is False:
-                logger.warning(f"The available {TF_VERSION} is not supported.")
+                logger.warning(f"The available tensorflow {TF_VERSION} is not supported.")
                 self._create_hook = False
             else:
-                logger.info(f"The available {TF_VERSION} is supported.")
+                logger.info(f"The available tensorflow {TF_VERSION} is supported.")
 
     def _validate_profiler_config(self):
         logger.info("Validting the profiler configuration")
