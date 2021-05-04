@@ -13,10 +13,7 @@ import argparse
 # Third Party
 import pytest
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from tests.zero_code_change.pt_utils import Net, get_dataloaders
+from tests.zero_code_change.pt_utils import helper_torch_train
 
 # First Party
 import smdebug.pytorch as smd
@@ -34,36 +31,7 @@ def test_pytorch(script_mode, use_loss_module):
 
     sim_class = ScriptSimulator if script_mode else SagemakerSimulator
     with sim_class() as sim:
-        trainloader, testloader = get_dataloaders()
-        net = Net()
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-        if script_mode:
-            hook = smd.Hook(out_dir=sim.out_dir)
-            hook.register_module(net)
-            hook.register_loss(criterion)
-
-        for i, data in enumerate(trainloader, 0):
-            # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data
-
-            # zero the parameter gradients
-            optimizer.zero_grad()
-
-            # forward + backward + optimize
-            outputs = net(inputs)
-            if use_loss_module:
-                loss = criterion(outputs, labels)
-            else:
-                loss = F.cross_entropy(outputs, labels)
-                if script_mode:
-                    hook.record_tensor_value(tensor_name="loss", tensor_value=loss)
-            loss.backward()
-            optimizer.step()
-
-            if i == 499:  # print every 2000 mini-batches
-                break
+        helper_torch_train(sim=sim, script_mode=script_mode, use_loss_module=use_loss_module)
 
         print("Finished Training")
 

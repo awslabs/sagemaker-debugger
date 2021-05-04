@@ -5,9 +5,13 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 from packaging import version
+
+# First Party
+import smdebug.pytorch as smd
 
 
 def get_dataloaders() -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
@@ -58,3 +62,36 @@ class Net(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
+
+
+def helper_torch_train(sim=None, script_mode=False, use_loss_module=False):
+    trainloader, testloader = get_dataloaders()
+    net = Net()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+    if script_mode:
+        hook = smd.Hook(out_dir=sim.out_dir)
+        hook.register_module(net)
+        hook.register_loss(criterion)
+
+    for i, data in enumerate(trainloader, 0):
+        # get the inputs; data is a list of [inputs, labels]
+        inputs, labels = data
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        outputs = net(inputs)
+        if use_loss_module:
+            loss = criterion(outputs, labels)
+        else:
+            loss = F.cross_entropy(outputs, labels)
+            if script_mode:
+                hook.record_tensor_value(tensor_name="loss", tensor_value=loss)
+        loss.backward()
+        optimizer.step()
+
+        if i == 499:
+            break
