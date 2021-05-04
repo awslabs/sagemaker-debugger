@@ -24,6 +24,7 @@ from smdebug.core.config_constants import (
     PROFILER_TELEMETRY_URL,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.core.error_handling_agent import ErrorHandlingAgent
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
@@ -66,6 +67,9 @@ except (ModuleNotFoundError, ImportError):
 
 
 logger = get_logger()
+error_handling_agent = (
+    ErrorHandlingAgent.get_error_handling_agent()
+)  # set up error handler to wrap smdebug functions
 
 
 def make_numpy_array(x):
