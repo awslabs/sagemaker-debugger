@@ -16,11 +16,6 @@ from smdebug.pytorch.singleton_utils import del_hook
 
 
 @pytest.fixture
-def stack_trace_filepath(out_dir):
-    return f"{out_dir}/tmp.log"
-
-
-@pytest.fixture
 def torch_callback_error_message():
     return "If this PyTorch callback error causes the test to fail, the error handling agent failed to catch the error!"
 

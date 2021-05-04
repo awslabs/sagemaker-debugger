@@ -13,11 +13,6 @@ from smdebug.core.utils import error_handling_agent
 
 
 @pytest.fixture
-def stack_trace_filepath(out_dir):
-    return f"{out_dir}/tmp.log"
-
-
-@pytest.fixture
 def runtime_error_message():
     return "If this RuntimeError causes the test to fail, the error handling agent failed to catch the error!"
 

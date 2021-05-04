@@ -66,10 +66,6 @@ error_handling_agent = (
     ErrorHandlingAgent.get_error_handling_agent()
 )  # set up error handler to wrap smdebug functions
 
-error_handling_agent = (
-    ErrorHandlingAgent.get_error_handling_agent()
-)  # set up error handler to wrap smdebug functions
-
 
 def make_numpy_array(x):
     if isinstance(x, np.ndarray):
