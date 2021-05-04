@@ -167,7 +167,7 @@ def hook_class_with_torch_callback_error_and_custom_debugger_configuration(
 
 @pytest.fixture
 def profiler_config_path(config_folder):
-    return os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
+    return os.path.join(config_folder, "test_pytorch_profiler_config_parser.json")
 
 
 @pytest.fixture
