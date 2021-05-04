@@ -7,6 +7,7 @@ import time
 from multiprocessing import Manager, Process
 from os import makedirs
 
+import boto3
 import pytest
 
 # First Party
@@ -17,6 +18,7 @@ from smdebug.core.access_layer import (
     is_rule_signalled_gracetime_passed,
 )
 from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import PROFILER_REPORT_VERSION, PROFILER_TELEMETRY_URL
 from smdebug.core.index_reader import ReadIndexFilesCache
 from smdebug.core.json_config import (
     DEFAULT_SAGEMAKER_OUTDIR,
@@ -28,6 +30,7 @@ from smdebug.core.json_config import (
 from smdebug.core.locations import IndexFileLocationUtils
 from smdebug.core.utils import (
     SagemakerSimulator,
+    _prepare_telemetry_url,
     get_aws_region_from_processing_job_arn,
     is_first_process,
     is_s3,
@@ -261,6 +264,29 @@ def helper_test_is_first_process(dir):
     assert results.count(True) == 1, f"Failed for path: {path}"
 
 
+def _get_all_aws_regions():
+    ec2 = boto3.client("ec2")
+    response = ec2.describe_regions()
+    regions = [r["RegionName"] for r in response["Regions"]]
+    return regions
+
+
 def test_get_aws_region_from_processing_job_arn():
-    test_arn = "arn:aws:sagemaker:us-east-1:012345678910:processing-job/random-test-arn"
-    assert get_aws_region_from_processing_job_arn(test_arn) == "us-east-1"
+    test_arn = "arn:aws:sagemaker:{region}:012345678910:processing-job/random-test-arn"
+    regions = _get_all_aws_regions()
+    for region in regions:
+        arn_with_region = test_arn.format(region=region)
+        assert get_aws_region_from_processing_job_arn(arn_with_region) == region
+
+
+def test_telemetry_url_preparation():
+    test_arn = "arn:aws:sagemaker:{region}:012345678910:processing-job/random-test-arn"
+    regions = _get_all_aws_regions()
+    for region in regions:
+        arn_with_region = test_arn.format(region=region)
+        url = _prepare_telemetry_url(arn_with_region)
+        assert url == PROFILER_TELEMETRY_URL.format(
+            region=region
+        ) + "/?x-artifact-id={report_version}&x-arn={arn}".format(
+            report_version=PROFILER_REPORT_VERSION, arn=arn_with_region
+        )

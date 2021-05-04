@@ -12,6 +12,7 @@ from typing import Dict, List
 # Third Party
 import numpy as np
 import requests
+from requests import Request
 
 # First Party
 from smdebug.core.config_constants import (
@@ -83,21 +84,25 @@ def make_numpy_array(x):
 
 
 def get_aws_region_from_processing_job_arn(processing_job_arn):
-    region_match_regex_pattern = (
-        r"(us(-gov)?|ap|ca|cn|eu|sa)-(central|(north|south)?(east|west)?)-\d+"
-    )
-    return re.search(region_match_regex_pattern, processing_job_arn).group(0)
+    tokenized_arn = processing_job_arn.split(":")
+    return tokenized_arn[3]
+
+
+def _prepare_telemetry_url(processing_job_arn):
+    aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
+    profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=aws_region)
+    payload = {"x-artifact-id": PROFILER_REPORT_VERSION, "x-arn": processing_job_arn}
+    # We mark characters to avoid url encoding them
+    payload_str = urllib.parse.urlencode(payload, safe=":/+")
+    return Request("GET", profiler_telemetry_url, params=payload_str).prepare().url
 
 
 def setup_profiler_report(processing_job_arn, opt_out=False):
     # This function is used externally in the profiler report
     if opt_out is False and bool(processing_job_arn):
-        current_aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
-        profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=current_aws_region)
-        payload = {"x-artifact-id": PROFILER_REPORT_VERSION, "x-arn": processing_job_arn}
-        payload_str = urllib.parse.urlencode(payload, safe=":+")
+        prepared_telemtry_url = _prepare_telemetry_url(processing_job_arn)
         try:
-            return requests.get(profiler_telemetry_url, params=payload_str)
+            return requests.get(prepared_telemtry_url)
         except requests.exceptions.RequestException:
             pass
 
