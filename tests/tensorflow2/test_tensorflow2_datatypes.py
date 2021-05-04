@@ -31,5 +31,6 @@ def test_tensorflow2_datatypes():
         except Exception:
             if _NP_TO_TF[_type] != tf.bfloat16:
                 # bfloat16 is only supported on TPUs.
+                # TPUs are not available outside of Google Cloud.
                 assert False, f"{_type} not supported"
     assert True
