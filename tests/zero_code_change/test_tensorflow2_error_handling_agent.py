@@ -20,23 +20,18 @@ from smdebug.tensorflow.singleton_utils import del_hook
 
 
 @pytest.fixture
-def keras_callback_error_message():
-    return "If this Keras callback error causes the test to fail, the error handling agent failed to catch the error!"
+def keras_callback_error_message(error_handling_message):
+    return error_handling_message.format("Keras callback error")
 
 
 @pytest.fixture
-def layer_callback_error_message():
-    return "If this layer callback error causes the test to fail, the error handling agent failed to catch the error!"
+def layer_callback_error_message(error_handling_message):
+    return error_handling_message.format("layer callback error")
 
 
 @pytest.fixture
-def gradient_tape_callback_error_message():
-    return "If this GradientTape callback error causes the test to fail, the error handling agent failed to catch the error!"
-
-
-@pytest.fixture
-def custom_configuration_error_message():
-    return "This error should have been thrown and not caught by the error handling agent!"
+def gradient_tape_callback_error_message(error_handling_message):
+    return error_handling_message.format("GradientTape callback error")
 
 
 @pytest.fixture

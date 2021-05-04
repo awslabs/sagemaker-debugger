@@ -17,6 +17,8 @@ import pytest
 from smdebug.core.json_config import DEFAULT_RESOURCE_CONFIG_FILE
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
+pytest_plugins = ["tests.fixtures.error_handling_agent"]
+
 
 def pytest_addoption(parser):
     # Anything taking longer than 2 seconds is slow
@@ -82,11 +84,6 @@ def set_up_smprofiler_config_path(monkeypatch):
 @pytest.fixture()
 def simple_profiler_config_parser(set_up_smprofiler_config_path):
     return ProfilerConfigParser()
-
-
-@pytest.fixture
-def stack_trace_filepath(out_dir):
-    return f"{out_dir}/tmp.log"
 
 
 # In TF, once we disable eager execution, we cannot re-enable eager execution.
