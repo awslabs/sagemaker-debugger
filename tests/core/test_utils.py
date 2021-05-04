@@ -271,22 +271,14 @@ def _get_all_aws_regions():
     return regions
 
 
-def test_get_aws_region_from_processing_job_arn():
+@pytest.mark.parametrize("region", _get_all_aws_regions())
+def test_telemetry_url_preparation(region):
     test_arn = "arn:aws:sagemaker:{region}:012345678910:processing-job/random-test-arn"
-    regions = _get_all_aws_regions()
-    for region in regions:
-        arn_with_region = test_arn.format(region=region)
-        assert get_aws_region_from_processing_job_arn(arn_with_region) == region
-
-
-def test_telemetry_url_preparation():
-    test_arn = "arn:aws:sagemaker:{region}:012345678910:processing-job/random-test-arn"
-    regions = _get_all_aws_regions()
-    for region in regions:
-        arn_with_region = test_arn.format(region=region)
-        url = _prepare_telemetry_url(arn_with_region)
-        assert url == PROFILER_TELEMETRY_URL.format(
-            region=region
-        ) + "/?x-artifact-id={report_version}&x-arn={arn}".format(
-            report_version=PROFILER_REPORT_VERSION, arn=arn_with_region
-        )
+    arn_with_region = test_arn.format(region=region)
+    assert get_aws_region_from_processing_job_arn(arn_with_region) == region
+    url = _prepare_telemetry_url(arn_with_region)
+    assert url == PROFILER_TELEMETRY_URL.format(
+        region=region
+    ) + "/?x-artifact-id={report_version}&x-arn={arn}".format(
+        report_version=PROFILER_REPORT_VERSION, arn=arn_with_region
+    )
