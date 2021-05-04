@@ -30,10 +30,10 @@ from smdebug.core.json_config import (
 from smdebug.core.locations import IndexFileLocationUtils
 from smdebug.core.utils import (
     SagemakerSimulator,
-    _prepare_telemetry_url,
     get_aws_region_from_processing_job_arn,
     is_first_process,
     is_s3,
+    prepare_telemetry_url,
 )
 
 
@@ -276,7 +276,7 @@ def test_telemetry_url_preparation(region):
     test_arn = "arn:aws:sagemaker:{region}:012345678910:processing-job/random-test-arn"
     arn_with_region = test_arn.format(region=region)
     assert get_aws_region_from_processing_job_arn(arn_with_region) == region
-    url = _prepare_telemetry_url(arn_with_region)
+    url = prepare_telemetry_url(arn_with_region)
     assert url == PROFILER_TELEMETRY_URL.format(
         region=region
     ) + "/?x-artifact-id={report_version}&x-arn={arn}".format(

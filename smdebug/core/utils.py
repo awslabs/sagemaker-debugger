@@ -88,7 +88,7 @@ def get_aws_region_from_processing_job_arn(processing_job_arn):
     return tokenized_arn[3]
 
 
-def _prepare_telemetry_url(processing_job_arn):
+def prepare_telemetry_url(processing_job_arn):
     aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
     profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=aws_region)
     payload = {"x-artifact-id": PROFILER_REPORT_VERSION, "x-arn": processing_job_arn}
@@ -100,7 +100,7 @@ def _prepare_telemetry_url(processing_job_arn):
 def setup_profiler_report(processing_job_arn, opt_out=False):
     # This function is used externally in the profiler report
     if opt_out is False and bool(processing_job_arn):
-        prepared_telemtry_url = _prepare_telemetry_url(processing_job_arn)
+        prepared_telemtry_url = prepare_telemetry_url(processing_job_arn)
         try:
             return requests.get(prepared_telemtry_url)
         except requests.exceptions.RequestException:
