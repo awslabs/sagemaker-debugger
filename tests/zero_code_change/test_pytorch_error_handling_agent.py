@@ -16,23 +16,18 @@ from smdebug.pytorch.singleton_utils import del_hook
 
 
 @pytest.fixture
-def torch_callback_error_message():
-    return "If this PyTorch callback error causes the test to fail, the error handling agent failed to catch the error!"
+def torch_callback_error_message(error_handling_message):
+    return error_handling_message.format("PyTorch callback error")
 
 
 @pytest.fixture
-def register_module_error_message():
-    return "If this register module error causes the test to fail, the error handling agent failed to catch the error!"
+def register_module_error_message(error_handling_message):
+    return error_handling_message.format("register module error")
 
 
 @pytest.fixture
-def profiler_config_parser_error_message():
-    return "If this profiler config parser error causes the test to fail, the error handling agent failed to catch the error!"
-
-
-@pytest.fixture
-def custom_configuration_error_message():
-    return "This error should have been thrown and not caught by the error handling agent!"
+def profiler_config_parser_error_message(error_handling_message):
+    return error_handling_message.format("profiler config parser error")
 
 
 @pytest.fixture
