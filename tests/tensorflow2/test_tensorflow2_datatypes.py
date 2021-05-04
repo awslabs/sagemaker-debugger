@@ -1,16 +1,16 @@
 # Third Party
 import numpy as np
 import pytest
+import tensorflow as tf
 from tensorflow.python.framework.dtypes import _NP_TO_TF
-from tests.tensorflow2.utils import is_tf_2_2, is_tf_version_greater_than_2_5_x
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 from smdebug.core.tfevent.util import _get_proto_dtype
 
 
 @pytest.mark.skipif(
-    is_tf_2_2() is False or is_tf_version_greater_than_2_5_x() is True,
-    reason="Brain Float Is Unavailable in these versions of TF",
+    is_tf_2_2() is False, reason="Brain Float Is Unavailable in these versions of TF"
 )
 def test_tensorflow2_datatypes():
     # _NP_TO_TF contains all the mappings
@@ -29,5 +29,7 @@ def test_tensorflow2_datatypes():
         try:
             _get_proto_dtype(np.dtype(_type))
         except Exception:
-            assert False, f"{_type} not supported"
+            if _NP_TO_TF[_type] != tf.bfloat16:
+                # bfloat16 is only supported on TPUs.
+                assert False, f"{_type} not supported"
     assert True
