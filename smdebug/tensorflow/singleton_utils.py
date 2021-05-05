@@ -35,8 +35,12 @@ def get_hook(
     else:
         hook_class = None
 
-    return sutils.get_hook(
-        json_config_path=json_config_path,
-        hook_class=hook_class,
-        create_if_not_exists=create_if_not_exists,
-    )
+    from smdebug.core.config_validator import ConfigValidator
+
+    validator = ConfigValidator(framework="tensorflow")
+    if validator.validate_training_Job():
+        return sutils.get_hook(
+            json_config_path=json_config_path,
+            hook_class=hook_class,
+            create_if_not_exists=create_if_not_exists,
+        )
