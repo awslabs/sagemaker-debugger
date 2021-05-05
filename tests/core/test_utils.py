@@ -7,6 +7,7 @@ import time
 from multiprocessing import Manager, Process
 from os import makedirs
 
+import boto3
 import pytest
 
 # First Party
@@ -17,6 +18,7 @@ from smdebug.core.access_layer import (
     is_rule_signalled_gracetime_passed,
 )
 from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import PROFILER_REPORT_VERSION, PROFILER_TELEMETRY_URL
 from smdebug.core.index_reader import ReadIndexFilesCache
 from smdebug.core.json_config import (
     DEFAULT_SAGEMAKER_OUTDIR,
@@ -26,7 +28,13 @@ from smdebug.core.json_config import (
     get_json_config_as_dict,
 )
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import SagemakerSimulator, is_first_process, is_s3
+from smdebug.core.utils import (
+    SagemakerSimulator,
+    get_aws_region_from_processing_job_arn,
+    is_first_process,
+    is_s3,
+    prepare_telemetry_url,
+)
 
 
 def test_normal():
@@ -254,3 +262,23 @@ def helper_test_is_first_process(dir):
         p.join()
 
     assert results.count(True) == 1, f"Failed for path: {path}"
+
+
+def _get_all_aws_regions():
+    ec2 = boto3.client("ec2")
+    response = ec2.describe_regions()
+    regions = [r["RegionName"] for r in response["Regions"]]
+    return regions
+
+
+@pytest.mark.parametrize("region", _get_all_aws_regions())
+def test_telemetry_url_preparation(region):
+    test_arn = "arn:aws:sagemaker:{region}:012345678910:processing-job/random-test-arn"
+    arn_with_region = test_arn.format(region=region)
+    assert get_aws_region_from_processing_job_arn(arn_with_region) == region
+    url = prepare_telemetry_url(arn_with_region)
+    assert url == PROFILER_TELEMETRY_URL.format(
+        region=region
+    ) + "/?x-artifact-id={report_version}&x-arn={arn}".format(
+        report_version=PROFILER_REPORT_VERSION, arn=arn_with_region
+    )

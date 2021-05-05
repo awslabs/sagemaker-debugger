@@ -23,12 +23,14 @@ run_for_framework() {
         # we run test/rules once, mxnet build has configured permission for sns to run this test
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/rules
       elif [ "$1" = "pytorch" ] ; then
+        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_multiprocessing.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_training_with_no_grad_updates.py
       elif [ "$1" = "tensorflow" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow_integration.py
       elif [ "$1" = "tensorflow2" ] ; then
+        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_gradtape_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_bert.py

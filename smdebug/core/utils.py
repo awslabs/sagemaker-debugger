@@ -5,11 +5,14 @@ import os
 import re
 import shutil
 import socket
+import urllib.parse
 from pathlib import Path
 from typing import Dict, List
 
 # Third Party
 import numpy as np
+import requests
+from requests import Request
 
 # First Party
 from smdebug.core.config_constants import (
@@ -17,8 +20,11 @@ from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
+    PROFILER_REPORT_VERSION,
+    PROFILER_TELEMETRY_URL,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.core.error_handling_agent import ErrorHandlingAgent
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
@@ -61,6 +67,9 @@ except (ModuleNotFoundError, ImportError):
 
 
 logger = get_logger()
+error_handling_agent = (
+    ErrorHandlingAgent.get_error_handling_agent()
+)  # set up error handler to wrap smdebug functions
 
 
 def make_numpy_array(x):
@@ -76,6 +85,30 @@ def make_numpy_array(x):
         return np.array(x)
     else:
         raise TypeError("_make_numpy_array does not support the" " type {}".format(str(type(x))))
+
+
+def get_aws_region_from_processing_job_arn(processing_job_arn):
+    tokenized_arn = processing_job_arn.split(":")
+    return tokenized_arn[3]
+
+
+def prepare_telemetry_url(processing_job_arn):
+    aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
+    profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=aws_region)
+    payload = {"x-artifact-id": PROFILER_REPORT_VERSION, "x-arn": processing_job_arn}
+    # We mark characters to avoid url encoding them
+    payload_str = urllib.parse.urlencode(payload, safe=":/+")
+    return Request("GET", profiler_telemetry_url, params=payload_str).prepare().url
+
+
+def setup_profiler_report(processing_job_arn, opt_out=False):
+    # This function is used externally in the profiler report
+    if opt_out is False and bool(processing_job_arn):
+        prepared_telemtry_url = prepare_telemetry_url(processing_job_arn)
+        try:
+            return requests.get(prepared_telemtry_url)
+        except requests.exceptions.RequestException:
+            pass
 
 
 def ensure_dir(file_path, is_file=True):
