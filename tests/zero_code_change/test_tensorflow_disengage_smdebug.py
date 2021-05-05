@@ -31,7 +31,7 @@ def get_keras_data():
 
 @pytest.fixture()
 def tensorflow2_framework_override(monkeypatch):
-    import smdebug.pytorch.utils
+    import smdebug.tensorflow.utils
 
     monkeypatch.setattr(smdebug.tensorflow.utils, "TF_VERSION", version.parse("1.14"))
     return
