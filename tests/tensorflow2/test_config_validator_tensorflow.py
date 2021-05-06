@@ -14,8 +14,10 @@ def tensorflow_framework_override(monkeypatch):
     return
 
 
-def test_supported_tensorflow_version(tensorflow_framework_override, out_dir):
+def test_supported_tensorflow_version(monkeypatch):
     import smdebug.tensorflow.singleton_utils
+    import smdebug.tensorflow.utils
 
+    monkeypatch.setattr(smdebug.tensorflow.utils, "TF_VERSION", version.parse("1.1"), raising=True)
     hook = smdebug.tensorflow.singleton_utils.get_hook()
     assert hook == None
