@@ -140,6 +140,7 @@ class ErrorHandlingAgent(object):
                             )
                             raise e  # Raise the error normally
 
+                error_handling_agent.__wrapped__ = func
                 return error_handling_agent
 
             return wrapper
