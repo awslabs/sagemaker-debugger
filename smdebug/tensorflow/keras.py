@@ -14,7 +14,7 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import check_smdataparallel_env, error_handling_agent, match_inc
+from smdebug.core.utils import error_handling_agent, match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
@@ -1222,9 +1222,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.export_collections()
                 self._exported_collections = True
 
-        if check_smdataparallel_env():
-            return run.__wrapped__
-
         return run
 
     def _wrap_tape_gradient(self, function):
@@ -1286,9 +1283,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             return grads
 
-        if check_smdataparallel_env():
-            return run.__wrapped__
-
         return run
 
     def _wrap_pop_tape(self, function):
@@ -1305,9 +1299,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return
 
             self.last_saved_step = self.step
-
-        if check_smdataparallel_env():
-            return run.__wrapped__
 
         return run
 
