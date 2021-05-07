@@ -113,8 +113,8 @@ class ErrorHandlingAgent(object):
                         # configuration can even be determined (i.e. the constructor), catch the error and log it.
 
                         if self.hook is None or self.hook.has_default_configuration():
-                            self.logger.error("BASE_ERROR_MESSAGE", BASE_ERROR_MESSAGE)
-                            self.logger.exception("STACK_TRACE", e)  # Log stack trace.
+                            self.logger.error(BASE_ERROR_MESSAGE)
+                            self.logger.exception(e)  # Log stack trace
                             self.disable_smdebug = True  # Disable smdebug
 
                             # If `default_return_val` is a function, call it with the inputs and return the output.
