@@ -93,6 +93,15 @@ def get_aws_region_from_processing_job_arn(processing_job_arn):
 
 
 def prepare_telemetry_url(processing_job_arn):
+    """
+    Intended to be used by smdbeug
+    Prepares the url by extracting the region from processing_job_arn
+    and fills the following GET parameters with:
+    1. x-artifact-id: profiler-report-version
+    2. x-arn: processing-job-arn
+    :param processing_job_arn:
+    :return:
+    """
     aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
     profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=aws_region)
     payload = {"x-artifact-id": PROFILER_REPORT_VERSION, "x-arn": processing_job_arn}
@@ -102,6 +111,13 @@ def prepare_telemetry_url(processing_job_arn):
 
 
 def setup_profiler_report(processing_job_arn, opt_out=False):
+    """
+    TODO
+    :param processing_job_arn:
+    :param opt_out: Does not make a telemetry call if opt_out=True
+    Makes a GET request to the prepared telemetry url if opt_out=False
+    :return:
+    """
     # This function is used externally in the profiler report
     if opt_out is False and bool(processing_job_arn):
         prepared_telemtry_url = prepare_telemetry_url(processing_job_arn)
