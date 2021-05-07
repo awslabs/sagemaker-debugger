@@ -3,7 +3,6 @@ import atexit
 import functools
 import os
 import time
-from copy import deepcopy
 
 # Third Party
 import tensorflow.compat.v1 as tf
@@ -1324,7 +1323,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # Don't modify the original tape object. If an error occurs when wrapping the tape functions, we simply return
         # the original tape object. The tape that doesn't get returned (either the original or the wrapped tape) is
         # only in the scope of this function. Thus, there is no memory issue with creating a deep copy of the tape.
-        wrapped_tape = deepcopy(tape)
+        # wrapped_tape = deepcopy(tape)
 
         @error_handling_agent.catch_smdebug_errors(default_return_val=tape)
         def _wrap_tape():
@@ -1352,19 +1351,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 if self.tape:
                     self._unwrap_tape()
 
-                self.tape = wrapped_tape
-                self.tape.__class__._push_tape = self._wrap_push_tape(
-                    wrapped_tape.__class__._push_tape
-                )
-                self.tape.__class__.gradient = self._wrap_tape_gradient(
-                    wrapped_tape.__class__.gradient
-                )
-                self.tape.__class__._pop_tape = self._wrap_pop_tape(
-                    wrapped_tape.__class__._pop_tape
-                )
+                self.tape = tape
+                self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
+                self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
+                self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
             else:
                 self._log_unsupported_tape(tape)
-            return wrapped_tape
+            return tape
 
         return _wrap_tape()
 
