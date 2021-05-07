@@ -3,7 +3,6 @@ import functools
 
 # First Party
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import check_smdataparallel_env
 
 # Base message logged when the error handling agent has caught an error.
 BASE_ERROR_MESSAGE = (
@@ -143,8 +142,11 @@ class ErrorHandlingAgent(object):
 
                 # Error handler does not support SMDDP jobs. So don't wrap smdebug functions if SMDDP is enabled.
                 # TODO: Remove this once SMDDP support is added.
+                from smdebug.core.utils import check_smdataparallel_env  # Avoid circular import
+
                 if check_smdataparallel_env():
                     return func
+
                 return error_handling_agent
 
             return wrapper
