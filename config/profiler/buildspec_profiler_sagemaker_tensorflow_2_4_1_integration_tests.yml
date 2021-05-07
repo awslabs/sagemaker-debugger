@@ -7,7 +7,7 @@ env:
     enable_smdataparallel_tests: "true"
     force_run_tests: "false"
     framework: "tensorflow"
-    build_type: "pr"  # must be one of pr, nightly or release
+    build_type: "nightly"  # must be one of pr, nightly or release
 phases:
   build:
     commands:
