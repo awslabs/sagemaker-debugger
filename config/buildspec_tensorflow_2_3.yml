@@ -35,7 +35,7 @@ phases:
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
         - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
-        - pip install -q matplotlib==3.3.1 seaborn==0.10.1 nbconvert==5.6.1 papermill==2.1.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3 simplejson==3.17.2 transformers==4.2.1
+        - pip install -q matplotlib==3.3.1 seaborn==0.10.1 nbconvert==5.6.1 papermill==2.1.2 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3 simplejson==3.17.2 transformers==4.2.1
         - pip install -q pytest wheel pytest-html pre-commit awscli pytest-cov
 
   pre_build:
