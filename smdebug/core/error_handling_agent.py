@@ -115,7 +115,7 @@ class ErrorHandlingAgent(object):
                         if self.hook is None or self.hook.has_default_configuration():
                             self.logger.error(BASE_ERROR_MESSAGE)
                             self.logger.exception(e)  # Log stack trace
-                            self.disable_smdebug = True  # Disable smdebug
+                            self.disable_smdebug = True  # Disable smdebug.
 
                             # If `default_return_val` is a function, call it with the inputs and return the output.
                             if callable(default_return_val):
