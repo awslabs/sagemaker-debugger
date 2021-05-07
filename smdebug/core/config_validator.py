@@ -9,7 +9,13 @@ logger = get_logger()
 
 class ConfigValidator(object):
     def __init__(self, framework):
-        self._create_hook = True
+        self._create_hook = os.getenv("USE_SMDEBUG", "").upper() not in [
+            "OFF",
+            "0",
+            "NO",
+            "FALSE",
+            "N",
+        ]
         self._summary = ""
         self._framework = framework
 
@@ -39,6 +45,8 @@ class ConfigValidator(object):
         logger.info("Validting the debugger configuration")
 
     def validate_training_Job(self):
+        if self._create_hook is False:
+            return
         self._validate_training_environment()
         self._validate_debugger_config()
         self._validate_profiler_config()

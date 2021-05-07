@@ -79,5 +79,5 @@ def is_pt_1_8():
     return version.parse("1.8.0") <= PT_VERSION < version.parse("1.9.0")
 
 
-def is_current_version_supported():
-    return is_pt_1_8() or is_pt_1_5() or is_pt_1_7() or is_pt_1_6()
+def is_current_version_supported(pytorch_version=torch.__version__):
+    return version.parse("1.5.0") <= version.parse(pytorch_version) < version.parse("1.9.0")

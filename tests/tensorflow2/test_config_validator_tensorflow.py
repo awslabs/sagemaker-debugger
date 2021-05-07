@@ -1,15 +1,23 @@
 # Future
 from __future__ import print_function
 
-# Third Party
-from packaging import version
 
-
-def test_supported_tensorflow_version(monkeypatch):
+def test_supported_tensorflow_version():
     import smdebug.tensorflow.singleton_utils
     import smdebug.tensorflow.utils
+    import pytest
 
-    with monkeypatch.context() as m:
-        m.setattr(smdebug.tensorflow.utils, "TF_VERSION", version.parse("1.1"), raising=True)
+    with pytest.MonkeyPatch.context() as m:
+        smdebug.tensorflow.singleton_utils.del_hook()
+
+        def override_is_current_version_supported():
+            return False
+
+        m.setattr(
+            smdebug.tensorflow.utils,
+            "is_current_version_supported",
+            override_is_current_version_supported,
+            raising=True,
+        )
         hook = smdebug.tensorflow.singleton_utils.get_hook()
         assert hook == None

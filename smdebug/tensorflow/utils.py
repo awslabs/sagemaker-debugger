@@ -439,11 +439,5 @@ def is_profiler_supported_for_tf_version():
     return version.parse("2.2.0") <= TF_VERSION
 
 
-def is_current_version_supported():
-    return (
-        is_tf_version_1_15_x()
-        or is_tf_version_2x()
-        or is_tf_version_2_2_x()
-        or is_tf_version_2_3_x()
-        or is_tf_version_2_4_x()
-    )
+def is_current_version_supported(tf_version=tf.__version__):
+    return version.parse("1.15.0") <= version.parse(tf_version) < version.parse("2.5.0")
