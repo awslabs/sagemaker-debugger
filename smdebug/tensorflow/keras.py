@@ -1320,11 +1320,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._log_unsupported_tensors_in_non_eager_execution()
 
     def wrap_tape(self, tape):
-        # Don't modify the original tape object. If an error occurs when wrapping the tape functions, we simply return
-        # the original tape object. The tape that doesn't get returned (either the original or the wrapped tape) is
-        # only in the scope of this function. Thus, there is no memory issue with creating a deep copy of the tape.
-        # wrapped_tape = deepcopy(tape)
-
         @error_handling_agent.catch_smdebug_errors(default_return_val=tape)
         def _wrap_tape():
             """

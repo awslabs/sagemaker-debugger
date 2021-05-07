@@ -115,13 +115,6 @@ class ErrorHandlingAgent(object):
                         if self.hook is None or self.hook.has_default_configuration():
                             self.logger.error("BASE_ERROR_MESSAGE", BASE_ERROR_MESSAGE)
                             self.logger.exception("STACK_TRACE", e)  # Log stack trace.
-                            self.logger.info(
-                                "default hook config", self.hook.has_default_hook_configuration()
-                            )
-                            self.logger.info(
-                                "default profiler config",
-                                self.hook._has_default_profiler_configuration(),
-                            )
                             self.disable_smdebug = True  # Disable smdebug
 
                             # If `default_return_val` is a function, call it with the inputs and return the output.
@@ -129,23 +122,7 @@ class ErrorHandlingAgent(object):
                                 return default_return_val(*args, **kwargs)
                             return default_return_val
                         else:
-                            self.logger.error("BASE_ERROR_MESSAGE", BASE_ERROR_MESSAGE)
-                            self.logger.exception("STACK_TRACE", e)  # Log stack trace.
-                            self.logger.info(
-                                "default hook config", self.hook.has_default_hook_configuration()
-                            )
-                            self.logger.info(
-                                "default profiler config",
-                                self.hook._has_default_profiler_configuration(),
-                            )
                             raise e  # Raise the error normally
-
-                # # Error handler does not support SMDDP jobs. So don't wrap smdebug functions if SMDDP is enabled.
-                # # TODO: Remove this once SMDDP support is added.
-                # from smdebug.core.utils import check_smdataparallel_env  # Avoid circular import
-                #
-                # if check_smdataparallel_env():
-                #     return func
 
                 return error_handling_agent
 
