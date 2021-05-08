@@ -23,11 +23,11 @@ class ConfigValidator(object):
     def _validate_training_environment(self):
         logger.info("Validting the training environment")
         if self._framework == "pytorch":
-            if is_framework_version_supported() is False:
+            if is_framework_version_supported(self._framework) is False:
                 self._create_hook = False
                 return
         if self._framework == "tensorflow":
-            if is_framework_version_supported() is False:
+            if is_framework_version_supported(self._framework) is False:
                 self._create_hook = False
 
     def _validate_profiler_config(self):
