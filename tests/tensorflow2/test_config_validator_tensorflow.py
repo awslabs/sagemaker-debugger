@@ -3,21 +3,14 @@ from __future__ import print_function
 
 
 def test_supported_tensorflow_version():
-    import smdebug.tensorflow.singleton_utils
-    import smdebug.tensorflow.utils
-    import pytest
+    import smdebug.pytorch.singleton_utils
+    from unittest.mock import patch
 
-    with pytest.MonkeyPatch.context() as m:
+    with patch(
+        "smdebug.core.config_validator.is_framework_version_supported"
+    ) as override_is_current_version_supported:
         smdebug.tensorflow.singleton_utils.del_hook()
 
-        def override_is_current_version_supported():
-            return False
-
-        m.setattr(
-            smdebug.tensorflow.utils,
-            "is_current_version_supported",
-            override_is_current_version_supported,
-            raising=True,
-        )
+        override_is_current_version_supported.return_value = False
         hook = smdebug.tensorflow.singleton_utils.get_hook()
         assert hook == None

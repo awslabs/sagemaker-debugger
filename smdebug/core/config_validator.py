@@ -3,6 +3,7 @@ import os
 
 # First Party
 from smdebug.core.logger import get_logger
+from smdebug.core.utils import is_framework_version_supported
 
 logger = get_logger()
 
@@ -22,21 +23,12 @@ class ConfigValidator(object):
     def _validate_training_environment(self):
         logger.info("Validting the training environment")
         if self._framework == "pytorch":
-            from smdebug.pytorch.utils import PT_VERSION, is_current_version_supported
-
-            if is_current_version_supported() is False:
-                logger.warning(f"The available pytorch version {PT_VERSION} is not supported.")
+            if is_framework_version_supported() is False:
                 self._create_hook = False
-            else:
-                logger.info(f"The available pytorch {PT_VERSION} is supported.")
+                return
         if self._framework == "tensorflow":
-            from smdebug.tensorflow.utils import TF_VERSION, is_current_version_supported
-
-            if is_current_version_supported() is False:
-                logger.warning(f"The available tensorflow {TF_VERSION} is not supported.")
+            if is_framework_version_supported() is False:
                 self._create_hook = False
-            else:
-                logger.info(f"The available tensorflow {TF_VERSION} is supported.")
 
     def _validate_profiler_config(self):
         logger.info("Validting the profiler configuration")

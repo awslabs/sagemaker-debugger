@@ -567,3 +567,14 @@ def check_smdataparallel_env():
             _smdataparallel_imported = None
 
     return _is_invoked_via_smddp
+
+
+def is_framework_version_supported(framework):
+    if framework == "pytorch":
+        from smdebug.pytorch.utils import is_current_version_supported
+
+        return is_current_version_supported()
+    if framework == "tensorflow":
+        from smdebug.tensorflow.utils import is_current_version_supported
+
+        return is_current_version_supported()
