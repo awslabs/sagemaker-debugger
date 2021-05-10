@@ -122,7 +122,7 @@ def setup_profiler_report(processing_job_arn, opt_out=False):
     if opt_out is False and bool(processing_job_arn):
         prepared_telemtry_url = prepare_telemetry_url(processing_job_arn)
         try:
-            return requests.get(prepared_telemtry_url)
+            requests.get(prepared_telemtry_url)
         except requests.exceptions.RequestException:
             pass
 
