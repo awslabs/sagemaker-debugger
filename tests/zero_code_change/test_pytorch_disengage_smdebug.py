@@ -1,9 +1,10 @@
 # Third Party
-import pytest
+# Standard Library
+from unittest.mock import patch
+
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from packaging import version
 from tests.zero_code_change.pt_utils import Net, get_dataloaders
 
 # First Party
@@ -11,15 +12,8 @@ import smdebug.pytorch as smd
 from smdebug.core.utils import SagemakerSimulator
 
 
-@pytest.fixture()
-def pytorch_framework_override(monkeypatch):
-    import smdebug.pytorch.utils
-
-    monkeypatch.setattr(smdebug.pytorch.utils, "PT_VERSION", version.parse("1.14"))
-    return
-
-
-def test_pytorch_with_unsupported_version(pytorch_framework_override, use_loss_module=False):
+@patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)
+def test_pytorch_with_unsupported_version(use_loss_module=False):
     smd.del_hook()
 
     sim_class = SagemakerSimulator
@@ -51,3 +45,9 @@ def test_pytorch_with_unsupported_version(pytorch_framework_override, use_loss_m
 
         hook = smd.get_hook()
         assert hook == None
+
+    # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
+    # variable for further tests.
+    import os
+
+    del os.environ["USE_SMDEBUG"]

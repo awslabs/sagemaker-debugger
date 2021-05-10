@@ -1,7 +1,8 @@
 # Third Party
-import pytest
+# Standard Library
+from unittest.mock import patch
+
 import tensorflow.compat.v2 as tf
-from packaging import version
 from tests.utils import SagemakerSimulator
 
 # First Party
@@ -29,17 +30,8 @@ def get_keras_data():
     return (x_train, y_train), (x_test, y_test)
 
 
-@pytest.fixture()
-def tensorflow2_framework_override(monkeypatch):
-    import smdebug.tensorflow.utils
-
-    monkeypatch.setattr(smdebug.tensorflow.utils, "TF_VERSION", version.parse("1.14"))
-    return
-
-
-def test_tensorflow2_with_unsupported_version(
-    tensorflow2_framework_override, script_mode: bool = False, eager_mode: bool = True
-):
+@patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)
+def test_tensorflow2_with_unsupported_version(eager_mode: bool = True):
     """ Test the default ZCC behavior of saving losses and metrics in eager and non-eager modes."""
     smd.del_hook()
     tf.keras.backend.clear_session()
@@ -61,3 +53,9 @@ def test_tensorflow2_with_unsupported_version(
 
         hook = smd.get_hook()
         assert hook == None
+
+    # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
+    # variable for further tests.
+    import os
+
+    del os.environ["USE_SMDEBUG"]
