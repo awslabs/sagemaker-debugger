@@ -14,3 +14,8 @@ def test_supported_pytorch_version():
         override_is_current_version_supported.return_value = False
         hook = smdebug.pytorch.singleton_utils.get_hook()
         assert hook == None
+    # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
+    # variable for further tests.
+    import os
+
+    del os.environ["USE_SMDEBUG"]

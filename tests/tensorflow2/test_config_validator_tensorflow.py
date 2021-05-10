@@ -3,7 +3,7 @@ from __future__ import print_function
 
 
 def test_supported_tensorflow_version():
-    import smdebug.pytorch.singleton_utils
+    import smdebug.tensorflow.singleton_utils
     from unittest.mock import patch
 
     with patch(
@@ -14,3 +14,8 @@ def test_supported_tensorflow_version():
         override_is_current_version_supported.return_value = False
         hook = smdebug.tensorflow.singleton_utils.get_hook()
         assert hook == None
+    # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
+    # variable for further tests.
+    import os
+
+    del os.environ["USE_SMDEBUG"]
