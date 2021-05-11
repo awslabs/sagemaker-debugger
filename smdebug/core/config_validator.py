@@ -9,6 +9,8 @@ from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 logger = get_logger()
 
+_config_validator = None
+
 
 class ConfigValidator(object):
     def __init__(self, framework):
@@ -75,3 +77,17 @@ class ConfigValidator(object):
             logger.warning(f"Setting the USE_SMDEBUG flag to False")
             os.environ["USE_SMDEBUG"] = "False"
         return self._create_hook
+
+
+def get_config_validator(framework):
+    global _config_validator
+    if _config_validator is None:
+        from smdebug.core.config_validator import ConfigValidator
+
+        _config_validator = ConfigValidator(framework)
+    return _config_validator
+
+
+def reset_config_validator():
+    global _config_validator
+    _config_validator = None
