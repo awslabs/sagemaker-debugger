@@ -31,6 +31,7 @@ from smdebug.exceptions import IndexReaderException
 _is_invoked_via_smddp = None
 _smddp_tf_imported = None
 _smddp_pt_imported = None
+_is_using_smmodelparallel = None
 
 try:
     import smdistributed.modelparallel.tensorflow as smp
@@ -567,6 +568,40 @@ def check_smdataparallel_env():
             _smdataparallel_imported = None
 
     return _is_invoked_via_smddp
+
+
+"""
+The function checks whether the current job is using model parallel strategy.
+For the training job that uses smmodelparallel, SageMaker sets following environment variables.
+SM_HPS=
+{
+    "mp_parameters": {
+        "ddp": true,
+        "microbatches": 4,
+        "optimize": "speed",
+        "partitions": 2,
+        "pipeline": "interleaved",
+        "placement_strategy": "spread"
+    }
+}
+The 'partitions' variable is a required parameter for scheduling a model parallel training job.
+"""
+
+
+def check_smmodelparallel_training():
+    global _is_using_smmodelparallel
+    if _is_using_smmodelparallel is not None:
+        return _is_using_smmodelparallel
+    if os.getenv("SM_HPS") is None:
+        _is_using_smmodelparallel = False
+    else:
+        try:
+            smmdp_flag = json.loads(os.getenv("SM_HPS"))
+        except:
+            _is_using_smmodelparallel = False
+        if "mp_parameters" in smmdp_flag and "partitions" in smmdp_flag["mp_parameters"]:
+            _is_using_smmodelparallel = True
+    return _is_using_smmodelparallel
 
 
 def is_framework_version_supported(framework):

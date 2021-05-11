@@ -19,3 +19,23 @@ def test_supported_pytorch_version():
     import os
 
     del os.environ["USE_SMDEBUG"]
+
+
+def test_disabling_detail_profiler(simple_profiler_config_parser):
+    import smdebug.pytorch.singleton_utils
+
+    smdebug.pytorch.singleton_utils.del_hook()
+    import os
+
+    os.environ["SM_HPS"] = '{"mp_parameters":{"partitions": 2}}'
+    assert (
+        smdebug.pytorch.singleton_utils.get_pytorch_config_validator().autograd_profiler_supported
+        == False
+    )
+
+    os.environ["SM_HPS"] = "{}"
+    assert (
+        smdebug.pytorch.singleton_utils.get_pytorch_config_validator().autograd_profiler_supported
+        == True
+    )
+    del os.environ["SM_HPS"]

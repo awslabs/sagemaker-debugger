@@ -13,6 +13,17 @@ import smdebug.core.singleton_utils as sutils
 from smdebug.core.singleton_utils import del_hook, set_hook  # noqa
 from smdebug.core.utils import error_handling_agent
 
+_config_validator_for_tensorflow = None
+
+
+def get_tensorflow_config_validator():
+    global _config_validator_for_tensorflow
+    if _config_validator_for_tensorflow is None:
+        from smdebug.core.config_validator import ConfigValidator
+
+        _config_validator_for_tensorflow = ConfigValidator(framework="tensorflow")
+    return _config_validator_for_tensorflow
+
 
 @error_handling_agent.catch_smdebug_errors()
 def get_hook(
@@ -37,10 +48,7 @@ def get_hook(
     else:
         hook_class = None
 
-    from smdebug.core.config_validator import ConfigValidator
-
-    validator = ConfigValidator(framework="tensorflow")
-    if validator.validate_training_Job():
+    if get_tensorflow_config_validator.validate_training_Job():
         return sutils.get_hook(
             json_config_path=json_config_path,
             hook_class=hook_class,

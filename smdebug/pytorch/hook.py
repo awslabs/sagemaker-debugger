@@ -19,7 +19,7 @@ from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python
 from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.profiler.utils import start_smdataparallel_profiler, stop_smdataparallel_profiler
 from smdebug.pytorch.collection import CollectionManager
-from smdebug.pytorch.singleton_utils import set_hook
+from smdebug.pytorch.singleton_utils import get_pytorch_config_validator, set_hook
 from smdebug.pytorch.utils import get_reduction_of_data, is_pt_1_5, is_pt_1_6, is_pt_1_7, is_pt_1_8
 
 # smdistributed.dataparallel should be invoked via `mpirun`.
@@ -259,7 +259,10 @@ class Hook(CallbackHook):
         super()._prepare_collections()
 
     def _collect_torch_profiling_data_if_profiler_enabled(self):
-        if self.autograd_profiler_enabled is False:
+        if (
+            self.autograd_profiler_enabled is False
+            or get_pytorch_config_validator().autograd_profiler_supported is False
+        ):
             return
         if is_pt_1_8():
             records = torch.autograd._disable_profiler_legacy()
@@ -386,6 +389,7 @@ class Hook(CallbackHook):
                 MetricsCategory.DETAILED_PROFILING, self.step
             )
             and not self.autograd_profiler_enabled
+            and not get_pytorch_config_validator().autograd_profiler_supported
         ):
             self.autograd_profiler_enabled = True
             if is_pt_1_5():
