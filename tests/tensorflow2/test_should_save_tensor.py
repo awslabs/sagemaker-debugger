@@ -29,7 +29,7 @@ def helper_create_hook(out_dir, collections, include_regex=None):
 
     hook.register_model(model)
     hook.set_mode(ModeKeys.TRAIN)
-    hook._prepare_collections()
+    hook._prepare_collections_for_tf2()
     hook._increment_step()
     hook.on_train_begin()
     return hook
