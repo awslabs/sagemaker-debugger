@@ -260,10 +260,10 @@ class Hook(CallbackHook):
         super()._prepare_collections()
 
     def _collect_torch_profiling_data_if_profiler_enabled(self):
-        if (
-            self.autograd_profiler_enabled is False
-            or get_config_validator("pytorch").autograd_profiler_supported is False
-        ):
+        if self.autograd_profiler_enabled is False:
+            return
+        if get_config_validator("pytorch").autograd_profiler_supported is False:
+            self.logger.warn("Detailed profiling is disabled for this training job.")
             return
         if is_pt_1_8():
             records = torch.autograd._disable_profiler_legacy()
