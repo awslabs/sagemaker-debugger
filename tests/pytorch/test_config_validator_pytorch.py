@@ -17,8 +17,10 @@ def test_supported_pytorch_version():
     # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
     # variable for further tests.
     import os
+    from smdebug.core.config_validator import reset_config_validator
 
     del os.environ["USE_SMDEBUG"]
+    reset_config_validator()
 
 
 def test_disabling_detailed_profiler(simple_profiler_config_parser):
@@ -38,3 +40,4 @@ def test_disabling_detailed_profiler(simple_profiler_config_parser):
     reset_config_validator()
     assert get_config_validator("pytorch").autograd_profiler_supported == True
     del os.environ["SM_HPS"]
+    reset_config_validator()

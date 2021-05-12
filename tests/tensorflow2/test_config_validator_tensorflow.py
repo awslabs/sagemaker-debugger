@@ -17,5 +17,7 @@ def test_supported_tensorflow_version():
     # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
     # variable for further tests.
     import os
+    from smdebug.core.config_validator import reset_config_validator
 
+    reset_config_validator()
     del os.environ["USE_SMDEBUG"]
