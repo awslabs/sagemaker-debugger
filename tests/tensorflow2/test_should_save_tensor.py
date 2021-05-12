@@ -7,6 +7,7 @@ from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
 from smdebug.tensorflow import SaveConfig
 from smdebug.tensorflow.constants import TF_DEFAULT_SAVED_COLLECTIONS
+from smdebug.tensorflow.utils import is_tf_version_2_3_x
 
 model = tf.keras.models.Sequential(
     [
@@ -30,7 +31,11 @@ def helper_create_hook(out_dir, collections, include_regex=None):
     hook.register_model(model)
     hook.set_mode(ModeKeys.TRAIN)
     hook._prepare_collections()
-    hook._increment_step()
+
+    # _increment_step will already be called in hook.on_train_begin for TF 2.3, don't call it again.
+    if not is_tf_version_2_3_x():
+        hook._increment_step()
+
     hook.on_train_begin()
     return hook
 
