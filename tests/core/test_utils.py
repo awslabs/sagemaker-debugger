@@ -305,20 +305,12 @@ def test_setup_profiler_report(monkeypatch, test_arn):
     monkeypatch.setattr(requests, "get", fake_get)
 
     # setup_profiler_report is expected to be executed when called with a correct ARN
-    try:
+    with pytest.raises(AssertionError):
         setup_profiler_report(test_arn)
-    except AssertionError:
-        # get is expected to be called
-        pass
 
-    # setup_profiler_report is expected to be executed when called with opt_out=False
-    try:
+    with pytest.raises(AssertionError):
         setup_profiler_report(test_arn, opt_out=False)
-    except AssertionError:
-        # get is expected to be called
-        pass
 
-    monkeypatch.setattr(requests, "get", fake_get)
     # setup_profiler_report is NOT expected to be executed when called with opt_out=True
     setup_profiler_report(test_arn, opt_out=True)
 
