@@ -34,6 +34,8 @@ run_for_framework() {
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_gradtape_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_bert.py
+      elif [ "$1" = "xgboost" ] ; then
+        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_xgboost_error_handling_agent.py
       fi
 
     else

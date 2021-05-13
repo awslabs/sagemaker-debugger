@@ -14,7 +14,7 @@ from smdebug.core.collection import DEFAULT_XGBOOST_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig
-from smdebug.core.utils import make_numpy_array
+from smdebug.core.utils import error_handling_agent, make_numpy_array
 from smdebug.xgboost.singleton_utils import set_hook
 
 # Local
@@ -32,6 +32,7 @@ DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 class Hook(CallbackHook):
     """Hook that represents a callback function in XGBoost."""
 
+    @error_handling_agent.catch_smdebug_errors()
     def __init__(
         self,
         out_dir: Optional[str] = None,
@@ -110,6 +111,7 @@ class Hook(CallbackHook):
         self._full_shap_values = None
         set_hook(self)
 
+    @error_handling_agent.catch_smdebug_errors()
     def __call__(self, env: CallbackEnv) -> None:
         self._callback(env)
 
