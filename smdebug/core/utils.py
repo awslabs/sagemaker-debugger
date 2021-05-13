@@ -114,7 +114,7 @@ def _prepare_telemetry_url(processing_job_arn):
 def setup_profiler_report(processing_job_arn, opt_out=False):
     """
     This function is used externally in the profiler report
-    We check for the if the env variable "NOTEBOOK_EXECUTION" has been set to determine
+    We check for the if the env variable "PAPERMILL_EXECUTION" has been set to determine
     if this function has been called outside of a notebook environment, such as papermill,
     in which case, we skip this skip the telemetry request.
     :param processing_job_arn:

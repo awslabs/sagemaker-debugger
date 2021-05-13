@@ -283,13 +283,9 @@ def test_arn():
     return arn
 
 
-def false_get(*args, **kwargs):
-    assert False, "GET Should Not Be Called"
-
-
-def true_get(*args, **kwargs):
-    print("GET Should Be Called")
-    assert True
+def fake_get(*args, **kwargs):
+    # The goal of fake GET is to check if this function was indeed called or not
+    assert False
 
 
 @pytest.mark.parametrize("region", _get_all_aws_regions())
@@ -306,15 +302,23 @@ def test_telemetry_url_preparation(test_arn, region):
 
 def test_setup_profiler_report(monkeypatch, test_arn):
     test_arn = test_arn.format(region="us-east-1")
-    monkeypatch.setattr(requests, "get", true_get)
+    monkeypatch.setattr(requests, "get", fake_get)
 
     # setup_profiler_report is expected to be executed when called with a correct ARN
-    setup_profiler_report(test_arn)
+    try:
+        setup_profiler_report(test_arn)
+    except AssertionError:
+        # get is expected to be called
+        pass
 
     # setup_profiler_report is expected to be executed when called with opt_out=False
-    setup_profiler_report(test_arn, opt_out=False)
+    try:
+        setup_profiler_report(test_arn, opt_out=False)
+    except AssertionError:
+        # get is expected to be called
+        pass
 
-    monkeypatch.setattr(requests, "get", false_get)
+    monkeypatch.setattr(requests, "get", fake_get)
     # setup_profiler_report is NOT expected to be executed when called with opt_out=True
     setup_profiler_report(test_arn, opt_out=True)
 
