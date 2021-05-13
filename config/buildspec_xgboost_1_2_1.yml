@@ -22,6 +22,7 @@ env:
     run_integration_pytest_xgboost: "enable"
     zero_code_change_test: "enable"
     code_coverage_smdebug_rules: "true"
+    build_type: "pr" # must be one of pr, nightly or release
 
 phases:
   install:
@@ -48,7 +49,7 @@ phases:
     commands:
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --upgrade --force-reinstall dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
-      - cd $RULES_CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - if [ "$build_type" = "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
       - cd $CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - echo 'Connect to CodeCov'
       - bash $CODEBUILD_SRC_DIR/config/codecov.sh
