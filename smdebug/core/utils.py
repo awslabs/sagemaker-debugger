@@ -20,6 +20,7 @@ from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
+    PAPERMILL_EXECUTION_ENV_VAR,
     PROFILER_REPORT_VERSION,
     PROFILER_TELEMETRY_URL,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
@@ -92,7 +93,7 @@ def get_aws_region_from_processing_job_arn(processing_job_arn):
     return tokenized_arn[3]
 
 
-def prepare_telemetry_url(processing_job_arn):
+def _prepare_telemetry_url(processing_job_arn):
     """
     Intended to be used by smdbeug
     Prepares the url by extracting the region from processing_job_arn
@@ -112,15 +113,21 @@ def prepare_telemetry_url(processing_job_arn):
 
 def setup_profiler_report(processing_job_arn, opt_out=False):
     """
-    TODO
+    This function is used externally in the profiler report
+    We check for the if the env variable "NOTEBOOK_EXECUTION" has been set to determine
+    if this function has been called outside of a notebook environment, such as papermill,
+    in which case, we skip this skip the telemetry request.
     :param processing_job_arn:
     :param opt_out: Does not make a telemetry call if opt_out=True
     Makes a GET request to the prepared telemetry url if opt_out=False
     :return:
     """
-    # This function is used externally in the profiler report
-    if opt_out is False and bool(processing_job_arn):
-        prepared_telemtry_url = prepare_telemetry_url(processing_job_arn)
+    if (
+        opt_out is False
+        and bool(processing_job_arn)
+        and not bool(os.getenv(PAPERMILL_EXECUTION_ENV_VAR))
+    ):
+        prepared_telemtry_url = _prepare_telemetry_url(processing_job_arn)
         try:
             requests.get(prepared_telemtry_url)
         except requests.exceptions.RequestException:
