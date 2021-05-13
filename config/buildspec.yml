@@ -21,6 +21,7 @@ env:
     # set code coverage flag
     code_coverage_smdebug: "true"
     build_type: "pr" # must be one of pr, nightly or release
+
 phases:
   install:
     commands:
@@ -52,7 +53,7 @@ phases:
       - pip show smdebug_rules
       - echo 'Uploading Coverage to CodeCov'
       - bash $CODEBUILD_SRC_DIR/config/codecov.sh
-      - if [ "$build_type" != "pr" ]; cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
+      - if [ "$build_type" != "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
 
   post_build:
     commands:
