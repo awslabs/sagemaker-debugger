@@ -54,8 +54,7 @@ phases:
       - pip show smdebug
       - echo 'Uploading Coverage to CodeCov'
       - bash $CODEBUILD_SRC_DIR/config/codecov.sh
-      - cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
-
+      - if [ "$build_type" != "pr" ]; cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
   post_build:
     commands:
       - . $CODEBUILD_SRC_DIR/config/upload_on_end.sh
