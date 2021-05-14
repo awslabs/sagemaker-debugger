@@ -9,7 +9,6 @@ import torch.distributed as dist
 
 # First Party
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
-from smdebug.core.config_validator import get_config_validator
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.core.utils import check_smdataparallel_env, error_handling_agent, make_numpy_array
@@ -261,9 +260,6 @@ class Hook(CallbackHook):
 
     def _collect_torch_profiling_data_if_profiler_enabled(self):
         if self.autograd_profiler_enabled is False:
-            return
-        if get_config_validator("pytorch").autograd_profiler_supported is False:
-            self.logger.warn("Detailed profiling is disabled for this training job.")
             return
         if is_pt_1_8():
             records = torch.autograd._disable_profiler_legacy()
