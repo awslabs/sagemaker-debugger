@@ -49,7 +49,7 @@ class ErrorHandlingAgent(object):
             """
             self.hook = hook
 
-        def catch_smdebug_errors(self, default_return_val=None, return_type=None):
+        def catch_smdebug_errors(self, default_return_val=None):
             """
             This function is designed to be wrapped around all smdebug functions that are called externally, so that any
             errors arising from the wrapped functions or the resulting smdebug or third party functions called are

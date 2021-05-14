@@ -508,6 +508,13 @@ class TensorflowBaseHook(BaseHook):
         return optimizer
 
     @error_handling_agent.catch_smdebug_errors()
+    def set_mode(self, mode):
+        """
+        This function is called directly from AWS TF to set the correct mode.
+        """
+        super().set_mode(mode)
+
+    @error_handling_agent.catch_smdebug_errors()
     def set_gradients(self, gradients=None, gradients_and_variables=None):
         """
         This method helps find the gradient tensors.

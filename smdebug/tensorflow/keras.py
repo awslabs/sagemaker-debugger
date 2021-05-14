@@ -174,13 +174,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._wrap_model_with_input_output_saver()
         self.has_registered_model = True
 
-    @error_handling_agent.catch_smdebug_errors()
-    def set_mode(self, mode):
-        """
-        This function is called directly from AWS TF to set the correct mode.
-        """
-        super().set_mode(mode)
-
     def _get_matching_collections(
         self, mode, tensor, tensor_type, ts_name, is_input_to_model=False, is_output_of_model=False
     ):
