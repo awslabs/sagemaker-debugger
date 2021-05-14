@@ -632,7 +632,6 @@ class BaseHook:
             self._write_raw_tensor(tensor_name, tensor_value, [c])
         self.custom_tensors_to_save.clear()
 
-    @error_handling_agent.catch_smdebug_errors()
     def set_mode(self, mode):
         # train
         if mode in ALLOWED_MODES:
