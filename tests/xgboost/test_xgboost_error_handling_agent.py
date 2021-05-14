@@ -119,7 +119,7 @@ def test_xgboost_callback_error_handling(
     """
     assert error_handling_agent.disable_smdebug is False
 
-    hook = hook_class_with_xgboost_callback_error(out_dir)
+    hook = hook_class_with_xgboost_callback_error(out_dir=out_dir)
     run_xgboost_model(hook)
 
     assert error_handling_agent.disable_smdebug is True
@@ -145,7 +145,7 @@ def test_non_default_smdebug_configuration(
     The hook needs to be initialized during its corresponding test, because the error handling agent is configured to
     a hook during the hook initialization.
     """
-    hook = hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(out_dir)
+    hook = hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(out_dir=out_dir)
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
