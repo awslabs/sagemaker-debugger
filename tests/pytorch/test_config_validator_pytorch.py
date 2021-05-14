@@ -24,7 +24,7 @@ def cleanup():
 
 
 @patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)
-def test_supported_pytorch_version():
+def test_supported_pytorch_version(is_framework_version_supported):
     smdebug.pytorch.singleton_utils.del_hook()
     hook = smdebug.pytorch.singleton_utils.get_hook()
     assert hook is None
@@ -41,8 +41,6 @@ def test_disabling_detailed_profiler(set_up_smprofiler_detail_config_path, smp_c
     os.environ["SM_HPS"] = smp_config
     profiler_config_parser = ProfilerConfigParser()
     ConfigValidator.validate_profiler_config(profiler_config_parser)
-    assert (
-        profiler_config_parser.config.detailed_profiling_config.disabled
-        == "mp_parameters"
-        in smp_config
+    assert profiler_config_parser.config.detailed_profiling_config.disabled == (
+        "mp_parameters" in smp_config
     )
