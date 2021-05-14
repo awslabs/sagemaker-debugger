@@ -20,7 +20,7 @@ def xgboost_callback_error_message(error_handling_message):
 
 
 @pytest.fixture
-def hook_class_with_xgboost_callback_error(out_dir, xgboost_callback_error_message):
+def hook_class_with_xgboost_callback_error(xgboost_callback_error_message):
     class HookWithXGBoostCallbackError(Hook):
         """
         XGBoost Hook subclass with error callback called directly from XGBoost at regular intervals in
@@ -38,16 +38,12 @@ def hook_class_with_xgboost_callback_error(out_dir, xgboost_callback_error_messa
             """
             raise RuntimeError(self.xgboost_callback_error_message)
 
-        @classmethod
-        def create_from_json_file(cls, json_file_path=None):
-            return HookWithXGBoostCallbackError(out_dir=out_dir)
-
     return HookWithXGBoostCallbackError
 
 
 @pytest.fixture
 def hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(
-    out_dir, custom_configuration_error_message, hook_class_with_xgboost_callback_error
+    custom_configuration_error_message, hook_class_with_xgboost_callback_error
 ):
     class HookWithXGBoostCallbackErrorAndCustomDebuggerConfiguration(
         hook_class_with_xgboost_callback_error
@@ -60,12 +56,6 @@ def hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(
         def __init__(self, *args, **kwargs):
             super().__init__(
                 xgboost_error_message=custom_configuration_error_message, *args, **kwargs
-            )
-
-        @classmethod
-        def create_from_json_file(cls, json_file_path=None):
-            return HookWithXGBoostCallbackErrorAndCustomDebuggerConfiguration(
-                out_dir=out_dir, include_collections=[CollectionKeys.ALL]
             )
 
     return HookWithXGBoostCallbackErrorAndCustomDebuggerConfiguration
@@ -147,7 +137,9 @@ def test_non_default_smdebug_configuration(
     The hook needs to be initialized during its corresponding test, because the error handling agent is configured to
     a hook during the hook initialization.
     """
-    hook = hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(out_dir=out_dir)
+    hook = hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(
+        out_dir=out_dir, include_collections=[CollectionKeys.ALL]
+    )
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
