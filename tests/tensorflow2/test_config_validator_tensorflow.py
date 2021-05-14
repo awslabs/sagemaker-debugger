@@ -15,7 +15,7 @@ from smdebug.core.config_validator import reset_config_validator
 
 @pytest.fixture(autouse=True)
 def cleanup():
-    smdebug.pytorch.singleton_utils.del_hook()
+    smdebug.tensorflow.singleton_utils.del_hook()
     yield
     os.environ.pop("USE_SMDEBUG", None)
     os.environ.pop("SM_HPS", None)

@@ -29,7 +29,7 @@ def test_supported_pytorch_version():
     assert hook is None
 
 
-@pytest.mark.parametrize(smp_config, ['{"mp_parameters":{"partitions": 2}}', "{}"])
+@pytest.mark.parametrize("smp_config", ['{"mp_parameters":{"partitions": 2}}', "{}"])
 def test_disabling_detailed_profiler(simple_profiler_config_parser, smp_config=None):
     os.environ["SM_HPS"] = smp_config
     smdebug.pytorch.singleton_utils.get_hook()
