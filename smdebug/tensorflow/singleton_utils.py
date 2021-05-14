@@ -45,3 +45,5 @@ def get_hook(
             hook_class=hook_class,
             create_if_not_exists=create_if_not_exists,
         )
+    else:
+        return None

@@ -23,7 +23,7 @@ def cleanup():
 
 
 @patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)
-def test_supported_tensorflow_version():
+def test_supported_tensorflow_version(is_framework_version_supported):
     smdebug.tensorflow.singleton_utils.del_hook()
     hook = smdebug.tensorflow.singleton_utils.get_hook()
     assert hook is None
