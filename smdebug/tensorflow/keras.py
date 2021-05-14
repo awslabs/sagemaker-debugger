@@ -176,6 +176,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     @error_handling_agent.catch_smdebug_errors()
     def set_mode(self, mode):
+        """
+        This function is called directly from AWS TF to set the correct mode.
+        """
         super().set_mode(mode)
 
     def _get_matching_collections(
