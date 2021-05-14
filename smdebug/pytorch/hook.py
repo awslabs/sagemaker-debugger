@@ -381,7 +381,10 @@ class Hook(CallbackHook):
                     start_step=self.step,
                 )
 
-        if self.autograd_profiler_enabled:
+        if (
+            self.autograd_profiler_enabled
+            and not self.profiler_config_parser.config.detailed_profiling_config.disabled
+        ):
             self._collect_torch_profiling_data_if_profiler_enabled()
 
         # should we re-enable profiling for this step?
@@ -390,7 +393,6 @@ class Hook(CallbackHook):
                 MetricsCategory.DETAILED_PROFILING, self.step
             )
             and not self.autograd_profiler_enabled
-            and not get_config_validator("pytorch").autograd_profiler_supported
         ):
             self.autograd_profiler_enabled = True
             if is_pt_1_5():

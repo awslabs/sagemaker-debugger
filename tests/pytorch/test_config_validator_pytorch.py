@@ -10,7 +10,8 @@ import pytest
 
 # First Party
 import smdebug.pytorch.singleton_utils
-from smdebug.core.config_validator import get_config_validator, reset_config_validator
+from smdebug.core.config_validator import ConfigValidator, reset_config_validator
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 
 @pytest.fixture(autouse=True)
@@ -30,11 +31,12 @@ def test_supported_pytorch_version():
 
 
 @pytest.mark.parametrize("smp_config", ['{"mp_parameters":{"partitions": 2}}', "{}"])
-def test_disabling_detailed_profiler(simple_profiler_config_parser, smp_config=None):
+def test_disabling_detailed_profiler(simple_profiler_config_parser, smp_config):
     os.environ["SM_HPS"] = smp_config
-    smdebug.pytorch.singleton_utils.get_hook()
+    profiler_config_parser = ProfilerConfigParser()
+    ConfigValidator.validate_profiler_config(profiler_config_parser)
     assert (
-        get_config_validator("pytorch").autograd_profiler_supported
+        profiler_config_parser.config.detailed_profiling_config.disabled
         == "mp_parameters"
-        not in smp_config
+        in smp_config
     )

@@ -18,7 +18,6 @@ class ConfigValidator(object):
         self._create_hook = strtobool(os.getenv("USE_SMDEBUG", "true").lower())
         self._summary = ""
         self._framework = framework
-        self.autograd_profiler_supported = True
 
     def _validate_training_environment(self):
         """
@@ -33,7 +32,8 @@ class ConfigValidator(object):
         ):
             self._create_hook = False
 
-    def _validate_profiler_config(self):
+    @staticmethod
+    def validate_profiler_config(profiler_config_parser: ProfilerConfigParser):
         """
         The function parses the profiler configuration and ensures that hte configuration can be supported for the
         current training job.
@@ -42,13 +42,12 @@ class ConfigValidator(object):
         """
         # Since we support the functionality to update profiler config during training, we would need to reload the
         # configuration and re-evaluate whether we can support autograd profiler.
-        profiler_config = ProfilerConfigParser()
         if (
-            profiler_config.profiling_enabled
-            and profiler_config.config.detailed_profiling_config is not None
+            profiler_config_parser.profiling_enabled
+            and profiler_config_parser.config.detailed_profiling_config is not None
         ):
             if smdebug.core.utils.check_smmodelparallel_training():
-                self.autograd_profiler_supported = False
+                profiler_config_parser.config.detailed_profiling_config.disabled = True
                 logger.warning("Detailed profiling for model parallel training job is disabled.")
 
     def _validate_debugger_config(self):
@@ -65,7 +64,7 @@ class ConfigValidator(object):
             return
         self._validate_training_environment()
         self._validate_debugger_config()
-        self._validate_profiler_config()
+        self.validate_profiler_config(ProfilerConfigParser())
         if self._create_hook is False:
             logger.warning(f"Setting the USE_SMDEBUG flag to False")
             os.environ["USE_SMDEBUG"] = "False"
