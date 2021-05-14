@@ -30,6 +30,7 @@ LATEST_GLOBAL_STEP_SEEN = "latest-global-step-seen"
 LATEST_GLOBAL_STEP_SAVED = "latest-global-step-saved"
 LATEST_MODE_STEP = "latest-mode-step"
 LOG_DUPLICATION_THRESHOLD = 3
+PAPERMILL_EXECUTION_ENV_VAR = "PAPERMILL_EXECUTION"
 PROFILER_REPORT_VERSION = "profiler_report_v1"
 PROFILER_TELEMETRY_URL = "https://sm-profiler-report-{region}.s3.{region}.amazonaws.com"
 TRAINING_RUN = "training-run"
