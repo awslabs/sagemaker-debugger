@@ -1,14 +1,25 @@
 # Third Party
 # Standard Library
+import os
 from unittest.mock import patch
 
+import pytest
 import tensorflow.compat.v2 as tf
 from tests.utils import SagemakerSimulator
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.core.config_validator import reset_config_validator
 
 SMDEBUG_PREFIX = "smdebug_"
+
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    yield
+    os.environ.pop("USE_SMDEBUG", None)
+    os.environ.pop("SM_HPS", None)
+    reset_config_validator()
 
 
 def get_keras_model_v2():
@@ -52,10 +63,4 @@ def test_tensorflow2_with_unsupported_version(eager_mode: bool = True):
         test_scores = model.evaluate(x_test, y_test, verbose=2)
 
         hook = smd.get_hook()
-        assert hook == None
-
-    # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
-    # variable for further tests.
-    import os
-
-    del os.environ["USE_SMDEBUG"]
+        assert hook is None

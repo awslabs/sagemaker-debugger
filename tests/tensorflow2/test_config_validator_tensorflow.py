@@ -1,23 +1,29 @@
 # Future
 from __future__ import print_function
 
+# Standard Library
+import os
+from unittest.mock import patch
 
-def test_supported_tensorflow_version():
-    import smdebug.tensorflow.singleton_utils
-    from unittest.mock import patch
+# Third Party
+import pytest
 
-    with patch(
-        "smdebug.core.config_validator.is_framework_version_supported"
-    ) as override_is_current_version_supported:
-        smdebug.tensorflow.singleton_utils.del_hook()
+# First Party
+import smdebug.tensorflow.singleton_utils
+from smdebug.core.config_validator import reset_config_validator
 
-        override_is_current_version_supported.return_value = False
-        hook = smdebug.tensorflow.singleton_utils.get_hook()
-        assert hook == None
-    # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
-    # variable for further tests.
-    import os
-    from smdebug.core.config_validator import reset_config_validator
 
+@pytest.fixture(autouse=True)
+def cleanup():
+    smdebug.pytorch.singleton_utils.del_hook()
+    yield
+    os.environ.pop("USE_SMDEBUG", None)
+    os.environ.pop("SM_HPS", None)
     reset_config_validator()
-    del os.environ["USE_SMDEBUG"]
+
+
+@patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)
+def test_supported_tensorflow_version():
+    smdebug.tensorflow.singleton_utils.del_hook()
+    hook = smdebug.tensorflow.singleton_utils.get_hook()
+    assert hook is None

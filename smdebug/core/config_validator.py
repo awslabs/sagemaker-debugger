@@ -1,5 +1,6 @@
 # Standard Library
 import os
+from distutils.util import strtobool
 
 # First Party
 import smdebug.core.utils
@@ -14,13 +15,7 @@ _config_validator = None
 
 class ConfigValidator(object):
     def __init__(self, framework):
-        self._create_hook = os.getenv("USE_SMDEBUG", "").upper() not in [
-            "OFF",
-            "0",
-            "NO",
-            "FALSE",
-            "N",
-        ]
+        self._create_hook = strtobool(os.getenv("USE_SMDEBUG", "true").lower())
         self._summary = ""
         self._framework = framework
         self.autograd_profiler_supported = True
@@ -32,13 +27,11 @@ class ConfigValidator(object):
         creation of hook and disable the debugger functionality.
         :return:
         """
-        if self._framework == "pytorch":
-            if is_framework_version_supported(self._framework) is False:
-                self._create_hook = False
-                return
-        if self._framework == "tensorflow":
-            if is_framework_version_supported(self._framework) is False:
-                self._create_hook = False
+        if (
+            self._framework in ["tensorflow", "pytorch"]
+            and is_framework_version_supported(self._framework) is False
+        ):
+            self._create_hook = False
 
     def _validate_profiler_config(self):
         """

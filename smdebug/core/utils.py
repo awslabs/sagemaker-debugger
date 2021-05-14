@@ -593,25 +593,25 @@ def check_smdataparallel_env():
     return _is_invoked_via_smddp
 
 
-"""
-The function checks whether the current job is using model parallel strategy.
-For the training job that uses smmodelparallel, SageMaker sets following environment variables.
-SM_HPS=
-{
-    "mp_parameters": {
-        "ddp": true,
-        "microbatches": 4,
-        "optimize": "speed",
-        "partitions": 2,
-        "pipeline": "interleaved",
-        "placement_strategy": "spread"
-    }
-}
-The 'partitions' variable is a required parameter for scheduling a model parallel training job.
-"""
-
-
 def check_smmodelparallel_training():
+    """
+    The function checks whether the current job is using model parallel strategy.
+    For the training job that uses smmodelparallel, SageMaker sets following environment variables.
+    SM_HPS=
+    {
+        "mp_parameters": {
+            "ddp": true,
+            "microbatches": 4,
+            "optimize": "speed",
+            "partitions": 2,
+            "pipeline": "interleaved",
+            "placement_strategy": "spread"
+        }
+    }
+    The 'partitions' variable is a required parameter for scheduling a model parallel training job.
+
+    :return: True or False
+    """
     global _is_using_smmodelparallel
     if _is_using_smmodelparallel is not None:
         return _is_using_smmodelparallel
@@ -619,11 +619,13 @@ def check_smmodelparallel_training():
         _is_using_smmodelparallel = False
     else:
         try:
-            smmdp_flag = json.loads(os.getenv("SM_HPS"))
+            smp_flag = json.loads(os.getenv("SM_HPS"))
+            if "mp_parameters" in smp_flag and "partitions" in smp_flag["mp_parameters"]:
+                _is_using_smmodelparallel = True
+            else:
+                _is_using_smmodelparallel = False
         except:
             _is_using_smmodelparallel = False
-        if "mp_parameters" in smmdp_flag and "partitions" in smmdp_flag["mp_parameters"]:
-            _is_using_smmodelparallel = True
     return _is_using_smmodelparallel
 
 
@@ -636,3 +638,5 @@ def is_framework_version_supported(framework):
         from smdebug.tensorflow.utils import is_current_version_supported
 
         return is_current_version_supported()
+    else:  # If framework is mxnet and XGBoost we will currently return True for all versions
+        return True

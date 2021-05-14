@@ -1,7 +1,9 @@
 # Third Party
 # Standard Library
+import os
 from unittest.mock import patch
 
+import pytest
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -9,7 +11,16 @@ from tests.zero_code_change.pt_utils import Net, get_dataloaders
 
 # First Party
 import smdebug.pytorch as smd
+from smdebug.core.config_validator import reset_config_validator
 from smdebug.core.utils import SagemakerSimulator
+
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    yield
+    os.environ.pop("USE_SMDEBUG", None)
+    os.environ.pop("SM_HPS", None)
+    reset_config_validator()
 
 
 @patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)
@@ -44,10 +55,4 @@ def test_pytorch_with_unsupported_version(use_loss_module=False):
         print("Finished Training")
 
         hook = smd.get_hook()
-        assert hook == None
-
-    # Disengaging the hook also sets the environment variable USE_SMDEBUG to False, we would need to reset this
-    # variable for further tests.
-    import os
-
-    del os.environ["USE_SMDEBUG"]
+        assert hook is None
