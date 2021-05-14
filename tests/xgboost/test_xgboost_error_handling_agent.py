@@ -49,7 +49,9 @@ def hook_class_with_xgboost_callback_error(out_dir, xgboost_callback_error_messa
 def hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(
     out_dir, custom_configuration_error_message, hook_class_with_xgboost_callback_error
 ):
-    class HookWithXGBoostCallbackErrorAndCustomDebuggerConfiguration(Hook):
+    class HookWithXGBoostCallbackErrorAndCustomDebuggerConfiguration(
+        hook_class_with_xgboost_callback_error
+    ):
         """
         XGBoost Hook subclass that extends off of the XGBoost callback error subclass above to return a hook with a
         custom debugger configuration. Thus, any errors thrown should not be caught by the error handling agent.
