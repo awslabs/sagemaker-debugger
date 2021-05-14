@@ -30,8 +30,14 @@ def test_supported_pytorch_version():
     assert hook is None
 
 
+@pytest.fixture()
+def set_up_smprofiler_detail_config_path(monkeypatch):
+    config_path = "tests/core/json_configs/test_pytorch_profiler_config_parser.json"
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+
+
 @pytest.mark.parametrize("smp_config", ['{"mp_parameters":{"partitions": 2}}', "{}"])
-def test_disabling_detailed_profiler(simple_profiler_config_parser, smp_config):
+def test_disabling_detailed_profiler(set_up_smprofiler_detail_config_path, smp_config):
     os.environ["SM_HPS"] = smp_config
     profiler_config_parser = ProfilerConfigParser()
     ConfigValidator.validate_profiler_config(profiler_config_parser)
