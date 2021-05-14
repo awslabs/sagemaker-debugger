@@ -4,7 +4,7 @@ import os
 
 # Third Party
 import pytest
-from tests.zero_code_change.xgboost_utils import run_xgboost_model
+from tests.xgboost.run_xgboost_model import run_xgboost_model
 
 # First Party
 from smdebug.core.error_handling_agent import BASE_ERROR_MESSAGE
@@ -102,7 +102,10 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
 
 
 def test_xgboost_callback_error_handling(
-    hook_class_with_xgboost_callback_error, stack_trace_filepath, xgboost_callback_error_message
+    out_dir,
+    hook_class_with_xgboost_callback_error,
+    stack_trace_filepath,
+    xgboost_callback_error_message,
 ):
     """
     Test that an error thrown by an smdebug callback is caught and logged correctly by the error handling agent. This
@@ -116,9 +119,8 @@ def test_xgboost_callback_error_handling(
     """
     assert error_handling_agent.disable_smdebug is False
 
-    Hook.create_from_json_file = hook_class_with_xgboost_callback_error.create_from_json_file
-
-    run_xgboost_model()
+    hook = hook_class_with_xgboost_callback_error(out_dir)
+    run_xgboost_model(hook)
 
     assert error_handling_agent.disable_smdebug is True
     with open(stack_trace_filepath) as logs:
@@ -132,6 +134,7 @@ def test_xgboost_callback_error_handling(
 
 
 def test_non_default_smdebug_configuration(
+    out_dir,
     hook_class_with_xgboost_callback_error_and_custom_debugger_configuration,
     custom_configuration_error_message,
     stack_trace_filepath,
@@ -142,13 +145,11 @@ def test_non_default_smdebug_configuration(
     The hook needs to be initialized during its corresponding test, because the error handling agent is configured to
     a hook during the hook initialization.
     """
-    Hook.create_from_json_file = (
-        hook_class_with_xgboost_callback_error_and_custom_debugger_configuration.create_from_json_file
-    )
+    hook = hook_class_with_xgboost_callback_error_and_custom_debugger_configuration(out_dir)
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
-        run_xgboost_model()
+        run_xgboost_model(hook)
     assert error_handling_agent.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
