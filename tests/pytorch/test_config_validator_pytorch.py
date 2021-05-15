@@ -38,6 +38,11 @@ def set_up_smprofiler_detail_config_path(monkeypatch):
 
 @pytest.mark.parametrize("smp_config", ['{"mp_parameters":{"partitions": 2}}', "{}"])
 def test_disabling_detailed_profiler(set_up_smprofiler_detail_config_path, smp_config):
+    # The pytest fails without following reset of global variable.
+    import smdebug.core.utils
+
+    global _is_using_smmodelparallel
+    smdebug.core.utils._is_using_smmodelparallel = None
     os.environ["SM_HPS"] = smp_config
     profiler_config_parser = ProfilerConfigParser()
     ConfigValidator.validate_profiler_config(profiler_config_parser)

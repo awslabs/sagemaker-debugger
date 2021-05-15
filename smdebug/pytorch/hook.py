@@ -9,6 +9,7 @@ import torch.distributed as dist
 
 # First Party
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
+from smdebug.core.config_validator import ConfigValidator
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.core.utils import check_smdataparallel_env, error_handling_agent, make_numpy_array
@@ -359,6 +360,7 @@ class Hook(CallbackHook):
         )
 
         self.profiler_config_parser.load_config()
+        ConfigValidator.validate_profiler_config(self.profiler_config_parser)
 
         # Disable python profiling if the python profiler is currently profiling.
         if python_profiler:
