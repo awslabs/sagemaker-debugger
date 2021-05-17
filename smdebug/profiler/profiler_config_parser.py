@@ -5,6 +5,7 @@ from collections import defaultdict
 from enum import Enum
 
 # First Party
+from smdebug.core.config_validator import ConfigValidator
 from smdebug.core.json_config import get_node_id_from_resource_config
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import is_first_process
@@ -243,6 +244,10 @@ class ProfilerConfigParser:
             python_profiling_config,
             smdataparallel_profiling_config,
         )
+
+        # Validate the profiler config based on current training job configuration. Currently, we are disabling the
+        # autograd based detailed profiling for model parallel training job.
+        ConfigValidator.validate_profiler_config(self)
 
         if self.config.detailed_profiling_config.error_message is not None:
             self._log_new_message(

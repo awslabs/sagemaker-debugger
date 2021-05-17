@@ -10,8 +10,7 @@ import pytest
 
 # First Party
 import smdebug.pytorch.singleton_utils
-from smdebug.core.config_validator import ConfigValidator, reset_config_validator
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.core.config_validator import reset_config_validator
 
 
 @pytest.fixture(autouse=True)
@@ -34,18 +33,3 @@ def test_supported_pytorch_version(is_framework_version_supported):
 def set_up_smprofiler_detail_config_path(monkeypatch):
     config_path = "tests/core/json_configs/test_pytorch_profiler_config_parser.json"
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-
-
-@pytest.mark.parametrize("smp_config", ['{"mp_parameters":{"partitions": 2}}', "{}"])
-def test_disabling_detailed_profiler(set_up_smprofiler_detail_config_path, smp_config):
-    # The pytest fails without following reset of global variable.
-    import smdebug.core.utils
-
-    global _is_using_smmodelparallel
-    smdebug.core.utils._is_using_smmodelparallel = None
-    os.environ["SM_HPS"] = smp_config
-    profiler_config_parser = ProfilerConfigParser()
-    ConfigValidator.validate_profiler_config(profiler_config_parser)
-    assert profiler_config_parser.config.detailed_profiling_config.disabled == (
-        "mp_parameters" in smp_config
-    )

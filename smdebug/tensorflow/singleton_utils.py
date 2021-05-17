@@ -37,9 +37,9 @@ def get_hook(
     else:
         hook_class = None
 
-    from smdebug.core.config_validator import get_config_validator
+    from smdebug.core.config_validator import get_config_validator, FRAMEWORK
 
-    if get_config_validator("tensorflow").validate_training_Job():
+    if get_config_validator(FRAMEWORK.TENSORFLOW).validate_training_job():
         return sutils.get_hook(
             json_config_path=json_config_path,
             hook_class=hook_class,

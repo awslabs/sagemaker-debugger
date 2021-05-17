@@ -16,6 +16,7 @@ from tests.profiler.resources.profiler_config_parser_utils import (
 )
 
 # First Party
+from smdebug.core.config_validator import ConfigValidator, reset_config_validator
 from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
     CLOSE_FILE_INTERVAL_DEFAULT,
@@ -460,3 +461,30 @@ def test_update_disabled_profiler_config_parser(
     assert profiler_config_parser.config.detailed_profiling_config.is_enabled()
     assert profiler_config_parser.config.detailed_profiling_config.start_step == 10
     assert profiler_config_parser.config.detailed_profiling_config.num_steps == 5
+
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    yield
+    import smdebug.core.utils
+
+    global _is_using_smmodelparallel
+    smdebug.core.utils._is_using_smmodelparallel = None
+    os.environ.pop("USE_SMDEBUG", None)
+    os.environ.pop("SM_HPS", None)
+    reset_config_validator()
+
+
+@pytest.mark.parametrize("smp_config", ['{"mp_parameters":{"partitions": 2}}', "{}"])
+def test_disabling_detailed_profiler(set_up_smprofiler_detail_config_path, smp_config):
+    # The pytest fails without following reset of global variable.
+    import smdebug.core.utils
+
+    global _is_using_smmodelparallel
+    smdebug.core.utils._is_using_smmodelparallel = None
+    os.environ["SM_HPS"] = smp_config
+    profiler_config_parser = ProfilerConfigParser()
+    ConfigValidator.validate_profiler_config(profiler_config_parser)
+    assert profiler_config_parser.config.detailed_profiling_config.disabled == (
+        "mp_parameters" in smp_config
+    )

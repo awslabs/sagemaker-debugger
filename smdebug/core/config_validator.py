@@ -1,6 +1,7 @@
 # Standard Library
 import os
 from distutils.util import strtobool
+from enum import Enum
 
 # First Party
 import smdebug.core.utils
@@ -13,11 +14,21 @@ logger = get_logger()
 _config_validator = None
 
 
+class FRAMEWORK(Enum):
+    PYTORCH = 0
+    TENSORFLOW = 1
+    MXNET = 2
+    XGBOOST = 3
+
+
+SupportedFrameworks = [FRAMEWORK.PYTORCH, FRAMEWORK.TENSORFLOW, FRAMEWORK.MXNET, FRAMEWORK.XGBOOST]
+
+
 class ConfigValidator(object):
-    def __init__(self, framework):
+    def __init__(self, frameworkType: FRAMEWORK):
         self._create_hook = strtobool(os.getenv("USE_SMDEBUG", "true").lower())
         self._summary = ""
-        self._framework = framework
+        self._frameworkType = frameworkType
 
     def _validate_training_environment(self):
         """
@@ -27,8 +38,8 @@ class ConfigValidator(object):
         :return:
         """
         if (
-            self._framework in ["tensorflow", "pytorch"]
-            and is_framework_version_supported(self._framework) is False
+            self._frameworkType in ["tensorflow", "pytorch"]
+            and is_framework_version_supported(self._frameworkType) is False
         ):
             self._create_hook = False
 
@@ -58,7 +69,7 @@ class ConfigValidator(object):
         :return:
         """
 
-    def validate_training_Job(self):
+    def validate_training_job(self):
         # If Hook is disabled we need to validate the training job again.
         if self._create_hook is False:
             return
@@ -72,6 +83,12 @@ class ConfigValidator(object):
 
 
 def get_config_validator(framework):
+    """
+    Returns the ConfigValidator object for the given framework.
+    We will create this object only once.
+    :param framework:
+    :return: ConfigValidator
+    """
     global _config_validator
     if _config_validator is None:
         from smdebug.core.config_validator import ConfigValidator
@@ -81,5 +98,9 @@ def get_config_validator(framework):
 
 
 def reset_config_validator():
+    """
+    Reset the ConfigValidator object.
+    :return:
+    """
     global _config_validator
     _config_validator = None
