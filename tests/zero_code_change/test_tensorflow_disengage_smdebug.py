@@ -11,8 +11,6 @@ from tests.utils import SagemakerSimulator
 import smdebug.tensorflow as smd
 from smdebug.core.config_validator import reset_config_validator
 
-SMDEBUG_PREFIX = "smdebug_"
-
 
 @pytest.fixture(autouse=True)
 def cleanup():
