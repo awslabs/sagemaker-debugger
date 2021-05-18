@@ -39,27 +39,34 @@ import smdebug.tensorflow as smd
 from smdebug.core.utils import SagemakerSimulator
 
 
+def helper_train(script_mode=False, sim=None, train_steps=80, eval_steps=20):
+    # Setup
+    mnist_classifier = get_estimator()
+    train_input_fn, eval_input_fn = get_input_fns()
+
+    # Train and evaluate
+
+    if script_mode:
+        hook = smd.EstimatorHook(out_dir=sim.out_dir)
+        hook.set_mode(mode=smd.modes.TRAIN)
+        mnist_classifier.train(input_fn=train_input_fn, steps=train_steps, hooks=[hook])
+        hook.set_mode(mode=smd.modes.EVAL)
+        mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps, hooks=[hook])
+    else:
+        mnist_classifier.train(input_fn=train_input_fn, steps=train_steps)
+        mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps)
+
+
 @pytest.mark.parametrize("script_mode", [False])
 def test_estimator(script_mode):
     """ Works as intended. """
     smd.del_hook()
     tf.reset_default_graph()
     with SagemakerSimulator() as sim:
-        # Setup
-        mnist_classifier = get_estimator()
-        train_input_fn, eval_input_fn = get_input_fns()
-
-        # Train and evaluate
         train_steps, eval_steps = 80, 20
-        if script_mode:
-            hook = smd.EstimatorHook(out_dir=sim.out_dir)
-            hook.set_mode(mode=smd.modes.TRAIN)
-            mnist_classifier.train(input_fn=train_input_fn, steps=train_steps, hooks=[hook])
-            hook.set_mode(mode=smd.modes.EVAL)
-            mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps, hooks=[hook])
-        else:
-            mnist_classifier.train(input_fn=train_input_fn, steps=train_steps)
-            mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps)
+        helper_train(
+            script_mode=script_mode, sim=sim, train_steps=train_steps, eval_steps=eval_steps
+        )
 
         # Check that hook created and tensors saved
         trial = smd.create_trial(path=sim.out_dir)
