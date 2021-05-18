@@ -64,7 +64,9 @@ def hook_class_with_session_hook_callback_error_and_custom_debugger_configuratio
         """
 
         def __init__(self, *args, **kwargs):
-            super().__init__(session_hook_error=custom_configuration_error_message, *args, **kwargs)
+            super().__init__(
+                session_hook_error_message=custom_configuration_error_message, *args, **kwargs
+            )
 
         @classmethod
         def create_from_json_file(cls, json_file_path=None):
