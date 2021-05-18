@@ -122,13 +122,7 @@ class Hook(CallbackHook):
         return "worker_{}".format(xgb.rabit.get_rank())
 
     def has_default_hook_configuration(self):
-        if not self.prepared_collections:
-            self._prepare_collections()
-
-        collections_being_saved = [x.name for x in self._collections_to_save]
-        if set(collections_being_saved) == set(DEFAULT_INCLUDE_COLLECTIONS):
-            return True
-        return False
+        return super().has_default_hook_configuration(DEFAULT_INCLUDE_COLLECTIONS)
 
     @classmethod
     def create_from_json_file(cls, json_file_path=None):

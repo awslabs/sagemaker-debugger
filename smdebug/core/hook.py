@@ -390,16 +390,14 @@ class BaseHook:
     def _get_default_collections(self):
         pass
 
-    def has_default_hook_configuration(self):
+    def has_default_hook_configuration(self, default_saved_collections=DEFAULT_SAVED_COLLECTIONS):
         # Used in the internal framework forks to determine if the hook
         # is using the default hook configuration
         if not self.prepared_collections:
             self._prepare_collections()
 
         collections_being_saved = [x.name for x in self._collections_to_save]
-        if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
-            return True
-        return False
+        return set(collections_being_saved) == set(default_saved_collections)
 
     def _has_default_profiler_configuration(self):
         return self.profiler_config_parser.config is None
