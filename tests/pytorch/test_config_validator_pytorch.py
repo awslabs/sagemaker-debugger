@@ -27,9 +27,3 @@ def test_supported_pytorch_version(is_framework_version_supported):
     smdebug.pytorch.singleton_utils.del_hook()
     hook = smdebug.pytorch.singleton_utils.get_hook()
     assert hook is None
-
-
-@pytest.fixture()
-def set_up_smprofiler_detail_config_path(monkeypatch):
-    config_path = "tests/core/json_configs/test_pytorch_profiler_config_parser.json"
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)

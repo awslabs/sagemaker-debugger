@@ -475,6 +475,12 @@ def cleanup():
     reset_config_validator()
 
 
+@pytest.fixture()
+def set_up_smprofiler_detail_config_path(monkeypatch):
+    config_path = "tests/core/json_configs/test_pytorch_profiler_config_parser.json"
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+
+
 @pytest.mark.parametrize("smp_config", ['{"mp_parameters":{"partitions": 2}}', "{}"])
 def test_disabling_detailed_profiler(set_up_smprofiler_detail_config_path, smp_config):
     # The pytest fails without following reset of global variable.
