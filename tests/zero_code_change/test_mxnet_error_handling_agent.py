@@ -12,7 +12,7 @@ from smdebug.core.logger import DuplicateLogFilter, get_logger
 from smdebug.core.utils import error_handling_agent
 from smdebug.mxnet import Hook
 from smdebug.mxnet.collection import CollectionKeys
-from smdebug.pytorch.singleton_utils import del_hook
+from smdebug.mxnet.singleton_utils import del_hook
 
 
 @pytest.fixture
