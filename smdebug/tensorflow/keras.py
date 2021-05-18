@@ -1181,8 +1181,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         increment step.
         """
 
+        def default_callback(*args, **kwargs):
+            """
+            Only call the original push tape if it isn't already recording.
+            """
+            if not self.tape._recording:
+                return function(*args, **kwargs)
+
         @functools.wraps(function)
-        @error_handling_agent.catch_smdebug_errors(default_return_val=function)
+        @error_handling_agent.catch_smdebug_errors(default_return_val=default_callback)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1290,8 +1297,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Using this to export collections
         """
 
+        def default_callback(*args, **kwargs):
+            """
+            Only call the original pop tape if it is already recording.
+            """
+            if self.tape._recording:
+                return function(*args, **kwargs)
+
         @functools.wraps(function)
-        @error_handling_agent.catch_smdebug_errors(default_return_val=function)
+        @error_handling_agent.catch_smdebug_errors(default_return_val=default_callback)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
