@@ -10,6 +10,7 @@ from tests.utils import SagemakerSimulator
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.config_validator import reset_config_validator
+from smdebug.profiler.profiler_config_parser import reset_profiler_config_parser
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +19,7 @@ def cleanup():
     os.environ.pop("USE_SMDEBUG", None)
     os.environ.pop("SM_HPS", None)
     reset_config_validator()
+    reset_profiler_config_parser()
 
 
 def get_keras_model_v2():

@@ -1,12 +1,11 @@
 # Standard Library
 import os
 from distutils.util import strtobool
-from enum import Enum
 
 # First Party
 import smdebug.core.utils
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import is_framework_version_supported
+from smdebug.core.utils import FRAMEWORK, is_framework_version_supported
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 logger = get_logger()
@@ -14,21 +13,14 @@ logger = get_logger()
 _config_validator = None
 
 
-class FRAMEWORK(Enum):
-    PYTORCH = 0
-    TENSORFLOW = 1
-    MXNET = 2
-    XGBOOST = 3
-
-
 SupportedFrameworks = [FRAMEWORK.PYTORCH, FRAMEWORK.TENSORFLOW, FRAMEWORK.MXNET, FRAMEWORK.XGBOOST]
 
 
 class ConfigValidator(object):
-    def __init__(self, frameworkType: FRAMEWORK):
+    def __init__(self, framework_type: FRAMEWORK):
         self._create_hook = strtobool(os.getenv("USE_SMDEBUG", "true").lower())
         self._summary = ""
-        self._frameworkType = frameworkType
+        self._framework_type = framework_type
 
     def _validate_training_environment(self):
         """
@@ -38,17 +30,18 @@ class ConfigValidator(object):
         :return:
         """
         if (
-            self._frameworkType in SupportedFrameworks
-            and is_framework_version_supported(self._frameworkType) is False
+            self._framework_type in SupportedFrameworks
+            and is_framework_version_supported(self._framework_type) is False
         ):
             self._create_hook = False
 
     @staticmethod
     def validate_profiler_config(profiler_config_parser: ProfilerConfigParser):
         """
-        The function parses the profiler configuration and ensures that hte configuration can be supported for the
+        The function parses the profiler configuration and ensures that the configuration can be supported for the
         current training job.
         Currently, if the training job is using smmodel parallel we will disable the autograd profiler
+        The function is called whenever the ProfilerConfigParser loads the config.
         :return:
         """
         # Since we support the functionality to update profiler config during training, we would need to reload the
@@ -75,7 +68,6 @@ class ConfigValidator(object):
             return
         self._validate_training_environment()
         self._validate_debugger_config()
-        self.validate_profiler_config(ProfilerConfigParser())
         if self._create_hook is False:
             logger.warning(f"Setting the USE_SMDEBUG flag to False")
             os.environ["USE_SMDEBUG"] = "False"

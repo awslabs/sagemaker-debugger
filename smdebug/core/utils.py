@@ -6,6 +6,7 @@ import re
 import shutil
 import socket
 import urllib.parse
+from enum import Enum
 from pathlib import Path
 from typing import Dict, List
 
@@ -28,6 +29,14 @@ from smdebug.core.config_constants import (
 from smdebug.core.error_handling_agent import ErrorHandlingAgent
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
+
+
+class FRAMEWORK(Enum):
+    PYTORCH = 0
+    TENSORFLOW = 1
+    MXNET = 2
+    XGBOOST = 3
+
 
 _is_invoked_via_smddp = None
 _smddp_tf_imported = None
@@ -629,12 +638,12 @@ def check_smmodelparallel_training():
     return _is_using_smmodelparallel
 
 
-def is_framework_version_supported(framework):
-    if framework == "pytorch":
+def is_framework_version_supported(framework_type):
+    if framework_type == FRAMEWORK.PYTORCH:
         from smdebug.pytorch.utils import is_current_version_supported
 
         return is_current_version_supported()
-    if framework == "tensorflow":
+    if framework_type == FRAMEWORK.TENSORFLOW:
         from smdebug.tensorflow.utils import is_current_version_supported
 
         return is_current_version_supported()

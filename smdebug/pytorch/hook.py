@@ -13,7 +13,7 @@ from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.core.utils import check_smdataparallel_env, error_handling_agent, make_numpy_array
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
-from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
 from smdebug.profiler.python_profiler import PythonProfiler
@@ -38,7 +38,7 @@ DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 python_profiler = None
 
 # Enable python profiling if profiling is enabled.
-profiler_config_parser = ProfilerConfigParser()
+profiler_config_parser = get_profiler_config_parser()
 if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
     if config.python_profiling_config.is_enabled():

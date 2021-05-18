@@ -9,21 +9,23 @@ from unittest.mock import patch
 import pytest
 
 # First Party
-import smdebug.tensorflow.singleton_utils
 from smdebug.core.config_validator import reset_config_validator
+from smdebug.profiler.profiler_config_parser import reset_profiler_config_parser
+from smdebug.tensorflow.singleton_utils import del_hook, get_hook
 
 
 @pytest.fixture(autouse=True)
 def cleanup():
-    smdebug.tensorflow.singleton_utils.del_hook()
+    del_hook()
     yield
     os.environ.pop("USE_SMDEBUG", None)
     os.environ.pop("SM_HPS", None)
     reset_config_validator()
+    reset_profiler_config_parser()
 
 
 @patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)
 def test_supported_tensorflow_version(is_framework_version_supported):
-    smdebug.tensorflow.singleton_utils.del_hook()
-    hook = smdebug.tensorflow.singleton_utils.get_hook()
+    del_hook()
+    hook = get_hook()
     assert hook is None

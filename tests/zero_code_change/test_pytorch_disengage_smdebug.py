@@ -9,6 +9,7 @@ from tests.zero_code_change.pt_utils import helper_torch_train
 # First Party
 import smdebug.pytorch as smd
 from smdebug.core.config_validator import reset_config_validator
+from smdebug.profiler.profiler_config_parser import reset_profiler_config_parser
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +18,7 @@ def cleanup():
     os.environ.pop("USE_SMDEBUG", None)
     os.environ.pop("SM_HPS", None)
     reset_config_validator()
+    reset_profiler_config_parser()
 
 
 @patch("smdebug.core.config_validator.is_framework_version_supported", return_value=False)

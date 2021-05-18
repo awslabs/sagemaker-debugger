@@ -331,3 +331,28 @@ class ProfilerConfigParser:
             return False
 
         return success
+
+
+_profiler_config_parser = None
+
+
+def get_profiler_config_parser():
+    """
+    Create a global profiler config parser object. This object loads the profiler config file and create
+    ProfilerConfig object.
+    :return:
+    """
+    global _profiler_config_parser
+    if _profiler_config_parser is None:
+        _profiler_config_parser = ProfilerConfigParser()
+    return _profiler_config_parser
+
+
+def reset_profiler_config_parser():
+    """
+    The function resets the profiler config parser object.
+    This is necessary for test framework.
+    :return:
+    """
+    global _profiler_config_parser
+    _profiler_config_parser = None

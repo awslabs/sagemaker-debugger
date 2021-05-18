@@ -15,7 +15,7 @@ from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import error_handling_agent, match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
-from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     TF_DATALOADER_END_FLAG_FILENAME,
@@ -52,7 +52,7 @@ from .utils import (
 python_profiler = None
 
 # Enable python profiling if profiling is enabled.
-profiler_config_parser = ProfilerConfigParser()
+profiler_config_parser = get_profiler_config_parser()
 if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
     if config.python_profiling_config.is_enabled():
