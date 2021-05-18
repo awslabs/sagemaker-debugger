@@ -253,7 +253,9 @@ class TensorflowBaseHook(BaseHook):
     def has_default_hook_configuration(self):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
-        return super().has_default_hook_configuration(TF_DEFAULT_SAVED_COLLECTIONS)
+        return super().has_default_hook_configuration(
+            default_saved_collections=TF_DEFAULT_SAVED_COLLECTIONS
+        )
 
     def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
         if self._custom_collections is None:
