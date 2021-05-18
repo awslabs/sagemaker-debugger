@@ -38,7 +38,7 @@ class ConfigValidator(object):
         :return:
         """
         if (
-            self._frameworkType in ["tensorflow", "pytorch"]
+            self._frameworkType in SupportedFrameworks
             and is_framework_version_supported(self._frameworkType) is False
         ):
             self._create_hook = False
