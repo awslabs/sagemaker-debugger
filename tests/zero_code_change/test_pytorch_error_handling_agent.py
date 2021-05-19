@@ -333,12 +333,6 @@ def test_non_default_smdebug_configuration(
 
     Hook.create_from_json_file = hook_class.create_from_json_file
 
-    from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
-
-    pcp = get_profiler_config_parser()
-
-    print(vars(pcp))
-
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
         helper_torch_train()
