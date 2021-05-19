@@ -155,17 +155,18 @@ def test_non_default_smdebug_configuration(
 
     from smdebug.mxnet import get_hook
 
-    hook = get_hook()
-    assert hook is not None
-    assert isinstance(hook, hook_class_with_mxnet_callback_error_and_custom_debugger_configuration)
-    assert not hook.has_default_configuration()
-
-    hook.forward_hook(None, None, None)
-    assert False
-
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
         train_model()
+        hook = get_hook()
+        assert hook is not None
+        assert isinstance(
+            hook, hook_class_with_mxnet_callback_error_and_custom_debugger_configuration
+        )
+        assert not hook.has_default_configuration()
+
+        hook.forward_hook(None, None, None)
+        assert False
     assert error_handling_agent.disable_smdebug is False
     with open(stack_trace_filepath) as logs:
         stack_trace_logs = logs.read()
