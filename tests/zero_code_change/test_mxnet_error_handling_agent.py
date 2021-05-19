@@ -164,7 +164,7 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     "hook_type",
     ["mxnet_callback_error", "register_block_error", "mxnet_callback_and_register_block_error"],
 )
-def test_pytorch_error_handling(
+def test_mxnet_error_handling(
     hook_type,
     hook_class_with_mxnet_callback_error,
     hook_class_with_register_block_error,
