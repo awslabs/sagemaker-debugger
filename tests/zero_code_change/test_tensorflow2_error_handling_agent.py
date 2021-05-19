@@ -243,7 +243,6 @@ def hook_class_with_keras_callback_error_and_custom_profiler_configuration(
 
         @classmethod
         def create_from_json_file(cls, json_file_path=None):
-            monkeypatch.setenv("SMPROFILER_CONFIG_PATH", profiler_config_path)
             return HookWithBadKerasCallbackAndCustomProfilerConfiguration(out_dir=out_dir)
 
     return HookWithBadKerasCallbackAndCustomProfilerConfiguration
@@ -382,6 +381,7 @@ def test_non_default_smdebug_configuration(
     if custom_configuration == "debugger":
         hook_class = hook_class_with_keras_callback_error_and_custom_debugger_configuration
     else:
+        monkeypatch.setenv("SMPROFILER_CONFIG_PATH", profiler_config_path)
         hook_class = hook_class_with_keras_callback_error_and_custom_profiler_configuration
 
     Hook.create_from_json_file = hook_class.create_from_json_file
