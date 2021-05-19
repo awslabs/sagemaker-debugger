@@ -386,8 +386,12 @@ def test_non_default_smdebug_configuration(
 
     Hook.create_from_json_file = hook_class.create_from_json_file
 
-    from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
+    from smdebug.profiler.profiler_config_parser import (
+        get_profiler_config_parser,
+        reset_profiler_config_parser,
+    )
 
+    reset_profiler_config_parser()
     pcp = get_profiler_config_parser()
 
     print(pcp.last_json_config)
