@@ -234,6 +234,7 @@ class BaseHook:
 
         if profiler_config_parser is None:
             profiler_config_parser = get_profiler_config_parser()
+        profiler_config_parser.load_config()
         self.profiler_config_parser = profiler_config_parser
 
         self.timeline_writer = TimelineFileWriter(profiler_config_parser=profiler_config_parser)
