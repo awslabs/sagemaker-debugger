@@ -153,6 +153,16 @@ def test_non_default_smdebug_configuration(
         hook_class_with_mxnet_callback_error_and_custom_debugger_configuration.create_from_json_file
     )
 
+    from smdebug.mxnet import get_hook
+
+    hook = get_hook()
+    assert hook is not None
+    assert isinstance(hook, hook_class_with_mxnet_callback_error_and_custom_debugger_configuration)
+    assert not hook.has_default_configuration()
+
+    hook.forward_hook()
+    assert False
+
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
         train_model()
