@@ -160,7 +160,7 @@ def test_non_default_smdebug_configuration(
     assert isinstance(hook, hook_class_with_mxnet_callback_error_and_custom_debugger_configuration)
     assert not hook.has_default_configuration()
 
-    hook.forward_hook()
+    hook.forward_hook(None, None, None)
     assert False
 
     # Verify the correct error gets thrown and doesnt get caught.
