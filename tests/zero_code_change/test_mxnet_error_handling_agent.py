@@ -17,12 +17,7 @@ from smdebug.mxnet.singleton_utils import del_hook
 
 @pytest.fixture
 def mxnet_callback_error_message(error_handling_message):
-    return error_handling_message.format("PyTorch callback error")
-
-
-@pytest.fixture
-def register_block_error_message(error_handling_message):
-    return error_handling_message.format("register block error")
+    return error_handling_message.format("MXNet callback error")
 
 
 @pytest.fixture
@@ -49,57 +44,6 @@ def hook_class_with_mxnet_callback_error(out_dir, mxnet_callback_error_message):
             return HookWithBadMXNetCallback(out_dir=out_dir)
 
     return HookWithBadMXNetCallback
-
-
-@pytest.fixture
-def hook_class_with_register_block_error(out_dir, register_block_error_message):
-    class HookWithBadRegisterBlock(Hook):
-        """
-        Hook subclass with faulty `register_block` function called directly from PyTorch
-        """
-
-        def __init__(
-            self, torch_register_block_error_message=register_block_error_message, *args, **kwargs
-        ):
-            super().__init__(*args, **kwargs)
-            self.register_block_error_message = torch_register_block_error_message
-
-        @error_handling_agent.catch_smdebug_errors()
-        def register_block(self, block):
-            """
-            Override the Hook's register_block function to fail immediately. This simulates a failure to register
-            the MXNet callbacks.
-            """
-            raise RuntimeError(self.register_block_error_message)
-
-        @classmethod
-        def create_from_json_file(cls, json_file_path=None):
-            return HookWithBadRegisterBlock(out_dir=out_dir)
-
-    return HookWithBadRegisterBlock
-
-
-@pytest.fixture
-def hook_class_with_mxnet_callback_and_register_block_error(
-    out_dir, hook_class_with_mxnet_callback_error, hook_class_with_register_block_error
-):
-    class HookWithBadMXNetCallbackAndRegisterBlock(
-        hook_class_with_mxnet_callback_error, hook_class_with_register_block_error
-    ):
-        """
-        Hook subclass with error callbacks called from MXNet.
-
-        Due to the ordering, the first callback to error is the `register_block` callback.
-        """
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-        @classmethod
-        def create_from_json_file(cls, json_file_path=None):
-            return HookWithBadMXNetCallbackAndRegisterBlock(out_dir=out_dir)
-
-    return HookWithBadMXNetCallbackAndRegisterBlock
 
 
 @pytest.fixture
@@ -160,53 +104,25 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     logger.addFilter(duplicate_log_filter)
 
 
-@pytest.mark.parametrize(
-    "hook_type",
-    ["mxnet_callback_error", "register_block_error", "mxnet_callback_and_register_block_error"],
-)
 def test_mxnet_error_handling(
-    hook_type,
     hook_class_with_mxnet_callback_error,
-    hook_class_with_register_block_error,
-    hook_class_with_mxnet_callback_and_register_block_error,
     out_dir,
     stack_trace_filepath,
     mxnet_callback_error_message,
-    register_block_error_message,
 ):
     """
     Test that an error thrown by an smdebug function is caught and logged correctly by the error handling agent. This
-    test has three test cases:
+    test has one test case:
 
-    mxnedt_callback_error: The MXNet hook's `forward_hook` is overridden to always fail. The error handling agent should
+    mxnet_callback_error: The MXNet hook's `forward_hook` is overridden to always fail. The error handling agent should
     catch this error and log it once, and then disable smdebug for the rest of training.
-
-    register_block_error: The MXNet hook's `register_block` is overridden to always fail. The error handling
-    agent should catch this error and log it once, and then disable smdebug for the rest of training.
-
-    mxnet_callback_and_register_block_error: Both the `forward_hook` and `register_block` functions are overridden to always
-    fail. However, the `register_block` function is called first, so the error handling agent should only catch that
-    error. Then because smdebug is disabled, the error raised by `forward_hook` should not be caught because the function
-    shouldn't be even be called in the first place.
 
     Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
     to a hook during the hook initialization.
     """
     assert error_handling_agent.disable_smdebug is False
 
-    if hook_type == "mxnet_callback_error":
-        hook_class = hook_class_with_mxnet_callback_error
-        error_message = mxnet_callback_error_message
-    elif hook_type == "register_block_error":
-        hook_class = hook_class_with_register_block_error
-        error_message = register_block_error_message
-    else:
-        hook_class = hook_class_with_mxnet_callback_and_register_block_error
-        error_message = (
-            register_block_error_message
-        )  # only `register_block` should error and get caught
-
-    Hook.create_from_json_file = hook_class.create_from_json_file
+    Hook.create_from_json_file = hook_class_with_mxnet_callback_error.create_from_json_file
 
     train_model()
 
@@ -218,11 +134,7 @@ def test_mxnet_error_handling(
         assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 1
 
         # check that the right error was caught (printed twice for each time caught)
-        assert stack_trace_logs.count(error_message) == 2
-
-        # `forward_hook` should not have errored if `register_block` already errored.
-        if hook_type == "mxnet_callback_and_register_block_error":
-            assert mxnet_callback_error_message not in stack_trace_logs
+        assert stack_trace_logs.count(mxnet_callback_error_message) == 2
 
 
 def test_non_default_smdebug_configuration(
