@@ -35,7 +35,7 @@ def hook_class_with_mxnet_callback_error(out_dir, mxnet_callback_error_message):
         @error_handling_agent.catch_smdebug_errors()
         def forward_hook(self, block, inputs, outputs):
             """
-            Override the Hook's forward_pre_hook callback to fail immediately.
+            Override the Hook's forward_hook callback to fail immediately.
             """
             raise RuntimeError(self.mxnet_callback_error_message)
 
@@ -121,14 +121,15 @@ def test_non_default_smdebug_configuration(
     """
     Test that the error handling agent does not catch errors when a custom smdebug configuration of smdebug is used.
 
-    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
+    The hook needs to be initialized during its corresponding test, because the error handling agent is configured
     to a hook during the hook initialization.
     """
     Hook.create_from_json_file = (
         hook_class_with_mxnet_callback_error_and_custom_debugger_configuration.create_from_json_file
     )
 
-    # Verify the correct error gets thrown and doesnt get caught.
+    # Verify the correct error gets thrown and doesnt get caught. MXNet handles errors thrown in `forward_hook` and
+    # throws its own ValueError, so we look for that error here.
     with pytest.raises(ValueError, match=custom_configuration_error_message):
         train_model()
 
@@ -149,7 +150,7 @@ def test_mxnet_error_handling(
     Test that an error thrown by an smdebug function is caught and logged correctly by the error handling agent. This
     test has one test case:
 
-    mxnet_callback_error: The MXNet hook's `forward_pre_hook` is overridden to always fail. The error handling agent should
+    mxnet_callback_error: The MXNet hook's `forward_hook` is overridden to always fail. The error handling agent should
     catch this error and log it once, and then disable smdebug for the rest of training.
 
     The hook needs to be initialized during its corresponding test, because the error handling agent is configured
