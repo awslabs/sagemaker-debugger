@@ -112,6 +112,33 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     logger.addFilter(duplicate_log_filter)
 
 
+def test_non_default_smdebug_configuration(
+    out_dir,
+    hook_class_with_mxnet_callback_error_and_custom_debugger_configuration,
+    custom_configuration_error_message,
+    stack_trace_filepath,
+):
+    """
+    Test that the error handling agent does not catch errors when a custom smdebug configuration of smdebug is used.
+
+    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
+    to a hook during the hook initialization.
+    """
+    Hook.create_from_json_file = (
+        hook_class_with_mxnet_callback_error_and_custom_debugger_configuration.create_from_json_file
+    )
+
+    # Verify the correct error gets thrown and doesnt get caught.
+    with pytest.raises(RuntimeError, match=custom_configuration_error_message):
+        train_model()
+
+    assert error_handling_agent.disable_smdebug is False
+    with open(stack_trace_filepath) as logs:
+        stack_trace_logs = logs.read()
+        assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 0
+        assert stack_trace_logs.count(custom_configuration_error_message) == 0
+
+
 def test_mxnet_error_handling(
     hook_class_with_mxnet_callback_error,
     out_dir,
@@ -143,30 +170,3 @@ def test_mxnet_error_handling(
 
         # check that the right error was caught (printed twice for each time caught)
         assert stack_trace_logs.count(mxnet_callback_error_message) == 2
-
-
-def test_non_default_smdebug_configuration(
-    out_dir,
-    hook_class_with_mxnet_callback_error_and_custom_debugger_configuration,
-    custom_configuration_error_message,
-    stack_trace_filepath,
-):
-    """
-    Test that the error handling agent does not catch errors when a custom smdebug configuration of smdebug is used.
-
-    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
-    to a hook during the hook initialization.
-    """
-    Hook.create_from_json_file = (
-        hook_class_with_mxnet_callback_error_and_custom_debugger_configuration.create_from_json_file
-    )
-
-    # Verify the correct error gets thrown and doesnt get caught.
-    with pytest.raises(RuntimeError, match=custom_configuration_error_message):
-        train_model()
-
-    assert error_handling_agent.disable_smdebug is False
-    with open(stack_trace_filepath) as logs:
-        stack_trace_logs = logs.read()
-        assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 0
-        assert stack_trace_logs.count(custom_configuration_error_message) == 0
