@@ -3,6 +3,7 @@ import logging
 import os
 
 # Third Party
+import mxnet
 import pytest
 from tests.zero_code_change.test_mxnet_gluon_integration import train_model
 
@@ -135,9 +136,16 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
         - Add a logging handler to write all logs to a file (which will be used to verify caught errors in the tests)
         - Remove the duplicate logging filter
         - Reset the error handling agent after the test so that smdebug is reenabled.
+        - Reset the cached smdebug hook in the MXNet framework
     """
     old_create_from_json = Hook.create_from_json_file
     del_hook()
+
+    global global_smdebug_hook
+    global global_hook_initialized
+
+    mxnet.gluon.block.global_smdebug_hook = None
+    mxnet.gluon.block.global_hook_initialized = False
 
     logger = get_logger()
     os.makedirs(out_dir)
