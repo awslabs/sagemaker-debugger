@@ -104,39 +104,6 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     logger.addFilter(duplicate_log_filter)
 
 
-def test_mxnet_error_handling(
-    hook_class_with_mxnet_callback_error,
-    out_dir,
-    stack_trace_filepath,
-    mxnet_callback_error_message,
-):
-    """
-    Test that an error thrown by an smdebug function is caught and logged correctly by the error handling agent. This
-    test has one test case:
-
-    mxnet_callback_error: The MXNet hook's `forward_hook` is overridden to always fail. The error handling agent should
-    catch this error and log it once, and then disable smdebug for the rest of training.
-
-    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
-    to a hook during the hook initialization.
-    """
-    assert error_handling_agent.disable_smdebug is False
-
-    Hook.create_from_json_file = hook_class_with_mxnet_callback_error.create_from_json_file
-
-    train_model()
-
-    assert error_handling_agent.disable_smdebug is True
-    with open(stack_trace_filepath) as logs:
-        stack_trace_logs = logs.read()
-
-        # check that one error was caught
-        assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 1
-
-        # check that the right error was caught (printed twice for each time caught)
-        assert stack_trace_logs.count(mxnet_callback_error_message) == 2
-
-
 def test_non_default_smdebug_configuration(
     out_dir,
     hook_class_with_mxnet_callback_error_and_custom_debugger_configuration,
@@ -172,3 +139,36 @@ def test_non_default_smdebug_configuration(
         stack_trace_logs = logs.read()
         assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 0
         assert stack_trace_logs.count(custom_configuration_error_message) == 0
+
+
+def test_mxnet_error_handling(
+    hook_class_with_mxnet_callback_error,
+    out_dir,
+    stack_trace_filepath,
+    mxnet_callback_error_message,
+):
+    """
+    Test that an error thrown by an smdebug function is caught and logged correctly by the error handling agent. This
+    test has one test case:
+
+    mxnet_callback_error: The MXNet hook's `forward_hook` is overridden to always fail. The error handling agent should
+    catch this error and log it once, and then disable smdebug for the rest of training.
+
+    Each hook needs to be initialized during its corresponding test, because the error handling agent is configured
+    to a hook during the hook initialization.
+    """
+    assert error_handling_agent.disable_smdebug is False
+
+    Hook.create_from_json_file = hook_class_with_mxnet_callback_error.create_from_json_file
+
+    train_model()
+
+    assert error_handling_agent.disable_smdebug is True
+    with open(stack_trace_filepath) as logs:
+        stack_trace_logs = logs.read()
+
+        # check that one error was caught
+        assert stack_trace_logs.count(BASE_ERROR_MESSAGE) == 1
+
+        # check that the right error was caught (printed twice for each time caught)
+        assert stack_trace_logs.count(mxnet_callback_error_message) == 2
