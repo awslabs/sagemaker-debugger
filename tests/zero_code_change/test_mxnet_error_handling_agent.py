@@ -83,6 +83,17 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     old_create_from_json = Hook.create_from_json_file
     del_hook()
 
+    import mxnet
+
+    global global_smdebug_hook
+    global global_hook_initialized
+
+    if mxnet.gluon.block.global_smdebug_hook is not None:
+        assert False
+
+    if mxnet.gluon.block.global_hook_initialized:
+        assert False
+
     logger = get_logger()
     os.makedirs(out_dir)
     file_handler = logging.FileHandler(filename=stack_trace_filepath)
