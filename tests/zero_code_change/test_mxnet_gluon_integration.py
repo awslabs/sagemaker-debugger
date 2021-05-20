@@ -94,6 +94,8 @@ def train_model():
         name, val_acc = fn_test(ctx, net, val_data)
         print("[Epoch %d] Validation: %s=%f" % (epoch, name, val_acc))
 
+    ctx.empty_cache()
+
 
 def transformer(data, label):
     data = data.reshape((-1,)).astype(np.float32) / 255
