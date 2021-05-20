@@ -6,6 +6,7 @@ import re
 import shutil
 import socket
 import urllib.parse
+from enum import Enum
 from pathlib import Path
 from typing import Dict, List
 
@@ -29,9 +30,18 @@ from smdebug.core.error_handling_agent import ErrorHandlingAgent
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
+
+class FRAMEWORK(Enum):
+    PYTORCH = 0
+    TENSORFLOW = 1
+    MXNET = 2
+    XGBOOST = 3
+
+
 _is_invoked_via_smddp = None
 _smddp_tf_imported = None
 _smddp_pt_imported = None
+_is_using_smmodelparallel = None
 
 try:
     import smdistributed.modelparallel.tensorflow as smp
@@ -590,3 +600,52 @@ def check_smdataparallel_env():
             _smdataparallel_imported = None
 
     return _is_invoked_via_smddp
+
+
+def check_smmodelparallel_training():
+    """
+    The function checks whether the current job is using model parallel strategy.
+    For the training job that uses smmodelparallel, SageMaker sets following environment variables.
+    SM_HPS=
+    {
+        "mp_parameters": {
+            "ddp": true,
+            "microbatches": 4,
+            "optimize": "speed",
+            "partitions": 2,
+            "pipeline": "interleaved",
+            "placement_strategy": "spread"
+        }
+    }
+    The 'partitions' variable is a required parameter for scheduling a model parallel training job.
+
+    :return: True or False
+    """
+    global _is_using_smmodelparallel
+    if _is_using_smmodelparallel is not None:
+        return _is_using_smmodelparallel
+    if os.getenv("SM_HPS") is None:
+        _is_using_smmodelparallel = False
+    else:
+        try:
+            smp_flag = json.loads(os.getenv("SM_HPS"))
+            if "mp_parameters" in smp_flag and "partitions" in smp_flag["mp_parameters"]:
+                _is_using_smmodelparallel = True
+            else:
+                _is_using_smmodelparallel = False
+        except:
+            _is_using_smmodelparallel = False
+    return _is_using_smmodelparallel
+
+
+def is_framework_version_supported(framework_type):
+    if framework_type == FRAMEWORK.PYTORCH:
+        from smdebug.pytorch.utils import is_current_version_supported
+
+        return is_current_version_supported()
+    if framework_type == FRAMEWORK.TENSORFLOW:
+        from smdebug.tensorflow.utils import is_current_version_supported
+
+        return is_current_version_supported()
+    else:  # If framework is mxnet and XGBoost we will currently return True for all versions
+        return True

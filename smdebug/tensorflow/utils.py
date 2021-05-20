@@ -426,6 +426,10 @@ def is_tf_version_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION < version.parse("2.5.0")
 
 
+def is_tf_version_1_15_x():
+    return version.parse("1.15.0") <= TF_VERSION < version.parse("2.0.0")
+
+
 def is_tf_version_greater_than_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION
 
@@ -433,3 +437,7 @@ def is_tf_version_greater_than_2_4_x():
 def is_profiler_supported_for_tf_version():
     # Profiler Support Added For TF Versions 2.2.0 And Greater
     return version.parse("2.2.0") <= TF_VERSION
+
+
+def is_current_version_supported(tf_version=tf.__version__):
+    return version.parse("1.15.0") <= version.parse(tf_version) < version.parse("2.5.0")

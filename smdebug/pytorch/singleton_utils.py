@@ -16,10 +16,15 @@ from smdebug.core.utils import error_handling_agent
 
 @error_handling_agent.catch_smdebug_errors()
 def get_hook(json_config_path=None, create_if_not_exists: bool = False) -> "Hook":
-    from smdebug.pytorch.hook import Hook
+    from smdebug.core.config_validator import get_config_validator, FRAMEWORK
 
-    return sutils.get_hook(
-        json_config_path=json_config_path,
-        hook_class=Hook,
-        create_if_not_exists=create_if_not_exists,
-    )
+    if get_config_validator(FRAMEWORK.PYTORCH).validate_training_job():
+        from smdebug.pytorch.hook import Hook
+
+        return sutils.get_hook(
+            json_config_path=json_config_path,
+            hook_class=Hook,
+            create_if_not_exists=create_if_not_exists,
+        )
+    else:
+        return None
