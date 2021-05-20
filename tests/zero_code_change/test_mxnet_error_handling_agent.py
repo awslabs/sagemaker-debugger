@@ -33,7 +33,7 @@ def hook_class_with_mxnet_callback_error(out_dir, mxnet_callback_error_message):
             self.mxnet_callback_error_message = mxnet_error_message
 
         @error_handling_agent.catch_smdebug_errors()
-        def forward_pre_hook(self, block, inputs):
+        def forward_hook(self, block, inputs, outputs):
             """
             Override the Hook's forward_pre_hook callback to fail immediately.
             """
