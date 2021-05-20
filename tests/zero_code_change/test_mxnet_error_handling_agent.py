@@ -129,7 +129,7 @@ def test_non_default_smdebug_configuration(
     )
 
     # Verify the correct error gets thrown and doesnt get caught.
-    with pytest.raises(RuntimeError, match=custom_configuration_error_message):
+    with pytest.raises(ValueError, match=custom_configuration_error_message):
         train_model()
 
     assert error_handling_agent.disable_smdebug is False
