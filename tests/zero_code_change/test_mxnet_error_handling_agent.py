@@ -104,7 +104,6 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     logger.addFilter(duplicate_log_filter)
 
 
-@pytest.mark.skip
 def test_mxnet_error_handling(
     hook_class_with_mxnet_callback_error,
     out_dir,
