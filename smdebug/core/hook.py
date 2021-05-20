@@ -51,7 +51,7 @@ from smdebug.core.utils import (
 )
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser, get_profiler_config_parser
 
 try:
     from smexperiments.metrics import SageMakerFileMetricsWriter
@@ -233,7 +233,7 @@ class BaseHook:
         self.writer = None
 
         if profiler_config_parser is None:
-            profiler_config_parser = ProfilerConfigParser()
+            profiler_config_parser = get_profiler_config_parser()
         profiler_config_parser.load_config()
         self.profiler_config_parser = profiler_config_parser
 
