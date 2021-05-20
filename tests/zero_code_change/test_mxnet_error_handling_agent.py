@@ -4,7 +4,6 @@ import os
 
 # Third Party
 import pytest
-from flaky import flaky
 from tests.zero_code_change.test_mxnet_gluon_integration import train_model
 
 # First Party
@@ -105,7 +104,6 @@ def set_up_logging_and_error_handling_agent(out_dir, stack_trace_filepath):
     logger.addFilter(duplicate_log_filter)
 
 
-@flaky(max_runs=5, min_passes=5)
 def test_non_default_smdebug_configuration(
     out_dir,
     hook_class_with_mxnet_callback_error_and_custom_debugger_configuration,
@@ -123,6 +121,18 @@ def test_non_default_smdebug_configuration(
     )
 
     from smdebug.mxnet import get_hook
+
+    # Verify the correct error gets thrown and doesnt get caught.
+    with pytest.raises(RuntimeError, match=custom_configuration_error_message):
+        train_model()
+        hook = get_hook()
+        assert hook is not None
+        assert isinstance(
+            hook, hook_class_with_mxnet_callback_error_and_custom_debugger_configuration
+        )
+        assert not hook.has_default_configuration()
+
+    del_hook()
 
     # Verify the correct error gets thrown and doesnt get caught.
     with pytest.raises(RuntimeError, match=custom_configuration_error_message):
@@ -162,6 +172,8 @@ def test_mxnet_error_handling(
     assert error_handling_agent.disable_smdebug is False
 
     Hook.create_from_json_file = hook_class_with_mxnet_callback_error.create_from_json_file
+
+    del_hook()
 
     train_model()
 
