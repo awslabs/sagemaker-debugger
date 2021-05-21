@@ -22,6 +22,7 @@ env:
     run_integration_pytest_xgboost: "enable"
     zero_code_change_test: "enable"
     code_coverage_smdebug_rules: "true"
+    build_type: "pr" # must be one of pr, nightly or release
 
 phases:
   install:
@@ -34,8 +35,8 @@ phases:
         - . config/change_branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
         - cd $CODEBUILD_SRC_DIR && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
         - pip install --upgrade pip==19.3.1
-        - pip install -q pytest==6.1.2 pytest-cov==2.10.1 wheel==0.35.1 pyYaml==5.3.1 pytest-html==3.0.0 sagemaker==2.16.3 pre-commit==2.6.0
-        - pip install -q matplotlib==3.3.1 && pip3 install seaborn==0.10.1 nbconvert==5.6.1 papermill==2.1.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3
+        - pip install -q pytest==6.1.2 pytest-cov==2.10.1 wheel==0.35.1 pyYaml==5.3.1 pytest-html==3.0.0 sagemaker==2.16.3 pre-commit==2.6.0 flaky==3.7.0
+        - pip install -q matplotlib==3.3.1 && pip3 install seaborn==0.10.1 nbconvert==5.6.1 papermill==2.1.2 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
         - pip uninstall -y typing # see: https://t.corp.amazon.com/P43975146/overview
 
@@ -48,7 +49,7 @@ phases:
     commands:
       - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --upgrade --force-reinstall dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
-      - cd $RULES_CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - if [ "$build_type" != "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
       - cd $CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - echo 'Connect to CodeCov'
       - bash $CODEBUILD_SRC_DIR/config/codecov.sh

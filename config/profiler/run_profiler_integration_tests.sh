@@ -13,8 +13,8 @@ check_changed_files() {
   # Get the branch we're running integration tests on.
   export CODEBUILD_GIT_BRANCH=${CODEBUILD_WEBHOOK_HEAD_REF#refs/heads/};
 
-  # If the branch is master, then just run integration tests.
-  if [ $CODEBUILD_GIT_BRANCH = "master" ]; then
+  # If the branch is an empty string, that means the current branch is master and the integration tests will be run.
+  if [[ $CODEBUILD_GIT_BRANCH = "" ]]; then
     echo "true"
     return
   fi
@@ -82,8 +82,6 @@ fi
 cd $CODEBUILD_SRC_DIR
 python setup.py bdist_wheel --universal >/dev/null 2>/dev/null
 pip install -q --force-reinstall dist/*.whl >/dev/null 2>/dev/null # mask output
-
-echo "horovod==0.19.5" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/$scripts_folder/requirements.txt  # TODO: remove after fixing https://sim.amazon.com/issues/P42199318
 
 # install smdebug from current branch in the container or use the smdebug that's already in the container
 if [ "$use_current_branch" = "true" ]; then

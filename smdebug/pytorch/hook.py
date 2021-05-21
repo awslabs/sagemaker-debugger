@@ -11,9 +11,9 @@ import torch.distributed as dist
 from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
-from smdebug.core.utils import check_smdataparallel_env, make_numpy_array
+from smdebug.core.utils import check_smdataparallel_env, error_handling_agent, make_numpy_array
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
-from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
 from smdebug.profiler.python_profiler import PythonProfiler
@@ -38,7 +38,7 @@ DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 python_profiler = None
 
 # Enable python profiling if profiling is enabled.
-profiler_config_parser = ProfilerConfigParser()
+profiler_config_parser = get_profiler_config_parser()
 if profiler_config_parser.profiling_enabled:
     config = profiler_config_parser.config
     if config.python_profiling_config.is_enabled():
@@ -67,6 +67,7 @@ class Hook(CallbackHook):
         def update_end_time(self, end_time=time.time()):
             self.end_time = end_time
 
+    @error_handling_agent.catch_smdebug_errors()
     def __init__(
         self,
         out_dir=None,
@@ -317,6 +318,7 @@ class Hook(CallbackHook):
                 )
 
     # This hook is invoked by trainer prior to running the forward pass.
+    @error_handling_agent.catch_smdebug_errors()
     def forward_pre_hook(self, module, inputs):
         # Write the gradients of the past step if the writer is still available.
         if self.writer is not None:
@@ -375,7 +377,10 @@ class Hook(CallbackHook):
                     start_step=self.step,
                 )
 
-        if self.autograd_profiler_enabled:
+        if (
+            self.autograd_profiler_enabled
+            and not self.profiler_config_parser.config.detailed_profiling_config.disabled
+        ):
             self._collect_torch_profiling_data_if_profiler_enabled()
 
         # should we re-enable profiling for this step?
@@ -435,6 +440,7 @@ class Hook(CallbackHook):
 
         self.first_forward_submodule_name = None
 
+    @error_handling_agent.catch_smdebug_errors()
     def record_tensor_value(self, tensor_name: str, tensor_value: torch.Tensor) -> None:
         """Used for registering functional directly, such as F.mse_loss()."""
         assert isinstance(
@@ -444,6 +450,7 @@ class Hook(CallbackHook):
         self._write_outputs(tensor_name, tensor_value)
 
     # This hook is invoked by trainer after running the forward pass.
+    @error_handling_agent.catch_smdebug_errors()
     def forward_hook(self, module, inputs, outputs):
         # if this is first forward we will use start time of parent as start time, and end time as now
         cur_time = time.time()
@@ -485,6 +492,7 @@ class Hook(CallbackHook):
         self._save_custom_tensors_post_step()
         self.last_saved_step = self.step
 
+    @error_handling_agent.catch_smdebug_errors()
     def backward_hook(self, tname):
         # Helper function that has access to the parameter name via
         # the scope in which it's defined.
@@ -516,6 +524,7 @@ class Hook(CallbackHook):
         # for compatibility with ZCC patches which call this
         self.register_module(module)
 
+    @error_handling_agent.catch_smdebug_errors()
     def fhook(self, module, inputs, outputs):
         # we would stop profiling and restart from this phase
         if python_profiler:
@@ -533,6 +542,7 @@ class Hook(CallbackHook):
                     start_step=self.step,
                 )
 
+    @error_handling_agent.catch_smdebug_errors()
     def bhook(self, module, grad_input, grad_output):
         now = time.time()
         backward_st_time = now
@@ -586,6 +596,7 @@ class Hook(CallbackHook):
         self.logger.info(f"Total Trainable Params: {total_params}")
         return total_params
 
+    @error_handling_agent.catch_smdebug_errors()
     def register_module(self, module):
         """
         This function registers the forward hook. If user wants to register the hook
@@ -638,6 +649,7 @@ class Hook(CallbackHook):
         self.has_registered_module = True
         self.count_parameters(module)
 
+    @error_handling_agent.catch_smdebug_errors()
     def register_loss(self, loss_module):
         """Register something like `criterion = nn.CrossEntropyLoss()`."""
         # Typechecking
@@ -673,6 +685,7 @@ class Hook(CallbackHook):
             return tensor_value.to(torch.device("cpu")).data.numpy()
         return make_numpy_array(tensor_value)
 
+    @error_handling_agent.catch_smdebug_errors(default_return_val=False)
     def should_save_dataloader_metrics(self, metrics_name):
         """Determine whether dataloader metrics for the provided metrics_name should be saved. We check for the next
         step since the dataloader metrics for the next step are collected on the current step.

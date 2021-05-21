@@ -12,6 +12,7 @@ from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.modes import ModeKeys
+from smdebug.core.utils import error_handling_agent
 
 # Cached TF Version
 TF_VERSION = version.parse(tf.__version__)
@@ -363,6 +364,7 @@ def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.
     old_call_fn = layer.call
     layer.old_call = old_call_fn
 
+    @error_handling_agent.catch_smdebug_errors(default_return_val=old_call_fn)
     def call(inputs, *args, **kwargs) -> tf.Tensor:
         layer_input = inputs
         layer_output = old_call_fn(inputs, *args, **kwargs)
@@ -424,6 +426,10 @@ def is_tf_version_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION < version.parse("2.5.0")
 
 
+def is_tf_version_1_15_x():
+    return version.parse("1.15.0") <= TF_VERSION < version.parse("2.0.0")
+
+
 def is_tf_version_greater_than_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION
 
@@ -431,3 +437,7 @@ def is_tf_version_greater_than_2_4_x():
 def is_profiler_supported_for_tf_version():
     # Profiler Support Added For TF Versions 2.2.0 And Greater
     return version.parse("2.2.0") <= TF_VERSION
+
+
+def is_current_version_supported(tf_version=tf.__version__):
+    return version.parse("1.15.0") <= version.parse(tf_version) < version.parse("2.5.0")

@@ -14,7 +14,12 @@ from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
-from smdebug.core.utils import check_smdataparallel_env, make_numpy_array, serialize_tf_device
+from smdebug.core.utils import (
+    check_smdataparallel_env,
+    error_handling_agent,
+    make_numpy_array,
+    serialize_tf_device,
+)
 from smdebug.core.writer import FileWriter
 
 # Local
@@ -244,13 +249,13 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
+    @error_handling_agent.catch_smdebug_errors(default_return_val=False)
     def has_default_hook_configuration(self):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
-        collections_being_saved = [x.name for x in self._collections_to_save]
-        if set(collections_being_saved) == set(TF_DEFAULT_SAVED_COLLECTIONS):
-            return True
-        return False
+        return super().has_default_hook_configuration(
+            default_saved_collections=TF_DEFAULT_SAVED_COLLECTIONS
+        )
 
     def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
         if self._custom_collections is None:
@@ -498,6 +503,14 @@ class TensorflowBaseHook(BaseHook):
         optimizer.__class__.apply_gradients = new_apply_gradients
         return optimizer
 
+    @error_handling_agent.catch_smdebug_errors()
+    def set_mode(self, mode):
+        """
+        This function is called directly from AWS TF to set the correct mode.
+        """
+        super().set_mode(mode)
+
+    @error_handling_agent.catch_smdebug_errors()
     def set_gradients(self, gradients=None, gradients_and_variables=None):
         """
         This method helps find the gradient tensors.
@@ -529,6 +542,7 @@ class TensorflowBaseHook(BaseHook):
                 )
             self._gradients_set = True
 
+    @error_handling_agent.catch_smdebug_errors()
     def set_optimizer_variables(self, optimizer_variables):
         """
         This method helps find the optimizer variables (such as momentum)
