@@ -13,6 +13,7 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
+from smdebug.core.singleton_utils import set_hook
 from smdebug.core.utils import error_handling_agent, match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
@@ -838,17 +839,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
     def _on_any_mode_end(self, mode):
-        if self.python_profiler:
-            python_profiler.stop_profiling(
-                StepPhase.STEP_END,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            self.python_profiler.start_profiling(
-                StepPhase.STEP_END,
-                start_mode=mode_keys_to_python_profile_mode(mode),
-                start_step=self.mode_steps[mode],
-            )
+        self._handle_end_step_python_profiling(mode)
 
         if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
             TF_DATALOADER_END_FLAG_FILENAME
@@ -1247,7 +1238,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._prepare_collections_for_tf2()
                 self.prepared_gradient_tape_collections = True
 
-            self._increment_step()
+            if not self.is_profiler_enabled_for_native_training:
+                self._increment_step()
 
             if self._get_collections_to_save_for_step():
                 self._initialize_writers()
@@ -1394,8 +1386,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # When both profiler and debugger are enabled in the native training, step number is increased by 1 in
             # the profiling_start_batch() function, and should be decreased by 1 here in order to keep the step number
             # consistent since _increment_step() will be called in wrap_push_tape().
-            if self.is_profiler_enabled_for_native_training:
-                self._decrement_step()
+            # if self.is_profiler_enabled_for_native_training:
+            #     self._decrement_step()
 
             if isinstance(tape, GradientTape):
                 # unwrap tape before wrapping new tape to avoid recursive wrap tapes
@@ -1443,13 +1435,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
         # When only profiler is enabled in the native tf2 training, increase the step number
         # and handle profiling at the start of the batch.
-        self._increment_step(write_state=False)
+        self._increment_step()
         self.profiler_config_parser.load_config()
         self._handle_start_step_python_profiling(mode=mode)
 
     def profiling_end_batch(self, mode=ModeKeys.TRAIN):
         """
-        Enabling profiler at the end of train batch when native tf2 training is used.
+        Enabling profiler at the end of train batch for native Tf2 training.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
 
         TODO: Add support for other profiling at the end of the batch.
@@ -1461,7 +1453,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def profiling_end(self):
         """
-        Stop profiler at the end of the mode when native tf2 training is used.
+        Stop profiler at the end of the mode for native TF2 training.
 
         TODO: Add support for other profiling at the end of the mode.
         """
@@ -1472,5 +1464,11 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.closed = True
 
     def profiler(self, mode=ModeKeys.TRAIN):
+        """
+        Context manager inserted directly into the training script to enable profiling for native TF2 training.
+        """
         self.set_mode(mode)
+        set_hook(
+            self
+        )  # Necessary for the same hook to be used when wrapping GradientTape (with ZCC).
         return ProfilerContextManager(self)

@@ -34,6 +34,21 @@ def profiler_config_path(config_folder, monkeypatch):
         os.remove(config_path)
 
 
+@pytest.fixture
+def start_step():
+    return 5
+
+
+@pytest.fixture
+def num_steps():
+    return 2
+
+
+@pytest.fixture
+def end_step(start_step, num_steps):
+    return start_step + num_steps
+
+
 def generate_profiler_config_parser(profiling_type, profiler_config_path, profiling_parameters):
     python_profiling_config, detailed_profiling_config = "{}", "{}"
 
@@ -65,11 +80,11 @@ def generate_profiler_config_parser(profiling_type, profiler_config_path, profil
 
 def generate_profiler_config_parser_all_params(profiler_config_path, python_profiling_parameters):
 
-    start_step_1, num_steps_1, profiler_name, cprofile_timer = python_profiling_parameters
+    start_step, num_steps, profiler_name, cprofile_timer = python_profiling_parameters
 
     python_profiling_config = build_metrics_config(
-        StartStep=start_step_1,
-        NumSteps=num_steps_1,
+        StartStep=start_step,
+        NumSteps=num_steps,
         ProfilerName=profiler_name,
         cProfileTimer=cprofile_timer,
     )
@@ -91,8 +106,7 @@ def generate_profiler_config_parser_all_params(profiler_config_path, python_prof
     return profiler_config_parser
 
 
-def set_up_profiling(profiler_config):
-    profiler_config_parser = profiler_config
+def _set_up_python_profiling(profiler_config_parser):
     python_profiler = None
     if profiler_config_parser.profiling_enabled:
         config = profiler_config_parser.config
@@ -100,7 +114,7 @@ def set_up_profiling(profiler_config):
             python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
             python_profiler.start_profiling(StepPhase.START)
             atexit.register(python_profiler.stop_profiling, StepPhase.END)
-    return profiler_config_parser, python_profiler
+    return python_profiler
 
 
 def create_model():
@@ -126,9 +140,7 @@ def prepare_dataset():
     return dataset
 
 
-def helper_native_tf2_gradtape(
-    hook, tf_eager_mode, python_profiler, enable_debugger, start_step, end_step
-):
+def helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step, end_step):
     def get_grads(images, labels):
         return model(images, training=True)
 
@@ -146,61 +158,31 @@ def helper_native_tf2_gradtape(
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
 
-    current_step = 0
     n_epochs = 1
     for epoch in range(n_epochs):
-        for data, labels in dataset:
+        for current_step, (data, labels) in enumerate(dataset):
             with hook.profiler():
                 labels = tf.one_hot(labels, depth=10)
-                if enable_debugger:
-                    with hook.wrap_tape(tf.GradientTape()) as tape:
-                        logits = train_step(data, labels)
-                        if python_profiler and start_step <= current_step < end_step:
-                            assert python_profiler._start_step == current_step
-                            assert python_profiler._start_phase == StepPhase.STEP_START
-                    grads = tape.gradient(logits, model.variables)
-                    opt.apply_gradients(zip(grads, model.variables))
-                    hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
-                    hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
-                    hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
-                else:
-                    with tf.GradientTape() as tape:
-                        logits = train_step(data, labels)
-                        if python_profiler and start_step <= current_step < end_step:
-                            assert python_profiler._start_step == current_step
-                            assert python_profiler._start_phase == StepPhase.STEP_START
-                    grads = tape.gradient(logits, model.variables)
-                    opt.apply_gradients(zip(grads, model.variables))
+                with tf.GradientTape() as tape:
+                    logits = train_step(data, labels)
+                    if python_profiler and start_step <= current_step < end_step:
+                        assert python_profiler._start_step == current_step
+                        assert python_profiler._start_phase == StepPhase.STEP_START
+                grads = tape.gradient(logits, model.variables)
+                opt.apply_gradients(zip(grads, model.variables))
+                hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
+                hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
+                hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
             if python_profiler and start_step <= current_step < end_step:
                 assert python_profiler._start_step == current_step
                 assert python_profiler._start_phase == StepPhase.STEP_END
-            current_step += 1
-    # required for these tests since this normally gets called in the cleanup process and we can't test for artifacts
-    # at that point.
-    hook.profiling_end()
-    if python_profiler:
-        assert python_profiler._start_step == current_step - 1
-        assert python_profiler._start_phase == StepPhase.STEP_END
 
 
-def _initiate_python_profiling(profiler_config):
-    assert profiler_config.profiling_enabled
-    profiler_config_parser, python_profiler = set_up_profiling(profiler_config)
-    config = profiler_config_parser.config
-    start_step = config.python_profiling_config.start_step
-    num_steps = config.python_profiling_config.num_steps
-    end_step = start_step + num_steps
-    return python_profiler, start_step, end_step
-
-
-def _train_loop(out_dir, tf_eager_mode, python_profiler, enable_debugger, start_step, end_step):
+def _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step):
     hook = Hook(out_dir=out_dir, save_all=True)
-    hook.logger.disabled = True
     if python_profiler:
         hook.python_profiler = python_profiler
-    helper_native_tf2_gradtape(
-        hook, tf_eager_mode, python_profiler, enable_debugger, start_step, end_step
-    )
+    helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step, end_step)
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
     # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
     hook.logger.disabled = True
@@ -248,9 +230,9 @@ def _verify_python_profiling(profiler_name, out_dir, num_steps):
         node_dir_path = os.path.join(python_stats_dir, node_id)
         stats_dirs = os.listdir(node_dir_path)
 
-        # Since python_profiler.stop_profiling for the posthookclose step automatically executed
-        # upon normal interpreter termination,
-        # the number of the files is num_steps * 2 + 2 - 1.
+        # The expected number of stats directories during is (num_steps * 2) + 1. This includes profiling for both
+        # phases of each step and pre-step zero python profiling, but not post-hook-close python profiling (since
+        # that only completes when the process exits).
         assert len(stats_dirs) == num_steps * 2 + 1
 
         for stats_dir in stats_dirs:
@@ -269,22 +251,19 @@ def _verify_python_profiling(profiler_name, out_dir, num_steps):
                         assert json.load(f)
 
 
-@pytest.mark.parametrize("enable_python_profiling", [CPROFILE_NAME, PYINSTRUMENT_NAME])
-@pytest.mark.parametrize("enable_debugger", [False, True])
-def test_native_tf2_profiling_debugger(
-    enable_python_profiling, enable_debugger, profiler_config_path, out_dir, tf_eager_mode
+@pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
+def test_native_tf2_profiling(
+    python_profiler_name,
+    profiler_config_path,
+    out_dir,
+    tf_eager_mode,
+    start_step,
+    num_steps,
+    end_step,
 ):
-    if enable_python_profiling == CPROFILE_NAME:
-        profiler_config_parser = generate_profiler_config_parser(
-            "PythonProfiling", profiler_config_path, (5, 2, CPROFILE_NAME, None)
-        )
-    if enable_python_profiling == PYINSTRUMENT_NAME:
-        profiler_config_parser = generate_profiler_config_parser(
-            "PythonProfiling", profiler_config_path, (10, 3, PYINSTRUMENT_NAME, None)
-        )
-    python_profiler, start_step, end_step = _initiate_python_profiling(profiler_config_parser)
-    _train_loop(out_dir, tf_eager_mode, python_profiler, enable_debugger, start_step, end_step)
-    _verify_python_profiling(enable_python_profiling, out_dir, num_steps=end_step - start_step)
-
-    if enable_debugger:
-        _verify_tensor_names(out_dir)
+    profiler_config_parser = generate_profiler_config_parser(
+        "PythonProfiling", profiler_config_path, (start_step, num_steps, python_profiler_name, None)
+    )
+    python_profiler = _set_up_python_profiling(profiler_config_parser)
+    _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step)
+    _verify_python_profiling(python_profiler_name, out_dir, num_steps=num_steps)
