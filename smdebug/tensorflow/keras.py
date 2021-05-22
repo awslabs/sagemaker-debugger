@@ -13,7 +13,6 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
-from smdebug.core.singleton_utils import set_hook
 from smdebug.core.utils import error_handling_agent, match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
@@ -1468,7 +1467,4 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Context manager inserted directly into the training script to enable profiling for native TF2 training.
         """
         self.set_mode(mode)
-        set_hook(
-            self
-        )  # Necessary for the same hook to be used when wrapping GradientTape (with ZCC).
         return ProfilerContextManager(self)
