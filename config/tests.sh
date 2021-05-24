@@ -65,9 +65,9 @@ export SMDEBUG_LOG_LEVEL=info
 
 export OUT_DIR=upload/$CURRENT_COMMIT_PATH
 export REPORT_DIR=$OUT_DIR/pytest_reports
-python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
+#python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
 
-run_for_framework core
+#run_for_framework core
 
 if [ "$run_pytest_xgboost" = "enable" ] ; then
     run_for_framework xgboost
@@ -81,7 +81,7 @@ fi
 
 if [ "$run_pytest_tensorflow2" = "enable" ] ; then
     pip install tensorflow_datasets==4.0.1
-    run_for_framework tensorflow2
+#    run_for_framework tensorflow2
     run_profiler_test tensorflow2
 fi
 
