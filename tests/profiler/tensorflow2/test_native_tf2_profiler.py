@@ -140,7 +140,7 @@ def prepare_dataset():
     return dataset
 
 
-def helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step, end_step):
+def helper_native_tf2_gradtape(out_dir, hook, tf_eager_mode, python_profiler, start_step, end_step):
     def get_grads(images, labels):
         return model(images, training=True)
 
@@ -176,7 +176,10 @@ def helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step,
             if python_profiler and start_step <= current_step < end_step:
                 assert python_profiler._start_step == current_step
                 assert python_profiler._start_phase == StepPhase.STEP_END
-    hook.close()
+    # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
+    # profiling.
+    hook.profiling_end()
+    _verify_tensor_names(out_dir)
 
 
 def _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step):
@@ -186,7 +189,7 @@ def _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step):
     hook.logger.disabled = True
     if python_profiler:
         hook.python_profiler = python_profiler
-    helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step, end_step)
+    helper_native_tf2_gradtape(out_dir, hook, tf_eager_mode, python_profiler, start_step, end_step)
 
 
 def _verify_tensor_names(out_dir):
@@ -267,5 +270,4 @@ def test_native_tf2_profiling(
     )
     python_profiler = _set_up_python_profiling(profiler_config_parser)
     _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step)
-    _verify_tensor_names(out_dir)
     _verify_python_profiling(python_profiler_name, out_dir, num_steps=num_steps)
