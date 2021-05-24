@@ -6,6 +6,7 @@ from mxnet.ndarray import NDArray
 from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
+from smdebug.core.utils import error_handling_agent
 from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
@@ -126,6 +127,7 @@ class Hook(CallbackHook):
         return DEFAULT_MXNET_COLLECTIONS
 
     # This hook is invoked by trainer prior to running the forward pass.
+    @error_handling_agent.catch_smdebug_errors()
     def forward_pre_hook(self, block, inputs):
         if self.writer is not None:
             # Write the params and gradients of the
@@ -158,6 +160,7 @@ class Hook(CallbackHook):
         self._save_custom_tensors_post_step()
 
     # This hook is invoked by trainer after running the forward pass.
+    @error_handling_agent.catch_smdebug_errors()
     def forward_hook(self, block, inputs, outputs):
         if not self._get_collections_to_save_for_step():
             return
@@ -213,6 +216,7 @@ class Hook(CallbackHook):
         # for compatibility with ZCC patches which call this
         self.register_block(block)
 
+    @error_handling_agent.catch_smdebug_errors()
     def register_block(self, block):
         """
         This function registers the forward hook. If user wants to register the hook

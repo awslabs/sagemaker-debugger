@@ -305,7 +305,7 @@ def test_pytorch_error_handling(
         assert stack_trace_logs.count(error_message) == 2
 
         # `fhook` should not have errored if `register_module` already errored.
-        if hook_type == "keras_and_layer_callback_error":
+        if hook_type == "torch_callback_and_register_module_error":
             assert torch_callback_error_message not in stack_trace_logs
 
 
