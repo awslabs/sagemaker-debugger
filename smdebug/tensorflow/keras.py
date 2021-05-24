@@ -1382,12 +1382,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self.set_mode(ModeKeys.TRAIN)
 
-            # When both profiler and debugger are enabled in the native training, step number is increased by 1 in
-            # the profiling_start_batch() function, and should be decreased by 1 here in order to keep the step number
-            # consistent since _increment_step() will be called in wrap_push_tape().
-            # if self.is_profiler_enabled_for_native_training:
-            #     self._decrement_step()
-
             if isinstance(tape, GradientTape):
                 # unwrap tape before wrapping new tape to avoid recursive wrap tapes
                 if self.tape:
@@ -1464,7 +1458,26 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def profiler(self, mode=ModeKeys.TRAIN):
         """
-        Context manager inserted directly into the training script to enable profiling for native TF2 training.
+        Context manager to be inserted directly into the training script to enable profiling for native TF2 training.
+
+        With respect to Python profiling, for a given step `n`, all code inside the context is profiled as during
+        the step n. All code before the context is profiled as between steps n-1 and n. All code after the context
+        is profiled as between steps n and n+1.
+
+        Example:
+
+        ```
+        for epoch in range(n_epochs):
+            for data, labels in dataset:
+                setup()
+                with hook.profiler():
+                    labels = tf.one_hot(labels, depth=10)
+                    with tf.GradientTape() as tape:
+                        logits = train_step(data, labels)
+                    grads = tape.gradient(logits, model.variables)
+                    opt.apply_gradients(zip(grads, model.variables))
+                cleanup()
+        ```
         """
         self.set_mode(mode)
         return ProfilerContextManager(self)

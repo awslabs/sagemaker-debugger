@@ -568,17 +568,18 @@ class BaseHook:
         if self.first_process is True:
             remove_claim_file(self.out_dir)
 
-    def _increment_step(self, write_state=True):
+    def _increment_step(self):
         # Update the last_state to the last step number that was saved or seen
-        if write_state:
-            self._write_state()
+        self._write_state()
 
         self.step += 1
         self.mode_steps[self.mode] += 1
+        self.written_tensor_name_for_step.clear()
 
         # Increment Global step number irrespective of what mode it is
         if self.mode != ModeKeys.GLOBAL:
             self.mode_steps[ModeKeys.GLOBAL] = self.step
+        self._collections_to_save_for_step = None
 
     # Called in the internal AWS codebase to determine
     # if a particular tensor value should be saved
@@ -611,9 +612,6 @@ class BaseHook:
                 mode_step[mode.name] = step
             current_state[LATEST_MODE_STEP] = mode_step
             self.state_store.update_state(current_state)
-
-        self.written_tensor_name_for_step.clear()
-        self._collections_to_save_for_step = None
 
     def save_tensor(self, tensor_name, tensor_value, collections_to_write=CollectionKeys.DEFAULT):
         if validate_custom_tensor_value(tensor_value, self._make_numpy_array) is False:

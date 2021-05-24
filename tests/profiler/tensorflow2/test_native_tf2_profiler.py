@@ -266,4 +266,5 @@ def test_native_tf2_profiling(
     )
     python_profiler = _set_up_python_profiling(profiler_config_parser)
     _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step)
+    _verify_tensor_names(out_dir)
     _verify_python_profiling(python_profiler_name, out_dir, num_steps=num_steps)
