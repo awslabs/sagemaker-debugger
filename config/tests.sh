@@ -53,7 +53,7 @@ run_for_framework() {
 # Functionto invoke the profiler tests. The core tests in profiler are run for all the frameworks
 run_profiler_test() {
     # Running the core tests in profiler.
-    python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_profiler_core.html -v -s --self-contained-html tests/profiler/core
+#    python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_profiler_core.html -v -s --self-contained-html tests/profiler/core
 
     # Running the framework specific profiler tests
     python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_profiler_$1.html -v -s --self-contained-html tests/profiler/$1
