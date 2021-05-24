@@ -180,12 +180,12 @@ def helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step,
 
 def _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step):
     hook = Hook(out_dir=out_dir, save_all=True)
-    if python_profiler:
-        hook.python_profiler = python_profiler
-    helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step, end_step)
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
     # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
     hook.logger.disabled = True
+    if python_profiler:
+        hook.python_profiler = python_profiler
+    helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step, end_step)
 
 
 def _verify_tensor_names(out_dir):
