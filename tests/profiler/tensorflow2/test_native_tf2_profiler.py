@@ -163,7 +163,7 @@ def helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step,
         for current_step, (data, labels) in enumerate(dataset):
             with hook.profiler():
                 labels = tf.one_hot(labels, depth=10)
-                with tf.GradientTape() as tape:
+                with hook.wrap_tape(tf.GradientTape()) as tape:
                     logits = train_step(data, labels)
                     if python_profiler and start_step <= current_step < end_step:
                         assert python_profiler._start_step == current_step
