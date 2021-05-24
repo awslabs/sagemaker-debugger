@@ -176,6 +176,7 @@ def helper_native_tf2_gradtape(hook, tf_eager_mode, python_profiler, start_step,
             if python_profiler and start_step <= current_step < end_step:
                 assert python_profiler._start_step == current_step
                 assert python_profiler._start_phase == StepPhase.STEP_END
+    hook.close()
 
 
 def _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step):
