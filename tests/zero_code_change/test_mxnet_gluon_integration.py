@@ -41,7 +41,23 @@ def fn_test(ctx, net, val_data):
     return metric.get()
 
 
-def train_model(net, epochs, ctx, learning_rate, momentum, train_data, val_data):
+def train_model():
+    # DEFAULT CONSTANTS
+    batch_size = 256
+    epochs = 1
+    momentum = 0.9
+    learning_rate = 0.1
+    mx.random.seed(128)
+    random.seed(12)
+    np.random.seed(2)
+
+    ctx = mx.cpu()
+    # Create a Gluon Model.
+    net = create_gluon_model()
+
+    # Start the training.
+    train_data, val_data = prepare_data(batch_size)
+
     # Collect all parameters from net and its children, then initialize them.
     net.initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     # Trainer is for updating parameters with gradient.
@@ -149,20 +165,6 @@ def validate():
 
 
 def test_integration_mxnet():
-    # DEFAULT CONSTANTS
-    batch_size = 256
-    epochs = 1
-    learning_rate = 0.1
-    mx.random.seed(128)
-    random.seed(12)
-    np.random.seed(2)
-
-    context = mx.cpu()
-    # Create a Gluon Model.
-    net = create_gluon_model()
-
-    # Start the training.
-    train_data, val_data = prepare_data(batch_size)
 
     json_file_contents = """
         {
@@ -178,17 +180,8 @@ def test_integration_mxnet():
             ]
         }
         """
-    with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
-        train_model(
-            net=net,
-            epochs=epochs,
-            ctx=context,
-            learning_rate=learning_rate,
-            momentum=0.9,
-            train_data=train_data,
-            val_data=val_data,
-        )
-
+    with SagemakerSimulator(json_file_contents=json_file_contents) as _:
+        train_model()
         validate()
 
 
