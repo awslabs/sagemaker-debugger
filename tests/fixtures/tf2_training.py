@@ -1,20 +1,11 @@
 # Third Party
 import pytest
-import tensorflow as tf
-from tensorflow.keras.layers import (
-    BatchNormalization,
-    Conv2D,
-    Dense,
-    Dropout,
-    Flatten,
-    Input,
-    MaxPooling2D,
-)
-from tensorflow.keras.models import Model
 
 
 @pytest.fixture
 def tf2_mnist_sequential_model():
+    import tensorflow as tf
+
     model = tf.keras.models.Sequential(
         [
             # WA for TF issue https://github.com/tensorflow/tensorflow/issues/36279
@@ -29,25 +20,29 @@ def tf2_mnist_sequential_model():
 
 @pytest.fixture
 def tf2_mnist_functional_model():
-    img_inputs = Input(shape=(28, 28, 1))
-    x = Conv2D(32, kernel_size=(3, 3), activation="relu")(img_inputs)
-    x1 = Conv2D(64, (3, 3), activation="relu")(x)
-    x = MaxPooling2D(pool_size=(2, 2))(x1)
-    x = Dropout(0.25)(x)
-    x = Flatten()(x)
-    x = Dense(128, activation="relu")(x)
-    x = Dropout(0.5)(x)
-    out = Dense(10, activation="softmax")(x)
+    import tensorflow as tf
+
+    img_inputs = tf.keras.layers.Input(shape=(28, 28, 1))
+    x = tf.keras.layers.Conv2D(32, kernel_size=(3, 3), activation="relu")(img_inputs)
+    x1 = tf.keras.layers.Conv2D(64, (3, 3), activation="relu")(x)
+    x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x1)
+    x = tf.keras.layers.Dropout(0.25)(x)
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dense(128, activation="relu")(x)
+    x = tf.keras.layers.Dropout(0.5)(x)
+    out = tf.keras.layers.Dense(10, activation="softmax")(x)
 
     return tf.keras.models.Model(inputs=img_inputs, outputs=out)
 
 
 @pytest.fixture
 def tf2_mnist_subclassed_model():
-    class MyModel(Model):
+    import tensorflow as tf
+
+    class MyModel(tf.keras.models.Model):
         def __init__(self):
             super().__init__()
-            self.conv1 = Conv2D(
+            self.conv1 = tf.keras.layers.Conv2D(
                 32,
                 3,
                 activation="relu",
@@ -63,20 +58,22 @@ def tf2_mnist_subclassed_model():
                 return self.original_call(inputs, *args, **kwargs)
 
             self.conv1.call = new_call
-            self.conv0 = Conv2D(
+            self.conv0 = tf.keras.layers.Conv2D(
                 32,
                 3,
                 activation="relu",
                 kernel_initializer=tf.keras.initializers.GlorotNormal(seed=12),
             )
-            self.flatten = Flatten()
-            self.d1 = Dense(
+            self.flatten = tf.keras.layers.Flatten()
+            self.d1 = tf.keras.layers.Dense(
                 128,
                 activation="relu",
                 kernel_initializer=tf.keras.initializers.GlorotNormal(seed=192),
             )
-            self.d2 = Dense(10, kernel_initializer=tf.keras.initializers.GlorotNormal(seed=126))
-            self.bn = BatchNormalization()
+            self.d2 = tf.keras.layers.Dense(
+                10, kernel_initializer=tf.keras.initializers.GlorotNormal(seed=126)
+            )
+            self.bn = tf.keras.layers.BatchNormalization()
 
         def first(self, x):
             with tf.name_scope("first"):
@@ -97,6 +94,8 @@ def tf2_mnist_subclassed_model():
 
 @pytest.fixture
 def mnist_dataset():
+    import tensorflow as tf
+
     mnist = tf.keras.datasets.mnist
     (x_train, y_train), _ = mnist.load_data()
     x_train, y_train = x_train[:50000], y_train[:50000]
