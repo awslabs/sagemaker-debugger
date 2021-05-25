@@ -1467,5 +1467,5 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         ```
         """
         self.set_mode(mode)
-        self.hook.is_profiler_enabled_for_native_training = True
+        self.is_profiler_enabled_for_native_training = True
         return ProfilerContextManager(self, mode)
