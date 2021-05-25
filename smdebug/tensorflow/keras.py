@@ -754,28 +754,28 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.mode != ModeKeys.GLOBAL:
             self.mode_steps[ModeKeys.GLOBAL] = self.step
 
-    def _handle_start_step_python_profiling(self, mode):
+    def _handle_start_step_python_profiling(self, mode, current_step):
         """
         This function is called to handle python profiling at the start of a step.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
         """
-
         if self.python_profiler:
             self.python_profiler.stop_profiling(
                 StepPhase.STEP_START,
                 end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
+                end_step=current_step,
             )
             if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
+                MetricsCategory.PYTHON_PROFILING, current_step
             ):
+                print("true start", current_step)
                 self.python_profiler.start_profiling(
                     StepPhase.STEP_START,
                     start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
+                    start_step=current_step,
                 )
 
-    def _handle_end_step_python_profiling(self, mode):
+    def _handle_end_step_python_profiling(self, mode, current_step):
         """
         This function is called to handle python profiling at the end of a step.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
@@ -784,15 +784,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.python_profiler.stop_profiling(
                 StepPhase.STEP_END,
                 end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
+                end_step=current_step,
             )
             if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
+                MetricsCategory.PYTHON_PROFILING, current_step
             ):
+                print("true end", current_step)
                 self.python_profiler.start_profiling(
                     StepPhase.STEP_END,
                     start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
+                    start_step=current_step,
                 )
 
     @error_handling_agent.catch_smdebug_errors()
@@ -838,7 +839,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
     def _on_any_mode_end(self, mode):
-        self._handle_end_step_python_profiling(mode)
+        self._handle_end_step_python_profiling(mode, self.mode_steps[mode])
 
         if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
             TF_DATALOADER_END_FLAG_FILENAME
@@ -922,7 +923,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         ):
             self.is_dataloader_profiling = False
 
-        self._handle_start_step_python_profiling(mode)
+        self._handle_start_step_python_profiling(mode, self.mode_steps[mode])
 
         if self.prepared_tf2_collections is False:
             # sets prepared_collections to True here
@@ -1098,7 +1099,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._export_model()
                 self._exported_model[self.mode] = True
 
-        self._handle_end_step_python_profiling(mode)
+        self._handle_end_step_python_profiling(mode, self.mode_steps[mode])
 
     @error_handling_agent.catch_smdebug_errors()
     def on_train_batch_end(self, batch, logs=None):
@@ -1237,8 +1238,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._prepare_collections_for_tf2()
                 self.prepared_gradient_tape_collections = True
 
-            if not self.is_profiler_enabled_for_native_training:
-                self._increment_step()
+            self._increment_step()
 
             if self._get_collections_to_save_for_step():
                 self._initialize_writers()
@@ -1423,14 +1423,12 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
-        self.set_mode(mode)
-        self.is_profiler_enabled_for_native_training = True
+        current_step = self.mode_steps[mode]
+        if self.is_profiler_enabled_for_native_training:
+            current_step += 1
 
-        # When only profiler is enabled in the native tf2 training, increase the step number
-        # and handle profiling at the start of the batch.
-        self._increment_step()
         self.profiler_config_parser.load_config()
-        self._handle_start_step_python_profiling(mode=mode)
+        self._handle_start_step_python_profiling(mode, current_step)
 
     def profiling_end_batch(self, mode=ModeKeys.TRAIN):
         """
@@ -1442,7 +1440,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
-        self._handle_end_step_python_profiling(mode=mode)
+        self._handle_end_step_python_profiling(mode, self.mode_steps[mode])
 
     def profiling_end(self):
         """

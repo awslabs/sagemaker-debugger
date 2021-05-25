@@ -568,9 +568,10 @@ class BaseHook:
         if self.first_process is True:
             remove_claim_file(self.out_dir)
 
-    def _increment_step(self):
+    def _increment_step(self, write_state=True):
         # Update the last_state to the last step number that was saved or seen
-        self._write_state()
+        if write_state:
+            self._write_state()
 
         self.step += 1
         self.mode_steps[self.mode] += 1
@@ -624,6 +625,7 @@ class BaseHook:
 
     def _save_custom_tensors_post_step(self):
         for tensor_name in self.custom_tensors_to_save:
+            assert False
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             c = self.collection_manager.get(collection_names, create=True)
             c.add_tensor_name(tensor_name)
