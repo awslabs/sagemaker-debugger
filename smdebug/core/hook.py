@@ -624,7 +624,6 @@ class BaseHook:
 
     def _save_custom_tensors_post_step(self):
         for tensor_name in self.custom_tensors_to_save:
-            assert False
             tensor_value, collection_names = self.custom_tensors_to_save[tensor_name]
             c = self.collection_manager.get(collection_names, create=True)
             c.add_tensor_name(tensor_name)
