@@ -127,10 +127,7 @@ def _helper_native_tf2_gradtape(
     def train_step_noneager(images, labels):
         return tf.reduce_mean(get_grads(images, labels))
 
-    def train_step_eager(images, labels):
-        return tf.reduce_mean(get_grads(images, labels))
-
-    train_step = train_step_eager if tf_eager_mode else train_step_noneager
+    train_step = train_step_noneager
 
     hook = Hook(out_dir=out_dir, save_all=True)
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
