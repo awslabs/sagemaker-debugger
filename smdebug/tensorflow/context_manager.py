@@ -8,4 +8,3 @@ class ProfilerContextManager(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.hook.profiling_end_batch(self.mode)
-        self.hook.is_profiler_enabled_for_native_training = False

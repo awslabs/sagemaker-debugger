@@ -776,7 +776,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if self.profiler_config_parser.should_save_metrics(
                 MetricsCategory.PYTHON_PROFILING, current_step
             ):
-                print("true end", current_step)
                 self.python_profiler.start_profiling(
                     StepPhase.STEP_END,
                     start_mode=mode_keys_to_python_profile_mode(mode),
