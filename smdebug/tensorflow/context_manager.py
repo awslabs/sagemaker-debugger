@@ -7,7 +7,6 @@ class ProfilerContextManager(object):
         self.mode = mode
 
     def __enter__(self):
-
         self.hook.profiling_start_batch(self.mode)
 
     def __exit__(self, exc_type, exc_val, exc_tb):

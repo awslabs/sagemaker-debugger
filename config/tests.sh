@@ -17,7 +17,7 @@ check_logs() {
 run_for_framework() {
     if [ "$zero_code_change_test" = "enable" ] ; then
       # ignoring some test becuase they require multiple frmaeworks to be installed, these tests need to be broken down
-      python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
+#      python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
       if [ "$1" = "mxnet" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_mxnet_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_mxnet_gluon_integration.py
@@ -66,9 +66,9 @@ export SMDEBUG_LOG_LEVEL=info
 
 export OUT_DIR=upload/$CURRENT_COMMIT_PATH
 export REPORT_DIR=$OUT_DIR/pytest_reports
-python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
-
-run_for_framework core
+#python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
+#
+#run_for_framework core
 
 if [ "$run_pytest_xgboost" = "enable" ] ; then
     run_for_framework xgboost
@@ -82,7 +82,7 @@ fi
 
 if [ "$run_pytest_tensorflow2" = "enable" ] ; then
     pip install tensorflow_datasets==4.0.1
-    run_for_framework tensorflow2
+#    run_for_framework tensorflow2
     run_profiler_test tensorflow2
 fi
 

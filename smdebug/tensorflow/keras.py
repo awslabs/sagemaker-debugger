@@ -1466,6 +1466,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 cleanup()
         ```
         """
+        _ = self.wrap_tape(tf.GradientTape())
         self.set_mode(mode)
         self.is_profiler_enabled_for_native_training = True
         return ProfilerContextManager(self, mode)
