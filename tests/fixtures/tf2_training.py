@@ -80,7 +80,6 @@ def tf2_mnist_subclassed_model():
 
         def first(self, x):
             with tf.name_scope("first"):
-                tf.print("mymodel.first")
                 x = self.conv1(x, input_one=1)
                 return self.flatten(x)
 
