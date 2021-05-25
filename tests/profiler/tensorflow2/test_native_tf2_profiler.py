@@ -145,13 +145,8 @@ def helper_native_tf2_gradtape(out_dir, hook, tf_eager_mode, python_profiler, st
         return model(images, training=True)
 
     @tf.function
-    def train_step_noneager(images, labels):
+    def train_step(images, labels):
         return tf.reduce_mean(get_grads(images, labels))
-
-    def train_step_eager(images, labels):
-        return tf.reduce_mean(get_grads(images, labels))
-
-    train_step = train_step_eager if tf_eager_mode else train_step_noneager
 
     dataset = prepare_dataset()
     model = create_model()
@@ -211,14 +206,7 @@ def _verify_tensor_names(out_dir, tf_eager_mode):
         "Adam/learning_rate:0",
     ]
     assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["inputs"]
-    if tf_eager_mode:
-        assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == [
-            "labels",
-            "logits",
-            "predictions",
-        ]
-    else:
-        assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
+    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
 def _verify_python_profiling(profiler_name, out_dir, num_steps):
