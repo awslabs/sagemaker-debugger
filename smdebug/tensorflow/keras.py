@@ -129,7 +129,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.closed = False
 
         if self.python_profiler:
-            atexit.register(self.python_profiler.stop_profiling, StepPhase.END)
+            atexit.register(self.profiling_end)
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -1451,10 +1451,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         TODO: Add support for other profiling at the end of the mode.
         """
         # If the hook is closed twice, the process will hang.
-        if self.closed:
-            return
-        self.close()  # Unwrap the tape before closing and close the python profiling
-        self.closed = True
+        if not self.closed:
+            self.close()  # Unwrap the tape before closing
+            self.closed = True
+        self.python_profiler.stop_profiling(StepPhase.STEP_END)
 
     def profiler(self, mode=ModeKeys.TRAIN):
         """
