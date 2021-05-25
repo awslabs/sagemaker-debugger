@@ -1178,7 +1178,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 start_mode=mode_keys_to_python_profile_mode(self.mode),
                 start_step=self.mode_steps[self.mode],
             )
-        self.is_profiler_enabled_for_native_training = False
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1442,6 +1441,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.close()  # Unwrap the tape before closing
             self.closed = True
         self.python_profiler.stop_profiling(StepPhase.STEP_END)
+        self.is_profiler_enabled_for_native_training = False
 
     def profiler(self, mode=ModeKeys.TRAIN):
         """
