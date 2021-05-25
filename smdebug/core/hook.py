@@ -568,10 +568,9 @@ class BaseHook:
         if self.first_process is True:
             remove_claim_file(self.out_dir)
 
-    def _increment_step(self, write_state=True):
+    def _increment_step(self):
         # Update the last_state to the last step number that was saved or seen
-        if write_state:
-            self._write_state()
+        self._write_state()
 
         self.step += 1
         self.mode_steps[self.mode] += 1

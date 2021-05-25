@@ -124,7 +124,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.has_logged_unsupported_tensors_in_non_eager_execution = False
         self.prepared_tf2_collections = False
         self.prepared_gradient_tape_collections = False
-        # this flag indicates to profiling for tensorflow2 native training
+        # this flag indicates whether profiling is enabled for native TF2 training
         self.is_profiler_enabled_for_native_training = False
         self.closed = False
 
@@ -740,19 +740,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             # wrapping the model is only supported if the hook does not have the default hook configuration
             self._unwrap_model_with_input_output_saver()
         self.prepared_tf2_collections = True
-
-    def _decrement_step(self):
-        """
-        Called when both profiler and debugger are enabled in the native training loop
-        to adjust the step number
-        """
-
-        self.step -= 1
-        self.mode_steps[self.mode] -= 1
-
-        # Decrement Global step number irrespective of what mode it is
-        if self.mode != ModeKeys.GLOBAL:
-            self.mode_steps[ModeKeys.GLOBAL] = self.step
 
     def _handle_start_step_python_profiling(self, mode, current_step):
         """
@@ -1423,6 +1410,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_not_supported():
             return
 
+        # When training with native TF2, `self.mode_steps[mode]` isn't incremented until the GradientTape callback
+        # for `tape._push_tape` is called. So in this case, the current step is `self.mode_steps[mode] + 1`.
         current_step = self.mode_steps[mode]
         if self.is_profiler_enabled_for_native_training:
             current_step += 1
@@ -1478,4 +1467,5 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         ```
         """
         self.set_mode(mode)
-        return ProfilerContextManager(self)
+        self.hook.is_profiler_enabled_for_native_training = True
+        return ProfilerContextManager(self, mode)
