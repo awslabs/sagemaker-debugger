@@ -179,7 +179,7 @@ def helper_native_tf2_gradtape(out_dir, hook, tf_eager_mode, python_profiler, st
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling.
     hook.profiling_end()
-    _verify_tensor_names(out_dir)
+    _verify_tensor_names(out_dir, tf_eager_mode)
 
 
 def _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step):
@@ -192,7 +192,7 @@ def _train_loop(out_dir, tf_eager_mode, python_profiler, start_step, end_step):
     helper_native_tf2_gradtape(out_dir, hook, tf_eager_mode, python_profiler, start_step, end_step)
 
 
-def _verify_tensor_names(out_dir):
+def _verify_tensor_names(out_dir, tf_eager_mode):
     """
     This verifies the tensor names when debugger is enabled.
     """
@@ -211,7 +211,14 @@ def _verify_tensor_names(out_dir):
         "Adam/learning_rate:0",
     ]
     assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["inputs"]
-    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
+    if tf_eager_mode:
+        assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == [
+            "labels",
+            "logits",
+            "predictions",
+        ]
+    else:
+        assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
 def _verify_python_profiling(profiler_name, out_dir, num_steps):
