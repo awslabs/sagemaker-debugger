@@ -171,6 +171,7 @@ def helper_native_tf2_gradtape(out_dir, hook, tf_eager_mode, python_profiler, st
             if python_profiler and start_step <= current_step < end_step:
                 assert python_profiler._start_step == current_step
                 assert python_profiler._start_phase == StepPhase.STEP_END
+    model.save(out_dir, save_format="tf")
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling.
     hook.profiling_end()
