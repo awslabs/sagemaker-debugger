@@ -19,6 +19,7 @@ run_for_framework() {
       # ignoring some test becuase they require multiple frmaeworks to be installed, these tests need to be broken down
       python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
       if [ "$1" = "mxnet" ] ; then
+        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_mxnet_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_mxnet_gluon_integration.py
         # we run test/rules once, mxnet build has configured permission for sns to run this test
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/rules
