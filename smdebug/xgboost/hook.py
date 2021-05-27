@@ -15,6 +15,7 @@ from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig
 from smdebug.core.utils import FRAMEWORK, error_handling_agent, make_numpy_array
+from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.xgboost.singleton_utils import set_hook
 
 # Local
@@ -27,6 +28,9 @@ DEFAULT_SAVE_CONFIG_INTERVAL = 10
 DEFAULT_SAVE_CONFIG_START_STEP = 0
 DEFAULT_SAVE_CONFIG_END_STEP = None
 DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
+
+
+profiler_config_parser = get_profiler_config_parser(FRAMEWORK.XGBOOST)
 
 
 class Hook(CallbackHook):
@@ -89,7 +93,7 @@ class Hook(CallbackHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=FRAMEWORK.XGBOOST,
+            profiler_config_parser=profiler_config_parser,
             data_type_name=None,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,

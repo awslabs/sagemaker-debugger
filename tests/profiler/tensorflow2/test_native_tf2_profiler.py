@@ -1,11 +1,11 @@
 # Standard Library
-import json
 import os
-import pstats
 
 # Third Party
 import pytest
 import tensorflow as tf
+from tests.profiler.core.utils import validate_python_profiling_stats
+from tests.tensorflow2.utils import ModelType
 
 # First Party
 import smdebug.tensorflow as smd
@@ -41,15 +41,13 @@ def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
-def _helper_native_tf2_gradtape(out_dir, model, dataset, tf_eager_mode, profiler_config_parser):
+def _helper_native_tf2_gradtape(out_dir, model, dataset, profiler_config_parser):
     def get_grads(images, labels):
         return model(images, training=True)
 
     @tf.function
-    def train_step_noneager(images, labels):
+    def train_step(images, labels):
         return tf.reduce_mean(get_grads(images, labels))
-
-    train_step = train_step_noneager
 
     hook = Hook(out_dir=out_dir, save_all=True)
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
@@ -86,10 +84,9 @@ def _helper_native_tf2_gradtape(out_dir, model, dataset, tf_eager_mode, profiler
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling and collect post-hook-close Python profiling stats
     hook.profiling_end()
-    _verify_tensor_names(out_dir, tf_eager_mode)
 
 
-def _verify_tensor_names(out_dir, tf_eager_mode):
+def _verify_tensor_names(out_dir):
     """
     This verifies the tensor names when debugger is enabled.
     """
@@ -111,54 +108,10 @@ def _verify_tensor_names(out_dir, tf_eager_mode):
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
-def _verify_python_profiling(profiler_name, out_dir, profiler_config_parser):
-    """
-    This executes a TF2 native training script with profiler or both profiler and debugger,
-    enables python profiling by step, and verifies the python profiling's steps and expected output files.
-    """
-
-    if profiler_name == CPROFILE_NAME:
-        allowed_files = [CPROFILE_STATS_FILENAME]
-
-    if profiler_name == PYINSTRUMENT_NAME:
-        allowed_files = [PYINSTRUMENT_JSON_FILENAME, PYINSTRUMENT_HTML_FILENAME]
-
-    python_stats_dir = os.path.join(out_dir, "framework", "tensorflow", profiler_name)
-
-    assert os.path.isdir(python_stats_dir)
-
-    for node_id in os.listdir(python_stats_dir):
-        node_dir_path = os.path.join(python_stats_dir, node_id)
-        stats_dirs = os.listdir(node_dir_path)
-
-        for stats_dir in stats_dirs:
-            print(stats_dir)
-
-        # The expected number of stats directories during is (num_steps * 2) + 1. This includes profiling for both
-        # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
-        assert (
-            len(stats_dirs)
-            == profiler_config_parser.config.python_profiling_config.num_steps * 2 + 2
-        )
-
-        for stats_dir in stats_dirs:
-            # Validate that the expected files are in the stats dir
-            stats_dir_path = os.path.join(node_dir_path, stats_dir)
-            stats_files = os.listdir(stats_dir_path)
-            assert set(stats_files) == set(allowed_files)
-
-            # Validate the actual stats files
-            for stats_file in stats_files:
-                stats_path = os.path.join(stats_dir_path, stats_file)
-                if stats_file == CPROFILE_STATS_FILENAME:
-                    assert pstats.Stats(stats_path)
-                elif stats_file == PYINSTRUMENT_JSON_FILENAME:
-                    with open(stats_path, "r") as f:
-                        assert json.load(f)
-
-
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
-@pytest.mark.parametrize("model_type", ["sequential", "functional", "subclassed"])
+@pytest.mark.parametrize(
+    "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
+)
 def test_native_tf2_profiling(
     python_profiler_name,
     model_type,
@@ -171,9 +124,9 @@ def test_native_tf2_profiling(
     mnist_dataset,
     tf_eager_mode,
 ):
-    if model_type == "sequential":
+    if model_type == ModelType.SEQUENTIAL:
         model = tf2_mnist_sequential_model
-    elif model_type == "functional":
+    elif model_type == ModelType.FUNCTIONAL:
         model = tf2_mnist_functional_model
     else:
         model = tf2_mnist_subclassed_model
@@ -187,7 +140,17 @@ def test_native_tf2_profiling(
     profiler_config_parser.load_config()
     profiler_config_parser.start_pre_step_zero_python_profiling()
 
-    _helper_native_tf2_gradtape(
-        out_dir, model, mnist_dataset, tf_eager_mode, profiler_config_parser
+    _helper_native_tf2_gradtape(out_dir, model, mnist_dataset, profiler_config_parser)
+
+    # Sanity check debugger output
+    _verify_tensor_names(out_dir)
+
+    # The expected number of stats directories during is (num_steps * 2) + 2. This includes profiling for both
+    # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
+    expected_stats_dir_count = (
+        profiler_config_parser.config.python_profiling_config.num_steps * 2
+    ) + 2
+    python_stats_dir = os.path.join(out_dir, "framework", "tensorflow", python_profiler_name)
+    validate_python_profiling_stats(
+        python_stats_dir, python_profiler_name, expected_stats_dir_count
     )
-    _verify_python_profiling(python_profiler_name, out_dir, profiler_config_parser)

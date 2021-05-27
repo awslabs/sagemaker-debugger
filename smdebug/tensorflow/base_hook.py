@@ -22,6 +22,7 @@ from smdebug.core.utils import (
     serialize_tf_device,
 )
 from smdebug.core.writer import FileWriter
+from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 
 # Local
 from .collection import CollectionKeys, CollectionManager
@@ -53,6 +54,9 @@ DEFAULT_INCLUDE_COLLECTIONS = [
 ]
 
 
+profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW)
+
+
 class TensorflowBaseHook(BaseHook):
     __metaclass__ = ABCMeta
 
@@ -69,13 +73,12 @@ class TensorflowBaseHook(BaseHook):
         include_collections=None,
         save_all=False,
         include_workers="one",
-        profiler_config_parser=None,
     ):
         collection_manager = CollectionManager()
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=FRAMEWORK.TENSORFLOW,
+            profiler_config_parser=profiler_config_parser,
             init_step=init_step,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
@@ -87,7 +90,6 @@ class TensorflowBaseHook(BaseHook):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
-            profiler_config_parser=profiler_config_parser,
         )
         self.optimizer = None
         self._custom_collections = None

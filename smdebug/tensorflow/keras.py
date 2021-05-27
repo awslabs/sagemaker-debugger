@@ -1,5 +1,6 @@
 # Standard Library
 import atexit
+import contextlib
 import functools
 import os
 import time
@@ -13,9 +14,9 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import FRAMEWORK, error_handling_agent, match_inc
+from smdebug.core.utils import error_handling_agent, match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
-from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
+from smdebug.profiler.profiler_config_parser import MetricsCategory
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     TF_DATALOADER_END_FLAG_FILENAME,
@@ -23,11 +24,10 @@ from smdebug.profiler.profiler_constants import (
 )
 from smdebug.profiler.utils import stop_tf_profiler
 from smdebug.tensorflow.callable_cache import CallableCache
-from smdebug.tensorflow.context_manager import ProfilerContextManager
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
 # Local
-from .base_hook import TensorflowBaseHook
+from .base_hook import TensorflowBaseHook, profiler_config_parser
 from .collection import CollectionKeys
 from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY, SMDEBUG_PREFIX
 from .tensor_ref import TensorRef, get_tf_names
@@ -49,7 +49,6 @@ from .utils import (
 )
 
 # Enable python profiling if profiling is enabled.
-profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW)
 profiler_config_parser.start_pre_step_zero_python_profiling()
 
 
@@ -81,7 +80,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
-            profiler_config_parser=profiler_config_parser,
         )
         tf.keras.callbacks.Callback.__init__(self)
         self.tensor_refs_to_save_this_step = set()
@@ -1338,7 +1336,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Enabling profiler at the start of train batch when native tf2 training is used.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
 
-        TODO: Add support for other profiling at the start of the batch.
+        TODO: Add support for detailed, dataloader and SMDDP profiling at the start of the batch.
         """
         self.start = time.time()
 
@@ -1359,7 +1357,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Enabling profiler at the end of train batch for native Tf2 training.
         :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
 
-        TODO: Add support for other profiling at the end of the batch.
+        TODO: Add support for detailed, dataloader and SMDDP profiling at the end of the batch.
         """
         if self._is_not_supported():
             return
@@ -1370,7 +1368,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         Stop profiler at the end of training for native TF2.
 
-        TODO: Add support for other profiling at the end of training.
+        TODO: Add support for detailed, dataloader and SMDDP profiling at the end of training.
         """
         # If the hook is closed twice, the process will hang.
         if self.is_hook_closed:
@@ -1380,6 +1378,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.profiler_config_parser.stop_post_hook_close_python_profiling()
         self.is_profiler_enabled_for_native_training = False
 
+    @contextlib.contextmanager
     def profiler(self, mode=ModeKeys.TRAIN):
         """
         Context manager to be inserted directly into the training script to enable profiling for native TF2 training.
@@ -1408,4 +1407,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         )  # GradientTape functions must be wrapped to correctly manage current step
         self.set_mode(mode)
         self.is_profiler_enabled_for_native_training = True
-        return ProfilerContextManager(self, mode)
+        self.profiling_start_batch(mode)
+        yield
+        self.profiling_end_batch(mode)

@@ -400,7 +400,7 @@ class ProfilerConfigParser:
     def stop_post_hook_close_python_profiling(self):
         """Stop post-hook-close python profiling if python profiling is enabled.
         """
-        if not self.profiling_enabled or not self.config.python_profiling_config.is_enabled():
+        if not self.is_python_profiling_enabled():
             return
 
         return self.python_profiler.stop_profiling(StepPhase.END)

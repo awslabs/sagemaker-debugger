@@ -38,9 +38,8 @@ if check_smdataparallel_env():
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
-# Enable python profiling if profiling is enabled.
 profiler_config_parser = get_profiler_config_parser(FRAMEWORK.PYTORCH)
-profiler_config_parser.start_pre_step_zero_python_profiling()
+profiler_config_parser.start_pre_step_zero_python_profiling()  # Enable python profiling if profiling is enabled.
 
 
 class Hook(CallbackHook):
@@ -82,7 +81,7 @@ class Hook(CallbackHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=FRAMEWORK.PYTORCH,
+            profiler_config_parser=profiler_config_parser,
             data_type_name=torch.Tensor.__name__,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
@@ -94,7 +93,6 @@ class Hook(CallbackHook):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
-            profiler_config_parser=profiler_config_parser,
         )
         # mapping of module objects to their names,
         # useful in forward hook for logging input/output of modules
