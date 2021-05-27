@@ -13,7 +13,7 @@ import pytest
 
 # First Party
 from smdebug.core.access_layer.utils import is_s3
-from smdebug.core.utils import Framework
+from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
@@ -33,7 +33,7 @@ from smdebug.profiler.python_profiler import (
 
 @pytest.fixture
 def framework():
-    return Framework.TENSORFLOW
+    return FRAMEWORK.TENSORFLOW
 
 
 @pytest.fixture()

@@ -14,7 +14,7 @@ from smdebug.core.collection import DEFAULT_XGBOOST_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig
-from smdebug.core.utils import Framework, error_handling_agent, make_numpy_array
+from smdebug.core.utils import FRAMEWORK, error_handling_agent, make_numpy_array
 from smdebug.xgboost.singleton_utils import set_hook
 
 # Local
@@ -89,7 +89,7 @@ class Hook(CallbackHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=Framework.XGBOOST,
+            framework=FRAMEWORK.XGBOOST,
             data_type_name=None,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,

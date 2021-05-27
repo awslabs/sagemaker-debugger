@@ -10,7 +10,7 @@ import tensorflow as tf
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.utils import Framework
+from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
@@ -29,7 +29,7 @@ def native_tf2_cprofile_profiler_config_parser(config_folder, monkeypatch):
         config_folder, "test_native_tf2_cprofile_profiler_config_parser.json"
     )
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return ProfilerConfigParser(Framework.TENSORFLOW)
+    return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
         config_folder, "test_native_tf2_pyinstrument_profiler_config_parser.json"
     )
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return ProfilerConfigParser(Framework.TENSORFLOW)
+    return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
 def _helper_native_tf2_gradtape(out_dir, model, dataset, tf_eager_mode, profiler_config_parser):

@@ -8,7 +8,7 @@ from enum import Enum
 from smdebug.core.json_config import get_node_id_from_resource_config
 from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import Framework, is_first_process
+from smdebug.core.utils import FRAMEWORK, is_first_process
 from smdebug.profiler.profiler_config import ProfilerConfig
 from smdebug.profiler.profiler_constants import (
     BASE_FOLDER_DEFAULT,
@@ -405,7 +405,7 @@ class ProfilerConfigParser:
 _profiler_config_parser = None
 
 
-def get_profiler_config_parser(framework: Framework):
+def get_profiler_config_parser(framework: FRAMEWORK):
     """
     Create a global profiler config parser object. This object loads the profiler config file and creates an
     ProfilerConfig object if it doesn't already exist. Takes in the framework being used as an argument.

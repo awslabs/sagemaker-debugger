@@ -31,7 +31,7 @@ from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
 
 
-class Framework(Enum):
+class FRAMEWORK(Enum):
     PYTORCH = "pytorch"
     TENSORFLOW = "tensorflow"
     MXNET = "mxnet"
@@ -639,11 +639,11 @@ def check_smmodelparallel_training():
 
 
 def is_framework_version_supported(framework_type):
-    if framework_type == Framework.PYTORCH:
+    if framework_type == FRAMEWORK.PYTORCH:
         from smdebug.pytorch.utils import is_current_version_supported
 
         return is_current_version_supported()
-    if framework_type == Framework.TENSORFLOW:
+    if framework_type == FRAMEWORK.TENSORFLOW:
         from smdebug.tensorflow.utils import is_current_version_supported
 
         return is_current_version_supported()
