@@ -68,7 +68,9 @@ def train(model, device, optimizer, hook):
 def pytorch_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "test_pytorch_profiler_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return get_profiler_config_parser(Framework.PYTORCH, create_new=True)
+    return get_profiler_config_parser(
+        Framework.PYTORCH, should_create_new_profiler_config_parser=True
+    )
 
 
 def test_pytorch_profiler(pytorch_profiler_config_parser, out_dir):

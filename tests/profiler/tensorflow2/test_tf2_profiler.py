@@ -18,14 +18,18 @@ from smdebug.tensorflow import KerasHook as Hook
 def tf2_profiler_config_parser_by_step(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "test_tf2_profiler_config_parser_by_step.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return get_profiler_config_parser(Framework.TENSORFLOW, create_new=True)
+    return get_profiler_config_parser(
+        Framework.TENSORFLOW, should_create_new_profiler_config_parser=True
+    )
 
 
 @pytest.fixture()
 def tf2_profiler_config_parser_by_time(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return get_profiler_config_parser(Framework.TENSORFLOW, create_new=True)
+    return get_profiler_config_parser(
+        Framework.TENSORFLOW, should_create_new_profiler_config_parser=True
+    )
 
 
 def test_tf2_profiler_by_step(set_up_resource_config, tf2_profiler_config_parser_by_step, out_dir):
