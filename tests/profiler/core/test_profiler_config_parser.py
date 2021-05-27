@@ -1,6 +1,7 @@
 # Standard Library
 import json
 import os
+import shutil
 import time
 
 # Third Party
@@ -14,6 +15,7 @@ from tests.profiler.resources.profiler_config_parser_utils import (
     python_profiling_test_cases,
     smdataparallel_profiling_test_cases,
 )
+from tests.profiler.utils import get_last_accessed_time
 
 # First Party
 from smdebug.core.config_validator import ConfigValidator, reset_config_validator
@@ -78,6 +80,11 @@ def case_insensitive_profiler_config_parser(config_folder, monkeypatch):
 
 
 @pytest.fixture
+def step_profiler_config_parser_path(config_folder):
+    return os.path.join(config_folder, "step_profiler_config_parser.json")
+
+
+@pytest.fixture
 def old_step_profiler_config_parser_path(config_folder):
     return os.path.join(config_folder, "old_step_profiler_config_parser.json")
 
@@ -85,6 +92,11 @@ def old_step_profiler_config_parser_path(config_folder):
 @pytest.fixture
 def new_step_profiler_config_parser_path(config_folder):
     return os.path.join(config_folder, "new_step_profiler_config_parser.json")
+
+
+@pytest.fixture
+def time_profiler_config_parser_path(config_folder):
+    return os.path.join(config_folder, "time_profiler_config_parser.json")
 
 
 @pytest.fixture
@@ -369,17 +381,23 @@ def test_case_insensitive_profiler_config_parser(case_insensitive_profiler_confi
 
 
 def test_update_step_profiler_config_parser(
-    monkeypatch, old_step_profiler_config_parser_path, new_step_profiler_config_parser_path
+    monkeypatch,
+    step_profiler_config_parser_path,
+    old_step_profiler_config_parser_path,
+    new_step_profiler_config_parser_path,
 ):
     """
-    This test is meant to test two behaviors when profiler config parser dynamically reloads a config with step fields:
-        - Reloading the config when the JSON hasn't changed will not reload the step fields (this is important when the
-          JSON does not have specified step parameters, for example).
-        - Reloading the config when the JSON has changed will reload the step fields in the new JSON.
+    This test is meant to test two behaviors when profiler config parser dynamically reloads a config JSON with step
+    fields:
+        - Calling load_config when the JSON hasn't changed will not reload the JSON into memory and its old step fields.
+        (this is important when the JSON does not have specified step parameters, for example).
+        - Calling load_config when the JSON has changed will reload the JSON into memory with the new step fields.
     """
     # sanity check that the parser first parses the range fields as is.
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", old_step_profiler_config_parser_path)
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", step_profiler_config_parser_path)
+    shutil.copy(old_step_profiler_config_parser_path, step_profiler_config_parser_path)
     profiler_config_parser = ProfilerConfigParser()
+    first_accessed_time = get_last_accessed_time(step_profiler_config_parser_path)
     assert profiler_config_parser.profiling_enabled
     assert profiler_config_parser.config.detailed_profiling_config.is_enabled()
     assert profiler_config_parser.config.detailed_profiling_config.start_step is None
@@ -390,14 +408,21 @@ def test_update_step_profiler_config_parser(
     assert profiler_config_parser.config.detailed_profiling_config.start_step == 5
     assert profiler_config_parser.config.detailed_profiling_config.num_steps == 2
 
-    # check that reloading the config when it hasn't changed won't change the config fields.
     profiler_config_parser.load_config()
+
+    # check that the config wasn't loaded into memory again.
+    last_accessed_time = get_last_accessed_time(step_profiler_config_parser_path)
+    assert first_accessed_time == last_accessed_time
+
+    # check that reloading the config when it hasn't changed won't change the config fields.
     assert profiler_config_parser.config.detailed_profiling_config.start_step == 5
     assert profiler_config_parser.config.detailed_profiling_config.num_steps == 2
 
-    # check that reloading the config when it has changed will update the config fields.
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", new_step_profiler_config_parser_path)
+    time.sleep(0.1)  # allow time to pass so new modified time will be different
+    shutil.copy(new_step_profiler_config_parser_path, step_profiler_config_parser_path)
     profiler_config_parser.load_config()
+
+    # check that reloading the config when it has changed will update the config fields.
     assert profiler_config_parser.profiling_enabled
     assert profiler_config_parser.config.detailed_profiling_config.is_enabled()
     assert profiler_config_parser.config.detailed_profiling_config.start_step == 10
@@ -405,17 +430,23 @@ def test_update_step_profiler_config_parser(
 
 
 def test_update_time_profiler_config_parser(
-    monkeypatch, old_time_profiler_config_parser_path, new_time_profiler_config_parser_path
+    monkeypatch,
+    time_profiler_config_parser_path,
+    old_time_profiler_config_parser_path,
+    new_time_profiler_config_parser_path,
 ):
     """
-    This test is meant to test two behaviors when profiler config parser dynamically reloads a config with time fields:
-        - Reloading the config when the JSON hasn't changed will not reload the time fields (this is important when the
-          JSON does not have specified time parameters, for example).
-        - Reloading the config when the JSON has changed will reload the time fields in the new JSON.
+    This test is meant to test two behaviors when profiler config parser dynamically reloads a config JSON with time
+    fields:
+        - Calling load_config when the JSON hasn't changed will not reload the JSON into memory and its old time fields.
+        (this is important when the JSON does not have specified time parameters, for example).
+        - Calling load_config when the JSON has changed will reload the JSON into memory with the new time fields.
     """
     # sanity check that the parser first parses the range fields as is.
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", old_time_profiler_config_parser_path)
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", time_profiler_config_parser_path)
+    shutil.copy(old_time_profiler_config_parser_path, time_profiler_config_parser_path)
     profiler_config_parser = ProfilerConfigParser()
+    first_accessed_time = get_last_accessed_time(time_profiler_config_parser_path)
     assert profiler_config_parser.profiling_enabled
     assert profiler_config_parser.config.detailed_profiling_config.is_enabled()
     assert profiler_config_parser.config.detailed_profiling_config.start_time_in_sec is None
@@ -429,14 +460,21 @@ def test_update_time_profiler_config_parser(
     assert profiler_config_parser.config.detailed_profiling_config.start_time_in_sec == timestamp1
     assert profiler_config_parser.config.detailed_profiling_config.duration_in_sec == 0.1
 
-    # check that reloading the config when it hasn't changed won't change the config fields.
     profiler_config_parser.load_config()
+
+    # check that the config wasn't loaded into memory again.
+    last_accessed_time = get_last_accessed_time(time_profiler_config_parser_path)
+    assert first_accessed_time == last_accessed_time
+
+    # check that reloading the config when it hasn't changed won't change the config fields.
     assert profiler_config_parser.config.detailed_profiling_config.start_time_in_sec == timestamp1
     assert profiler_config_parser.config.detailed_profiling_config.duration_in_sec == 0.1
 
-    # check that reloading the config when it has changed will update the config fields.
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", new_time_profiler_config_parser_path)
+    time.sleep(0.1)  # allow time to pass so new modified time will be different
+    shutil.copy(new_time_profiler_config_parser_path, time_profiler_config_parser_path)
     profiler_config_parser.load_config()
+
+    # check that reloading the config when it has changed will update the config fields.
     assert profiler_config_parser.profiling_enabled
     assert profiler_config_parser.config.detailed_profiling_config.is_enabled()
     assert profiler_config_parser.config.detailed_profiling_config.start_time_in_sec == 1700000000
@@ -455,6 +493,7 @@ def test_update_disabled_profiler_config_parser(
     assert not profiler_config_parser.profiling_enabled
 
     # check that reloading the config when it has changed will update the config fields.
+    time.sleep(0.1)  # allow time to pass so new modified time will be different
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", new_step_profiler_config_parser_path)
     profiler_config_parser.load_config()
     assert profiler_config_parser.profiling_enabled
