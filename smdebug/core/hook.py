@@ -40,6 +40,7 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.utils import (
+    FRAMEWORK,
     error_handling_agent,
     flatten,
     get_tb_worker,
@@ -51,7 +52,7 @@ from smdebug.core.utils import (
 )
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser, get_profiler_config_parser
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 try:
     from smexperiments.metrics import SageMakerFileMetricsWriter
@@ -95,6 +96,7 @@ class BaseHook:
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
+        profiler_config_parser: ProfilerConfigParser,
         init_step: int = 0,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -106,7 +108,6 @@ class BaseHook:
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
         include_workers: str = "one",
-        profiler_config_parser: Optional[ProfilerConfigParser] = None,
     ):
         """
         A class used to represent the hook which gets attached to the
@@ -232,10 +233,8 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        if profiler_config_parser is None:
-            profiler_config_parser = get_profiler_config_parser()
-        profiler_config_parser.load_config()
         self.profiler_config_parser = profiler_config_parser
+        self.profiler_config_parser.load_config()
 
         self.timeline_writer = TimelineFileWriter(profiler_config_parser=profiler_config_parser)
         self.hvd_reader = None
@@ -996,6 +995,7 @@ class CallbackHook(BaseHook):
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
+        profiler_config_parser: ProfilerConfigParser,
         data_type_name: Optional[str] = None,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -1007,7 +1007,6 @@ class CallbackHook(BaseHook):
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
         include_workers: str = "one",
-        profiler_config_parser=None,
     ):
         super().__init__(
             collection_manager=collection_manager,

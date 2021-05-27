@@ -12,6 +12,7 @@ from pyinstrument.renderers import JSONRenderer
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
+from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
@@ -34,7 +35,7 @@ from smdebug.profiler.python_profile_utils import (
 class PythonProfiler:
     _name = ""  # placeholder
 
-    def __init__(self, base_folder, framework):
+    def __init__(self, base_folder, framework: FRAMEWORK):
         """Higher level class to manage execution of python profiler, dumping of python stats, and retrieval
         of stats based on time or step intervals.
 
@@ -44,8 +45,8 @@ class PythonProfiler:
         ----------
         base_folder: str
             The base folder path for profiling, retrieved from the profiler config parser.
-        framework: str
-            The name of the framework associated with the hook that the profiler is being run in.
+        framework: FRAMEWORK
+            The framework associated with the hook that the profiler is being run in.
         _profiler: cProfile.Profiler | pyinstrument.Profiler
             The python profiler object. Enabled/disabled to create individual stats files. Instantiated for every
             step profiled. This will be set in subclass, depending on what profiler is used (cProfile, pyinstrument,
@@ -117,7 +118,7 @@ class PythonProfiler:
         stats_dir = TraceFileLocation.get_python_profiling_stats_dir(
             self._base_folder,
             self._name,
-            self._framework,
+            self._framework.value,
             python_profile_mode_to_str(self._start_mode),
             self._start_step,
             self._start_phase.value,
@@ -132,7 +133,12 @@ class PythonProfiler:
         self._reset_profiler()
 
     @staticmethod
-    def get_python_profiler(profiler_config, framework):
+    def get_python_profiler(profiler_config, framework: FRAMEWORK):
+        """
+        Get a new python profiler object, based on the profiler config.
+
+        If python profiling is not enabled, return `None`.
+        """
         base_folder = profiler_config.local_path
         python_profiling_config = profiler_config.python_profiling_config
         if python_profiling_config.profiler_name == CPROFILE_NAME:

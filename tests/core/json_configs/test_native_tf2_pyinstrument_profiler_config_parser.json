@@ -1,0 +1,7 @@
+{
+    "ProfilingParameters": {
+        "ProfilerEnabled": true,
+        "LocalPath": "/tmp/test",
+        "PythonProfilingConfig": "{\"StartStep\": 5, \"NumSteps\": 2, \"ProfilerName\": \"Pyinstrument\"}"
+    }
+}
