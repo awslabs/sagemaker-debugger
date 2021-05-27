@@ -337,7 +337,7 @@ class ProfilerConfigParser:
 
         return success
 
-    def _is_python_profiling_enabled(self):
+    def is_python_profiling_enabled(self):
         return self.profiling_enabled and self.config.python_profiling_config.is_enabled()
 
     def _handle_step_python_profiling(self, step_phase: StepPhase, mode: ModeKeys, current_step):
@@ -345,7 +345,7 @@ class ProfilerConfigParser:
         starting python profiling again if python profiling is enabled and python profiling stats should be saved
         for the current step.
         """
-        if not self._is_python_profiling_enabled():
+        if not self.is_python_profiling_enabled():
             return
 
         self.python_profiler.stop_profiling(
@@ -362,7 +362,7 @@ class ProfilerConfigParser:
     def start_pre_step_zero_python_profiling(self):
         """Start pre-step zero python profiling if python profiling is enabled.
         """
-        if not self._is_python_profiling_enabled():
+        if not self.is_python_profiling_enabled():
             return
 
         return self.python_profiler.start_profiling(StepPhase.START)
@@ -388,7 +388,7 @@ class ProfilerConfigParser:
     def start_post_hook_close_python_profiling(self):
         """Start post-hook-close python profiling if python profiling is enabled.
         """
-        if not self._is_python_profiling_enabled():
+        if not self.is_python_profiling_enabled():
             return
 
         return self.python_profiler.start_profiling(StepPhase.END)

@@ -13,7 +13,6 @@ from pyinstrument.renderers import JSONRenderer
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import Framework
-from smdebug.profiler.profiler_config import ProfilerConfig
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
@@ -133,6 +132,29 @@ class PythonProfiler:
 
         self._reset_profiler()
 
+    @staticmethod
+    def get_python_profiler(profiler_config_parser, framework: Framework):
+        """
+        Get a new python profiler object, based on the profiler config.
+
+        If python profiling is not enabled, return `None`.
+        """
+        if not profiler_config_parser.is_python_profiling_enabled():
+            return None
+
+        profiler_config = profiler_config_parser.config
+
+        base_folder = profiler_config.local_path
+        python_profiling_config = profiler_config.python_profiling_config
+        if python_profiling_config.profiler_name == CPROFILE_NAME:
+            cprofile_timer = python_profiling_config.cprofile_timer
+            if cprofile_timer == cProfileTimer.DEFAULT:
+                return cProfileDefaultPythonProfiler(base_folder, framework)
+            else:
+                return cProfilePythonProfiler(base_folder, framework, cprofile_timer)
+        else:
+            return PyinstrumentPythonProfiler(base_folder, framework)
+
 
 class cProfilePythonProfiler(PythonProfiler):
     """Higher level class to oversee profiling specific to cProfile, Python's native profiler in .
@@ -242,31 +264,3 @@ class PyinstrumentPythonProfiler(PythonProfiler):
 
             with open(html_file_path, "w") as html_data:
                 html_data.write("An error occurred during profiling!")
-
-
-_python_profiler = None
-
-
-def get_python_profiler(profiler_config: ProfilerConfig, framework: Framework):
-    """
-    Get a new python profiler object, based on the profiler config.
-
-    If python profiling is not enabled, return `None`.
-    """
-    global _python_profiler
-
-    if profiler_config is None or not profiler_config.python_profiling_config.is_enabled():
-        return None
-
-    base_folder = profiler_config.local_path
-    python_profiling_config = profiler_config.python_profiling_config
-    if python_profiling_config.profiler_name == CPROFILE_NAME:
-        cprofile_timer = python_profiling_config.cprofile_timer
-        if cprofile_timer == cProfileTimer.DEFAULT:
-            _python_profiler = cProfileDefaultPythonProfiler(base_folder, framework)
-        else:
-            _python_profiler = cProfilePythonProfiler(base_folder, framework, cprofile_timer)
-    else:
-        _python_profiler = PyinstrumentPythonProfiler(base_folder, framework)
-
-    return _python_profiler
