@@ -133,17 +133,12 @@ class PythonProfiler:
         self._reset_profiler()
 
     @staticmethod
-    def get_python_profiler(profiler_config_parser, framework: FRAMEWORK):
+    def get_python_profiler(profiler_config, framework: FRAMEWORK):
         """
         Get a new python profiler object, based on the profiler config.
 
         If python profiling is not enabled, return `None`.
         """
-        if not profiler_config_parser.is_python_profiling_enabled():
-            return None
-
-        profiler_config = profiler_config_parser.config
-
         base_folder = profiler_config.local_path
         python_profiling_config = profiler_config.python_profiling_config
         if python_profiling_config.profiler_name == CPROFILE_NAME:

@@ -87,7 +87,11 @@ class ProfilerConfigParser:
         self.last_logging_statuses = defaultdict(lambda: False)
         self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()
-        self.python_profiler = PythonProfiler.get_python_profiler(self.config, self.framework)
+        self.python_profiler = (
+            PythonProfiler.get_python_profiler(self.config, self.framework)
+            if self.is_python_profiling_enabled()
+            else None
+        )
 
     def _reset_statuses(self):
         """Set the last logging statuses to be the current logging statuses and reset the current logging statuses.
