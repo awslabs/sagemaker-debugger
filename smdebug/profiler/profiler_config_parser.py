@@ -339,12 +339,15 @@ class ProfilerConfigParser:
 
         return success
 
+    def _is_python_profiling_enabled(self):
+        return self.profiling_enabled and self.config.python_profiling_config.is_enabled()
+
     def _handle_step_python_profiling(self, step_phase: StepPhase, mode: ModeKeys, current_step):
         """Handle python profiling at the given step phase, mode and step by stopping python profiling and
         starting python profiling again if python profiling is enabled and python profiling stats should be saved
         for the current step.
         """
-        if not self.profiling_enabled or not self.config.python_profiling_config.is_enabled():
+        if not self._is_python_profiling_enabled():
             return
 
         self.python_profiler.stop_profiling(
@@ -361,7 +364,7 @@ class ProfilerConfigParser:
     def start_pre_step_zero_python_profiling(self):
         """Start pre-step zero python profiling if python profiling is enabled.
         """
-        if not self.profiling_enabled or not self.config.python_profiling_config.is_enabled():
+        if not self._is_python_profiling_enabled():
             return
 
         return self.python_profiler.start_profiling(StepPhase.START)
@@ -387,7 +390,7 @@ class ProfilerConfigParser:
     def start_post_hook_close_python_profiling(self):
         """Start post-hook-close python profiling if python profiling is enabled.
         """
-        if not self.profiling_enabled or not self.config.python_profiling_config.is_enabled():
+        if not self._is_python_profiling_enabled():
             return
 
         return self.python_profiler.start_profiling(StepPhase.END)
@@ -404,18 +407,23 @@ class ProfilerConfigParser:
 _profiler_config_parser = None
 
 
-def get_profiler_config_parser(framework: Framework, create_new=False):
+def get_profiler_config_parser(
+    framework: Framework, should_create_new_profiler_config_parser=False
+):
     """
     Create a global profiler config parser object. This object loads the profiler config file and creates an
     ProfilerConfig object if it doesn't already exist. Takes in the framework being used as an argument.
 
-    If `create_new` is set to `True`, then a new profiler config parser will be created regardless of whether one
-    already exists or not.
+    If `should_create_new_profiler_config_parser` is set to `True`, then a new profiler config parser will be created
+    regardless of whether one already exists or not.
     :return:
     """
     global _profiler_config_parser
-    if create_new or _profiler_config_parser is None:
-        _profiler_config_parser = ProfilerConfigParser(framework=framework, create_new=create_new)
+    if should_create_new_profiler_config_parser or _profiler_config_parser is None:
+        _profiler_config_parser = ProfilerConfigParser(
+            framework=framework,
+            should_create_new_python_profiler=should_create_new_profiler_config_parser,
+        )
     return _profiler_config_parser
 
 
