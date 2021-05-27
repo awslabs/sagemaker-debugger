@@ -1,5 +1,4 @@
 # Standard Library
-import atexit
 import json
 import os
 import pstats
@@ -12,7 +11,8 @@ from tests.profiler.resources.profiler_config_parser_utils import build_metrics_
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.core.utils import FRAMEWORK
+from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
     CPROFILE_STATS_FILENAME,
@@ -21,7 +21,6 @@ from smdebug.profiler.profiler_constants import (
     PYINSTRUMENT_NAME,
 )
 from smdebug.profiler.python_profile_utils import StepPhase
-from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.tensorflow import KerasHook as Hook
 
 
@@ -49,8 +48,8 @@ def end_step(start_step, num_steps):
     return start_step + num_steps
 
 
-def generate_profiler_config_parser(profiling_type, profiler_config_path, profiling_parameters):
-    python_profiling_config, detailed_profiling_config = "{}", "{}"
+def set_up_profiler_config_parser(profiling_type, profiler_config_path, profiling_parameters):
+    python_profiling_config = "{}"
 
     if profiling_type == "PythonProfiling":
         start_step, num_steps, profiler_name, cprofile_timer = profiling_parameters
@@ -72,53 +71,15 @@ def generate_profiler_config_parser(profiling_type, profiler_config_path, profil
     with open(profiler_config_path, "w") as f:
         json.dump(full_config, f)
 
-    profiler_config_parser = ProfilerConfigParser()
+    profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW, create_new=True)
+    profiler_config_parser.start_pre_step_zero_python_profiling()
     assert profiler_config_parser.profiling_enabled
 
     return profiler_config_parser
-
-
-def generate_profiler_config_parser_all_params(profiler_config_path, python_profiling_parameters):
-
-    start_step, num_steps, profiler_name, cprofile_timer = python_profiling_parameters
-
-    python_profiling_config = build_metrics_config(
-        StartStep=start_step,
-        NumSteps=num_steps,
-        ProfilerName=profiler_name,
-        cProfileTimer=cprofile_timer,
-    )
-
-    full_config = {
-        "ProfilingParameters": {
-            "ProfilerEnabled": True,
-            "LocalPath": "/tmp/test",
-            "PythonProfilingConfig": python_profiling_config,
-        }
-    }
-
-    with open(profiler_config_path, "w") as f:
-        json.dump(full_config, f)
-
-    profiler_config_parser = ProfilerConfigParser()
-    assert profiler_config_parser.profiling_enabled
-
-    return profiler_config_parser
-
-
-def _set_up_python_profiling(profiler_config_parser):
-    python_profiler = None
-    if profiler_config_parser.profiling_enabled:
-        config = profiler_config_parser.config
-        if config.python_profiling_config.is_enabled():
-            python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
-            python_profiler.start_profiling(StepPhase.START)
-            atexit.register(python_profiler.stop_profiling, StepPhase.END)
-    return python_profiler
 
 
 def _helper_native_tf2_gradtape(
-    out_dir, model, dataset, tf_eager_mode, python_profiler, start_step, end_step
+    out_dir, model, dataset, tf_eager_mode, profiler_config_parser, start_step, end_step
 ):
     def get_grads(images, labels):
         return model(images, training=True)
@@ -133,8 +94,7 @@ def _helper_native_tf2_gradtape(
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
     # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
     hook.logger.disabled = True
-    if python_profiler:
-        hook.python_profiler = python_profiler
+    hook.profiler_config_parser = profiler_config_parser
 
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
@@ -144,9 +104,11 @@ def _helper_native_tf2_gradtape(
             labels = tf.one_hot(labels, depth=10)
             with tf.GradientTape() as tape:
                 logits = train_step(data, labels)
-                if python_profiler and start_step <= current_step < end_step:
-                    assert python_profiler._start_step == current_step
-                    assert python_profiler._start_phase == StepPhase.STEP_START
+                if start_step <= current_step < end_step:
+                    assert profiler_config_parser.python_profiler._start_step == current_step
+                    assert (
+                        profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
+                    )
             grads = tape.gradient(logits, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
 
@@ -154,9 +116,9 @@ def _helper_native_tf2_gradtape(
             hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
             hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
 
-        if python_profiler and start_step <= current_step < end_step:
-            assert python_profiler._start_step == current_step
-            assert python_profiler._start_phase == StepPhase.STEP_END
+        if start_step <= current_step < end_step:
+            assert profiler_config_parser.python_profiler._start_step == current_step
+            assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_END
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling and collect post-hook-close Python profiling stats
     hook.profiling_end()
@@ -197,7 +159,7 @@ def _verify_python_profiling(profiler_name, out_dir, num_steps):
     if profiler_name == PYINSTRUMENT_NAME:
         allowed_files = [PYINSTRUMENT_JSON_FILENAME, PYINSTRUMENT_HTML_FILENAME]
 
-    python_stats_dir = os.path.join(out_dir, "framework/", "tensorflow/", profiler_name)
+    python_stats_dir = os.path.join(out_dir, "framework", "tensorflow", profiler_name)
 
     assert os.path.isdir(python_stats_dir)
 
@@ -247,11 +209,10 @@ def test_native_tf2_profiling(
         model = tf2_mnist_functional_model
     else:
         model = tf2_mnist_subclassed_model
-    profiler_config_parser = generate_profiler_config_parser(
+    profiler_config_parser = set_up_profiler_config_parser(
         "PythonProfiling", profiler_config_path, (start_step, num_steps, python_profiler_name, None)
     )
-    python_profiler = _set_up_python_profiling(profiler_config_parser)
     _helper_native_tf2_gradtape(
-        out_dir, model, mnist_dataset, tf_eager_mode, python_profiler, start_step, end_step
+        out_dir, model, mnist_dataset, tf_eager_mode, profiler_config_parser, start_step, end_step
     )
     _verify_python_profiling(python_profiler_name, out_dir, num_steps=num_steps)
