@@ -247,20 +247,13 @@ class PyinstrumentPythonProfiler(PythonProfiler):
 _python_profiler = None
 
 
-def get_python_profiler(
-    profiler_config: ProfilerConfig, framework: Framework, should_create_new_python_profiler=False
-):
+def get_python_profiler(profiler_config: ProfilerConfig, framework: Framework):
     """
-    Get the current Python profiler and create one if it doesn't already exist.
+    Get a new python profiler object, based on the profiler config.
 
     If python profiling is not enabled, return `None`.
-
-    If `should_create_new_python_profiler` is set to `True`, create a new python profiler regardless of whether
-    one exists or not.
     """
     global _python_profiler
-    if not should_create_new_python_profiler and _python_profiler is not None:
-        return _python_profiler
 
     if profiler_config is None or not profiler_config.python_profiling_config.is_enabled():
         return None
@@ -277,13 +270,3 @@ def get_python_profiler(
         _python_profiler = PyinstrumentPythonProfiler(base_folder, framework)
 
     return _python_profiler
-
-
-def reset_python_profiler():
-    """
-    Reset the current python profiler to `None`.
-
-    This is only intended to be used by the tests.
-    """
-    global _python_profiler
-    _python_profiler = None

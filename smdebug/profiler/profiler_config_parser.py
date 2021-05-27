@@ -18,7 +18,7 @@ from smdebug.profiler.profiler_constants import (
     MAX_FILE_SIZE_DEFAULT,
 )
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
-from smdebug.profiler.python_profiler import get_python_profiler, reset_python_profiler
+from smdebug.profiler.python_profiler import get_python_profiler
 
 
 class LastProfilingStatus(Enum):
@@ -76,7 +76,7 @@ class ProfilerConfigParser:
     NOTE: This class should not be instantiated directly, it must be retrieved through `get_profiler_config_parser`.
     """
 
-    def __init__(self, framework=None, should_create_new_python_profiler=False):
+    def __init__(self, framework=None):
         """Initialize the parser to be disabled for profiling and detailed profiling.
         """
         self.framework = framework
@@ -87,11 +87,7 @@ class ProfilerConfigParser:
         self.last_logging_statuses = defaultdict(lambda: False)
         self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()
-        self.python_profiler = get_python_profiler(
-            self.config,
-            self.framework,
-            should_create_new_python_profiler=should_create_new_python_profiler,
-        )
+        self.python_profiler = get_python_profiler(self.config, self.framework)
 
     def _reset_statuses(self):
         """Set the last logging statuses to be the current logging statuses and reset the current logging statuses.
@@ -409,22 +405,15 @@ class ProfilerConfigParser:
 _profiler_config_parser = None
 
 
-def get_profiler_config_parser(
-    framework: Framework, should_create_new_profiler_config_parser=False
-):
+def get_profiler_config_parser(framework: Framework):
     """
     Create a global profiler config parser object. This object loads the profiler config file and creates an
     ProfilerConfig object if it doesn't already exist. Takes in the framework being used as an argument.
-
-    If `should_create_new_profiler_config_parser` is set to `True`, then a new profiler config parser will be created
-    regardless of whether one already exists or not.
     :return:
     """
     global _profiler_config_parser
-    if should_create_new_profiler_config_parser or _profiler_config_parser is None:
-        _profiler_config_parser = ProfilerConfigParser(
-            framework=framework, should_create_new_python_profiler=True
-        )
+    if _profiler_config_parser is None:
+        _profiler_config_parser = ProfilerConfigParser(framework=framework)
     return _profiler_config_parser
 
 
@@ -436,5 +425,3 @@ def reset_profiler_config_parser():
     """
     global _profiler_config_parser
     _profiler_config_parser = None
-
-    reset_python_profiler()

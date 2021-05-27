@@ -6,13 +6,12 @@ import pstats
 # Third Party
 import pytest
 import tensorflow as tf
-from tests.profiler.resources.profiler_config_parser_utils import build_metrics_config
 
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import Framework
-from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
     CPROFILE_STATS_FILENAME,
@@ -25,64 +24,24 @@ from smdebug.tensorflow import KerasHook as Hook
 
 
 @pytest.fixture
-def profiler_config_path(config_folder, monkeypatch):
-    config_path = os.path.join(config_folder, "profiler_config.json")
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    yield config_path
-    if os.path.isfile(config_path):
-        os.remove(config_path)
-
-
-@pytest.fixture
-def start_step():
-    return 5
-
-
-@pytest.fixture
-def num_steps():
-    return 2
-
-
-@pytest.fixture
-def end_step(start_step, num_steps):
-    return start_step + num_steps
-
-
-def set_up_profiler_config_parser(profiling_type, profiler_config_path, profiling_parameters):
-    python_profiling_config = "{}"
-
-    if profiling_type == "PythonProfiling":
-        start_step, num_steps, profiler_name, cprofile_timer = profiling_parameters
-        python_profiling_config = build_metrics_config(
-            StartStep=start_step,
-            NumSteps=num_steps,
-            ProfilerName=profiler_name,
-            cProfileTimer=cprofile_timer,
-        )
-
-    full_config = {
-        "ProfilingParameters": {
-            "ProfilerEnabled": True,
-            "LocalPath": "/tmp/test",
-            "PythonProfilingConfig": python_profiling_config,
-        }
-    }
-
-    with open(profiler_config_path, "w") as f:
-        json.dump(full_config, f)
-
-    profiler_config_parser = get_profiler_config_parser(
-        Framework.TENSORFLOW, should_create_new_profiler_config_parser=True
+def native_tf2_cprofile_profiler_config_parser(config_folder, monkeypatch):
+    config_path = os.path.join(
+        config_folder, "test_native_tf2_cprofile_profiler_config_parser.json"
     )
-    profiler_config_parser.start_pre_step_zero_python_profiling()
-    assert profiler_config_parser.profiling_enabled
-
-    return profiler_config_parser
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser(Framework.TENSORFLOW)
 
 
-def _helper_native_tf2_gradtape(
-    out_dir, model, dataset, tf_eager_mode, profiler_config_parser, start_step, end_step
-):
+@pytest.fixture
+def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
+    config_path = os.path.join(
+        config_folder, "test_native_tf2_pyinstrument_profiler_config_parser.json"
+    )
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser(Framework.TENSORFLOW)
+
+
+def _helper_native_tf2_gradtape(out_dir, model, dataset, tf_eager_mode, profiler_config_parser):
     def get_grads(images, labels):
         return model(images, training=True)
 
@@ -97,6 +56,9 @@ def _helper_native_tf2_gradtape(
     # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
     hook.logger.disabled = True
     hook.profiler_config_parser = profiler_config_parser
+
+    start_step = profiler_config_parser.config.python_profiling_config.start_step
+    end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
 
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
@@ -149,7 +111,7 @@ def _verify_tensor_names(out_dir, tf_eager_mode):
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
-def _verify_python_profiling(profiler_name, out_dir, num_steps):
+def _verify_python_profiling(profiler_name, out_dir, profiler_config_parser):
     """
     This executes a TF2 native training script with profiler or both profiler and debugger,
     enables python profiling by step, and verifies the python profiling's steps and expected output files.
@@ -169,9 +131,15 @@ def _verify_python_profiling(profiler_name, out_dir, num_steps):
         node_dir_path = os.path.join(python_stats_dir, node_id)
         stats_dirs = os.listdir(node_dir_path)
 
+        for stats_dir in stats_dirs:
+            print(stats_dir)
+
         # The expected number of stats directories during is (num_steps * 2) + 1. This includes profiling for both
         # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
-        assert len(stats_dirs) == num_steps * 2 + 2
+        assert (
+            len(stats_dirs)
+            == profiler_config_parser.config.python_profiling_config.num_steps * 2 + 2
+        )
 
         for stats_dir in stats_dirs:
             # Validate that the expected files are in the stats dir
@@ -197,11 +165,9 @@ def test_native_tf2_profiling(
     tf2_mnist_sequential_model,
     tf2_mnist_functional_model,
     tf2_mnist_subclassed_model,
-    profiler_config_path,
+    native_tf2_cprofile_profiler_config_parser,
+    native_tf2_pyinstrument_profiler_config_parser,
     out_dir,
-    start_step,
-    num_steps,
-    end_step,
     mnist_dataset,
     tf_eager_mode,
 ):
@@ -211,10 +177,17 @@ def test_native_tf2_profiling(
         model = tf2_mnist_functional_model
     else:
         model = tf2_mnist_subclassed_model
-    profiler_config_parser = set_up_profiler_config_parser(
-        "PythonProfiling", profiler_config_path, (start_step, num_steps, python_profiler_name, None)
-    )
+
+    if python_profiler_name == CPROFILE_NAME:
+        profiler_config_parser = native_tf2_cprofile_profiler_config_parser
+    else:
+        profiler_config_parser = native_tf2_pyinstrument_profiler_config_parser
+
+    assert profiler_config_parser.profiling_enabled
+    profiler_config_parser.load_config()
+    profiler_config_parser.start_pre_step_zero_python_profiling()
+
     _helper_native_tf2_gradtape(
-        out_dir, model, mnist_dataset, tf_eager_mode, profiler_config_parser, start_step, end_step
+        out_dir, model, mnist_dataset, tf_eager_mode, profiler_config_parser
     )
-    _verify_python_profiling(python_profiler_name, out_dir, num_steps=num_steps)
+    _verify_python_profiling(python_profiler_name, out_dir, profiler_config_parser)
