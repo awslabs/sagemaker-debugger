@@ -40,6 +40,7 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.utils import (
+    FRAMEWORK,
     error_handling_agent,
     flatten,
     get_tb_worker,
@@ -95,6 +96,7 @@ class BaseHook:
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
+        framework: FRAMEWORK,
         init_step: int = 0,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -233,7 +235,7 @@ class BaseHook:
         self.writer = None
 
         if profiler_config_parser is None:
-            profiler_config_parser = get_profiler_config_parser()
+            profiler_config_parser = get_profiler_config_parser(framework=framework)
         profiler_config_parser.load_config()
         self.profiler_config_parser = profiler_config_parser
 
@@ -996,6 +998,7 @@ class CallbackHook(BaseHook):
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
+        framework: FRAMEWORK,
         data_type_name: Optional[str] = None,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -1012,6 +1015,7 @@ class CallbackHook(BaseHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=default_include_collections,
+            framework=framework,
             init_step=-1,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
