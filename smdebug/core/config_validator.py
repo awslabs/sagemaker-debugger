@@ -5,7 +5,7 @@ from distutils.util import strtobool
 # First Party
 import smdebug.core.utils
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import Framework, is_framework_version_supported
+from smdebug.core.utils import FRAMEWORK, is_framework_version_supported
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 logger = get_logger()
@@ -13,11 +13,11 @@ logger = get_logger()
 _config_validator = None
 
 
-SupportedFrameworks = [Framework.PYTORCH, Framework.TENSORFLOW, Framework.MXNET, Framework.XGBOOST]
+SupportedFrameworks = [FRAMEWORK.PYTORCH, FRAMEWORK.TENSORFLOW, FRAMEWORK.MXNET, FRAMEWORK.XGBOOST]
 
 
 class ConfigValidator(object):
-    def __init__(self, framework_type: Framework):
+    def __init__(self, framework_type: FRAMEWORK):
         self._create_hook = strtobool(os.getenv("USE_SMDEBUG", "true").lower())
         self._summary = ""
         self._framework_type = framework_type

@@ -16,9 +16,9 @@ from smdebug.core.utils import error_handling_agent
 
 @error_handling_agent.catch_smdebug_errors()
 def get_hook(json_config_path=None, create_if_not_exists: bool = False) -> "Hook":
-    from smdebug.core.config_validator import get_config_validator, Framework
+    from smdebug.core.config_validator import get_config_validator, FRAMEWORK
 
-    if get_config_validator(Framework.PYTORCH).validate_training_job():
+    if get_config_validator(FRAMEWORK.PYTORCH).validate_training_job():
         from smdebug.pytorch.hook import Hook
 
         return sutils.get_hook(
