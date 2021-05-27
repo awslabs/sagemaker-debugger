@@ -52,7 +52,7 @@ from smdebug.core.utils import (
 )
 from smdebug.core.writer import FileWriter
 from smdebug.exceptions import InvalidCollectionConfiguration
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser, get_profiler_config_parser
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 try:
     from smexperiments.metrics import SageMakerFileMetricsWriter
@@ -96,7 +96,6 @@ class BaseHook:
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
-        framework: FRAMEWORK,
         init_step: int = 0,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -234,9 +233,8 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        if profiler_config_parser is None:
-            profiler_config_parser = get_profiler_config_parser(framework=framework)
-        profiler_config_parser.load_config()
+        if profiler_config_parser is not None:
+            profiler_config_parser.load_config()
         self.profiler_config_parser = profiler_config_parser
 
         self.timeline_writer = TimelineFileWriter(profiler_config_parser=profiler_config_parser)
@@ -998,7 +996,6 @@ class CallbackHook(BaseHook):
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
-        framework: FRAMEWORK,
         data_type_name: Optional[str] = None,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -1015,7 +1012,6 @@ class CallbackHook(BaseHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=default_include_collections,
-            framework=framework,
             init_step=-1,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,

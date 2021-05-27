@@ -6,7 +6,7 @@ from mxnet.ndarray import NDArray
 from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
-from smdebug.core.utils import FRAMEWORK, error_handling_agent
+from smdebug.core.utils import error_handling_agent
 from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
@@ -41,7 +41,6 @@ class Hook(CallbackHook):
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
             data_type_name=mx.ndarray.NDArray.__name__,
-            framework=FRAMEWORK.MXNET,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
             tensorboard_dir=tensorboard_dir,

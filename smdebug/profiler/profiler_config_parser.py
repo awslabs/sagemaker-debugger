@@ -18,7 +18,7 @@ from smdebug.profiler.profiler_constants import (
     MAX_FILE_SIZE_DEFAULT,
 )
 from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
-from smdebug.profiler.python_profiler import get_python_profiler
+from smdebug.profiler.python_profiler import PythonProfiler
 
 
 class LastProfilingStatus(Enum):
@@ -87,7 +87,7 @@ class ProfilerConfigParser:
         self.last_logging_statuses = defaultdict(lambda: False)
         self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()
-        self.python_profiler = get_python_profiler(self.config, self.framework)
+        self.python_profiler = PythonProfiler.get_python_profiler(self.config, self.framework)
 
     def _reset_statuses(self):
         """Set the last logging statuses to be the current logging statuses and reset the current logging statuses.

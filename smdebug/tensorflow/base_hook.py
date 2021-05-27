@@ -75,7 +75,6 @@ class TensorflowBaseHook(BaseHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=FRAMEWORK.TENSORFLOW,
             init_step=init_step,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,

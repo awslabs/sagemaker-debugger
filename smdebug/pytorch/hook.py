@@ -82,7 +82,6 @@ class Hook(CallbackHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=FRAMEWORK.XGBOOST,
             data_type_name=torch.Tensor.__name__,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
