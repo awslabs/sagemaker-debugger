@@ -76,7 +76,7 @@ class ProfilerConfigParser:
     NOTE: This class should not be instantiated directly, it must be retrieved through `get_profiler_config_parser`.
     """
 
-    def __init__(self, framework=None, create_new=False):
+    def __init__(self, framework=None, should_create_new_python_profiler=False):
         """Initialize the parser to be disabled for profiling and detailed profiling.
         """
         self.framework = framework
@@ -88,7 +88,9 @@ class ProfilerConfigParser:
         self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()
         self.python_profiler = get_python_profiler(
-            self.config, self.framework, create_new=create_new
+            self.config,
+            self.framework,
+            should_create_new_python_profiler=should_create_new_python_profiler,
         )
 
     def _reset_statuses(self):
@@ -421,8 +423,7 @@ def get_profiler_config_parser(
     global _profiler_config_parser
     if should_create_new_profiler_config_parser or _profiler_config_parser is None:
         _profiler_config_parser = ProfilerConfigParser(
-            framework=framework,
-            should_create_new_python_profiler=should_create_new_profiler_config_parser,
+            framework=framework, should_create_new_python_profiler=True
         )
     return _profiler_config_parser
 
