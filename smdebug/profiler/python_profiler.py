@@ -12,7 +12,7 @@ from pyinstrument.renderers import JSONRenderer
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import FRAMEWORK
+from smdebug.core.utils import Framework
 from smdebug.profiler.profiler_config import ProfilerConfig
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
@@ -36,7 +36,7 @@ from smdebug.profiler.python_profile_utils import (
 class PythonProfiler:
     _name = ""  # placeholder
 
-    def __init__(self, base_folder, framework: FRAMEWORK):
+    def __init__(self, base_folder, framework: Framework):
         """Higher level class to manage execution of python profiler, dumping of python stats, and retrieval
         of stats based on time or step intervals.
 
@@ -46,7 +46,7 @@ class PythonProfiler:
         ----------
         base_folder: str
             The base folder path for profiling, retrieved from the profiler config parser.
-        framework: FRAMEWORK
+        framework: Framework
             The framework associated with the hook that the profiler is being run in.
         _profiler: cProfile.Profiler | pyinstrument.Profiler
             The python profiler object. Enabled/disabled to create individual stats files. Instantiated for every
@@ -247,7 +247,7 @@ class PyinstrumentPythonProfiler(PythonProfiler):
 _python_profiler = None
 
 
-def get_python_profiler(profiler_config: ProfilerConfig, framework: FRAMEWORK, create_new=False):
+def get_python_profiler(profiler_config: ProfilerConfig, framework: Framework, create_new=False):
     """
     Get the current Python profiler and create one if it doesn't already exist.
 

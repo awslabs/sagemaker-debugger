@@ -40,7 +40,7 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.utils import (
-    FRAMEWORK,
+    Framework,
     error_handling_agent,
     flatten,
     get_tb_worker,
@@ -96,7 +96,7 @@ class BaseHook:
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
-        framework: FRAMEWORK,
+        framework: Framework,
         init_step: int = 0,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -998,7 +998,7 @@ class CallbackHook(BaseHook):
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
-        framework: FRAMEWORK,
+        framework: Framework,
         data_type_name: Optional[str] = None,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,

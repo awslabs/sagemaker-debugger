@@ -10,7 +10,7 @@ import torch.nn as nn
 
 # First Party
 import smdebug.pytorch as smd
-from smdebug.core.utils import FRAMEWORK
+from smdebug.core.utils import Framework
 from smdebug.profiler import LocalAlgorithmMetricsReader
 from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.pytorch.utils import is_pt_1_5, is_pt_1_6, is_pt_1_7
@@ -65,7 +65,7 @@ def train_model(out_dir="/tmp/smdebug", training_steps=5):
 def pytorch_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "test_pytorch_profiler_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return get_profiler_config_parser(FRAMEWORK.PYTORCH, create_new=True)
+    return get_profiler_config_parser(Framework.PYTORCH, create_new=True)
 
 
 def test_pytorch_profiler_rnn(pytorch_profiler_config_parser, out_dir):

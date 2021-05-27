@@ -11,7 +11,7 @@ from tests.profiler.resources.profiler_config_parser_utils import build_metrics_
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
-from smdebug.core.utils import FRAMEWORK
+from smdebug.core.utils import Framework
 from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.profiler.profiler_constants import (
     CPROFILE_NAME,
@@ -71,7 +71,7 @@ def set_up_profiler_config_parser(profiling_type, profiler_config_path, profilin
     with open(profiler_config_path, "w") as f:
         json.dump(full_config, f)
 
-    profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW, create_new=True)
+    profiler_config_parser = get_profiler_config_parser(Framework.TENSORFLOW, create_new=True)
     profiler_config_parser.start_pre_step_zero_python_profiling()
     assert profiler_config_parser.profiling_enabled
 

@@ -13,7 +13,7 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import FRAMEWORK, error_handling_agent, match_inc
+from smdebug.core.utils import Framework, error_handling_agent, match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
 from smdebug.profiler.profiler_constants import (
@@ -49,7 +49,7 @@ from .utils import (
 )
 
 # Enable python profiling if profiling is enabled.
-profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW)
+profiler_config_parser = get_profiler_config_parser(Framework.TENSORFLOW)
 profiler_config_parser.start_pre_step_zero_python_profiling()
 
 

@@ -15,7 +15,7 @@ from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
 from smdebug.core.utils import (
-    FRAMEWORK,
+    Framework,
     check_smdataparallel_env,
     error_handling_agent,
     make_numpy_array,
@@ -75,7 +75,7 @@ class TensorflowBaseHook(BaseHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=FRAMEWORK.TENSORFLOW,
+            framework=Framework.TENSORFLOW,
             init_step=init_step,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,

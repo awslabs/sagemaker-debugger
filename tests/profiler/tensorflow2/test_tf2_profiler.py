@@ -7,7 +7,7 @@ import pytest
 from tests.tensorflow2.test_keras import helper_keras_fit
 
 # First Party
-from smdebug.core.utils import FRAMEWORK
+from smdebug.core.utils import Framework
 from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.profiler.profiler_constants import TENSORBOARDTIMELINE_SUFFIX
 from smdebug.profiler.tf_profiler_parser import TensorboardProfilerEvents
@@ -18,14 +18,14 @@ from smdebug.tensorflow import KerasHook as Hook
 def tf2_profiler_config_parser_by_step(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "test_tf2_profiler_config_parser_by_step.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return get_profiler_config_parser(FRAMEWORK.TENSORFLOW, create_new=True)
+    return get_profiler_config_parser(Framework.TENSORFLOW, create_new=True)
 
 
 @pytest.fixture()
 def tf2_profiler_config_parser_by_time(config_folder, monkeypatch):
     config_path = os.path.join(config_folder, "test_tf2_profiler_config_parser_by_time.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return get_profiler_config_parser(FRAMEWORK.TENSORFLOW, create_new=True)
+    return get_profiler_config_parser(Framework.TENSORFLOW, create_new=True)
 
 
 def test_tf2_profiler_by_step(set_up_resource_config, tf2_profiler_config_parser_by_step, out_dir):

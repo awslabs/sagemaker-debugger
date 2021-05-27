@@ -13,6 +13,7 @@ import pytest
 
 # First Party
 from smdebug.core.access_layer.utils import is_s3
+from smdebug.core.utils import Framework
 from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
@@ -31,23 +32,23 @@ from smdebug.profiler.python_profiler import (
 
 
 @pytest.fixture
-def test_framework():
-    return "test-framework"
+def framework():
+    return Framework.TENSORFLOW
 
 
 @pytest.fixture()
-def cprofile_python_profiler(out_dir, test_framework):
-    return cProfilePythonProfiler(out_dir, test_framework, cProfileTimer.TOTAL_TIME)
+def cprofile_python_profiler(out_dir, framework):
+    return cProfilePythonProfiler(out_dir, framework, cProfileTimer.TOTAL_TIME)
 
 
 @pytest.fixture()
-def pyinstrument_python_profiler(out_dir, test_framework):
-    return PyinstrumentPythonProfiler(out_dir, test_framework)
+def pyinstrument_python_profiler(out_dir, framework):
+    return PyinstrumentPythonProfiler(out_dir, framework)
 
 
 @pytest.fixture()
-def framework_dir(out_dir, test_framework):
-    return "{0}/framework/{1}".format(out_dir, test_framework)
+def framework_dir(out_dir, framework):
+    return "{0}/framework/{1}".format(out_dir, framework.value)
 
 
 @pytest.fixture(autouse=True)
@@ -210,7 +211,7 @@ def test_python_analysis(
     cprofile_python_profiler,
     pyinstrument_python_profiler,
     framework_dir,
-    test_framework,
+    framework,
     bucket_prefix,
     s3,
 ):
@@ -302,7 +303,7 @@ def test_python_analysis(
 
         python_profile_analysis = analysis_class(local_profile_dir=python_stats_dir)
         _, bucket, prefix = is_s3(bucket_prefix)
-        key = os.path.join(prefix, "framework", test_framework, profiler_name)
+        key = os.path.join(prefix, "framework", framework.value, profiler_name)
         _upload_s3_folder(bucket, key, python_stats_dir)
 
     python_profile_stats_df = python_profile_analysis.list_profile_stats()

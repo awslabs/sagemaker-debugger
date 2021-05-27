@@ -12,7 +12,7 @@ from smdebug.core.collection import DEFAULT_PYTORCH_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.core.utils import (
-    FRAMEWORK,
+    Framework,
     check_smdataparallel_env,
     error_handling_agent,
     make_numpy_array,
@@ -39,7 +39,7 @@ DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
 
 # Enable python profiling if profiling is enabled.
-profiler_config_parser = get_profiler_config_parser(FRAMEWORK.PYTORCH)
+profiler_config_parser = get_profiler_config_parser(Framework.PYTORCH)
 profiler_config_parser.start_pre_step_zero_python_profiling()
 
 
@@ -82,7 +82,7 @@ class Hook(CallbackHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
-            framework=FRAMEWORK.XGBOOST,
+            framework=Framework.XGBOOST,
             data_type_name=torch.Tensor.__name__,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
