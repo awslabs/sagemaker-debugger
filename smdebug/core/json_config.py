@@ -63,6 +63,7 @@ from smdebug.core.config_constants import (
     CONFIG_SAVE_ALL_KEY,
     CONFIG_SAVE_CONFIGS_KEY,
     DEFAULT_CONFIG_FILE_PATH,
+    DEFAULT_RESOURCE_CONFIG_FILE,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
     DEFAULT_WORKER_NAME,
@@ -298,3 +299,16 @@ def parse_save_config_dict(params, mode=None) -> Dict:
     if "end_step" in params:
         ret["end_step"] = params["end_step"]
     return ret
+
+
+def get_node_id_from_resource_config():
+    """ Expects resource config to be present at /opt/ml/input/config/resourceconfig.json
+        Returns the current host ID in that json file, or None if not exists.
+    """
+    path = Path(DEFAULT_RESOURCE_CONFIG_FILE)
+    if path.is_file():
+        my_dict = json.loads(path.read_text())
+        current_host_id = my_dict.get("current_host")
+        return current_host_id
+    else:
+        return None

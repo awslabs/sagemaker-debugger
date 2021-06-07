@@ -6,10 +6,12 @@ from mxnet.ndarray import NDArray
 from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
+from smdebug.core.utils import FRAMEWORK, error_handling_agent
 from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
 from smdebug.mxnet.utils import get_reduction_of_data, make_numpy_array
+from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
@@ -19,6 +21,9 @@ COLLECTIONS_NOT_REQUIRING_RECURSIVE_HOOK = [
     CollectionKeys.GRADIENTS,
     CollectionKeys.LOSSES,
 ]
+
+
+profiler_config_parser = get_profiler_config_parser(FRAMEWORK.PYTORCH)
 
 
 class Hook(CallbackHook):
@@ -39,6 +44,7 @@ class Hook(CallbackHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            profiler_config_parser=profiler_config_parser,
             data_type_name=mx.ndarray.NDArray.__name__,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
@@ -126,6 +132,7 @@ class Hook(CallbackHook):
         return DEFAULT_MXNET_COLLECTIONS
 
     # This hook is invoked by trainer prior to running the forward pass.
+    @error_handling_agent.catch_smdebug_errors()
     def forward_pre_hook(self, block, inputs):
         if self.writer is not None:
             # Write the params and gradients of the
@@ -158,6 +165,7 @@ class Hook(CallbackHook):
         self._save_custom_tensors_post_step()
 
     # This hook is invoked by trainer after running the forward pass.
+    @error_handling_agent.catch_smdebug_errors()
     def forward_hook(self, block, inputs, outputs):
         if not self._get_collections_to_save_for_step():
             return
@@ -213,6 +221,7 @@ class Hook(CallbackHook):
         # for compatibility with ZCC patches which call this
         self.register_block(block)
 
+    @error_handling_agent.catch_smdebug_errors()
     def register_block(self, block):
         """
         This function registers the forward hook. If user wants to register the hook

@@ -1,0 +1,7 @@
+[
+{"name": "process_name", "ph": "M", "pid": 0, "args": {"start_time_since_epoch_in_micros": 1589930987655184}},
+{"name": "process_sort_index", "ph": "M", "pid": 0, "args": {"sort_index": 0}},
+{"name": "process_name", "ph": "M", "pid": 1, "args": {"name": "RotationPolicyTest_file_size"}},
+{"name": "process_sort_index", "ph": "M", "pid": 1, "args": {"sort_index": 1}},
+{"name": "event2", "pid": 1, "ph": "X", "ts": 2010841, "dur": 1000000, "args": {"step_num": 2}}
+]

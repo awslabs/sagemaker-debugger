@@ -1,0 +1,62 @@
+# Build Spec for AWS CodeBuild CI for XGBoost 1.2-1
+# CPU Container Used: 683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:1.2-1-cpu-py3
+# GPU Container Used: 683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:1.2-1
+
+# Note: The xgboost team maintains a single container for both CPU and GPU
+# There is no special image tag for GPU containers;
+
+version: 0.2
+
+env:
+  variables:
+    run_pytest_pytorch: "disable"
+    run_pytest_mxnet: "disable"
+    run_pytest_tensorflow: "disable"
+    run_pytest_tensorflow2: "disable"
+    run_pytest_profiler: "disable"
+    run_pytest_xgboost: "enable"
+    run_integration_pytest_pytorch: "disable"
+    run_integration_pytest_mxnet: "disable"
+    run_integration_pytest_tensorflow: "disable"
+    run_integration_pytest_tensorflow2: "disable"
+    run_integration_pytest_xgboost: "enable"
+    zero_code_change_test: "enable"
+    code_coverage_smdebug_rules: "true"
+    build_type: "pr" # must be one of pr, nightly or release
+
+phases:
+  install:
+    commands:
+        # The XGBoost container requires an update PUB_KEY to run the apt-get update
+        - if [ "$run_pytest_xgboost" = "enable" ]; then su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D; fi
+        - su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D && apt-get update
+        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
+        - pip install awscli==1.19.5
+        - . config/change_branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
+        - cd $CODEBUILD_SRC_DIR && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+        - pip install --upgrade pip==19.3.1
+        - pip install -q pytest==6.1.2 pytest-cov==2.10.1 wheel==0.35.1 pyYaml==5.3.1 pytest-html==3.0.0 sagemaker==2.16.3 pre-commit==2.6.0 flaky==3.7.0
+        - pip install -q matplotlib==3.3.1 && pip3 install seaborn==0.10.1 nbconvert==5.6.1 papermill==2.1.2 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3
+        - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
+        - pip uninstall -y typing # see: https://t.corp.amazon.com/P43975146/overview
+
+  pre_build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR
+      - cd $RULES_CODEBUILD_SRC_DIR
+
+  build:
+    commands:
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --upgrade --force-reinstall dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl && cd ..
+      - if [ "$build_type" != "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
+      - cd $CODEBUILD_SRC_DIR && chmod +x config/tests.sh && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - echo 'Connect to CodeCov'
+      - bash $CODEBUILD_SRC_DIR/config/codecov.sh
+
+  post_build:
+    commands:
+      - rm -rf $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - rm -rf $RULES_CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi

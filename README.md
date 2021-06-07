@@ -57,18 +57,18 @@ pip install smdebug
 For a complete overview of Amazon SageMaker Debugger to learn how it works, go to the [Use Debugger in AWS Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html) developer guide.
 
 ### AWS Deep Learning Containers with zero code change
-Debugger is installed by default in AWS Deep Learning Containers with TensorFlow, PyTorch, MXNet, and XGBoost. The following framework containers enable you to use Debugger with no changes to your training script, by automatically adding [SageMaker Debugger's Hook](api.md#glossary).
+Debugger is installed by default in AWS Deep Learning Containers with TensorFlow, PyTorch, MXNet, and XGBoost. The following framework containers enable you to use Debugger with no changes to your training script, by automatically adding [SageMaker Debugger's Hook](docs/api.md#glossary).
 
 The following frameworks are available AWS Deep Learning Containers with the deep learning frameworks for the zero script change experience.
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0 |
-| [MXNet](docs/mxnet.md) | 1.6 |
+| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
+| [MXNet](docs/mxnet.md) | 1.6, 1.7 |
 | [PyTorch](docs/pytorch.md) | 1.4, 1.5, 1.6 |
 | [XGBoost](docs/xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
 
-**Note**: Debugger with zero script change is partially available for TensorFlow v2.1.0 and v2.3.0. The `inputs`, `outputs`, `gradients`, and `layers` built-in collections are currently not available for these TensorFlow versions.
+**Note**: Debugger with zero script change is partially available for TensorFlow v2.1.0. The `inputs`, `outputs`, `gradients`, and `layers` built-in collections are currently not available for these TensorFlow versions.
 
 ### AWS training containers with script mode
 
@@ -76,9 +76,9 @@ The `smdebug` library supports frameworks other than the ones listed above while
 
 | Framework | Versions |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0 |
+| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
 | Keras (with TensorFlow backend) | 2.3 |
-| [MXNet](docs/mxnet.md) | 1.4, 1.5, 1.6 |
+| [MXNet](docs/mxnet.md) | 1.4, 1.5, 1.6, 1.7 |
 | [PyTorch](docs/pytorch.md) | 1.2, 1.3, 1.4, 1.5, 1.6 |
 | [XGBoost](docs/xgboost.md) |  0.90-2, 1.0-1 (As a framework)|
 

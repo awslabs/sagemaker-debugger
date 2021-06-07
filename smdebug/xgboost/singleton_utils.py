@@ -11,8 +11,10 @@ hook = smd.hook()
 # First Party
 import smdebug.core.singleton_utils as sutils
 from smdebug.core.singleton_utils import del_hook, set_hook  # noqa
+from smdebug.core.utils import error_handling_agent
 
 
+@error_handling_agent.catch_smdebug_errors()
 def get_hook(json_config_path=None) -> "Hook":
     from smdebug.xgboost.hook import Hook
 

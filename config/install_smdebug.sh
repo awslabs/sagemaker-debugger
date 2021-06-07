@@ -38,24 +38,34 @@ if [ "$SMDEBUG_S3_BINARY" ]; then
   echo "Installing smdebug and smdebug_rules from pre-generated pip wheels located at $SMDEBUG_S3_BINARY"
   mkdir -p s3_pip_binary
   aws s3 cp --recursive "$SMDEBUG_S3_BINARY" s3_pip_binary
-  pip install --upgrade --force-reinstall s3_pip_binary/smdebug_rules-*.whl
-  pip install --upgrade --force-reinstall s3_pip_binary/smdebug-*.whl
   export CORE_COMMIT=`cat s3_pip_binary/CORE_COMMIT`
   export RULES_COMMIT=`cat s3_pip_binary/RULES_COMMIT`
   echo "Commit hash on sagemaker-debugger-rules repository being used: $RULES_COMMIT"
   cd $CODEBUILD_SRC_DIR_RULES && git checkout "$RULES_COMMIT"
-  python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+  python setup.py bdist_wheel --universal
+  # on xgboost containers we require rules wheel to be force-reinstalled. Dependencies of rules binary(especially pyYaml) are conflicting with the version on XGBoost container. Force installing the binary seems to be addressing this issue.
+  if [ "$run_pytest_xgboost" = "enable" ]; then
+    pip install --force-reinstall dist/*.whl
+  else
+    pip install dist/*.whl
+  fi
   echo "Commit hash on sagemaker-debugger repository being used: $CORE_COMMIT"
   cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT"
-  python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+  python setup.py bdist_wheel --universal && pip install -U dist/*.whl
 else
   # if the env var stable_release is not set, then this else block is executed.
   if [ -z "$CORE_COMMIT" ]; then export CORE_COMMIT=$(git log -1 --pretty=%h); fi
   echo "Commit hash on sagemaker-debugger repository being used: $CORE_COMMIT"
   if [ -z "$RULES_COMMIT" ]; then export RULES_COMMIT=$(git log -1 --pretty=%h); fi
   echo "Commit hash on sagemaker-debugger-rules repository being used: $RULES_COMMIT"
-  cd $CODEBUILD_SRC_DIR_RULES && git checkout "$RULES_COMMIT"  && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
-  cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT" && python setup.py bdist_wheel --universal && pip install --force-reinstall dist/*.whl
+  cd $CODEBUILD_SRC_DIR_RULES && git checkout "$RULES_COMMIT"  && python setup.py bdist_wheel --universal
+# on xgboost containers we require rules wheel to be force-reinstalled. Dependencies of rules binary(especially pyYaml) are conflicting with the version on XGBoost container. Force installing the binary seems to be addressing this issue.
+  if [ "$run_pytest_xgboost" = "enable" ]; then
+    pip install --force-reinstall dist/*.whl
+  else
+    pip install dist/*.whl
+  fi
+  cd $CODEBUILD_SRC_DIR && git checkout "$CORE_COMMIT" && python setup.py bdist_wheel --universal && pip install -U dist/*.whl
 fi
 
 if [ "$run_pytest_mxnet" == 'enable' ]; then
@@ -63,7 +73,7 @@ if [ "$run_pytest_mxnet" == 'enable' ]; then
 fi
 if [ "$run_pytest_tensorflow" == 'enable' ]; then
   ./config/check_smdebug_install.sh tensorflow
-  pip install tensorflow_datasets
+  pip install tensorflow_datasets==4.0.1
 fi
 if [ "$run_pytest_pytorch" == 'enable' ]; then
   ./config/check_smdebug_install.sh torch

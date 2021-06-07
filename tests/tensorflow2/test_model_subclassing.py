@@ -2,6 +2,7 @@
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Conv2D, Dense, Flatten
 from tensorflow.keras.models import Model
+from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
@@ -13,6 +14,16 @@ class MyModel(Model):
         self.conv1 = Conv2D(
             32, 3, activation="relu", kernel_initializer=tf.keras.initializers.GlorotNormal(seed=12)
         )
+        self.original_call = self.conv1.call
+
+        def new_call(inputs, *args, **kwargs):
+            # Since we use layer wrapper we need to assert if these parameters
+            # are actually being passed into the original call fn
+            assert kwargs["input_one"] == 1
+            kwargs.pop("input_one")
+            return self.original_call(inputs, *args, **kwargs)
+
+        self.conv1.call = new_call
         self.conv0 = Conv2D(
             32, 3, activation="relu", kernel_initializer=tf.keras.initializers.GlorotNormal(seed=12)
         )
@@ -26,8 +37,7 @@ class MyModel(Model):
     def first(self, x):
         with tf.name_scope("first"):
             tf.print("mymodel.first")
-            x = self.conv1(x)
-            # x = self.bn(x)
+            x = self.conv1(x, input_one=1)
             return self.flatten(x)
 
     def second(self, x):
@@ -69,7 +79,12 @@ def test_subclassed_model(out_dir):
     trial = smd.create_trial(out_dir)
     assert len(trial.tensor_names(collection=smd.CollectionKeys.LAYERS)) == 8
 
-    assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["model_input"]
-    assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == ["labels", "predictions"]
     assert trial.tensor_names(collection=smd.CollectionKeys.LOSSES) == ["loss"]
-    assert len(trial.tensor_names(collection=smd.CollectionKeys.GRADIENTS)) == 6
+    if is_tf_2_2():
+        # Feature to save model inputs and outputs was first added for TF 2.2.0
+        assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["inputs"]
+        assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == [
+            "labels",
+            "predictions",
+        ]
+        assert len(trial.tensor_names(collection=smd.CollectionKeys.GRADIENTS)) == 6

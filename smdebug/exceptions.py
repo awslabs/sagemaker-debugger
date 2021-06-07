@@ -99,6 +99,15 @@ class InvalidWorker(Exception):
         return "Invalid Worker: {}".format(self.worker)
 
 
+class NoMoreProfilerData(Exception):
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+        self.msg = "Looking for timestamp {} and reached " "end of training.".format(timestamp)
+
+    def __str__(self):
+        return self.msg
+
+
 class NoMoreData(Exception):
     def __init__(self, step, mode, last_step):
         self.step = step
@@ -117,9 +126,10 @@ class NoMoreData(Exception):
 
 
 class RuleEvaluationConditionMet(Exception):
-    def __init__(self, rule_name, step):
+    def __init__(self, rule_name, step, end_of_rule=False):
         self.rule_name = rule_name
         self.step = step
+        self.end_of_rule = end_of_rule
 
     def __str__(self):
         return "Evaluation of the rule {} at step {} resulted in the condition being met".format(
@@ -130,7 +140,7 @@ class RuleEvaluationConditionMet(Exception):
 class InsufficientInformationForRuleInvocation(Exception):
     def __init__(self, rule_name, message):
         self.rule_name = rule_name
-        self.message = mesage
+        self.message = message
 
     def __str__(self):
         return "Insufficient information to invoke rule {}: {}".format(self.rule_name, self.message)

@@ -1,15 +1,29 @@
 # Third Party
 # Standard Library
+import os
 import shutil
 import tempfile
+import time
 from multiprocessing import Manager, Process
 from os import makedirs
 
+import boto3
 import pytest
+import requests
 
 # First Party
-from smdebug.core.access_layer import check_dir_exists
+from smdebug.core.access_layer import (
+    DEFAULT_GRACETIME_FOR_RULE_STOP_SEC,
+    ENV_RULE_STOP_SIGNAL_FILENAME,
+    check_dir_exists,
+    is_rule_signalled_gracetime_passed,
+)
 from smdebug.core.collection_manager import CollectionManager
+from smdebug.core.config_constants import (
+    PAPERMILL_EXECUTION_ENV_VAR,
+    PROFILER_REPORT_VERSION,
+    PROFILER_TELEMETRY_URL,
+)
 from smdebug.core.index_reader import ReadIndexFilesCache
 from smdebug.core.json_config import (
     DEFAULT_SAGEMAKER_OUTDIR,
@@ -19,7 +33,14 @@ from smdebug.core.json_config import (
     get_json_config_as_dict,
 )
 from smdebug.core.locations import IndexFileLocationUtils
-from smdebug.core.utils import SagemakerSimulator, is_first_process, is_s3
+from smdebug.core.utils import (
+    SagemakerSimulator,
+    _prepare_telemetry_url,
+    get_aws_region_from_processing_job_arn,
+    is_first_process,
+    is_s3,
+    setup_profiler_report,
+)
 
 
 def test_normal():
@@ -67,6 +88,53 @@ def test_check_dir_not_exists_s3():
 def test_check_dir_exists_s3():
     # This file should exist in the bucket for proper testing
     check_dir_exists("s3://smdebug-testing/resources/exists")
+
+
+def setup_rule_stop_file(temp_file, time_str, monkeypatch, write=True):
+    dir = os.path.dirname(temp_file.name)
+    rel_filename = os.path.relpath(temp_file.name, start=dir)
+    if write is True:
+        # write timestamp in temp file
+        temp_file.write(str(time_str))
+        temp_file.flush()
+    monkeypatch.setenv(ENV_RULE_STOP_SIGNAL_FILENAME, rel_filename)
+
+
+def test_is_rule_signalled_gracetime_not_passed(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    time_str = str(int(time.time()))
+    setup_rule_stop_file(temp_file, time_str, monkeypatch)
+    dir = os.path.dirname(temp_file.name)
+    assert is_rule_signalled_gracetime_passed(dir) is False
+
+
+def test_is_rule_signalled_gracetime_passed(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    time_str = str(int(time.time() - 2 * DEFAULT_GRACETIME_FOR_RULE_STOP_SEC))
+    setup_rule_stop_file(temp_file, time_str, monkeypatch)
+    dir = os.path.dirname(temp_file.name)
+    assert is_rule_signalled_gracetime_passed(dir) is True
+
+
+def test_is_rule_signalled_no_env_var_set(monkeypatch):
+    assert is_rule_signalled_gracetime_passed("/fake-file") is False
+
+
+def test_is_rule_signalled_no_signal_file(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    time_str = str(int(time.time() - 2 * DEFAULT_GRACETIME_FOR_RULE_STOP_SEC))
+    setup_rule_stop_file(temp_file, time_str, monkeypatch, write=False)
+    dir = os.path.dirname(temp_file.name)
+    # env variable is set, remove the file.
+    temp_file.close()
+    assert is_rule_signalled_gracetime_passed(dir) is False
+
+
+def test_is_rule_signalled_invalid_gracetime(monkeypatch):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+")
+    setup_rule_stop_file(temp_file, "Invalid_time", monkeypatch)
+    dir = os.path.dirname(temp_file.name)
+    assert is_rule_signalled_gracetime_passed(dir) is True
 
 
 @pytest.mark.skip(reason="It's unclear what this is testing.")
@@ -200,3 +268,52 @@ def helper_test_is_first_process(dir):
         p.join()
 
     assert results.count(True) == 1, f"Failed for path: {path}"
+
+
+def _get_all_aws_regions():
+    ec2 = boto3.client("ec2")
+    response = ec2.describe_regions()
+    regions = [r["RegionName"] for r in response["Regions"]]
+    return regions
+
+
+@pytest.fixture()
+def test_arn():
+    arn = "arn:aws:sagemaker:{region}:012345678910:processing-job/random-test-arn"
+    return arn
+
+
+def fake_get(*args, **kwargs):
+    # The goal of fake GET is to check if this function was indeed called or not
+    assert False
+
+
+@pytest.mark.parametrize("region", _get_all_aws_regions())
+def test_telemetry_url_preparation(test_arn, region):
+    arn_with_region = test_arn.format(region=region)
+    assert get_aws_region_from_processing_job_arn(arn_with_region) == region
+    url = _prepare_telemetry_url(arn_with_region)
+    assert url == PROFILER_TELEMETRY_URL.format(
+        region=region
+    ) + "/?x-artifact-id={report_version}&x-arn={arn}".format(
+        report_version=PROFILER_REPORT_VERSION, arn=arn_with_region
+    )
+
+
+def test_setup_profiler_report(monkeypatch, test_arn):
+    test_arn = test_arn.format(region="us-east-1")
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    # setup_profiler_report is expected to be executed when called with a correct ARN
+    with pytest.raises(AssertionError):
+        setup_profiler_report(test_arn)
+
+    with pytest.raises(AssertionError):
+        setup_profiler_report(test_arn, opt_out=False)
+
+    # setup_profiler_report is NOT expected to be executed when called with opt_out=True
+    setup_profiler_report(test_arn, opt_out=True)
+
+    # setup_profiler_report is NOT expected to be executed when env PAPERMILL_EXECUTION is set
+    monkeypatch.setenv(PAPERMILL_EXECUTION_ENV_VAR, "1")
+    setup_profiler_report(test_arn, opt_out=False)

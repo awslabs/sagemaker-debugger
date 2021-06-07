@@ -1,5 +1,6 @@
 # Standard Library
 import os
+import time
 
 # Third Party
 from botocore.exceptions import ClientError
@@ -15,7 +16,15 @@ from .file import TSAccessFile
 from .s3 import TSAccessS3
 
 END_OF_JOB_FILENAME = "training_job_end.ts"
+ENV_RULE_STOP_SIGNAL_FILENAME = "SAGEMAKER_ENV_RULE_STOP_SIGNAL_FILE"
+DEFAULT_GRACETIME_FOR_RULE_STOP_SEC = 60
+RULE_JOB_STOP_SIGNAL_FILENAME = os.getenv(ENV_RULE_STOP_SIGNAL_FILENAME, default=None)
+RULESTOP_GRACETIME_SECONDS = os.getenv(
+    "rule_stop_grace_time_secs", default=DEFAULT_GRACETIME_FOR_RULE_STOP_SEC
+)
+
 logger = get_logger()
+logger.info(f"RULE_JOB_STOP_SIGNAL_FILENAME: {RULE_JOB_STOP_SIGNAL_FILENAME}")
 
 
 def training_has_ended(trial_prefix):
@@ -48,8 +57,7 @@ def training_has_ended(trial_prefix):
         """
 
 
-def has_training_ended(trial_prefix):
-    file_path = os.path.join(trial_prefix, END_OF_JOB_FILENAME)
+def file_exists(file_path):
     s3, bucket_name, key_name = is_s3(file_path)
     if s3:
         try:
@@ -68,6 +76,34 @@ def has_training_ended(trial_prefix):
                 return False
     else:
         return os.path.exists(file_path)
+
+
+def has_training_ended(trial_prefix):
+    file_path = os.path.join(trial_prefix, END_OF_JOB_FILENAME)
+    return file_exists(file_path)
+
+
+def is_rule_signalled_gracetime_passed(trial_prefix):
+    RULE_JOB_STOP_SIGNAL_FILENAME = os.getenv(ENV_RULE_STOP_SIGNAL_FILENAME, default=None)
+    if RULE_JOB_STOP_SIGNAL_FILENAME is None:
+        return False
+    file_path = os.path.join(trial_prefix, RULE_JOB_STOP_SIGNAL_FILENAME)
+    if file_exists(file_path):
+        try:
+            # check if gracetime passed
+            with open(file_path, "r") as f:
+                rulestop_timestamp_sec_since_epoch = int(f.read())
+                if time.time() > rulestop_timestamp_sec_since_epoch + RULESTOP_GRACETIME_SECONDS:
+                    logger.info(
+                        f"Got rule signal file:{file_path} . time in file is:{rulestop_timestamp_sec_since_epoch} Gracetime:{RULESTOP_GRACETIME_SECONDS} has passed. Returning true."
+                    )
+                    return True
+        except Exception as ex:
+            logger.info(
+                f"Got exception while reading from rule_stop_signal file. Exception is :{ex} . Returning true."
+            )
+            return True
+    return False
 
 
 def delete_s3_prefixes(bucket, keys):

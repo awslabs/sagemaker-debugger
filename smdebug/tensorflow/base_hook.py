@@ -14,8 +14,15 @@ from smdebug.core.config_constants import DEFAULT_WORKER_NAME
 from smdebug.core.hook import BaseHook
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reductions import get_numpy_reduction, get_reduction_tensor_name
-from smdebug.core.utils import make_numpy_array, serialize_tf_device
+from smdebug.core.utils import (
+    FRAMEWORK,
+    check_smdataparallel_env,
+    error_handling_agent,
+    make_numpy_array,
+    serialize_tf_device,
+)
 from smdebug.core.writer import FileWriter
+from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 
 # Local
 from .collection import CollectionKeys, CollectionManager
@@ -33,9 +40,11 @@ from .utils import (
 )
 
 try:
-    pass
+    import smdistributed.modelparallel.tensorflow as smp  # noqa isort:skip
+
+    _smp_imported = smp
 except ImportError:
-    pass
+    _smp_imported = None
 
 
 DEFAULT_INCLUDE_COLLECTIONS = [
@@ -43,6 +52,9 @@ DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.LOSSES,
     CollectionKeys.SM_METRICS,
 ]
+
+
+profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW)
 
 
 class TensorflowBaseHook(BaseHook):
@@ -66,6 +78,7 @@ class TensorflowBaseHook(BaseHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            profiler_config_parser=profiler_config_parser,
             init_step=init_step,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
@@ -131,6 +144,18 @@ class TensorflowBaseHook(BaseHook):
         except (ModuleNotFoundError, ValueError, ImportError):
             pass
 
+        # smdistributed.dataparallel should be invoked via `mpirun`.
+        # It supports EC2 machines with 8 GPUs per machine.
+        if check_smdataparallel_env():
+            try:
+                import smdistributed.dataparallel.tensorflow as smdataparallel
+
+                # The total number of GPUs across all the nodes in the cluster
+                if smdataparallel.size():
+                    return TFDistributionStrategy.SMDATAPARALLEL
+            except (ModuleNotFoundError, ValueError, ImportError):
+                pass
+
         strat = tf.distribute.get_strategy()
         if is_mirrored_strategy(strat):
             return TFDistributionStrategy.MIRRORED
@@ -169,9 +194,18 @@ class TensorflowBaseHook(BaseHook):
         """
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if _smp_imported and _smp_imported.core.initialized:
+                # when model parallel is being used, there will be multiple processes
+                # with same hvd rank, hence use smp.rank
+                return f"worker_{smp.rank()}"
+
             import horovod.tensorflow as hvd
 
             return f"worker_{hvd.rank()}"
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
+            import smdistributed.dataparallel.tensorflow as smdataparallel
+
+            return f"worker_{smdataparallel.rank()}"
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             # unused for this strategy
             return DEFAULT_WORKER_NAME
@@ -201,6 +235,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is False and self.worker != self.chief_worker:
                 return
@@ -218,13 +253,13 @@ class TensorflowBaseHook(BaseHook):
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
+    @error_handling_agent.catch_smdebug_errors(default_return_val=False)
     def has_default_hook_configuration(self):
         # Used in AWS TF to determine if the hook
         # is using the default hook configuration
-        collections_being_saved = [x.name for x in self._collections_to_save]
-        if set(collections_being_saved) == set(TF_DEFAULT_SAVED_COLLECTIONS):
-            return True
-        return False
+        return super().has_default_hook_configuration(
+            default_saved_collections=TF_DEFAULT_SAVED_COLLECTIONS
+        )
 
     def _get_custom_and_default_collections(self) -> Tuple[Set["Collection"], Set["Collection"]]:
         if self._custom_collections is None:
@@ -241,9 +276,18 @@ class TensorflowBaseHook(BaseHook):
     def _get_num_workers(self):
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            if _smp_imported and smp.core.initialized:
+                # when model parallel is being used, there will be multiple hvd process groups,
+                # hence use smp.size
+                return smp.size()
+
             import horovod.tensorflow as hvd
 
             return hvd.size()
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
+            import smdistributed.dataparallel.tensorflow as smdataparallel
+
+            return smdataparallel.size()
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             strategy = tf.distribute.get_strategy()
             return strategy.num_replicas_in_sync
@@ -258,6 +302,8 @@ class TensorflowBaseHook(BaseHook):
         self._assert_distribution_strategy()
         # this won't be used if save_all_workers is True
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
+            self.chief_worker = DEFAULT_WORKER_NAME
+        elif self.distribution_strategy == TFDistributionStrategy.SMDATAPARALLEL:
             self.chief_worker = DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.MIRRORED:
             assert self._prepared_tensors[self.mode]
@@ -285,6 +331,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 return self._get_main_writer()
@@ -322,6 +369,7 @@ class TensorflowBaseHook(BaseHook):
         if self.distribution_strategy in [
             TFDistributionStrategy.PARAMETER_SERVER,
             TFDistributionStrategy.HOROVOD,
+            TFDistributionStrategy.SMDATAPARALLEL,
         ]:
             if self.save_all_workers is True or self.worker == self.chief_worker:
                 if self.writer is None or only_initialize_if_missing is False:
@@ -459,6 +507,14 @@ class TensorflowBaseHook(BaseHook):
         optimizer.__class__.apply_gradients = new_apply_gradients
         return optimizer
 
+    @error_handling_agent.catch_smdebug_errors()
+    def set_mode(self, mode):
+        """
+        This function is called directly from AWS TF to set the correct mode.
+        """
+        super().set_mode(mode)
+
+    @error_handling_agent.catch_smdebug_errors()
     def set_gradients(self, gradients=None, gradients_and_variables=None):
         """
         This method helps find the gradient tensors.
@@ -490,6 +546,7 @@ class TensorflowBaseHook(BaseHook):
                 )
             self._gradients_set = True
 
+    @error_handling_agent.catch_smdebug_errors()
     def set_optimizer_variables(self, optimizer_variables):
         """
         This method helps find the optimizer variables (such as momentum)

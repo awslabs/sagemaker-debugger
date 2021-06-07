@@ -9,9 +9,9 @@
 
 ## Support
 ### Versions
-- Zero Script Change experience where you need no modifications to your training script is supported in the official [SageMaker Framework Container for PyTorch 1.3](https://docs.aws.amazon.com/sagemaker/latest/dg/pre-built-containers-frameworks-deep-learning.html), or the [AWS Deep Learning Container for PyTorch 1.3](https://aws.amazon.com/machine-learning/containers/).
+- Zero Script Change experience where you need no modifications to your training script is supported in the official [AWS Deep Learning Container for PyTorch](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#general-framework-containers).
 
-- The library itself supports the following versions when using changes to the training script: PyTorch 1.2, 1.3.
+- The library itself supports the following versions when using changes to the training script: PyTorch 1.2, 1.3, 1.4, 1.5, and 1.6.
 
 ---
 

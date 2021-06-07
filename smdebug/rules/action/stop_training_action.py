@@ -26,6 +26,7 @@ class StopTrainingAction:
         next_token = None
         name = self._training_job_prefix
         i = 0
+        exception_caught_times = 0
         while i < 50:
             try:
                 if next_token is None:
@@ -49,7 +50,7 @@ class StopTrainingAction:
                     self._logger.info(
                         f"No TrainingJob summaries found: list_training_jobs output is : {res}"
                     )
-                    return
+                    return []
                 for job in jobs:
                     tj_status = job["TrainingJobStatus"]
                     tj_name = job["TrainingJobName"]
@@ -61,6 +62,10 @@ class StopTrainingAction:
                 self._logger.info(
                     f"Caught exception while getting list_training_job exception is: \n {e}. Attempt:{i}"
                 )
+                exception_caught_times += 1
+                if exception_caught_times > 5:
+                    print("Got exception more than 5 times while finding training job. Giving up.")
+                    break
             if "NextToken" not in res:
                 break
             else:
@@ -68,18 +73,27 @@ class StopTrainingAction:
                 res = {}
                 jobs = {}
                 i += 1
+            if len(found_job_dict) > 0:
+                print(
+                    f"Found training jobs matching prefix:{name}. Exiting even if next_token:{next_token} was present."
+                )
+                break
 
-        return found_job_dict.keys()
+        return list(found_job_dict.keys())
 
-    def _stop_training_job(self):
+    def _stop_training_job(self, message):
         if len(self._found_jobs) != 1:
             return
-        self._logger.info(f"Invoking StopTrainingJob action on SM jobname:{self._found_jobs}")
+        if message != "":
+            message = f"with message {message}"
+        self._logger.info(
+            f"Invoking StopTrainingJob action on SM jobname {self._found_jobs} {message}"
+        )
         try:
             res = self._sm_client.stop_training_job(TrainingJobName=self._found_jobs[0])
             self._logger.info(f"Stop Training job response:{res}")
         except Exception as e:
             self._logger.info(f"Got exception while stopping training job{self._found_jobs[0]}:{e}")
 
-    def invoke(self, message=None):
-        self._stop_training_job()
+    def invoke(self, message):
+        self._stop_training_job(message)

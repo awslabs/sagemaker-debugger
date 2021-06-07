@@ -1,0 +1,64 @@
+# Build Spec for AWS CodeBuild CI TF 2.4.x CPU and GPU Containers
+# Containers Used:
+    # Note: The public DLC is not yet available so this buildspec is currently consuming a custom built container
+
+version: 0.2
+env:
+  variables:
+    run_pytest_pytorch: "disable"
+    run_pytest_mxnet: "disable"
+    run_pytest_tensorflow: "disable"
+    run_pytest_tensorflow2: "enable"
+    run_pytest_xgboost: "disable"
+    run_pytest_profiler: "enable"
+    run_integration_pytest_pytorch: "disable"
+    run_integration_pytest_mxnet: "disable"
+    run_integration_pytest_tensorflow: "disable"
+    run_integration_pytest_tensorflow2: "enable"
+    run_integration_pytest_xgboost: "disable"
+    # below needs to be enabled
+    zero_code_change_test: "enable"
+    # set code coverage flag
+    code_coverage_smdebug: "true"
+    build_type: "pr" # must be one of pr, nightly or release
+
+phases:
+  install:
+    commands:
+        -  . config/change_branch.sh
+        - su && apt-get update
+        - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
+        - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
+        - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
+        - cd $CODEBUILD_SRC_DIR  && chmod +x config/protoc_downloader.sh && ./config/protoc_downloader.sh
+        - pip install --upgrade pip==19.3.1
+        - pip install -q matplotlib==3.3.1 seaborn==0.10.1 nbconvert==5.6.1 papermill==2.1.2 flaky==3.7.0 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3 simplejson==3.17.2 transformers==4.2.1
+        - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --upgrade pyYaml==5.1; else pip install -q pyYaml; fi
+        - pip install -q pytest wheel pytest-html pre-commit awscli pytest-cov
+
+  pre_build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR
+
+  build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
+      # We do not need to force install smdebug-rules. The container used for PR builds do not have smdebug rules binary.
+      # Force installing rules binary attempts to re-install ipython-genutils which fails on PyTorch Ubuntu 16.04 containers.
+      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
+      - if [ "$run_pytest_xgboost" = "enable" ]; then pip install --force-reinstall $RULES_CODEBUILD_SRC_DIR/dist/*.whl; else pip install $RULES_CODEBUILD_SRC_DIR/dist/*.whl; fi
+      - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
+      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
+      - pip show smdebug
+      - pip show smdebug_rules
+      - echo 'Uploading Coverage to CodeCov'
+      - bash $CODEBUILD_SRC_DIR/config/codecov.sh
+      - if [ "$build_type" != "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
+
+  post_build:
+    commands:
+      - . $CODEBUILD_SRC_DIR/config/upload_on_end.sh
+      - rm -rf $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - rm -rf $RULES_CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
+      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi

@@ -6,11 +6,36 @@ from typing import Callable, List, Optional
 
 # Third Party
 import tensorflow as tf
+import tensorflow.compat.v1 as tf_v1
 from packaging import version
 from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.modes import ModeKeys
+from smdebug.core.utils import error_handling_agent
+
+# Cached TF Version
+TF_VERSION = version.parse(tf.__version__)
+
+
+def does_tf_support_mixed_precision_training():
+    # The Keras mixed precision API is first available in TensorFlow 2.1.0
+    # See: https://www.tensorflow.org/guide/mixed_precision
+    return TF_VERSION >= version.parse("2.1.0")
+
+
+def supported_tf_variables():
+    if does_tf_support_mixed_precision_training():
+        if is_tf_version_greater_than_2_4_x():
+            # tensorflow mixed preicison api is experimental in versions below 2.4.0
+            from tensorflow.python.keras.mixed_precision import autocast_variable
+
+        else:
+            from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
+
+        return tf_v1.Variable, autocast_variable.AutoCastVariable
+    else:
+        return tf_v1.Variable
 
 
 class ModelOutput:
@@ -54,6 +79,7 @@ class TFDistributionStrategy(Enum):
     HOROVOD = 1
     MIRRORED = 2
     PARAMETER_SERVER = 3
+    SMDATAPARALLEL = 4
     UNSUPPORTED = 100
 
 
@@ -336,10 +362,12 @@ class InputOutputSaver:
 
 def get_layer_call_fn(layer: tf.keras.layers.Layer) -> Callable[[tf.Tensor], tf.Tensor]:
     old_call_fn = layer.call
+    layer.old_call = old_call_fn
 
+    @error_handling_agent.catch_smdebug_errors(default_return_val=old_call_fn)
     def call(inputs, *args, **kwargs) -> tf.Tensor:
         layer_input = inputs
-        layer_output = old_call_fn(inputs)
+        layer_output = old_call_fn(inputs, *args, **kwargs)
         for hook in layer._hooks:
             hook_result = hook(inputs, layer_input=layer_input, layer_output=layer_output)
             if hook_result is not None:
@@ -383,8 +411,33 @@ def get_keras_mode(mode):
 
 
 def is_tf_version_2x():
-    return version.parse(tf.__version__) >= version.parse("2.0.0")
+    return TF_VERSION >= version.parse("2.0.0")
+
+
+def is_tf_version_2_2_x():
+    return version.parse("2.2.0") <= TF_VERSION < version.parse("2.3.0")
 
 
 def is_tf_version_2_3_x():
-    return version.parse(tf.__version__) >= version.parse("2.3.0")
+    return version.parse("2.3.0") <= TF_VERSION < version.parse("2.4.0")
+
+
+def is_tf_version_2_4_x():
+    return version.parse("2.4.0") <= TF_VERSION < version.parse("2.5.0")
+
+
+def is_tf_version_1_15_x():
+    return version.parse("1.15.0") <= TF_VERSION < version.parse("2.0.0")
+
+
+def is_tf_version_greater_than_2_4_x():
+    return version.parse("2.4.0") <= TF_VERSION
+
+
+def is_profiler_supported_for_tf_version():
+    # Profiler Support Added For TF Versions 2.2.0 And Greater
+    return version.parse("2.2.0") <= TF_VERSION
+
+
+def is_current_version_supported(tf_version=tf.__version__):
+    return version.parse("1.15.0") <= version.parse(tf_version) < version.parse("2.5.0")

@@ -1,0 +1,14 @@
+# Build Spec for AWS CodeBuild CI
+
+version: 0.2
+env:
+  variables:
+    use_current_branch: "true"
+    enable_smdataparallel_tests: "false"
+    force_run_tests: "false"
+    framework: "tensorflow"
+    build_type: "pr"  # must be one of pr, nightly or release
+phases:
+  build:
+    commands:
+      - chmod +x config/profiler/run_profiler_integration_tests.sh && ./config/profiler/run_profiler_integration_tests.sh

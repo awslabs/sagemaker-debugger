@@ -5,6 +5,7 @@ import typing as Tuple
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
+from tensorflow.python.client import device_lib
 
 tfds.disable_progress_bar()
 
@@ -257,3 +258,8 @@ def get_keras_model_v1():
 
     model = keras.Model(inputs=inputs, outputs=outputs, name="mnist_model")
     return model
+
+
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == "GPU"]

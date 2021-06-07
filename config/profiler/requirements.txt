@@ -1,0 +1,12 @@
+pip==20.3.3
+wheel==0.35.1
+pyYaml==5.4
+pytest-html==3.0.0
+sagemaker==2.23.0
+pre-commit==2.6.0
+awscli==1.18.203
+pytest==6.1.2
+pytest-cov==2.10.1
+flaky==3.7.0
+pytest-xdist==2.2.0
+pandas==1.1.5

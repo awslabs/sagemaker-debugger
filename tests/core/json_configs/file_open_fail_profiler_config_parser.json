@@ -1,0 +1,10 @@
+{
+    "ProfilingParameters": {
+        "ProfilerEnabled": true,
+        "LocalPath": "/dev/null/fileopenfailtest",
+        "RotateMaxFileSizeInBytes": 300,
+        "RotateFileCloseIntervalInSeconds": 0.5,
+        "FileOpenFailThreshold": 2,
+        "DetailedProfilingConfig": "{\"StartStep\": 2, \"NumSteps\": 1}"
+    }
+}

@@ -7,12 +7,13 @@ from tensorflow.python.keras.backend import is_placeholder
 # First Party
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.tfevent.proto.summary_pb2 import Summary
-from smdebug.core.utils import make_numpy_array, match_inc
+from smdebug.core.utils import error_handling_agent, make_numpy_array, match_inc
 
 # Local
 from .base_hook import TensorflowBaseHook
 from .tensor_ref import TensorType
 from .utils import (
+    TF_VERSION,
     TFDistributionStrategy,
     build_fetches_tuple,
     extract_graph_summary,
@@ -21,6 +22,7 @@ from .utils import (
 
 
 class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
+    @error_handling_agent.catch_smdebug_errors()
     def __init__(
         self,
         out_dir=None,
@@ -241,7 +243,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
             if self.distribution_strategy == TFDistributionStrategy.MIRRORED:
                 from packaging import version
 
-                if version.parse(tf.__version__) < version.parse("1.14.0"):
+                if TF_VERSION < version.parse("1.14.0"):
                     self._hook_supported = False
                     # in tf 1.13, we can't support mirrored strategy as
                     # MirroredVariable does not have _values attribute
@@ -266,6 +268,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         # setting this to False means that on next apply_gradients/get_grads gradients will be set again
         self._gradients_set = False
 
+    @error_handling_agent.catch_smdebug_errors()
     def begin(self):
         if self._is_not_supported():
             return
@@ -349,6 +352,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         self.logger.debug(f"Saving {len(filtered)} tensors: {filtered}")
         return filtered
 
+    @error_handling_agent.catch_smdebug_errors()
     def before_run(self, run_context):
         if self._is_not_supported():
             return
@@ -388,6 +392,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
                 for i in range(len(value)):
                     yield item[i], value[i]
 
+    @error_handling_agent.catch_smdebug_errors()
     def after_run(self, run_context, run_values):
         if self._is_not_supported():
             return
@@ -410,6 +415,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         """
         return make_numpy_array(tensor_value)
 
+    @error_handling_agent.catch_smdebug_errors()
     def end(self, sess):
         pass
 

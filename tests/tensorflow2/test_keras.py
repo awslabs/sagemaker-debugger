@@ -7,7 +7,10 @@ This was tested with TensorFlow 2.1, by running
 `python tests/tensorflow2/test_keras.py` from the main directory.
 """
 # Standard Library
+import json
+import re
 import time
+from pathlib import Path
 
 # Third Party
 import pytest
@@ -26,7 +29,21 @@ from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.exceptions import TensorUnavailableForStep
+from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.tensorflow import ReductionConfig, SaveConfig
+
+
+def get_model():
+    model = tf.keras.models.Sequential(
+        [
+            # WA for TF issue https://github.com/tensorflow/tensorflow/issues/36279
+            tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+            tf.keras.layers.Dense(128, activation="relu"),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(10, activation="softmax"),
+        ]
+    )
+    return model
 
 
 def helper_keras_fit(
@@ -48,15 +65,7 @@ def helper_keras_fit(
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train, x_test = x_train / 255, x_test / 255
 
-    model = tf.keras.models.Sequential(
-        [
-            tf.keras.layers.Flatten(input_shape=(28, 28)),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(10, activation="softmax"),
-        ]
-    )
-
+    model = get_model()
     if hook is None:
         if save_config is None:
             save_config = SaveConfig(save_interval=3)
@@ -124,17 +133,7 @@ def helper_keras_gradtape(
         (tf.cast(x_train[..., tf.newaxis] / 255, tf.float32), tf.cast(y_train, tf.int64))
     )
     dataset = dataset.shuffle(1000).batch(batch_size)
-
-    model = tf.keras.models.Sequential(
-        [
-            # WA for TF issue https://github.com/tensorflow/tensorflow/issues/36279
-            tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(10, activation="softmax"),
-        ]
-    )
-
+    model = get_model()
     if hook is None:
         if save_config is None:
             save_config = SaveConfig(save_interval=3)
@@ -186,6 +185,24 @@ def helper_keras_gradtape(
     hook.close()
 
 
+@pytest.mark.skip_if_non_eager
+@pytest.mark.slow
+def test_layer_names_gradient_tape(out_dir):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=9),
+        include_collections=[CollectionKeys.LAYERS],
+    )
+    helper_keras_gradtape(out_dir, hook=hook, save_config=SaveConfig(save_interval=9))
+
+    tr = create_trial_fast_refresh(out_dir)
+    tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+    for tname in tnames:
+        assert re.match(pattern=pattern, string=tname) is not None
+
+
+@pytest.mark.skip_if_non_eager
 def test_keras_gradtape_shapes(out_dir):
     hook = smd.KerasHook(
         out_dir=out_dir,
@@ -544,9 +561,63 @@ def test_include_regex(out_dir, tf_eager_mode):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-    assert len(tnames) == 12
+    assert len(tnames) == (12 if is_tf_2_2() else 4)
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
+
+
+@pytest.mark.slow
+def test_layer_names(out_dir, tf_eager_mode):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=9),
+        include_collections=[CollectionKeys.LAYERS],
+    )
+    helper_keras_fit(
+        out_dir,
+        hook=hook,
+        save_config=SaveConfig(save_interval=9),
+        steps=["train"],
+        run_eagerly=tf_eager_mode,
+    )
+
+    tr = create_trial_fast_refresh(out_dir)
+    tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+    pattern = r"^(flatten|dense|dropout)(_\d+)?\/(inputs|outputs)"
+    for tname in tnames:
+        assert re.match(pattern=pattern, string=tname) is not None
+
+
+@pytest.mark.slow
+def test_regex_filtering_for_default_collections(out_dir):
+    hook = smd.KerasHook(
+        out_dir,
+        save_config=SaveConfig(save_interval=9),
+        include_collections=[CollectionKeys.LAYERS, CollectionKeys.GRADIENTS],
+    )
+    hook.get_collection(CollectionKeys.LAYERS).include("^dense")
+    hook.get_collection(CollectionKeys.GRADIENTS).include("gradients/dense")
+    helper_keras_fit(
+        out_dir,
+        hook=hook,
+        save_config=SaveConfig(save_interval=10),
+        steps=["train"],
+        run_eagerly=True,
+    )
+
+    tr = create_trial_fast_refresh(out_dir)
+    layer_tnames = tr.tensor_names(collection=CollectionKeys.LAYERS)
+    gradient_tnames = tr.tensor_names(collection=CollectionKeys.GRADIENTS)
+    assert len(layer_tnames) == (4 if is_tf_2_2() else 0)
+    assert len(gradient_tnames) == (4 if is_tf_2_2() else 0)
+    layer_pattern = r"^(dense)(_\d+)?\/(inputs|outputs)"
+    gradient_pattern = r"gradients/dense"
+    for tname in layer_tnames:
+        assert tr.tensor(tname).value(0) is not None
+        assert re.match(pattern=layer_pattern, string=tname) is not None
+    for tname in gradient_tnames:
+        assert tr.tensor(tname).value(0) is not None
+        assert re.match(pattern=gradient_pattern, string=tname) is not None
 
 
 @pytest.mark.skip_if_non_eager
@@ -693,10 +764,7 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, run_eagerly=True)
 
     trial = smd.create_trial(path=out_dir)
-    if is_tf_2_2():
-        assert len(trial.tensor_names()) == 27
-    else:
-        assert len(trial.tensor_names()) == (20 if is_tf_2_3() else 21)
+    assert len(trial.tensor_names()) == (27 if is_tf_2_2() else 13)
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
@@ -704,7 +772,6 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (2 if is_tf_2_2() else 0)
 
 
-@pytest.mark.skip  # skip until aws tf update
 def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
     # explicitly save INPUTS and OUTPUTS
     include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
@@ -721,13 +788,11 @@ def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == 2
     assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == 1
 
-    for tname in trial.tensor_names(collection=CollectionKeys.OUTPUTS):
-        output = trial.tensor(tname)
-        assert tname in ["y", "y_pred"]
-        assert output.value(0) is not None
     # Check the shape of output tensors
-    assert trial.tensor("y").value(0).shape[1] == 1  # label
-    assert trial.tensor("y_pred").value(0).shape[1] == 10  # Output probability for each class
+    assert trial.labels(step=0)[0].shape == (6000, 1)
+    assert trial.predictions(step=0)[0].shape == (6000, 10)
+    # Check the shape of input tensors
+    assert trial.inputs(step=0)[0].shape == (6000, 28, 28)
 
 
 @pytest.mark.skip  # skip until aws tf update
@@ -846,3 +911,21 @@ def test_save_layer_inputs_and_outputs(out_dir, tf_eager_mode):
         "dense_1/inputs"
     ).value(0)
     assert boolean_matrix.all()
+
+
+def test_hook_timeline_file_write(
+    set_up_smprofiler_config_path, set_up_resource_config, out_dir, tf_eager_mode
+):
+    hook = smd.KerasHook(out_dir=out_dir, save_all=False)
+    helper_keras_fit(trial_dir=out_dir, hook=hook, eager=tf_eager_mode, steps=["train", "eval"])
+
+    files = []
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    with open(files[0]) as timeline_file:
+        events_dict = json.load(timeline_file)
+
+    assert events_dict

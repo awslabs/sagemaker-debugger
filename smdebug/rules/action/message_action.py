@@ -141,5 +141,5 @@ class MessageAction:
         self._last_send_mesg_response = response
         return response
 
-    def invoke(self, message=None):
+    def invoke(self, message):
         self._send_message(message)

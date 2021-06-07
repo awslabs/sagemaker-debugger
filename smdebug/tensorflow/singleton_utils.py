@@ -11,8 +11,10 @@ hook = smd.get_hook()
 # First Party
 import smdebug.core.singleton_utils as sutils
 from smdebug.core.singleton_utils import del_hook, set_hook  # noqa
+from smdebug.core.utils import error_handling_agent
 
 
+@error_handling_agent.catch_smdebug_errors()
 def get_hook(
     hook_type: str = None, json_config_path: str = None, create_if_not_exists: bool = False
 ) -> "SessionHook":
@@ -35,8 +37,13 @@ def get_hook(
     else:
         hook_class = None
 
-    return sutils.get_hook(
-        json_config_path=json_config_path,
-        hook_class=hook_class,
-        create_if_not_exists=create_if_not_exists,
-    )
+    from smdebug.core.config_validator import get_config_validator, FRAMEWORK
+
+    if get_config_validator(FRAMEWORK.TENSORFLOW).validate_training_job():
+        return sutils.get_hook(
+            json_config_path=json_config_path,
+            hook_class=hook_class,
+            create_if_not_exists=create_if_not_exists,
+        )
+    else:
+        return None
