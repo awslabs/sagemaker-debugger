@@ -385,7 +385,7 @@ class Hook(CallbackHook):
                     torch.autograd.ProfilerConfig(self.profiler, False, False, False)
                 )
                 self.start_profiler_time_us = time.time() * CONVERT_TO_MICROSECS
-            elif is_pt_1_8() or is_pt_1_9():
+            elif is_pt_1_8():
                 torch.autograd._enable_profiler_legacy(
                     torch.autograd.ProfilerConfig(self.profiler, False, False, False, False)
                 )
