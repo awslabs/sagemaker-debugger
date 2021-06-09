@@ -23,14 +23,7 @@ from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
 from smdebug.profiler.utils import start_smdataparallel_profiler, stop_smdataparallel_profiler
 from smdebug.pytorch.collection import CollectionManager
 from smdebug.pytorch.singleton_utils import set_hook
-from smdebug.pytorch.utils import (
-    get_reduction_of_data,
-    is_pt_1_5,
-    is_pt_1_6,
-    is_pt_1_7,
-    is_pt_1_8,
-    is_pt_1_9,
-)
+from smdebug.pytorch.utils import get_reduction_of_data, is_pt_1_5, is_pt_1_6, is_pt_1_7, is_pt_1_8
 
 # smdistributed.dataparallel should be invoked via `mpirun`.
 # It supports EC2 machines with 8 GPUs per machine.
@@ -263,7 +256,7 @@ class Hook(CallbackHook):
     def _collect_torch_profiling_data_if_profiler_enabled(self):
         if self.autograd_profiler_enabled is False:
             return
-        if is_pt_1_8() or is_pt_1_9():
+        if is_pt_1_8():
             records = torch.autograd._disable_profiler_legacy()
         else:
             records = torch.autograd._disable_profiler()
@@ -272,7 +265,7 @@ class Hook(CallbackHook):
             function_events = torch.autograd.profiler.EventList(
                 torch.autograd.profiler.parse_event_records(records), use_cuda=self.use_cuda
             )
-        elif is_pt_1_8() or is_pt_1_9():
+        elif is_pt_1_8():
             function_events = torch.autograd.profiler.EventList(
                 torch.autograd.profiler.parse_legacy_records(records), use_cuda=self.use_cuda
             )
@@ -282,7 +275,7 @@ class Hook(CallbackHook):
             )
 
         for index, event in enumerate(function_events):
-            if is_pt_1_8() or is_pt_1_9():
+            if is_pt_1_8():
                 cpu_time = event.time_range.start + self.start_profiler_time_us
                 duration = event.time_range.elapsed_us() / float(CONVERT_TO_MICROSECS)
             else:
