@@ -1,7 +1,7 @@
 # Standard Library
-import datetime
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 
 # Third Party
