@@ -119,8 +119,8 @@ def _verify_timeline_files(out_dir):
     This verifies the creation of the timeline files according to file path specification.
     It reads backs the file contents to make sure it is in valid JSON format.
 
-    If dataloader profiling is enabled, check to make sure that timeline files with the suffix
-    `model_timeline.json` were created.
+    To verify dataloader profiling, check to make sure that some of the created timeline files have the suffix
+    `model_timeline.json`.
     """
     files = list(Path(os.path.join(out_dir, DEFAULT_PREFIX)).rglob("*.json"))
 

@@ -730,7 +730,24 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._unwrap_model_with_input_output_saver()
         self.prepared_tf2_collections = True
 
+    def _stop_dataloader_profiling(self):
+        """Stop detailed profiling if the TF profiler is supported in the current TF version and detailed profiling
+        was already started.
+        """
+        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_END_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = False
+
     def _handle_dataloader_profiling(self, current_step):
+        """Handle detailed profiling for the step if the TF profiler is supported in the current TF version.
+
+        If detailed profiling has not been started and detailed profiling is enabled for the current step, then start
+        detailed profiling.
+
+        Otherwise, if detailed profiling was started and detailed profiling should not be enabled for the current
+        step, then stop detailed profiling.
+        """
         if self.profiler_config_parser.should_save_metrics(
             MetricsCategory.DATALOADER_PROFILING, current_step
         ) and self.profiler_config_parser.write_tf_dataloader_flag(
@@ -739,12 +756,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.is_dataloader_profiling = True
         else:
             self._stop_dataloader_profiling()
-
-    def _stop_dataloader_profiling(self):
-        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
 
     @error_handling_agent.catch_smdebug_errors()
     def on_epoch_begin(self, batch, logs=None):
