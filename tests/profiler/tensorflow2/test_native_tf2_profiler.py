@@ -1,5 +1,8 @@
 # Standard Library
+import datetime
 import os
+import time
+from pathlib import Path
 
 # Third Party
 import pytest
@@ -13,13 +16,15 @@ from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
-    CPROFILE_STATS_FILENAME,
-    PYINSTRUMENT_HTML_FILENAME,
-    PYINSTRUMENT_JSON_FILENAME,
+    DEFAULT_PREFIX,
     PYINSTRUMENT_NAME,
+    TENSORBOARDTIMELINE_SUFFIX,
+    TRACE_DIRECTORY_FORMAT,
 )
 from smdebug.profiler.python_profile_utils import StepPhase
+from smdebug.profiler.tf_profiler_parser import TensorboardProfilerEvents
 from smdebug.tensorflow import KerasHook as Hook
 
 
@@ -108,6 +113,59 @@ def _verify_tensor_names(out_dir):
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
+def _verify_timeline_files(out_dir):
+    """
+    This verifies the creation of the timeline files according to file path specification.
+    It reads backs the file contents to make sure it is in valid JSON format.
+    """
+    files = []
+    for path in Path(os.path.join(out_dir, DEFAULT_PREFIX)).rglob("*.json"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    file_ts = files[0].name.split("_")[0]
+    folder_name = files[0].parent.name
+    assert folder_name == time.strftime(
+        TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
+    )
+    assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
+        TRACE_DIRECTORY_FORMAT
+    )
+
+    with open(files[0]) as timeline_file:
+        events_dict = json.load(timeline_file)
+
+    assert events_dict
+
+
+def _verify_detailed_profiling(out_dir):
+    """
+    This verifies the number of events when detailed profiling is enabled.
+    """
+    t_events = TensorboardProfilerEvents()
+
+    # get tensorboard timeline files
+    files = []
+
+    for path in Path(os.path.join(out_dir, "framework")).rglob(f"*{TENSORBOARDTIMELINE_SUFFIX}"):
+        files.append(path)
+
+    assert len(files) == 1
+
+    trace_file = str(files[0])
+    t_events.read_events_from_file(trace_file)
+
+    all_trace_events = t_events.get_all_events()
+    num_trace_events = len(all_trace_events)
+
+    print(f"Number of events read = {num_trace_events}")
+
+    # The number of events is varying by a small number on
+    # consecutive runs. Hence, the approximation in the below asserts.
+    assert num_trace_events >= 230
+
+
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
 @pytest.mark.parametrize(
     "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
@@ -144,6 +202,10 @@ def test_native_tf2_profiling(
 
     # Sanity check debugger output
     _verify_tensor_names(out_dir)
+
+    _verify_timeline_files(out_dir)
+
+    _verify_detailed_profiling(out_dir)
 
     # The expected number of stats directories during is (num_steps * 2) + 2. This includes profiling for both
     # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
