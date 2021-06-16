@@ -801,7 +801,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
     def _on_any_mode_end(self, mode):
         self.profiler_config_parser.handle_step_end_python_profiling(mode, self.mode_steps[mode])
-        self.stop_dataloader_profiling()
+        self._stop_dataloader_profiling()
 
     @error_handling_agent.catch_smdebug_errors()
     def on_train_end(self, logs=None):
