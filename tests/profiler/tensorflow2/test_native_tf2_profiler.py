@@ -1,8 +1,5 @@
 # Standard Library
-import json
 import os
-import time
-from datetime import datetime
 from pathlib import Path
 
 # Third Party
@@ -114,32 +111,6 @@ def _verify_tensor_names(out_dir):
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
-def _verify_timeline_files(out_dir):
-    """
-    This verifies the creation of the timeline files according to file path specification.
-    It reads backs the file contents to make sure it is in valid JSON format.
-    """
-    files = []
-    for path in Path(os.path.join(out_dir, DEFAULT_PREFIX)).rglob("*.json"):
-        files.append(path)
-
-    assert len(files) == 1
-
-    file_ts = files[0].name.split("_")[0]
-    folder_name = files[0].parent.name
-    assert folder_name == time.strftime(
-        TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
-    )
-    assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
-        TRACE_DIRECTORY_FORMAT
-    )
-
-    with open(files[0]) as timeline_file:
-        events_dict = json.load(timeline_file)
-
-    assert events_dict
-
-
 def _verify_detailed_profiling(out_dir):
     """
     This verifies the number of events when detailed profiling is enabled.
@@ -204,8 +175,7 @@ def test_native_tf2_profiling(
     # Sanity check debugger output
     _verify_tensor_names(out_dir)
 
-    _verify_timeline_files(out_dir)
-
+    # Validate detailed profiling
     _verify_detailed_profiling(out_dir)
 
     # The expected number of stats directories during is (num_steps * 2) + 2. This includes profiling for both

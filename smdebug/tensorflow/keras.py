@@ -731,6 +731,9 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.prepared_tf2_collections = True
 
     def _stop_detailed_profiling(self, current_step=None):
+        """Stop detailed profiling if the TF profiler is supported in the current TF version and detailed profiling
+        was already started.
+        """
         if not is_profiler_supported_for_tf_version() or not self.is_detailed_profiling:
             return
 
@@ -746,6 +749,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.is_detailed_profiling = False
 
     def _handle_detailed_profiling(self, current_step):
+        """Handle detailed profiling for the step if the TF profiler is supported in the current TF version.
+
+        If detailed profiling has not been started and detailed profiling is enabled for the current step, then start
+        detailed profiling.
+
+        Otherwise, if detailed profiling was started and detailed profiling should not be enabled for the current
+        step, then stop detailed profiling.
+        """
         if not is_profiler_supported_for_tf_version():
             return
 
@@ -1363,16 +1374,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
         if self._is_not_supported():
             return
-
-        self.record_trace_events(
-            training_phase="Step:" + str(mode),
-            op_name="Step:" + str(mode),
-            phase="X",
-            timestamp=self.start,  # this is start time for step
-            duration=time.time() - self.start,
-            pid=os.getpid(),
-            step_num=str(self.mode_steps[mode]),
-        )
 
         self.profiler_config_parser.handle_step_end_python_profiling(mode, self.mode_steps[mode])
 
