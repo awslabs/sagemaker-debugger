@@ -98,6 +98,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
 
             self.tf_profiler = tf_profiler
         self._log_dir = None
+        self.is_detailed_profiling = False
         self.is_dataloader_profiling = False
         self.tf_profiler_start_time_in_micros = 0
         self.warm_up_completed = False
