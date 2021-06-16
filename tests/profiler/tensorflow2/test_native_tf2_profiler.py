@@ -151,6 +151,7 @@ def _verify_timeline_files(out_dir):
     "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
 )
 def test_native_tf2_profiling(
+    set_up_resource_config,
     python_profiler_name,
     model_type,
     tf2_mnist_sequential_model,
