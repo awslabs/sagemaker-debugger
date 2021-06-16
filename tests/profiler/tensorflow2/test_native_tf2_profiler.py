@@ -67,26 +67,30 @@ def _helper_native_tf2_gradtape(out_dir, model, dataset, profiler_config_parser)
     opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
 
-    for current_step, (data, labels) in enumerate(dataset):
-        with hook.profiler():
-            labels = tf.one_hot(labels, depth=10)
-            with tf.GradientTape() as tape:
-                logits = train_step(data, labels)
-                if start_step <= current_step < end_step:
-                    assert profiler_config_parser.python_profiler._start_step == current_step
-                    assert (
-                        profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
-                    )
-            grads = tape.gradient(logits, model.variables)
-            opt.apply_gradients(zip(grads, model.variables))
+    n_epochs = 3
 
-            hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
-            hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
-            hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
+    for _ in range(n_epochs):
+        for current_step, (data, labels) in enumerate(dataset):
+            with hook.profiler():
+                labels = tf.one_hot(labels, depth=10)
+                with tf.GradientTape() as tape:
+                    logits = train_step(data, labels)
+                    if start_step <= current_step < end_step:
+                        assert profiler_config_parser.python_profiler._start_step == current_step
+                        assert (
+                            profiler_config_parser.python_profiler._start_phase
+                            == StepPhase.STEP_START
+                        )
+                grads = tape.gradient(logits, model.variables)
+                opt.apply_gradients(zip(grads, model.variables))
 
-        if start_step <= current_step < end_step:
-            assert profiler_config_parser.python_profiler._start_step == current_step
-            assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_END
+                hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
+                hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
+                hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
+
+            if start_step <= current_step < end_step:
+                assert profiler_config_parser.python_profiler._start_step == current_step
+                assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_END
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling and collect post-hook-close Python profiling stats
     hook.profiling_end()
