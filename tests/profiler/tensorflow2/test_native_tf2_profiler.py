@@ -167,6 +167,11 @@ def test_native_tf2_profiling(
     mnist_dataset,
     tf_eager_mode,
 ):
+    import importlib
+    import tensorflow
+
+    importlib.reload(tensorflow)
+
     if model_type == ModelType.SEQUENTIAL:
         model = tf2_mnist_sequential_model
     elif model_type == ModelType.FUNCTIONAL:
