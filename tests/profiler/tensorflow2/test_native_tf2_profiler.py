@@ -1,5 +1,9 @@
 # Standard Library
+import json
 import os
+import time
+from datetime import datetime
+from pathlib import Path
 
 # Third Party
 import pytest
@@ -13,7 +17,15 @@ import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
-from smdebug.profiler.profiler_constants import CPROFILE_NAME, PYINSTRUMENT_NAME
+from smdebug.profiler.profiler_constants import (
+    CONVERT_TO_MICROSECS,
+    CPROFILE_NAME,
+    DEFAULT_PREFIX,
+    MODELTIMELINE_SUFFIX,
+    PYINSTRUMENT_NAME,
+    TENSORBOARDTIMELINE_SUFFIX,
+    TRACE_DIRECTORY_FORMAT,
+)
 from smdebug.profiler.python_profile_utils import StepPhase
 from smdebug.tensorflow import KerasHook as Hook
 
@@ -103,6 +115,31 @@ def _verify_tensor_names(out_dir):
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
+def _verify_timeline_files(out_dir):
+    """
+    This verifies the creation of the timeline files according to file path specification.
+    It reads backs the file contents to make sure it is in valid JSON format.
+    """
+    files = list(Path(os.path.join(out_dir, DEFAULT_PREFIX)).rglob("*.json"))
+
+    assert len(files) == 1
+
+    file = files[0]
+    file_ts = file.name.split("_")[0]
+    folder_name = file.parent.name
+    assert folder_name == time.strftime(
+        TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
+    )
+    assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
+        TRACE_DIRECTORY_FORMAT
+    )
+
+    with open(file) as timeline_file:
+        events_dict = json.load(timeline_file)
+
+    assert events_dict is not None
+
+
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
 @pytest.mark.parametrize(
     "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
@@ -119,6 +156,13 @@ def test_native_tf2_profiling(
     mnist_dataset,
     tf_eager_mode,
 ):
+    """
+    Enable all types of profiling and validate the output artfacts. Parametrizes on the type of Python
+    profiler used for Python profiling as well as the model used for training.
+
+    We cannot test dataloader profiling in pytest, because the resource config needs to be configured at
+    /opt/ml/input/config/resourceconfig.json before tensorflow is even imported.
+    """
     if model_type == ModelType.SEQUENTIAL:
         model = tf2_mnist_sequential_model
     elif model_type == ModelType.FUNCTIONAL:
@@ -139,6 +183,9 @@ def test_native_tf2_profiling(
 
     # Sanity check debugger output
     _verify_tensor_names(out_dir)
+
+    # Validate all timeline files
+    _verify_timeline_files(out_dir)
 
     # Validate detailed profiling
     verify_detailed_profiling(out_dir, 230)
