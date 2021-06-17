@@ -122,32 +122,25 @@ def _verify_timeline_files(out_dir):
     """
     This verifies the creation of the timeline files according to file path specification.
     It reads backs the file contents to make sure it is in valid JSON format.
-
-    To verify dataloader profiling, check to make sure that some of the created timeline files have the suffix
-    `model_timeline.json`.
     """
     files = list(Path(os.path.join(out_dir, DEFAULT_PREFIX)).rglob("*.json"))
 
-    assert len(files) >= 1
+    assert len(files) == 1
 
-    # Check that model timeline files were created for dataloader profiling
-    assert any([str(file).endswith(MODELTIMELINE_SUFFIX) for file in files])
+    file = files[0]
+    file_ts = file.name.split("_")[0]
+    folder_name = file.parent.name
+    assert folder_name == time.strftime(
+        TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
+    )
+    assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
+        TRACE_DIRECTORY_FORMAT
+    )
 
-    # Validate each timeline file
-    for file in files:
-        file_ts = file.name.split("_")[0]
-        folder_name = file.parent.name
-        assert folder_name == time.strftime(
-            TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
-        )
-        assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
-            TRACE_DIRECTORY_FORMAT
-        )
+    with open(file) as timeline_file:
+        events_dict = json.load(timeline_file)
 
-        with open(file) as timeline_file:
-            events_dict = json.load(timeline_file)
-
-        assert events_dict is not None
+    assert events_dict is not None
 
 
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
@@ -167,11 +160,13 @@ def test_native_tf2_profiling(
     mnist_dataset,
     tf_eager_mode,
 ):
-    import importlib
-    import tensorflow
+    """
+    Enable all types of profiling and validate the output artfacts. Parametrizes on the type of Python
+    profiler used for Python profiling as well as the model used for training.
 
-    importlib.reload(tensorflow)
-
+    We cannot test dataloader profiling in pytest, because the resource config needs to be configured at
+    /opt/ml/input/config/resourceconfig.json before tensorflow is even imported.
+    """
     if model_type == ModelType.SEQUENTIAL:
         model = tf2_mnist_sequential_model
     elif model_type == ModelType.FUNCTIONAL:
