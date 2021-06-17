@@ -5,6 +5,7 @@ import os
 import pytest
 import tensorflow as tf
 from tests.profiler.core.utils import validate_python_profiling_stats
+from tests.profiler.tensorflow2.utils import verify_detailed_profiling
 from tests.tensorflow2.utils import ModelType
 
 # First Party
@@ -15,9 +16,6 @@ from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.profiler.profiler_constants import CPROFILE_NAME, PYINSTRUMENT_NAME
 from smdebug.profiler.python_profile_utils import StepPhase
 from smdebug.tensorflow import KerasHook as Hook
-
-# Local
-from .utils import verify_detailed_profiling
 
 
 @pytest.fixture

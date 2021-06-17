@@ -3,14 +3,12 @@ import os
 
 # Third Party
 import pytest
+from tests.profiler.tensorflow2.utils import verify_detailed_profiling
 from tests.tensorflow2.test_keras import helper_keras_fit
 
 # First Party
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.tensorflow import KerasHook as Hook
-
-# Local
-from .utils import verify_detailed_profiling
 
 
 @pytest.fixture()
