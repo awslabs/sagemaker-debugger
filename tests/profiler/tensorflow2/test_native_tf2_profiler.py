@@ -5,6 +5,7 @@ import os
 import pytest
 import tensorflow as tf
 from tests.profiler.core.utils import validate_python_profiling_stats
+from tests.profiler.tensorflow2.utils import verify_detailed_profiling
 from tests.tensorflow2.utils import ModelType
 
 # First Party
@@ -12,13 +13,7 @@ import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
-from smdebug.profiler.profiler_constants import (
-    CPROFILE_NAME,
-    CPROFILE_STATS_FILENAME,
-    PYINSTRUMENT_HTML_FILENAME,
-    PYINSTRUMENT_JSON_FILENAME,
-    PYINSTRUMENT_NAME,
-)
+from smdebug.profiler.profiler_constants import CPROFILE_NAME, PYINSTRUMENT_NAME
 from smdebug.profiler.python_profile_utils import StepPhase
 from smdebug.tensorflow import KerasHook as Hook
 
@@ -144,6 +139,9 @@ def test_native_tf2_profiling(
 
     # Sanity check debugger output
     _verify_tensor_names(out_dir)
+
+    # Validate detailed profiling
+    verify_detailed_profiling(out_dir, 230)
 
     # The expected number of stats directories during is (num_steps * 2) + 2. This includes profiling for both
     # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
