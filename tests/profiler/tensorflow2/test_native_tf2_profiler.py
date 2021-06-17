@@ -1,6 +1,5 @@
 # Standard Library
 import os
-from pathlib import Path
 
 # Third Party
 import pytest
@@ -13,17 +12,12 @@ import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
-from smdebug.profiler.profiler_constants import (
-    CONVERT_TO_MICROSECS,
-    CPROFILE_NAME,
-    DEFAULT_PREFIX,
-    PYINSTRUMENT_NAME,
-    TENSORBOARDTIMELINE_SUFFIX,
-    TRACE_DIRECTORY_FORMAT,
-)
+from smdebug.profiler.profiler_constants import CPROFILE_NAME, PYINSTRUMENT_NAME
 from smdebug.profiler.python_profile_utils import StepPhase
-from smdebug.profiler.tf_profiler_parser import TensorboardProfilerEvents
 from smdebug.tensorflow import KerasHook as Hook
+
+# Local
+from .utils import verify_detailed_profiling
 
 
 @pytest.fixture
@@ -111,33 +105,6 @@ def _verify_tensor_names(out_dir):
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
 
 
-def _verify_detailed_profiling(out_dir):
-    """
-    This verifies the number of events when detailed profiling is enabled.
-    """
-    t_events = TensorboardProfilerEvents()
-
-    # get tensorboard timeline files
-    files = []
-
-    for path in Path(os.path.join(out_dir, "framework")).rglob(f"*{TENSORBOARDTIMELINE_SUFFIX}"):
-        files.append(path)
-
-    assert len(files) == 1
-
-    trace_file = str(files[0])
-    t_events.read_events_from_file(trace_file)
-
-    all_trace_events = t_events.get_all_events()
-    num_trace_events = len(all_trace_events)
-
-    print(f"Number of events read = {num_trace_events}")
-
-    # The number of events is varying by a small number on
-    # consecutive runs. Hence, the approximation in the below asserts.
-    assert num_trace_events >= 230
-
-
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
 @pytest.mark.parametrize(
     "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
@@ -176,7 +143,7 @@ def test_native_tf2_profiling(
     _verify_tensor_names(out_dir)
 
     # Validate detailed profiling
-    _verify_detailed_profiling(out_dir)
+    verify_detailed_profiling(out_dir, 230)
 
     # The expected number of stats directories during is (num_steps * 2) + 2. This includes profiling for both
     # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
