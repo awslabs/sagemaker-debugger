@@ -186,7 +186,7 @@ def test_native_tf2_profiling(
 
     # Validate all timeline files
     _verify_timeline_files(out_dir)
-    
+
     # Validate detailed profiling
     verify_detailed_profiling(out_dir, 230)
 
