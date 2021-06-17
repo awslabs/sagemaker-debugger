@@ -731,35 +731,39 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.prepared_tf2_collections = True
 
     def _start_dataloader_profiling(self):
-        """Start dataloader profiling. Write the TF dataloader start flag.
+        """Start dataloader profiling if dataloader profiling wasn't already started. Write the TF dataloader start flag.
 
         Sets `is_dataloader_profiling` to True if the flag was written successfully.
         """
-        if self.profiler_config_parser.write_tf_dataloader_flag(TF_DATALOADER_START_FLAG_FILENAME):
+        if (
+            not self.is_dataloader_profiling
+            and self.profiler_config_parser.write_tf_dataloader_flag(
+                TF_DATALOADER_START_FLAG_FILENAME
+            )
+        ):
             self.is_dataloader_profiling = True
 
     def _stop_dataloader_profiling(self):
-        """Stop dataloader profiling. Write the TF dataloader stop flag.
+        """Stop dataloader profiling if dataloader profiling was already started. Write the TF dataloader stop flag.
 
         Sets `is_dataloader_profiling` to False if the flag was written successfully.
         """
-        if self.profiler_config_parser.write_tf_dataloader_flag(TF_DATALOADER_END_FLAG_FILENAME):
+        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_END_FLAG_FILENAME
+        ):
             self.is_dataloader_profiling = False
 
     def _start_or_stop_dataloader_profiling(self, current_step):
         """Handle dataloader profiling for the step.
 
-        If dataloader profiling has not been started and dataloader profiling is enabled for the current step, then
-        start dataloader profiling.
-
-        Otherwise, if dataloader profiling was started and dataloader profiling should not be enabled for the current
-        step, then stop dataloader profiling.
+        If dataloader profiling is enabled for the current step, then start dataloader profiling. Otherwise, stop
+        dataloader profiling.
         """
         if self.profiler_config_parser.should_save_metrics(
             MetricsCategory.DATALOADER_PROFILING, current_step
         ):
             self._start_dataloader_profiling()
-        elif self.is_dataloader_profiling:
+        else:
             self._stop_dataloader_profiling()
 
     @error_handling_agent.catch_smdebug_errors()
