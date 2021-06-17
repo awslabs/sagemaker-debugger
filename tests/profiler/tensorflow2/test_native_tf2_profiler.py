@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 import tensorflow as tf
 from tests.profiler.core.utils import validate_python_profiling_stats
+from tests.profiler.tensorflow2.utils import verify_detailed_profiling
 from tests.tensorflow2.utils import ModelType
 
 # First Party
@@ -185,6 +186,9 @@ def test_native_tf2_profiling(
 
     # Validate all timeline files
     _verify_timeline_files(out_dir)
+    
+    # Validate detailed profiling
+    verify_detailed_profiling(out_dir, 230)
 
     # The expected number of stats directories during is (num_steps * 2) + 2. This includes profiling for both
     # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
