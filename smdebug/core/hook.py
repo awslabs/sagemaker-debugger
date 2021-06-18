@@ -40,6 +40,8 @@ from smdebug.core.save_config import SaveConfig, SaveConfigMode
 from smdebug.core.state_store import StateStore
 from smdebug.core.tfevent.timeline_file_writer import TimelineFileWriter
 from smdebug.core.utils import (
+    FRAMEWORK,
+    error_handling_agent,
     flatten,
     get_tb_worker,
     is_first_process,
@@ -94,6 +96,7 @@ class BaseHook:
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
+        profiler_config_parser: ProfilerConfigParser,
         init_step: int = 0,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -105,7 +108,6 @@ class BaseHook:
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
         include_workers: str = "one",
-        profiler_config_parser: Optional[ProfilerConfigParser] = None,
     ):
         """
         A class used to represent the hook which gets attached to the
@@ -153,6 +155,7 @@ class BaseHook:
         profiler_config_parser: ProfilerConfigParser object
             if passed, use this profiler configuration. by default, set up a new profiler configuration here.
         """
+        error_handling_agent.set_hook(self)  # This should be the first line in the constructor.
         self.out_dir = verify_and_get_out_dir(out_dir)
         self.tensorboard_dir = get_tensorboard_dir(
             export_tensorboard=export_tensorboard,
@@ -230,10 +233,8 @@ class BaseHook:
         self.mode_steps = {ModeKeys.GLOBAL: init_step}
         self.writer = None
 
-        if profiler_config_parser is None:
-            profiler_config_parser = ProfilerConfigParser()
-        profiler_config_parser.load_config()
         self.profiler_config_parser = profiler_config_parser
+        self.profiler_config_parser.load_config()
 
         self.timeline_writer = TimelineFileWriter(profiler_config_parser=profiler_config_parser)
         self.hvd_reader = None
@@ -332,6 +333,7 @@ class BaseHook:
         self._assert_prep()
         return self._collections_to_save
 
+    @error_handling_agent.catch_smdebug_errors(default_return_val=False)
     def _is_collection_being_saved_for_step(self, name):
         # if saving all, all collections will be part of colls_for_step
         colls_for_step = self._get_collections_to_save_for_step()
@@ -359,7 +361,7 @@ class BaseHook:
                 )
         return self._collections_to_save_for_step
 
-    def is_tensor_saved_for_step(self, tensor_name):
+    def _is_tensor_saved_for_step(self, tensor_name):
         collections_to_save = self._get_collections_to_save_for_step()
         for c in collections_to_save:
             if match_inc(tensor_name, c.include_regex):
@@ -387,13 +389,20 @@ class BaseHook:
     def _get_default_collections(self):
         pass
 
-    def has_default_hook_configuration(self):
+    def has_default_hook_configuration(self, default_saved_collections=DEFAULT_SAVED_COLLECTIONS):
         # Used in the internal framework forks to determine if the hook
         # is using the default hook configuration
+        if not self.prepared_collections:
+            self._prepare_collections()
+
         collections_being_saved = [x.name for x in self._collections_to_save]
-        if set(collections_being_saved) == set(DEFAULT_SAVED_COLLECTIONS):
-            return True
-        return False
+        return set(collections_being_saved) == set(default_saved_collections)
+
+    def _has_default_profiler_configuration(self):
+        return self.profiler_config_parser.config is None
+
+    def has_default_configuration(self):
+        return self.has_default_hook_configuration() and self._has_default_profiler_configuration()
 
     def _prepare_collections(self):
         """Populate collections_to_save and ensure every collection has
@@ -573,6 +582,7 @@ class BaseHook:
 
     # Called in the internal AWS codebase to determine
     # if a particular tensor value should be saved
+    @error_handling_agent.catch_smdebug_errors()
     def should_save_tensor_or_collection(self, tensor_name: str, collection_name: str) -> bool:
         if self.prepared_collections is False:
             # always return false if an attempt to save a
@@ -588,7 +598,7 @@ class BaseHook:
         if self._is_collection_being_saved_for_step(collection_name):
             c = self.collection_manager.get(collection_name)
             return match_inc(tensor_name, c.include_regex) or c.include_regex == []
-        return self.is_tensor_saved_for_step(tensor_name)
+        return self._is_tensor_saved_for_step(tensor_name)
 
     def _write_state(self):
         if self.state_store.is_checkpoint_updated():
@@ -727,6 +737,7 @@ class BaseHook:
                     )
                     break
 
+    @error_handling_agent.catch_smdebug_errors()
     def record_trace_events(
         self, timestamp, training_phase="", op_name="", phase="X", duration=1, **kwargs
     ):
@@ -984,6 +995,7 @@ class CallbackHook(BaseHook):
         self,
         collection_manager: CollectionManager,
         default_include_collections: List[str],
+        profiler_config_parser: ProfilerConfigParser,
         data_type_name: Optional[str] = None,
         out_dir: Optional[str] = None,
         export_tensorboard: bool = False,
@@ -995,7 +1007,6 @@ class CallbackHook(BaseHook):
         include_collections: Optional[List[str]] = None,
         save_all: bool = False,
         include_workers: str = "one",
-        profiler_config_parser=None,
     ):
         super().__init__(
             collection_manager=collection_manager,

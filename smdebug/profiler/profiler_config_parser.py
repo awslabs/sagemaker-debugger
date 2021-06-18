@@ -7,7 +7,8 @@ from enum import Enum
 # First Party
 from smdebug.core.json_config import get_node_id_from_resource_config
 from smdebug.core.logger import get_logger
-from smdebug.core.utils import is_first_process
+from smdebug.core.modes import ModeKeys
+from smdebug.core.utils import FRAMEWORK, is_first_process
 from smdebug.profiler.profiler_config import ProfilerConfig
 from smdebug.profiler.profiler_constants import (
     BASE_FOLDER_DEFAULT,
@@ -16,6 +17,8 @@ from smdebug.profiler.profiler_constants import (
     FILE_OPEN_FAIL_THRESHOLD_DEFAULT,
     MAX_FILE_SIZE_DEFAULT,
 )
+from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
+from smdebug.profiler.python_profiler import PythonProfiler
 
 
 class LastProfilingStatus(Enum):
@@ -70,12 +73,13 @@ class ProfilerConfigParser:
     """Load the configuration file for the Profiler.
     Also set the provided values for the specified variables and default values for the rest.
 
-    TODO: Poll for changes in the config by repeatedly calling `load_config`.
+    NOTE: This class should not be instantiated directly, it must be retrieved through `get_profiler_config_parser`.
     """
 
-    def __init__(self):
+    def __init__(self, framework=None):
         """Initialize the parser to be disabled for profiling and detailed profiling.
         """
+        self.framework = framework
         self.last_json_config = None
         self.config = None
         self.profiling_enabled = False
@@ -83,6 +87,11 @@ class ProfilerConfigParser:
         self.last_logging_statuses = defaultdict(lambda: False)
         self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()
+        self.python_profiler = (
+            PythonProfiler.get_python_profiler(self.config, self.framework)
+            if self.is_python_profiling_enabled()
+            else None
+        )
 
     def _reset_statuses(self):
         """Set the last logging statuses to be the current logging statuses and reset the current logging statuses.
@@ -244,6 +253,13 @@ class ProfilerConfigParser:
             smdataparallel_profiling_config,
         )
 
+        # Validate the profiler config based on current training job configuration. Currently, we are disabling the
+        # autograd based detailed profiling for model parallel training job.
+        # Importing ConfigValidator here to avoid circular dependency.
+        from smdebug.core.config_validator import ConfigValidator
+
+        ConfigValidator.validate_profiler_config(self)
+
         if self.config.detailed_profiling_config.error_message is not None:
             self._log_new_message(
                 LastProfilingStatus.INVALID_DETAILED_CONFIG_FIELDS,
@@ -324,3 +340,92 @@ class ProfilerConfigParser:
             return False
 
         return success
+
+    def is_python_profiling_enabled(self):
+        return self.profiling_enabled and self.config.python_profiling_config.is_enabled()
+
+    def _handle_step_python_profiling(self, step_phase: StepPhase, mode: ModeKeys, current_step):
+        """Handle python profiling at the given step phase, mode and step by stopping python profiling and
+        starting python profiling again if python profiling is enabled and python profiling stats should be saved
+        for the current step.
+        """
+        if not self.is_python_profiling_enabled():
+            return
+
+        self.python_profiler.stop_profiling(
+            step_phase, end_mode=mode_keys_to_python_profile_mode(mode), end_step=current_step
+        )
+
+        if self.should_save_metrics(MetricsCategory.PYTHON_PROFILING, current_step):
+            self.python_profiler.start_profiling(
+                step_phase,
+                start_mode=mode_keys_to_python_profile_mode(mode),
+                start_step=current_step,
+            )
+
+    def start_pre_step_zero_python_profiling(self):
+        """Start pre-step zero python profiling if python profiling is enabled.
+        """
+        if not self.is_python_profiling_enabled():
+            return
+
+        return self.python_profiler.start_profiling(StepPhase.START)
+
+    def handle_step_start_python_profiling(self, mode: ModeKeys, current_step):
+        """Handle python profiling at the start of the step with the given mode and step by stopping python profiling
+        and starting python profiling again if python profiling stats should be saved for the current step.
+        """
+        return self._handle_step_python_profiling(StepPhase.STEP_START, mode, current_step)
+
+    def handle_step_end_python_profiling(self, mode: ModeKeys, current_step):
+        """Handle python profiling at the end of the step with the given mode and step by stopping python profiling
+        and starting python profiling again if python profiling stats should be saved for the current step.
+        """
+        return self._handle_step_python_profiling(StepPhase.STEP_END, mode, current_step)
+
+    def handle_forward_pass_end_python_profiling(self, mode: ModeKeys, current_step):
+        """Handle python profiling at the end of the forward pass with the given mode and step by stopping python
+        profiling and starting python profiling again if python profiling stats should be saved for the current step.
+        """
+        return self._handle_step_python_profiling(StepPhase.FORWARD_PASS_END, mode, current_step)
+
+    def start_post_hook_close_python_profiling(self):
+        """Start post-hook-close python profiling if python profiling is enabled.
+        """
+        if not self.is_python_profiling_enabled():
+            return
+
+        return self.python_profiler.start_profiling(StepPhase.END)
+
+    def stop_post_hook_close_python_profiling(self):
+        """Stop post-hook-close python profiling if python profiling is enabled.
+        """
+        if not self.is_python_profiling_enabled():
+            return
+
+        return self.python_profiler.stop_profiling(StepPhase.END)
+
+
+_profiler_config_parser = None
+
+
+def get_profiler_config_parser(framework: FRAMEWORK):
+    """
+    Create a global profiler config parser object. This object loads the profiler config file and creates an
+    ProfilerConfig object if it doesn't already exist. Takes in the framework being used as an argument.
+    :return:
+    """
+    global _profiler_config_parser
+    if _profiler_config_parser is None:
+        _profiler_config_parser = ProfilerConfigParser(framework=framework)
+    return _profiler_config_parser
+
+
+def reset_profiler_config_parser():
+    """
+    The function resets the profiler config parser object.
+    This is necessary for test framework.
+    :return:
+    """
+    global _profiler_config_parser
+    _profiler_config_parser = None

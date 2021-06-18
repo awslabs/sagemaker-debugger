@@ -9,7 +9,7 @@ from smdebug.profiler.profiler_constants import (
     PROFILING_NUM_STEPS_DEFAULT,
     PYINSTRUMENT_NAME,
 )
-from smdebug.profiler.python_profiler import cProfileTimer
+from smdebug.profiler.python_profile_utils import cProfileTimer
 
 
 class MetricsConfigsField(Enum):
@@ -116,6 +116,10 @@ class ProfileRange:
         if current_time is None:
             current_time = time.time()
         if self.has_step_range():
+            # pre-step zero or post-hook-close Python profiling
+            if current_step == "*":
+                return True
+
             if self.start_step is None:
                 self.start_step = current_step
             if self.num_steps is None:

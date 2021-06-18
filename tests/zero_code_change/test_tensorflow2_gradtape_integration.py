@@ -17,6 +17,7 @@ from tests.tensorflow2.utils import is_tf_2_2
 
 # First Party
 import smdebug.tensorflow as smd
+from smdebug.core.logger import get_logger
 from smdebug.core.utils import SagemakerSimulator
 
 
@@ -27,6 +28,69 @@ def get_keras_data():
     return (x_train, y_train), (x_test, y_test)
 
 
+def helper_keras_gradienttape_train(script_mode: bool = False, json_file_contents="{}", sim=None):
+    logger = get_logger()
+    model = tf.keras.models.Sequential(
+        [
+            tf.keras.layers.Flatten(input_shape=(28, 28, 1)),  # WA for TF issue #36279
+            tf.keras.layers.Dense(128, activation="relu"),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(10, activation="softmax"),
+        ]
+    )
+    (x_train, y_train), _ = get_keras_data()
+    dataset = tf.data.Dataset.from_tensor_slices(
+        (tf.cast(x_train[..., tf.newaxis] / 255, tf.float32), tf.cast(y_train, tf.int64))
+    )
+    dataset = dataset.shuffle(1000).batch(64)
+
+    opt = tf.keras.optimizers.RMSprop()
+    cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+    train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
+    n_epochs = 1
+    if script_mode:
+        if json_file_contents == "{}":
+            hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
+        else:
+            hook = smd.KerasHook.create_from_json_file()
+
+        for epoch in range(n_epochs):
+            logger.info("Epoch %d/%d" % (epoch + 1, n_epochs))
+            for data, labels in dataset:
+                dataset_labels = labels
+                labels = tf.one_hot(labels, depth=10)
+                with hook.wrap_tape(tf.GradientTape()) as tape:
+                    logits = model(data, training=True)  # (32,10)
+                    loss_value = cce(labels, logits)
+                grads = tape.gradient(loss_value, model.variables)
+                opt.apply_gradients(zip(grads, model.variables))
+                acc = train_acc_metric(dataset_labels, logits)
+                hook.save_tensor(
+                    tensor_name="accuracy", tensor_value=acc, collections_to_write="metrics"
+                )
+            log = "Epoch %d " % (epoch + 1)
+            log += "Accuracy %.4f" % train_acc_metric.result()
+            logger.info(log)
+            train_acc_metric.reset_states()
+    else:
+        # ZCC support added from smdebug v0.8.0)
+        for epoch in range(n_epochs):
+            logger.info("Epoch %d/%d" % (epoch + 1, n_epochs))
+            for data, labels in dataset:
+                dataset_labels = labels
+                labels = tf.one_hot(labels, depth=10)
+                with tf.GradientTape(persistent=True) as tape:
+                    logits = model(data, training=True)  # (32,10)
+                    loss_value = cce(labels, logits)
+                grads = tape.gradient(loss_value, model.variables)
+                opt.apply_gradients(zip(grads, model.variables))
+                acc = train_acc_metric(dataset_labels, logits)
+            log = "Epoch %d " % (epoch + 1)
+            log += "Accuracy %.4f" % train_acc_metric.result()
+            logger.info(log)
+            train_acc_metric.reset_states()
+
+
 def helper_test_keras_v2_gradienttape(
     script_mode: bool = False, json_file_contents="{}", default=False
 ):
@@ -35,49 +99,12 @@ def helper_test_keras_v2_gradienttape(
     tf.keras.backend.clear_session()
 
     with SagemakerSimulator(json_file_contents=json_file_contents) as sim:
-        model = tf.keras.models.Sequential(
-            [
-                tf.keras.layers.Flatten(input_shape=(28, 28, 1)),  # WA for TF issue #36279
-                tf.keras.layers.Dense(128, activation="relu"),
-                tf.keras.layers.Dropout(0.2),
-                tf.keras.layers.Dense(10, activation="softmax"),
-            ]
+        helper_keras_gradienttape_train(
+            script_mode=script_mode, json_file_contents=json_file_contents, sim=sim
         )
-        (x_train, y_train), _ = get_keras_data()
-        dataset = tf.data.Dataset.from_tensor_slices(
-            (tf.cast(x_train[..., tf.newaxis] / 255, tf.float32), tf.cast(y_train, tf.int64))
-        )
-        dataset = dataset.shuffle(1000).batch(64)
+        hook = smd.get_hook()
 
-        opt = tf.keras.optimizers.RMSprop()
-        cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-        train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
-        n_epochs = 1
         if script_mode:
-            if json_file_contents == "{}":
-                hook = smd.KerasHook(out_dir=sim.out_dir, export_tensorboard=True)
-            else:
-                hook = smd.KerasHook.create_from_json_file()
-
-            for epoch in range(n_epochs):
-                print("Epoch %d/%d" % (epoch + 1, n_epochs))
-                for data, labels in dataset:
-                    dataset_labels = labels
-                    labels = tf.one_hot(labels, depth=10)
-                    with hook.wrap_tape(tf.GradientTape()) as tape:
-                        logits = model(data, training=True)  # (32,10)
-                        loss_value = cce(labels, logits)
-                    grads = tape.gradient(loss_value, model.variables)
-                    opt.apply_gradients(zip(grads, model.variables))
-                    acc = train_acc_metric(dataset_labels, logits)
-                    hook.save_tensor(
-                        tensor_name="accuracy", tensor_value=acc, collections_to_write="metrics"
-                    )
-                log = "Epoch %d " % (epoch + 1)
-                log += "Accuracy %.4f" % train_acc_metric.result()
-                print(log)
-                train_acc_metric.reset_states()
-            hook = smd.get_hook()
             assert hook
             if default:
                 assert hook.has_default_hook_configuration()
@@ -88,23 +115,6 @@ def helper_test_keras_v2_gradienttape(
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
         else:
-            # ZCC support added from smdebug v0.8.0)
-            for epoch in range(n_epochs):
-                print("Epoch %d/%d" % (epoch + 1, n_epochs))
-                for data, labels in dataset:
-                    dataset_labels = labels
-                    labels = tf.one_hot(labels, depth=10)
-                    with tf.GradientTape(persistent=True) as tape:
-                        logits = model(data, training=True)  # (32,10)
-                        loss_value = cce(labels, logits)
-                    grads = tape.gradient(loss_value, model.variables)
-                    opt.apply_gradients(zip(grads, model.variables))
-                    acc = train_acc_metric(dataset_labels, logits)
-                log = "Epoch %d " % (epoch + 1)
-                log += "Accuracy %.4f" % train_acc_metric.result()
-                print(log)
-                train_acc_metric.reset_states()
-            hook = smd.get_hook()
             if version.parse(tf.__version__) < version.parse("2.1.2"):
                 assert not hook  # only supported on TF 2.1.2 and greater
                 return

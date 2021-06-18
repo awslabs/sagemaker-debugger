@@ -14,7 +14,8 @@ from smdebug.core.collection import DEFAULT_XGBOOST_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig
-from smdebug.core.utils import make_numpy_array
+from smdebug.core.utils import FRAMEWORK, error_handling_agent, make_numpy_array
+from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.xgboost.singleton_utils import set_hook
 
 # Local
@@ -29,9 +30,13 @@ DEFAULT_SAVE_CONFIG_END_STEP = None
 DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 
 
+profiler_config_parser = get_profiler_config_parser(FRAMEWORK.XGBOOST)
+
+
 class Hook(CallbackHook):
     """Hook that represents a callback function in XGBoost."""
 
+    @error_handling_agent.catch_smdebug_errors()
     def __init__(
         self,
         out_dir: Optional[str] = None,
@@ -88,6 +93,7 @@ class Hook(CallbackHook):
         super().__init__(
             collection_manager=collection_manager,
             default_include_collections=DEFAULT_INCLUDE_COLLECTIONS,
+            profiler_config_parser=profiler_config_parser,
             data_type_name=None,
             out_dir=out_dir,
             export_tensorboard=export_tensorboard,
@@ -110,6 +116,7 @@ class Hook(CallbackHook):
         self._full_shap_values = None
         set_hook(self)
 
+    @error_handling_agent.catch_smdebug_errors()
     def __call__(self, env: CallbackEnv) -> None:
         self._callback(env)
 
@@ -118,6 +125,11 @@ class Hook(CallbackHook):
 
     def _get_worker_name(self):
         return "worker_{}".format(xgb.rabit.get_rank())
+
+    def has_default_hook_configuration(self):
+        return super().has_default_hook_configuration(
+            default_saved_collections=DEFAULT_INCLUDE_COLLECTIONS
+        )
 
     @classmethod
     def create_from_json_file(cls, json_file_path=None):

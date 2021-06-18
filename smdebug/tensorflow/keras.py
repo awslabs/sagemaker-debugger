@@ -1,5 +1,6 @@
 # Standard Library
 import atexit
+import contextlib
 import functools
 import os
 import time
@@ -13,22 +14,20 @@ from tensorflow.python.util import nest
 # First Party
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
-from smdebug.core.utils import match_inc
+from smdebug.core.utils import FRAMEWORK, error_handling_agent, match_inc
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
-from smdebug.profiler.profiler_config_parser import MetricsCategory, ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import MetricsCategory
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     TF_DATALOADER_END_FLAG_FILENAME,
     TF_DATALOADER_START_FLAG_FILENAME,
 )
-from smdebug.profiler.python_profile_utils import StepPhase, mode_keys_to_python_profile_mode
-from smdebug.profiler.python_profiler import PythonProfiler
 from smdebug.profiler.utils import stop_tf_profiler
 from smdebug.tensorflow.callable_cache import CallableCache
 from smdebug.tensorflow.utils import InputOutputSaver, get_layer_call_fn
 
 # Local
-from .base_hook import TensorflowBaseHook
+from .base_hook import TensorflowBaseHook, profiler_config_parser
 from .collection import CollectionKeys
 from .constants import SMDEBUG_GRADIENTS_KEY, SMDEBUG_LAYER_OUTPUTS_KEY, SMDEBUG_PREFIX
 from .tensor_ref import TensorRef, get_tf_names
@@ -49,18 +48,12 @@ from .utils import (
     supported_tf_variables,
 )
 
-python_profiler = None
-
 # Enable python profiling if profiling is enabled.
-profiler_config_parser = ProfilerConfigParser()
-if profiler_config_parser.profiling_enabled:
-    config = profiler_config_parser.config
-    if config.python_profiling_config.is_enabled():
-        python_profiler = PythonProfiler.get_python_profiler(config, "tensorflow")
-        python_profiler.start_profiling(StepPhase.START)
+profiler_config_parser.start_pre_step_zero_python_profiling()
 
 
 class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
+    @error_handling_agent.catch_smdebug_errors()
     def __init__(
         self,
         out_dir,
@@ -87,7 +80,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             include_collections=include_collections,
             save_all=save_all,
             include_workers=include_workers,
-            profiler_config_parser=profiler_config_parser,
         )
         tf.keras.callbacks.Callback.__init__(self)
         self.tensor_refs_to_save_this_step = set()
@@ -119,9 +111,14 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # the the step was already incremented in the on_train_begin callback
         self.step_incremented_in_on_train_begin = False
         self.has_logged_unsupported_tensors_in_non_eager_execution = False
+        self.prepared_tf2_collections = False
+        self.prepared_gradient_tape_collections = False
+        # this flag indicates whether profiling is enabled for native TF2 training
+        self.is_profiler_enabled_for_native_training = False
+        # this flag indicates whether the hook has been closed or not
+        self.is_hook_closed = False
 
-        if python_profiler:
-            atexit.register(python_profiler.stop_profiling, StepPhase.END)
+        atexit.register(self.profiling_end)
 
     def _is_not_supported(self):
         if self.distribution_strategy is None:
@@ -162,6 +159,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._hook_supported = False
         return not self._hook_supported
 
+    @error_handling_agent.catch_smdebug_errors()
     def register_model(self, model):
         # This function is called by the hook in the AWS TF codebase
         # It attaches a hook to every layer of the model to capture
@@ -475,6 +473,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._save_tensor_to_file(tensor_name, tensor_value, collection_names)
         self.custom_tensors_to_save.clear()
 
+    @error_handling_agent.catch_smdebug_errors()
     def should_save_layer(self, layer_name):
         # Called in AWS TF to determine
         # if a particular layer value
@@ -509,7 +508,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 collection.set_tensor_ref(tensor_ref)
             self._save_for_tensor(tensor_name, t, check_before_write=True)
 
-    def save_gradients_from_logs(self, gradients):
+    def _save_gradients_from_logs(self, gradients):
         if gradients is not None:
             gradient_collection = self.get_collection(CollectionKeys.GRADIENTS)
             step_collections = self._get_collections_to_save_for_step()
@@ -550,6 +549,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         else:
             self._save_tensor_to_file(prefix, tensors_to_save, collections_to_write)
 
+    @error_handling_agent.catch_smdebug_errors()
     def save_smdebug_logs(self, logs):
         if logs is None:
             return
@@ -567,7 +567,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     )
                 # Save Gradients
                 elif key == SMDEBUG_GRADIENTS_KEY:
-                    self.save_gradients_from_logs(logs[key])
+                    self._save_gradients_from_logs(logs[key])
                 # Save Intermediate Layers
                 elif key == SMDEBUG_LAYER_OUTPUTS_KEY:
                     self._save_layer_values(logs[key])
@@ -728,10 +728,98 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self.has_default_hook_configuration():
             # wrapping the model is only supported if the hook does not have the default hook configuration
             self._unwrap_model_with_input_output_saver()
+        self.prepared_tf2_collections = True
 
+    def _start_detailed_profiling(self, current_step):
+        """Start detailed profiling if the TF profiler is supported in the current TF version and detailed profiling
+        wasn't already started.
+        """
+        if not is_profiler_supported_for_tf_version() or self.is_detailed_profiling:
+            return
+
+        self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
+            self.profiler_config_parser.config.local_path,
+            FRAMEWORK.TENSORFLOW.value,
+            self.mode_steps[ModeKeys.TRAIN],
+        )
+        self.logger.info(f"Enabling TF profiler on step: = {current_step}")
+        if not self.warm_up_completed:
+            # warming up profiler before it will be profiling.
+            self.tf_profiler.warmup()
+            self.warm_up_completed = True
+        self.tf_profiler.start(self._log_dir)
+        self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
+        self.is_detailed_profiling = True
+
+    def _stop_detailed_profiling(self, current_step):
+        """Stop detailed profiling if the TF profiler is supported in the current TF version and detailed profiling
+        was already started.
+        """
+        if not is_profiler_supported_for_tf_version() or not self.is_detailed_profiling:
+            return
+
+        self.logger.info(f"Disabling TF profiler on step: ={current_step}")
+        stop_tf_profiler(
+            tf_profiler=self.tf_profiler,
+            log_dir=self._log_dir,
+            start_time_us=self.tf_profiler_start_time_in_micros,
+        )
+        self.is_detailed_profiling = False
+
+    def _start_or_stop_detailed_profiling(self, current_step):
+        """Handle detailed profiling for the step.
+
+        If detailed profiling should be enabled for the current step, then start detailed profiling. Otherwise, stop
+        detailed profiling.
+        """
+        if self.profiler_config_parser.should_save_metrics(
+            MetricsCategory.DETAILED_PROFILING, current_step
+        ):
+            self._start_detailed_profiling(current_step)
+        else:
+            self._stop_detailed_profiling(current_step)
+
+    def _start_dataloader_profiling(self):
+        """Start dataloader profiling if dataloader profiling wasn't already started. Write the TF dataloader start flag.
+
+        Sets `is_dataloader_profiling` to True if the flag was written successfully.
+        """
+        if (
+            not self.is_dataloader_profiling
+            and self.profiler_config_parser.write_tf_dataloader_flag(
+                TF_DATALOADER_START_FLAG_FILENAME
+            )
+        ):
+            self.is_dataloader_profiling = True
+
+    def _stop_dataloader_profiling(self):
+        """Stop dataloader profiling if dataloader profiling was already started. Write the TF dataloader stop flag.
+
+        Sets `is_dataloader_profiling` to False if the flag was written successfully.
+        """
+        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
+            TF_DATALOADER_END_FLAG_FILENAME
+        ):
+            self.is_dataloader_profiling = False
+
+    def _start_or_stop_dataloader_profiling(self, current_step):
+        """Handle dataloader profiling for the step.
+
+        If dataloader profiling is enabled for the current step, then start dataloader profiling. Otherwise, stop
+        dataloader profiling.
+        """
+        if self.profiler_config_parser.should_save_metrics(
+            MetricsCategory.DATALOADER_PROFILING, current_step
+        ):
+            self._start_dataloader_profiling()
+        else:
+            self._stop_dataloader_profiling()
+
+    @error_handling_agent.catch_smdebug_errors()
     def on_epoch_begin(self, batch, logs=None):
         pass
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_epoch_end(self, batch, logs=None):
         if self._is_not_supported():
             return
@@ -751,7 +839,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.graph = tf.get_default_graph()
         self.set_mode(mode)
 
-        if self.prepared_collections is False and is_tf_version_2_3_x():
+        if self.prepared_tf2_collections is False and is_tf_version_2_3_x():
             # Addresses ordering issues in TF 2.3.0
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
@@ -761,50 +849,34 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         # have to clear callable cache if we are not caching per mode
         self.callable_cache.change_mode()
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_train_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.TRAIN)
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_test_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.EVAL)
 
     def _on_any_mode_end(self, mode):
-        if python_profiler:
-            python_profiler.stop_profiling(
-                StepPhase.STEP_END,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            python_profiler.start_profiling(
-                StepPhase.STEP_END,
-                start_mode=mode_keys_to_python_profile_mode(mode),
-                start_step=self.mode_steps[mode],
-            )
+        self.profiler_config_parser.handle_step_end_python_profiling(mode, self.mode_steps[mode])
+        self._stop_dataloader_profiling()
 
-        if self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
-
+    @error_handling_agent.catch_smdebug_errors()
     def on_train_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.TRAIN)
+        self._stop_detailed_profiling(self.mode_steps[self.mode])
 
-        if is_profiler_supported_for_tf_version() and self.is_detailed_profiling:
-            self.logger.info("Disabling profiler, reached end of training.")
-            stop_tf_profiler(
-                tf_profiler=self.tf_profiler,
-                log_dir=self._log_dir,
-                start_time_us=self.tf_profiler_start_time_in_micros,
-            )
-            self.is_detailed_profiling = False
-
+    @error_handling_agent.catch_smdebug_errors()
     # throws error in keras if this fn is absent
     def on_test_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.EVAL)
 
+    @error_handling_agent.catch_smdebug_errors()
     # throws error in keras if this fn is absent
     def on_predict_end(self, logs=None):
         self._on_any_mode_end(ModeKeys.PREDICT)
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_predict_begin(self, logs=None):
         self._on_any_mode_begin(ModeKeys.PREDICT)
 
@@ -846,34 +918,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self.step_incremented_in_on_train_begin = False
 
         self.profiler_config_parser.load_config()
+        self.profiler_config_parser.handle_step_start_python_profiling(mode, self.mode_steps[mode])
+        self._start_or_stop_dataloader_profiling(self.mode_steps[mode])
 
-        if self.profiler_config_parser.should_save_metrics(
-            MetricsCategory.DATALOADER_PROFILING, self.mode_steps[mode]
-        ) and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_START_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = True
-        elif self.is_dataloader_profiling and self.profiler_config_parser.write_tf_dataloader_flag(
-            TF_DATALOADER_END_FLAG_FILENAME
-        ):
-            self.is_dataloader_profiling = False
-
-        if python_profiler:
-            python_profiler.stop_profiling(
-                StepPhase.STEP_START,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
-            ):
-                python_profiler.start_profiling(
-                    StepPhase.STEP_START,
-                    start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
-                )
-
-        if self.prepared_collections is False:
+        if self.prepared_tf2_collections is False:
             # sets prepared_collections to True here
             self._prepare_collections_for_tf2()
 
@@ -902,43 +950,16 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             if not is_tf_version_2x() or (is_tf_version_2x() and not tf.executing_eagerly()):
                 self._add_callbacks(mode)
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_train_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.TRAIN, logs=logs)
+        self._start_or_stop_detailed_profiling(self.mode_steps[self.mode])
 
-        if is_profiler_supported_for_tf_version():
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.DETAILED_PROFILING, self.mode_steps[ModeKeys.TRAIN]
-            ):
-                if not self.is_detailed_profiling:
-                    self._log_dir = TraceFileLocation.get_detailed_profiling_log_dir(
-                        self.profiler_config_parser.config.local_path,
-                        "tensorflow",
-                        self.mode_steps[ModeKeys.TRAIN],
-                    )
-                    self.logger.info(
-                        f"Enabling TF profiler on step: = {self.mode_steps[ModeKeys.TRAIN]}"
-                    )
-                    if not self.warm_up_completed:
-                        # warming up profiler before it will be profiling.
-                        self.tf_profiler.warmup()
-                        self.warm_up_completed = True
-                    self.tf_profiler.start(self._log_dir)
-                    self.tf_profiler_start_time_in_micros = time.time() * CONVERT_TO_MICROSECS
-                    self.is_detailed_profiling = True
-            elif self.is_detailed_profiling:
-                self.logger.info(
-                    f"Disabling TF profiler on step: ={self.mode_steps[ModeKeys.TRAIN]}"
-                )
-                stop_tf_profiler(
-                    tf_profiler=self.tf_profiler,
-                    log_dir=self._log_dir,
-                    start_time_us=self.tf_profiler_start_time_in_micros,
-                )
-                self.is_detailed_profiling = False
-
+    @error_handling_agent.catch_smdebug_errors()
     def on_test_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.EVAL, logs=logs)
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_predict_batch_begin(self, batch, logs=None):
         self._on_any_batch_begin(batch, ModeKeys.PREDICT, logs=logs)
 
@@ -1044,27 +1065,17 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._export_model()
                 self._exported_model[self.mode] = True
 
-        if python_profiler:
-            python_profiler.stop_profiling(
-                StepPhase.STEP_END,
-                end_mode=mode_keys_to_python_profile_mode(mode),
-                end_step=self.mode_steps[mode],
-            )
-            if self.profiler_config_parser.should_save_metrics(
-                MetricsCategory.PYTHON_PROFILING, self.mode_steps[mode]
-            ):
-                python_profiler.start_profiling(
-                    StepPhase.STEP_END,
-                    start_mode=mode_keys_to_python_profile_mode(mode),
-                    start_step=self.mode_steps[mode],
-                )
+        self.profiler_config_parser.handle_step_end_python_profiling(mode, self.mode_steps[mode])
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_train_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.TRAIN, logs=logs)
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_test_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.EVAL, logs=logs)
 
+    @error_handling_agent.catch_smdebug_errors()
     def on_predict_batch_end(self, batch, logs=None):
         self._on_any_batch_end(batch, ModeKeys.PREDICT, logs=logs)
 
@@ -1137,14 +1148,10 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.tape.__class__._pop_tape = unwrap(self.tape.__class__._pop_tape)
         self.tape.__class__.gradient = unwrap(self.tape.__class__.gradient)
 
+    @error_handling_agent.catch_smdebug_errors()
     def close(self):
         self._cleanup()
-        if python_profiler:
-            python_profiler.start_profiling(
-                StepPhase.STEP_END,
-                start_mode=mode_keys_to_python_profile_mode(self.mode),
-                start_step=self.mode_steps[self.mode],
-            )
+        self.profiler_config_parser.start_post_hook_close_python_profiling()
 
     def _cleanup(self):
         # Unwrap the tape before closing
@@ -1159,7 +1166,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         increment step.
         """
 
+        def default_callback(*args, **kwargs):
+            """
+            Only call the original push tape if it isn't already recording.
+            """
+            if not self.tape._recording:
+                return function(*args, **kwargs)
+
         @functools.wraps(function)
+        @error_handling_agent.catch_smdebug_errors(default_return_val=default_callback)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1171,7 +1186,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self._save_custom_tensors_post_step()
                 self._close_writers()
 
-            if not self.prepared_collections:
+            if not self.prepared_gradient_tape_collections:
                 # at this point we need all collections to be ready
                 # this may not be the case at creation of hook
                 # as user's code after hook might add collections
@@ -1181,7 +1196,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 self.collection_manager.get(CollectionKeys.LOSSES).include(".*loss.*")
                 self.collection_manager.get(CollectionKeys.GRADIENTS).include("^gradient")
                 self._prepare_collections_for_tf2()
-                self.prepared_collections = True
+                self.prepared_gradient_tape_collections = True
 
             self._increment_step()
 
@@ -1207,6 +1222,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         """
 
         @functools.wraps(function)
+        @error_handling_agent.catch_smdebug_errors(default_return_val=function)
         def run(*args, **kwargs):
             grads = function(*args, **kwargs)
             if self._is_not_supported():
@@ -1266,7 +1282,15 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         Using this to export collections
         """
 
+        def default_callback(*args, **kwargs):
+            """
+            Only call the original pop tape if it is already recording.
+            """
+            if self.tape._recording:
+                return function(*args, **kwargs)
+
         @functools.wraps(function)
+        @error_handling_agent.catch_smdebug_errors(default_return_val=default_callback)
         def run(*args, **kwargs):
             function(*args, **kwargs)
             if self._is_not_supported():
@@ -1295,37 +1319,35 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             self._log_unsupported_tensors_in_non_eager_execution()
 
     def wrap_tape(self, tape):
-        """
-        Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
-        variables.
+        @error_handling_agent.catch_smdebug_errors(default_return_val=tape)
+        def _wrap_tape():
+            """
+            Wrapping your GradientTape with this method enables finding gradient tensors and optimizer
+            variables.
 
-        :param tape: tensorflow.python.eager.backprop.GradientTape
-            the tape object used for training
-        :return: Wrapped tape of same type as passed.
-            This tape should be used for training
-        """
-        # Disable python profiling, because now we are starting wrap tape.
-        if python_profiler:
-            python_profiler.stop_profiling(
-                StepPhase.STEP_START,
-                end_mode=mode_keys_to_python_profile_mode(self.mode),
-                end_step=0,
-            )
+            :param tape: tensorflow.python.eager.backprop.GradientTape
+                the tape object used for training
+            :return: Wrapped tape of same type as passed.
+                This tape should be used for training
+            """
+            from tensorflow.python.eager.backprop import GradientTape
 
-        from tensorflow.python.eager.backprop import GradientTape
+            self.set_mode(ModeKeys.TRAIN)
 
-        if isinstance(tape, GradientTape):
-            # unwrap tape before wrapping new tape to avoid recursive wrap tapes
-            if self.tape:
-                self._unwrap_tape()
+            if isinstance(tape, GradientTape):
+                # unwrap tape before wrapping new tape to avoid recursive wrap tapes
+                if self.tape:
+                    self._unwrap_tape()
 
-            self.tape = tape
-            self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
-            self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
-            self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
-        else:
-            self._log_unsupported_tape(tape)
-        return tape
+                self.tape = tape
+                self.tape.__class__._push_tape = self._wrap_push_tape(tape.__class__._push_tape)
+                self.tape.__class__.gradient = self._wrap_tape_gradient(tape.__class__.gradient)
+                self.tape.__class__._pop_tape = self._wrap_pop_tape(tape.__class__._pop_tape)
+            else:
+                self._log_unsupported_tape(tape)
+            return tape
+
+        return _wrap_tape()
 
     def record_tensor_value(self, tensor_name, tensor_value):
         # To be used to save metrics of type EagerTensor
@@ -1340,3 +1362,97 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
             self._initialize_writers(only_initialize_if_missing=True)
             self._save_for_tensor(tensor_name, tensor_value, check_before_write=False)
+
+    def profiling_start_batch(self, mode=ModeKeys.TRAIN):
+        """
+        Enabling profiler at the start of train batch when native tf2 training is used.
+        :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
+
+        TODO: Add support for SMDDP profiling at the end of training.
+        """
+        self.start = time.time()
+
+        if self._is_not_supported():
+            return
+
+        # When training with native TF2, `self.mode_steps[mode]` isn't incremented until the GradientTape callback
+        # for `tape._push_tape` is called. So in this case, the current step is `self.mode_steps[mode] + 1`.
+        current_step = self.mode_steps[mode]
+        if self.is_profiler_enabled_for_native_training:
+            current_step += 1
+
+        self.profiler_config_parser.load_config()
+        self._start_or_stop_detailed_profiling(current_step)
+        self.profiler_config_parser.handle_step_start_python_profiling(mode, current_step)
+        self._start_or_stop_dataloader_profiling(current_step)
+
+    def profiling_end_batch(self, mode=ModeKeys.TRAIN):
+        """
+        Enabling profiler at the end of train batch for native Tf2 training.
+        :param mode: ModeKeys.TRAIN ModeKeys.EVAL ModeKeys.PREDICT
+
+        TODO: Add support for SMDDP profiling at the end of training.
+        """
+        if self._is_not_supported():
+            return
+
+        self.record_trace_events(
+            training_phase="Step:" + str(mode),
+            op_name="Step:" + str(mode),
+            phase="X",
+            timestamp=self.start,  # this is start time for step
+            duration=time.time() - self.start,
+            pid=os.getpid(),
+            step_num=str(self.mode_steps[mode]),
+        )
+
+        self.profiler_config_parser.handle_step_end_python_profiling(mode, self.mode_steps[mode])
+
+    def profiling_end(self):
+        """
+        Stop profiler at the end of training for native TF2.
+
+        TODO: Add support for SMDDP profiling at the end of training.
+        """
+        # If the hook is closed twice, the process will hang.
+        if self.is_hook_closed:
+            return
+        self.close()  # Unwrap the tape before closing
+        self.is_hook_closed = True
+        self._stop_detailed_profiling(self.mode_steps[self.mode])
+        self.profiler_config_parser.stop_post_hook_close_python_profiling()
+        self._stop_dataloader_profiling()
+        self.is_profiler_enabled_for_native_training = False
+
+    @contextlib.contextmanager
+    def profiler(self, mode=ModeKeys.TRAIN):
+        """
+        Context manager to be inserted directly into the training script to enable profiling for native TF2 training.
+
+        With respect to Python profiling, for a given step `n`, all code inside the context is profiled as during
+        the step n. All code before the context is profiled as between steps n-1 and n. All code after the context
+        is profiled as between steps n and n+1.
+
+        Example:
+
+        ```
+        for epoch in range(n_epochs):
+            for data, labels in dataset:
+                setup()
+                with hook.profiler():
+                    labels = tf.one_hot(labels, depth=10)
+                    with tf.GradientTape() as tape:
+                        logits = train_step(data, labels)
+                    grads = tape.gradient(logits, model.variables)
+                    opt.apply_gradients(zip(grads, model.variables))
+                cleanup()
+        ```
+        """
+        _ = self.wrap_tape(
+            tf.GradientTape()
+        )  # GradientTape functions must be wrapped to correctly manage current step
+        self.set_mode(mode)
+        self.is_profiler_enabled_for_native_training = True
+        self.profiling_start_batch(mode)
+        yield
+        self.profiling_end_batch(mode)

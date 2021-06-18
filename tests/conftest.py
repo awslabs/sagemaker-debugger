@@ -17,6 +17,8 @@ import pytest
 from smdebug.core.json_config import DEFAULT_RESOURCE_CONFIG_FILE
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
+pytest_plugins = ["tests.fixtures.error_handling_agent", "tests.fixtures.tf2_training"]
+
 
 def pytest_addoption(parser):
     # Anything taking longer than 2 seconds is slow

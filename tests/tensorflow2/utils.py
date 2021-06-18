@@ -1,4 +1,6 @@
 # Standard Library
+from enum import Enum
+
 # Third Party
 import tensorflow.compat.v2 as tf
 from packaging import version
@@ -28,3 +30,9 @@ def is_tf_2_3():
 
 def is_tf_version_greater_than_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION
+
+
+class ModelType(Enum):
+    SEQUENTIAL = 0
+    FUNCTIONAL = 1
+    SUBCLASSED = 2

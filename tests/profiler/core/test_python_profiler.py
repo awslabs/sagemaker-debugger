@@ -1,7 +1,5 @@
 # Standard Library
-import json
 import os
-import pstats
 import shutil
 import time
 from multiprocessing.pool import ThreadPool
@@ -10,9 +8,11 @@ from multiprocessing.pool import ThreadPool
 import boto3
 import pandas as pd
 import pytest
+from tests.profiler.core.utils import validate_python_profiling_stats
 
 # First Party
 from smdebug.core.access_layer.utils import is_s3
+from smdebug.core.utils import FRAMEWORK
 from smdebug.profiler.analysis.python_profile_analysis import PyinstrumentAnalysis, cProfileAnalysis
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
@@ -31,23 +31,23 @@ from smdebug.profiler.python_profiler import (
 
 
 @pytest.fixture
-def test_framework():
-    return "test-framework"
+def framework():
+    return FRAMEWORK.TENSORFLOW
 
 
 @pytest.fixture()
-def cprofile_python_profiler(out_dir, test_framework):
-    return cProfilePythonProfiler(out_dir, test_framework, cProfileTimer.TOTAL_TIME)
+def cprofile_python_profiler(out_dir, framework):
+    return cProfilePythonProfiler(out_dir, framework, cProfileTimer.TOTAL_TIME)
 
 
 @pytest.fixture()
-def pyinstrument_python_profiler(out_dir, test_framework):
-    return PyinstrumentPythonProfiler(out_dir, test_framework)
+def pyinstrument_python_profiler(out_dir, framework):
+    return PyinstrumentPythonProfiler(out_dir, framework)
 
 
 @pytest.fixture()
-def framework_dir(out_dir, test_framework):
-    return "{0}/framework/{1}".format(out_dir, test_framework)
+def framework_dir(out_dir, framework):
+    return "{0}/framework/{1}".format(out_dir, framework.value)
 
 
 @pytest.fixture(autouse=True)
@@ -161,11 +161,9 @@ def test_python_profiling(
     if use_pyinstrument:
         python_profiler = pyinstrument_python_profiler
         profiler_name = PYINSTRUMENT_NAME
-        allowed_files = [PYINSTRUMENT_JSON_FILENAME, PYINSTRUMENT_HTML_FILENAME]
     else:
         python_profiler = cprofile_python_profiler
         profiler_name = CPROFILE_NAME
-        allowed_files = [CPROFILE_STATS_FILENAME]
 
     python_stats_dir = os.path.join(framework_dir, profiler_name)
 
@@ -179,28 +177,8 @@ def test_python_profiling(
         python_profiler.stop_profiling(StepPhase.STEP_END, current_step)
         current_step += 1
 
-    # Test that directory and corresponding files exist.
-    assert os.path.isdir(python_stats_dir)
-
-    for node_id in os.listdir(python_stats_dir):
-        node_dir_path = os.path.join(python_stats_dir, node_id)
-        stats_dirs = os.listdir(node_dir_path)
-        assert len(stats_dirs) == (end_step - start_step)
-
-        for stats_dir in stats_dirs:
-            # Validate that the expected files are in the stats dir
-            stats_dir_path = os.path.join(node_dir_path, stats_dir)
-            stats_files = os.listdir(stats_dir_path)
-            assert set(stats_files) == set(allowed_files)
-
-            # Validate the actual stats files
-            for stats_file in stats_files:
-                stats_path = os.path.join(stats_dir_path, stats_file)
-                if stats_file == CPROFILE_STATS_FILENAME:
-                    assert pstats.Stats(stats_path)
-                elif stats_file == PYINSTRUMENT_JSON_FILENAME:
-                    with open(stats_path, "r") as f:
-                        assert json.load(f)
+    expected_stats_dir_count = end_step - start_step
+    validate_python_profiling_stats(python_stats_dir, profiler_name, expected_stats_dir_count)
 
 
 @pytest.mark.parametrize("use_pyinstrument", [False, True])
@@ -210,7 +188,7 @@ def test_python_analysis(
     cprofile_python_profiler,
     pyinstrument_python_profiler,
     framework_dir,
-    test_framework,
+    framework,
     bucket_prefix,
     s3,
 ):
@@ -302,7 +280,7 @@ def test_python_analysis(
 
         python_profile_analysis = analysis_class(local_profile_dir=python_stats_dir)
         _, bucket, prefix = is_s3(bucket_prefix)
-        key = os.path.join(prefix, "framework", test_framework, profiler_name)
+        key = os.path.join(prefix, "framework", framework.value, profiler_name)
         _upload_s3_folder(bucket, key, python_stats_dir)
 
     python_profile_stats_df = python_profile_analysis.list_profile_stats()

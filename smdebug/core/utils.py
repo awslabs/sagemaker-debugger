@@ -5,11 +5,15 @@ import os
 import re
 import shutil
 import socket
+import urllib.parse
+from enum import Enum
 from pathlib import Path
 from typing import Dict, List
 
 # Third Party
 import numpy as np
+import requests
+from requests import Request
 
 # First Party
 from smdebug.core.config_constants import (
@@ -17,14 +21,27 @@ from smdebug.core.config_constants import (
     CONFIG_FILE_PATH_ENV_STR,
     DEFAULT_SAGEMAKER_OUTDIR,
     DEFAULT_SAGEMAKER_TENSORBOARD_PATH,
+    PAPERMILL_EXECUTION_ENV_VAR,
+    PROFILER_REPORT_VERSION,
+    PROFILER_TELEMETRY_URL,
     TENSORBOARD_CONFIG_FILE_PATH_ENV_STR,
 )
+from smdebug.core.error_handling_agent import ErrorHandlingAgent
 from smdebug.core.logger import get_logger
 from smdebug.exceptions import IndexReaderException
+
+
+class FRAMEWORK(Enum):
+    PYTORCH = "pytorch"
+    TENSORFLOW = "tensorflow"
+    MXNET = "mxnet"
+    XGBOOST = "xgboost"
+
 
 _is_invoked_via_smddp = None
 _smddp_tf_imported = None
 _smddp_pt_imported = None
+_is_using_smmodelparallel = None
 
 try:
     import smdistributed.modelparallel.tensorflow as smp
@@ -61,6 +78,9 @@ except (ModuleNotFoundError, ImportError):
 
 
 logger = get_logger()
+error_handling_agent = (
+    ErrorHandlingAgent.get_error_handling_agent()
+)  # set up error handler to wrap smdebug functions
 
 
 def make_numpy_array(x):
@@ -76,6 +96,52 @@ def make_numpy_array(x):
         return np.array(x)
     else:
         raise TypeError("_make_numpy_array does not support the" " type {}".format(str(type(x))))
+
+
+def get_aws_region_from_processing_job_arn(processing_job_arn):
+    tokenized_arn = processing_job_arn.split(":")
+    return tokenized_arn[3]
+
+
+def _prepare_telemetry_url(processing_job_arn):
+    """
+    Intended to be used by smdbeug
+    Prepares the url by extracting the region from processing_job_arn
+    and fills the following GET parameters with:
+    1. x-artifact-id: profiler-report-version
+    2. x-arn: processing-job-arn
+    :param processing_job_arn:
+    :return:
+    """
+    aws_region = get_aws_region_from_processing_job_arn(processing_job_arn)
+    profiler_telemetry_url = PROFILER_TELEMETRY_URL.format(region=aws_region)
+    payload = {"x-artifact-id": PROFILER_REPORT_VERSION, "x-arn": processing_job_arn}
+    # We mark characters to avoid url encoding them
+    payload_str = urllib.parse.urlencode(payload, safe=":/+")
+    return Request("GET", profiler_telemetry_url, params=payload_str).prepare().url
+
+
+def setup_profiler_report(processing_job_arn, opt_out=False):
+    """
+    This function is used externally in the profiler report
+    We check for the if the env variable "PAPERMILL_EXECUTION" has been set to determine
+    if this function has been called outside of a notebook environment, such as papermill,
+    in which case, we skip this skip the telemetry request.
+    :param processing_job_arn:
+    :param opt_out: Does not make a telemetry call if opt_out=True
+    Makes a GET request to the prepared telemetry url if opt_out=False
+    :return:
+    """
+    if (
+        opt_out is False
+        and bool(processing_job_arn)
+        and not bool(os.getenv(PAPERMILL_EXECUTION_ENV_VAR))
+    ):
+        prepared_telemtry_url = _prepare_telemetry_url(processing_job_arn)
+        try:
+            requests.get(prepared_telemtry_url)
+        except requests.exceptions.RequestException:
+            pass
 
 
 def ensure_dir(file_path, is_file=True):
@@ -534,3 +600,52 @@ def check_smdataparallel_env():
             _smdataparallel_imported = None
 
     return _is_invoked_via_smddp
+
+
+def check_smmodelparallel_training():
+    """
+    The function checks whether the current job is using model parallel strategy.
+    For the training job that uses smmodelparallel, SageMaker sets following environment variables.
+    SM_HPS=
+    {
+        "mp_parameters": {
+            "ddp": true,
+            "microbatches": 4,
+            "optimize": "speed",
+            "partitions": 2,
+            "pipeline": "interleaved",
+            "placement_strategy": "spread"
+        }
+    }
+    The 'partitions' variable is a required parameter for scheduling a model parallel training job.
+
+    :return: True or False
+    """
+    global _is_using_smmodelparallel
+    if _is_using_smmodelparallel is not None:
+        return _is_using_smmodelparallel
+    if os.getenv("SM_HPS") is None:
+        _is_using_smmodelparallel = False
+    else:
+        try:
+            smp_flag = json.loads(os.getenv("SM_HPS"))
+            if "mp_parameters" in smp_flag and "partitions" in smp_flag["mp_parameters"]:
+                _is_using_smmodelparallel = True
+            else:
+                _is_using_smmodelparallel = False
+        except:
+            _is_using_smmodelparallel = False
+    return _is_using_smmodelparallel
+
+
+def is_framework_version_supported(framework_type):
+    if framework_type == FRAMEWORK.PYTORCH:
+        from smdebug.pytorch.utils import is_current_version_supported
+
+        return is_current_version_supported()
+    if framework_type == FRAMEWORK.TENSORFLOW:
+        from smdebug.tensorflow.utils import is_current_version_supported
+
+        return is_current_version_supported()
+    else:  # If framework is mxnet and XGBoost we will currently return True for all versions
+        return True
