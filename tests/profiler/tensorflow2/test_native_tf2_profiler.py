@@ -48,7 +48,7 @@ def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
-def _helper_native_tf2_gradtape(out_dir, model, dataset, profiler_config_parser):
+def _helper_native_tf2_gradtape(out_dir, model, opt, dataset, profiler_config_parser):
     def get_grads(images, labels):
         return model(images, training=True)
 
@@ -65,7 +65,6 @@ def _helper_native_tf2_gradtape(out_dir, model, dataset, profiler_config_parser)
     start_step = profiler_config_parser.config.python_profiling_config.start_step
     end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
 
-    opt = tf.keras.optimizers.Adam()
     hook.wrap_optimizer(opt)
 
     for current_step, (data, labels) in enumerate(dataset):
@@ -144,12 +143,12 @@ def _verify_timeline_files(out_dir):
 @pytest.mark.parametrize(
     "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
 )
+@pytest.mark.parametrize("use_mirrored_strategy", [False, True])
 def test_native_tf2_profiling(
     python_profiler_name,
     model_type,
-    tf2_mnist_sequential_model,
-    tf2_mnist_functional_model,
-    tf2_mnist_subclassed_model,
+    use_mirrored_strategy,
+    get_model_and_optimizer,
     native_tf2_cprofile_profiler_config_parser,
     native_tf2_pyinstrument_profiler_config_parser,
     out_dir,
@@ -163,12 +162,7 @@ def test_native_tf2_profiling(
     We cannot test dataloader profiling in pytest, because the resource config needs to be configured at
     /opt/ml/input/config/resourceconfig.json before tensorflow is even imported.
     """
-    if model_type == ModelType.SEQUENTIAL:
-        model = tf2_mnist_sequential_model
-    elif model_type == ModelType.FUNCTIONAL:
-        model = tf2_mnist_functional_model
-    else:
-        model = tf2_mnist_subclassed_model
+    model, optimizer = get_model_and_optimizer(model_type, use_mirrored_strategy)
 
     if python_profiler_name == CPROFILE_NAME:
         profiler_config_parser = native_tf2_cprofile_profiler_config_parser
@@ -179,7 +173,7 @@ def test_native_tf2_profiling(
     profiler_config_parser.load_config()
     profiler_config_parser.start_pre_step_zero_python_profiling()
 
-    _helper_native_tf2_gradtape(out_dir, model, mnist_dataset, profiler_config_parser)
+    _helper_native_tf2_gradtape(out_dir, model, optimizer, mnist_dataset, profiler_config_parser)
 
     # Sanity check debugger output
     _verify_tensor_names(out_dir)
