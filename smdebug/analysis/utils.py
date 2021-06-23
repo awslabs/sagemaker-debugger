@@ -54,10 +54,11 @@ def refresh(trials):
 def parse_list_from_str(arg, delimiter=","):
     """
     :param arg: string or list of strings
-    if it is string it is treated as character delimited string
+        if it is string it is treated as character delimited string
     :param delimiter: string
-    if arg is a string, this delimiter is used to split the string
+        if arg is a string, this delimiter is used to split the string
     :return: list of strings
+
     """
     if arg is None:
         rval = []

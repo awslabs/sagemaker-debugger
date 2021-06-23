@@ -13,6 +13,31 @@ from .req_tensors import RequiredTensors
 
 # This is Rule interface
 class Rule(ABC):
+    """The Rule class to create an instance of Rule evaluator. You can construct
+    a rule class and add thresholds and criteria to its ``__init__`` function.
+
+    **Example of a Rule class**
+
+    .. code:: python
+
+        from smdebug.rules import Rule
+
+        class VanishingGradientRule(Rule):
+            def __init__(self, base_trial, threshold=0.0000001):
+               super().__init__(base_trial, other_trials=None)
+               self.threshold = float(threshold)
+
+            def invoke_at_step(self, step):
+               for tensorname in self.base_trial.tensors(collection='gradients'):
+                  tensor = self.base_trial.tensor(tensorname)
+                  abs_mean = tensor.reduction_value(step, 'mean', abs=True)
+                  if abs_mean < self.threshold:
+                      return True
+                  else:
+                      return False
+
+    """
+
     def __init__(self, base_trial, action_str, other_trials=None):
         self.base_trial = base_trial
         self.other_trials = other_trials
@@ -45,7 +70,9 @@ class Rule(ABC):
         # --> storage_handler.save("last_processed_tensor",(tensor_name,step))
         # check-pointing is needed if execution is longer duration,
         # so that we don't lose the work done in certain step
-        pass
+        """The abstract method to construct a rule invokation logic against output tensors.
+
+        """
 
     # step specific for which global step this rule was invoked
     # storage_handler is used to save & get states across different invocations

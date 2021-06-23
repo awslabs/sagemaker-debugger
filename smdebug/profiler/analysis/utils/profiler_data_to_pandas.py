@@ -46,6 +46,7 @@ class PandasFrame:
         Get system metrics
         :param systemk_metrics_list: list of system metrics.If not empty, function will only return framework events that are part of this list.
         :return: System metrics DataFrame
+
         """
         # get all system metrics from last to current timestamp
 
@@ -68,6 +69,7 @@ class PandasFrame:
         Get framework metrics
         :param selected_framework_metrics: list of framework metrics.If not empty, function will only return framework events that are part of this list.
         :return: Framework metrics DataFrame
+
         """
         # get all framework metrics from last to current timestamp
         self.framework_metrics_reader.refresh_event_file_list()
@@ -92,6 +94,7 @@ class PandasFrame:
         A helper function to convert datetime into timestamp
         :param timestep: timestamp in datetime
         :return: timestamp in microseconds
+
         """
         timestamp = pd.to_datetime(timestamp, format="%Y-%m-%dT%H:%M:%S:%f", utc=True)
         return convert_utc_datetime_to_microseconds(timestamp)
@@ -102,6 +105,7 @@ class PandasFrame:
         :param timestep_list: list of timestamps
         :param selected_framework_metrics: list of framework metrics which will be stored in the dataframe
         :return: Framework metrics DataFrame
+
         """
         # get min and max search range
         timestep_list = sorted(timestep_list)
@@ -175,6 +179,7 @@ class PandasFrame:
         :param end_timestep_list: list of end intervals in datetime
         :param selected_framework_metrics: list of framework metrics which will be stored in the dataframe
         :return: Framework metrics DataFrame
+
         """
         # Get min and max timestamps from the list of timeranges
         start_time_us = self.convert_datetime_to_timestamp(min(begin_timestep_list))
@@ -261,8 +266,9 @@ class PandasFrame:
         :param selected_system_metrics: list of system metrics. If not empty, function will only return system events that are part of this list.
         :param selected_framework_metrics: if True, get framework metrics
         :param get_system_metrics: if True: get system metrics
-       return current request
+            return current request
         :return: System metrics DataFrame, Framework metrics DataFrame
+
         """
         # read system metrics
         system_metrics = []
@@ -406,6 +412,7 @@ class PandasFrame:
         :param cache_metrics: If True, collect and return all metrics requested so far, else,
         return current request
         :return: System metrics DataFrame, Framework metrics DataFrame
+
         """
         sys_metrics_df, fw_metrics_df = (
             self.get_all_system_metrics(),
@@ -431,6 +438,7 @@ class PandasFrame:
         Get framework metrics
         :param selected_framework_metrics: list of framework metrics.If not empty, function will only return framework events that are part of this list.
         :return: Framework metrics DataFrame
+
         """
         # get all framework metrics from last to current timestamp
         self.framework_metrics_reader.refresh_event_file_list()
@@ -459,6 +467,7 @@ class PandasFrame:
         :param cache_metrics: If True, collect and return all metrics requested so far, else,
         :param framework_metrics_list: list of framework metrics. If not empty, function will only return framework events that are part of this list.
         :return: Framework metrics DataFrame
+
         """
         # get framework metrics
         framework_metrics = []

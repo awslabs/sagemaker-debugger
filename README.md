@@ -63,10 +63,10 @@ The following frameworks are available AWS Deep Learning Containers with the dee
 
 | Framework | Version |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
-| [MXNet](docs/mxnet.md) | 1.6, 1.7 |
-| [PyTorch](docs/pytorch.md) | 1.4, 1.5, 1.6 |
-| [XGBoost](docs/xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
+| [TensorFlow](tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
+| [MXNet](mxnet.md) | 1.6, 1.7 |
+| [PyTorch](pytorch.md) | 1.4, 1.5, 1.6 |
+| [XGBoost](xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
 
 **Note**: Debugger with zero script change is partially available for TensorFlow v2.1.0. The `inputs`, `outputs`, `gradients`, and `layers` built-in collections are currently not available for these TensorFlow versions.
 
@@ -76,11 +76,11 @@ The `smdebug` library supports frameworks other than the ones listed above while
 
 | Framework | Versions |
 | --- | --- |
-| [TensorFlow](docs/tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
+| [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
 | Keras (with TensorFlow backend) | 2.3 |
-| [MXNet](docs/mxnet.md) | 1.4, 1.5, 1.6, 1.7 |
-| [PyTorch](docs/pytorch.md) | 1.2, 1.3, 1.4, 1.5, 1.6 |
-| [XGBoost](docs/xgboost.md) |  0.90-2, 1.0-1 (As a framework)|
+| [MXNet](mxnet.md) | 1.4, 1.5, 1.6, 1.7 |
+| [PyTorch](pytorch.md) | 1.2, 1.3, 1.4, 1.5, 1.6 |
+| [XGBoost](xgboost.md) |  0.90-2, 1.0-1 (As a framework)|
 
 ### Debugger on custom containers or local machines
 You can also fully use the Debugger features in custom containers with the SageMaker Python SDK. Furthermore, `smdebug` is an open source library, so you can install it on your local machine for any advanced use cases that cannot be run in the SageMaker environment and for constructing `smdebug` custom hooks and rules.
@@ -110,10 +110,10 @@ To see a complete list of built-in rules and their functionalities, see [List of
 You can use Debugger with your training script on your own container making only a minimal modification to your training script to add Debugger's `Hook`.
 For an example template of code to use Debugger on your own container in TensorFlow 2.x frameworks, see [Run Debugger in custom container](#Run-Debugger-in-custom-container).
 See the following instruction pages to set up Debugger in your preferred framework.
-  - [TensorFlow](docs/tensorflow.md)
-  - [MXNet](docs/mxnet.md)
-  - [PyTorch](docs/pytorch.md)
-  - [XGBoost](docs/xgboost.md)
+  - [TensorFlow](tensorflow.md)
+  - [MXNet](mxnet.md)
+  - [PyTorch](pytorch.md)
+  - [XGBoost](xgboost.md)
 
 #### Using SageMaker Debugger on custom containers
 
@@ -177,7 +177,7 @@ When you run the `sagemaker_simple_estimator.fit()` API,
 SageMaker will automatically monitor your training job for you with the Rules specified and create a `CloudWatch` event that tracks the status of the Rule,
 so you can take any action based on them.
 
-If you want additional configuration and control, see [Running SageMaker jobs with Debugger](docs/sagemaker.md) for more information.
+If you want additional configuration and control, see [Running SageMaker jobs with Debugger](sagemaker.md) for more information.
 
 #### Run Debugger in custom container
 
@@ -235,12 +235,12 @@ print(f"Loss values during evaluation were {trial.tensor('CrossEntropyLoss:0').v
 ## SageMaker Debugger in Action
 - Through the model pruning process using Debugger and `smdebug`, you can iteratively identify the importance of weights and cut neurons below a threshold you define. This process allows you to train the model with significantly fewer neurons, which means a lighter, more efficient, faster, and cheaper model without compromising accuracy. The following accuracy versus the number of parameters graph is produced in Studio. It shows that the model accuracy started from about 0.9 with 12 million parameters (the data point moves from right to left along with the pruning process), improved during the first few pruning iterations, kept the quality of accuracy until it cut the number of parameters down to 6 million, and start sacrificing the accuracy afterwards.
 
-![Debugger Iterative Model Pruning using ResNet](docs/resources/results_resnet.png?raw=true)
+![Debugger Iterative Model Pruning using ResNet](resources/results_resnet.png?raw=true)
 Debugger provides you tools to access such training process and have a complete control over your model. See [Using SageMaker Debugger and SageMaker Experiments for iterative model pruning](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/pytorch_iterative_model_pruning/iterative_model_pruning_resnet.ipynb) notebook for the full example and more information.
 
-- Use Debugger with XGBoost in SageMaker Studio to save feature importance values and plot them in a notebook during training. ![Debugger XGBoost Visualization Example](docs/resources/xgboost_feature_importance.png?raw=true)
+- Use Debugger with XGBoost in SageMaker Studio to save feature importance values and plot them in a notebook during training. ![Debugger XGBoost Visualization Example](resources/xgboost_feature_importance.png?raw=true)
 
-- Use Debugger with TensorFlow in SageMaker Studio to run built-in rules and visualize the loss. ![Debugger TensorFlow Visualization Example](docs/resources/tensorflow_rules_loss.png?raw=true)
+- Use Debugger with TensorFlow in SageMaker Studio to run built-in rules and visualize the loss. ![Debugger TensorFlow Visualization Example](resources/tensorflow_rules_loss.png?raw=true)
 
 ---
 
@@ -248,10 +248,10 @@ Debugger provides you tools to access such training process and have a complete 
 
 | Section | Description |
 | --- | --- |
-| [SageMaker Training](docs/sagemaker.md) | SageMaker users, we recommend you start with this page on how to run SageMaker training jobs with SageMaker Debugger |
-| Frameworks <ul><li>[TensorFlow](docs/tensorflow.md)</li><li>[PyTorch](docs/pytorch.md)</li><li>[MXNet](docs/mxnet.md)</li><li>[XGBoost](docs/xgboost.md)</li></ul> | See the frameworks pages for details on what's supported and how to modify your training script if applicable |
-| [APIs for Saving Tensors](docs/api.md) | Full description of our APIs on saving tensors |
-| [Programming Model for Analysis](docs/analysis.md) | For description of the programming model provided by the APIs that enable you to perform interactive exploration of tensors saved, as well as to write your own Rules monitoring your training jobs. |
+| [SageMaker Training](sagemaker.md) | SageMaker users, we recommend you start with this page on how to run SageMaker training jobs with SageMaker Debugger |
+| Frameworks <ul><li>[TensorFlow](tensorflow.md)</li><li>[PyTorch](pytorch.md)</li><li>[MXNet](mxnet.md)</li><li>[XGBoost](xgboost.md)</li></ul> | See the frameworks pages for details on what's supported and how to modify your training script if applicable |
+| [APIs for Saving Tensors](api.md) | Full description of our APIs on saving tensors |
+| [Programming Model for Analysis](analysis.md) | For description of the programming model provided by the APIs that enable you to perform interactive exploration of tensors saved, as well as to write your own Rules monitoring your training jobs. |
 
 
 ## License

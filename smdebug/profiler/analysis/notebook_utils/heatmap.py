@@ -15,6 +15,11 @@ output_notebook(hide_banner=True)
 
 
 class Heatmap:
+    """
+    Docstring placeholder.
+
+    """
+
     def __init__(
         self,
         metrics_reader,
@@ -26,6 +31,10 @@ class Heatmap:
         plot_height=350,
         show_workers=True,
     ):
+        """
+        Docstring placeholder.
+
+        """
 
         self.select_dimensions = select_dimensions
         self.select_events = select_events

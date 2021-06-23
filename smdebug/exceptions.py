@@ -12,6 +12,14 @@ class InvalidCollectionConfiguration(Exception):
 
 
 class StepNotYetAvailable(Exception):
+    """This means that the step has not yet been
+      seen from the training job. It may be available in the future if the
+      training is still going on. We automatically load new data as and
+      when it becomes available. This step may either become available in
+      the future, or the exception might change to ``StepUnavailable``.
+
+    """
+
     def __init__(self, step, mode):
         self.step = step
         self.mode = mode
@@ -21,6 +29,12 @@ class StepNotYetAvailable(Exception):
 
 
 class MissingCollectionFiles(Exception):
+    """This is raised when no data was saved by
+      the training job. Check that the ``Hook`` was configured correctly
+      before starting the training job.
+
+    """
+
     def __init__(self):
         pass
 
@@ -37,6 +51,11 @@ class IndexReaderException(Exception):
 
 
 class StepUnavailable(Exception):
+    """This means that the step was not saved from the
+      training job. No tensor will be available for this step.
+
+    """
+
     def __init__(self, step, mode):
         self.step = step
         self.mode = mode
@@ -48,6 +67,15 @@ class StepUnavailable(Exception):
 
 
 class TensorUnavailableForStep(Exception):
+    """This is raised when the tensor requested
+      is not available for the step. It may have been or will be saved for
+      a different step number. You can check which steps tensor is saved
+      for by ``trial.tensor('tname').steps()``
+      `api <https://github.com/awslabs/sagemaker-debugger/blob/master/docs/analysis.md#steps-1>`__.
+      Note that this exception implies that the requested tensor will never
+      become available for this step in the future.
+    """
+
     def __init__(self, tname, step, mode=modes.GLOBAL, has_reductions=False):
         self.step = step
         self.mode = mode
@@ -84,6 +112,14 @@ class ShapeUnavailableForStep(Exception):
 
 
 class TensorUnavailable(Exception):
+    """This means that this tensor has not been
+      saved from the training job. Note that if you have a ``SaveConfig``
+      which saves a certain tensor only after the time you queried for the
+      tensor, you might get a ``TensorUnavailable`` exception even if the
+      tensor may become available later for some step.
+
+    """
+
     def __init__(self, tname):
         self.tname = tname
 
@@ -100,6 +136,12 @@ class InvalidWorker(Exception):
 
 
 class NoMoreProfilerData(Exception):
+    """This will be raised when the training ends. Once you
+      see this, you will know that there will be no more steps and no more
+      tensors saved.
+
+    """
+
     def __init__(self, timestamp):
         self.timestamp = timestamp
         self.msg = "Looking for timestamp {} and reached " "end of training.".format(timestamp)
@@ -126,6 +168,11 @@ class NoMoreData(Exception):
 
 
 class RuleEvaluationConditionMet(Exception):
+    """This is raised when the rule
+      invocation returns ``True`` for some step.
+
+    """
+
     def __init__(self, rule_name, step, end_of_rule=False):
         self.rule_name = rule_name
         self.step = step
