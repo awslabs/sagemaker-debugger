@@ -183,6 +183,7 @@ def test_native_tf2_profiling(
             model = get_model(model_type)
             optimizer = tf.optimizers.Adam()
             optimizer = hook.wrap_optimizer(optimizer)
+            profiler_config_parser._reset_python_profiler()
     else:
         model = get_model(model_type)
         optimizer = tf.optimizers.Adam()

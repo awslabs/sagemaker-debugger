@@ -87,6 +87,9 @@ class ProfilerConfigParser:
         self.last_logging_statuses = defaultdict(lambda: False)
         self.current_logging_statuses = defaultdict(lambda: False)
         self.load_config()
+        self._reset_python_profiler()
+
+    def _reset_python_profiler(self):
         self.python_profiler = (
             PythonProfiler.get_python_profiler(self.config, self.framework)
             if self.is_python_profiling_enabled()
@@ -394,10 +397,6 @@ class ProfilerConfigParser:
         """
         if not self.is_python_profiling_enabled():
             return
-
-        self.python_profiler.stop_profiling(StepPhase.END)
-
-        return self.python_profiler.start_profiling(StepPhase.END)
 
     def stop_post_hook_close_python_profiling(self):
         """Stop post-hook-close python profiling if python profiling is enabled.
