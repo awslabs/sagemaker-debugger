@@ -52,7 +52,7 @@ def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parse
     def get_grads(images, labels):
         return model(images, training=True)
 
-    def train_step(images, labels, current_step):
+    def train_step(images, labels):
         with hook.profiler():
             labels = tf.one_hot(labels, depth=10)
             with tf.GradientTape() as tape:
@@ -76,8 +76,8 @@ def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parse
         return logits
 
     @tf.function
-    def distributed_train_step(images, labels, current_step):
-        per_replica_losses = strategy.run(train_step, args=(images, labels, current_step))
+    def distributed_train_step(images, labels):
+        per_replica_losses = strategy.run(train_step, args=(images, labels))
         return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
@@ -89,7 +89,7 @@ def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parse
     end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
 
     for current_step, (data, labels) in enumerate(dataset):
-        distributed_train_step(data, labels, current_step)
+        distributed_train_step(data, labels)
 
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling and collect post-hook-close Python profiling stats
@@ -194,8 +194,7 @@ def test_native_tf2_profiling(
     )
 
     # Sanity check debugger output
-    if not use_mirrored_strategy:
-        _verify_tensor_names(out_dir)
+    _verify_tensor_names(out_dir)
 
     # Validate all timeline files
     _verify_timeline_files(out_dir)

@@ -352,14 +352,6 @@ class ProfilerConfigParser:
         if not self.is_python_profiling_enabled():
             return
 
-        print(
-            current_step,
-            "CURRENT_STEP",
-            self.should_save_metrics(MetricsCategory.PYTHON_PROFILING, current_step),
-        )
-        print(vars(self.config.python_profiling_config))
-        print()
-
         self.python_profiler.stop_profiling(
             step_phase, end_mode=mode_keys_to_python_profile_mode(mode), end_step=current_step
         )

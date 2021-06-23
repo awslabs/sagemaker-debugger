@@ -2,7 +2,7 @@
     "ProfilingParameters": {
         "ProfilerEnabled": true,
         "LocalPath": "/tmp/test",
-        "DetailedProfilingConfig": "{\"StartStep\": 1, \"NumSteps\": 2}",
-        "PythonProfilingConfig": "{\"StartStep\": 1, \"NumSteps\": 2, \"ProfilerName\": \"Pyinstrument\"}"
+        "DetailedProfilingConfig": "{\"StartStep\": 0, \"NumSteps\": 2}",
+        "PythonProfilingConfig": "{\"StartStep\": 0, \"NumSteps\": 2, \"ProfilerName\": \"Pyinstrument\"}"
     }
 }
