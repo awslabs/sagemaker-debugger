@@ -185,7 +185,7 @@ def test_native_tf2_profiling(
 
     model.compile(optimizer=optimizer)
     _helper_native_tf2_gradtape(
-        out_dir, model, optimizer, mnist_dataset, profiler_config_parser, strategy=strategy
+        hook, model, optimizer, mnist_dataset, profiler_config_parser, strategy=strategy
     )
 
     # Sanity check debugger output
