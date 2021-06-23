@@ -395,6 +395,8 @@ class ProfilerConfigParser:
         if not self.is_python_profiling_enabled():
             return
 
+        self.python_profiler.stop_profiling(StepPhase.END)
+
         return self.python_profiler.start_profiling(StepPhase.END)
 
     def stop_post_hook_close_python_profiling(self):

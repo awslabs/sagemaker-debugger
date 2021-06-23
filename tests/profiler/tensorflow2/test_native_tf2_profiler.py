@@ -65,10 +65,6 @@ def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parse
             grads = tape.gradient(logits, model.variables)
             opt.apply_gradients(zip(grads, model.variables))
 
-            hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
-            hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
-            hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
-
         if start_step <= hook.step < end_step:
             assert profiler_config_parser.python_profiler._start_step == hook.step
             assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_END
@@ -89,7 +85,10 @@ def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parse
     end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
 
     for current_step, (data, labels) in enumerate(dataset):
-        distributed_train_step(data, labels)
+        logits = distributed_train_step(data, labels)
+        hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
+        hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
+        hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
 
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling and collect post-hook-close Python profiling stats
@@ -193,8 +192,8 @@ def test_native_tf2_profiling(
         hook, model, optimizer, mnist_dataset, profiler_config_parser, strategy=strategy
     )
 
-    # Sanity check debugger output. Tensor collection is not supported when both MirroredStrategy and GradientTape
-    # are enabled.
+    # Sanity check debugger output.
+    # TODO: Figure out why tensors cannot be collected when both MirroredStrategy and GradientTape are used.
     if not use_mirrored_strategy:
         _verify_tensor_names(out_dir)
 
