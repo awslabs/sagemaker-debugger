@@ -205,7 +205,6 @@ def _set_up_model_and_optimizer(model_func):
 
 @pytest.fixture
 def get_model_and_optimizer():
-    import tensorflow as tf
     from tests.tensorflow2.utils import ModelType
 
     model_dict = {
@@ -214,14 +213,8 @@ def get_model_and_optimizer():
         ModelType.SUBCLASSED: _get_tf2_mnist_subclassed_model,
     }
 
-    def _get_model_and_optimizer(model_type, use_mirrored_strategy):
-        model_func = model_dict[model_type]
-        if use_mirrored_strategy:
-            with tf.distribute.MirroredStrategy().scope():
-                model, optimizer = _set_up_model_and_optimizer(model_func)
-        else:
-            model, optimizer = _set_up_model_and_optimizer(model_func)
-        return model, optimizer
+    def _get_model_and_optimizer(model_type):
+        return _set_up_model_and_optimizer(model_dict[model_type])
 
     return _get_model_and_optimizer
 
