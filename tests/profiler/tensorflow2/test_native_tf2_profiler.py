@@ -48,9 +48,7 @@ def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
-def _helper_native_tf2_gradtape(
-    out_dir, model, opt, dataset, profiler_config_parser, strategy=None
-):
+def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parser, strategy=None):
     def get_grads(images, labels):
         return model(images, training=True)
 
@@ -58,7 +56,6 @@ def _helper_native_tf2_gradtape(
     def train_step(images, labels):
         return tf.reduce_mean(get_grads(images, labels))
 
-    hook = Hook(out_dir=out_dir, save_all=True)
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
     # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
     hook.logger.disabled = True
@@ -152,7 +149,7 @@ def test_native_tf2_profiling(
     python_profiler_name,
     model_type,
     use_mirrored_strategy,
-    get_model_and_optimizer,
+    get_model,
     native_tf2_cprofile_profiler_config_parser,
     native_tf2_pyinstrument_profiler_config_parser,
     out_dir,
@@ -175,14 +172,16 @@ def test_native_tf2_profiling(
     profiler_config_parser.load_config()
     profiler_config_parser.start_pre_step_zero_python_profiling()
 
+    hook = Hook(out_dir=out_dir, save_all=True)
+    optimizer = tf.optimizers.Adam()
     strategy = None
 
     if use_mirrored_strategy:
         strategy = tf.distribute.MirroredStrategy()
         with strategy.scope():
-            model, optimizer = get_model_and_optimizer(model_type)
+            model = get_model(model_type)
     else:
-        model, optimizer = get_model_and_optimizer(model_type)
+        model = get_model(model_type)
 
     model.compile(optimizer=optimizer)
     _helper_native_tf2_gradtape(

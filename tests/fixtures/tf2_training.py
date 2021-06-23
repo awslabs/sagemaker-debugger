@@ -194,16 +194,8 @@ def _get_tf2_mirrored_mnist_subclassed_model():
     return model, optimizer
 
 
-def _set_up_model_and_optimizer(model_func):
-    import tensorflow as tf
-
-    model = model_func()
-    optimizer = tf.optimizers.Adam()
-    return model, optimizer
-
-
 @pytest.fixture
-def get_model_and_optimizer():
+def get_model():
     from tests.tensorflow2.utils import ModelType
 
     model_dict = {
@@ -213,7 +205,7 @@ def get_model_and_optimizer():
     }
 
     def _get_model_and_optimizer(model_type):
-        return _set_up_model_and_optimizer(model_dict[model_type])
+        return model_dict[model_type]()
 
     return _get_model_and_optimizer
 
