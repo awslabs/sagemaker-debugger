@@ -184,6 +184,7 @@ def test_native_tf2_profiling(
     else:
         model, optimizer = get_model_and_optimizer(model_type)
 
+    model.compile(optimizer=optimizer)
     _helper_native_tf2_gradtape(
         out_dir, model, optimizer, mnist_dataset, profiler_config_parser, strategy=strategy
     )

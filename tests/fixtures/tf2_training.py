@@ -199,7 +199,6 @@ def _set_up_model_and_optimizer(model_func):
 
     model = model_func()
     optimizer = tf.optimizers.Adam()
-    model.compile(optimizer=optimizer)
     return model, optimizer
 
 
