@@ -128,6 +128,7 @@ class PythonProfiler:
             end_phase.value,
             end_time_since_epoch_in_micros,
         )
+        print("STATS_DIR", stats_dir)
         self._dump_stats(stats_dir)
 
         self._reset_profiler()
