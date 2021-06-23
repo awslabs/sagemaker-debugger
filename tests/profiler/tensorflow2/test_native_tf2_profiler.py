@@ -77,9 +77,7 @@ def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parse
                         profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
                     )
             grads = tape.gradient(logits, model.variables)
-            if strategy:
-                with strategy.scope():
-                    opt.apply_gradients(zip(grads, model.variables))
+            opt.apply_gradients(zip(grads, model.variables))
 
             hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
             hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
