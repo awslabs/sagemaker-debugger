@@ -193,8 +193,10 @@ def test_native_tf2_profiling(
         hook, model, optimizer, mnist_dataset, profiler_config_parser, strategy=strategy
     )
 
-    # Sanity check debugger output
-    _verify_tensor_names(out_dir)
+    # Sanity check debugger output. Tensor collection is not supported when both MirroredStrategy and GradientTape
+    # are enabled.
+    if not use_mirrored_strategy:
+        _verify_tensor_names(out_dir)
 
     # Validate all timeline files
     _verify_timeline_files(out_dir)
