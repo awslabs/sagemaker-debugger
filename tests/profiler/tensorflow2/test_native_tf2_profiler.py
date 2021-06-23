@@ -48,13 +48,17 @@ def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
     return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
-def _helper_native_tf2_gradtape(out_dir, model, opt, dataset, profiler_config_parser):
+def _helper_native_tf2_gradtape(
+    out_dir, model_type, get_model_and_optimizer, dataset, profiler_config_parser
+):
     def get_grads(images, labels):
         return model(images, training=True)
 
     @tf.function
     def train_step(images, labels):
         return tf.reduce_mean(get_grads(images, labels))
+
+    model, opt = get_model_and_optimizer(model_type)
 
     hook = Hook(out_dir=out_dir, save_all=True)
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
@@ -162,8 +166,6 @@ def test_native_tf2_profiling(
     We cannot test dataloader profiling in pytest, because the resource config needs to be configured at
     /opt/ml/input/config/resourceconfig.json before tensorflow is even imported.
     """
-    model, optimizer = get_model_and_optimizer(model_type, use_mirrored_strategy)
-
     if python_profiler_name == CPROFILE_NAME:
         profiler_config_parser = native_tf2_cprofile_profiler_config_parser
     else:
@@ -173,7 +175,16 @@ def test_native_tf2_profiling(
     profiler_config_parser.load_config()
     profiler_config_parser.start_pre_step_zero_python_profiling()
 
-    _helper_native_tf2_gradtape(out_dir, model, optimizer, mnist_dataset, profiler_config_parser)
+    if use_mirrored_strategy:
+        strategy = tf.distribute.MirroredStrategy()
+        with strategy.scope():
+            _helper_native_tf2_gradtape(
+                out_dir, model_type, get_model_and_optimizer, mnist_dataset, profiler_config_parser
+            )
+    else:
+        _helper_native_tf2_gradtape(
+            out_dir, model_type, get_model_and_optimizer, mnist_dataset, profiler_config_parser
+        )
 
     # Sanity check debugger output
     _verify_tensor_names(out_dir)
