@@ -49,7 +49,7 @@ def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
 
 
 def _helper_native_tf2_gradtape(
-    out_dir, model_type, get_model_and_optimizer, dataset, profiler_config_parser
+    out_dir, model, opt, dataset, profiler_config_parser, strategy=None
 ):
     def get_grads(images, labels):
         return model(images, training=True)
@@ -57,8 +57,6 @@ def _helper_native_tf2_gradtape(
     @tf.function
     def train_step(images, labels):
         return tf.reduce_mean(get_grads(images, labels))
-
-    model, opt = get_model_and_optimizer(model_type)
 
     hook = Hook(out_dir=out_dir, save_all=True)
     # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
@@ -82,7 +80,9 @@ def _helper_native_tf2_gradtape(
                         profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
                     )
             grads = tape.gradient(logits, model.variables)
-            opt.apply_gradients(zip(grads, model.variables))
+            if strategy:
+                with strategy.scope():
+                    opt.apply_gradients(zip(grads, model.variables))
 
             hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
             hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
@@ -147,7 +147,7 @@ def _verify_timeline_files(out_dir):
 @pytest.mark.parametrize(
     "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
 )
-@pytest.mark.parametrize("use_mirrored_strategy", [False, True])
+@pytest.mark.parametrize("use_mirrored_strategy", [True])
 def test_native_tf2_profiling(
     python_profiler_name,
     model_type,
@@ -175,16 +175,18 @@ def test_native_tf2_profiling(
     profiler_config_parser.load_config()
     profiler_config_parser.start_pre_step_zero_python_profiling()
 
+    strategy = None
+
     if use_mirrored_strategy:
         strategy = tf.distribute.MirroredStrategy()
         with strategy.scope():
-            _helper_native_tf2_gradtape(
-                out_dir, model_type, get_model_and_optimizer, mnist_dataset, profiler_config_parser
-            )
+            model, optimizer = get_model_and_optimizer(model_type)
     else:
-        _helper_native_tf2_gradtape(
-            out_dir, model_type, get_model_and_optimizer, mnist_dataset, profiler_config_parser
-        )
+        model, optimizer = get_model_and_optimizer(model_type)
+
+    _helper_native_tf2_gradtape(
+        out_dir, model, optimizer, mnist_dataset, profiler_config_parser, strategy=strategy
+    )
 
     # Sanity check debugger output
     _verify_tensor_names(out_dir)
