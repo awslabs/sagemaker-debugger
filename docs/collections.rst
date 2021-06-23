@@ -324,5 +324,3 @@ between them.
    global.save_steps
    global.start_step
    global.end_step
-
---------------

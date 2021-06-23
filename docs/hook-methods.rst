@@ -21,7 +21,7 @@ These methods are common for all hooks in any framework.
 
     In case of TensorFlow, you need to pick the appropriate ``HookClass`` among
     ``KerasHook``, ``SessionHook``, and ``EstimatorHook`` depending on how your training script
-    is composed. For more information, see :doc:`TensorFlow Hook <tensorflow>`.
+    is composed. For more information, see :doc:`tensorflow`.
 
 
   - **PyTorch**
@@ -57,17 +57,6 @@ These methods are common for all hooks in any framework.
     - collection (smd.Collection)
 
 
-.. method:: add_collection(collection)
-
-  Takes a Collection object and adds it to the CollectionManager that the
-  Hook holds. Note that you should only pass in a Collection object for the
-  same framework as the hook
-
-  **Parameters:**
-
-    - collection (smd.Collection)
-
-
 .. method:: get_collection(name)
 
   Returns collection identified by the given name
@@ -85,7 +74,7 @@ These methods are common for all hooks in any framework.
 
   Sets mode of the job. ``smd.modes.TRAIN``,
   ``smd.modes.EVAL``, ``smd.modes.PREDICT``, ``smd.modes.GLOBAL``.
-  For more information, see :doc:`Modes <smdebug.modes>`__.
+  For more information, see :doc:`smdebug.modes`.
 
   **Parameters:**
 
@@ -141,7 +130,7 @@ TensorFlow specific Hook API
 
 Note that there are three types of Hooks in TensorFlow: SessionHook,
 EstimatorHook and KerasHook based on the TensorFlow interface being used
-for training. :doc:`TensorFlow <tensorflow>` shows examples of each of
+for training. :doc:`tensorflow` shows examples of each of
 these.
 
 +-----------------+-----------------+-----------------+-----------------+
@@ -195,18 +184,18 @@ these.
 | ``add_to_       | ``collecti      | ``None``        | Calls the       |
 | collection(``\  | on_name (str)`` |                 | ``add`` method  |
 | ``collection_na | : name of the   |                 | of a collection |
-| me, variable)`` | collection to   |                 | object. See     |
-|                 | add to.         |                 | `this           |
-|                 | ``variable``    |                 | section <       |
-|                 | parameter to    |                 | #collection>`__ |
-|                 | pass to the     |                 | for more.       |
+| me, variable)`` | collection to   |                 | object.         |
+|                 | add to.         |                 |                 |
+|                 | ``variable``    |                 |                 |
+|                 | parameter to    |                 |                 |
+|                 | pass to the     |                 |                 |
 |                 | collection’s    |                 |                 |
 |                 | ``add`` method. |                 |                 |
 +-----------------+-----------------+-----------------+-----------------+
 
 The following hook APIs are specific to training scripts using the TF
 2.x GradientTape
-(`Example <tensorflow.md#TF%202.x%20GradientTape%20example>`__):
+(:doc:`tensorflow`):
 
 +-----------------+-----------------+-----------------+-----------------+
 | Method          | Arguments       | Returns         | Behavior        |
@@ -272,5 +261,3 @@ PyTorch specific Hook API
 |                       |                       | Debugger can save     |
 |                       |                       | losses                |
 +-----------------------+-----------------------+-----------------------+
-
---------------

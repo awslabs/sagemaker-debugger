@@ -257,17 +257,19 @@ class PandasFrame:
         get_framework_metrics=True,
         get_system_metrics=True,
     ):
-        """
-        Get metrics data within a time interval.
-        :param start_time_us: Start of the interval in microseconds
-        :param end_time_us: End of the interval in microseconds
-        :param cache_metrics: If True, collect and return all metrics requested so far, else,
-        :param framework_metrics_list: list of framework metrics. If not empty, function will only return framework events that are part of this list.
-        :param selected_system_metrics: list of system metrics. If not empty, function will only return system events that are part of this list.
-        :param selected_framework_metrics: if True, get framework metrics
-        :param get_system_metrics: if True: get system metrics
-            return current request
-        :return: System metrics DataFrame, Framework metrics DataFrame
+        """Get metrics data within a time interval.
+
+        Args:
+            start_time_us: Start of the interval in microseconds
+            end_time_us: End of the interval in microseconds
+            cache_metrics: If True, collect and return all metrics requested so far, else,
+            framework_metrics_list: list of framework metrics. If not empty, function will only return framework events that are part of this list.
+            selected_system_metrics: list of system metrics. If not empty, function will only return system events that are part of this list.
+            selected_framework_metrics: if True, get framework metrics
+            get_system_metrics: if True: get system metrics
+
+        Returns:
+            System metrics DataFrame, Framework metrics DataFrame
 
         """
         # read system metrics

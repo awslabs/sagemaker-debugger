@@ -376,27 +376,14 @@ Further Documentation and References
 +-----------------------------------+-----------------------------------+
 | Section                           | Description                       |
 +===================================+===================================+
-| :doc:`sagemaker`                  | SageMaker users, we recommend you |
-|                                   | start with this page on how to    |
-|                                   | run SageMaker training jobs with  |
-|                                   | SageMaker Debugger.               |
-+-----------------------------------+-----------------------------------+
 | Frameworks                        | See the frameworks pages for      |
 |   - :doc:`tensorflow`             | details on what’s supported and   |
 |   - :doc:`pytorch`                | how to modify your training       |
 |   - :doc:`mxnet`                  | script if applicable.             |
 |   - :doc:`xgboost`                |                                   |
 +-----------------------------------+-----------------------------------+
-| :doc:`api`                        | Full description of our APIs      |
+| :doc:`hook-api`                   | Full description of our APIs      |
 |                                   | on saving tensors.                |
-+-----------------------------------+-----------------------------------+
-| :doc:`analysis`                   | For description of the programming|
-|                                   | model provided by the APIs that   |
-|                                   | enable you to perform interactive |
-|                                   | exploration of tensors saved,     |
-|                                   | as well as to write your own      |
-|                                   | rules monitoring your training    |
-|                                   | jobs.                             |
 +-----------------------------------+-----------------------------------+
 
 License

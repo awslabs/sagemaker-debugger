@@ -40,14 +40,11 @@ class PythonProfileAnalysis:
         Otherwise, LocalPythonStatsReader is used and local_profile_dir represents the path to the stats directory,
         which already holds the stats.
 
-        ...
-
-        Attributes
-        ----------
-        python_stats_reader: PythonStatsReader
-            The reader to use for loading the python stats.
-        python_profile_stats: list of StepPythonProfileStats
-            List of stats for each step profiled.
+        Args:
+            python_stats_reader: PythonStatsReader
+                The reader to use for loading the python stats.
+            python_profile_stats: list of StepPythonProfileStats
+                List of stats for each step profiled.
 
         """
         self.python_stats_reader = (
@@ -94,6 +91,7 @@ class PythonProfileAnalysis:
         refresh_stats=True,
     ):
         """API function to fetch stats based on step interval.
+
         """
         self._refresh_python_profile_stats(refresh_stats)
 
@@ -116,6 +114,7 @@ class PythonProfileAnalysis:
         refresh_stats=True,
     ):
         """API function to fetch stats based on time interval.
+
         """
         self._refresh_python_profile_stats(refresh_stats)
         start_time_since_epoch_in_micros = start_time_since_epoch_in_secs * CONVERT_TO_MICROSECS
@@ -133,6 +132,7 @@ class PythonProfileAnalysis:
         self, start_mode, end_mode, node_id="any", refresh_stats=True
     ):
         """API function that fetches stats with the provided start and end mode.
+
         """
         self._refresh_python_profile_stats(refresh_stats)
         requested_stats = [
@@ -169,11 +169,12 @@ class PythonProfileAnalysis:
         each instance of profiling and the corresponding stats file (one per step).
 
         The columns of this DataFrame include:
+
             - profiler_name: The name of the profiler used to generate this stats file, cProfile or pyinstrument
             - framework: The machine learning framework used in training.
             - start_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling started for this step.
             - end_time_since_epoch_in_micros: The UTC time (in microseconds) at which profiling finished for this step.
-            = node_id The node ID of the node used in the session.
+            - node_id The node ID of the node used in the session.
             - start_phase The phase at which python profiling was started.
             - start_step: The step at which python profiling was started. -1 if before step 0.
             - end_phase The phase at which python profiling was stopped.

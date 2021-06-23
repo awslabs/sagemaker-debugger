@@ -256,15 +256,15 @@ representing name. It provides the following methods.
 
   **Parameters:**
 
-    - ``step_num (int)`` The step number whose value is to be returned for
-      the mode passed through the next parameter.
-    - ``mode (smdebug.modes enum value)`` The mode applicable for the step
-      number passed above. Defaults to ``modes.GLOBAL``
+  - ``step_num (int)`` The step number whose value is to be returned for
+    the mode passed through the next parameter.
+  - ``mode (smdebug.modes enum value)`` The mode applicable for the step
+    number passed above. Defaults to ``modes.GLOBAL``
 
   **Returns:**
 
-    ``list[str]`` A list of worker names for which the tensor was saved at
-    the given step.
+  ``list[str]`` A list of worker names for which the tensor was saved at
+  the given step.
 
 .. method:: output_tensor.prev_steps(step, n, mode=modes.GLOBAL)
 
@@ -272,15 +272,15 @@ representing name. It provides the following methods.
 
   **Parameters:**
 
-    - ``step (int)`` The step number whose value is to be returned for the
-      mode passed.
-    - ``n (int)`` Number of previous steps to return
-    - ``mode (smdebug.modes enum value)`` The mode applicable for the step
+  - ``step (int)`` The step number whose value is to be returned for the
+    mode passed.
+  - ``n (int)`` Number of previous steps to return
+  - ``mode (smdebug.modes enum value)`` The mode applicable for the step
     number passed above. Defaults to ``modes.GLOBAL``
 
   **Returns:**
 
-    ``list[int]`` A list of size at most n representing the previous steps
-    for the given step and mode. Note that this list can be of size less
-    than n if there were only less than n steps saved before the given step
-    in this trial.
+  ``list[int]`` A list of size at most n representing the previous steps
+  for the given step and mode. Note that this list can be of size less
+  than n if there were only less than n steps saved before the given step
+  in this trial.

@@ -110,13 +110,17 @@ class StepPythonProfileStats:
         )
 
     def in_step_interval(self, start_step, end_step, start_phase, end_phase):
-        """Returns whether this is in the provided step interval. This is defined as:
-        1. This start step is greater than the provided start step and the end step is greater than the provided end
-            step.
-        2. If this start step equals the provided start step, verify that this start phase does not occur before the
-            provided start phase.
-        3. If this end step equals the provided end step, verify that this end phase does not occur after the provided
-            end phase.
+        """Returns whether this is in the provided step interval.
+
+        This is defined as:
+
+            1. This start step is greater than the provided start step and the end step is greater than the provided end
+               step.
+            2. If this start step equals the provided start step, verify that this start phase does not occur before the
+               provided start phase.
+            3. If this end step equals the provided end step, verify that this end phase does not occur after the provided
+               end phase.
+
         """
         if start_step < self.start_step and end_step > self.end_step:
             return True
@@ -163,6 +167,7 @@ class cProfileStats:
         The cProfile stats of Python functions as a list of cProfileFunctionStats objects, which contain specific
         metrics corresponding to each function profiled. Parsed from the pStats.Stats object. Useful for more in
         depth analysis as it allows users physical access to the metrics for each function.
+
     """
 
     def __init__(self, ps):
@@ -171,13 +176,21 @@ class cProfileStats:
 
     def print_top_n_functions(self, by, n=10):
         """Print the stats for the top n functions with respect to the provided metric.
-        :param by The metric to sort the functions by. Must be one of the following from the Metrics enum: TOTAL_TIME,
-            CUMULATIVE_TIME, PRIMITIVE_CALLS, TOTAL_CALLS.
-        :param n The first n functions and stats to print after sorting.
 
-        For example, to print the top 20 functions with respect to cumulative time spent in function:
-        >>> from smdebug.profiler.analysis.utils.python_profile_analysis_utils import Metrics
-        >>> cprofile_stats.print_top_n_function(self, Metrics.CUMULATIVE_TIME, n=20)
+        Args:
+            by (Metrics enum):
+                The metric to sort the functions by. Must be one of the following from the Metrics enum: TOTAL_TIME,
+                CUMULATIVE_TIME, PRIMITIVE_CALLS, TOTAL_CALLS.
+            n (int):
+                The first n functions and stats to print after sorting.
+
+        For example, to print the top 20 functions with respect to cumulative time spent in function
+
+        .. code :: python
+
+            from smdebug.profiler.analysis.utils.python_profile_analysis_utils import Metrics
+            cprofile_stats.print_top_n_function(self, Metrics.CUMULATIVE_TIME, n=20)
+
         """
         assert isinstance(by, Metrics), "by must be valid metric from Metrics!"
         assert isinstance(n, int), "n must be an integer!"
@@ -185,6 +198,7 @@ class cProfileStats:
 
     def get_function_stats(self):
         """Return the function stats list as a DataFrame, where each row represents a cProfileFunctionStats object.
+
         """
         return pd.DataFrame([repr(function_stats) for function_stats in self.function_stats_list])
 
@@ -194,23 +208,23 @@ class cProfileFunctionStats:
     Processes the stats dictionary's (key, value) pair to get the function name and the specific stats.
     Key is a tuple of (filename, lineno, function).
     Value is a tuple of (prim_calls, total_calls, total_time, cumulative_time, callers). See below for details.
-    ...
-    Attributes
-    ----------
-    function_name: str
-        The full function name, derived from the key tuple. Defined as filename:lineno(function).
-    prim_calls: int
-        The number of primitive (non-recursive) calls to this function.
-    total_calls: int
-        The total number of calls to this function.
-    total_time: int
-        The total amount of time spent in the scope of this function alone, in seconds.
-    cumulative_time: int
-        The total amount of time spent in the scope of this function and in the scope of all other functions
-        that this function calls, in seconds.
-    callers: list of str
-        The list of functions that call this function. Organized as a list of function names, which follow the above
-        format for function_name: filename:lineno(function)
+
+    Args:
+        function_name (str):
+            The full function name, derived from the key tuple. Defined as filename:lineno(function).
+        prim_calls (int):
+            The number of primitive (non-recursive) calls to this function.
+        total_calls (int):
+            The total number of calls to this function.
+        total_time (int):
+            The total amount of time spent in the scope of this function alone, in seconds.
+        cumulative_time (int):
+            The total amount of time spent in the scope of this function and in the scope of all other functions
+            that this function calls, in seconds.
+        callers (list of str):
+            The list of functions that call this function. Organized as a list of function names, which follow the above
+            format for function_name: filename:lineno(function)
+
     """
 
     def __init__(self, key, value):
