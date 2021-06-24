@@ -21,9 +21,7 @@ from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
     DEFAULT_PREFIX,
-    MODELTIMELINE_SUFFIX,
     PYINSTRUMENT_NAME,
-    TENSORBOARDTIMELINE_SUFFIX,
     TRACE_DIRECTORY_FORMAT,
 )
 from smdebug.profiler.python_profile_utils import StepPhase
