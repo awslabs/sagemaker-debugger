@@ -9,3 +9,5 @@ dependencies:
    - ipython
    - pandas
    - pip
+   - pip:
+      - protobuf3==3.7.1
