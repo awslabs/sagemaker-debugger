@@ -90,7 +90,7 @@ if compile_summary_protobuf() != 0:
         requests.get(
             "https://github.com/google/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip"
         )
-        with zipfile.Zipfile("protoc-3.7.1-linux-x86_64.zip", "r") as zipObj:
+        with zipfile.ZipFile("protoc-3.7.1-linux-x86_64.zip", "r") as zipObj:
             zipObj.extractall("temp")
 
         subprocess.run(
