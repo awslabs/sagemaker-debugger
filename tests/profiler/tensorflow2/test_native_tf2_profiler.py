@@ -67,7 +67,7 @@ def _train_step(hook, profiler_config_parser, model, opt, images, labels, strate
 
 def _distributed_train_step(hook, profiler_config_parser, model, opt, images, labels, strategy):
     per_replica_losses = strategy.run(
-        _train_step, args=(hook, profiler_config_parser, model, opt, images, labels)
+        _train_step, args=(hook, profiler_config_parser, model, opt, images, labels, strategy)
     )
     return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
