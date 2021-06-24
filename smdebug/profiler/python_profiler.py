@@ -93,6 +93,9 @@ class PythonProfiler:
         Start mode must be one of the specified modes in ModeKeys.
         If start step is *, then this is profiling until step 0.
         """
+        if self._is_profiling:
+            return
+
         self._start_mode = start_mode
         self._start_step = start_step
         self._start_phase = start_phase
