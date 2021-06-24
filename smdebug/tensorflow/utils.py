@@ -33,7 +33,7 @@ def supported_tf_variables():
         else:
             from tensorflow.python.keras.mixed_precision.experimental import autocast_variable
 
-        return tf_v1.Variable, autocast_variable.AutoCastVariable
+        return tf_v1.Variable, autocast_variable.AutoCastVariable, values.MirroredVariable
     else:
         return tf_v1.Variable
 

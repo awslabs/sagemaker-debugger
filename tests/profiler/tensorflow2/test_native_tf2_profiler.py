@@ -16,7 +16,10 @@ from tests.tensorflow2.utils import ModelType
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import FRAMEWORK
-from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
+from smdebug.profiler.profiler_config_parser import (
+    get_profiler_config_parser,
+    reset_profiler_config_parser,
+)
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
@@ -31,58 +34,60 @@ from smdebug.tensorflow import KerasHook as Hook
 
 
 @pytest.fixture
-def native_tf2_cprofile_profiler_config_parser(config_folder, monkeypatch):
-    config_path = os.path.join(
-        config_folder, "test_native_tf2_cprofile_profiler_config_parser.json"
-    )
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
+def native_tf2_cprofile_profiler_config_path(config_folder, monkeypatch):
+    return os.path.join(config_folder, "test_native_tf2_cprofile_profiler_config_parser.json")
 
 
 @pytest.fixture
-def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
-    config_path = os.path.join(
-        config_folder, "test_native_tf2_pyinstrument_profiler_config_parser.json"
-    )
+def native_tf2_pyinstrument_profiler_config_path(config_folder, monkeypatch):
+    return os.path.join(config_folder, "test_native_tf2_pyinstrument_profiler_config_parser.json")
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
     return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
-def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parser, strategy=None):
-    def get_grads(images, labels):
-        return model(images, training=True)
-
-    def train_step(images, labels):
-        with hook.profiler():
-            labels = tf.one_hot(labels, depth=10)
-            with tf.GradientTape() as tape:
-                logits = tf.reduce_mean(get_grads(images, labels))
-                if start_step <= hook.step < end_step:
-                    assert profiler_config_parser.python_profiler._start_step == hook.step
-                    assert (
-                        profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
-                    )
-            grads = tape.gradient(logits, model.variables)
-            opt.apply_gradients(zip(grads, model.variables))
-
-        if start_step <= hook.step < end_step:
-            assert profiler_config_parser.python_profiler._start_step == hook.step
-            assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_END
-
-        return logits
-
-    @tf.function
-    def distributed_train_step(images, labels):
-        per_replica_losses = strategy.run(train_step, args=(images, labels))
-        return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
-
-    # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
-    # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
-    hook.logger.disabled = True
-    hook.profiler_config_parser = profiler_config_parser
-
+def _train_step(hook, profiler_config_parser, model, opt, images, labels):
     start_step = profiler_config_parser.config.python_profiling_config.start_step
     end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
+
+    with hook.profiler():
+        labels = tf.one_hot(labels, depth=10)
+        with tf.GradientTape() as tape:
+
+            logits = tf.reduce_mean(model(images, training=True))
+            if start_step <= hook.step < end_step:
+                assert profiler_config_parser.python_profiler._start_step == hook.step
+                assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
+        grads = tape.gradient(logits, model.variables)
+        opt.apply_gradients(zip(grads, model.variables))
+
+    if start_step <= hook.step < end_step:
+        assert profiler_config_parser.python_profiler._start_step == hook.step
+        assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_END
+
+    return logits
+
+
+def _helper_native_tf2_gradtape(hook, profiler_config_parser, model, opt, dataset):
+    def train_step(images, labels):
+        return _train_step(hook, profiler_config_parser, model, opt, images, labels)
+
+    for current_step, (data, labels) in enumerate(dataset):
+        logits = train_step(data, labels)
+        hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
+        hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
+        hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
+
+    hook.profiling_end()
+
+
+def _helper_native_tf2_gradtape_mirrored(
+    hook, profiler_config_parser, model, opt, dataset, strategy
+):
+    def distributed_train_step(images, labels):
+        per_replica_losses = strategy.run(
+            _train_step, args=(hook, profiler_config_parser, model, opt, images, labels)
+        )
+        return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
     for current_step, (data, labels) in enumerate(dataset):
         logits = distributed_train_step(data, labels)
@@ -92,7 +97,9 @@ def _helper_native_tf2_gradtape(hook, model, opt, dataset, profiler_config_parse
 
     # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
     # profiling and collect post-hook-close Python profiling stats
-    hook.profiling_end()
+    with strategy.scope():
+        hook.close()
+        hook.profiling_end()
 
 
 def _verify_tensor_names(out_dir):
@@ -143,17 +150,16 @@ def _verify_timeline_files(out_dir):
 
 
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
-@pytest.mark.parametrize(
-    "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
-)
-@pytest.mark.parametrize("use_mirrored_strategy", [True])
+@pytest.mark.parametrize("model_type", [ModelType.SEQUENTIAL])
+@pytest.mark.parametrize("use_mirrored_strategy", [False, True])
 def test_native_tf2_profiling(
+    monkeypatch,
     python_profiler_name,
     model_type,
     use_mirrored_strategy,
     get_model,
-    native_tf2_cprofile_profiler_config_parser,
-    native_tf2_pyinstrument_profiler_config_parser,
+    native_tf2_cprofile_profiler_config_path,
+    native_tf2_pyinstrument_profiler_config_path,
     out_dir,
     mnist_dataset,
     tf_eager_mode,
@@ -166,37 +172,45 @@ def test_native_tf2_profiling(
     /opt/ml/input/config/resourceconfig.json before tensorflow is even imported.
     """
     if python_profiler_name == CPROFILE_NAME:
-        profiler_config_parser = native_tf2_cprofile_profiler_config_parser
+        config_path = native_tf2_cprofile_profiler_config_path
     else:
-        profiler_config_parser = native_tf2_pyinstrument_profiler_config_parser
+        config_path = native_tf2_pyinstrument_profiler_config_path
 
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    reset_profiler_config_parser()
+    profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW)
     assert profiler_config_parser.profiling_enabled
     profiler_config_parser.load_config()
-    profiler_config_parser.start_pre_step_zero_python_profiling()
 
     hook = Hook(out_dir=out_dir, save_all=True)
-    strategy = None
+    # Known issue where logging in a python callback function (i.e. atexit) during pytest causes logging errors.
+    # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
+    hook.profiler_config_parser = profiler_config_parser
+    hook.logger.disabled = True
+
+    num_devices = 1
 
     if use_mirrored_strategy:
         strategy = tf.distribute.MirroredStrategy()
+        num_devices = strategy.num_replicas_in_sync
         with strategy.scope():
             model = get_model(model_type)
             optimizer = tf.optimizers.Adam()
             optimizer = hook.wrap_optimizer(optimizer)
             profiler_config_parser._reset_python_profiler()
+            profiler_config_parser.start_pre_step_zero_python_profiling()
+        _helper_native_tf2_gradtape_mirrored(
+            hook, profiler_config_parser, model, optimizer, mnist_dataset, strategy
+        )
     else:
         model = get_model(model_type)
         optimizer = tf.optimizers.Adam()
         optimizer = hook.wrap_optimizer(optimizer)
-
-    _helper_native_tf2_gradtape(
-        hook, model, optimizer, mnist_dataset, profiler_config_parser, strategy=strategy
-    )
+        profiler_config_parser.start_pre_step_zero_python_profiling()
+        _helper_native_tf2_gradtape(hook, profiler_config_parser, model, optimizer, mnist_dataset)
 
     # Sanity check debugger output.
-    # TODO: Figure out why tensors cannot be collected when both MirroredStrategy and GradientTape are used.
-    if not use_mirrored_strategy:
-        _verify_tensor_names(out_dir)
+    _verify_tensor_names(out_dir)
 
     # Validate all timeline files
     _verify_timeline_files(out_dir)
@@ -205,11 +219,11 @@ def test_native_tf2_profiling(
     expected_event_count = 90 if use_mirrored_strategy else 230
     verify_detailed_profiling(out_dir, expected_event_count)
 
-    # The expected number of stats directories during is (num_steps * 2) + 2. This includes profiling for both
-    # phases of each step and pre-step zero python profiling and post-hook-close python profiling.
+    # The expected number of stats directories during is ((num_steps * 2) + 2) * num_devices. This includes profiling
+    # for both phases of each step and pre-step zero python profiling and post-hook-close python profiling.
     expected_stats_dir_count = (
-        profiler_config_parser.config.python_profiling_config.num_steps * 2
-    ) + 2
+        (profiler_config_parser.config.python_profiling_config.num_steps * 2) + 2
+    ) * num_devices
     python_stats_dir = os.path.join(out_dir, "framework", "tensorflow", python_profiler_name)
     validate_python_profiling_stats(
         python_stats_dir, python_profiler_name, expected_stats_dir_count
