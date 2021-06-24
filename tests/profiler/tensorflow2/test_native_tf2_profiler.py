@@ -46,6 +46,10 @@ def native_tf2_pyinstrument_profiler_config_path(config_folder, monkeypatch):
 
 
 def _train_step(hook, profiler_config_parser, model, opt, images, labels):
+    @tf.function
+    def _get_logits(images):
+        return tf.reduce_mean(model(images, training=True))
+
     start_step = profiler_config_parser.config.python_profiling_config.start_step
     end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
 
@@ -53,7 +57,7 @@ def _train_step(hook, profiler_config_parser, model, opt, images, labels):
         labels = tf.one_hot(labels, depth=10)
         with tf.GradientTape() as tape:
 
-            logits = tf.reduce_mean(model(images, training=True))
+            logits = _get_logits(images)
             if start_step <= hook.step < end_step:
                 assert profiler_config_parser.python_profiler._start_step == hook.step
                 assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
