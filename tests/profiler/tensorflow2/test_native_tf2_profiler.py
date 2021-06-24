@@ -46,18 +46,12 @@ def native_tf2_pyinstrument_profiler_config_path(config_folder, monkeypatch):
 
 
 def _train_step(hook, profiler_config_parser, model, opt, images, labels):
-    @tf.function
-    def _get_logits(images):
-        return tf.reduce_mean(model(images, training=True))
-
     start_step = profiler_config_parser.config.python_profiling_config.start_step
     end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
 
     with hook.profiler():
-        labels = tf.one_hot(labels, depth=10)
         with tf.GradientTape() as tape:
-
-            logits = _get_logits(images)
+            logits = tf.reduce_mean(model(images, training=True))
             if start_step <= hook.step < end_step:
                 assert profiler_config_parser.python_profiler._start_step == hook.step
                 assert profiler_config_parser.python_profiler._start_phase == StepPhase.STEP_START
@@ -125,7 +119,11 @@ def _verify_tensor_names(out_dir):
         "Adam/learning_rate:0",
     ]
     assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["inputs"]
-    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
+    assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == [
+        "labels",
+        "logits",
+        "predictions",
+    ]
 
 
 def _verify_timeline_files(out_dir):
