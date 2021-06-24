@@ -75,6 +75,7 @@ def _helper_native_tf2_gradtape(hook, profiler_config_parser, model, opt, datase
         hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
         hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
 
+    hook.close()
     hook.profiling_end()
 
 
