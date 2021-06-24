@@ -9,6 +9,7 @@ from cProfile import Profile as cProfileProfiler
 # Third Party
 from pyinstrument import Profiler as PyinstrumentProfiler
 from pyinstrument.renderers import JSONRenderer
+from pyinstrument_cext import setstatprofile
 
 # First Party
 from smdebug.core.locations import TraceFileLocation
@@ -229,7 +230,7 @@ class PyinstrumentPythonProfiler(PythonProfiler):
         """Enable the pyinstrument profiler.
         """
         if sys.getprofile() is not None:
-            return False
+            setstatprofile(None)
         self._profiler = PyinstrumentProfiler()
         self._profiler.start()
         return True

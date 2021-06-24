@@ -1420,7 +1420,6 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.close()  # Unwrap the tape before closing
         self.is_hook_closed = True
         self._stop_detailed_profiling(self.mode_steps[self.mode])
-        assert self.profiler_config_parser.python_profiler._is_profiling
         self.profiler_config_parser.stop_post_hook_close_python_profiling()
         self._stop_dataloader_profiling()
         self.is_profiler_enabled_for_native_training = False
