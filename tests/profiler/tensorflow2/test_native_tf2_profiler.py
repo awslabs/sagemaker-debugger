@@ -31,7 +31,7 @@ from smdebug.tensorflow import KerasHook as Hook
 
 
 @pytest.fixture
-def native_tf2_cprofile_profiler_config_path(config_folder, monkeypatch):
+def native_tf2_cprofile_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(
         config_folder, "test_native_tf2_cprofile_profiler_config_parser.json"
     )
@@ -40,7 +40,7 @@ def native_tf2_cprofile_profiler_config_path(config_folder, monkeypatch):
 
 
 @pytest.fixture
-def native_tf2_pyinstrument_profiler_config_path(config_folder, monkeypatch):
+def native_tf2_pyinstrument_profiler_config_parser(config_folder, monkeypatch):
     config_path = os.path.join(
         config_folder, "test_native_tf2_pyinstrument_profiler_config_parser.json"
     )
@@ -148,8 +148,8 @@ def test_native_tf2_profiling(
     model_type,
     use_mirrored_strategy,
     get_model,
-    native_tf2_cprofile_profiler_config_path,
-    native_tf2_pyinstrument_profiler_config_path,
+    native_tf2_cprofile_profiler_config_parser,
+    native_tf2_pyinstrument_profiler_config_parser,
     out_dir,
     mnist_dataset,
     tf_eager_mode,
@@ -162,13 +162,10 @@ def test_native_tf2_profiling(
     /opt/ml/input/config/resourceconfig.json before tensorflow is even imported.
     """
     if python_profiler_name == CPROFILE_NAME:
-        config_path = native_tf2_cprofile_profiler_config_path
+        profiler_config_parser = native_tf2_cprofile_profiler_config_parser
     else:
-        config_path = native_tf2_pyinstrument_profiler_config_path
+        profiler_config_parser = native_tf2_pyinstrument_profiler_config_parser
 
-    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
-    reset_profiler_config_parser()
-    profiler_config_parser = get_profiler_config_parser(FRAMEWORK.TENSORFLOW)
     assert profiler_config_parser.profiling_enabled
     profiler_config_parser.load_config()
 
