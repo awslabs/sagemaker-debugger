@@ -2,7 +2,7 @@
     "ProfilingParameters": {
         "ProfilerEnabled": true,
         "LocalPath": "/tmp/test",
-        "DetailedProfilingConfig": "{\"StartStep\": 0, \"NumSteps\": 2}",
-        "PythonProfilingConfig": "{\"StartStep\": 0, \"NumSteps\": 2, \"ProfilerName\": \"cProfile\"}"
+        "DetailedProfilingConfig": "{\"StartStep\": 2, \"NumSteps\": 2}",
+        "PythonProfilingConfig": "{\"StartStep\": 5, \"NumSteps\": 2, \"ProfilerName\": \"cProfile\"}"
     }
 }

@@ -16,10 +16,7 @@ from tests.tensorflow2.utils import ModelType
 import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.utils import FRAMEWORK
-from smdebug.profiler.profiler_config_parser import (
-    get_profiler_config_parser,
-    reset_profiler_config_parser,
-)
+from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 from smdebug.profiler.profiler_constants import (
     CONVERT_TO_MICROSECS,
     CPROFILE_NAME,
@@ -35,12 +32,18 @@ from smdebug.tensorflow import KerasHook as Hook
 
 @pytest.fixture
 def native_tf2_cprofile_profiler_config_path(config_folder, monkeypatch):
-    return os.path.join(config_folder, "test_native_tf2_cprofile_profiler_config_parser.json")
+    config_path = os.path.join(
+        config_folder, "test_native_tf2_cprofile_profiler_config_parser.json"
+    )
+    monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
+    return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
 @pytest.fixture
 def native_tf2_pyinstrument_profiler_config_path(config_folder, monkeypatch):
-    return os.path.join(config_folder, "test_native_tf2_pyinstrument_profiler_config_parser.json")
+    config_path = os.path.join(
+        config_folder, "test_native_tf2_pyinstrument_profiler_config_parser.json"
+    )
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
     return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
