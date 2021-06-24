@@ -45,7 +45,7 @@ def native_tf2_pyinstrument_profiler_config_path(config_folder, monkeypatch):
     return ProfilerConfigParser(FRAMEWORK.TENSORFLOW)
 
 
-def _train_step(hook, profiler_config_parser, model, opt, images, labels):
+def _train_step(hook, profiler_config_parser, model, opt, images, labels, strategy):
     start_step = profiler_config_parser.config.python_profiling_config.start_step
     end_step = start_step + profiler_config_parser.config.python_profiling_config.num_steps
 
@@ -65,40 +65,22 @@ def _train_step(hook, profiler_config_parser, model, opt, images, labels):
     return logits
 
 
-def _helper_native_tf2_gradtape(hook, profiler_config_parser, model, opt, dataset):
-    def train_step(images, labels):
-        return _train_step(hook, profiler_config_parser, model, opt, images, labels)
+def _distributed_train_step(hook, profiler_config_parser, model, opt, images, labels, strategy):
+    per_replica_losses = strategy.run(
+        _train_step, args=(hook, profiler_config_parser, model, opt, images, labels)
+    )
+    return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
+
+def _training_loop(hook, profiler_config_parser, model, opt, dataset, train_step_func, strategy):
     for current_step, (data, labels) in enumerate(dataset):
-        logits = train_step(data, labels)
+        logits = train_step_func(hook, profiler_config_parser, model, opt, data, labels, strategy)
         hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
         hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
         hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
 
     hook.close()
     hook.profiling_end()
-
-
-def _helper_native_tf2_gradtape_mirrored(
-    hook, profiler_config_parser, model, opt, dataset, strategy
-):
-    def distributed_train_step(images, labels):
-        per_replica_losses = strategy.run(
-            _train_step, args=(hook, profiler_config_parser, model, opt, images, labels)
-        )
-        return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
-
-    for current_step, (data, labels) in enumerate(dataset):
-        logits = distributed_train_step(data, labels)
-        hook.save_tensor("inputs", data, CollectionKeys.INPUTS)
-        hook.save_tensor("logits", logits, CollectionKeys.OUTPUTS)
-        hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
-
-    # required for these tests since this normally gets called in the cleanup process and we need to stop any ongoing
-    # profiling and collect post-hook-close Python profiling stats
-    with strategy.scope():
-        hook.close()
-        hook.profiling_end()
 
 
 def _verify_tensor_names(out_dir):
@@ -192,8 +174,7 @@ def test_native_tf2_profiling(
     # See https://github.com/pytest-dev/pytest/issues/5502 for more information.
     hook.profiler_config_parser = profiler_config_parser
     hook.logger.disabled = True
-
-    num_devices = 1
+    profiler_config_parser.start_pre_step_zero_python_profiling()
 
     if use_mirrored_strategy:
         strategy = tf.distribute.MirroredStrategy()
@@ -201,18 +182,18 @@ def test_native_tf2_profiling(
         with strategy.scope():
             model = get_model(model_type)
             optimizer = tf.optimizers.Adam()
-            optimizer = hook.wrap_optimizer(optimizer)
-            profiler_config_parser._reset_python_profiler()
-            profiler_config_parser.start_pre_step_zero_python_profiling()
-        _helper_native_tf2_gradtape_mirrored(
-            hook, profiler_config_parser, model, optimizer, mnist_dataset, strategy
-        )
+        train_step_func = _train_step
     else:
+        strategy = None
+        num_devices = 1
         model = get_model(model_type)
         optimizer = tf.optimizers.Adam()
-        optimizer = hook.wrap_optimizer(optimizer)
-        profiler_config_parser.start_pre_step_zero_python_profiling()
-        _helper_native_tf2_gradtape(hook, profiler_config_parser, model, optimizer, mnist_dataset)
+        train_step_func = _distributed_train_step
+
+    optimizer = hook.wrap_optimizer(optimizer)
+    _training_loop(
+        hook, profiler_config_parser, model, optimizer, mnist_dataset, train_step_func, strategy
+    )
 
     # Sanity check debugger output.
     _verify_tensor_names(out_dir)
