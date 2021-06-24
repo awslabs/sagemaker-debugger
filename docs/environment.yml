@@ -9,5 +9,3 @@ dependencies:
    - ipython
    - pandas
    - pip
-   - pip:
-      - protobuf

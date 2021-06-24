@@ -14,10 +14,12 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 
 # Standard Library
 import os
+import subprocess
 import sys
 from datetime import date
 
 # Third Party
+import requests
 import setuptools
 
 exec(open("smdebug/_version.py").read())
@@ -77,23 +79,25 @@ def build_package(version):
 
 
 if compile_summary_protobuf() != 0:
-    print(
-        "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
-        "Please make sure that you have installed protobuf3 compiler and runtime correctly."
-    )
     if docs_env == "False":
+        print(
+            "ERROR: Compiling summary protocol buffers failed. You will not be able to use smdebug. "
+            "Please make sure that you have installed protobuf3 compiler and runtime correctly."
+        )
         sys.exit(1)
     else:
-        os.system(
-            "curl -OL https://github.com/google/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip"
+        requests.get(
+            "https://github.com/google/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip"
         )
-        os.system(
-            "unzip -o protoc-3.7.1-linux-x86_64.zip -d /home/docs/checkouts/readthedocs.org/user_builds/local bin/protoc"
+        with Zipfile("protoc-3.7.1-linux-x86_64.zip", "r") as zipObj:
+            zipObj.extractall("temp")
+
+        subprocess.run(
+            ["cp", "temp/bin/protoc", "/home/docs/checkouts/readthedocs.org/user_builds/local"]
         )
-        os.system(
-            "unzip -o protoc-3.7.1-linux-x86_64.zip -d /home/docs/checkouts/readthedocs.org/user_builds/local include/*"
+        subprocess.run(
+            ["cp", "temp/include/*", "/home/docs/checkouts/readthedocs.org/user_builds/local"]
         )
-        os.system("rm -f protoc-3.7.1-linux-x86_64.zip")
 
 
 def scan_git_secrets():
