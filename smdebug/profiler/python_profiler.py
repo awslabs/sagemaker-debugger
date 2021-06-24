@@ -94,12 +94,13 @@ class PythonProfiler:
         Start mode must be one of the specified modes in ModeKeys.
         If start step is *, then this is profiling until step 0.
         """
+        if not self._enable_profiler():
+            return
         self._start_mode = start_mode
         self._start_step = start_step
         self._start_phase = start_phase
         self._start_time_since_epoch_in_micros = time.time() * CONVERT_TO_MICROSECS
         self._is_profiling = True
-        self._enable_profiler()
 
     def stop_profiling(self, end_phase, end_mode=PythonProfileModes.POST_HOOK_CLOSE, end_step="*"):
         """Stop the python profiler with the provided end phase and end step and end mode.
@@ -176,6 +177,7 @@ class cProfilePythonProfiler(PythonProfiler):
         """
         self._profiler = cProfileProfiler(self.cprofile_timer)
         self._profiler.enable()
+        return True
 
     def _disable_profiler(self):
         """Disable the cProfile profiler.
@@ -214,7 +216,7 @@ class cProfileDefaultPythonProfiler(cProfilePythonProfiler):
         else:
             # for pre step zero or post hook close profiling, use total_time
             self.cprofile_timer = total_time
-        super()._enable_profiler()
+        return super()._enable_profiler()
 
 
 class PyinstrumentPythonProfiler(PythonProfiler):
@@ -226,9 +228,11 @@ class PyinstrumentPythonProfiler(PythonProfiler):
     def _enable_profiler(self):
         """Enable the pyinstrument profiler.
         """
+        if sys.getprofile() is not None:
+            return False
         self._profiler = PyinstrumentProfiler()
-        if sys.getprofile() is None:
-            self._profiler.start()
+        self._profiler.start()
+        return True
 
     def _disable_profiler(self):
         """Disable the pyinstrument profiler.
