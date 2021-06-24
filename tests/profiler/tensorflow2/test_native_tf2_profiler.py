@@ -134,22 +134,22 @@ def _verify_timeline_files(out_dir):
     """
     files = list(Path(os.path.join(out_dir, DEFAULT_PREFIX)).rglob("*.json"))
 
-    assert len(files) == 1
+    assert len(files) >= 1
 
-    file = files[0]
-    file_ts = file.name.split("_")[0]
-    folder_name = file.parent.name
-    assert folder_name == time.strftime(
-        TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
-    )
-    assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
-        TRACE_DIRECTORY_FORMAT
-    )
+    for file in files:
+        file_ts = file.name.split("_")[0]
+        folder_name = file.parent.name
+        assert folder_name == time.strftime(
+            TRACE_DIRECTORY_FORMAT, time.gmtime(int(file_ts) / CONVERT_TO_MICROSECS)
+        )
+        assert folder_name == datetime.strptime(folder_name, TRACE_DIRECTORY_FORMAT).strftime(
+            TRACE_DIRECTORY_FORMAT
+        )
 
-    with open(file) as timeline_file:
-        events_dict = json.load(timeline_file)
+        with open(file) as timeline_file:
+            events_dict = json.load(timeline_file)
 
-    assert events_dict is not None
+        assert events_dict is not None
 
 
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])

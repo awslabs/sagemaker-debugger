@@ -2,6 +2,7 @@
 import json
 import os
 import pstats
+import sys
 import time
 from cProfile import Profile as cProfileProfiler
 
@@ -93,9 +94,6 @@ class PythonProfiler:
         Start mode must be one of the specified modes in ModeKeys.
         If start step is *, then this is profiling until step 0.
         """
-        if self._is_profiling:
-            return
-
         self._start_mode = start_mode
         self._start_step = start_step
         self._start_phase = start_phase
@@ -229,7 +227,8 @@ class PyinstrumentPythonProfiler(PythonProfiler):
         """Enable the pyinstrument profiler.
         """
         self._profiler = PyinstrumentProfiler()
-        self._profiler.start()
+        if sys.getprofile() is None:
+            self._profiler.start()
 
     def _disable_profiler(self):
         """Disable the pyinstrument profiler.
