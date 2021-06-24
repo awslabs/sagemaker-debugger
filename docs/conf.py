@@ -12,7 +12,6 @@
 
 # Standard Library
 import os
-import subprocess
 import sys
 
 # sys.path.insert(0, os.path.abspath('../'))
@@ -20,7 +19,12 @@ import sys
 # sys.path.insert(0, os.path.join(curr_path, '..'))
 sys.path.insert(0, os.path.abspath("../smdebug"))
 
-subprocess.run(["sudo", "sh", "../config/protoc_downloader.sh"])
+os.system(
+    "curl -OL https://github.com/google/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip"
+)
+os.system("unzip -o protoc-3.7.1-linux-x86_64.zip -d /usr/local bin/protoc")
+os.system("unzip -o protoc-3.7.1-linux-x86_64.zip -d /usr/local include/*")
+os.system("rm -f protoc-3.7.1-linux-x86_64.zip")
 
 # -- Project information -----------------------------------------------------
 
