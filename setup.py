@@ -16,6 +16,7 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 import os
 import subprocess
 import sys
+import zipfile
 from datetime import date
 
 # Third Party
@@ -89,7 +90,7 @@ if compile_summary_protobuf() != 0:
         requests.get(
             "https://github.com/google/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip"
         )
-        with Zipfile("protoc-3.7.1-linux-x86_64.zip", "r") as zipObj:
+        with zipfile.Zipfile("protoc-3.7.1-linux-x86_64.zip", "r") as zipObj:
             zipObj.extractall("temp")
 
         subprocess.run(
