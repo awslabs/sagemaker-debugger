@@ -215,7 +215,7 @@ class cProfileDefaultPythonProfiler(cProfilePythonProfiler):
         else:
             # for pre step zero or post hook close profiling, use total_time
             self.cprofile_timer = total_time
-        return super()._enable_profiler()
+        super()._enable_profiler()
 
 
 class PyinstrumentPythonProfiler(PythonProfiler):
