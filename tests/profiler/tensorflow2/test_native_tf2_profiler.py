@@ -182,7 +182,7 @@ def test_native_tf2_profiling(
         with strategy.scope():
             model = get_model(model_type)
             optimizer = tf.optimizers.Adam()
-        train_step_func = _distributed_train_step()
+        train_step_func = _distributed_train_step
     else:
         strategy = None
         num_devices = 1
