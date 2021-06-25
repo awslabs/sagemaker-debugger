@@ -149,9 +149,7 @@ def _verify_timeline_files(out_dir):
 
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
 @pytest.mark.parametrize(
-    "model_type",
-    [ModelType.SEQUENTIAL]
-    # ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
+    "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
 )
 @pytest.mark.parametrize("use_mirrored_strategy", [False, True])
 def test_native_tf2_profiling(
