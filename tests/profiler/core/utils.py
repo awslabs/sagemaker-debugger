@@ -26,9 +26,6 @@ def validate_python_profiling_stats(python_stats_dir, profiler_name, expected_st
     for node_id in os.listdir(python_stats_dir):
         node_dir_path = os.path.join(python_stats_dir, node_id)
         stats_dirs = os.listdir(node_dir_path)
-        for stats_dir in stats_dirs:
-            print(stats_dir)
-        print(len(stats_dir), expected_stats_dir_count)
         assert len(stats_dirs) == expected_stats_dir_count
 
         for stats_dir in stats_dirs:
