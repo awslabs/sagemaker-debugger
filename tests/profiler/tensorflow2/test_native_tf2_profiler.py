@@ -86,10 +86,8 @@ def _training_loop(hook, profiler_config_parser, model, opt, dataset, train_step
         hook.save_tensor("labels", labels, CollectionKeys.OUTPUTS)
 
     if strategy:
-        strategy.run(hook.close)
         strategy.run(hook.profiling_end)
     else:
-        hook.close()
         hook.profiling_end()
 
 
