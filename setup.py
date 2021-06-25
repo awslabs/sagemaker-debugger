@@ -87,12 +87,8 @@ if compile_summary_protobuf() != 0:
         os.system(
             "curl -OL https://github.com/google/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip"
         )
-        os.system(
-            "unzip -o protoc-3.7.1-linux-x86_64.zip -d /home/docs/checkouts/readthedocs.org/user_builds/local bin/protoc"
-        )
-        os.system(
-            "unzip -o protoc-3.7.1-linux-x86_64.zip -d /home/docs/checkouts/readthedocs.org/user_builds/local include/*"
-        )
+        os.system("unzip -o protoc-3.7.1-linux-x86_64.zip -d /usr/local bin/protoc")
+        os.system("unzip -o protoc-3.7.1-linux-x86_64.zip -d /usr/local include/*")
         os.system("rm -f protoc-3.7.1-linux-x86_64.zip")
 
 
