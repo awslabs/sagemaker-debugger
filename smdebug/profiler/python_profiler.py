@@ -225,8 +225,6 @@ class PyinstrumentPythonProfiler(PythonProfiler):
     def _enable_profiler(self):
         """Enable the pyinstrument profiler.
         """
-        # if sys.getprofile() is not None:
-        #     setstatprofile(None)
         self._profiler = PyinstrumentProfiler()
         self._profiler.start()
 

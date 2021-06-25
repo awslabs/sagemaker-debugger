@@ -139,7 +139,12 @@ def _verify_timeline_files(out_dir):
         with open(file) as timeline_file:
             events_dict = json.load(timeline_file)
 
-        assert events_dict is not None
+        assert len(events_dict) > 2000
+        assert set([event["name"] for event in events_dict]) == {
+            "Step:ModeKeys.TRAIN",
+            "process_name",
+            "process_sort_index",
+        }
 
 
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
