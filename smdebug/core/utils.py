@@ -7,6 +7,7 @@ import shutil
 import socket
 import urllib.parse
 from enum import Enum
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List
 
@@ -638,6 +639,8 @@ def check_smmodelparallel_training():
     return _is_using_smmodelparallel
 
 
+# we need to compute the output of this fn only once since the framework type will remain constant during execution
+@lru_cache(maxsize=None)
 def is_framework_version_supported(framework_type):
     if framework_type == FRAMEWORK.PYTORCH:
         from smdebug.pytorch.utils import is_current_version_supported
