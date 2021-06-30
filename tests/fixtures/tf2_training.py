@@ -2,8 +2,7 @@
 import pytest
 
 
-@pytest.fixture
-def tf2_mnist_sequential_model():
+def _get_tf2_mnist_sequential_model():
     import tensorflow as tf
 
     model = tf.keras.models.Sequential(
@@ -18,8 +17,7 @@ def tf2_mnist_sequential_model():
     return model
 
 
-@pytest.fixture
-def tf2_mnist_functional_model():
+def _get_tf2_mnist_functional_model():
     import tensorflow as tf
 
     img_inputs = tf.keras.layers.Input(shape=(28, 28, 1))
@@ -35,8 +33,7 @@ def tf2_mnist_functional_model():
     return tf.keras.models.Model(inputs=img_inputs, outputs=out)
 
 
-@pytest.fixture
-def tf2_mnist_subclassed_model():
+def _get_tf2_mnist_subclassed_model():
     import tensorflow as tf
 
     class MyModel(tf.keras.models.Model):
@@ -90,6 +87,22 @@ def tf2_mnist_subclassed_model():
             return self.second(x)
 
     return MyModel()
+
+
+@pytest.fixture
+def get_model():
+    from tests.tensorflow2.utils import ModelType
+
+    model_dict = {
+        ModelType.SEQUENTIAL: _get_tf2_mnist_sequential_model,
+        ModelType.FUNCTIONAL: _get_tf2_mnist_functional_model,
+        ModelType.SUBCLASSED: _get_tf2_mnist_subclassed_model,
+    }
+
+    def _get_model_and_optimizer(model_type):
+        return model_dict[model_type]()
+
+    return _get_model_and_optimizer
 
 
 @pytest.fixture
