@@ -20,7 +20,7 @@ Contents
 -  `References <#references>`__
 
 SMDebug for TensorFlow
-------------------------------
+----------------------
 
 Amazon SageMaker Debugger and the ``smdebug`` client library
 fully support TensorFlow framework.

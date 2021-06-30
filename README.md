@@ -57,33 +57,45 @@ pip install smdebug
 For a complete overview of Amazon SageMaker Debugger to learn how it works, go to the [Use Debugger in AWS Containers](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-container.html) developer guide.
 
 ### AWS Deep Learning Containers with zero code change
-Debugger is installed by default in AWS Deep Learning Containers with TensorFlow, PyTorch, MXNet, and XGBoost. The following framework containers enable you to use Debugger with no changes to your training script, by automatically adding [SageMaker Debugger's Hook](docs/api.md#glossary).
 
-The following frameworks are available AWS Deep Learning Containers with the deep learning frameworks for the zero script change experience.
+Debugger is installed by default in AWS Deep Learning Containers
+(TensorFlow, PyTorch, MXNet) and the SageMaker XGBoost containers. The
+training containers are bundled and tested for integration with the
+SMDebug library the entire SageMaker platform.
 
-| Framework | Version |
-| --- | --- |
-| [TensorFlow](tensorflow.md) | 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
-| [MXNet](mxnet.md) | 1.6, 1.7 |
-| [PyTorch](pytorch.md) | 1.4, 1.5, 1.6 |
-| [XGBoost](xgboost.md) | 0.90-2, 1.0-1 ([As a built-in algorithm](docs/xgboost.md#use-xgboost-as-a-built-in-algorithm))|
+To find a complete list of available Deep Learning Containers, See
+[General Framework Containers](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#general-framework-containers) in the AWS Deep Learning Container
+repository.
 
-**Note**: Debugger with zero script change is partially available for TensorFlow v2.1.0. The `inputs`, `outputs`, `gradients`, and `layers` built-in collections are currently not available for these TensorFlow versions.
+This enables you to use Debugger with no changes to your training
+script, by automatically adding `hook-api`.
 
-### AWS training containers with script mode
+The following frameworks are available AWS Deep Learning Containers with
+the deep learning frameworks for the zero script change experience.
 
-The `smdebug` library supports frameworks other than the ones listed above while using AWS containers with script mode. If you want to use SageMaker Debugger with one of the following framework versions, you need to make minimal changes to your training script.
+### Frameworks supported by the SMDebug library
 
-| Framework | Versions |
-| --- | --- |
-| [TensorFlow](tensorflow.md) | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1 |
-| Keras (with TensorFlow backend) | 2.3 |
-| [MXNet](mxnet.md) | 1.4, 1.5, 1.6, 1.7 |
-| [PyTorch](pytorch.md) | 1.2, 1.3, 1.4, 1.5, 1.6 |
-| [XGBoost](xgboost.md) |  0.90-2, 1.0-1 (As a framework)|
+The SMDebug library supports machine learning frameworks for SageMaker
+training jobs with script mode and custom training containers. If you
+want to use SageMaker Debugger with one of the following framework
+versions, you need to make minimal changes to your training script using
+the SMDebug library.
+
+| Framework                       | Versions                                                   |
+|---------------------------------|------------------------------------------------------------|
+| `tensorflow`                    | 1.13, 1.14, 1.15, 2.1.0, 2.2.0, 2.3.0, 2.3.1, 2.4.1, 2.5.0 |
+| Keras (with TensorFlow backend) | 2.3                                                        |
+| `mxnet`                         | 1.4, 1.5, 1.6, 1.7, 1.8                                    |
+| `pytorch`                       | 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 1.9                          |
+| `xgboost`                       | 0.90-2, 1.0-1, 1.2-1 (As a framework)                      |
 
 ### Debugger on custom containers or local machines
-You can also fully use the Debugger features in custom containers with the SageMaker Python SDK. Furthermore, `smdebug` is an open source library, so you can install it on your local machine for any advanced use cases that cannot be run in the SageMaker environment and for constructing `smdebug` custom hooks and rules.
+
+You can also fully use the Debugger features in custom containers with
+the SageMaker Python SDK. Furthermore, `smdebug` is an open source
+library, so you can install it on your local machine for any advanced
+use cases that cannot be run in the SageMaker environment and for
+constructing `smdebug` custom hooks and rules.
 
 ---
 
