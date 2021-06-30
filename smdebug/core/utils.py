@@ -32,10 +32,10 @@ from smdebug.exceptions import IndexReaderException
 
 
 class FRAMEWORK(Enum):
-    PYTORCH = "pytorch"
-    TENSORFLOW = "tensorflow"
-    MXNET = "mxnet"
-    XGBOOST = "xgboost"
+    PYTORCH = 0
+    TENSORFLOW = 1
+    MXNET = 2
+    XGBOOST = 3
 
 
 _is_invoked_via_smddp = None
