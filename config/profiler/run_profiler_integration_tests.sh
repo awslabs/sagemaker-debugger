@@ -55,7 +55,7 @@ sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask 
 pip install -q -r config/profiler/requirements.txt >/dev/null 2>/dev/null # mask output
 
 # Check for broken dependencies
-pip check
+pip check || exit 1
 
 cd $CODEBUILD_SRC_DIR
 chmod +x config/protoc_downloader.sh
