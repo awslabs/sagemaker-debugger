@@ -45,9 +45,9 @@ check_changed_files() {
 
 # If we are not force running the tests, determine whether to run the tests based on the files changed in the branch compared to master.
 run_tests="true"
-#if [ $force_run_tests = "false" ]; then
-#  run_tests=$( check_changed_files )
-#fi
+if [ $force_run_tests = "false" ]; then
+  run_tests=$( check_changed_files )
+fi
 
 apt-get update >/dev/null 2>/dev/null # mask output
 apt-get install sudo -qq -o=Dpkg::Use-Pty=0 >/dev/null 2>/dev/null # mask output
