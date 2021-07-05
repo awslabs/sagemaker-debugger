@@ -1425,7 +1425,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
         self.is_profiler_enabled_for_native_training = False
 
     @contextlib.contextmanager
-    def profiler(self, mode=ModeKeys.TRAIN):
+    def profiler(self, mode=ModeKeys.TRAIN, strategy=None):
         """
         Context manager to be inserted directly into the training script to enable profiling for native TF2 training.
 
@@ -1448,11 +1448,18 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 cleanup()
         ```
         """
-        _ = self.wrap_tape(
-            tf.GradientTape()
-        )  # GradientTape functions must be wrapped to correctly manage current step
-        self.set_mode(mode)
-        self.is_profiler_enabled_for_native_training = True
-        self.profiling_start_batch(mode)
-        yield
-        self.profiling_end_batch(mode)
+
+        def _profiler():
+            _ = self.wrap_tape(
+                tf.GradientTape()
+            )  # GradientTape functions must be wrapped to correctly manage current step
+            self.set_mode(mode)
+            self.is_profiler_enabled_for_native_training = True
+            self.profiling_start_batch(mode)
+            yield
+            self.profiling_end_batch(mode)
+
+        if strategy is None:
+            _profiler()
+        else:
+            strategy.run(_profiler)
