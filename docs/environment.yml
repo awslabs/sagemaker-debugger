@@ -10,4 +10,4 @@ dependencies:
    - pandas
    - pip
    - pip:
-      - smdebug
+      - protobuf
