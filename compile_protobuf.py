@@ -48,7 +48,11 @@ def get_protoc_download_url():
         archive_url = f"https://github.com/protocolbuffers/protobuf/releases/download/v3.11.4/protoc-3.11.4-linux-{machine}.zip"
         logging.info("Downloading protoc for Linux: %s", archive_url)
     else:
-        archive_url = None
+        system = platform.system()
+        raise RuntimeError(
+            f"Could not find protoc for System: {system} Machine: {machine}.\
+         Please install it manually by running sh protoc_downloader.sh"
+        )
     return archive_url
 
 
@@ -59,11 +63,6 @@ def get_protoc():
         return shutil.which("protoc"), None
 
     archive_url = get_protoc_download_url()
-    if not archive_url:
-        system = platform.system()
-        raise RuntimeError(
-            f"protoc not installation on {system}. Please install it manually by running sh protoc_downloader.sh"
-        )
     (fname, headers) = urllib.request.urlretrieve(archive_url)
     tmpdir = tempfile.mkdtemp(prefix="protoc_smdebug")
     with ZipFile(fname, "r") as zipf:
