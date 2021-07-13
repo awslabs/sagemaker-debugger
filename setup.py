@@ -14,8 +14,6 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 """
 
 # Standard Library
-import contextlib
-import os
 import sys
 from datetime import date
 
@@ -36,39 +34,6 @@ INSTALL_REQUIRES = [
     "boto3>=1.10.32",
     "pyinstrument>=3.1.3",
 ]
-
-
-@contextlib.contextmanager
-def remember_cwd():
-    """
-    Restore current directory when exiting context
-    """
-    curdir = os.getcwd()
-    try:
-        yield
-    finally:
-        os.chdir(curdir)
-
-
-def scan_git_secrets():
-    from subprocess import check_call
-    import os
-    import tempfile
-    import shutil
-
-    if os.path.exists(".git/hooks/pre-commit"):
-        print("git secrets: pre-commit hook already present")
-        return
-
-    if shutil.which("git-secrets"):
-        check_call(["git", "secrets", "--scan"])
-        print("scanned for git secrets")
-
-    else:
-        with tempfile.TemporaryDirectory(prefix="git_secrets_") as tmpdir:
-            check_call(["git", "clone", "https://github.com/awslabs/git-secrets.git", tmpdir])
-            check_call([os.path.join(tmpdir, "git-secrets"), "--scan"])
-        print("scanned for git secrets")
 
 
 def build_package(version):
