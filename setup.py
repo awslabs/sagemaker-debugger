@@ -14,6 +14,9 @@ It supports TensorFlow, PyTorch, MXNet, and XGBoost on Python 3.6+.
 """
 
 # Standard Library
+import os
+import shutil
+import subprocess
 import sys
 from datetime import date
 
@@ -66,10 +69,6 @@ def build_package(version):
 
 
 def scan_git_secrets():
-    import subprocess
-    import os
-    import shutil
-
     def git(*args):
         return subprocess.call(["git"] + list(args))
 

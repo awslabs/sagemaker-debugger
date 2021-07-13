@@ -89,13 +89,3 @@ def compile_protobuf():
     check_call(cmd)
     if tmpdir:
         shutil.rmtree(tmpdir, ignore_errors=True)
-
-
-def main():
-    configure_logging()
-    compile_protobuf()
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
