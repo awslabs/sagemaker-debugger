@@ -5,7 +5,7 @@ from statistics import mean
 from tensorflow.python.util.smdebug import get_smdebug_hook
 from tests.utils import SagemakerSimulator, Timer
 
-RANGE = 100000  # 1 Million
+RANGE = 1000000  # 1 Million
 REPEAT = 5
 
 
@@ -50,4 +50,4 @@ def test_sagemaker_context():
 
     mean_time_taken = mean(times_taken)
     print(mean_time_taken)
-    assert mean_time_taken < 7  # current mean = ~1.8 seconds
+    assert mean_time_taken < 7  # current mean = ~6.9 seconds
