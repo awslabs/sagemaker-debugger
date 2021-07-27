@@ -112,3 +112,13 @@ def skip_if_py37(request):
 @pytest.fixture()
 def get_tf_hook_threshold():
     return 1
+
+
+@pytest.fixture()
+def microbenchmark_range_constant():
+    return 10e6
+
+
+@pytest.fixture()
+def microbenchmark_repeat_constant():
+    return 5
