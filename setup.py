@@ -35,7 +35,7 @@ INSTALL_REQUIRES = [
     "numpy>=1.16.0",
     "packaging",
     "boto3>=1.10.32",
-    "pyinstrument>=3.1.3",
+    "pyinstrument==3.4.2",
 ]
 
 
