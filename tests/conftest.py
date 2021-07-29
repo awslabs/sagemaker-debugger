@@ -116,7 +116,7 @@ def get_tf_hook_threshold():
 
 @pytest.fixture()
 def microbenchmark_range_constant():
-    return 10e6
+    return int(10e6)
 
 
 @pytest.fixture()
