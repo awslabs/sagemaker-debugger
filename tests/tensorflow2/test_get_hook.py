@@ -1,4 +1,5 @@
 # Standard Library
+import os
 from statistics import mean
 
 # Third Party
@@ -22,9 +23,13 @@ def test_get_smdebug_hook_use_smdebug(
 
     mean_time_taken = mean(times_taken)
     if use_smdebug == "0":
-        assert mean_time_taken < 2  # current mean = ~1.8 seconds
+        assert mean_time_taken < 2, os.getenv(
+            "$CODEBUILD_SRC_DIR", "No Value"
+        )  # current mean = ~1.8 seconds
     else:
-        assert mean_time_taken < 15  # current mean = ~14.5 seconds
+        assert mean_time_taken < 15, os.getenv(
+            "$CODEBUILD_SRC_DIR", "No Value"
+        )  # current mean = ~14.5 seconds
 
 
 def test_sagemaker_context(microbenchmark_repeat_constant, microbenchmark_range_constant):
@@ -38,4 +43,6 @@ def test_sagemaker_context(microbenchmark_repeat_constant, microbenchmark_range_
             times_taken.append(t.time_taken)
 
     mean_time_taken = mean(times_taken)
-    assert mean_time_taken < 7  # current mean = ~6.9 seconds
+    assert mean_time_taken < 7, os.getenv(
+        "$CODEBUILD_SRC_DIR", "No Value"
+    )  # current mean = ~6.9 seconds
