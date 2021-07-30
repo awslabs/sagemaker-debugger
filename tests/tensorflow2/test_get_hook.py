@@ -9,7 +9,7 @@ from tests.utils import SagemakerSimulator, Timer, is_running_in_codebuild
 
 
 @pytest.mark.skipif(
-    is_running_in_codebuild() == False,
+    is_running_in_codebuild() is False,
     reason="Microbenchmarking Thresholds Have Been Determined Only For CI",
 )
 @pytest.mark.parametrize("use_smdebug", ["0", "1"])
@@ -37,7 +37,7 @@ def test_get_smdebug_hook_use_smdebug(
 
 
 @pytest.mark.skipif(
-    is_running_in_codebuild() == False,
+    is_running_in_codebuild() is False,
     reason="Microbenchmarking Thresholds Have Been Determined Only For CI",
 )
 def test_sagemaker_context(microbenchmark_repeat_constant, microbenchmark_range_constant):
