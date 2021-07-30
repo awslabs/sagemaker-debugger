@@ -33,6 +33,10 @@ class Timer(ContextDecorator):
         self.time_taken = self.stop_time - self.start_time
 
 
+def is_running_in_codebuild():
+    return bool(os.getenv("CODEBUILD_SRC_DIR"))
+
+
 def use_s3_datasets():
     s3 = boto3.resource("s3")
     _, bucket, _ = is_s3(TEST_DATASET_S3_PATH)

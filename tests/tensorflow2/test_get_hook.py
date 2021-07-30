@@ -5,9 +5,13 @@ from statistics import mean
 # Third Party
 import pytest
 from tensorflow.python.util.smdebug import get_smdebug_hook
-from tests.utils import SagemakerSimulator, Timer
+from tests.utils import SagemakerSimulator, Timer, is_running_in_codebuild
 
 
+@pytest.mark.skipif(
+    is_running_in_codebuild() == False,
+    reason="Microbenchmarking Thresholds Have Been Determined Only For CI",
+)
 @pytest.mark.parametrize("use_smdebug", ["0", "1"])
 def test_get_smdebug_hook_use_smdebug(
     use_smdebug, microbenchmark_repeat_constant, microbenchmark_range_constant, monkeypatch
@@ -32,6 +36,10 @@ def test_get_smdebug_hook_use_smdebug(
         )  # current mean = ~14.5 seconds
 
 
+@pytest.mark.skipif(
+    is_running_in_codebuild() == False,
+    reason="Microbenchmarking Thresholds Have Been Determined Only For CI",
+)
 def test_sagemaker_context(microbenchmark_repeat_constant, microbenchmark_range_constant):
     times_taken = []
     for _ in range(microbenchmark_repeat_constant):
