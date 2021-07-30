@@ -34,6 +34,10 @@ class Timer(ContextDecorator):
 
 
 def is_running_in_codebuild():
+    """
+    This fixture checks is $CODEBUILD_SRC_DIR is set based on the assumption that it is only set in the CI which is currently managed by Codebuild
+    :return: bool
+    """
     return bool(os.getenv("CODEBUILD_SRC_DIR"))
 
 
