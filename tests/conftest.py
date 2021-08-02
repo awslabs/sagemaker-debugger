@@ -107,3 +107,13 @@ def skip_if_py37(request):
     if request.node.get_closest_marker("skip_if_py37"):
         if sys.version_info.major >= 3 and sys.version_info.minor >= 7:
             pytest.skip("Skipping because this test cannot be executed with Python 3.7+")
+
+
+@pytest.fixture()
+def microbenchmark_range():
+    return int(10e5)
+
+
+@pytest.fixture()
+def microbenchmark_repeat():
+    return 5
