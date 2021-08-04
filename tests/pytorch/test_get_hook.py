@@ -3,7 +3,7 @@
 import pytest
 from numpy import percentile
 from tests.utils import SagemakerSimulator, Timer, is_running_in_codebuild
-from tor.python.util.smdebug import get_smdebug_hook
+from torch.utils.smdebug import get_smdebug_hook
 
 
 @pytest.mark.skipif(
