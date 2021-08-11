@@ -555,13 +555,16 @@ def check_smdataparallel_env():
             try:
                 import smdistributed.dataparallel.torch.distributed as smdataparallel
 
+                logger.info(f"Imported smdistributed.dataparallel.torch.distributed")
                 _smddp_pt_imported = smdataparallel
             except (ModuleNotFoundError, ImportError):
                 try:
                     import smdistributed.dataparallel.tensorflow as smdataparallel
 
+                    logger.info(f"Imported smdistributed.dataparallel.tensorflow")
                     _smddp_tf_imported = smdataparallel
                 except (ModuleNotFoundError, ImportError):
+                    logger.info(f"Imported NOTHING")
                     _smdataparallel_imported = None
         else:
             _smdataparallel_imported = None

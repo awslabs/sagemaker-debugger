@@ -281,6 +281,7 @@ def start_smdataparallel_profiler(smdataparallel, base_dir):
             base_dir, f"{get_node_id()}_{SMDATAPARALLELTIMELINE_SUFFIX}{SMDEBUG_TEMP_PATH_SUFFIX}"
         )
         ensure_dir(smdataparallel_temp_file)
+        logger.info(f"Starting the smddp profiler")
         start_profiler(smdataparallel_temp_file, append_rank=False)
 
 
@@ -293,6 +294,7 @@ def stop_smdataparallel_profiler(smdataparallel, base_dir):
         smdataparallel_temp_file = os.path.join(
             base_dir, f"{get_node_id()}_{SMDATAPARALLELTIMELINE_SUFFIX}{SMDEBUG_TEMP_PATH_SUFFIX}"
         )
+        logger.info(f"Stopping the smddp profiler")
         stop_profiler()
         new_file_name = TraceFileLocation.get_file_location(
             time.time() * CONVERT_TO_MICROSECS, base_dir, suffix=SMDATAPARALLELTIMELINE_SUFFIX
