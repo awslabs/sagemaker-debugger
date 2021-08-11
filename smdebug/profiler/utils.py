@@ -283,6 +283,7 @@ def start_smdataparallel_profiler(smdataparallel, base_dir):
         ensure_dir(smdataparallel_temp_file)
         logger.info(f"Starting the smddp profiler")
         start_profiler(smdataparallel_temp_file, append_rank=False)
+        logger.info(f"Succesfully Started the smddp profiler")
 
 
 def stop_smdataparallel_profiler(smdataparallel, base_dir):
