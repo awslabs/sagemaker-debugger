@@ -440,4 +440,4 @@ def is_profiler_supported_for_tf_version():
 
 
 def is_current_version_supported(tf_version=tf.__version__):
-    return version.parse("1.15.0") <= version.parse(tf_version) < version.parse("2.6.0")
+    return version.parse("1.15.0") <= version.parse(tf_version) < version.parse("2.7.0")
