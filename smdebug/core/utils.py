@@ -68,6 +68,9 @@ except (ImportError, ModuleNotFoundError):
 try:
     import horovod.torch as hvd
 
+    # This redundant import is necessary because horovod does not raise an ImportError if the library is not present
+    import torch  # noqa
+
     _hvd_imported = hvd
 except (ModuleNotFoundError, ImportError):
     try:
