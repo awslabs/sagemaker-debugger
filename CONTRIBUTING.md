@@ -1,4 +1,4 @@
-# Contributing Guidelines
+# Contributing guidelines
 
 Thank you for your interest in contributing to our project. Whether it's a bug report, new feature, correction, or additional
 documentation, we greatly value feedback and contributions from our community.
@@ -7,12 +7,12 @@ Please read through this document before submitting any issues or pull requests 
 information to effectively respond to your bug report or contribution.
 
 
-## Reporting Bugs/Feature Requests
+## Reporting bugs and requesting features
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+Use the GitHub issue tracker to report bugs or suggest features.
 
-When filing an issue, please check [existing open](https://github.com/awslabs/sagemaker-debugger/issues), or [recently closed](https://github.com/awslabs/sagemaker-debugger/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already
-reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
+When filing an issue, check [existing open](https://github.com/awslabs/sagemaker-debugger/issues) or [recently closed](https://github.com/awslabs/sagemaker-debugger/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20) issues to make sure someone else hasn't already
+reported the issue. Include as much information as you can. Details like these are incredibly useful:
 
 * A reproducible test case or series of steps
 * The version of our code being used
@@ -20,38 +20,38 @@ reported the issue. Please try to include as much information as you can. Detail
 * Anything unusual about your environment or deployment
 
 
-## Contributing via Pull Requests
-Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
+## Contributing through pull requests
+We greatly appreciate contributions made through pull requests. Before sending us a pull request, ensure that:
 
 1. You are working against the latest source on the *master* branch.
 2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
-3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
+3. You open an issue to discuss any significant work; we would hate for your time to be wasted.
 
-To send us a pull request, please:
+To send us a pull request:
 
 1. Fork the repository.
-2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
+2. Modify the source; focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
 3. Ensure local tests pass.
 4. Commit to your fork using clear commit messages.
 5. Send us a pull request, answering any default questions in the pull request interface.
-6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
+6. Pay attention to any automated CI failures reported in the pull request and stay involved in the conversation.
 
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
+GitHub provides additional documentation on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
 
 ## Developing SageMaker Debugger
-To develop on your machine, here are some tips:
+Here are some tips for developing on your machine:
 1. Remove any existing installation:
 ```
 pip uninstall smdebug
 ```
-2. Clone the package from source:
+2. Clone the package from the source:
 ```
 git clone https://github.com/awslabs/sagemaker-debugger
 cd sagemaker-debugger
 ```
-3. Installing in `develop` mode:
+3. Install in `develop` mode:
 ```
 python setup.py develop
 ```
@@ -61,8 +61,8 @@ pip install pre-commit
 pre-commit install
 ```
 
-## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/sagemaker-debugger/labels/help%20wanted) issues is a great place to start.
+## Finding ways to contribute
+As our projects, by default, use the default GitHub issue labels (`enhancement`, `bug`, `duplicate`, `help wanted`, `invalid`, `question`, `wontfix`), looking at any ['help wanted'](https://github.com/awslabs/sagemaker-debugger/labels/help%20wanted) issues is a great place to start.
 
 
 ## Code of Conduct
@@ -72,7 +72,8 @@ opensource-codeofconduct@amazon.com with any additional questions or comments.
 
 
 ## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+If you discover a potential security issue in this project we ask that you notify Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public GitHub issue.
+
 
 
 ## Licensing

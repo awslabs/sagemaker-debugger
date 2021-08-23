@@ -1,31 +1,31 @@
-## Running SageMaker jobs with Amazon SageMaker Debugger
+# Running Amazon SageMaker jobs with Amazon SageMaker Debugger
 
-### Outline
+## Outline
 - [Configuring SageMaker Debugger](#configuring-sagemaker-debugger)
   - [Saving data](#saving-data)
     - [Saving built-in collections that we manage](#saving-built-in-collections-that-we-manage)
     - [Saving reductions for a custom collection](#saving-reductions-for-a-custom-collection)
     - [Enabling TensorBoard summaries](#enabling-tensorboard-summaries)
   - [Rules](#rules)
-    - [Built In Rules](#built-in-rules)
-    - [Custom Rules](#custom-rules)
-- [Interactive Exploration](#interactive-exploration)
+    - [Built-in rules](#built-in-rules)
+    - [Custom rules](#custom-rules)
+- [Interactive exploration](#interactive-exploration)
 - [SageMaker Studio](#sagemaker-studio)
-- [TensorBoard Visualization](#tensorboard-visualization)
-- [Example Notebooks](#example-notebooks)
+- [TensorBoard visualization](#tensorboard-visualization)
+- [Example notebooks](#example-notebooks)
 
 ## Configuring SageMaker Debugger
 
-Regardless of which of the two above ways you have enabled SageMaker Debugger, you can configure it using the SageMaker python SDK. There are two aspects to this configuration.
-- You can specify what tensors to be saved, when they should be saved and in what form they should be saved.
-- You can specify which Rule you want to monitor your training job with. This can be either a built in rule that SageMaker provides, or a custom rule that you can write yourself.
+Regardless of how you have enabled SageMaker Debugger, you can configure it using the SageMaker Python SDK. There are two aspects to this configuration.
+- You can specify which tensors to save, when to save them, and in what form to save them.
+- You can specify with which rule you want to monitor your training job. This can be either a built-in rule that SageMaker provides or a custom rule that you can write yourself.
 
-### Saving Data
+### Saving data
 
-SageMaker Debugger gives you a powerful and flexible API to save the tensors you choose at the frequencies you want. These configurations are made available in the SageMaker Python SDK through the `DebuggerHookConfig` class.
+SageMaker Debugger gives you a powerful and flexible API to save the tensors you choose at the frequencies you want. These configurations are available in the SageMaker Python SDK through the `DebuggerHookConfig` class.
 
 #### Saving built-in collections that we manage
-Learn more about these built in collections [here](api.md).
+To learn more about these built-in collections, see [api.md](api.md).
 
 ```python
 from sagemaker.debugger import DebuggerHookConfig, CollectionConfig
@@ -63,7 +63,7 @@ sagemaker_estimator.fit()
 ```
 
 #### Saving reductions for a custom collection
-You can define your collection of tensors. You can also choose to save certain reductions of tensors only instead of saving the full tensor. You may choose to do this to reduce the amount of data saved. Please note that when you save reductions, unless you pass the flag `save_raw_tensor`, only these reductions will be available for analysis. The raw tensor will not be saved.
+You can define your collection of tensors. You can also choose to save only certain reductions of tensors instead of saving the full tensor. You may choose to do this to reduce the amount of data saved. Please note that when you save reductions, unless you pass the flag `save_raw_tensor`, only these reductions are available for analysis. The raw tensors are not saved.
 
 ```python
 from sagemaker.debugger import DebuggerHookConfig, CollectionConfig
@@ -94,16 +94,14 @@ sagemaker_estimator.fit()
 ```
 
 #### Enabling TensorBoard summaries
-SageMaker Debugger can automatically generate tensorboard scalar summaries,
-distributions and histograms for tensors saved. This can be enabled by
-passing a `TensorBoardOutputConfig` object when creating an Estimator as follows.
+SageMaker Debugger can automatically generate tensorboard scalar summaries, distributions, and histograms for tensors saved. You can enable this by passing a `TensorBoardOutputConfig` object when creating an estimator as follows.
 You can also choose to disable or enable histograms specifically for different collections.
-By default a collection has `save_histogram` flag set to True.
-Note that scalar summaries are added to TensorBoard for all `ScalarCollections` and any scalar saved through `hook.save_scalar`.
-Refer [API](api.md) for more details on scalar collections and `save_scalar` method.
+By default, a collection has the `save_histogram` flag set to `True`.
+Scalar summaries are added to TensorBoard for all `ScalarCollections` and any scalar saved through `hook.save_scalar`.
+See the [API](api.md) for more details on scalar collections and `save_scalar` method.
 
-The below example saves weights and gradients as full tensors, and also saves the gradients as histograms and distributions to visualize in TensorBoard.
-These will be saved to the location passed in `TensorBoardOutputConfig` object.
+The following example saves weights and gradients as full tensors and also saves the gradients as histograms and distributions to visualize in TensorBoard.
+These are saved to the location passed in the `TensorBoardOutputConfig` object.
 ```python
 from sagemaker.debugger import DebuggerHookConfig, CollectionConfig, TensorBoardOutputConfig
 hook_config = DebuggerHookConfig(
@@ -134,29 +132,29 @@ sagemaker_estimator = sm.tensorflow.TensorFlow(
 sagemaker_estimator.fit()
 ```
 
-For more details, refer our [API page](api.md).
+For more details, see the [API page](api.md).
 
 ### Rules
-Here are some examples on how to run Rules with your training jobs.
+The following examples demonstrate how to run rules with your training jobs.
 
-Note that passing a `CollectionConfig` object to the Rule as `collections_to_save`
+Note that passing a `CollectionConfig` object to the rule as `collections_to_save`
 is equivalent to passing it to the `DebuggerHookConfig` object as `collection_configs`.
 This is just a shortcut for your convenience.
 
-#### Built-in Rules
-To find a full list of built-in rules that you can use with the SageMaker Python SDK, see the [List of Debugger Built-in Rules](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-built-in-rules.html) page.
+#### Built-in rules
+For a full list of built-in rules that you can use with the SageMaker Python SDK, see the [List of Debugger Built-in Rules](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-built-in-rules.html).
 
-#### Running built-in SageMaker Rules
-You can run a SageMaker built-in Rule as follows using the `Rule.sagemaker` method.
-The first argument to this method is the base configuration that is associated with the Rule.
-We configure them as much as possible.
-You can take a look at the ruleconfigs that we populate for all built-in rules [here](https://github.com/awslabs/sagemaker-debugger-rulesconfig).
+#### Running built-in SageMaker rules
+You can run a SageMaker built-in rule as follows using the `Rule.sagemaker` method.
+The first argument to this method is the base configuration that is associated with the rule.
+
+To examine the 'ruleconfigs' that we populate for all built-in rules, see the [sagemaker-debugger-rulesconfig](https://github.com/awslabs/sagemaker-debugger-rulesconfig) directory.
 You can choose to customize these parameters using the other parameters.
 
-These rules are run on our pre-built Docker images which are listed [here](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-docker-images-rules.html).
+These rules run on our pre-built Docker images, which are listed in [Use Debugger Docker Images for Built-in or Custom Rules](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-docker-images-rules.html).
 You are not charged for the instances when running SageMaker built-in rules.
 
-A list of all our built-in rules are provided [below](#built-in-rules).
+A list of all our built-in rules are provided [in the Built-in rules section](#built-in-rules).
 ```python
 from sagemaker.debugger import Rule, CollectionConfig, rule_configs
 
@@ -188,23 +186,23 @@ sagemaker_estimator = sm.tensorflow.TensorFlow(
 sagemaker_estimator.fit()
 ```
 
-#### Custom Rules
+#### Custom rules
 
-You can write your own rule custom made for your application and provide it, so SageMaker can monitor your training job using your rule. To do so, you need to understand the programming model that `smdebug` provides. Our page on [Programming Model for Analysis](analysis.md) describes the APIs that we provide to help you write your own rule.
+You can write your own custom rule for your application and provide it so SageMaker can monitor your training job using your rule. To do so, you need to understand the programming model that `smdebug` provides. Our [Programming Model for Analysis](analysis.md) page describes the APIs that we provide to help you write your own rule.
 Please refer to [this example notebook](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/tensorflow_keras_custom_rule/tf-keras-custom-rule.ipynb) for a demonstration of creating your custom rule and running it on SageMaker.
 
-#### Running custom Rules
-To run a custom rule, you have to provide a few additional parameters.
-Key parameters to note are a file which has the implementation of your Rule class `source`,
- the name of the Rule class (`rule_to_invoke`), the type of instance to run the Rule job on (`instance_type`),
- the size of the volume on that instance (`volume_size_in_gb`), and the docker image to use for running this job (`image_uri`).
+#### Running custom rules
+To run a custom rule, you must provide a few additional parameters.
+Key parameters to note are a file which has the implementation of your rule class `source`,
+ the name of the rule class (`rule_to_invoke`), the type of instance on which to run the rule job (`instance_type`),
+ the size of the volume on that instance (`volume_size_in_gb`), and the Docker image to use for running this job (`image_uri`).
 
-Please refer to the documentation [here](https://github.com/aws/sagemaker-python-sdk/blob/391733efd433c5e26afb56102c76ab7472f94b3d/src/sagemaker/debugger.py#L190) for more details.
+Please refer to the [documentation](https://github.com/aws/sagemaker-python-sdk/blob/391733efd433c5e26afb56102c76ab7472f94b3d/src/sagemaker/debugger.py#L190) for more details.
 
 We have pre-built Docker images that you can use to run your custom rules.
-These are listed [here](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-docker-images-rules.html).
+These are listed in [Use Debugger Docker Images for Built-in or Custom Rules](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-docker-images-rules.html).
 You can also choose to build your own Docker image for custom rule evaluation.
-Please refer to the repository [SageMaker Debugger Rules Container](https://github.com/awslabs/sagemaker-debugger-rules-container) for instructions on how to build such an image.
+Please refer to the [SageMaker Debugger Rules Container](https://github.com/awslabs/sagemaker-debugger-rules-container) repository for instructions on how to build such an image.
 
 ```python
 from sagemaker.debugger import Rule, CollectionConfig
@@ -242,12 +240,12 @@ sagemaker_estimator = sm.tensorflow.TensorFlow(
 sagemaker_estimator.fit()
 ```
 
-For more details, refer our [Analysis page](analysis.md).
+For more details, see the [Analysis page](analysis.md).
 
-## Interactive Exploration
+## Interactive exploration
 
-`smdebug` SDK also allows you perform interactive and real-time exploration of the data saved. You can choose to inspect the tensors saved, or visualize them through your custom plots.
-You can retrieve these tensors as numpy arrays allowing you to use your favorite analysis libraries right in a SageMaker notebook instance. We have couple of example notebooks demonstrating this.
+The `smdebug` SDK also allows you perform interactive and real-time exploration of the data saved. You can choose to inspect the tensors saved, or visualize them through your custom plots.
+You can retrieve these tensors as `numpy` arrays, allowing you to use your favorite analysis libraries right in a SageMaker notebook instance. The following example notebooks demonstrate this:
 - [Real-time anaysis in a notebook during training](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/mxnet_realtime_analysis/mxnet-realtime-analysis.ipynb)
 - [Interactive tensor analysis in a notebook](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/mnist_tensor_analysis/mnist_tensor_analysis.ipynb)
 
@@ -255,13 +253,13 @@ You can retrieve these tensors as numpy arrays allowing you to use your favorite
 
 SageMaker Debugger is on by default for supported training jobs on the official SageMaker Framework containers (or AWS Deep Learning Containers) during SageMaker training jobs.
 In this default scenario, SageMaker Debugger takes the losses and metrics from your training job and publishes them to SageMaker Metrics, allowing you to track these metrics in SageMaker Studio.
-You can also see the status of Rules you have enabled for your training job right in the Studio. [Here](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-visualization.html) are screenshots of that experience.
+You can also see the status of rules you have enabled for your training job right in the Studio, as shown in [these screenshots](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-visualization.html).
 
-## TensorBoard Visualization
+## TensorBoard visualization
 
-If you have enabled TensorBoard outputs for your training job through SageMaker Debugger, TensorBoard artifacts will automatically be generated for the tensors saved.
+If you have enabled TensorBoard outputs for your training job through SageMaker Debugger, TensorBoard artifacts are automatically generated for the tensors saved.
 You can then point your TensorBoard instance to that S3 location and review the visualizations for the tensors saved.
 
-## Example Notebooks
+## Example notebooks
 
-We have a bunch of [example notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger) here demonstrating different aspects of SageMaker Debugger.
+These [example notebooks](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger) demonstrate different aspects of SageMaker Debugger.

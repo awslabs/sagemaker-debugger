@@ -1,17 +1,17 @@
 # Examples
-## Example notebooks
-Please refer to the example notebooks in [Amazon SageMaker Examples repository](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger)
+## Notebooks
+Please refer to the example notebooks in the [Amazon SageMaker examples repository](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-debugger).
 
-## Example scripts
-The above notebooks come with example scripts which can be used through SageMaker. Some more example scripts are here in [scripts/](scripts/)
+## Scripts
+The notebooks in the repository linked in the preceding section come with example scripts which can be used through SageMaker. For more example scripts, see the [scripts/](scripts/) directory.
 
-## Example configurations for saving tensors through [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk)
-Example configurations for saving tensors through the hook are available at [docs/sagemaker.md](../docs/sagemaker.md)
+## Saving tensors through the [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk)
+For example configurations for saving tensors through the hook, see [docs/sagemaker.md](../docs/sagemaker.md).
 
-## Example configurations for running rules through [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk)
-Example configurations for saving tensors through the hook are available at [docs/sagemaker.md](../docs/sagemaker.md)
+## Running rules through the [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk)
+For example configurations for saving tensors through the hook, see [docs/sagemaker.md](../docs/sagemaker.md).
 
-## Example for running rule locally
+## Running rules locally
 
 ```
 from smdebug.rules import invoke_rule
