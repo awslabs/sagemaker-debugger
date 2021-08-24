@@ -617,6 +617,7 @@ def test_layer_names(out_dir, tf_eager_mode):
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(is_tf_2_6(), reason="Unsupported with TF 2.6 due to keras breaking changes")
 def test_regex_filtering_for_default_collections(out_dir):
     hook = smd.KerasHook(
         out_dir,
@@ -800,6 +801,8 @@ def test_keras_fit_pure_eager(out_dir, tf_eager_mode):
     assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (2 if is_tf_2_2() else 0)
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(is_tf_2_6(), reason="Unsupported with TF 2.6 due to keras breaking changes")
 def test_model_inputs_and_outputs(out_dir, tf_eager_mode):
     # explicitly save INPUTS and OUTPUTS
     include_collections = [CollectionKeys.INPUTS, CollectionKeys.OUTPUTS]
