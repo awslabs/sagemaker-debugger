@@ -3,7 +3,7 @@ import pytest
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Conv2D, Dense, Flatten
 from tensorflow.keras.models import Model
-from tests.tensorflow2.utils import is_tf_2_2
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_6
 
 # First Party
 import smdebug.tensorflow as smd
