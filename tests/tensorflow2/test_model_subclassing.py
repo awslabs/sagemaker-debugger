@@ -52,7 +52,7 @@ class MyModel(Model):
 
 
 @pytest.mark.skipif(
-    is_tf_2_2() is False and is_tf_2_6() is False,
+    is_tf_2_2() is False and is_tf_2_6() is True,
     reason="Feature to save model inputs and outputs was first added for TF 2.2.0",
 )
 def test_subclassed_model(out_dir):
