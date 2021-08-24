@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 import tensorflow as tf
-from tests.tensorflow2.utils import is_tf_2_2
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_6
 
 # First Party
 import smdebug.tensorflow as smd
@@ -32,7 +32,7 @@ def create_model():
 
 
 @pytest.mark.skipif(
-    is_tf_2_2() is False,
+    is_tf_2_2() is False and is_tf_2_6() is False,
     reason="Feature to save model inputs and outputs was first added for TF 2.2.0",
 )
 def test_support_dicts(out_dir):
