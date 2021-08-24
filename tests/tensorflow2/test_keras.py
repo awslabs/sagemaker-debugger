@@ -482,10 +482,10 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
                 num_tensors = 14
             assert len(trial.tensor_names()) == num_tensors
             assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (
-                1 if is_tf_2_2() else 0
+                1 if is_tf_2_2() and not is_tf_2_6() else 0
             )
             assert len(trial.tensor_names(collection=CollectionKeys.OUTPUTS)) == (
-                2 if is_tf_2_2() else 0
+                2 if is_tf_2_2() and not is_tf_2_6() else 0
             )
         else:
             assert len(trial.tensor_names()) == 21
@@ -589,7 +589,7 @@ def test_include_regex(out_dir, tf_eager_mode):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-    assert len(tnames) == (12 if is_tf_2_2() else 4)
+    assert len(tnames) == (12 if is_tf_2_2() and not is_tf_2_6() else 4)
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
