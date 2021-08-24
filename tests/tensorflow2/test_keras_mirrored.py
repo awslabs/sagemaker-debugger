@@ -262,7 +262,9 @@ def test_save_all(out_dir, tf_eager_mode, workers):
     tr = create_trial_fast_refresh(out_dir)
     print(tr.tensor_names())
     if tf_eager_mode:
-        if is_tf_2_2():
+        if is_tf_2_6():
+            assert len(tr.tensor_names()) == 15
+        elif is_tf_2_2():
             assert len(tr.tensor_names()) == (
                 6 + 2 + 1 + 5 + 1 + 1 + 2 + 8 + 8 if is_tf_2_2() else 6 + 3 + 1 + 5 + 1
             )
