@@ -393,7 +393,13 @@ def test_include_regex(out_dir, tf_eager_mode, workers):
     tnames = tr.tensor_names(collection="custom_coll")
 
     if tf_eager_mode:
-        assert len(tnames) == (12 if is_tf_2_2() else 4)
+        if is_tf_2_6():
+            num_tensors = 4
+        elif is_tf_2_2():
+            num_tensors = 12
+        else:
+            num_tensors = 4
+        assert len(tnames) == num_tensors
     else:
         assert len(tnames) == 4 + 3 * strategy.num_replicas_in_sync
     for tname in tnames:
