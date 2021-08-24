@@ -22,6 +22,12 @@ def is_tf_2_2():
     return False
 
 
+def is_tf_2_6():
+    if TF_VERSION >= version.parse("2.6.0"):
+        return True
+    return False
+
+
 def is_tf_2_3():
     if TF_VERSION == version.parse("2.3.0"):
         return True

@@ -17,7 +17,7 @@ import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tests.constants import TEST_DATASET_S3_PATH
-from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3, is_tf_2_6
 from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import use_s3_datasets, verify_shapes
 
@@ -227,7 +227,13 @@ def test_keras_gradtape(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
+        if is_tf_2_6():
+            num_tensors = 15
+        elif is_tf_2_2():
+            num_tensors = 25
+        else:
+            num_tensors = 15
+        assert len(trial.tensor_names()) == num_tensors
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
@@ -306,8 +312,13 @@ def test_gradtape_include_regex(out_dir):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-
-    assert len(tnames) == (12 if is_tf_2_2() else 8)
+    if is_tf_2_6():
+        num_tensors = 8
+    elif is_tf_2_2():
+        num_tensors = 12
+    else:
+        num_tensors = 8
+    assert len(tnames) == num_tensors
     for tname in tnames:
         assert tr.tensor(tname).value(0) is not None
 
@@ -375,7 +386,13 @@ def test_gradtape_include_collections(out_dir):
 
     trial = smd.create_trial(path=out_dir)
     # can't save gradients in TF 2.x
-    assert len(trial.tensor_names()) == (16 if is_tf_2_2() else 15)
+    if is_tf_2_6():
+        num_tensors = 15
+    elif is_tf_2_2():
+        num_tensors = 16
+    else:
+        num_tensors = 15
+    assert len(trial.tensor_names()) == num_tensors
     assert len(trial.tensor_names(collection=CollectionKeys.GRADIENTS)) == 4
     assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
     assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
@@ -420,7 +437,13 @@ def test_gradtape_persistent(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        assert len(trial.tensor_names()) == (25 if is_tf_2_2() else 15)
+        if is_tf_2_6():
+            num_tensors = 15
+        elif is_tf_2_2():
+            num_tensors = 25
+        else:
+            num_tensors = 15
+        assert len(trial.tensor_names()) == num_tensors
         assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
         assert len(trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES)) == 5
