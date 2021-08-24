@@ -472,10 +472,15 @@ def test_keras_fit(out_dir, tf_eager_mode, saveall):
     # can't save gradients in TF 2.x eager mode
     if saveall:  # save losses, metrics, weights, biases, scalar
         if tf_eager_mode:
-            if is_tf_2_2():
-                assert len(trial.tensor_names()) == 28
+            if is_tf_2_6():
+                num_tensors = 13
+            elif is_tf_2_2():
+                num_tensors = 28
+            elif is_tf_2_3():
+                num_tensors = 21
             else:
-                assert len(trial.tensor_names()) == (21 if is_tf_2_3() else 14)
+                num_tensors = 14
+            assert len(trial.tensor_names()) == num_tensors
             assert len(trial.tensor_names(collection=CollectionKeys.INPUTS)) == (
                 1 if is_tf_2_2() else 0
             )
