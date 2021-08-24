@@ -11,7 +11,7 @@ import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
 from tests.core.utils import verify_files
-from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3, is_tf_2_6
 from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
 
@@ -448,7 +448,9 @@ def test_clash_with_tb_callback(out_dir):
         add_callbacks=["tensorboard"],
     )
     tr = create_trial_fast_refresh(out_dir)
-    if is_tf_2_2():
+    if is_tf_2_6():
+        assert len(tr.tensor_names()) == 10
+    elif is_tf_2_2():
         assert len(tr.tensor_names()) == 16
     else:
         assert len(tr.tensor_names()) == (10 if is_tf_2_3() else 11)
