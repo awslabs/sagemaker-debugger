@@ -116,7 +116,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         tf.compat.v1.disable_eager_execution()
     enable_tb = False if (tf.__version__ == "2.0.2" or is_tf_2_3()) else True
     run_eagerly = None
-    if is_tf_2_2() or is_tf_2_3() or is_tf_2_6() is False:
+    if is_tf_2_2() or is_tf_2_3():
         run_eagerly = eager_mode
     with SagemakerSimulator(enable_tb=enable_tb) as sim:
         helper_keras_fit(
@@ -150,7 +150,7 @@ def helper_test_keras_v2_json_config(
     """ Tests ZCC with custom hook configs """
     smd.del_hook()
     tf.keras.backend.clear_session()
-    if not eager_mode and is_tf_2_3() is False and is_tf_2_2() is False:
+    if not eager_mode and is_tf_2_3() is False:
         # v1 training APIs are currently not supported
         # in ZCC mode with smdebug 0.9 and AWS TF 2.3.0
         tf.compat.v1.disable_eager_execution()
@@ -221,6 +221,10 @@ def helper_test_keras_v2_json_config(
 
 @pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True, False])
+@pytest.mark.skipif(
+    is_tf_2_6(),
+    reason="ZCC is not support for keras due to breaking changes introduced in TF 2.6.0",
+)
 def test_keras_v2_default(script_mode, eager_mode):
     # Test default ZCC behavior
     helper_test_keras_v2(script_mode=script_mode, eager_mode=eager_mode)
@@ -228,6 +232,10 @@ def test_keras_v2_default(script_mode, eager_mode):
 
 @pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True, False])
+@pytest.mark.skipif(
+    is_tf_2_6(),
+    reason="ZCC is not support for keras due to breaking changes introduced in TF 2.6.0",
+)
 def test_keras_v2_multi_collections(script_mode, eager_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
@@ -276,6 +284,10 @@ def test_keras_v2_multi_collections(script_mode, eager_mode):
 
 @pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("eager_mode", [True])
+@pytest.mark.skipif(
+    is_tf_2_6(),
+    reason="ZCC is not support for keras due to breaking changes introduced in TF 2.6.0",
+)
 def test_keras_v2_custom_train_step(script_mode, eager_mode):
     # Test multiple collections included in hook json
     json_file_contents = """
