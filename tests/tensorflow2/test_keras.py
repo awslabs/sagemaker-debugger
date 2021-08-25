@@ -310,9 +310,7 @@ def test_gradtape_include_regex(out_dir):
 
     tr = create_trial_fast_refresh(out_dir)
     tnames = tr.tensor_names(collection="custom_coll")
-    if is_tf_2_6():
-        num_tensors = 8
-    elif is_tf_2_2():
+    if is_tf_2_2():
         num_tensors = 12
     else:
         num_tensors = 8
