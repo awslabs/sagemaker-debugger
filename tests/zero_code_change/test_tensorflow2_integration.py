@@ -155,7 +155,7 @@ def helper_test_keras_v2_json_config(
         # in ZCC mode with smdebug 0.9 and AWS TF 2.3.0
         tf.compat.v1.disable_eager_execution()
     run_eagerly = None
-    if is_tf_2_2() or is_tf_2_3():
+    if is_tf_2_2() or is_tf_2_3() or is_tf_2_6():
         run_eagerly = eager_mode
     enable_tb = False if (tf.__version__ == "2.0.2" or is_tf_2_3()) else True
     with SagemakerSimulator(json_file_contents=json_file_contents, enable_tb=enable_tb) as sim:
