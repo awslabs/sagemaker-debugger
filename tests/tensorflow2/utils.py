@@ -17,7 +17,7 @@ def is_tf_2_2():
     number of tensor_names emitted by 1.
     :return: bool
     """
-    if version.parse("2.6.0") >= TF_VERSION >= version.parse("2.2.0"):
+    if version.parse("2.6.0") > TF_VERSION >= version.parse("2.2.0"):
         return True
     return False
 
