@@ -13,7 +13,7 @@ import argparse
 import pytest
 import tensorflow.compat.v2 as tf
 from packaging import version
-from tests.tensorflow2.utils import is_tf_2_2
+from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_6
 
 # First Party
 import smdebug.tensorflow as smd
@@ -125,7 +125,7 @@ def helper_test_keras_v2_gradienttape(
             assert len(trial.steps()) > 0, "Nothing saved at any step."
             assert len(trial.tensor_names()) > 0, "Tensors were not saved."
             assert len(trial.tensor_names(collection="losses")) > 0
-            if is_tf_2_2() and default is False:
+            if is_greater_than_tf_2_2() and is_tf_2_6() is False and default is False:
                 # Inputs and Outputs are not saved with the default collection configurations.
                 assert len(trial.tensor_names(collection="inputs")) > 0
                 assert len(trial.tensor_names(collection="outputs")) > 0

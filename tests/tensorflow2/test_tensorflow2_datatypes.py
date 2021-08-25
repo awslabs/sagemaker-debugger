@@ -3,14 +3,14 @@ import numpy as np
 import pytest
 import tensorflow as tf
 from tensorflow.python.framework.dtypes import _NP_TO_TF
-from tests.tensorflow2.utils import is_tf_2_2
+from tests.tensorflow2.utils import is_greater_than_tf_2_2
 
 # First Party
 from smdebug.core.tfevent.util import _get_proto_dtype
 
 
 @pytest.mark.skipif(
-    is_tf_2_2() is False, reason="Brain Float Is Unavailable in these versions of TF"
+    is_greater_than_tf_2_2() is False, reason="Brain Float Is Unavailable in these versions of TF"
 )
 def test_tensorflow2_datatypes():
     # _NP_TO_TF contains all the mappings
