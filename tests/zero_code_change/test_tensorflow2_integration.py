@@ -21,7 +21,7 @@ import argparse
 import pytest
 import tensorflow.compat.v2 as tf
 from tensorflow.python.keras.engine import data_adapter
-from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3
+from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3, is_tf_2_6
 from tests.utils import SagemakerSimulator
 
 # First Party
@@ -208,7 +208,7 @@ def helper_test_keras_v2_json_config(
             assert len(trial.tensor_names(collection="gradients")) > 0
         assert len(trial.tensor_names(collection="weights")) > 0
         assert len(trial.tensor_names(collection="losses")) > 0
-        if is_tf_2_2():
+        if is_tf_2_2() and is_tf_2_6() is False:
             assert len(trial.tensor_names(collection="inputs")) > 0
             assert len(trial.tensor_names(collection="outputs")) > 0
             if "dense_layers" in json_file_contents:
