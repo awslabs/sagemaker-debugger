@@ -150,7 +150,7 @@ def helper_test_keras_v2_json_config(
     """ Tests ZCC with custom hook configs """
     smd.del_hook()
     tf.keras.backend.clear_session()
-    if not eager_mode and is_tf_2_3() is False:
+    if not eager_mode and is_tf_2_3() is False and is_greater_than_tf_2_2() is False:
         # v1 training APIs are currently not supported
         # in ZCC mode with smdebug 0.9 and AWS TF 2.3.0
         tf.compat.v1.disable_eager_execution()
