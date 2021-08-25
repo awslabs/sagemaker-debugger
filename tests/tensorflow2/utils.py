@@ -9,7 +9,7 @@ from packaging import version
 TF_VERSION = version.parse(tf.__version__)
 
 
-def is_tf_2_2():
+def is_greater_than_tf_2_2():
     """
     TF 2.0 returns ['accuracy', 'batch', 'size'] as metric collections.
     where 'batch' is the batch number and size is the batch size.

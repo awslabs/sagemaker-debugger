@@ -11,7 +11,7 @@ import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tensorflow.python.client import device_lib
 from tests.core.utils import verify_files
-from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_3, is_tf_2_6
+from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_3, is_tf_2_6
 from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
 
@@ -167,12 +167,14 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
         if eager:
             if is_tf_2_6():
                 assert len(tr.tensor_names()) == 15
-            elif is_tf_2_2():
+            elif is_greater_than_tf_2_2():
                 assert len(tr.tensor_names()) == (6 + 1 + 2 + 5 + 1 + 6 + 2)
                 # 6 weights, 1 loss, 2 metrics, 5 optimizer variables, 6 gradients, 2 outputs for Tf 2.2, 1 scalar
             else:
                 assert len(tr.tensor_names()) == (
-                    6 + 1 + 2 + 5 + 1 if (is_tf_2_2() or is_tf_2_3()) else 6 + 1 + 3 + 5 + 1
+                    6 + 1 + 2 + 5 + 1
+                    if (is_greater_than_tf_2_2() or is_tf_2_3())
+                    else 6 + 1 + 3 + 5 + 1
                 )
                 # 6 weights, 1 loss, 2 metrics, 5 optimizer variables for Tf 2.3, 1 scalar
                 # 6 weights, 1 loss, 3 metrics, 5 optimizer variables for Tf 2.1, 1 scalar
@@ -240,7 +242,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     assert len(tr.tensor(loss_name).steps()) == 12
 
     metricnames = tr.tensor_names(collection=CollectionKeys.METRICS)
-    assert len(metricnames) == (2 if (is_tf_2_2() or is_tf_2_3()) else 3)
+    assert len(metricnames) == (2 if (is_greater_than_tf_2_2() or is_tf_2_3()) else 3)
 
 
 @pytest.mark.slow
@@ -266,9 +268,9 @@ def test_save_all(out_dir, tf_eager_mode, workers):
     if tf_eager_mode:
         if is_tf_2_6():
             assert len(tr.tensor_names()) == 15
-        elif is_tf_2_2():
+        elif is_greater_than_tf_2_2():
             assert len(tr.tensor_names()) == (
-                6 + 2 + 1 + 5 + 1 + 1 + 2 + 8 + 8 if is_tf_2_2() else 6 + 3 + 1 + 5 + 1
+                6 + 2 + 1 + 5 + 1 + 1 + 2 + 8 + 8 if is_greater_than_tf_2_2() else 6 + 3 + 1 + 5 + 1
             )
             # weights, metrics, losses, optimizer variables, scalar, inputs, outputs, gradients, layers
         else:
@@ -399,7 +401,7 @@ def test_include_regex(out_dir, tf_eager_mode, workers):
     if tf_eager_mode:
         if is_tf_2_6():
             num_tensors = 4
-        elif is_tf_2_2():
+        elif is_greater_than_tf_2_2():
             num_tensors = 12
         else:
             num_tensors = 4
@@ -460,7 +462,7 @@ def test_clash_with_tb_callback(out_dir):
     tr = create_trial_fast_refresh(out_dir)
     if is_tf_2_6():
         assert len(tr.tensor_names()) == 10
-    elif is_tf_2_2():
+    elif is_greater_than_tf_2_2():
         assert len(tr.tensor_names()) == 16
     else:
         assert len(tr.tensor_names()) == (10 if is_tf_2_3() else 11)

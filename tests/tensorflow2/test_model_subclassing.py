@@ -3,7 +3,7 @@ import pytest
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Conv2D, Dense, Flatten
 from tensorflow.keras.models import Model
-from tests.tensorflow2.utils import is_tf_2_2, is_tf_2_6
+from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_6
 
 # First Party
 import smdebug.tensorflow as smd
@@ -52,7 +52,7 @@ class MyModel(Model):
 
 
 @pytest.mark.skipif(
-    is_tf_2_2() is False or is_tf_2_6() is True,
+    is_greater_than_tf_2_2() is False or is_tf_2_6() is True,
     reason="Feature to save model inputs and outputs was first added for TF 2.2.0",
 )
 def test_subclassed_model(out_dir):
@@ -85,7 +85,7 @@ def test_subclassed_model(out_dir):
     assert len(trial.tensor_names(collection=smd.CollectionKeys.LAYERS)) == 8
 
     assert trial.tensor_names(collection=smd.CollectionKeys.LOSSES) == ["loss"]
-    if is_tf_2_2():
+    if is_greater_than_tf_2_2():
         # Feature to save model inputs and outputs was first added for TF 2.2.0
         assert trial.tensor_names(collection=smd.CollectionKeys.INPUTS) == ["inputs"]
         assert trial.tensor_names(collection=smd.CollectionKeys.OUTPUTS) == [
