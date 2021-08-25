@@ -227,9 +227,7 @@ def test_keras_gradtape(out_dir, saveall):
 
     trial = smd.create_trial(path=out_dir)
     if saveall:  # save losses, metrics, weights, biases
-        if is_tf_2_6():
-            num_tensors = 15
-        elif is_tf_2_2():
+        if is_tf_2_2():
             num_tensors = 25
         else:
             num_tensors = 15
