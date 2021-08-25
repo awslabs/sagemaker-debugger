@@ -116,7 +116,7 @@ def helper_test_keras_v2(script_mode: bool = False, eager_mode: bool = True):
         tf.compat.v1.disable_eager_execution()
     enable_tb = False if (tf.__version__ == "2.0.2" or is_tf_2_3()) else True
     run_eagerly = None
-    if is_tf_2_2() or is_tf_2_3():
+    if is_tf_2_2() or is_tf_2_3() or is_tf_2_6() is False:
         run_eagerly = eager_mode
     with SagemakerSimulator(enable_tb=enable_tb) as sim:
         helper_keras_fit(
