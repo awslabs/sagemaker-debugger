@@ -139,7 +139,7 @@ def _verify_timeline_files(out_dir):
         with open(file) as timeline_file:
             events_dict = json.load(timeline_file)
 
-        assert len(events_dict) > 2000
+        assert len(events_dict) > 1000
         assert set([event["name"] for event in events_dict]) == {
             "Step:ModeKeys.TRAIN",
             "process_name",
@@ -150,12 +150,14 @@ def _verify_timeline_files(out_dir):
 # Skipping because the tests are failing.
 # Support for profiling using gradient tape has never been released publicly
 # and since we're planning on deprecating profiler v1, we can just disable the tests
-@pytest.mark.skipif(is_tf_version_gte("2.7"), reason="unblock TF2.7 release")
 @pytest.mark.parametrize("python_profiler_name", [CPROFILE_NAME, PYINSTRUMENT_NAME])
 @pytest.mark.parametrize(
     "model_type", [ModelType.SEQUENTIAL, ModelType.FUNCTIONAL, ModelType.SUBCLASSED]
 )
 @pytest.mark.parametrize("use_mirrored_strategy", [False, True])
+@pytest.mark.skipif(
+    is_tf_version_gte("2.6"), reason="Native TF Profiler is not supported for TF >= 2.6.0"
+)
 def test_native_tf2_profiling(
     monkeypatch,
     python_profiler_name,
