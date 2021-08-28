@@ -7,5 +7,5 @@
 # review when someone opens a pull request.
 *       @awslabs/sagemaker-debugger
 
-# Any modification to config/profiler will require review from dl-containers team
-config/profiler @awslabs/dl-containers
+# Any modification to config/profiler will require review from dl-containers-reviewers team
+config/profiler @awslabs/dl-containers-reviewers
