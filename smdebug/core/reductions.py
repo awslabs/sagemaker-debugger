@@ -42,15 +42,19 @@ def get_basic_numpy_reduction(reduction_name, numpy_data):
     return None
 
 
-def get_reduction_tensor_name(tensorname, reduction_name, abs, remove_colon_index=True):
+def get_reduction_tensor_name(
+    tensorname, reduction_name, abs, remove_colon_index=True, collection_name="smdebug"
+):
     # for frameworks other than TF, it makes sense to not have trailing :0, :1
     # but for TF, it makes sense to keep it consistent with TF traditional naming style
-    tname = f"{reduction_name}/{tensorname}"
+    # tname = f"{reduction_name}/{tensorname}"
+    tname = f"{tensorname}"
     if remove_colon_index:
         tname = re.sub(r":\d+", "", tname)
-    if abs:
-        tname = "abs_" + tname
-    tname = REDUCTIONS_PREFIX + tname
+    #    if abs:
+    #        tname = "abs_" + tname
+    # tname = REDUCTIONS_PREFIX + tname
+    tname = collection_name + "/reductions/" + tname
     return tname
 
 

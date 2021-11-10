@@ -120,11 +120,14 @@ class TensorboardFileLocation(EventFileLocation):
 
     def get_file_location(self, base_dir=""):
         # when base_dir is empty it just returns the relative file path
-        if base_dir:
-            event_key_prefix = os.path.join(base_dir, self.mode.name)
+        if hasattr(self.mode, "name"):
+            subfolder = self.mode.name
         else:
-            event_key_prefix = os.path.join(self.type, self.mode.name)
-
+            subfolder = self.mode
+        if base_dir:
+            event_key_prefix = os.path.join(base_dir, subfolder)
+        else:
+            event_key_prefix = os.path.join(self.type, subfolder)
         return os.path.join(event_key_prefix, self.get_filename())
 
 
