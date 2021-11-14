@@ -103,10 +103,6 @@ class ReductionConfig:
                 continue
             raise ValueError("abs_reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
 
-        # if any([x not in ALLOWED_REDUCTIONS for x in self.reductions]):
-        #    raise ValueError("reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
-        # if any([x not in ALLOWED_REDUCTIONS for x in self.abs_reductions]):
-        #    raise ValueError("abs_reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
         if any([x not in ALLOWED_NORMS for x in self.norms]):
             raise ValueError("norms can only be one of " + ",".join(ALLOWED_NORMS))
         if any([x not in ALLOWED_NORMS for x in self.abs_norms]):
