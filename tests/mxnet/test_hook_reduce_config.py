@@ -76,7 +76,7 @@ def test_save_config(hook=None, out_dir=None):
     assert abs_max_val is not None
 
     # Custom reduction with normalization
-    tname = tr.tensor_names(regex=r"flatten\d+_input_0")[0]
+    tname = tr.tensor_names(regex=r"flatten.*flatten\d+_input_0")[0]
     flatten_input = tr.tensor(tname)
     l1_norm = flatten_input.reduction_value(step_num=4, abs=False, reduction_name="l1")
     assert l1_norm is not None

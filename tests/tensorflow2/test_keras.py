@@ -27,7 +27,7 @@ from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
 from smdebug.core.modes import ModeKeys
-from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.core.reduction_config import ALLOWED_NORMS
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.profiler.profiler_constants import DEFAULT_PREFIX
 from smdebug.tensorflow import ReductionConfig, SaveConfig
@@ -249,10 +249,11 @@ def test_gradtape_base_reductions(out_dir):
     """
     Test reduction config
     """
+    reductions = ["min", "max", "mean", "std", "sum", "prod"]
     helper_keras_gradtape(
         trial_dir=out_dir,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=reductions),
     )
     tr = create_trial_fast_refresh(out_dir)
     weight_name = tr.tensor_names(collection=CollectionKeys.WEIGHTS)[0]
@@ -261,7 +262,7 @@ def test_gradtape_base_reductions(out_dir):
         assert False
     except TensorUnavailableForStep:
         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
-        assert len(tr.tensor(weight_name).reduction_values(0)) == len(ALLOWED_REDUCTIONS) + len(
+        assert len(tr.tensor(weight_name).reduction_values(0)) == len(reductions) + len(
             ALLOWED_NORMS
         )
 
@@ -380,7 +381,9 @@ def test_gradtape_include_collections(out_dir):
         out_dir,
         save_config=save_config,
         include_collections=include_collections,
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        reduction_config=ReductionConfig(
+            norms=ALLOWED_NORMS, reductions=["min", "max", "mean", "std", "sum", "prod"]
+        ),
     )
     helper_keras_gradtape(out_dir, hook=hook)
 
@@ -527,10 +530,11 @@ def test_keras_fit_shapes(out_dir):
 
 @pytest.mark.slow
 def test_base_reductions(out_dir, tf_eager_mode):
+    reductions = ["min", "max", "mean", "std", "sum", "prod"]
     helper_keras_fit(
         trial_dir=out_dir,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=reductions),
         run_eagerly=tf_eager_mode,
     )
     tr = create_trial_fast_refresh(out_dir)
@@ -540,7 +544,7 @@ def test_base_reductions(out_dir, tf_eager_mode):
         assert False
     except TensorUnavailableForStep:
         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
-        assert len(tr.tensor(weight_name).reduction_values(0)) == len(ALLOWED_REDUCTIONS) + len(
+        assert len(tr.tensor(weight_name).reduction_values(0)) == len(reductions) + len(
             ALLOWED_NORMS
         )
 
@@ -719,7 +723,9 @@ def test_include_collections(out_dir, tf_eager_mode):
         out_dir,
         save_config=save_config,
         include_collections=include_collections,
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        reduction_config=ReductionConfig(
+            norms=ALLOWED_NORMS, reductions=["min", "max", "mean", "std", "sum", "prod"]
+        ),
     )
     hook.get_collection("custom_optimizer_variables").include("Adam")
     helper_keras_fit(
@@ -756,7 +762,9 @@ def test_include_only_custom_collection(out_dir, tf_eager_mode):
         out_dir,
         save_config=save_config,
         include_collections=include_collections,
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        reduction_config=ReductionConfig(
+            norms=ALLOWED_NORMS, reductions=["min", "max", "mean", "std", "sum", "prod"]
+        ),
     )
     hook.get_collection("custom_optimizer_variables").include("Adam")
     helper_keras_fit(
