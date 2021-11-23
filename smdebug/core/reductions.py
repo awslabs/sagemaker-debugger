@@ -1,6 +1,5 @@
 # Standard Library
 import re
-import socket
 
 # Third Party
 import numpy as np
@@ -44,14 +43,16 @@ def get_basic_numpy_reduction(reduction_name, numpy_data):
 
 
 def get_reduction_tensor_name(
-    tensorname, reduction_name, abs, remove_colon_index=True, collection_name="smdebug"
+    tensorname, reduction_name, abs, remove_colon_index=True
 ):
     # for frameworks other than TF, it makes sense to not have trailing :0, :1
     # but for TF, it makes sense to keep it consistent with TF traditional naming style
-    tname = f"{tensorname}"
+    tname = f"{reduction_name}/{tensorname}"
     if remove_colon_index:
         tname = re.sub(r":\d+", "", tname)
-    tname = collection_name + "/reductions/" + tname + "_" + socket.gethostname()
+    if abs:
+        tname = "abs_" + tname
+    tname = REDUCTIONS_PREFIX + tname
     return tname
 
 

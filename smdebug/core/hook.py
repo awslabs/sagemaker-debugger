@@ -663,20 +663,19 @@ class BaseHook:
         collection_file_name = f"{self.worker}_collections.json"
         self.collection_manager.export(self.out_dir, collection_file_name)
 
-    def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs, collection_name=""):
+    def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
         return get_reduction_tensor_name(
             tensor_name,
             reduction_name,
             abs,
             remove_colon_index=True,
-            collection_name=collection_name,
         )
 
     def _write_reduction(
         self, tensor_name, tensor_value, reduction_name, abs, tensor_ref=None, collection_name=""
     ):
         reduction_tensor_name = self._get_reduction_tensor_name(
-            tensor_name, reduction_name, abs, collection_name=collection_name
+            tensor_name, reduction_name, abs
         )
         try:
             tensor_data = self._get_reduction_of_data(
@@ -687,6 +686,7 @@ class BaseHook:
                 reduction_name = "abs_" + reduction_name
             tb_writer = self._maybe_get_tb_writer(subfolder=reduction_name)
             if tb_writer:
+                reduction_tensor_name = collection_name + "/reductions/" + tensor_name + "/" + self.worker
                 scalar = self._make_numpy_array(tensor_data)
                 tb_writer.write_scalar_summary(reduction_tensor_name, scalar, self.step)
         except ValueError as e:
