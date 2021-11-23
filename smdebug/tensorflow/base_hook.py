@@ -469,7 +469,7 @@ class TensorflowBaseHook(BaseHook):
             tensor_name,
             reduction_name,
             abs,
-            remove_colon_index=False,
+            remove_colon_index=False
         )
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):

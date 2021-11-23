@@ -709,7 +709,7 @@ class BaseHook:
                             reduction,
                             abs=False,
                             tensor_ref=tensor_ref,
-                            collection_name=s_col.name,
+                            collection_name=s_col.name
                         )
                         reductions_saved.add((reduction, False))
             for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
@@ -721,7 +721,7 @@ class BaseHook:
                             reduction,
                             abs=True,
                             tensor_ref=tensor_ref,
-                            collection_name=s_col.name,
+                            collection_name=s_col.name
                         )
                         reductions_saved.add((reduction, True))
 
