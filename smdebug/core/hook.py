@@ -664,19 +664,12 @@ class BaseHook:
         self.collection_manager.export(self.out_dir, collection_file_name)
 
     def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
-        return get_reduction_tensor_name(
-            tensor_name,
-            reduction_name,
-            abs,
-            remove_colon_index=True,
-        )
+        return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=True)
 
     def _write_reduction(
         self, tensor_name, tensor_value, reduction_name, abs, tensor_ref=None, collection_name=""
     ):
-        reduction_tensor_name = self._get_reduction_tensor_name(
-            tensor_name, reduction_name, abs
-        )
+        reduction_tensor_name = self._get_reduction_tensor_name(tensor_name, reduction_name, abs)
         try:
             tensor_data = self._get_reduction_of_data(
                 reduction_name, tensor_value, tensor_name, abs
@@ -686,7 +679,9 @@ class BaseHook:
                 reduction_name = "abs_" + reduction_name
             tb_writer = self._maybe_get_tb_writer(subfolder=reduction_name)
             if tb_writer:
-                reduction_tensor_name = collection_name + "/reductions/" + tensor_name + "/" + self.worker
+                reduction_tensor_name = (
+                    collection_name + "/reductions/" + tensor_name + "/" + self.worker
+                )
                 scalar = self._make_numpy_array(tensor_data)
                 tb_writer.write_scalar_summary(reduction_tensor_name, scalar, self.step)
         except ValueError as e:
@@ -709,7 +704,7 @@ class BaseHook:
                             reduction,
                             abs=False,
                             tensor_ref=tensor_ref,
-                            collection_name=s_col.name
+                            collection_name=s_col.name,
                         )
                         reductions_saved.add((reduction, False))
             for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
@@ -721,7 +716,7 @@ class BaseHook:
                             reduction,
                             abs=True,
                             tensor_ref=tensor_ref,
-                            collection_name=s_col.name
+                            collection_name=s_col.name,
                         )
                         reductions_saved.add((reduction, True))
 

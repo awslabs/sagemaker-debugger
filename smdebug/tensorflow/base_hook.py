@@ -465,12 +465,7 @@ class TensorflowBaseHook(BaseHook):
         return self.tensor_to_collections[tf_tensor_name]
 
     def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
-        return get_reduction_tensor_name(
-            tensor_name,
-            reduction_name,
-            abs,
-            remove_colon_index=False
-        )
+        return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=False)
 
     def _write_for_tensor(self, tensor_name, tensor_value, save_collections, tensor_ref=None):
         # When TF 2.x GradientTape is used, the tensors to be saved are of type
