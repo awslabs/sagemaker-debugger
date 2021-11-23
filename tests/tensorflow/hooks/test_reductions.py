@@ -6,7 +6,7 @@ from tests.utils import verify_shapes
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.json_config import CONFIG_FILE_PATH_ENV_STR
-from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.core.reduction_config import ALLOWED_NORMS
 from smdebug.exceptions import TensorUnavailableForStep
 
 # Local
@@ -37,7 +37,7 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
                 except TensorUnavailableForStep as e:
                     pass
             assert len(t.reduction_values(0)) == 18
-            for r in ALLOWED_REDUCTIONS + ALLOWED_NORMS:
+            for r in ["min", "max", "mean", "std", "variance", "sum", "prod"] + ALLOWED_NORMS:
                 for b in [False, True]:
                     assert t.reduction_value(0, reduction_name=r, abs=b, worker=None) is not None
 
@@ -45,8 +45,8 @@ def helper_test_reductions(trial_dir, hook, save_raw_tensor):
 def test_reductions(out_dir, save_raw_tensor=False):
     pre_test_clean_up()
     rdnc = smd.ReductionConfig(
-        reductions=ALLOWED_REDUCTIONS,
-        abs_reductions=ALLOWED_REDUCTIONS,
+        reductions=["min", "max", "mean", "std", "variance", "sum", "prod"],
+        abs_reductions=["min", "max", "mean", "std", "variance", "sum", "prod"],
         norms=ALLOWED_NORMS,
         abs_norms=ALLOWED_NORMS,
         save_raw_tensor=save_raw_tensor,
