@@ -183,7 +183,10 @@ def train_model(
         elif step == "predict":
             model.predict(train_dataset, steps=4, callbacks=hooks, verbose=0)
 
-    smd.get_hook()._cleanup()
+    if not zcc:
+        hook._cleanup()
+    if zcc:
+        smd.get_hook()._cleanup()
     return strategy
 
 
