@@ -46,4 +46,7 @@ def get_hook(
             create_if_not_exists=create_if_not_exists,
         )
     else:
+        # we choose not to raise an exception, because sagemaker debugger is running
+        # on ALL training jobs by default, and we don't know when `get_hook()` is being called
+        # where it might fail to retrieve the hook
         return None
