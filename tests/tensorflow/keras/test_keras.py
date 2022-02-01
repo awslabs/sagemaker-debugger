@@ -147,7 +147,7 @@ def test_did_you_forget_to_update_the_supported_framework_version():
 
     This is just to make you aware of the problem.
     """
-    if not is_framework_version_supported(FRAMEWORK.PYTORCH):
+    if not is_framework_version_supported(FRAMEWORK.TENSORFLOW):
         raise Exception(
             "You are running against an unsupported version of Tensorflow..."
             " Please update `smdebug.tensorflow.utils.SUPPORTED_TF_VERSION_THRESHOLD`"
