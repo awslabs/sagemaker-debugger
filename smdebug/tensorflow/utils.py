@@ -16,12 +16,13 @@ from smdebug.core.utils import error_handling_agent
 
 # Cached TF Version
 TF_VERSION = version.parse(tf.__version__)
+SUPPORTED_TF_VERSION_THRESHOLD = version.parse("2.8.0")
 
 
 def does_tf_support_mixed_precision_training():
     # The Keras mixed precision API is first available in TensorFlow 2.1.0
     # See: https://www.tensorflow.org/guide/mixed_precision
-    return TF_VERSION >= version.parse("2.1.0")
+    return TF_VERSION >= version.parse("2.1.0") and TF_VERSION < version.parse("2.6.0")
 
 
 def supported_tf_variables():
@@ -440,4 +441,8 @@ def is_profiler_supported_for_tf_version():
 
 
 def is_current_version_supported(tf_version=tf.__version__):
-    return version.parse("1.15.0") <= version.parse(tf_version) < version.parse("2.6.0")
+    return version.parse("1.15.0") <= version.parse(tf_version) < SUPPORTED_TF_VERSION_THRESHOLD
+
+
+def get_current_version():
+    return version.parse(tf.__version__)

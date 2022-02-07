@@ -9,7 +9,7 @@ from packaging import version
 TF_VERSION = version.parse(tf.__version__)
 
 
-def is_tf_2_2():
+def is_greater_than_tf_2_2():
     """
     TF 2.0 returns ['accuracy', 'batch', 'size'] as metric collections.
     where 'batch' is the batch number and size is the batch size.
@@ -22,6 +22,12 @@ def is_tf_2_2():
     return False
 
 
+def is_tf_2_6():
+    if TF_VERSION >= version.parse("2.6.0"):
+        return True
+    return False
+
+
 def is_tf_2_3():
     if TF_VERSION == version.parse("2.3.0"):
         return True
@@ -30,6 +36,11 @@ def is_tf_2_3():
 
 def is_tf_version_greater_than_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION
+
+
+def is_tf_version_gte(v):
+    """TF version greater than or equal to..."""
+    return TF_VERSION >= version.parse(v)
 
 
 class ModelType(Enum):

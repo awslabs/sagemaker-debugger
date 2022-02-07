@@ -12,6 +12,7 @@ from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.core.utils import FRAMEWORK, is_framework_version_supported
 from smdebug.exceptions import TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
 from smdebug.tensorflow.keras import KerasHook
@@ -133,6 +134,25 @@ def train_model(
             model.predict(x_test[:100], callbacks=hooks, verbose=0)
 
     hook._cleanup()
+
+
+def test_did_you_forget_to_update_the_supported_framework_version():
+    """
+    This test is designed to save you 2 days of debugging time in case you're new
+    to the codebase.
+
+    One of the side-effects of not updating LATEST_SUPPORTED_TF_VERSION with the
+    version of Tensorflow you're trying to release for is that `smdebug.tensorflow.get_hook()` is going to return `None`
+    and many tests will fail.
+
+    This is just to make you aware of the problem.
+    """
+    if not is_framework_version_supported(FRAMEWORK.TENSORFLOW):
+        raise Exception(
+            "You are running against an unsupported version of Tensorflow..."
+            " Please update `smdebug.tensorflow.utils.SUPPORTED_TF_VERSION_THRESHOLD`"
+            f" if you are trying to release sagemaker-debugger for the next version of tensorflow ({tf.__version__})."
+        )
 
 
 @pytest.mark.skip(

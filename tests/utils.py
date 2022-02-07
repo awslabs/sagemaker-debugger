@@ -1,6 +1,8 @@
 # Standard Library
 import os
 import shutil
+import time
+from contextlib import ContextDecorator
 from pathlib import Path
 
 # Third Party
@@ -19,6 +21,24 @@ from smdebug.core.config_constants import (
 )
 from smdebug.core.utils import is_s3, remove_file_if_exists
 from smdebug.exceptions import TensorUnavailableForStep
+
+
+class Timer(ContextDecorator):
+    def __enter__(self):
+        self.start_time = time.perf_counter()
+        return self
+
+    def __exit__(self, *exc):
+        self.stop_time = time.perf_counter()
+        self.time_taken = self.stop_time - self.start_time
+
+
+def is_running_in_codebuild():
+    """
+    This fixture checks is $CODEBUILD_SRC_DIR is set based on the assumption that it is only set in the CI which is currently managed by Codebuild
+    :return: bool
+    """
+    return bool(os.getenv("CODEBUILD_SRC_DIR"))
 
 
 def use_s3_datasets():

@@ -1,7 +1,9 @@
 # Third Party
 import numpy as np
+import pytest
 from tensorflow.keras.layers import Concatenate, Dense
 from tensorflow.python.keras.models import Model
+from tests.tensorflow2.utils import is_tf_2_6
 
 # First Party
 import smdebug.tensorflow as smd
@@ -19,6 +21,9 @@ class MyModel(Model):
         return self.dense(x)
 
 
+@pytest.mark.skipif(
+    is_tf_2_6() is True, reason="Breaking Changes In TF 2.6.0 deprecates this feature"
+)
 def test_multiple_inputs(out_dir):
     my_model = MyModel()
     hook = smd.KerasHook(
