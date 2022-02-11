@@ -16,7 +16,7 @@ from smdebug.core.utils import error_handling_agent
 
 # Cached TF Version
 TF_VERSION = version.parse(tf.__version__)
-SUPPORTED_TF_VERSION_THRESHOLD = version.parse("2.8.0")
+SUPPORTED_TF_VERSION_THRESHOLD = version.parse("2.8.1")
 
 
 def does_tf_support_mixed_precision_training():
