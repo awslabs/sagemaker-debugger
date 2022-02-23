@@ -28,8 +28,8 @@ phases:
   install:
     commands:
         # The XGBoost container requires an update PUB_KEY to run the apt-get update
-        - if [ "$run_pytest_xgboost" = "enable" ]; then su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv FCEE74BB7F3C88C8; fi
-        - su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv FCEE74BB7F3C88C8 && apt-get update
+        #- if [ "$run_pytest_xgboost" = "enable" ]; then su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D; fi
+        - su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' && apt-get update
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
         - pip install awscli==1.19.5
         - . config/change_branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
