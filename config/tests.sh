@@ -33,7 +33,7 @@ run_for_framework() {
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow_error_handling_agent.py
       elif [ "$1" = "tensorflow2" ] ; then
-        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_error_handling_agent.py
+        #python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_gradtape_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_bert.py
@@ -81,7 +81,7 @@ if [ "$run_pytest_tensorflow" = "enable" ] ; then
 fi
 
 if [ "$run_pytest_tensorflow2" = "enable" ] ; then
-    pip install tensorflow_datasets==4.0.1
+    #pip install tensorflow_datasets==4.0.1
     run_for_framework tensorflow2
     run_profiler_test tensorflow2
 fi
