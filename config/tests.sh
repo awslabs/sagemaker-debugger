@@ -22,6 +22,7 @@ run_for_framework() {
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py --ignore=tests/analysis/integration_testing_rules.py tests/$1
       else
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
+      fi
 
       if [ "$1" = "mxnet" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_mxnet_error_handling_agent.py
