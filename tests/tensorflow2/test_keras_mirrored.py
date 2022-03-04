@@ -245,7 +245,7 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     assert len(metricnames) == (2 if (is_greater_than_tf_2_2() or is_tf_2_3()) else 3)
 
 
-@pytest.mark.slow
+@pytest.mark.skip
 def test_tf_keras(out_dir, tf_eager_mode, include_workers="all"):
     exhaustive_check(out_dir, include_workers=include_workers, eager=tf_eager_mode)
 
