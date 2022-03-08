@@ -37,6 +37,7 @@ def test_get_smdebug_hook_use_smdebug(
 ):
     try:
         from torch.utils.smdebug import get_smdebug_hook
+
         monkeypatch.setenv("USE_SMDEBUG", use_smdebug)
         times_taken = []
         for _ in range(microbenchmark_repeat):
@@ -62,6 +63,7 @@ def test_get_smdebug_hook_use_smdebug(
 def test_sagemaker_context(microbenchmark_repeat, microbenchmark_range):
     try:
         from torch.utils.smdebug import get_smdebug_hook
+
         times_taken = []
         for _ in range(microbenchmark_repeat):
             timer_context = Timer()
