@@ -244,10 +244,12 @@ def exhaustive_check(trial_dir, include_workers="one", eager=True):
     metricnames = tr.tensor_names(collection=CollectionKeys.METRICS)
     assert len(metricnames) == (2 if (is_greater_than_tf_2_2() or is_tf_2_3()) else 3)
 
+
 @pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 @pytest.mark.slow
 def test_tf_keras(out_dir, tf_eager_mode, include_workers="all"):
     exhaustive_check(out_dir, include_workers=include_workers, eager=tf_eager_mode)
+
 
 @pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 @pytest.mark.slow
@@ -296,6 +298,7 @@ def test_save_all(out_dir, tf_eager_mode, workers):
         )
     verify_files(out_dir, save_config, saved_scalars)
 
+
 @pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 @pytest.mark.slow
 def test_shapes(out_dir, tf_eager_mode):
@@ -309,6 +312,7 @@ def test_shapes(out_dir, tf_eager_mode):
     )
     multiworker = strategy.num_replicas_in_sync > 1
     verify_shapes(out_dir, 0, multiworker=multiworker)
+
 
 @pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 @pytest.mark.slow
@@ -340,6 +344,7 @@ def test_base_reductions(out_dir, tf_eager_mode):
 
     metric_name = tr.tensor_names(collection=CollectionKeys.METRICS)[0]
     assert tr.tensor(metric_name).value(0) is not None
+
 
 @pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 @pytest.mark.slow
@@ -374,6 +379,7 @@ def test_collection_reductions(out_dir, tf_eager_mode):
         # saved as reduction and the reduction computation failed
         pass
 
+
 @pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 @pytest.mark.slow
 def test_training_end(out_dir, tf_eager_mode):
@@ -381,6 +387,7 @@ def test_training_end(out_dir, tf_eager_mode):
         out_dir, include_collections=[CollectionKeys.OUTPUTS], steps=["train"], eager=tf_eager_mode
     )
     assert has_training_ended(out_dir) is True
+
 
 @pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 @pytest.mark.slow
@@ -445,6 +452,7 @@ def test_include_regex_opt_var(out_dir, tf_eager_mode, workers):
 
 @pytest.mark.skip_if_non_eager
 @pytest.mark.slow
+@pytest.mark.skipif(is_tf_version_gte("2.7"), reason="flaky for TF 2.7 (segfault)")
 def test_clash_with_tb_callback(out_dir):
     train_model(
         out_dir,
