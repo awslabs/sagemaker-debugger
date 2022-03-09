@@ -26,8 +26,8 @@ def test_get_smdebug_hook_use_smdebug(
             times_taken.append(t.time_taken)
 
         p95 = percentile(times_taken, 95)
-        # mean time taken with use_smdebug == 0 is 3 seconds
-        # mean time taken with use_smdebug == 1 is 21 seconds
+        # mean time taken with use_smdebug == 0 is 5 seconds
+        # mean time taken with use_smdebug == 1 is 40 seconds
         threshold = 5 if use_smdebug == "0" else 40
         assert p95 < threshold
     except ImportError:
