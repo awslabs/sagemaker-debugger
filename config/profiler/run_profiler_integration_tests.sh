@@ -78,7 +78,7 @@ then
 else
   scripts_folder="tf_scripts"
   test_file="test_profiler_tensorflow.py"
-  echo "tensorflow-datasets==4.0.1" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt # Install tensorflow-datasets in container
+  echo "tensorflow-datasets==4.5.2" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt # Install tensorflow-datasets in container
 fi
 
  # build pip wheel of the latest smdebug
