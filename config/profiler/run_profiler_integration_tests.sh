@@ -98,7 +98,7 @@ then
   # Run the smprofiler sagemaker integration tests
   cd $CODEBUILD_SRC_DIR_TESTS
   echo "Running profiler integration tests!"
-  if python -m pytest -n auto -v -rx --log-cli-level=debug -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/$test_file
+  if python -m pytest -n auto -v -rx tests/$test_file
   #if python -m pytest -n 1  -v -s -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/$test_file
   then
     echo "INFO BUILD SUCCEEDED !!! "
