@@ -78,7 +78,7 @@ then
 else
   scripts_folder="tf_scripts"
   test_file="test_profiler_tensorflow.py"
-  echo "tensorflow-datasets==4.0.1" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt # Install tensorflow-datasets in container
+  echo "tensorflow-datasets==4.5.2" >> $CODEBUILD_SRC_DIR_TESTS/tests/scripts/tf_scripts/requirements.txt # Install tensorflow-datasets in container
 fi
 
  # build pip wheel of the latest smdebug
@@ -98,6 +98,9 @@ then
   # Run the smprofiler sagemaker integration tests
   cd $CODEBUILD_SRC_DIR_TESTS
   echo "Running profiler integration tests!"
+  #The commented out line below comes in handy at debug time (-n auto used pytest-xdist, no logs ...)
+  #if python -m pytest -v -s tests/$test_file
+
   if python -m pytest -n auto -v -s -W=ignore --html=$REPORT_DIR/profiler_report_analysis.html --self-contained-html tests/$test_file
   then
     echo "INFO BUILD SUCCEEDED !!! "
