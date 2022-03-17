@@ -13,7 +13,7 @@ from smdebug.core.reductions import get_numpy_reduction
 # Cached Pytorch Version
 PT_VERSION = version.parse(torch.__version__)
 
-SUPPORTED_PT_VERSION_THRESHOLD = version.parse("1.11.0")
+SUPPORTED_PT_VERSION_THRESHOLD = version.parse("1.12.0")
 
 
 def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
