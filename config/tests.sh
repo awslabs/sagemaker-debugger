@@ -14,6 +14,7 @@ check_logs() {
   fi
 }
 
+#Testing comment
 run_for_framework() {
     if [ "$zero_code_change_test" = "enable" ] ; then
       python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
