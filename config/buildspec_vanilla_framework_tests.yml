@@ -19,10 +19,9 @@ phases:
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
         - pip install --upgrade pip==20.3.3
-        - pip install -q -U pytest pytest-cov wheel pyYaml pytest-html keras==2.3.1 mxnet==1.6.0 torch==1.8.0 xgboost==1.3.3 pre-commit tensorflow_datasets==4.0.1 torchvision
+        - pip install -q -U pytest pytest-cov wheel pyYaml pytest-html keras==2.3.1 mxnet==1.6.0 torch==1.8.0 xgboost==1.3.3 pre-commit tensorflow_datasets==4.0.1 torchvision ipython_genutils==0.2.0
         - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh;
         - pip install --force-reinstall numpy==1.18.5
-        - pip install ipython-genutils==0.2.0
 
   build:
     commands:
