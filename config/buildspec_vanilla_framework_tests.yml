@@ -12,6 +12,8 @@ env:
     run_integration_pytest_tensorflow: "enable"
     run_integration_pytest_xgboost: "enable"
     zero_code_change_test: "disable"
+    build_type: "pr" # must be one of pr, nightly or release
+
 phases:
   install:
     commands:
@@ -26,7 +28,7 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh
-      - cd $CODEBUILD_SRC_DIR_RULES && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh
+      - if [ "$build_type" != "pr" ]; cd $CODEBUILD_SRC_DIR_RULES && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh
 
   post_build:
     commands:
