@@ -34,7 +34,7 @@ export CURRENT_DATETIME=$(date +'%Y%m%d_%H%M%S')
 export CURRENT_COMMIT_PATH="$CURRENT_DATETIME/$CORE_COMMIT"
 
 # you can provide pip binary as s3 path in the build environment
-if [[ ! -n "${SMDEBUG_S3_BINARY}" ]]; then
+if [[ -n "${SMDEBUG_S3_BINARY}" ]]; then
   cd $CODEBUILD_SRC_DIR
   echo "Installing smdebug and smdebug_rules from pre-generated pip wheels located at $SMDEBUG_S3_BINARY"
   mkdir -p s3_pip_binary
