@@ -35,7 +35,7 @@ phases:
         - . config/change_branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
         - pip install --upgrade pip==19.3.1
         - pip install -q pytest==6.1.2 pytest-cov==2.10.1 wheel==0.35.1 pyYaml==5.3.1 pytest-html==3.0.0 sagemaker==2.16.3 pre-commit==2.6.0 flaky==3.7.0
-        - pip install -q matplotlib==3.3.1 && pip3 install seaborn==0.10.1 nbconvert==6.4.4 papermill==2.3.4 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3
+        - pip install -q matplotlib==3.3.1 && pip3 install seaborn==0.10.1 nbconvert==6.0.6 papermill==2.3.4 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
         - pip uninstall -y typing # see: https://t.corp.amazon.com/P43975146/overview
 
