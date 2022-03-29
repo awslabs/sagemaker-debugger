@@ -143,7 +143,9 @@ def average_gradients(model):
         param.grad.data /= size
 
 
-def init_processes(out_dir, rank, size, include_workers, test_timeline, fn, backend="gloo"):
+def init_processes(
+    out_dir, rank, size, include_workers, test_timeline, fn, backend="gloo"
+):
     """Initialize the distributed environment."""
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "29500"
@@ -161,7 +163,8 @@ def _run_net_distributed(out_dir, include_workers="one", test_timeline=False):
     processes = []
     for rank in range(size):
         p = Process(
-            target=init_processes, args=(out_dir, rank, size, include_workers, test_timeline, run)
+            target=init_processes,
+            args=(out_dir, rank, size, include_workers, test_timeline, run),
         )
         p.start()
         processes.append(p)
@@ -171,7 +174,9 @@ def _run_net_distributed(out_dir, include_workers="one", test_timeline=False):
 
     # WARNING: assert statements do not cause test failure inside subprocesses
     # https://stackoverflow.com/questions/13400546/py-test-how-to-automatically-detect-an-exception-in-a-child-process
-    assert all([not p.exitcode for p in processes]), f"Some processes failed. processes={processes}"
+    assert all(
+        [not p.exitcode for p in processes]
+    ), f"Some processes failed. processes={processes}"
 
     trial = create_trial(path=out_dir)
     return trial
@@ -216,7 +221,9 @@ def test_run_net_distributed_save_one_worker(out_dir):
 
 
 @pytest.mark.slow
-def test_run_net_distributed_save_all_test_timeline(set_up_smprofiler_config_path, out_dir):
+def test_run_net_distributed_save_all_test_timeline(
+    set_up_smprofiler_config_path, out_dir
+):
     """
     This test checks if any of the timestamps recorded are negative
     """
@@ -240,7 +247,9 @@ def test_run_net_distributed_save_all_test_timeline(set_up_smprofiler_config_pat
     # ensure that no horovod timeline files are written to when horovod is
     # not used
     files = []
-    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(f"*{HOROVODTIMELINE_SUFFIX}"):
+    for path in Path(out_dir + "/" + DEFAULT_PREFIX).rglob(
+        f"*{HOROVODTIMELINE_SUFFIX}"
+    ):
         files.append(path)
 
     assert not files
