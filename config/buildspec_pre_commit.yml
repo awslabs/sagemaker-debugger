@@ -7,7 +7,7 @@ phases:
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
         - pip install --upgrade pip==19.3.1
-        - pip install -q pre-commit awscli
+        - pip install pre-commit awscli
 
   pre_build:
     commands:

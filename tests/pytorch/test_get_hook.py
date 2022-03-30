@@ -49,8 +49,8 @@ def test_get_smdebug_hook_use_smdebug(
 
         p95 = percentile(times_taken, 95)
         # mean time taken with use_smdebug == 0 is 3 seconds
-        # mean time taken with use_smdebug == 1 is 10 seconds
-        threshold = 3 if use_smdebug == "0" else 10
+        # mean time taken with use_smdebug == 1 is 12 seconds
+        threshold = 3 if use_smdebug == "0" else 12
         assert p95 < threshold
     except ImportError:
         print("Test needs framework hooks")
@@ -74,6 +74,6 @@ def test_sagemaker_context(microbenchmark_repeat, microbenchmark_range):
                 times_taken.append(t.time_taken)
 
         p95 = percentile(times_taken, 95)
-        assert p95 < 10  # current mean = ~10 seconds
+        assert p95 < 12  # current mean = ~12 seconds
     except ImportError:
         print("Test needs framework hooks")
