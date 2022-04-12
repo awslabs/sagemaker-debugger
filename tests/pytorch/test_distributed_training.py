@@ -82,6 +82,8 @@ def run(
     optimizer = optim.SGD(model.parameters(), lr=1)
 
     # shutil.rmtree(out_dir, ignore_errors=True)
+    # Should not clean temp dir here, since it is the same for all processes
+    # Ideally, each process should get its own temp dir
 
     hook = smd.Hook(
         out_dir=out_dir,
