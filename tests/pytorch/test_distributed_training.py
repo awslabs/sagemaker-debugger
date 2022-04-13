@@ -81,7 +81,9 @@ def run(
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=1)
 
-    shutil.rmtree(out_dir, ignore_errors=True)
+    # shutil.rmtree(out_dir, ignore_errors=True)
+    # Should not clean temp dir here, since it is the same for all processes
+    # Ideally, each process should get its own temp dir
 
     hook = smd.Hook(
         out_dir=out_dir,
@@ -207,7 +209,6 @@ def test_run_net_distributed_save_all_workers(out_dir):
     assert len(trial.steps()) == 3, f"trial.steps() = {trial.steps()}"
 
 
-@pytest.mark.skip(reason="Failure; not reproducible locally")
 @pytest.mark.slow  # 0:07 to run
 def test_run_net_distributed_save_one_worker(out_dir):
     trial = _run_net_distributed(out_dir, include_workers="one")
