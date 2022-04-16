@@ -117,6 +117,8 @@ def _upload_s3_folder(bucket, key, folder):
 
     pool = ThreadPool(processes=10)
     pool.map(upload_files, filenames)
+    pool.close()
+    pool.join()
 
 
 def _validate_analysis(profiler_name, stats, expected_functions):
