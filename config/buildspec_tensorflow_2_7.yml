@@ -44,20 +44,4 @@ phases:
 
   build:
     commands:
-      - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
-      # We do not need to force install smdebug-rules. The container used for PR builds do not have smdebug rules binary.
-      # Force installing rules binary attempts to re-install ipython-genutils which fails on PyTorch Ubuntu 16.04 containers.
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
-      - cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..
-      - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
-      - pip show smdebug
-      - echo 'Uploading Coverage to CodeCov'
-      - bash $CODEBUILD_SRC_DIR/config/codecov.sh
-      - if [ "$build_type" != "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
-  post_build:
-    commands:
-      - . $CODEBUILD_SRC_DIR/config/upload_on_end.sh
-      - rm -rf $CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
-      - rm -rf $RULES_CODEBUILD_SRC_DIR/upload/$CURRENT_COMMIT_PATH
-      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 0 ]; then echo "ERROR BUILD FAILED " && exit 1 ; fi
-      - if [ "$CODEBUILD_BUILD_SUCCEEDING" -eq 1 ]; then echo "INFO BUILD SUCCEEDED !!! " ; fi
+      - aws ssm get-parameters  --names deepenginepypipass
