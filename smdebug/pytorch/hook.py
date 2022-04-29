@@ -2,6 +2,8 @@
 import atexit
 import os
 import time
+import logging
+import warnings
 
 # Third Party
 import torch
@@ -34,6 +36,8 @@ if check_smdataparallel_env():
     except ImportError:
         pass
 
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_INCLUDE_COLLECTIONS = [CollectionKeys.LOSSES]
 
@@ -654,3 +658,15 @@ class Hook(CallbackHook):
         return self.profiler_config_parser.should_save_metrics(
             MetricsCategory.DATALOADER_PROFILING, self.step + 1, metrics_name=metrics_name
         )
+
+    @classmethod
+    def register_from_json(cls, module, loss=None, json_file_path=None):
+        try:
+            hook = cls.create_from_json_file(json_file_path)
+            hook.register_module(module)
+            if loss:
+                hook.register_loss(loss)
+        except:
+            msg = "Debugger creation failed"
+            warnings.warn(msg, UserWarning, stacklevel=2)
+            logger.warning(msg)
