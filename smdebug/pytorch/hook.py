@@ -18,6 +18,7 @@ from smdebug.core.utils import (
     check_smdataparallel_env,
     error_handling_agent,
     make_numpy_array,
+    check_sm_training_env,
 )
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
@@ -660,13 +661,15 @@ class Hook(CallbackHook):
         )
 
     @classmethod
-    def register_from_json(cls, module, loss=None, json_file_path=None):
+    def register_hook(cls, module, loss=None):
         try:
-            hook = cls.create_from_json_file(json_file_path)
-            hook.register_module(module)
-            if loss:
-                hook.register_loss(loss)
+            hook = cls.create_from_json_file()
         except:
-            msg = "Debugger creation failed"
+            msg = "SageMaker Debugger Disabled, Configuration File Note Found."
             warnings.warn(msg, UserWarning, stacklevel=2)
-            logger.warning(msg)
+            logging.getLogger(__name__).warning(msg)
+            return
+        hook.register_module(module)
+        if loss:
+            hook.register_loss(loss)
+        return

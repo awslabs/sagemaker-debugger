@@ -467,6 +467,14 @@ def get_node_id():
     node_id = f"{rank}-{node_id}" if node_id else f"{rank}_{socket.gethostname()}"
     return node_id.replace("_", "-")
 
+def check_sm_training_env():
+    """Check if debugger is running in a SageMaker Training job
+    """
+    from smdebug.core.json_config import get_node_id_from_resource_config  # prevent circular import
+    node_id = get_node_id_from_resource_config()
+    if node_id==None:
+        return False
+    return True
 
 def remove_file_if_exists(file_path):
     if os.path.exists(file_path):
