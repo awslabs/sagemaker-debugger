@@ -65,6 +65,10 @@ class SystemProfilerEventParser:
                 while event_line:
                     event_line = j_data.readline()
                     lineNumTotal += 1
+            if lineNum == lineNumTotal:
+                #skip the last json line if it is corrupted
+                self.logger.debug(f"Skipping the last line of system metric file {eventfile} as it is corrupted.")
+                return
             errStr = 'line No. ' + str(lineNum) + ' in line No.1 to No.' + str(lineNumTotal) + ' lines, has corrupted json format.  '
             cur_dir = os.path.dirname(eventfile)
             cur_dir_base = os.path.basename(cur_dir)
