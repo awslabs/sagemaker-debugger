@@ -31,7 +31,7 @@ DOCLINES = (__doc__ or "").split("\n")
 FRAMEWORKS = ["tensorflow", "pytorch", "mxnet", "xgboost"]
 TESTS_PACKAGES = ["pytest", "torchvision", "pandas"]
 INSTALL_REQUIRES = [
-    "protobuf>=3.6.0",
+    "protobuf==3.20.1",
     "numpy>=1.16.0",
     "packaging",
     "boto3>=1.10.32",
