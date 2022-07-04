@@ -60,7 +60,7 @@ class SystemMetricsReader(MetricsReaderBase):
         available timestamp
         """
 
-        if self._startAfter_prefix is not "":
+        if self._startAfter_prefix != "":
             if end_time_microseconds >= get_utctimestamp_us_since_epoch_from_system_profiler_file(
                 self._startAfter_prefix
             ):
