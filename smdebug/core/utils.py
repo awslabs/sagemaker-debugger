@@ -67,6 +67,8 @@ except (ImportError, ModuleNotFoundError):
 
 try:
     import horovod.torch as hvd
+    if not hvd._MPI_LIB_AVAILABLE:
+        raise ImportError("MPI lib is missing. Reinstall Horovod with HOROVOD_WITH_PYTORCH=1 to debug the build error.")
 
     # This redundant import is necessary because horovod does not raise an ImportError if the library is not present
     import torch  # noqa
