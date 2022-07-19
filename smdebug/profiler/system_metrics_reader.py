@@ -197,17 +197,19 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
     We'll start with pandas owing to fillna, 
     """
     separator = '#'
+    fill_val = 101
 
     def __init__(self, s3_trial_path, use_in_memory_cache, 
                  col_names, col_dict,
                  np_store, store_chunk_size, store_time_file_prefix,
-                 n_nodes, frequency, n_process=None):
+                 group_size, n_nodes, frequency, n_process=None):
         super().__init__(s3_trial_path, use_in_memory_cache)
         self.col_names = col_names #list of names of indicators
         self.col_dict = col_dict #mapping from name to position. Possibly will decide not needed
         self.np_store = np_store
         self.np_chunk_size = store_chunk_size
         self.tprefix = store_time_file_prefix
+        self.group_size = group_size
         self.n_nodes = n_nodes
         self.frequency = frequency #one out of  100, 200, 500, 1000, 5000, 60000. Can be inferred, not worth it
         self.n_process = n_process #have a say on the S3 reading processes, may want to enforce
@@ -371,12 +373,14 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
         self.logger.info("S3NumpyReader requesting {}, {}".format(start_time, end_time))
         n_nodes = self.n_nodes
+        group_size = self.group_size
         freq_delta = self.frequency*1000
+        freq_delta_group = freq_delta*group_size
         print ("Frequency {}".format(self.frequency))
 
-        # We may have to pass in microsecond timestamps if they are not 
-        assert start_time == (start_time//freq_delta)*freq_delta
-        assert end_time == (end_time//freq_delta)*freq_delta
+        # The time interval must arrive in proper multiplicity
+        assert start_time == (start_time//freq_delta_group)*freq_delta_group
+        assert end_time == (end_time//freq_delta_group)*freq_delta_group
 
         event_files = self._get_event_files_in_the_range(start_time, end_time)
 
@@ -415,7 +419,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         num_cols = len(self.col_names)
         np_chunk_size = self.np_chunk_size
         self.logger.info("NumpyS3Reader: untrimmed DF shape ({},{})".format(num_rows,len(self.col_names))) 
-        pd_df = pd.DataFrame(index=np.arange(num_rows), columns=self.col_names)
         np_arr = np.full((num_rows, num_cols), np.nan)
 
         min_row = num_rows
@@ -480,10 +483,22 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             max_time = max(max_time, loc_max_time)
             jagged_metadata[node_id] = jagged_loc
 
+        """
+        Adjust min_row and max_row to multiples of group_size,
+        similar for times
+        """
+        print ("num_rows {}, min_row {}, max_row {}, group_size {}".format(num_rows, min_row, max_row, group_size))
+        min_row = (min_row//group_size)*group_size
+        max_row = ((max_row)//group_size)*group_size + (group_size-1)
+        min_time = (min_time//freq_delta_group)*freq_delta_group
+        max_time = min_time + ((max_row-min_row)//group_size)*freq_delta_group
+        print ("num_rows {}, min_row {}, max_row {}, group_size {}".format(num_rows, min_row, max_row, group_size))
+        assert max_row < num_rows
+
         np_arrs = []
 
         # Could multiprocess the backfill as well. Keep for now
-        post_process = True
+        post_process = True # TODO take out, as we always post proces 
         for i in range (0, n_nodes):
             shm = shared_memory.SharedMemory(name=shared_mem_ids[i])
             arr_from_sh = np.ndarray(num_rows*num_cols,
@@ -491,7 +506,8 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             np_arr = arr_from_sh.reshape((num_rows, num_cols))
 
             np_arr = np_arr[min_row:max_row+1,:]
-            assert (max_time+freq_delta-min_time)//freq_delta == np_arr.shape[0]
+            assert (np_arr.shape[0]//group_size)*group_size == np_arr.shape[0]
+            #assert (max_time+freq_delta_group-min_time)//freq_delta_group == np_arr.shape[0]
 
             #post process (fillna/etc) Move out to smdebug_kernel perhaps
             if post_process:
@@ -501,9 +517,19 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 temp_df = pd.DataFrame(np_arr)
                 temp_df.fillna(method='ffill', axis=0, inplace=True)
                 temp_df.fillna(method='bfill', axis=0, inplace=True)
-                fill_val = 0
+                #fill_val = 0
+                fill_val = S3NumpySystemMetricsReader.fill_val
                 temp_df.fillna(fill_val, axis=0, inplace=True)
-                np_arr = temp_df.values.astype(np.uint8)
+                np_arr = temp_df.values
+
+                n_binned_rows = np_arr.shape[0]//group_size
+                binned_arr = np.full((n_binned_rows, num_cols), np.nan)
+
+                for j in range(0, n_binned_rows):
+                    binned_arr[j, :] =\
+                       np_arr[j*group_size:(j+1)*group_size, :].mean(axis=0)
+
+                np_arr = binned_arr.astype(np.uint8)
                 en_loc = time.perf_counter_ns()
                 self.logger.info("S3NumpyReader: DF Non naning took {} seconds".format((en_loc-st_loc)/nan_per_sec))
 
@@ -517,7 +543,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         n = np_arr.shape[0]
         # reason for returning an array of tuples: 
         # We'll support toggling profiler on and off in the future
-        return np_arrs, [[min_time, max_time+freq_delta]], jagged_metadata
+        return np_arrs, [[min_time, max_time+freq_delta_group]], jagged_metadata
 
     #mono: collects 1 numpy
     def get_events_mono(
@@ -541,13 +567,15 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         end_time = convert_utc_timestamp_to_microseconds(end_time, unit)
     
         self.logger.info("S3NumpyReader requesting {}, {}".format(start_time, end_time))
-        
         n_nodes = self.n_nodes
         freq_delta = self.frequency*1000
-        # We may have to pass in microsecond timestamps if they are not 
-        assert start_time == (start_time//freq_delta)*freq_delta
-        assert end_time == (end_time//freq_delta)*freq_delta
+        freq_delta_group = freq_delta*group_size
+        print ("Frequency {}".format(self.frequency))
 
+        # The time interval must arrive in proper multiplicity
+        assert start_time == (start_time//freq_delta_group)*freq_delta_group
+        assert end_time == (end_time//freq_delta_group)*freq_delta_group
+        
         event_files = self._get_event_files_in_the_range(start_time, end_time)
 
         self.logger.info(f"Getting {len(event_files)} event files")
@@ -579,7 +607,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         num_rows = (end_time-start_time)//(self.frequency*1000)
         num_cols = len(self.col_names)
         self.logger.info("NumpyS3Reader: untrimmed DF shape ({},{})".format(num_rows,len(self.col_names)))
-        pd_df = pd.DataFrame(index=np.arange(num_rows), columns=self.col_names)
         np_arr = np.full((num_rows, len(self.col_names)), np.nan)
 
         np_chunk_size = self.np_chunk_size
@@ -656,6 +683,16 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
             self._parsed_files.add(event_file)
 
+        """
+        Adjust min_row and max_row to multiples of group_size,
+        similar for times
+        """
+        min_row = (min_row//group_size)*group_size
+        max_row = ((max_row)//group_size)*group_size + (group_size-1)
+        min_time = (min_time//freq_delta_group)*freq_delta_group
+        max_time = min_time + ((max_row-min_row)//group_size)*freq_delta_group
+        assert max_row < num_rows
+
         en_loc1 = time.perf_counter_ns()
         self.logger.info("S3NumpyReader: created numpys in {} seconds".format((en_loc1-st_loc1)/nan_per_sec))
 
@@ -719,7 +756,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
         np_arr = np_arr[min_row:max_row+1,:]
 
-        # Post process (fillna/etc) Move out to smdebug_kernel
         post_process = True
         if post_process:
             mask = np.isnan(np_arr)
@@ -729,12 +765,20 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             temp_df = pd.DataFrame(np_arr)
             temp_df.fillna(method='ffill', axis=0, inplace=True)
             temp_df.fillna(method='bfill', axis=0, inplace=True)
-            fill_val = 101 #TODO constant out
+            fill_val = S3NumpySystemMetricsReader.fill_val
             temp_df.fillna(fill_val, axis=0, inplace=True)
             mask = np.isnan(np_arr)
-            #self.logger.info("S3NumpyReader: {} nans out of {}".format(mask.sum(), np_arr.size))
-            np_arr = temp_df.values.astype(np.uint8)
-            #print (np_arr[0:100,:])
+            self.logger.info("S3NumpyReader: {} nans out of {}".format(mask.sum(), np_arr.size))
+
+            np_arr = temp_df.values
+            n_binned_rows = np_arr.shape[0]//group_size
+            binned_arr = np.full((n_binned_rows, num_cols), np.nan)
+
+            for j in range(0, n_binned_rows):
+                binned_arr[j, :] =\
+                   np_arr[j*group_size:(j+1)*group_size, :].mean(axis=0)
+
+            np_arr = binned_arr.astype(np.uint8)
             en_loc = time.perf_counter_ns()
             self.logger.info("S3NumpyReader: DF Non naning took {} seconds".format((en_loc-st_loc)/nan_per_sec))
 
@@ -742,25 +786,13 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         #add freq_delta for consistency
         assert (max_time+freq_delta-min_time)//freq_delta == np_arr.shape[0]
         return [np_arr], [[min_time, max_time+freq_delta]], jagged_metadata
-        #return pd_df.loc[min_row:max_row]
 
-        """
-        event_parsers = self.get_all_event_parsers()
-        for eventParser in event_parsers:
-            result.extend(
-                    eventParser.get_events_within_time_range(
-                        start_time, end_time, TimeUnits.MICROSECONDS, None 
-                    )
-                )
-            if not self._cache_events_in_memory:
-                # clear eventParser events
-                eventParser.clear_events()
-                # cleanup parsed files set to force the reading of files again
-                self._parsed_files = set()
-        """
+    def get_group_size(self):
+        return self.group_size
 
-        return result
-
+    def set_group_size(self, group_size):
+        # TODO: protect setting, we should not be mi-read
+        self.group_size = group_size
 
     def refresh_event_file_list(self):
         list_dir = ListRequest(
