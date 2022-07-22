@@ -166,7 +166,7 @@ class S3SystemMetricsReader(SystemMetricsReader):
         st_loc1 = time.perf_counter_ns()
         event_data_list = S3Handler.get_objects(file_read_requests)
         en_loc1 = time.perf_counter_ns()
-        print("Plain S3 reader retrieved data iN SECONDS {}".format((en_loc1-st_loc1)/1000000000))
+        self.logger.info("Plain S3 reader retrieved data in {} seconds".format((en_loc1-st_loc1)/1000000000))
 
         for event_data, event_file in zip(event_data_list, event_files_to_read):
             event_string = event_data.decode("utf-8")
@@ -320,8 +320,9 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 max_t = np_time_chunks[chunk_ind][n_entries-1][col_ind]
 
                 # assering that collection is more or less at freq_delta
-                # TODO: remove the assertion once enough testing was done
-                assert (max_t-min_t)/freq_delta < 1.01*(n_entries-1)
+                #assert (max_t-min_t)/freq_delta < 1.01*(n_entries-1)
+                # TODO: take out, log instead
+                assert (max_t-min_t)/freq_delta < 1.01*n_entries
 
             if max_entries_in_chunk < 2:
                 continue
@@ -376,7 +377,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         group_size = self.group_size
         freq_delta = self.frequency*1000
         freq_delta_group = freq_delta*group_size
-        print ("Frequency {}".format(self.frequency))
 
         # The time interval must arrive in proper multiplicity
         assert start_time == (start_time//freq_delta_group)*freq_delta_group
@@ -537,7 +537,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 shm.close()
                 shm.unlink()
 
-        self.logger.info("S3NumpyReader: returned min/max times: {}/{}".format(min_time, max_time))
+        self.logger.info("S3NumpyReader: returned min/max times: {}/{}".format(min_time, max_time+freq_delta_group))
 
         #add freq_delta for slicing consistency
         n = np_arr.shape[0]
@@ -570,7 +570,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         n_nodes = self.n_nodes
         freq_delta = self.frequency*1000
         freq_delta_group = freq_delta*group_size
-        print ("Frequency {}".format(self.frequency))
 
         # The time interval must arrive in proper multiplicity
         assert start_time == (start_time//freq_delta_group)*freq_delta_group
@@ -782,10 +781,10 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             en_loc = time.perf_counter_ns()
             self.logger.info("S3NumpyReader: DF Non naning took {} seconds".format((en_loc-st_loc)/nan_per_sec))
 
-        self.logger.info("S3NumpyReader: returned min/max times: {}/{}".format(min_time, max_time))
+        self.logger.info("S3NumpyReader: returned min/max times: {}/{}".format(min_time, max_time+freq_delta_group))
         #add freq_delta for consistency
-        assert (max_time+freq_delta-min_time)//freq_delta == np_arr.shape[0]
-        return [np_arr], [[min_time, max_time+freq_delta]], jagged_metadata
+        #assert (max_time+freq_delta-min_time)//freq_delta == np_arr.shape[0]
+        return [np_arr], [[min_time, max_time+freq_delta_group]], jagged_metadata
 
     def get_group_size(self):
         return self.group_size
