@@ -512,7 +512,7 @@ class BaseHook:
             return []
         return self._get_main_writer()
 
-    def _maybe_get_tb_writer(self) -> Optional[FileWriter]:
+    def _maybe_get_tb_writer(self, subfolder=None) -> Optional[FileWriter]:
         """ Returns a FileWriter object if `hook.tensorboard_dir` has been specified, else None.
 
         Creates a writer if does not exist.
@@ -520,22 +520,25 @@ class BaseHook:
         if not self.tensorboard_dir:
             return None
 
-        if self.mode in self.tb_writers:
-            assert self.tb_writers[self.mode] is not None
+        if subfolder == None:
+            subfolder = self.mode
+
+        if subfolder in self.tb_writers:
+            assert self.tb_writers[subfolder] is not None
             # would be there if set_mode was called
-            return self.tb_writers[self.mode]
+            return self.tb_writers[subfolder]
         else:
             # s = self.step
             # if s < 0: s = 0
-            self.tb_writers[self.mode] = FileWriter(
+            self.tb_writers[subfolder] = FileWriter(
                 trial_dir=self.tensorboard_dir,
                 step=self.step,
                 worker=get_tb_worker(),
                 write_checksum=True,
                 wtype="tensorboard",
-                mode=self.mode,
+                mode=subfolder,
             )
-            return self.tb_writers[self.mode]
+            return self.tb_writers[subfolder]
 
     def _close_tb_writer(self):
         if self.dry_run:
@@ -663,13 +666,24 @@ class BaseHook:
     def _get_reduction_tensor_name(self, tensor_name, reduction_name, abs):
         return get_reduction_tensor_name(tensor_name, reduction_name, abs, remove_colon_index=True)
 
-    def _write_reduction(self, tensor_name, tensor_value, reduction_name, abs, tensor_ref=None):
+    def _write_reduction(
+        self, tensor_name, tensor_value, reduction_name, abs, tensor_ref=None, collection_name=""
+    ):
         reduction_tensor_name = self._get_reduction_tensor_name(tensor_name, reduction_name, abs)
         try:
             tensor_data = self._get_reduction_of_data(
                 reduction_name, tensor_value, tensor_name, abs
             )
             self._write_raw_tensor_simple(reduction_tensor_name, tensor_data, tensor_ref=tensor_ref)
+            if abs:
+                reduction_name = "abs_" + reduction_name
+            tb_writer = self._maybe_get_tb_writer(subfolder=reduction_name)
+            if tb_writer:
+                reduction_tensor_name = (
+                    collection_name + "/reductions/" + tensor_name + "/" + self.worker
+                )
+                scalar = self._make_numpy_array(tensor_data)
+                tb_writer.write_scalar_summary(reduction_tensor_name, scalar, self.step)
         except ValueError as e:
             self.logger.warning(
                 f"Could not compute reduction {reduction_name} of {tensor_name} due to {e}"
@@ -685,14 +699,24 @@ class BaseHook:
                 for reduction in reduction_list:
                     if (reduction, False) not in reductions_saved:
                         self._write_reduction(
-                            tensor_name, tensor_value, reduction, abs=False, tensor_ref=tensor_ref
+                            tensor_name,
+                            tensor_value,
+                            reduction,
+                            abs=False,
+                            tensor_ref=tensor_ref,
+                            collection_name=s_col.name,
                         )
                         reductions_saved.add((reduction, False))
             for reduction_list in (reduction_config.abs_reductions, reduction_config.abs_norms):
                 for reduction in reduction_list:
                     if (reduction, True) not in reductions_saved:
                         self._write_reduction(
-                            tensor_name, tensor_value, reduction, abs=True, tensor_ref=tensor_ref
+                            tensor_name,
+                            tensor_value,
+                            reduction,
+                            abs=True,
+                            tensor_ref=tensor_ref,
+                            collection_name=s_col.name,
                         )
                         reductions_saved.add((reduction, True))
 

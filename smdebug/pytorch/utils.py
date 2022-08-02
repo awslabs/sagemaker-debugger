@@ -21,14 +21,25 @@ def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
         return get_numpy_reduction(reduction_name, tensor_data, abs)
     if abs:
         tensor_data = torch.abs(tensor_data)
-
+    if reduction_name.startswith("quantile") and hasattr(torch, "quantile"):
+        f = getattr(torch, "quantile")
+        value = float(reduction_name.replace("quantile", "")[1]) / 100
+        op = f(tensor_data.float(), value)
+        return op
     if reduction_name in ALLOWED_REDUCTIONS:
         if reduction_name == "variance":
             reduction_name = "var"
-        assert hasattr(torch.Tensor, reduction_name)
-        f = getattr(torch.Tensor, reduction_name)
-        op = f(tensor_data)
-        return op
+        if hasattr(torch.Tensor, reduction_name):
+            f = getattr(torch.Tensor, reduction_name)
+            op = f(tensor_data.float())
+            if reduction_name == "isnan" or reduction_name == "isinf":
+                op = torch.sum(op)
+            return op
+        if hasattr(torch, reduction_name):
+            f = getattr(torch, reduction_name)
+            op = f(tensor_data)
+            op = torch.sum(op)
+            return op
     elif reduction_name in ALLOWED_NORMS:
         if reduction_name in ["l1", "l2"]:
             ord = int(reduction_name[1])
@@ -36,7 +47,7 @@ def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
             raise RuntimeError(
                 "Invalid normalization operation {0} for torch.Tensor".format(reduction_name)
             )
-        op = torch.norm(tensor_data, p=ord)
+        op = torch.norm(tensor_data.float(), p=ord)
         return op
     elif hasattr(torch, reduction_name):
         f = getattr(torch, reduction_name)

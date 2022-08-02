@@ -295,10 +295,11 @@ def test_save_all(out_dir):
 
 @pytest.mark.slow  # 0:03 to run
 def test_base_reductions(out_dir):
+    reductions = ["min", "max", "mean", "std", "variance", "sum", "prod"]
     train_model(
         out_dir,
         include_collections=[CollectionKeys.WEIGHTS, CollectionKeys.METRICS, CollectionKeys.LOSSES],
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=reductions),
         steps=["train"],
     )
     tr = create_trial_fast_refresh(out_dir)
@@ -308,7 +309,7 @@ def test_base_reductions(out_dir):
         assert False
     except TensorUnavailableForStep:
         assert tr.tensor(weight_name).reduction_value(0, "l1") is not None
-        assert len(tr.tensor(weight_name).reduction_values(0)) == len(ALLOWED_REDUCTIONS) + len(
+        assert len(tr.tensor(weight_name).reduction_values(0)) == len(reductions) + len(
             ALLOWED_NORMS
         )
 

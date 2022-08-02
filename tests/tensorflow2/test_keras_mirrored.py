@@ -20,7 +20,7 @@ import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
 from smdebug.core.collection import CollectionKeys
 from smdebug.core.modes import ModeKeys
-from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.core.reduction_config import ALLOWED_NORMS
 from smdebug.exceptions import TensorUnavailable, TensorUnavailableForStep
 from smdebug.tensorflow import ReductionConfig, SaveConfig
 from smdebug.tensorflow.keras import KerasHook
@@ -325,7 +325,9 @@ def test_base_reductions(out_dir, tf_eager_mode):
             CollectionKeys.METRICS,
             CollectionKeys.LOSSES,
         ],
-        reduction_config=ReductionConfig(norms=ALLOWED_NORMS, reductions=ALLOWED_REDUCTIONS),
+        reduction_config=ReductionConfig(
+            norms=ALLOWED_NORMS, reductions=["min", "max", "mean", "std", "variance", "sum", "prod"]
+        ),
         steps=["train"],
         eager=tf_eager_mode,
     )

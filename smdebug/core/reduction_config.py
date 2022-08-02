@@ -3,13 +3,25 @@ import json
 from typing import Any, Dict
 
 # First Party
+from smdebug.analysis.utils import parse_bool
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import split
 
 logger = get_logger()
 
 
-ALLOWED_REDUCTIONS = ["min", "max", "mean", "std", "variance", "sum", "prod"]
+ALLOWED_REDUCTIONS = [
+    "min",
+    "max",
+    "mean",
+    "std",
+    "variance",
+    "sum",
+    "prod",
+    "isnan",
+    "isinf",
+    "quantile",
+]
 ALLOWED_NORMS = ["l1", "l2"]
 REDUCTION_CONFIG_VERSION_NUM = "v0"
 ALLOWED_PARAMS = [
@@ -66,7 +78,7 @@ class ReductionConfig:
         self.abs_reductions = abs_reductions if abs_reductions is not None else []
         self.norms = norms if norms is not None else []
         self.abs_norms = abs_norms if abs_norms is not None else []
-        self.save_raw_tensor = save_raw_tensor
+        self.save_raw_tensor = parse_bool(save_raw_tensor, True)
         self.save_shape = save_shape
         ## DO NOT REMOVE, if you add anything here, please make sure that _check & from_json is updated accordingly
         self._check()
@@ -77,11 +89,20 @@ class ReductionConfig:
             raise ValueError(
                 "allowed params for reduction config can only be one of " + ",".join(ALLOWED_PARAMS)
             )
-
-        if any([x not in ALLOWED_REDUCTIONS for x in self.reductions]):
+        for index, reduction_allowed in enumerate(
+            [x in ALLOWED_REDUCTIONS for x in self.reductions]
+        ):
+            if reduction_allowed or self.reductions[index].startswith("quantile"):
+                continue
             raise ValueError("reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
-        if any([x not in ALLOWED_REDUCTIONS for x in self.abs_reductions]):
+
+        for index, reduction_allowed in enumerate(
+            [x in ALLOWED_REDUCTIONS for x in self.abs_reductions]
+        ):
+            if reduction_allowed or self.abs_reductions[index].startswith("quantile"):
+                continue
             raise ValueError("abs_reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
+
         if any([x not in ALLOWED_NORMS for x in self.norms]):
             raise ValueError("norms can only be one of " + ",".join(ALLOWED_NORMS))
         if any([x not in ALLOWED_NORMS for x in self.abs_norms]):
