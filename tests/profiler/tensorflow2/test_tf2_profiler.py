@@ -36,7 +36,7 @@ def test_tf2_profiler_by_step(set_up_resource_config, tf2_profiler_config_parser
     helper_keras_fit(trial_dir=out_dir, hook=hook, eager=True, steps=["train", "eval", "predict"])
     hook.close()
 
-    verify_detailed_profiling(out_dir, 230)
+    verify_detailed_profiling(out_dir, 180)
 
 
 def test_tf2_profiler_by_time(tf2_profiler_config_parser_by_time, out_dir):

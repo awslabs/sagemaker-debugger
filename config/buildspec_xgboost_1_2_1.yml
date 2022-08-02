@@ -28,14 +28,15 @@ phases:
   install:
     commands:
         # The XGBoost container requires an update PUB_KEY to run the apt-get update
-        - if [ "$run_pytest_xgboost" = "enable" ]; then su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D; fi
-        - su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D && apt-get update
+        #- if [ "$run_pytest_xgboost" = "enable" ]; then su && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D; fi
+        - su && apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+        - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80  --recv 684BA42D && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' && apt-get update
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
         - pip install awscli==1.19.5
         - . config/change_branch.sh #EXPORTS BRANCHES FOR OTHER REPOS AND CURRENT REPO.
         - pip install --upgrade pip==19.3.1
         - pip install -q pytest==6.1.2 pytest-cov==2.10.1 wheel==0.35.1 pyYaml==5.3.1 pytest-html==3.0.0 sagemaker==2.16.3 pre-commit==2.6.0 flaky==3.7.0
-        - pip install -q matplotlib==3.3.1 && pip3 install seaborn==0.10.1 nbconvert==5.6.1 papermill==2.1.2 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3
+        - pip install -q matplotlib==3.3.1 && pip3 install seaborn==0.10.1 nbconvert==6.4.4 papermill==2.3.4 beautifulsoup4==4.8.2 jupyter==1.0.0 scipy==1.5.2 scikit-learn==0.23.2 bokeh==2.2.3
         - pip uninstall -y boto3 && pip uninstall -y aiobotocore && pip uninstall -y botocore
         - pip uninstall -y typing # see: https://t.corp.amazon.com/P43975146/overview
 

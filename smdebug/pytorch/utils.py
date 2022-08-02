@@ -13,6 +13,8 @@ from smdebug.core.reductions import get_numpy_reduction
 # Cached Pytorch Version
 PT_VERSION = version.parse(torch.__version__)
 
+SUPPORTED_PT_VERSION_THRESHOLD = version.parse("1.13.0")
+
 
 def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
     if isinstance(tensor_data, np.ndarray):
@@ -100,4 +102,4 @@ def is_pt_1_9():
 
 
 def is_current_version_supported(pytorch_version=torch.__version__):
-    return version.parse("1.5.0") <= version.parse(pytorch_version) < version.parse("1.10.0")
+    return version.parse("1.5.0") <= version.parse(pytorch_version) < SUPPORTED_PT_VERSION_THRESHOLD

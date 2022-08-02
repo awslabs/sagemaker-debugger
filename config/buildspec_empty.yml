@@ -1,0 +1,39 @@
+# Build Spec for AWS CodeBuild CI which will run for every PR.
+
+
+# Replace buildspec.yml for mxnet with empty build. Reenable buildspec.yml upon need.
+#
+version: 0.1
+env:
+  variables:
+    ## below enviornment variables are overridden in respective code build.
+    # for example for pytorch build run_pytest_pytorch and run_integration_pytest_pytorch will be enabled
+    run_pytest_pytorch: "disable"
+    run_pytest_mxnet: "disable"
+    run_pytest_tensorflow: "disable"
+    run_pytest_tensorflow2: "disable"
+    run_pytest_xgboost: "disable"
+    run_pytest_profiler: "enable"
+    run_integration_pytest_pytorch: "disable"
+    run_integration_pytest_mxnet: "disable"
+    run_integration_pytest_tensorflow: "disable"
+    run_integration_pytest_tensorflow2: "disable"
+    run_integration_pytest_xgboost: "disable"
+    # below needs to be enabled
+    zero_code_change_test: "enable"
+    # set code coverage flag
+    code_coverage_smdebug: "true"
+    build_type: "pr" # must be one of pr, nightly or release
+
+phases:
+  install:
+    commands:
+
+  pre_build:
+    commands:
+
+  build:
+    commands:
+
+  post_build:
+    commands:

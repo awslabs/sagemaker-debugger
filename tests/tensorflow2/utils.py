@@ -38,6 +38,11 @@ def is_tf_version_greater_than_2_4_x():
     return version.parse("2.4.0") <= TF_VERSION
 
 
+def is_tf_version_gte(v):
+    """TF version greater than or equal to..."""
+    return TF_VERSION >= version.parse(v)
+
+
 class ModelType(Enum):
     SEQUENTIAL = 0
     FUNCTIONAL = 1

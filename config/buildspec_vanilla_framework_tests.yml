@@ -12,6 +12,8 @@ env:
     run_integration_pytest_tensorflow: "enable"
     run_integration_pytest_xgboost: "enable"
     zero_code_change_test: "disable"
+    build_type: "pr" # must be one of pr, nightly or release
+
 phases:
   install:
     commands:
@@ -19,14 +21,14 @@ phases:
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0
         - sudo apt-get install unzip -qq -o=Dpkg::Use-Pty=0
         - pip install --upgrade pip==20.3.3
-        - pip install -q -U pytest pytest-cov wheel pyYaml pytest-html keras==2.3.1 mxnet==1.6.0 torch==1.8.0 xgboost==1.3.3 pre-commit tensorflow_datasets==4.0.1 torchvision
-        - cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh;
+        - pip install -q -U pytest pytest-cov wheel pyYaml pytest-html keras==2.3.1 mxnet==1.6.0 torch==1.8.0 xgboost==1.3.3 pre-commit tensorflow_datasets==4.0.1 torchvision ipython_genutils==0.2.0 nbconvert==6.4.4 papermill==2.3.4 simplejson==3.17.2
+        - if [ "$stable_release" ]; then echo "Installing from S3" && cd $CODEBUILD_SRC_DIR && chmod +x config/install_smdebug.sh && chmod +x config/check_smdebug_install.sh && ./config/install_smdebug.sh; else echo "Installing NOT from S3" && cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal && cd $CODEBUILD_SRC_DIR_RULES && python setup.py bdist_wheel --universal && cd $CODEBUILD_SRC_DIR  && pip install --force-reinstall dist/*.whl && cd ..; fi
         - pip install --force-reinstall numpy==1.18.5
 
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh
-      - cd $CODEBUILD_SRC_DIR_RULES && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh
+      - if [ "$build_type" != "pr" ]; then cd $CODEBUILD_SRC_DIR_RULES && chmod +x config/tests.sh && PYTHONPATH=. ./config/tests.sh; fi
 
   post_build:
     commands:

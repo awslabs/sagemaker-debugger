@@ -28,4 +28,4 @@ def verify_detailed_profiling(out_dir, expected_event_count):
 
     # The number of events is varying by a small number on
     # consecutive runs. Hence, the approximation in the below asserts.
-    assert num_trace_events >= expected_event_count
+    assert num_trace_events >= expected_event_count, f"{num_trace_events}"

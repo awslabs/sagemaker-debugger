@@ -26,6 +26,8 @@ phases:
   install:
     commands:
         -  . config/change_branch.sh
+        # The following fails on some CPU instances but succeeds on GPU, where we need it
+        - su && (apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub || true)
         - su && apt-get update
         - apt-get install sudo -qq -o=Dpkg::Use-Pty=0 # silence output: https://askubuntu.com/a/668859/724247
         - sudo apt-get update -qq -o=Dpkg::Use-Pty=0

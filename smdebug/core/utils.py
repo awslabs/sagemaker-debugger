@@ -653,5 +653,8 @@ def is_framework_version_supported(framework_type):
         from smdebug.tensorflow.utils import is_current_version_supported
 
         return is_current_version_supported()
-    else:  # If framework is mxnet and XGBoost we will currently return True for all versions
+    # If framework is mxnet and XGBoost we will currently return True for all versions
+    elif framework_type in [FRAMEWORK.XGBOOST, FRAMEWORK.MXNET]:
         return True
+
+    raise Exception(f"No such framework type {framework_type}")

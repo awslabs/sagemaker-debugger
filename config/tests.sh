@@ -16,8 +16,8 @@ check_logs() {
 
 run_for_framework() {
     if [ "$zero_code_change_test" = "enable" ] ; then
-      # ignoring some test becuase they require multiple frmaeworks to be installed, these tests need to be broken down
       python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html --ignore=tests/core/test_paths.py --ignore=tests/core/test_index_utils.py --ignore=tests/core/test_collections.py tests/$1
+
       if [ "$1" = "mxnet" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_mxnet_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_mxnet_gluon_integration.py
@@ -27,16 +27,16 @@ run_for_framework() {
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_multiprocessing.py
-        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_training_with_no_grad_updates.py
+        # python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_training_with_no_grad_updates.py DISABLED TILL CUDA DRIVERS CATCH UP
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_pytorch_disengage_smdebug.py
       elif [ "$1" = "tensorflow" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow_error_handling_agent.py
       elif [ "$1" = "tensorflow2" ] ; then
-        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_error_handling_agent.py
+        #python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_error_handling_agent.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_gradtape_integration.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_integration.py
-        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_bert.py
+        #python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow2_bert.py
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append}  tests/zero_code_change/test_tensorflow_disengage_smdebug.py
 
       fi
@@ -81,7 +81,7 @@ if [ "$run_pytest_tensorflow" = "enable" ] ; then
 fi
 
 if [ "$run_pytest_tensorflow2" = "enable" ] ; then
-    pip install tensorflow_datasets==4.0.1
+    #pip install tensorflow_datasets==4.0.1
     run_for_framework tensorflow2
     run_profiler_test tensorflow2
 fi
