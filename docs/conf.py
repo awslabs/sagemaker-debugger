@@ -93,7 +93,7 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-html_css_files = ["css/custom.css"]
+html_css_files = ["css/custom.css", 'pagination.css', 'search_accessories.css']
 
 suppress_warnings = ["autosectionlabel.*"]
 
@@ -102,4 +102,5 @@ html_js_files = [
     "https://a0.awsstatic.com/s_code/js/3.0/awshome_s_code.js",
     "aws-ux-shortbread/index.js",
     "aws-ux-shortbread/init.js",
+    "kendrasearchtools.js",
 ]
