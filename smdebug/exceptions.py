@@ -1,8 +1,10 @@
 # First Party
 from smdebug.core.modes import ModeKeys as modes
 
+
 class SMDebugError(Exception):
     pass
+
 
 class SMDebugCustomerError(SMDebugError):
     pass
