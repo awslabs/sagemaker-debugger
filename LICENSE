@@ -191,3 +191,4 @@
     2-clause BSD license
     =======================================================================================
     docs/_static/kendrasearchtools.js
+    docs/_templates/search.html
