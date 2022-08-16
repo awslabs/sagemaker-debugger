@@ -2,6 +2,14 @@
 from smdebug.core.modes import ModeKeys as modes
 
 
+class SMDebugError(Exception):
+    pass
+
+
+class SMDebugCustomerError(SMDebugError):
+    pass
+
+
 class InvalidCollectionConfiguration(Exception):
     def __init__(self, c_name):
         self.c_name = c_name
