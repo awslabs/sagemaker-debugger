@@ -1,6 +1,9 @@
 # Standard Library
 import os
 
+# First Party
+from smdebug.exceptions import SMDebugError
+
 # Local
 from .access_layer.utils import check_dir_exists
 from .logger import get_logger
@@ -18,7 +21,13 @@ def verify_and_get_out_dir(out_dir):
     # we check and raise error if directory already exists because
     # we don't want to merge tensors from current job with
     # tensors from previous job
-    check_dir_exists(out_dir)
+    # TODO: ljihyeon@ unit test
+    if check_dir_exists(out_dir):
+        raise SMDebugError(
+            "The path:{} already exists on s3. "
+            "Please provide a directory path that does "
+            "not already exist.".format(path)
+        )
     return out_dir
 
 
