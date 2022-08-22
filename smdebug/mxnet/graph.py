@@ -10,6 +10,7 @@ from smdebug.core.tfevent.proto.attr_value_pb2 import AttrValue
 from smdebug.core.tfevent.proto.graph_pb2 import GraphDef
 from smdebug.core.tfevent.proto.node_def_pb2 import NodeDef
 from smdebug.core.tfevent.proto.versions_pb2 import VersionDef
+from smdebug.exceptions import SMDebugError
 
 
 def _scoped_name(scope_name, node_name):
@@ -20,7 +21,7 @@ def _get_nodes_from_symbol(sym):
     """Given a symbol and shapes, return a list of `NodeDef`s for visualizing the
     the graph in TensorBoard."""
     if not isinstance(sym, Symbol):
-        raise TypeError(
+        raise SMDebugError(
             "sym must be an `mxnet.symbol.Symbol`," " received type {}".format(str(type(sym)))
         )
     conf = json.loads(sym.tojson())
@@ -90,13 +91,13 @@ def _net2pb(net):
     if isinstance(net, HybridBlock):
         # TODO(junwu): may need a more approprite way to get symbol from a HybridBlock
         if not net._cached_graph:
-            raise RuntimeError(
+            raise SMDebugError(
                 "Please first call net.hybridize() and then run forward with "
                 "this net at least once before calling add_graph()."
             )
         net = net._cached_graph[1]
     elif not isinstance(net, Symbol):
-        raise TypeError(
+        raise SMDebugError(
             "only accepts mxnet.gluon.HybridBlock and mxnet.symbol.Symbol "
             "as input network, received type {}".format(str(type(net)))
         )
