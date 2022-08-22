@@ -15,6 +15,7 @@ from tensorflow.python.util import nest
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import FRAMEWORK, error_handling_agent, match_inc
+from smdebug.exceptions import SMDebugError
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory
 from smdebug.profiler.profiler_constants import (
@@ -210,7 +211,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         # Ref: https://www.tensorflow.org/api_docs/python/tf/Tensor#experimental_ref
                         tensor = tensor.experimental_ref()
                     else:
-                        raise Exception(
+                        raise SMDebugError(
                             "Neither ref nor experimental_ref API present. Check TF version"
                         )
                 if not current_coll.has_tensor(tensor):
@@ -305,7 +306,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                             )
                         )
                     else:
-                        raise NotImplementedError
+                        raise SMDebugError("Collection for this tensor type not implemented")
                 else:
                     # for second collection onwards
                     for t in tensor_refs:
@@ -667,7 +668,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
             elif mode == ModeKeys.PREDICT:
                 x = self.model.predict_function
             else:
-                raise NotImplementedError
+                raise SMDebugError(f"SMDebug not supported for {mode}")
         else:
             x = self._get_distributed_model(mode)._distributed_function
         return x

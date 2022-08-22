@@ -22,6 +22,7 @@ from smdebug.core.utils import (
     serialize_tf_device,
 )
 from smdebug.core.writer import FileWriter
+from smdebug.exceptions import SMDebugError
 from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 
 # Local
@@ -214,7 +215,7 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return DEFAULT_WORKER_NAME
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
-            raise NotImplementedError
+            raise SMDebugError("TFDistrubutionStrategy is unsupported")
 
     def _get_default_collections(self):
         return DEFAULT_TF_COLLECTIONS
@@ -314,7 +315,7 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.PARAMETER_SERVER:
             self.chief_worker = get_chief_worker_from_tf_config(self.tf_config_json)
         elif self.distribution_strategy == TFDistributionStrategy.UNSUPPORTED:
-            raise NotImplementedError
+            raise SMDebugError("TFDistrubutionStrategy is unsupported")
 
     def _get_writers(self, tensor_name, tensor_ref) -> List[FileWriter]:
         """
@@ -356,7 +357,7 @@ class TensorflowBaseHook(BaseHook):
         elif self.distribution_strategy == TFDistributionStrategy.NONE:
             return self._get_main_writer()
         else:
-            raise NotImplementedError
+            raise SMDebugError("TFDistrubutionStrategy is unsupported")
         # when self.writer is None, returns empty list
         return []
 
@@ -396,7 +397,7 @@ class TensorflowBaseHook(BaseHook):
             if self.writer is None or only_initialize_if_missing is False:
                 self.writer = FileWriter(trial_dir=self.out_dir, step=self.step, worker=self.worker)
         else:
-            raise NotImplementedError
+            raise SMDebugError("TFDistrubutionStrategy is unsupported")
 
     def _close_writers(self) -> None:
         if self.dry_run:

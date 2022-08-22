@@ -9,6 +9,7 @@ from packaging import version
 # First Party
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.core.reductions import get_numpy_reduction
+from smdebug.exceptions import SMDebugError
 
 # Cached Pytorch Version
 PT_VERSION = version.parse(torch.__version__)
@@ -33,7 +34,7 @@ def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
         if reduction_name in ["l1", "l2"]:
             ord = int(reduction_name[1])
         else:
-            raise RuntimeError(
+            raise SMDebugError(
                 "Invalid normalization operation {0} for torch.Tensor".format(reduction_name)
             )
         op = torch.norm(tensor_data, p=ord)
@@ -42,7 +43,7 @@ def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
         f = getattr(torch, reduction_name)
         op = f(tensor_data)
         return op
-    raise RuntimeError("Invalid reduction_name {0}".format(reduction_name))
+    raise SMDebugError("Invalid reduction_name {0}".format(reduction_name))
 
 
 @lru_cache(maxsize=1)
