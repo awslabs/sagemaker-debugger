@@ -11,6 +11,9 @@ import re
 import numpy as np
 import xgboost as xgb
 
+# First Party
+from smdebug.exceptions import SMDebugError
+
 CSV = "csv"
 LIBSVM = "libsvm"
 
@@ -59,7 +62,7 @@ def get_content_type(content_type_cfg_val):
     elif content_type_cfg_val.lower() in ["csv", "text/csv"]:
         return CSV
     else:
-        raise ValueError(_get_invalid_content_type_error_msg(content_type_cfg_val))
+        raise SMDebugError(_get_invalid_content_type_error_msg(content_type_cfg_val))
 
 
 def _is_data_file(file_path, file_name):
@@ -89,7 +92,7 @@ def _get_csv_delimiter(sample_csv_line):
         delimiter = csv.Sniffer().sniff(sample_csv_line).delimiter
         logging.info("Determined delimiter of CSV input is '{}'".format(delimiter))
     except Exception as e:
-        raise RuntimeError(
+        raise SMDebugError(
             "Could not determine delimiter on line {}:\n{}".format(sample_csv_line[:50], e)
         )
     return delimiter
@@ -166,7 +169,7 @@ def _validate_csv_format(file_path):
 
         if _get_num_valid_libsvm_features(line_to_validate) > 0:
             # Throw error if this line can be parsed as LIBSVM formatted line.
-            raise RuntimeError(
+            raise SMDebugError(
                 _get_invalid_csv_error_msg(
                     line_snippet=line_to_validate, file_name=file_path.split("/")[-1]
                 )
@@ -192,7 +195,7 @@ def _validate_libsvm_format(file_path):
                 # Return after first valid LIBSVM line with features
                 return
             elif num_sparse_libsvm_features < 0:
-                raise RuntimeError(
+                raise SMDebugError(
                     _get_invalid_libsvm_error_msg(
                         line_snippet=line_to_validate[:50], file_name=file_path.split("/")[-1]
                     )
@@ -216,7 +219,7 @@ def validate_data_file_path(data_path, content_type):
     parsed_content_type = get_content_type(content_type)
 
     if not os.path.exists(data_path):
-        raise RuntimeError("{} is not a valid path!".format(data_path))
+        raise SMDebugError("{} is not a valid path!".format(data_path))
     else:
 
         if os.path.isfile(data_path):
@@ -272,7 +275,7 @@ def get_csv_dmatrix(files_path, csv_weights):
             )
 
     except Exception as e:
-        raise RuntimeError("Failed to load csv data with exception:\n{}".format(e))
+        raise SMDebugError("Failed to load csv data with exception:\n{}".format(e))
     return dmatrix
 
 
@@ -285,7 +288,7 @@ def get_libsvm_dmatrix(files_path):
     try:
         dmatrix = xgb.DMatrix(files_path)
     except Exception as e:
-        raise RuntimeError("Failed to load libsvm data with exception:\n{}".format(e))
+        raise SMDebugError("Failed to load libsvm data with exception:\n{}".format(e))
 
     return dmatrix
 
@@ -317,7 +320,7 @@ def get_dmatrix(data_path, content_type, csv_weights=0):
             dmatrix = get_libsvm_dmatrix(files_path)
 
         if dmatrix.get_label().size == 0:
-            raise RuntimeError(
+            raise SMDebugError(
                 "Got input data without labels. Please check the input data set. "
                 "If training job is running on multiple instances, please switch "
                 "to using single instance if number of records in the data set "
