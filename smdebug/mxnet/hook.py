@@ -7,6 +7,7 @@ from smdebug.core.collection import DEFAULT_MXNET_COLLECTIONS, CollectionKeys
 from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import DEFAULT_WORKER_NAME
 from smdebug.core.utils import FRAMEWORK, error_handling_agent
+from smdebug.exceptions import SMDebugRuntimeError, SMDebugTypeError
 from smdebug.mxnet.collection import CollectionManager
 from smdebug.mxnet.graph import _net2pb
 from smdebug.mxnet.singleton_utils import set_hook
@@ -122,7 +123,7 @@ class Hook(CallbackHook):
                 tb_writer = self._maybe_get_tb_writer()
                 if tb_writer:
                     tb_writer.write_graph(_net2pb(self.model))
-            except (RuntimeError, TypeError) as e:
+            except (SMDebugRuntimeError, SMDebugTypeError) as e:
                 self.logger.warning(
                     f"Could not export model graph for tensorboard "
                     f"due to the mxnet exception: {e}"

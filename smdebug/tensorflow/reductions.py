@@ -3,6 +3,7 @@ import tensorflow as tf
 
 # First Party
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.exceptions import SMDebugError
 
 
 def get_tensorflow_reduction(reduction_name, tensor, on_absolute_values=False):
@@ -22,6 +23,6 @@ def get_tensorflow_reduction(reduction_name, tensor, on_absolute_values=False):
         else:
             op = tf.norm(tensor, ord=ord)
     else:
-        raise RuntimeError(f"Invalid reduction name {reduction_name}")
+        raise SMDebugError(f"Invalid reduction name {reduction_name}")
 
     return op

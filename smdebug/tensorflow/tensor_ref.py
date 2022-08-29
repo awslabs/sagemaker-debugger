@@ -7,6 +7,7 @@ from tensorflow.python.distribute import values
 
 # First Party
 from smdebug.core.logger import get_logger
+from smdebug.exceptions import SMDebugError
 
 # Local
 from .utils import is_tf_version_2x, supported_tf_variables
@@ -22,9 +23,7 @@ def get_tf_names(arg):
     elif isinstance(arg, values.DistributedValues):
         tf_names = [v.name for v in arg._values]
     else:
-        raise NotImplementedError(
-            f"Smdebug currenty does not support:{arg} which of type:{type(arg)}"
-        )
+        raise SMDebugError(f"Smdebug currenty does not support:{arg} which of type:{type(arg)}")
     return tf_names
 
 

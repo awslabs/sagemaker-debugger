@@ -13,6 +13,7 @@ from tensorflow.python.distribute import values
 # First Party
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import error_handling_agent
+from smdebug.exceptions import SMDebugError
 
 # Cached TF Version
 TF_VERSION = version.parse(tf.__version__)
@@ -175,7 +176,7 @@ def get_original_fetch_ops(fetches):
     elif fetches is None:
         return []
     else:
-        raise RuntimeError("Invalid fetches")
+        raise SMDebugError("Invalid fetches")
 
 
 """"
@@ -288,7 +289,7 @@ def get_chief_worker_from_tf_config(tf_config_json: dict):
     if "chief" in tf_config_json["cluster"]:
         return "chief_0"
     else:
-        raise NotImplementedError
+        raise SMDebugError("Not implemented")
         # todo
 
 

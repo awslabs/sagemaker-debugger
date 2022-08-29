@@ -8,6 +8,7 @@ from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX, get_temp_pa
 from smdebug.core.access_layer.utils import training_has_ended
 from smdebug.core.hook_utils import verify_and_get_out_dir
 from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
+from smdebug.exceptions import SMDebugRuntimeError
 from smdebug.trials import create_trial
 
 # Local
@@ -37,7 +38,7 @@ def test_outdir_non_sagemaker():
         verify_and_get_out_dir(path)
         # should raise exception as dir present
         assert False
-    except RuntimeError as e:
+    except SMDebugRuntimeError as e:
         pass
 
 

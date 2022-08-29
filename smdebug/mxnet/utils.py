@@ -6,6 +6,7 @@ import numpy as np
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
 from smdebug.core.reductions import get_numpy_reduction
 from smdebug.core.utils import make_numpy_array
+from smdebug.exceptions import SMDebugError
 
 
 def get_reduction_of_data(aggregation_name, tensor_data, tensor_name, abs=False):
@@ -30,7 +31,7 @@ def get_reduction_of_data(aggregation_name, tensor_data, tensor_name, abs=False)
             op = mx.ndarray.norm(data=tensor_data, ord=int(reduction_name[1]))
             return op
         else:
-            raise RuntimeError(
+            raise SMDebugError(
                 "Invalid normalization operation {0} for mx.NDArray".format(reduction_name)
             )
     elif hasattr(mx, reduction_name):
@@ -41,4 +42,4 @@ def get_reduction_of_data(aggregation_name, tensor_data, tensor_name, abs=False)
         f = getattr(np, aggregation_name)
         op = f(tensor_data)
         return op
-    raise RuntimeError("Invalid aggregation_name {0} for mx.NDArray".format(aggregation_name))
+    raise SMDebugError("Invalid aggregation_name {0} for mx.NDArray".format(aggregation_name))

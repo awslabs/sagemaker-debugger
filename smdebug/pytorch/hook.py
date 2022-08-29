@@ -17,6 +17,7 @@ from smdebug.core.utils import (
     error_handling_agent,
     make_numpy_array,
 )
+from smdebug.exceptions import SMDebugError
 from smdebug.profiler.hvd_trace_file_rotation import HvdTraceFileRotation
 from smdebug.profiler.profiler_config_parser import MetricsCategory, get_profiler_config_parser
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS
@@ -572,7 +573,7 @@ class Hook(CallbackHook):
         """
         # Typechecking
         if not isinstance(module, torch.nn.Module):
-            raise ValueError(
+            raise SMDebugError(
                 f"Module type {module.__class__.__name__} must be type torch.nn.Module"
             )
         # in case GPU is available but model has been loaded on CPU

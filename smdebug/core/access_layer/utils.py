@@ -34,12 +34,10 @@ def training_has_ended(trial_prefix):
             f"The end of training job file will not be written for jobs running under SageMaker."
         )
         return
-    try:
-        check_dir_exists(trial_prefix)
-        # if path does not exist, then we don't need to write a file
-    except RuntimeError:
-        # dir exists
-        pass
+
+    # Calling to check other S3 configs aren't broken, since it'll raise an exception
+    check_dir_exists(trial_prefix)
+
     file_path = os.path.join(trial_prefix, END_OF_JOB_FILENAME)
     s3, bucket_name, key_name = is_s3(file_path)
     if s3:
@@ -124,11 +122,7 @@ def check_dir_exists(path):
             request = ListRequest(bucket_name, key_name)
             folder = S3Handler.list_prefixes([request])[0]
             if len(folder) > 0 and has_training_ended(folder[-1]):
-                raise RuntimeError(
-                    "The path:{} already exists on s3. "
-                    "Please provide a directory path that does "
-                    "not already exist.".format(path)
-                )
+                return True
         except ClientError as ex:
             if ex.response["Error"]["Code"] == "NoSuchBucket":
                 # then we do not need to raise any error
@@ -137,8 +131,6 @@ def check_dir_exists(path):
                 # do not know the error
                 raise ex
     elif os.path.exists(path) and has_training_ended(path):
-        raise RuntimeError(
-            "The path:{} already exists on local disk. "
-            "Please provide a directory path that does "
-            "not already exist".format(path)
-        )
+        # Not changed to SMDebugError because it's interally caught
+        return True
+    return False
