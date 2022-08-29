@@ -10,6 +10,14 @@ class SMDebugCustomerError(SMDebugError):
     pass
 
 
+class SMDebugTypeError(SMDebugError):
+    pass
+
+
+class SMDebugRuntimeError(SMDebugError):
+    pass
+
+
 class InvalidCollectionConfiguration(Exception):
     def __init__(self, c_name):
         self.c_name = c_name

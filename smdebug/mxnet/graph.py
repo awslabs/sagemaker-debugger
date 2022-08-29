@@ -10,7 +10,7 @@ from smdebug.core.tfevent.proto.attr_value_pb2 import AttrValue
 from smdebug.core.tfevent.proto.graph_pb2 import GraphDef
 from smdebug.core.tfevent.proto.node_def_pb2 import NodeDef
 from smdebug.core.tfevent.proto.versions_pb2 import VersionDef
-from smdebug.exceptions import SMDebugError
+from smdebug.exceptions import SMDebugError, SMDebugRuntimeError, SMDebugTypeError
 
 
 def _scoped_name(scope_name, node_name):
@@ -91,13 +91,13 @@ def _net2pb(net):
     if isinstance(net, HybridBlock):
         # TODO(junwu): may need a more approprite way to get symbol from a HybridBlock
         if not net._cached_graph:
-            raise SMDebugError(
+            raise SMDebugRuntimeError(
                 "Please first call net.hybridize() and then run forward with "
                 "this net at least once before calling add_graph()."
             )
         net = net._cached_graph[1]
     elif not isinstance(net, Symbol):
-        raise SMDebugError(
+        raise SMDebugTypeError(
             "only accepts mxnet.gluon.HybridBlock and mxnet.symbol.Symbol "
             "as input network, received type {}".format(str(type(net)))
         )

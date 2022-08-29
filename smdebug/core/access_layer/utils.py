@@ -35,6 +35,7 @@ def training_has_ended(trial_prefix):
         )
         return
 
+    # Calling to check other S3 configs aren't broken, since it'll raise an exception
     check_dir_exists(trial_prefix)
 
     file_path = os.path.join(trial_prefix, END_OF_JOB_FILENAME)
