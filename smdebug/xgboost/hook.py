@@ -17,6 +17,7 @@ from smdebug.core.save_config import SaveConfig
 from smdebug.core.utils import FRAMEWORK, error_handling_agent, make_numpy_array
 from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.xgboost.singleton_utils import set_hook
+from smdebug.exceptions import SMDebugError
 
 # Local
 from .collection import CollectionManager
@@ -332,7 +333,7 @@ class Hook(CallbackHook):
 
     @staticmethod
     def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
-        raise NotImplementedError("Reductions are not supported by XGBoost hook")
+        raise SMDebugError("Reductions are not supported by XGBoost hook")
 
     @staticmethod
     def _make_numpy_array(tensor_value):
@@ -349,13 +350,13 @@ class Hook(CallbackHook):
         is_tuple = isinstance(data, tuple)
         is_first_item_str = isinstance(data[0], str)
         if not (is_tuple and is_first_item_str):
-            raise ValueError(error_msg)
+            raise SMDebugError(error_msg)
         file_path = os.path.expanduser(data[0])
         if not os.path.isfile(file_path):
-            raise NotImplementedError("Only local files are currently supported for SHAP.")
+            raise SMDebugError("Only local files are currently supported for SHAP.")
         try:
             content_type = get_content_type(data[1])
             validate_data_file_path(file_path, content_type)
             return get_dmatrix(file_path, content_type)
         except Exception:
-            raise ValueError(error_msg)
+            raise SMDebugError(error_msg)
