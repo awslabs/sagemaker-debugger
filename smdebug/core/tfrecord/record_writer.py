@@ -24,6 +24,7 @@ import struct
 from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.utils import is_s3
+from smdebug.exceptions import SMDebugError, SMDebugValueError
 
 # Local
 from ._crc32c import crc32c
@@ -53,7 +54,7 @@ class RecordWriter:
             else:
                 self._writer = TSAccessFile(path, "wb")
         except (OSError, IOError) as err:
-            raise ValueError("failed to open {}: {}".format(path, str(err)))
+            raise SMDebugValueError("failed to open {}: {}".format(path, str(err)))
 
     def __del__(self):
         self.close()
@@ -71,7 +72,8 @@ class RecordWriter:
 
     def flush(self):
         """Flushes the event string to file."""
-        assert self._writer is not None
+        if not self._writer:
+            raise SMDebugError("Writer does not exist")
         self._writer.flush()
 
     def close(self):
