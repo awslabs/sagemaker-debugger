@@ -19,6 +19,7 @@ from botocore.exceptions import (
 # First Party
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import get_region, is_s3
+from smdebug.exceptions import SMDebugError, SMDebugTypeError
 
 logger = get_logger()
 
@@ -78,7 +79,7 @@ class S3Handler:
     @staticmethod
     def list_prefixes(list_requests: list):
         if type(list_requests) != list:
-            raise TypeError("list_requests accepts a list of ListRequest objects.")
+            raise SMDebugTypeError("list_requests accepts a list of ListRequest objects.")
         rval = []
         for lr in list_requests:
             rval.append(S3Handler.list_prefix(lr))
@@ -135,9 +136,9 @@ class S3Handler:
                             f"from  {lr.bucket}/{str(lr.prefix)}: {str(botocore_error)}"
                         )
                     else:
-                        raise botocore_error
+                        raise SMDebugError(botocore_error)
                 else:
-                    raise botocore_error
+                    raise SMDebugError(botocore_error)
             except Exception as e:
                 logger.warning(str(e))
             count += 1
@@ -203,7 +204,7 @@ class S3Handler:
                     not isinstance(botocore_error, ClientError)
                     or botocore_error.response["Error"]["Code"] == "AccessDenied"
                 ):
-                    raise botocore_error
+                    raise SMDebugError(botocore_error)
                 else:
                     S3Handler._log_error(object_request, exception=botocore_error)
             except Exception as e:
@@ -216,7 +217,7 @@ class S3Handler:
     @staticmethod
     def get_objects(object_requests, use_multiprocessing=True):
         if type(object_requests) != list:
-            raise TypeError("get_objects accepts a list of ReadObjectRequest objects")
+            raise SMDebugTypeError("get_objects accepts a list of ReadObjectRequest objects")
         if (
             use_multiprocessing
             and len(object_requests) >= S3Handler.GET_OBJECTS_MULTIPROCESSING_THRESHOLD
@@ -236,11 +237,11 @@ class S3Handler:
     @staticmethod
     def delete_prefix(path=None, delete_request=None):
         if path is not None and delete_request is not None:
-            raise ValueError("Only one of path or delete_request can be passed")
+            raise SMDebugError(ValueError("Only one of path or delete_request can be passed"))
         elif path is not None:
             on_s3, bucket, prefix = is_s3(path)
             if on_s3 is False:
-                raise ValueError("Given path is not an S3 location")
+                raise SMDebugError(ValueError("Given path is not an S3 location"))
             delete_requests = [DeleteRequest(bucket, prefix)]
             S3Handler.delete_prefixes(delete_requests)
         elif delete_request is not None:
