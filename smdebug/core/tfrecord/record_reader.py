@@ -92,7 +92,6 @@ class RecordReader:
         else:
             # no check
             pass
-
         return payload
 
     def flush(self):
