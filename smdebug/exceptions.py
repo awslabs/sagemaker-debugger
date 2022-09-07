@@ -10,15 +10,19 @@ class SMDebugCustomerError(SMDebugError):
     pass
 
 
-class SMDebugTypeError(SMDebugError):
+class SMDebugTypeError(SMDebugError, TypeError):
     pass
 
 
-class SMDebugRuntimeError(SMDebugError):
+class SMDebugRuntimeError(SMDebugError, RuntimeError):
     pass
 
 
-class SMDebugNotImplementedError(SMDebugError):
+class SMDebugNotImplementedError(SMDebugError, NotImplementedError):
+    pass
+
+
+class SMDebugValueError(SMDebugError, ValueError):
     pass
 
 

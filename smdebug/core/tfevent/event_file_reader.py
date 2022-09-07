@@ -24,6 +24,7 @@ import numpy as np
 import smdebug.core.tfevent.proto.types_pb2 as types_pb2
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME, ModeKeys
 from smdebug.core.tfrecord.record_reader import RecordReader
+from smdebug.exceptions import SMDebugTypeError
 
 # Local
 from .proto.event_pb2 import Event
@@ -81,7 +82,7 @@ def get_tensor_data(tensor):
         assert len(tensor.bool_val) > 0
         return np.bool(tensor.bool_val)
     else:
-        raise Exception(f"Unknown type for Tensor={tensor}")
+        raise SMDebugTypeError(f"Unknown type for Tensor={tensor}")
 
 
 class EventsReader(object):

@@ -6,6 +6,7 @@ import numpy as np
 
 # First Party
 from smdebug.core.utils import make_numpy_array
+from smdebug.exceptions import SMDebugRuntimeError, SMDebugValueError
 
 # Local
 from .proto.summary_pb2 import HistogramProto, Summary
@@ -60,7 +61,8 @@ def scalar_summary(tag, scalar):
     """
     tag = _clean_tag(tag)
     scalar = make_numpy_array(scalar)
-    assert scalar.squeeze().ndim == 0, "scalar should be 0D"
+    if scalar.squeeze().ndim != 0:
+        raise SMDebugRuntimeError("scalar should be 0D")
     scalar = float(scalar)
     return Summary(value=[Summary.Value(tag=tag, simple_value=scalar)])
 
@@ -69,7 +71,7 @@ def _make_histogram(values, bins, max_bins):
     """Converts values into a histogram proto using logic from
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/lib/histogram/histogram.cc"""
     if values.size == 0:
-        raise ValueError("The input has no element.")
+        raise SMDebugValueError("The input has no element.")
     values = values.reshape(-1)
     counts, limits = np.histogram(values, bins=bins)
     num_bins = len(counts)
@@ -104,7 +106,7 @@ def _make_histogram(values, bins, max_bins):
     limits = limits[start : end + 1]
 
     if counts.size == 0 or limits.size == 0:
-        raise ValueError("The histogram is empty, please file a bug report.")
+        raise SMDebugValueError("The histogram is empty, please file a bug report.")
 
     sum_sq = values.dot(values)
     return HistogramProto(

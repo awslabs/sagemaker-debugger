@@ -5,6 +5,7 @@ import json
 from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.utils import is_s3
+from smdebug.exceptions import SMDebugValueError
 
 
 class IndexWriter(object):
@@ -47,13 +48,13 @@ class IndexWriter(object):
     def flush(self):
         """Flushes the event string to file."""
         if not self.writer:
-            raise ValueError(f"Cannot flush because self.writer={self.writer}")
+            raise SMDebugValueError(f"Cannot flush because self.writer={self.writer}")
         if not self.index_meta:
-            raise ValueError(
+            raise SMDebugValueError(
                 f"Cannot write empty index_meta={self.index_meta} to file {self.file_path}"
             )
         if not self.index_payload and not self.shape_payload:
-            raise ValueError(
+            raise SMDebugValueError(
                 f"Cannot write empty payload: index_payload={self.index_payload}, shape_payload={self.shape_payload} to file {self.file_path}"
             )
 
