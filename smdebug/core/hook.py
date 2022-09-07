@@ -51,7 +51,7 @@ from smdebug.core.utils import (
     validate_custom_tensor_value,
 )
 from smdebug.core.writer import FileWriter
-from smdebug.exceptions import InvalidCollectionConfiguration
+from smdebug.exceptions import InvalidCollectionConfiguration, SMDebugError, SMDebugRuntimeError
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 try:
@@ -326,11 +326,12 @@ class BaseHook:
     def _should_collection_be_saved(self, coll_name: str) -> bool:
         return coll_name in self.include_collections
 
-    def _assert_prep(self):
-        assert self.prepared_collections, "Collections have not been prepared yet"
+    def _check_collections_prep(self):
+        if not self.prepared_collections:
+            raise SMDebugError("Collections have not been prepared yet")
 
     def _get_all_collections_to_save(self) -> Set["Collection"]:
-        self._assert_prep()
+        self._check_collections_prep()
         return self._collections_to_save
 
     @error_handling_agent.catch_smdebug_errors(default_return_val=False)
@@ -341,7 +342,7 @@ class BaseHook:
 
     def _get_collections_to_save_for_step(self) -> Set["Collection"]:
         if self._collections_to_save_for_step is None:
-            self._assert_prep()
+            self._check_collections_prep()
             self._collections_to_save_for_step = set()
             for coll in self._get_all_collections_to_save():
                 if self.mode in [ModeKeys.EVAL, ModeKeys.PREDICT]:
@@ -369,7 +370,7 @@ class BaseHook:
         return False
 
     def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
-        self._assert_prep()
+        self._check_collections_prep()
         # for tf this will be prepopulated in check_and_add_tensor
         if tensor_name not in self.tensor_to_collections:
             # for mxnet it is computed and then cached
@@ -521,7 +522,8 @@ class BaseHook:
             return None
 
         if self.mode in self.tb_writers:
-            assert self.tb_writers[self.mode] is not None
+            if self.tb_writers is None:
+                raise SMDebugRuntimeError("No TB writers are available")
             # would be there if set_mode was called
             return self.tb_writers[self.mode]
         else:

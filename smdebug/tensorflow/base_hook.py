@@ -452,7 +452,7 @@ class TensorflowBaseHook(BaseHook):
         )
 
     def _get_collections_with_tensor(self, tf_tensor_name) -> Set["Collection"]:
-        self._assert_prep()
+        self._check_collections_prep()
         # When TF 2.x GradientTape is used, layers are not prepared, hence
         # tensors are not matched with collections at preparation time.
         # Call core/hook.py's _get_collections_with_tensor() where tensors are
