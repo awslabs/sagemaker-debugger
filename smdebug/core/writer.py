@@ -32,6 +32,7 @@ from smdebug.core.tfevent.summary import (
     scalar_summary,
 )
 from smdebug.core.tfevent.util import make_tensor_proto
+from smdebug.exceptions import SMDebugRuntimeError, SMDebugValueError
 
 # Local
 from .locations import (
@@ -242,7 +243,7 @@ class FileWriter:
         if self._proto_writer:
             return self._proto_writer.name()
         else:
-            raise RuntimeError(
+            raise SMDebugRuntimeError(
                 "Writer hasn't been initialized yet. It will be initialized when the first tensor or summary is written."
             )
 
@@ -255,5 +256,5 @@ class FileWriter:
         if not isinstance(mode, ModeKeys):
             mode_keys = ["ModeKeys." + x.name for x in ModeKeys]
             ex_str = "mode can be one of " + ", ".join(mode_keys)
-            raise ValueError(ex_str)
+            raise SMDebugValueError(ex_str)
         return mode, mode_step

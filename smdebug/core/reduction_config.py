@@ -5,6 +5,7 @@ from typing import Any, Dict
 # First Party
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import split
+from smdebug.exceptions import SMDebugValueError
 
 logger = get_logger()
 
@@ -74,22 +75,24 @@ class ReductionConfig:
     def _check(self):
         """Ensure that only valid params are passed in; raises ValueError if not."""
         if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
-            raise ValueError(
+            raise SMDebugValueError(
                 "allowed params for reduction config can only be one of " + ",".join(ALLOWED_PARAMS)
             )
 
         if any([x not in ALLOWED_REDUCTIONS for x in self.reductions]):
-            raise ValueError("reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
+            raise SMDebugValueError("reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
         if any([x not in ALLOWED_REDUCTIONS for x in self.abs_reductions]):
-            raise ValueError("abs_reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS))
+            raise SMDebugValueError(
+                "abs_reductions can only be one of " + ",".join(ALLOWED_REDUCTIONS)
+            )
         if any([x not in ALLOWED_NORMS for x in self.norms]):
-            raise ValueError("norms can only be one of " + ",".join(ALLOWED_NORMS))
+            raise SMDebugValueError("norms can only be one of " + ",".join(ALLOWED_NORMS))
         if any([x not in ALLOWED_NORMS for x in self.abs_norms]):
-            raise ValueError("abs_norms can only be one of " + ",".join(ALLOWED_NORMS))
+            raise SMDebugValueError("abs_norms can only be one of " + ",".join(ALLOWED_NORMS))
         if not isinstance(self.save_raw_tensor, bool):
-            raise ValueError(f"save_raw_tensor={self.save_raw_tensor} must be a boolean")
+            raise SMDebugValueError(f"save_raw_tensor={self.save_raw_tensor} must be a boolean")
         if not isinstance(self.save_shape, bool):
-            raise ValueError(f"save_shape={self.save_shape} must be a boolean")
+            raise SMDebugValueError(f"save_shape={self.save_shape} must be a boolean")
 
     @classmethod
     def from_dict(cls, params: Dict[str, Any]) -> "ReductionConfig":
@@ -97,7 +100,7 @@ class ReductionConfig:
         if params is None:
             return None
         if not isinstance(params, dict):
-            raise ValueError(f"params={params} must be dict")
+            raise SMDebugValueError(f"params={params} must be dict")
         save_shape = params.get("save_shape", False)
         save_raw_tensor = params.get("save_raw_tensor", False)
         # Parse comma-separated string into array

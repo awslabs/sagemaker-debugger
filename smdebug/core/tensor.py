@@ -11,6 +11,8 @@ from smdebug.exceptions import (
     InvalidWorker,
     NoMoreData,
     ShapeUnavailableForStep,
+    SMDebugNotImplementedError,
+    SMDebugValueError,
     StepNotYetAvailable,
     StepUnavailable,
     TensorUnavailableForStep,
@@ -225,7 +227,7 @@ class Tensor:
         return None
 
     def step(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
-        raise NotImplementedError(
+        raise SMDebugNotImplementedError(
             "step method has been removed. Please use tensor.value "
             "or tensor.reduction_value methods"
         )
@@ -353,7 +355,7 @@ class Tensor:
     def _create_mode_step(self, mode, mode_step):
         mode_step = int(mode_step)
         if mode_step < 0:
-            raise ValueError(
+            raise SMDebugValueError(
                 "mode step number {} for tensor {} "
                 "can not be less than 0".format(mode_step, self.name)
             )

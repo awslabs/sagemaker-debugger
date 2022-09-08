@@ -6,13 +6,14 @@ import numpy as np
 
 # First Party
 from smdebug.core.reduction_config import ALLOWED_NORMS, ALLOWED_REDUCTIONS
+from smdebug.exceptions import SMDebugValueError
 
 REDUCTIONS_PREFIX = "smdebug/reductions/"
 
 
 def get_numpy_reduction(reduction_name, numpy_data, abs=False):
     if reduction_name not in ALLOWED_REDUCTIONS and reduction_name not in ALLOWED_NORMS:
-        raise ValueError("Invalid reduction type %s" % reduction_name)
+        raise SMDebugValueError("Invalid reduction type %s" % reduction_name)
 
     if abs:
         numpy_data = np.absolute(numpy_data)

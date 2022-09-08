@@ -75,6 +75,7 @@ from smdebug.core.logger import get_logger
 from smdebug.core.modes import ModeKeys
 from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.utils import merge_two_dicts, split
+from smdebug.exceptions import SMDebugValueError
 
 
 def get_json_config_as_dict(json_config_path) -> Dict:
@@ -160,7 +161,9 @@ def get_include_collections(params_dict):
         for config in params_dict[CONFIG_COLLECTION_CONFIG_KEY]:
             # Require name and parameters for each collection.
             if CONFIG_COLLECTION_NAME_KEY not in config:
-                raise ValueError(f"Must specify '{CONFIG_COLLECTION_NAME_KEY}' in JSON config.")
+                raise SMDebugValueError(
+                    f"Must specify '{CONFIG_COLLECTION_NAME_KEY}' in JSON config."
+                )
             include_collections.append(config[CONFIG_COLLECTION_NAME_KEY])
     else:
         include_collections = None
@@ -182,7 +185,9 @@ def add_collections_to_manager(collection_manager, params_dict, hook_params):
         for config in params_dict[CONFIG_COLLECTION_CONFIG_KEY]:
             # Require name and parameters for each collection.
             if CONFIG_COLLECTION_NAME_KEY not in config:
-                raise ValueError(f"Must specify '{CONFIG_COLLECTION_NAME_KEY}' in JSON config.")
+                raise SMDebugValueError(
+                    f"Must specify '{CONFIG_COLLECTION_NAME_KEY}' in JSON config."
+                )
 
             name = config[CONFIG_COLLECTION_NAME_KEY]
             coll_params = config.get(CONFIG_COLLECTION_PARAMS_KEY, {})
@@ -270,7 +275,7 @@ def parse_save_config_modes_dict(params, base_config_modes=None) -> Dict:
 def parse_save_config_dict(params, mode=None) -> Dict:
     """Grab the relevant keys for a SaveConfig and return a dictionary."""
     if not isinstance(params, dict):
-        raise ValueError("parameter must be dict")
+        raise SMDebugValueError("parameter must be dict")
 
     if mode is None:
         prefix = ""
@@ -283,7 +288,7 @@ def parse_save_config_dict(params, mode=None) -> Dict:
     elif mode == ModeKeys.GLOBAL:
         prefix = "global."
     else:
-        raise ValueError(f"Invalid mode={mode}.")
+        raise SMDebugValueError(f"Invalid mode={mode}.")
 
     # Only look at keys starting with prefix
     params = {key[len(prefix) :]: value for key, value in params.items() if key.startswith(prefix)}
