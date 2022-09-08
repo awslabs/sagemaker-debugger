@@ -13,7 +13,7 @@ import argparse
 # Third Party
 import pytest
 import torch
-from tests.zero_code_change.pt_utils import helper_torch_train, is_pt_1_12_or_greater
+from tests.zero_code_change.pt_utils import helper_torch_train, is_pt_1_10_or_greater
 
 # First Party
 import smdebug.pytorch as smd
@@ -21,8 +21,8 @@ from smdebug.core.utils import SagemakerSimulator, ScriptSimulator
 
 
 @pytest.mark.skipif(
-    is_pt_1_12_or_greater(),
-    reason="ZCC integration deprecated in PT 1.12.0 and above",
+    is_pt_1_10_or_greater(),
+    reason="ZCC integration deprecated in PT 1.10.0 and above",
 )
 @pytest.mark.parametrize("script_mode", [False])
 @pytest.mark.parametrize("use_loss_module", [True, False])

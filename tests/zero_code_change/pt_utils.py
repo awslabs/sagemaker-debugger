@@ -96,8 +96,8 @@ def helper_torch_train(sim=None, script_mode=False, use_loss_module=False):
         if i == 499:
             break
 
-def is_pt_1_12_or_greater():
+def is_pt_1_10_or_greater():
     PT_VERSION = version.parse(torch.__version__)
-    if PT_VERSION >= version.parse("1.12.0"):
+    if PT_VERSION >= version.parse("1.10.0"):
         return True
     return False
