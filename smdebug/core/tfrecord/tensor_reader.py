@@ -81,7 +81,6 @@ class TensorReader:
 
     def read_summaries(self, check="minimal"):
         for ev in self.read_events(check=check):
-            # assert ev.HasField('step')
             if not ev.HasField("summary"):
                 continue
             yield (ev.step, ev.summary)

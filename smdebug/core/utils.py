@@ -32,6 +32,7 @@ from smdebug.core.logger import get_logger
 from smdebug.exceptions import (
     IndexReaderException,
     SMDebugNotImplementedError,
+    SMDebugRuntimeError,
     SMDebugTypeError,
     SMDebugValueError,
 )
@@ -363,7 +364,10 @@ def step_in_range(range_steps, step):
 def get_relative_event_file_path(path):
     p = Path(path)
     path_parts = p.parts
-    assert path_parts[-3] in ["events", "tensorboard"], str(path)
+    if path_parts[-3] not in ["events", "tensorboard"]:
+        raise SMDebugRuntimeError(
+            "Invalid path: {}, should contain either 'events' or 'tensorboard'".format(str(path))
+        )
     return os.path.join(*path_parts[-3:])
 
 

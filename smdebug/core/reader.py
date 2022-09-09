@@ -19,6 +19,7 @@
 
 # First Party
 from smdebug.core.tfevent.event_file_reader import EventFileReader, get_tensor_data
+from smdebug.exceptions import SMDebugNotImplementedError
 
 # Local
 from .utils import match_inc
@@ -43,7 +44,7 @@ class FileReader:
         if wtype == "tfevent":
             self._reader = EventFileReader(fname=fname)
         else:
-            assert False
+            raise SMDebugNotImplementedError("Only tfevent format is supported for now.")
 
     def __enter__(self):
         """Make usable with "with" statement."""

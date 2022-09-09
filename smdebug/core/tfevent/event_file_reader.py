@@ -24,7 +24,7 @@ import numpy as np
 import smdebug.core.tfevent.proto.types_pb2 as types_pb2
 from smdebug.core.modes import MODE_PLUGIN_NAME, MODE_STEP_PLUGIN_NAME, ModeKeys
 from smdebug.core.tfrecord.record_reader import RecordReader
-from smdebug.exceptions import SMDebugTypeError
+from smdebug.exceptions import SMDebugTypeError, SMDebugValueError
 
 # Local
 from .proto.event_pb2 import Event
@@ -50,7 +50,8 @@ def get_tensor_data(tensor):
     shape = [d.size for d in tensor.tensor_shape.dim]
     # num_elements = np.prod(shape, dtype=np.int64)
     if tensor.dtype == 0 and tensor.string_val:
-        assert len(shape) == 1
+        if len(shape) != 1:
+            raise SMDebugValueError("tensor shape should be 1, got {}".format(len(shape)))
         res = []
         for i in range(shape[0]):
             r = tensor.string_val[i]
@@ -76,10 +77,12 @@ def get_tensor_data(tensor):
         else:
             return None
     elif dtype == np.float32:
-        assert len(tensor.float_val) > 0, tensor
+        if len(tensor.float_val) == 0:
+            raise SMDebugValueError("float tensor should have non-zero length")
         return np.float32(tensor.float_val)
     elif dtype == np.bool:
-        assert len(tensor.bool_val) > 0
+        if len(tensor.bool_val) == 0:
+            raise SMDebugValueError("boolean tensor should have non-zero length")
         return np.bool(tensor.bool_val)
     else:
         raise SMDebugTypeError(f"Unknown type for Tensor={tensor}")
@@ -142,7 +145,8 @@ class EventFileReader:
         for step, summ in self.read_summaries(check=check):
             for v in summ.value:
                 val = v.WhichOneof("value")
-                assert val == "tensor"
+                if val != "tensor":
+                    raise SMDebugValueError("value {} is not 'tensor'".format(val))
                 tensor_name = v.tag
                 # We have found the right tensor at the right step
                 tensor_data = get_tensor_data(v.tensor)
