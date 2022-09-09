@@ -3,7 +3,7 @@ import json
 import os
 
 # First Party
-from smdebug.exceptions import SMDebugError, SMDebugValueError
+from smdebug.exceptions import SMDebugError, SMDebugTypeError, SMDebugValueError
 
 # Local
 from .access_layer import TSAccessFile, TSAccessS3
@@ -50,7 +50,8 @@ class CollectionManager:
         return self.collections[name]
 
     def update_meta(self, meta):
-        assert isinstance(meta, dict)
+        if not isinstance(meta, dict):
+            raise SMDebugTypeError(f"meta should be a dict, got {type(meta)}")
         self._meta.update(meta)
 
     def get_num_workers(self):
