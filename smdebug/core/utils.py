@@ -29,7 +29,13 @@ from smdebug.core.config_constants import (
 )
 from smdebug.core.error_handling_agent import ErrorHandlingAgent
 from smdebug.core.logger import get_logger
-from smdebug.exceptions import IndexReaderException
+from smdebug.exceptions import (
+    IndexReaderException,
+    SMDebugNotImplementedError,
+    SMDebugRuntimeError,
+    SMDebugTypeError,
+    SMDebugValueError,
+)
 
 
 class FRAMEWORK(Enum):
@@ -99,7 +105,9 @@ def make_numpy_array(x):
     elif isinstance(x, dict):
         return np.array(x)
     else:
-        raise TypeError("_make_numpy_array does not support the" " type {}".format(str(type(x))))
+        raise SMDebugTypeError(
+            "_make_numpy_array does not support the" " type {}".format(str(type(x)))
+        )
 
 
 def get_aws_region_from_processing_job_arn(processing_job_arn):
@@ -165,7 +173,7 @@ def load_json_as_dict(s):
     elif isinstance(s, dict):
         return s
     else:
-        raise ValueError("parameter must be either str or dict")
+        raise SMDebugValueError("parameter must be either str or dict")
 
 
 def flatten(lis):
@@ -330,7 +338,7 @@ def index(sorted_list, elem):
     i = bisect.bisect_left(sorted_list, elem)
     if i != len(sorted_list) and sorted_list[i] == elem:
         return i
-    raise ValueError
+    raise SMDebugValueError(f"Could not find {elem} in the list")
 
 
 def get_region():
@@ -356,7 +364,10 @@ def step_in_range(range_steps, step):
 def get_relative_event_file_path(path):
     p = Path(path)
     path_parts = p.parts
-    assert path_parts[-3] in ["events", "tensorboard"], str(path)
+    if path_parts[-3] not in ["events", "tensorboard"]:
+        raise SMDebugRuntimeError(
+            "Invalid path: {}, should contain either 'events' or 'tensorboard'".format(str(path))
+        )
     return os.path.join(*path_parts[-3:])
 
 
@@ -657,4 +668,4 @@ def is_framework_version_supported(framework_type):
     elif framework_type in [FRAMEWORK.XGBOOST, FRAMEWORK.MXNET]:
         return True
 
-    raise Exception(f"No such framework type {framework_type}")
+    raise SMDebugNotImplementedError(f"No such framework type {framework_type}")

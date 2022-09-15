@@ -10,15 +10,23 @@ class SMDebugCustomerError(SMDebugError):
     pass
 
 
-class SMDebugTypeError(SMDebugError):
+class SMDebugTypeError(SMDebugError, TypeError):
     pass
 
 
-class SMDebugRuntimeError(SMDebugError):
+class SMDebugRuntimeError(SMDebugError, RuntimeError):
     pass
 
 
-class InvalidCollectionConfiguration(Exception):
+class SMDebugNotImplementedError(SMDebugError, NotImplementedError):
+    pass
+
+
+class SMDebugValueError(SMDebugError, ValueError):
+    pass
+
+
+class InvalidCollectionConfiguration(SMDebugError):
     def __init__(self, c_name):
         self.c_name = c_name
 
@@ -27,7 +35,7 @@ class InvalidCollectionConfiguration(Exception):
         Please fill in tensor_name or include_regex"
 
 
-class StepNotYetAvailable(Exception):
+class StepNotYetAvailable(SMDebugError):
     def __init__(self, step, mode):
         self.step = step
         self.mode = mode
@@ -36,7 +44,7 @@ class StepNotYetAvailable(Exception):
         return "Step {} of mode {} not yet available".format(self.step, self.mode.name)
 
 
-class MissingCollectionFiles(Exception):
+class MissingCollectionFiles(SMDebugError):
     def __init__(self):
         pass
 
@@ -44,7 +52,7 @@ class MissingCollectionFiles(Exception):
         return "Training job has ended. All the collection files could not be loaded"
 
 
-class IndexReaderException(Exception):
+class IndexReaderException(SMDebugError):
     def __init__(self, message):
         self.message = message
 
@@ -52,7 +60,7 @@ class IndexReaderException(Exception):
         return self.message
 
 
-class StepUnavailable(Exception):
+class StepUnavailable(SMDebugError):
     def __init__(self, step, mode):
         self.step = step
         self.mode = mode
@@ -63,7 +71,7 @@ class StepUnavailable(Exception):
         )
 
 
-class TensorUnavailableForStep(Exception):
+class TensorUnavailableForStep(SMDebugError):
     def __init__(self, tname, step, mode=modes.GLOBAL, has_reductions=False):
         self.step = step
         self.mode = mode
@@ -84,7 +92,7 @@ class TensorUnavailableForStep(Exception):
         return msg
 
 
-class ShapeUnavailableForStep(Exception):
+class ShapeUnavailableForStep(SMDebugError):
     def __init__(self, tname, step, mode=modes.GLOBAL):
         self.step = step
         self.mode = mode
@@ -99,7 +107,7 @@ class ShapeUnavailableForStep(Exception):
         return msg
 
 
-class TensorUnavailable(Exception):
+class TensorUnavailable(SMDebugError):
     def __init__(self, tname):
         self.tname = tname
 
@@ -107,7 +115,7 @@ class TensorUnavailable(Exception):
         return "Tensor {} was not saved.".format(self.tname)
 
 
-class InvalidWorker(Exception):
+class InvalidWorker(SMDebugError):
     def __init__(self, worker):
         self.worker = worker
 
@@ -115,7 +123,7 @@ class InvalidWorker(Exception):
         return "Invalid Worker: {}".format(self.worker)
 
 
-class NoMoreProfilerData(Exception):
+class NoMoreProfilerData(SMDebugError):
     def __init__(self, timestamp):
         self.timestamp = timestamp
         self.msg = "Looking for timestamp {} and reached " "end of training.".format(timestamp)
@@ -124,7 +132,7 @@ class NoMoreProfilerData(Exception):
         return self.msg
 
 
-class NoMoreData(Exception):
+class NoMoreData(SMDebugError):
     def __init__(self, step, mode, last_step):
         self.step = step
         self.mode = mode
@@ -141,7 +149,7 @@ class NoMoreData(Exception):
         return self.msg
 
 
-class RuleEvaluationConditionMet(Exception):
+class RuleEvaluationConditionMet(SMDebugError):
     def __init__(self, rule_name, step, end_of_rule=False):
         self.rule_name = rule_name
         self.step = step
@@ -153,7 +161,7 @@ class RuleEvaluationConditionMet(Exception):
         )
 
 
-class InsufficientInformationForRuleInvocation(Exception):
+class InsufficientInformationForRuleInvocation(SMDebugError):
     def __init__(self, rule_name, message):
         self.rule_name = rule_name
         self.message = message

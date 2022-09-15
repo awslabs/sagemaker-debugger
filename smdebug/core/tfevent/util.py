@@ -3,6 +3,7 @@ import numpy as np
 
 # First Party
 from smdebug.core.logger import get_logger
+from smdebug.exceptions import SMDebugTypeError
 
 # Local
 from .proto.tensor_pb2 import TensorProto
@@ -42,7 +43,7 @@ def _get_proto_dtype(npdtype):
     try:
         return True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype]
     except KeyError:
-        raise TypeError(f"Numpy Datatype: {np.dtype(npdtype)} is currently not supported")
+        raise SMDebugTypeError(f"Numpy Datatype: {np.dtype(npdtype)} is currently not supported")
 
 
 def make_tensor_proto(nparray_data, tag):

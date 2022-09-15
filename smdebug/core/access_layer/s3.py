@@ -13,6 +13,7 @@ from boto3.s3.transfer import TransferConfig
 from smdebug.core.access_layer.base import TSAccessBase
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import get_region
+from smdebug.exceptions import SMDebugError, SMDebugNotImplementedError
 
 
 class TSAccessS3(TSAccessBase):
@@ -49,7 +50,7 @@ class TSAccessS3(TSAccessBase):
             self.data = ""
 
     def open(self, bucket_name, mode):
-        raise NotImplementedError
+        raise SMDebugNotImplementedError
 
     def write(self, _data):
         start = len(self.data)
@@ -97,7 +98,8 @@ class TSAccessS3(TSAccessBase):
         self._position = 0
 
     def read(self, n):
-        assert self._position + n <= self._datalen
+        if self._position + n > self._datalen:
+            raise SMDebugError("File position out of bounds")
         res = self._data[self._position : self._position + n]
         self._position += n
         return res

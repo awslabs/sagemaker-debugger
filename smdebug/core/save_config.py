@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Union
 # First Party
 from smdebug.core.modes import ModeKeys
 from smdebug.core.utils import step_in_range
+from smdebug.exceptions import SMDebugTypeError, SMDebugValueError
 
 DEFAULT_SAVE_CONFIG_INTERVAL = 500
 DEFAULT_SAVE_CONFIG_START_STEP = 0
@@ -62,7 +63,7 @@ class SaveConfig:
                     for mode, value in mode_save_configs.items()
                 ]
             ):
-                raise ValueError(
+                raise SMDebugValueError(
                     f"Each key,value in mode_save_configs={mode_save_configs} must be of type ModeKey,SaveConfigMode"
                 )
             # Populate default SaveConfigMode for each missing ModeKey
@@ -74,12 +75,16 @@ class SaveConfig:
 
     def get_save_config(self, mode) -> "SaveConfigMode":
         if self.mode_save_configs[mode] is None:
-            raise ValueError(f"SaveConfig={self} is not ready. Call SaveManager.prepare() first.")
+            raise SMDebugValueError(
+                f"SaveConfig={self} is not ready. Call SaveManager.prepare() first."
+            )
         return self.mode_save_configs[mode]
 
     def set_save_config(self, mode: ModeKeys, save_config_mode: "SaveConfigMode") -> None:
         if not isinstance(save_config_mode, SaveConfigMode):
-            raise ValueError(f"save_config_mode={save_config_mode} must be type SaveConfigMode")
+            raise SMDebugValueError(
+                f"save_config_mode={save_config_mode} must be type SaveConfigMode"
+            )
         self.mode_save_configs[mode] = save_config_mode
 
     def should_save_step(self, mode, step_num) -> bool:
@@ -166,7 +171,7 @@ class SaveConfig:
         elif isinstance(obj, dict):
             return cls.from_dict(obj)
         else:
-            raise TypeError(f"obj={obj} cannot be parsed into a SaveConfig object")
+            raise SMDebugTypeError(f"obj={obj} cannot be parsed into a SaveConfig object")
 
     def __eq__(self, other):
         if not isinstance(other, SaveConfig):
@@ -226,17 +231,17 @@ class SaveConfigMode:
 
     def _check(self):
         if any([x not in ALLOWED_PARAMS for x in self.__dict__]):
-            raise ValueError(f"Params {self.__dict__.keys()} must be in {ALLOWED_PARAMS}")
+            raise SMDebugValueError(f"Params {self.__dict__.keys()} must be in {ALLOWED_PARAMS}")
         if not isinstance(self.save_interval, int):
-            raise ValueError(f"save_interval={self.save_interval} must be type(int)")
+            raise SMDebugValueError(f"save_interval={self.save_interval} must be type(int)")
         if not (
             isinstance(self.save_steps, list) and all([isinstance(x, int) for x in self.save_steps])
         ):
-            raise ValueError(f"save_steps={self.save_steps} must be type(list(int))")
+            raise SMDebugValueError(f"save_steps={self.save_steps} must be type(list(int))")
         if not isinstance(self.start_step, int):
-            raise ValueError(f"start_step={self.start_step} must be type(int)")
+            raise SMDebugValueError(f"start_step={self.start_step} must be type(int)")
         if not (self.end_step is None or isinstance(self.end_step, int)):
-            raise ValueError(f"end_step={self.end_step} must be None or type(int)")
+            raise SMDebugValueError(f"end_step={self.end_step} must be None or type(int)")
 
     def to_json_dict(self):
         """Be explicit about what keys we return."""
@@ -252,11 +257,11 @@ class SaveConfigMode:
         if params is None:
             return None
         elif not isinstance(params, dict):
-            raise TypeError(f"params={params} is not a dict.")
+            raise SMDebugTypeError(f"params={params} is not a dict.")
         if default_values is None:
             default_values = {}
         elif not isinstance(default_values, dict):
-            raise TypeError(f"default_values={default_values} is not a dict.")
+            raise SMDebugTypeError(f"default_values={default_values} is not a dict.")
         return cls(
             save_interval=params.get("save_interval", default_values.get("save_interval")),
             start_step=params.get("start_step", default_values.get("start_step")),

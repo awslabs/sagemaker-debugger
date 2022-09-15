@@ -28,7 +28,7 @@ from smdebug.core.utils import (
     parse_worker_name_from_file,
     step_in_range,
 )
-from smdebug.exceptions import IndexReaderException, TensorUnavailableForStep
+from smdebug.exceptions import IndexReaderException, SMDebugValueError, TensorUnavailableForStep
 
 
 class ReadIndexFilesCache:
@@ -195,8 +195,8 @@ class IndexReader(ABC):
                 step = IndexFileLocationUtils.parse_step_from_index_file_name(event_file)
                 if missing_step == step:
                     """
-                        The missing step file may have been written to disk before
-                        we perform the list operation.
+                    The missing step file may have been written to disk before
+                    we perform the list operation.
                     """
                     return False
                 self.logger.warn(
@@ -344,7 +344,10 @@ class S3IndexReader(IndexReader):
                 )
 
         responses = S3Handler.get_objects(object_requests)
-        assert len(responses) == len(object_requests)
+        if len(responses) != len(object_requests):
+            raise SMDebugValueError(
+                f"Received unequal number of responses {len(responses)} for {len(object_requests)} requests"
+            )
         return responses, steps, start_after_key, workers
 
     def list_index_files(self, start_after_key=None):

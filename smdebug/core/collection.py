@@ -2,6 +2,9 @@
 import json
 from typing import Dict, Union
 
+# First Party
+from smdebug.exceptions import SMDebugTypeError, SMDebugValueError
+
 # Local
 from .modes import ModeKeys
 from .reduction_config import ReductionConfig
@@ -170,7 +173,7 @@ class Collection:
         elif isinstance(tensor_names, list):
             tensor_names = set(tensor_names)
         elif not isinstance(tensor_names, set):
-            raise TypeError("tensor_names can only be list or set")
+            raise SMDebugTypeError("tensor_names can only be list or set")
         self._tensor_names = tensor_names
 
     def include(self, t):
@@ -180,7 +183,7 @@ class Collection:
         elif isinstance(t, str):
             self.include_regex.append(t)
         else:
-            raise TypeError("Can only include str or list")
+            raise SMDebugTypeError("Can only include str or list")
 
     @property
     def reduction_config(self):
@@ -195,7 +198,9 @@ class Collection:
         if reduction_config is None:
             self._reduction_config = None
         elif not isinstance(reduction_config, ReductionConfig):
-            raise TypeError(f"reduction_config={reduction_config} must be of type ReductionConfig")
+            raise SMDebugTypeError(
+                f"reduction_config={reduction_config} must be of type ReductionConfig"
+            )
         else:
             self._reduction_config = reduction_config
 
@@ -213,8 +218,8 @@ class Collection:
         elif isinstance(save_config, SaveConfig):
             self._save_config = save_config
         else:
-            raise ValueError(
-                f"save_config={save_config} must be of type SaveConfig of type Dict[ModeKeys, SaveConfigMode]"
+            raise SMDebugTypeError(
+                f"save_config={save_config} must be of type SaveConfig or type Dict[ModeKeys, SaveConfigMode]"
             )
 
     def has_tensor_name(self, tname):
@@ -248,7 +253,7 @@ class Collection:
     @classmethod
     def from_dict(cls, params: Dict) -> "Collection":
         if not isinstance(params, dict):
-            raise ValueError(f"params={params} must be dict")
+            raise SMDebugValueError(f"params={params} must be dict")
 
         res = {
             "name": params.get("name"),

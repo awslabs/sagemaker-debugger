@@ -23,6 +23,7 @@ from smdebug.core.access_layer.file import TSAccessFile
 from smdebug.core.access_layer.s3 import TSAccessS3
 from smdebug.core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
 from smdebug.core.utils import is_s3
+from smdebug.exceptions import SMDebugError, SMDebugRuntimeError, SMDebugValueError
 
 # Local
 from ._crc32c import crc32c
@@ -49,9 +50,9 @@ class RecordReader:
             else:
                 self._reader = TSAccessFile(path, "rb")
         except (OSError, IOError) as err:
-            raise ValueError("failed to open {}: {}".format(path, str(err)))
-        except:
-            raise
+            raise SMDebugValueError("failed to open {}: {}".format(path, str(err)))
+        except Exception as e:
+            raise SMDebugError(e)
         self._reader.ingest_all()
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -69,23 +70,32 @@ class RecordReader:
 
         if check in ["minimal", "full"]:
             computed_len_crc = masked_crc32c(strlen_bytes)
-            assert saved_len_crc == computed_len_crc
+            if saved_len_crc != computed_len_crc:
+                raise SMDebugRuntimeError(
+                    f"saved_len_crc: {saved_len_crc} is not equal to computed_len_crc: {computed_len_crc}"
+                )
 
         payload = self._reader.read(strlen)
         saved_payload_crc = struct.unpack("I", self._reader.read(4))[0]
         if check == "full":
             computed_payload_crc = masked_crc32c(payload)
-            assert saved_payload_crc == computed_payload_crc
+            if saved_payload_crc != computed_payload_crc:
+                raise SMDebugRuntimeError(
+                    f"saved_payload_crc: {saved_payload_crc} is not equal to computed_payload_crc: {computed_payload_crc}"
+                )
         elif check == "minimal":
             computed_payload_crc = masked_crc32c(CHECKSUM_MAGIC_BYTES)
-            assert saved_payload_crc == computed_payload_crc
+            if saved_payload_crc != computed_payload_crc:
+                raise SMDebugRuntimeError(
+                    f"saved_payload_crc: {saved_payload_crc} is not equal to computed_payload_crc: {computed_payload_crc}"
+                )
         else:
             # no check
             pass
         return payload
 
     def flush(self):
-        assert False
+        raise SMDebugError("flush() should not be called on RecordReader")
 
     def close(self):
         """Closes the record reader."""

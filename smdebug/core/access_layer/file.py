@@ -5,6 +5,7 @@ import shutil
 # First Party
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import ensure_dir
+from smdebug.exceptions import SMDebugError
 
 # Local
 from .base import TSAccessBase
@@ -66,7 +67,9 @@ class TSAccessFile(TSAccessBase):
         self._position = 0
 
     def read(self, n):
-        assert self._position + n <= self._datalen
+        if self._position + n > self._datalen:
+            raise SMDebugError("File position out of bounds")
+
         res = self._data[self._position : self._position + n]
         self._position += n
         return res

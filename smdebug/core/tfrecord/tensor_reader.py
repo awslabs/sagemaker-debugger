@@ -8,6 +8,7 @@ from smdebug.core.tfevent.event_file_reader import get_tensor_data
 from smdebug.core.tfevent.proto.event_pb2 import Event
 from smdebug.core.tfrecord.record_reader import masked_crc32c
 from smdebug.core.tfrecord.record_writer import CHECKSUM_MAGIC_BYTES
+from smdebug.exceptions import SMDebugValueError
 
 logger = get_logger()
 
@@ -32,16 +33,25 @@ class TensorReader:
 
         if check in ["minimal", "full"]:
             computed_len_crc = masked_crc32c(strlen_bytes)
-            assert saved_len_crc == computed_len_crc
+            if saved_len_crc != computed_len_crc:
+                raise SMDebugRuntimeError(
+                    f"saved_len_crc: {saved_len_crc} is not equal to computed_len_crc: {computed_len_crc}"
+                )
 
         payload = self._read(strlen)
         saved_payload_crc = struct.unpack("I", self._read(4))[0]
         if check == "full":
             computed_payload_crc = masked_crc32c(payload)
-            assert saved_payload_crc == computed_payload_crc
+            if saved_payload_crc != computed_payload_crc:
+                raise SMDebugRuntimeError(
+                    f"saved_payload_crc: {saved_payload_crc} is not equal to computed_payload_crc: {computed_payload_crc}"
+                )
         elif check == "minimal":
             computed_payload_crc = masked_crc32c(CHECKSUM_MAGIC_BYTES)
-            assert saved_payload_crc == computed_payload_crc
+            if saved_payload_crc != computed_payload_crc:
+                raise SMDebugRuntimeError(
+                    f"saved_payload_crc: {saved_payload_crc} is not equal to computed_payload_crc: {computed_payload_crc}"
+                )
         else:
             # no check
             pass
@@ -61,7 +71,8 @@ class TensorReader:
         for (step, summ) in self.read_summaries(check=check):
             for v in summ.value:
                 val = v.WhichOneof("value")
-                assert val == "tensor"
+                if val != "tensor":
+                    raise SMDebugValueError("value is not tensor")
                 tensor_name = v.tag
                 # We have found the right tensor at the right step
                 tensor_data = get_tensor_data(v.tensor)
@@ -70,10 +81,8 @@ class TensorReader:
 
     def read_summaries(self, check="minimal"):
         for ev in self.read_events(check=check):
-            # assert ev.HasField('step')
             if not ev.HasField("summary"):
                 continue
-            assert ev.HasField("summary")
             yield (ev.step, ev.summary)
 
     def read_events(self, check="minimal"):

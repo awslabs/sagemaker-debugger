@@ -1,5 +1,6 @@
 # First Party
 from smdebug.core.logger import get_logger
+from smdebug.exceptions import SMDebugNotImplementedError
 
 
 class TSAccessBase:
@@ -7,16 +8,16 @@ class TSAccessBase:
         self.logger = get_logger()
 
     def open(self):
-        raise NotImplementedError
+        raise SMDebugNotImplementedError
 
     def write(self, _bytes):
-        raise NotImplementedError
+        raise SMDebugNotImplementedError
 
     def flush(self):
-        raise NotImplementedError
+        raise SMDebugNotImplementedError
 
     def close(self):
-        raise NotImplementedError
+        raise SMDebugNotImplementedError
 
     def has_data(self):
-        raise NotImplementedError
+        raise SMDebugNotImplementedError

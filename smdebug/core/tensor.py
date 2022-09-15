@@ -11,6 +11,9 @@ from smdebug.exceptions import (
     InvalidWorker,
     NoMoreData,
     ShapeUnavailableForStep,
+    SMDebugNotImplementedError,
+    SMDebugRuntimeError,
+    SMDebugValueError,
     StepNotYetAvailable,
     StepUnavailable,
     TensorUnavailableForStep,
@@ -219,13 +222,14 @@ class Tensor:
                 raise InvalidWorker(worker)
             if worker is None:
                 workers = sorted(step_dict.keys())
-                assert len(workers) > 0
+                if len(workers) == 0:
+                    raise SMDebugRuntimeError("No workers are available")
                 worker = workers[0]
             return step_dict[worker]
         return None
 
     def step(self, step_num, mode=ModeKeys.GLOBAL, worker=None):
-        raise NotImplementedError(
+        raise SMDebugNotImplementedError(
             "step method has been removed. Please use tensor.value "
             "or tensor.reduction_value methods"
         )
@@ -256,7 +260,7 @@ class Tensor:
                         )
                     )
                 raise StepNotYetAvailable(step_num, mode)
-        assert False, "Should not happen"
+        raise SMDebugRuntimeError("Reached end of step processing without taking actions")
 
     def values(self, mode=ModeKeys.GLOBAL, worker=None):
         res = {}
@@ -304,7 +308,7 @@ class Tensor:
                 )
             return rvs
         else:
-            assert False, "Should not happen"
+            raise SMDebugRuntimeError("Step should not be None")
 
     def workers(self, step_num, mode=ModeKeys.GLOBAL) -> list:
         step_dict = self._get_step_dict(step_num, mode)
@@ -353,7 +357,7 @@ class Tensor:
     def _create_mode_step(self, mode, mode_step):
         mode_step = int(mode_step)
         if mode_step < 0:
-            raise ValueError(
+            raise SMDebugValueError(
                 "mode step number {} for tensor {} "
                 "can not be less than 0".format(mode_step, self.name)
             )

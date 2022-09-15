@@ -33,6 +33,7 @@ from smdebug.core.access_layer.file import SMDEBUG_TEMP_PATH_SUFFIX
 from smdebug.core.locations import TraceFileLocation
 from smdebug.core.logger import get_logger
 from smdebug.core.utils import ensure_dir, get_node_id
+from smdebug.exceptions import SMDebugTypeError
 from smdebug.profiler.profiler_constants import CONVERT_TO_MICROSECS, PYTHONTIMELINE_SUFFIX
 
 logger = get_logger()
@@ -320,7 +321,7 @@ class _TimelineLoggerThread(threading.Thread):
         """Appends trace event to the file."""
         # Check if event is of type TimelineRecord.
         if not isinstance(record, TimelineRecord):
-            raise TypeError("expected a TimelineRecord, " " but got %s" % type(record))
+            raise SMDebugTypeError("expected a TimelineRecord, " " but got %s" % type(record))
         self._num_outstanding_events += 1
 
         """

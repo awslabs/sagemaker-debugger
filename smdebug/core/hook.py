@@ -51,7 +51,12 @@ from smdebug.core.utils import (
     validate_custom_tensor_value,
 )
 from smdebug.core.writer import FileWriter
-from smdebug.exceptions import InvalidCollectionConfiguration
+from smdebug.exceptions import (
+    InvalidCollectionConfiguration,
+    SMDebugRuntimeError,
+    SMDebugTypeError,
+    SMDebugValueError,
+)
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
 
 try:
@@ -326,11 +331,12 @@ class BaseHook:
     def _should_collection_be_saved(self, coll_name: str) -> bool:
         return coll_name in self.include_collections
 
-    def _assert_prep(self):
-        assert self.prepared_collections, "Collections have not been prepared yet"
+    def _check_collections_prep(self):
+        if not self.prepared_collections:
+            raise InvalidCollectionConfiguration("Collections have not been prepared yet")
 
     def _get_all_collections_to_save(self) -> Set["Collection"]:
-        self._assert_prep()
+        self._check_collections_prep()
         return self._collections_to_save
 
     @error_handling_agent.catch_smdebug_errors(default_return_val=False)
@@ -341,7 +347,7 @@ class BaseHook:
 
     def _get_collections_to_save_for_step(self) -> Set["Collection"]:
         if self._collections_to_save_for_step is None:
-            self._assert_prep()
+            self._check_collections_prep()
             self._collections_to_save_for_step = set()
             for coll in self._get_all_collections_to_save():
                 if self.mode in [ModeKeys.EVAL, ModeKeys.PREDICT]:
@@ -369,7 +375,7 @@ class BaseHook:
         return False
 
     def _get_collections_with_tensor(self, tensor_name) -> Set["Collection"]:
-        self._assert_prep()
+        self._check_collections_prep()
         # for tf this will be prepopulated in check_and_add_tensor
         if tensor_name not in self.tensor_to_collections:
             # for mxnet it is computed and then cached
@@ -434,7 +440,7 @@ class BaseHook:
                 # Otherwise, set missing modes to the defaults
                 c.save_config.merge_default_save_config(self.save_config)
             else:
-                raise TypeError(f"save_config={c.save_config} must be None or SaveConfig")
+                raise SMDebugTypeError(f"save_config={c.save_config} must be None or SaveConfig")
 
             if c_name in NON_REDUCTION_COLLECTIONS:
                 c.reduction_config = ReductionConfig(save_raw_tensor=True)
@@ -521,7 +527,8 @@ class BaseHook:
             return None
 
         if self.mode in self.tb_writers:
-            assert self.tb_writers[self.mode] is not None
+            if self.tb_writers is None:
+                raise SMDebugRuntimeError("No TB writers are available")
             # would be there if set_mode was called
             return self.tb_writers[self.mode]
         else:
@@ -634,7 +641,7 @@ class BaseHook:
         if mode in ALLOWED_MODES:
             self.mode = mode
         else:
-            raise ValueError(
+            raise SMDebugValueError(
                 "Invalid mode {}. Valid modes are {}.".format(mode, ",".join(ALLOWED_MODE_NAMES))
             )
 
@@ -810,7 +817,7 @@ class BaseHook:
         name = CallbackHook.SCALAR_PREFIX + name
         val = self._make_numpy_array(value)
         if val.size != 1:
-            raise TypeError(f"{name} has non scalar value of type: {type(value)}")
+            raise SMDebugTypeError(f"{name} has non scalar value of type: {type(value)}")
         scalar_obj = ScalarCache(
             name, val, self.mode, sm_metric, write_tb=True, write_event=True, timestamp=timestamp
         )
@@ -976,7 +983,7 @@ class BaseHook:
 
     def add_collection(self, collection):
         if not isinstance(collection, Collection):
-            raise TypeError(
+            raise SMDebugTypeError(
                 f"collection must be an instance of Collection class. "
                 f"value of type {collection.__class__} is not supported"
             )
@@ -1035,7 +1042,7 @@ class CallbackHook(BaseHook):
 
     def _write(self, module_name, var, suffix, idx):
         if self.data_type_name is None:
-            raise RuntimeError("This method can not be called when data_type is None")
+            raise SMDebugRuntimeError("This method can not be called when data_type is None")
 
         if var.__class__.__name__ == self.data_type_name:
             self._save_for_tensor(module_name + suffix + str(idx), var)

@@ -2,6 +2,9 @@
 import json
 import os
 
+# First Party
+from smdebug.exceptions import SMDebugError, SMDebugTypeError, SMDebugValueError
+
 # Local
 from .access_layer import TSAccessFile, TSAccessS3
 from .collection import Collection
@@ -12,10 +15,10 @@ ALLOWED_PARAMS = ["collections", "_meta"]
 
 class CollectionManager:
     """
-  CollectionManager lets you manage group of collections.
-  It contains a default collection into which tensors are inserted
-  without specifying collection name
-  """
+    CollectionManager lets you manage group of collections.
+    It contains a default collection into which tensors are inserted
+    without specifying collection name
+    """
 
     def __init__(self, collections=None, create_default=False):
         if collections is None:
@@ -43,11 +46,12 @@ class CollectionManager:
             if create:
                 self.create_collection(name)
             else:
-                raise KeyError(f"Collection {name} has not been created")
+                raise SMDebugError(f"Collection {name} has not been created")
         return self.collections[name]
 
     def update_meta(self, meta):
-        assert isinstance(meta, dict)
+        if not isinstance(meta, dict):
+            raise SMDebugTypeError(f"meta should be a dict, got {type(meta)}")
         self._meta.update(meta)
 
     def get_num_workers(self):
@@ -94,7 +98,7 @@ class CollectionManager:
         params = load_json_as_dict(s)
         if params is not None:
             if any([x not in ALLOWED_PARAMS for x in params]):
-                raise ValueError(
+                raise SMDebugValueError(
                     "allowed params for collection manager can "
                     "only be one of " + ",".join(ALLOWED_PARAMS)
                 )

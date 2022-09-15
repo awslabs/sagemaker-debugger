@@ -12,6 +12,7 @@ import atexit
 
 # First Party
 from smdebug.core.logger import get_logger
+from smdebug.exceptions import SMDebugTypeError
 
 logger = get_logger()
 _ts_hook = None
@@ -21,7 +22,7 @@ def _create_hook(json_config_path, hook_class):
     from smdebug.core.hook import BaseHook  # prevent circular imports
 
     if not issubclass(hook_class, BaseHook):
-        raise TypeError("hook_class needs to be a subclass of BaseHook", hook_class)
+        raise SMDebugTypeError("hook_class needs to be a subclass of BaseHook", hook_class)
 
     # Either returns a hook or None
     try:
@@ -67,7 +68,7 @@ def set_hook(custom_hook: "BaseHook") -> None:
     from smdebug.core.hook import BaseHook  # prevent circular imports
 
     if not isinstance(custom_hook, BaseHook):
-        raise TypeError(f"custom_hook={custom_hook} must be type BaseHook")
+        raise SMDebugTypeError(f"custom_hook={custom_hook} must be type BaseHook")
 
     global _ts_hook
     _ts_hook = custom_hook

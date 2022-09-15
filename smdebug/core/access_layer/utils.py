@@ -10,6 +10,7 @@ from smdebug.core.access_layer.s3handler import DeleteRequest, ListRequest, S3Ha
 from smdebug.core.logger import get_logger
 from smdebug.core.sagemaker_utils import is_sagemaker_job
 from smdebug.core.utils import is_s3
+from smdebug.exceptions import SMDebugError
 
 # Local
 from .file import TSAccessFile
@@ -69,7 +70,7 @@ def file_exists(file_path):
             status_code = ex.response["ResponseMetadata"]["HTTPStatusCode"]
             logger.info(f"Client error occurred : {ex}")
             if status_code.startswith("4"):
-                raise ex
+                raise SMDebugError(ex)
             else:
                 return False
     else:
@@ -129,7 +130,7 @@ def check_dir_exists(path):
                 pass
             else:
                 # do not know the error
-                raise ex
+                raise SMDebugError(ex)
     elif os.path.exists(path) and has_training_ended(path):
         # Not changed to SMDebugError because it's interally caught
         return True
