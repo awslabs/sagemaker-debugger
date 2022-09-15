@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import time
 import copy
+import psutil
 
 from multiprocessing import Process, Queue, shared_memory
 
@@ -190,11 +191,14 @@ class S3SystemMetricsReader(SystemMetricsReader):
         self._refresh_event_file_list_s3_mode(list_dir)
 
 class S3NumpySystemMetricsReader(S3SystemMetricsReader):
-    #TODO: Settle the blurb below once the data structures clean up
     """
+    The fuctionality below is inspired by MetricsReaderBase
+    The reason to modify it here for S3NumpySystemMetricsReader is twofold:
+    1) Speed. We cut the get_events_within_time_range part; instead, we filter directly
+    2) Speed. Separation along algo-1, algo-2, etc requires a different code structure
+
     While the output of S3SystemMetricsReader is a list of events,
-    the output of S3NumpySystemMetricsReader is a dictionary of numpys (pandas? still evolving...)
-    We'll start with pandas owing to fillna, 
+    the output of S3NumpySystemMetricsReader is a list of numpys
     """
     separator = '#'
     fill_val = 101
@@ -202,28 +206,25 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
     def __init__(self, s3_trial_path, use_in_memory_cache, 
                  col_names, col_dict,
                  np_store, store_chunk_size, store_time_file_prefix,
-                 group_size, n_nodes, frequency, n_process=None):
+                 group_size, n_nodes, frequency, n_process=None, logger = None):
         super().__init__(s3_trial_path, use_in_memory_cache)
-        self.col_names = col_names #list of names of indicators
-        self.col_dict = col_dict #mapping from name to position. Possibly will decide not needed
+        self.col_names = col_names # list of names of indicators
+        self.col_dict = col_dict # mapping from name to position. Possibly will decide not needed
         self.np_store = np_store
         self.np_chunk_size = store_chunk_size
         self.tprefix = store_time_file_prefix
         self.group_size = group_size
         self.n_nodes = n_nodes
-        self.frequency = frequency #one out of  100, 200, 500, 1000, 5000, 60000. Can be inferred, not worth it
-        self.n_process = n_process #have a say on the S3 reading processes, may want to enforce
+        self.frequency = frequency # one out of  100, 200, 500, 1000, 5000, 60000. Can be inferred, not worth it
+        self.n_process = n_process # have a say on the S3 reading processes, may want to enforce
 
-    """
-    This function is the raison d'etre of a metric reader. It is defined in MetricsReaderBase
-    The reason to modify it here for S3NumpySystemMetricsReader is twofold:
-    1) Speed. We cut the get_events_within_time_range part; instead, we filter directly
-    2) Speed. Separation along algo-1, algo-2, etc requires a different code structure
-    """
+        if logger is not None:
+            self.logger = logger
+
     def _json_to_numpy(node_ind, start_time, end_time, freq_delta, 
                        num_rows, num_cols, np_chunk_size, event_data_list,
                        shared_mem_id, col_dict, 
-                       np_store, tprefix, queue):
+                       np_store, tprefix, queue, logger):
 
         min_row = num_rows
         max_row = 0
@@ -291,7 +292,8 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                     np_val_chunks[chunk_ind][cur_row_ind_in_chunk][col_ind] =\
                         int(event['Value'])
                 except:
-                    print ("chunk_id {} cur_row_ind_in_chunk {} col_ind {}".format(chunk_ind, cur_row_ind_in_chunk, col_ind))
+                    pass
+                    #print ("chunk_id {} cur_row_ind_in_chunk {} col_ind {}".format(chunk_ind, cur_row_ind_in_chunk, col_ind))
                 np_ragged_sizes[chunk_ind][col_ind] += 1
 
                 min_row = min(min_row, row_ind)
@@ -319,10 +321,13 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 min_time_in_chunk = min(min_time_in_chunk, min_t)
                 max_t = np_time_chunks[chunk_ind][n_entries-1][col_ind]
 
-                # assering that collection is more or less at freq_delta
-                #assert (max_t-min_t)/freq_delta < 1.01*(n_entries-1)
-                # TODO: take out, log instead
-                assert (max_t-min_t)/freq_delta < 1.01*n_entries
+                # Is the collection is more or less at freq_delta?
+                # assert (max_t-min_t)/freq_delta < 1.01*n_entries
+                if (max_t-min_t)/freq_delta > 1.01*n_entries:
+                    entries_ratio = (max_t-min_t)/(freq_delta*n_entries)
+
+                    logger.info("S3NumpyReader _json_to_np imbalance on node {}, ratio {}".format(
+                        node_ind, entries_ratio))
 
             if max_entries_in_chunk < 2:
                 continue
@@ -346,9 +351,12 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 fp_time.flush()
 
                 # store the relevant part of the filename
-                jagged_metadata[0].append(min_time_in_chunk)
+                jagged_metadata[0].append(min_time_in_chunk.item())
                 jagged_metadata[1].append(np_ragged_sizes[chunk_ind])
+                #print("RAGGED min_time_in_chunk type: {}".format(type(min_time_in_chunk.item())))
+                #print("RAGGED np_ragged_sized type: {}".format(type(np_ragged_sizes[chunk_ind])))
 
+        logger.info("S3NumpyReader _json_to_numpy FINISHED for node {}".format(node_ind))
         queue.put((node_ind, min_row, max_row, min_time, max_time, jagged_metadata))
 
     def get_events(
@@ -357,18 +365,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         end_time,
         unit=TimeUnits.MICROSECONDS
     ):
-        """
-        n_nodes argument: a helper, could be figured out but it is more
-        economical this way. Will be used to preallocate either:
-        1. A list of numpys. Each may have its own st_time/end_time 
-        if the nodes turn out to emit data out of sync
-        2. One 3 dimensional numpy, if the nodes turn out to be reasonably
-        in sync
-
-        For now, we test on one node, no issues
-        """
-
-        
         start_time = convert_utc_timestamp_to_microseconds(start_time, unit)
         end_time = convert_utc_timestamp_to_microseconds(end_time, unit)
 
@@ -406,15 +402,14 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             event_files_to_read[node_ind-1].append(event_file)
             file_read_requests[node_ind-1].append(ReadObjectRequest(path=event_file))
 
-        #n_process overrides the "min num file" threshold in S3Handler. We try to multiprocess more, aka a threshold of 100 files may be too much
         nan_per_sec = 1000000000
+
         st_loc1 = time.perf_counter_ns()
         for i in range (0, n_nodes):
             event_data_lists[i] = S3Handler.get_objects(file_read_requests[i], use_multiprocessing=True, n_process=self.n_process)
         en_loc1 = time.perf_counter_ns()
         self.logger.info("S3NumpyReader: retrieved jsons in {} seconds".format((en_loc1-st_loc1)/nan_per_sec))
 
-        #TODO 1. remove prints 2. get fancy later with n_rows
         num_rows = (end_time-start_time)//(self.frequency*1000)
         num_cols = len(self.col_names)
         np_chunk_size = self.np_chunk_size
@@ -432,8 +427,13 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         shared_mem_ids = [None]*n_nodes
         for i in range (0, n_nodes):
             shm = shared_memory.SharedMemory(create=True,
-                              size = num_rows*num_cols*np.dtype(np.double).itemsize)
+                              size = num_rows*num_cols*np.dtype(np.float64).itemsize)
             shared_mem_ids[i] = shm.name
+            # TODO: remove below. Added for shared mem checks
+            np_arr = np.ndarray(num_rows*num_cols,
+                        dtype=np.float64, buffer=shm.buf).reshape((num_rows, num_cols))
+            np_arr[:,:] = np.nan
+            self.logger.info("NumpyS3Reader: ALLOCATED AND NANED for node {}".format(i))
 
         """
         # separate files by nodes
@@ -455,7 +455,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                             num_rows, num_cols, np_chunk_size,
                             event_data_lists[i],
                             shared_mem_ids[i], copy.deepcopy(self.col_dict),
-                            self.np_store, self.tprefix, queue))
+                            self.np_store, self.tprefix, queue, self.logger))
             tasks[i].start()
         for i in range (0, n_nodes):
             tasks[i].join()
@@ -487,18 +487,18 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         Adjust min_row and max_row to multiples of group_size,
         similar for times
         """
-        print ("num_rows {}, min_row {}, max_row {}, group_size {}".format(num_rows, min_row, max_row, group_size))
+        #print ("num_rows {}, min_row {}, max_row {}, group_size {}".format(num_rows, min_row, max_row, group_size))
         min_row = (min_row//group_size)*group_size
         max_row = ((max_row)//group_size)*group_size + (group_size-1)
         min_time = (min_time//freq_delta_group)*freq_delta_group
         max_time = min_time + ((max_row-min_row)//group_size)*freq_delta_group
-        print ("num_rows {}, min_row {}, max_row {}, group_size {}".format(num_rows, min_row, max_row, group_size))
+        #print ("num_rows {}, min_row {}, max_row {}, group_size {}".format(num_rows, min_row, max_row, group_size))
         assert max_row < num_rows
 
         np_arrs = []
 
-        # Could multiprocess the backfill as well. Keep for now
-        post_process = True # TODO take out, as we always post proces 
+        # Could multiprocess the backfill as well. Not a bottleneck for now
+        post_process = True 
         for i in range (0, n_nodes):
             shm = shared_memory.SharedMemory(name=shared_mem_ids[i])
             arr_from_sh = np.ndarray(num_rows*num_cols,
@@ -507,9 +507,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
             np_arr = np_arr[min_row:max_row+1,:]
             assert (np_arr.shape[0]//group_size)*group_size == np_arr.shape[0]
-            #assert (max_time+freq_delta_group-min_time)//freq_delta_group == np_arr.shape[0]
 
-            #post process (fillna/etc) Move out to smdebug_kernel perhaps
             if post_process:
                 mask = np.isnan(np_arr)
                 self.logger.info("S3NumpyReader: {} nans out of {}".format(mask.sum(), np_arr.size))
@@ -517,7 +515,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 temp_df = pd.DataFrame(np_arr)
                 temp_df.fillna(method='ffill', axis=0, inplace=True)
                 temp_df.fillna(method='bfill', axis=0, inplace=True)
-                #fill_val = 0
                 fill_val = S3NumpySystemMetricsReader.fill_val
                 temp_df.fillna(fill_val, axis=0, inplace=True)
                 np_arr = temp_df.values
@@ -539,13 +536,12 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
         self.logger.info("S3NumpyReader: returned min/max times: {}/{}".format(min_time, max_time+freq_delta_group))
 
-        #add freq_delta for slicing consistency
         n = np_arr.shape[0]
-        # reason for returning an array of tuples: 
-        # We'll support toggling profiler on and off in the future
+        # Reason for returning an array of tuples: toggling macro profiler on/off
+        # Add freq_delta for slicing consistency
         return np_arrs, [[min_time, max_time+freq_delta_group]], jagged_metadata
 
-    #mono: collects 1 numpy
+    # mono: collects 1 numpy. Not multiprocessed; will be deleted once testing is done
     def get_events_mono(
         self,
         start_time,
@@ -602,14 +598,12 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         en_loc1 = time.perf_counter_ns()
         self.logger.info("S3NumpyReader: retrieved jsons in {} seconds".format((en_loc1-st_loc1)/nan_per_sec))
 
-        #TODO 1. remove prints 2. get fancy later with n_rows
         num_rows = (end_time-start_time)//(self.frequency*1000)
         num_cols = len(self.col_names)
         self.logger.info("NumpyS3Reader: untrimmed DF shape ({},{})".format(num_rows,len(self.col_names)))
         np_arr = np.full((num_rows, len(self.col_names)), np.nan)
 
         np_chunk_size = self.np_chunk_size
-        print ("np_chunk_size {}".format(np_chunk_size))
 
         num_chunks = (num_rows+np_chunk_size-1)//np_chunk_size
         np_val_chunks = [None]*num_chunks
@@ -636,7 +630,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         separator = S3NumpySystemMetricsReader.separator
 
         st_loc1 = time.perf_counter_ns()
-        #n_files = len(event_files_to_read)
         for event_data, event_file in zip(event_data_list, event_files_to_read):
             event_string = event_data.decode("utf-8")
             event_items = event_string.split("\n")
@@ -647,7 +640,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                    event['Name'].startswith("gpu") == False: #not used
                     continue
                 col_ind = self.col_dict[event['Name']+separator+event['Dimension']]
-                #cur_time = convert_utc_timestamp_to_microseconds(event['Timestamp'], unit)
                 cur_time = int(event['Timestamp']*1000000) #fast
 
                 cur_rounded_time = (cur_time//freq_delta)*freq_delta
@@ -664,7 +656,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 np_arr[row_ind,col_ind] = event['Value']
 
                 # Store the data that will be written to disk
-                # TODO: protect against overflow
                 cur_row_ind_in_chunk = np_ragged_sizes[chunk_ind][col_ind]
                 try:
                     np_time_chunks[chunk_ind][cur_row_ind_in_chunk][col_ind] =\
@@ -672,7 +663,8 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                     np_val_chunks[chunk_ind][cur_row_ind_in_chunk][col_ind] =\
                         int(event['Value'])
                 except:
-                    print ("chunk_id {} cur_row_ind_in_chunk {} col_ind {}".format(chunk_ind, cur_row_ind_in_chunk, col_ind))
+                    pass
+                    #print ("chunk_id {} cur_row_ind_in_chunk {} col_ind {}".format(chunk_ind, cur_row_ind_in_chunk, col_ind))
                 np_ragged_sizes[chunk_ind][col_ind] += 1
 
                 min_row = min(min_row, row_ind)
@@ -702,7 +694,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         os.makedirs(os.path.join(self.np_store, node_name), exist_ok=True)
         jagged_metadata[node_ind] = [[], []]
 
-        print ("Number of chunks {}".format(num_chunks))
         for chunk_ind in range (0, num_chunks):
             max_entries_in_chunk = 0
             min_time_in_chunk = max_time # This will yield a filename
@@ -746,9 +737,11 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 fp_time.flush()
 
                 # store the relevant part of the filename
+
+                #self.logger.info("RAGGED min_time_in_chunk type: {}".format(type(min_time_in_chunk)))
+                #self.logger.info("RAGGED np_ragged_sized type: {}".format(type(np_ragged_sizes[chunk_ind])))
                 jagged_metadata[node_ind][0].append(min_time_in_chunk)
                 jagged_metadata[node_ind][1].append(np_ragged_sizes[chunk_ind])
-                print (np_ragged_sizes[chunk_ind]) # TODO: remove; visually checking
 
         en_loc1 = time.perf_counter_ns()
         self.logger.info("S3NumpyReader: write numpys to disk in {} seconds".format((en_loc1-st_loc1)/nan_per_sec))
@@ -760,7 +753,6 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             mask = np.isnan(np_arr)
             self.logger.info("S3NumpyReader: {} nans out of {}".format(mask.sum(), np_arr.size))
             st_loc = time.perf_counter_ns()
-            #print (np_arr[0:100,:])
             temp_df = pd.DataFrame(np_arr)
             temp_df.fillna(method='ffill', axis=0, inplace=True)
             temp_df.fillna(method='bfill', axis=0, inplace=True)

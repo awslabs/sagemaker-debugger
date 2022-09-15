@@ -228,8 +228,6 @@ class S3Handler:
             else:
                 ctx = multiprocessing.get_context()
             pool_size = S3Handler.MULTIPROCESSING_POOL_SIZE if n_process is None else n_process*2
-            #TODO remove print statement
-            print("Pool size {}".format(pool_size))
             with ctx.Pool(pool_size) as pool:
                 data = pool.map(S3Handler.get_object, object_requests)
         else:
