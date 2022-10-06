@@ -17,7 +17,7 @@ env:
     run_integration_pytest_tensorflow2: "disable"
     run_integration_pytest_xgboost: "disable"
     # below needs to be enabled
-    zero_code_change_test: "enable"
+    zero_code_change_test: "disable"
     # set code coverage flag
     code_coverage_smdebug: "true"
     build_type: "pr" # must be one of pr, nightly or release
