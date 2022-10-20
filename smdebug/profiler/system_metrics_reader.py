@@ -5,11 +5,14 @@ import json
 import simplejson as sjson
 import orjson as ojson
 import os
+import io
+import pickle
 import pandas as pd
 import numpy as np
 import time
 import copy
 import psutil
+import boto3
 
 from multiprocessing import Process, Queue, shared_memory
 
@@ -201,12 +204,15 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
     the output of S3NumpySystemMetricsReader is a list of numpys
     """
     separator = '#'
+    accu_prefix = 'accu_'
     fill_val = 101
 
     def __init__(self, s3_trial_path, use_in_memory_cache, 
                  col_names, col_dict,
                  np_store, store_chunk_size, store_time_file_prefix,
-                 group_size, n_nodes, frequency, n_process=None, logger = None):
+                 group_size, n_nodes, frequency, 
+                 accumulate_forward = False, accumulate_minutes = 20,
+                 n_process=None, logger = None):
         super().__init__(s3_trial_path, use_in_memory_cache)
         self.col_names = col_names # list of names of indicators
         self.col_dict = col_dict # mapping from name to position. Possibly will decide not needed
@@ -221,9 +227,88 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         if logger is not None:
             self.logger = logger
 
+        """
+        The fields below serve the following purpose (long story):
+        The reader is used for ingesting profiling data, the users of the reader
+        prioritizing frash data over old.
+        Old data will be ingested in larger chunks; when written to disk this 
+        will not cause file fragmentation.
+        Fresh data will be ingested more often (to keep current) which leads to
+        file fragmentation. To address this, when ingesting fresh data (smaller
+        data batches) we will also accumulate the data from these batches until it
+        reaches a threshold, and then we send it to the user. The user has the
+        option of doing file manipulation: small files written so far can be deleted
+        and only the accumulated version can be kept.
+
+        The reader works under the assumption that readin requests for old and
+        new data may alternate: we name read requests for old data "backwards" reads
+        and read requests for new data "forward" reads.
+        For the purpose of accumulating small reads, we are concerned only with
+        forward reads.
+        """
+        self.accu = accumulate_forward
+        self.accu_mins = accumulate_minutes
+        self.accu_delta = accumulate_minutes * 60 * 1000000 # microseconds
+        self.last_accu_start_time = 0
+        self.accu_n_rows = 0
+        self.accu_val_mem_ids = [None]*n_nodes 
+        self.accu_time_mem_ids = [None]*n_nodes
+        self.accu_cnt_mem_ids = [None]*n_nodes
+        self.init_accumulators()
+
+    def __del__(self):
+        for i in range (0, self.n_nodes):
+            if self.accu_val_mem_ids[i] is not None:
+               shm = shared_memory.SharedMemory(name=self.accu_val_mem_ids[i])
+               shm.unlink()
+               shm.close()
+
+            if self.accu_time_mem_ids[i] is not None:
+               shm = shared_memory.SharedMemory(name=self.accu_time_mem_ids[i])
+               shm.unlink()
+               shm.close()
+
+            if self.accu_cnt_mem_ids[i] is not None:
+               shm = shared_memory.SharedMemory(name=self.accu_cnt_mem_ids[i])
+               shm.unlink()
+               shm.close()
+
+    def init_accumulators(self):
+        if self.accu is False:
+            return
+
+        num_rows = self.accu_mins * 60 * 10 # Max, at highest frequency
+        num_rows = num_rows + num_rows//10 # Buffer
+        num_cols = len(self.col_names)
+        self.accu_n_rows = num_rows
+
+        for i in range (0, self.n_nodes):
+            shm = shared_memory.SharedMemory(create=True,
+                              size = num_rows*num_cols*np.dtype(np.int32).itemsize)
+            self.accu_val_mem_ids[i] = shm.name
+            shm.close()
+
+            shm = shared_memory.SharedMemory(create=True,
+                              size = num_rows*num_cols*np.dtype(np.int64).itemsize)
+            self.accu_time_mem_ids[i] = shm.name
+            times = np.ndarray((num_rows,num_cols), dtype=np.int64, buffer=shm.buf)
+            times[:] = 0 # Useful when determining min time
+            shm.close()
+
+            shm = shared_memory.SharedMemory(create=True,
+                              size = num_cols*np.dtype(np.int32).itemsize)
+            self.accu_cnt_mem_ids[i] = shm.name
+            counts = np.ndarray((num_cols,), dtype=np.int32, buffer=shm.buf)
+            counts[:] = 0
+            shm.close()
+
+            self.logger.info("NumpyS3Reader: ALLOCATED ACCU MEM for node {}".format(i))
+
     def _json_to_numpy(node_ind, start_time, end_time, freq_delta, 
                        num_rows, num_cols, np_chunk_size, event_data_list,
-                       shared_mem_id, col_dict, 
+                       shared_mem_id, col_dict,
+                       accu_val_mem_id, accu_time_mem_id, 
+                       accu_cnt_mem_id, accu_num_rows,
                        np_store, tprefix, queue, logger):
 
         min_row = num_rows
@@ -236,6 +321,29 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         np_time_chunks = [None]*num_chunks
         np_ragged_sizes = [None]*num_chunks
         jagged_metadata = [[], []]
+
+        accu_shm_count = None
+        accu_shm_val = None
+        accu_shm_time = None
+        accu_counts = None
+        accu_vals = None
+        accu_times = None
+
+        if accu_val_mem_id is not None:
+            assert accu_time_mem_id is not None
+            assert accu_cnt_mem_id is not None
+
+            accu_shm_count = shared_memory.SharedMemory(name=accu_cnt_mem_id)
+            accu_counts =\
+                np.ndarray((num_cols,), dtype=np.int32, buffer=accu_shm_count.buf)
+
+            accu_shm_val = shared_memory.SharedMemory(name=accu_val_mem_id)
+            accu_vals = np.ndarray((accu_num_rows, num_cols),
+                                   dtype=np.int32, buffer=accu_shm_val.buf)
+
+            accu_shm_time = shared_memory.SharedMemory(name=accu_time_mem_id)
+            accu_times = np.ndarray((accu_num_rows, num_cols),
+                               dtype=np.int64, buffer=accu_shm_time.buf)
 
         n_extra = np_chunk_size//100
         for i in range (0, num_chunks):
@@ -285,6 +393,12 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 else:
                     n_nonzeros += 1
 
+                if accu_val_mem_id is not None:
+                    cur_count = accu_counts[col_ind]
+                    accu_vals[cur_count][col_ind] = int(event['Value'])
+                    accu_times[cur_count][col_ind] = cur_time
+                    accu_counts[col_ind] += 1
+
                 cur_row_ind_in_chunk = np_ragged_sizes[chunk_ind][col_ind]
                 try:
                     np_time_chunks[chunk_ind][cur_row_ind_in_chunk][col_ind] =\
@@ -303,8 +417,14 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         
         shm.close()
 
-        node_name = "algo-"+str(node_ind+1)
-        os.makedirs(os.path.join(np_store, node_name), exist_ok=True)
+        if accu_val_mem_id is not None:
+            accu_shm_count.close()
+            accu_shm_val.close()
+            accu_shm_time.close()
+
+        node_name = S3NumpySystemMetricsReader.node_name_from_index(node_ind)
+        if not np_store.startswith("s3://"):
+            os.makedirs(os.path.join(np_store, node_name), exist_ok=True)
 
         for chunk_ind in range (0, num_chunks):
             max_entries_in_chunk = 0
@@ -333,23 +453,11 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 continue
 
             if max_entries_in_chunk > 0:
-                val_filename =\
-                   str(min_time_in_chunk) + separator + str(node_ind+1) + ".npy"
-                time_filename = tprefix + separator + val_filename
-                val_filepath = os.path.join(np_store, node_name, val_filename)
-                time_filepath = os.path.join(np_store, node_name, time_filename)
-
-                fp_val = np.memmap(val_filepath,
-                                   dtype=np.int32, offset=0, mode='w+',
-                                   shape = (np_chunk_size+n_extra, num_cols))
-                fp_time = np.memmap(time_filepath,
-                                   dtype=np.int64, offset=0, mode='w+',
-                                   shape = (np_chunk_size+n_extra, num_cols))
-                fp_val[:] = np_val_chunks[chunk_ind]
-                fp_time[:] = np_time_chunks[chunk_ind]
-                fp_val.flush()
-                fp_time.flush()
-
+                
+                shp = (np_chunk_size+n_extra, num_cols)
+                S3NumpySystemMetricsReader.store_vals_times(
+                         node_ind, min_time_in_chunk, np_store, tprefix,
+                         shp, np_val_chunks[chunk_ind], np_time_chunks[chunk_ind])
                 # store the relevant part of the filename
                 jagged_metadata[0].append(min_time_in_chunk.item())
                 jagged_metadata[1].append(np_ragged_sizes[chunk_ind])
@@ -363,12 +471,22 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         self,
         start_time,
         end_time,
+        forward,
         unit=TimeUnits.MICROSECONDS
     ):
         start_time = convert_utc_timestamp_to_microseconds(start_time, unit)
         end_time = convert_utc_timestamp_to_microseconds(end_time, unit)
-
         self.logger.info("S3NumpyReader requesting {}, {}".format(start_time, end_time))
+
+        """
+        If forward accumulation (see __init__ ...) do some book keeping
+        Also, flush the "accumulated" files to disk and prepare 
+        "accumulated" jagged metadata
+        to return
+        """
+        jagged_accu_metadata =\
+                self.collect_accu_metadata(start_time, end_time, forward)
+
         n_nodes = self.n_nodes
         group_size = self.group_size
         freq_delta = self.frequency*1000
@@ -450,11 +568,13 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         tasks = [None]*n_nodes
         for i in range (0, n_nodes):
             tasks[i] = Process(target=S3NumpySystemMetricsReader._json_to_numpy,
-                            args=(i, start_time, end_time, freq_delta,
-                            num_rows, num_cols, np_chunk_size,
-                            event_data_lists[i],
-                            shared_mem_ids[i], copy.deepcopy(self.col_dict),
-                            self.np_store, self.tprefix, queue, self.logger))
+                          args=(i, start_time, end_time, freq_delta,
+                          num_rows, num_cols, np_chunk_size,
+                          event_data_lists[i],
+                          shared_mem_ids[i], copy.deepcopy(self.col_dict),
+                          self.accu_val_mem_ids[i], self.accu_time_mem_ids[i],
+                          self.accu_cnt_mem_ids[i], self.accu_n_rows,
+                          self.np_store, self.tprefix, queue, self.logger))
             tasks[i].start()
         for i in range (0, n_nodes):
             tasks[i].join()
@@ -530,15 +650,92 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 self.logger.info("S3NumpyReader: DF Non naning took {} seconds".format((en_loc-st_loc)/nan_per_sec))
 
                 np_arrs.append(np.copy(np_arr)) #np.copy? relationship to "unlink"?
-                shm.close()
-                shm.unlink()
+            shm.close()
+            shm.unlink()
 
         self.logger.info("S3NumpyReader: returned min/max times: {}/{}".format(min_time, max_time+freq_delta_group))
 
         n = np_arr.shape[0]
         # Reason for returning an array of tuples: toggling macro profiler on/off
         # Add freq_delta for slicing consistency
-        return np_arrs, [[min_time, max_time+freq_delta_group]], jagged_metadata
+        return np_arrs, [[min_time, max_time+freq_delta_group]], jagged_metadata, jagged_accu_metadata
+
+    def collect_accu_metadata(self, start_time: int, end_time: int, forward: bool):
+        if self.accu is False or forward is False:
+            return None
+
+        if self.last_accu_start_time == 0:
+            # Initialize
+            self.last_accu_start_time = start_time
+
+        assert end_time - start_time < self.accu_delta # Accumulate smaller chunks
+
+        if end_time - self.last_accu_start_time <=  self.accu_delta:
+            return None # Did not accumulate enough
+
+        """
+        Write files to disk 
+        collect jagged metadata,
+        reset accu_cnts
+        reset last_accu_start_time and return jagged_accu_metadata
+        """
+
+        self.logger.info ("S3NumpyReader: writting accumulated data")
+
+        num_cols = len(self.col_names)
+        num_rows = self.accu_n_rows
+        np_store = self.np_store
+        tprefix = self.tprefix
+        separator = S3NumpySystemMetricsReader.separator
+        accu_prefix = S3NumpySystemMetricsReader.accu_prefix
+
+        jagged_metadata_supp = [None]*self.n_nodes
+
+        for i in range (0, self.n_nodes):
+            jagged_metadata_loc = []
+            assert self.accu_cnt_mem_ids[i] is not None
+            shm_count = shared_memory.SharedMemory(name=self.accu_cnt_mem_ids[i])
+            counts = np.ndarray((num_cols,), dtype=np.int32, buffer=shm_count.buf)
+            num_effective_rows = np.amax(counts)
+            assert num_effective_rows <= num_rows
+            self.logger.info ("S3NumpyReader: rows: {} effective rows: {}".\
+                    format(num_rows, num_effective_rows))
+
+            shm_val = shared_memory.SharedMemory(name=self.accu_val_mem_ids[i])
+            vals = np.ndarray((num_rows, num_cols), dtype=np.int32, buffer=shm_val.buf)
+            effective_vals = vals[0:num_effective_rows,:]
+
+            shm_time = shared_memory.SharedMemory(name=self.accu_time_mem_ids[i])
+            times = np.ndarray((num_rows, num_cols), dtype=np.int64, buffer=shm_time.buf)
+            effective_times = times[0:num_effective_rows,:]
+
+            # Get the minimum occuring time to be used in filename
+            first_times = effective_times[0,:]
+            min_time = np.amax(first_times)
+            for j in range (0, num_cols):
+                if first_times[j] > 0:
+                    min_time = min(first_times[j], min_time)
+
+            shp = (num_effective_rows, num_cols)
+
+            S3NumpySystemMetricsReader.store_vals_times(
+                        i, min_time, np_store, tprefix,
+                        shp, effective_vals, effective_times, accu_prefix)
+            
+            jagged_metadata_loc.append(min_time)
+            jagged_metadata_loc.append(np.copy(counts))
+            jagged_metadata_supp[i] = jagged_metadata_loc
+            
+            # Reset counts
+            counts[:] = 0
+
+            shm_count.close()
+            shm_val.close()
+            shm_time.close()
+
+        self.last_accu_start_time = start_time
+ 
+        return jagged_metadata_supp
 
     def get_group_size(self):
         return self.group_size
@@ -554,4 +751,65 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             StartAfter=self._startAfter_prefix if self._startAfter_prefix else self.prefix,
         )
         self._refresh_event_file_list_s3_mode(list_dir)
+
+    @staticmethod
+    def node_name_from_index(node_id):
+        node_name = "algo-"+str(node_id+1)
+        return node_name
+
+    @staticmethod
+    def split_s3_path(s3_path):
+        path_parts=s3_path.replace("s3://","").split("/")
+        bucket=path_parts.pop(0)
+        key="/".join(path_parts)
+        return bucket, key
+
+    @staticmethod
+    def stored_fnames(node_id, file_min_time, tprefix, accu_prefix = None):
+        separator = S3NumpySystemMetricsReader.separator
+        val_filename = str(file_min_time) + separator + str(node_id+1) + ".npy"
+        time_filename = tprefix + separator + val_filename
+
+        if accu_prefix is not None:
+            val_filename = accu_prefix + val_filename
+            time_filename = accu_prefix + time_filename
+
+        return val_filename, time_filename
+
+    @staticmethod
+    def store_vals_times(node_ind, min_time_in_chunk, np_store, tprefix,
+                         shp, np_val, np_time, accu_prefix = None):
+        val_filename, time_filename =\
+            S3NumpySystemMetricsReader.stored_fnames(
+                    node_ind, min_time_in_chunk, tprefix, accu_prefix)
+        node_name = S3NumpySystemMetricsReader.node_name_from_index(node_ind)
+
+        if np_store.startswith("s3://"):
+            s3_client = boto3.client('s3')
+            bucket, key = S3NumpySystemMetricsReader.split_s3_path(np_store)
+
+            val_data = io.BytesIO()
+            pickle.dump(np_val, val_data)
+            val_data.seek(0)
+            val_filepath = os.path.join(key, node_name, val_filename)
+            s3_client.upload_fileobj(val_data, bucket, val_filepath)
+
+            time_data = io.BytesIO()
+            pickle.dump(np_time, time_data)
+            time_data.seek(0)
+            time_filepath = os.path.join(key, node_name, time_filename)
+            s3_client.upload_fileobj(time_data, bucket, time_filepath)
+        else:
+            val_filepath = os.path.join(np_store, node_name, val_filename)
+            time_filepath = os.path.join(np_store, node_name, time_filename)
+
+            fp_val = np.memmap(val_filepath,
+                               dtype=np.int32, offset=0, mode='w+', shape = shp)
+            fp_time = np.memmap(time_filepath,
+                               dtype=np.int64, offset=0, mode='w+', shape = shp)
+            fp_val[:] = np_val
+            fp_time[:] = np_time
+            fp_val.flush()
+            fp_time.flush()
+
 
