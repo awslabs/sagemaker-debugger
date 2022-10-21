@@ -230,7 +230,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         """
         The fields below serve the following purpose (long story):
         The reader is used for ingesting profiling data, the users of the reader
-        prioritizing frash data over old.
+        prioritizing fresh data over old.
         Old data will be ingested in larger chunks; when written to disk this 
         will not cause file fragmentation.
         Fresh data will be ingested more often (to keep current) which leads to
@@ -240,7 +240,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         option of doing file manipulation: small files written so far can be deleted
         and only the accumulated version can be kept.
 
-        The reader works under the assumption that readin requests for old and
+        The reader works under the assumption that reading requests for old and
         new data may alternate: we name read requests for old data "backwards" reads
         and read requests for new data "forward" reads.
         For the purpose of accumulating small reads, we are concerned only with
@@ -393,11 +393,14 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 else:
                     n_nonzeros += 1
 
-                if accu_val_mem_id is not None:
-                    cur_count = accu_counts[col_ind]
-                    accu_vals[cur_count][col_ind] = int(event['Value'])
-                    accu_times[cur_count][col_ind] = cur_time
-                    accu_counts[col_ind] += 1
+                try: 
+                    if accu_val_mem_id is not None and accu_counts[col_ind] < accu_num_rows:
+                        cur_count = accu_counts[col_ind]
+                        accu_vals[cur_count][col_ind] = int(event['Value'])
+                        accu_times[cur_count][col_ind] = cur_time
+                        accu_counts[col_ind] += 1
+                except:
+                    pass
 
                 cur_row_ind_in_chunk = np_ragged_sizes[chunk_ind][col_ind]
                 try:
@@ -572,8 +575,10 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                           num_rows, num_cols, np_chunk_size,
                           event_data_lists[i],
                           shared_mem_ids[i], copy.deepcopy(self.col_dict),
-                          self.accu_val_mem_ids[i], self.accu_time_mem_ids[i],
-                          self.accu_cnt_mem_ids[i], self.accu_n_rows,
+                          self.accu_val_mem_ids[i] if forward else None,
+                          self.accu_time_mem_ids[i] if forward else None,
+                          self.accu_cnt_mem_ids[i] if forward else None,
+                          self.accu_n_rows,
                           self.np_store, self.tprefix, queue, self.logger))
             tasks[i].start()
         for i in range (0, n_nodes):
@@ -733,6 +738,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             shm_val.close()
             shm_time.close()
 
+        # Reset accumulator start time
         self.last_accu_start_time = start_time
  
         return jagged_metadata_supp
