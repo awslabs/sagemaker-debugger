@@ -2,7 +2,6 @@
 
 import bisect
 import json
-import simplejson as sjson
 import os
 import io
 import sys
