@@ -5,6 +5,7 @@ import json
 import simplejson as sjson
 import os
 import io
+import sys
 import pickle
 import pandas as pd
 import numpy as np
@@ -13,7 +14,8 @@ import copy
 import psutil
 import boto3
 
-from multiprocessing import Process, Queue, shared_memory
+if sys.version_info.minor > 7:
+    from multiprocessing import Process, Queue, shared_memory
 
 # First Party
 from smdebug.core.access_layer.s3handler import ListRequest, ReadObjectRequest, S3Handler, is_s3
