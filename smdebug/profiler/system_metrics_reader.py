@@ -3,7 +3,6 @@
 import bisect
 import json
 import simplejson as sjson
-import orjson as ojson
 import os
 import io
 import pickle
