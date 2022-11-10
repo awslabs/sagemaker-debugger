@@ -80,6 +80,3 @@ def test_gradtape_tf_function(out_dir):
     ]
     assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["inputs"]
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
-
-output_dir = "/tmp/test"
-test_gradtape_tf_function(output_dir)
