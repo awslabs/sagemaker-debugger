@@ -1,5 +1,6 @@
 # Third Party
 import tensorflow as tf
+import keras
 
 # First Party
 import smdebug.tensorflow as smd
@@ -41,7 +42,7 @@ def test_gradtape_tf_function(out_dir):
     dataset = dataset.shuffle(1000).batch(64)
     model = create_model()
     hook = create_hook(out_dir)
-    opt = tf.keras.optimizers.Adam()
+    opt = keras.optimizers.optimizer_v2.adam.Adam()
     hook.wrap_optimizer(opt)
 
     n_epochs = 1
@@ -79,3 +80,6 @@ def test_gradtape_tf_function(out_dir):
     ]
     assert trial.tensor_names(collection=CollectionKeys.INPUTS) == ["inputs"]
     assert trial.tensor_names(collection=CollectionKeys.OUTPUTS) == ["labels", "logits"]
+
+output_dir = "/tmp/test"
+test_gradtape_tf_function(output_dir)
