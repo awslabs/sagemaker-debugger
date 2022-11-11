@@ -1,6 +1,7 @@
 # Third Party
 import tensorflow as tf
 import keras
+from packaging import version
 
 # First Party
 import smdebug.tensorflow as smd
@@ -42,7 +43,11 @@ def test_gradtape_tf_function(out_dir):
     dataset = dataset.shuffle(1000).batch(64)
     model = create_model()
     hook = create_hook(out_dir)
-    opt = keras.optimizers.optimizer_v2.adam.Adam()
+    if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
+        opt = keras.optimizers.optimizer_v2.adam.Adam()
+    else:
+        opt = tf.keras.optimizers.Adam()
+
     hook.wrap_optimizer(opt)
 
     n_epochs = 1
