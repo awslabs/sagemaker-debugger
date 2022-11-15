@@ -15,6 +15,12 @@ from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_3, is_tf_2_6
 from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
 
+if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
+    import keras
+    from keras.optimizers.optimizer_v2.adam import Adam
+else:
+    from tensorflow.keras.optimizers import Adam
+
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
@@ -92,7 +98,7 @@ def train_model(
                 if cname not in include_collections:
                     hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
-    opt = tf.keras.optimizers.Adam()
+    opt = Adam()
 
     opt = hook.wrap_optimizer(opt)
 
