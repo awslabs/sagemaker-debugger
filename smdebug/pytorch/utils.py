@@ -14,7 +14,7 @@ from smdebug.exceptions import SMDebugError
 # Cached Pytorch Version
 PT_VERSION = version.parse(torch.__version__)
 
-SUPPORTED_PT_VERSION_THRESHOLD = version.parse("1.13.0")
+SUPPORTED_PT_VERSION_THRESHOLD = version.parse("1.14.0")
 
 
 def get_reduction_of_data(reduction_name, tensor_data, tensor_name, abs=False):
