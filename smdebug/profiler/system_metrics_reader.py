@@ -520,6 +520,8 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             comps = event_file.split('.')
             comps = comps[1].split('-')
             node_ind = int(comps[1]) #TODO error handling
+            if node_ind > n_nodes:
+                continue
             event_files_to_read[node_ind-1].append(event_file)
             file_read_requests[node_ind-1].append(ReadObjectRequest(path=event_file))
 
