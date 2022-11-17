@@ -242,7 +242,7 @@ class S3Handler:
         elif path is not None:
             on_s3, bucket, prefix = is_s3(path)
             if on_s3 is False:
-                raise ValueError("Given path is not an S3 location")
+                raise SMDebugError(ValueError("Given path is not an S3 location"))
             delete_requests = [DeleteRequest(bucket, prefix)]
             S3Handler.delete_prefixes(delete_requests)
         elif delete_request is not None:
