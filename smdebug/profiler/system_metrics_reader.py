@@ -29,9 +29,6 @@ from smdebug.profiler.utils import get_utctimestamp_us_since_epoch_from_system_p
 from smdebug.profiler.utils import (
     TimeUnits,
     convert_utc_timestamp_to_microseconds,
-    is_valid_tfprof_tracefilename,
-    is_valid_tracefilename,
-    validate_system_profiler_file,
 )
 
 class SystemMetricsReader(MetricsReaderBase):
