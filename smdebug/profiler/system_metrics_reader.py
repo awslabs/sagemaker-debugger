@@ -167,10 +167,7 @@ class S3SystemMetricsReader(SystemMetricsReader):
                 event_files_to_read.append(event_file)
                 file_read_requests.append(ReadObjectRequest(path=event_file))
 
-        st_loc1 = time.perf_counter_ns()
         event_data_list = S3Handler.get_objects(file_read_requests)
-        en_loc1 = time.perf_counter_ns()
-        self.logger.info("Plain S3 reader retrieved data in {} seconds".format((en_loc1-st_loc1)/1000000000))
 
         for event_data, event_file in zip(event_data_list, event_files_to_read):
             event_string = event_data.decode("utf-8")
