@@ -215,12 +215,12 @@ class S3Handler:
         return None
 
     @staticmethod
-    def get_objects(object_requests, use_multiprocessing=True):
+    def get_objects(object_requests, use_multiprocessing=True, n_process=None):
         if type(object_requests) != list:
             raise SMDebugTypeError("get_objects accepts a list of ReadObjectRequest objects")
         if (
             use_multiprocessing
-            and len(object_requests) >= S3Handler.GET_OBJECTS_MULTIPROCESSING_THRESHOLD
+            and (len(object_requests) >= S3Handler.GET_OBJECTS_MULTIPROCESSING_THRESHOLD or n_process is not None and len(object_requests) > n_process)
             and sys.platform != "win32"  # Windows Jupyter has trouble with multiprocessing
         ):
             if sys.platform == "darwin":
@@ -228,7 +228,8 @@ class S3Handler:
                 ctx = multiprocessing.get_context("spawn")
             else:
                 ctx = multiprocessing.get_context()
-            with ctx.Pool(S3Handler.MULTIPROCESSING_POOL_SIZE) as pool:
+            pool_size = S3Handler.MULTIPROCESSING_POOL_SIZE if n_process is None else n_process*2
+            with ctx.Pool(pool_size) as pool:
                 data = pool.map(S3Handler.get_object, object_requests)
         else:
             data = [S3Handler.get_object(object_request) for object_request in object_requests]

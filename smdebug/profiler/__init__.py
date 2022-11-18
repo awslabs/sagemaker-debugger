@@ -5,6 +5,7 @@ from .system_metrics_reader import (
     LocalSystemMetricsReader,
     ProfilerSystemEvents,
     S3SystemMetricsReader,
+    S3NumpySystemMetricsReader,
 )
 from .system_profiler_file_parser import SystemProfilerEventParser
 from .tf_profiler_parser import (
