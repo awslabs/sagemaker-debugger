@@ -650,7 +650,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 en_loc = time.perf_counter_ns()
                 self.logger.info("S3NumpyReader: DF Non naning took {} seconds".format((en_loc-st_loc)/nan_per_sec))
 
-                np_arrs.append(np.copy(np_arr)) #np.copy? relationship to "unlink"?
+            np_arrs.append(np.copy(np_arr)) #np.copy? relationship to "unlink"?
             shm.close()
             shm.unlink()
 
