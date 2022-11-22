@@ -359,12 +359,20 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         
         n_zeros = 0
         n_nonzeros = 0
+        network_used = []
+        cpu_memory_used = []
         for event_data in event_data_list:
             event_string = event_data.decode("utf-8")
             event_items = event_string.split("\n")
             event_items.remove("")
             for item in event_items:
                 event = json.loads(item) #ojson better
+                if event['Dimension'] == "Algorithm":
+                    network_used.append(int(event['Value']))
+                    continue
+                if event['Name'] == "MemoryUsedPercent":
+                    cpu_memory_used.append( float(event['Value']))
+                    continue
                 if event['Name'].startswith("cpu") == False and\
                    event['Name'].startswith("gpu") == False:
                     continue
@@ -460,6 +468,11 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                 jagged_metadata[1].append(np_ragged_sizes[chunk_ind])
                 #print("RAGGED min_time_in_chunk type: {}".format(type(min_time_in_chunk.item())))
                 #print("RAGGED np_ragged_sized type: {}".format(type(np_ragged_sizes[chunk_ind])))
+        
+        network_used = np.array(network_used)
+        cpu_memory_used = np.array(cpu_memory_used)
+        S3NumpySystemMetricsReader.store_vals(node_ind, min_time, np_store, (len(network_used),), network_used, val_type="Network")
+        S3NumpySystemMetricsReader.store_vals(node_ind, min_time, np_store, (len(cpu_memory_used),), cpu_memory_used, val_type="CPUmemory", dtype=np.float)
 
         logger.info("S3NumpyReader _json_to_numpy FINISHED for node {}".format(node_ind))
         queue.put((node_ind, min_row, max_row, min_time, max_time, jagged_metadata))
@@ -787,31 +800,40 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         node_name = S3NumpySystemMetricsReader.node_name_from_index(node_ind)
 
         if np_store.startswith("s3://"):
-            s3_client = boto3.client('s3')
-            bucket, key = S3NumpySystemMetricsReader.split_s3_path(np_store)
-
-            val_data = io.BytesIO()
-            pickle.dump(np_val, val_data)
-            val_data.seek(0)
-            val_filepath = os.path.join(key, node_name, val_filename)
-            s3_client.upload_fileobj(val_data, bucket, val_filepath)
-
-            time_data = io.BytesIO()
-            pickle.dump(np_time, time_data)
-            time_data.seek(0)
-            time_filepath = os.path.join(key, node_name, time_filename)
-            s3_client.upload_fileobj(time_data, bucket, time_filepath)
+            S3NumpySystemMetricsReader.dump_to_s3(np_store, node_name, val_filename, np_val)
+            S3NumpySystemMetricsReader.dump_to_s3(np_store, node_name, time_filename, np_time)
         else:
-            val_filepath = os.path.join(np_store, node_name, val_filename)
-            time_filepath = os.path.join(np_store, node_name, time_filename)
+            S3NumpySystemMetricsReader.dump_to_disk(np_store, node_name, val_filename, np_val, shp, dtype=np.int32)
+            S3NumpySystemMetricsReader.dump_to_disk(np_store, node_name, time_filename, np_time, shp, dtype=np.int64)
 
-            fp_val = np.memmap(val_filepath,
-                               dtype=np.int32, offset=0, mode='w+', shape = shp)
-            fp_time = np.memmap(time_filepath,
-                               dtype=np.int64, offset=0, mode='w+', shape = shp)
-            fp_val[:] = np_val
-            fp_time[:] = np_time
-            fp_val.flush()
-            fp_time.flush()
+    @staticmethod
+    def store_vals(node_ind, min_time, np_store, shp, np_data, val_type="", dtype=np.int64):
+        node_name = S3NumpySystemMetricsReader.node_name_from_index(node_ind)
+        separator = S3NumpySystemMetricsReader.separator
+        filename =  val_type + separator + str(min_time) + separator + str(node_ind+1) + \
+                       ".npy"
+        if np_store.startswith("s3://"):
+            S3NumpySystemMetricsReader.dump_to_s3(np_store, node_name, filename, np_data)
+        else:
+            S3NumpySystemMetricsReader.dump_to_disk(np_store, node_name, filename, np_data, shp, dtype=dtype)
+            
+    @staticmethod
+    def dump_to_s3(s3_storage_loc, node_name, filename, np_data):
+        s3_client = boto3.client('s3')
+        bucket, key = S3NumpySystemMetricsReader.split_s3_path(s3_storage_loc)
+        filepath = os.path.join(key, node_name, filename)
 
+        data_stream = io.BytesIO()
+        pickle.dump(np_data, data_stream)
+        data_stream.seek(0)
+        s3_client.upload_fileobj(data_stream, bucket, filepath)
 
+    @staticmethod
+    def dump_to_disk(disk_storage_loc, node_name, filename, np_data, shp, dtype=np.int64):
+            filepath = os.path.join(disk_storage_loc, node_name, filename)
+        
+            fp_numpy = np.memmap(filepath,
+                               dtype=dtype, offset=0, mode='w+', shape = shp)
+
+            fp_numpy[:] = np_data
+            fp_numpy.flush()
