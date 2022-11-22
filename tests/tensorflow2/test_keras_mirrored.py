@@ -22,6 +22,12 @@ if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__vers
 else:
     from tensorflow.keras.optimizers import Adam
 
+if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
+    import keras
+    from keras.optimizers.optimizer_v2.adam import Adam
+else:
+    from tensorflow.keras.optimizers import Adam
+
 # First Party
 import smdebug.tensorflow as smd
 from smdebug.core.access_layer import has_training_ended
