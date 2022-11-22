@@ -19,6 +19,7 @@ import tensorflow_datasets as tfds
 from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_3, is_tf_2_6
 from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
+from packaging import version
 
 if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
     import keras

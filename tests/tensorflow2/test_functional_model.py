@@ -1,6 +1,7 @@
 # Third Party
 import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D
+from packaging import version
 
 if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
     import keras
