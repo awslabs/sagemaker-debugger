@@ -6,8 +6,13 @@ import pytest
 import tensorflow.compat.v2 as tf
 from tensorflow.keras.layers import LSTM, Activation, Dense, Dropout, Embedding, TimeDistributed
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
+from packaging import version
+
+if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
+    from tensorflow.keras.optimizers.legacy import Adam
+else:
+    from tensorflow.keras.optimizers import Adam
 
 # First Party
 from smdebug import SaveConfig
