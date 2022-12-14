@@ -1239,12 +1239,19 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         and hasattr(vars[0], "numpy")
                     )
                 )
-                or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
             ):
                 return grads
+            # get embedding layers indexes
+            embedding_grad_indexes = set()
+            for idx, grad in enumerate(grads):
+                if not (isinstance(grad, tf.Tensor) and hasattr(grad, "numpy")):
+                    if isinstance(grad, tf.IndexedSlices):
+                        embedding_grad_indexes.add(idx)
+                    else:
+                        return grads
 
             if self._get_collections_to_save_for_step():
-                for (g, v) in zip(grads, vars):
+                for idx, (g, v) in enumerate(zip(grads, vars)):
                     layer = v.name.split(":")[0]
                     # Adding a check to make sure gradients are not None.
                     # gradients may be None if user tries to compute gradients for
@@ -1253,6 +1260,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     # model.variables includes trainable and non-trainable
                     # variables.
                     if g is not None:
+                        if idx in embedding_grad_indexes:
+                            g = tf.convert_to_tensor(g)
                         self._save_for_tensor(
                             tensor_name="gradients/" + layer + "Grad",
                             tensor_value=g,
