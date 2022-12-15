@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D
 from packaging import version
 
-if version.parse(tf.__vrsion__) >= version.parse("2.11.0") or "rc" in tf.__version__:
+if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
     from tensorflow.keras.optimizers.legacy import Adadelta
 else:
     from tensorflow.keras.optimizers import Adadelta
