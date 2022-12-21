@@ -5,9 +5,6 @@ import os
 import pytest
 from tests.profiler.tensorflow2.utils import verify_detailed_profiling
 from tests.tensorflow2.test_keras import helper_keras_fit
-import tensorflow as tf
-from packaging import version
-
 
 # First Party
 from smdebug.profiler.profiler_config_parser import ProfilerConfigParser
@@ -27,8 +24,7 @@ def tf2_profiler_config_parser_by_time(config_folder, monkeypatch):
     monkeypatch.setenv("SMPROFILER_CONFIG_PATH", config_path)
     return ProfilerConfigParser()
 
-@pytest.mark.skipif(version.parse(tf.__version__) > version.parse("2.10"),
-                    reason="tf 2.11 merged trace.json file to xplane.pb file.")
+
 def test_tf2_profiler_by_step(set_up_resource_config, tf2_profiler_config_parser_by_step, out_dir):
     """
     This test executes a TF2 training script, enables detailed TF profiling by step, and
@@ -42,8 +38,7 @@ def test_tf2_profiler_by_step(set_up_resource_config, tf2_profiler_config_parser
 
     verify_detailed_profiling(out_dir, 180)
 
-@pytest.mark.skipif(version.parse(tf.__version__) > version.parse("2.10"),
-                    reason="tf 2.11 merged trace.json file to xplane.pb file.")
+
 def test_tf2_profiler_by_time(tf2_profiler_config_parser_by_time, out_dir):
     """
     This test executes a TF2 training script, enables detailed TF profiling by time, and
