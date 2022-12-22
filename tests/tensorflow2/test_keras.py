@@ -19,6 +19,12 @@ import tensorflow_datasets as tfds
 from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_3, is_tf_2_6
 from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
+from packaging import version
+
+if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
+    from tensorflow.keras.optimizers.legacy import Adam
+else:
+    from tensorflow.keras.optimizers import Adam
 
 # First Party
 import smdebug.tensorflow as smd
@@ -82,7 +88,7 @@ def helper_keras_fit(
                 if cname not in include_collections:
                     hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
-    opt = tf.keras.optimizers.Adam()
+    opt = Adam()
 
     opt = hook.wrap_optimizer(opt)
     model.compile(
@@ -150,7 +156,7 @@ def helper_keras_gradtape(
                 if cname not in include_collections:
                     hook.get_collection(cname).save_config = SaveConfig(end_step=0)
 
-    opt = tf.keras.optimizers.Adam()
+    opt = Adam()
     hook.wrap_optimizer(opt)
 
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)

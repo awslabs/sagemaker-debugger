@@ -1,6 +1,12 @@
 # Third Party
 import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D
+from packaging import version
+
+if version.parse(tf.__version__) >= version.parse("2.11.0") or "rc" in tf.__version__:
+    from tensorflow.keras.optimizers.legacy import Adadelta
+else:
+    from tensorflow.keras.optimizers import Adadelta
 
 # First Party
 import smdebug.tensorflow as smd
@@ -52,7 +58,8 @@ def test_functional_model(out_dir, tf_eager_mode):
 
     smd_callback.get_collection("custom").add_for_mode([x1], mode=smd.modes.TRAIN)
     smd_callback.save_config = smd.SaveConfig(save_interval=1)
-    opt = tf.keras.optimizers.Adadelta(1.0)
+
+    opt = Adadelta(1.0)
 
     model.compile(
         loss=tf.keras.losses.sparse_categorical_crossentropy,
