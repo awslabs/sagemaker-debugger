@@ -734,7 +734,7 @@ class BaseHook:
                     continue
                 elif s_col.save_histogram is True:
                     np_value = self._make_numpy_array(tensor_value)
-                    if self.dry_run or np_value.dtype == np.bool_ or np_value.nbytes == 0:
+                    if self.dry_run or np_value.dtype == bool or np_value.nbytes == 0:
                         return
 
                     hist_name = f"{s_col.name}/{tensor_name}"

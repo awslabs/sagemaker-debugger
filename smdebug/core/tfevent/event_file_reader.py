@@ -83,7 +83,7 @@ def get_tensor_data(tensor):
     elif dtype == np.bool_:
         if len(tensor.bool_val) == 0:
             raise SMDebugValueError("boolean tensor should have non-zero length")
-        return np.bool_(tensor.bool_val)
+        return bool(tensor.bool_val)
     else:
         raise SMDebugTypeError(f"Unknown type for Tensor={tensor}")
 
