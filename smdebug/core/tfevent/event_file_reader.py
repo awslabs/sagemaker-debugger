@@ -80,7 +80,7 @@ def get_tensor_data(tensor):
         if len(tensor.float_val) == 0:
             raise SMDebugValueError("float tensor should have non-zero length")
         return np.float32(tensor.float_val)
-    elif dtype == np.bool_:
+    elif dtype == bool:
         if len(tensor.bool_val) == 0:
             raise SMDebugValueError("boolean tensor should have non-zero length")
         return bool(tensor.bool_val)
