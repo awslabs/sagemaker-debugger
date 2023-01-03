@@ -472,7 +472,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         network_used = np.array(network_used)
         cpu_memory_used = np.array(cpu_memory_used)
         S3NumpySystemMetricsReader.store_vals(node_ind, min_time, np_store, (len(network_used),), network_used, val_type="Network")
-        S3NumpySystemMetricsReader.store_vals(node_ind, min_time, np_store, (len(cpu_memory_used),), cpu_memory_used, val_type="CPUmemory", dtype=np.float64)
+        S3NumpySystemMetricsReader.store_vals(node_ind, min_time, np_store, (len(cpu_memory_used),), cpu_memory_used, val_type="CPUmemory", dtype=np.float_)
 
         logger.info("S3NumpyReader _json_to_numpy FINISHED for node {}".format(node_ind))
         queue.put((node_ind, min_row, max_row, min_time, max_time, jagged_metadata))
