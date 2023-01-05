@@ -80,10 +80,10 @@ def get_tensor_data(tensor):
         if len(tensor.float_val) == 0:
             raise SMDebugValueError("float tensor should have non-zero length")
         return np.float32(tensor.float_val)
-    elif dtype == np.bool:
+    elif dtype == bool:
         if len(tensor.bool_val) == 0:
             raise SMDebugValueError("boolean tensor should have non-zero length")
-        return np.bool(tensor.bool_val)
+        return bool(tensor.bool_val)
     else:
         raise SMDebugTypeError(f"Unknown type for Tensor={tensor}")
 
