@@ -30,6 +30,7 @@ class ModelSubClassing(tf.keras.Model):
         )
         self.dense1 = Dense(10, input_shape=(10,), activation='relu')
         self.dense = Dense(1, activation='sigmoid')
+        self.hook = hook
 
     def call(self, x, training=False):
         x = self.embedding_encoded_layer(x)
