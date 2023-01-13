@@ -420,10 +420,7 @@ def is_valid_tf_tensor(grad):
 
 
 def is_IndexedSlices(grad):
-    if isinstance(grad, tf.IndexedSlices):
-        return True
-    else:
-        return False
+    return isinstance(grad, tf.IndexedSlices)
 
 
 def is_tf_version_2x():
