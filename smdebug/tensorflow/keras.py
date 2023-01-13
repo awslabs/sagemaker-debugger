@@ -47,6 +47,8 @@ from .utils import (
     is_tf_version_2x,
     is_tf_version_greater_than_2_4_x,
     supported_tf_variables,
+    is_valid_tf_tensor,
+    is_IndexedSlices
 )
 
 # Enable python profiling if profiling is enabled.
@@ -1239,7 +1241,13 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                         and hasattr(vars[0], "numpy")
                     )
                 )
-                or (not ((isinstance(grads[0], tf.Tensor)) and hasattr(grads[0], "numpy")))
+            ):
+                return grads
+
+            if any(
+                    map(
+                        lambda grad: not (is_valid_tf_tensor(grad) or is_IndexedSlices(grad)), grads
+                    )
             ):
                 return grads
 
@@ -1253,6 +1261,8 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                     # model.variables includes trainable and non-trainable
                     # variables.
                     if g is not None:
+                        if is_IndexedSlices(g):
+                            g = tf.convert_to_tensor(g)
                         self._save_for_tensor(
                             tensor_name="gradients/" + layer + "Grad",
                             tensor_value=g,

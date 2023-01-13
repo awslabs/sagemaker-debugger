@@ -412,6 +412,14 @@ def get_keras_mode(mode):
         return KerasModeKeys.PREDICT
 
 
+def is_valid_tf_tensor(grad):
+    return isinstance(grad, tf.Tensor) and hasattr(grad, "numpy")
+
+
+def is_IndexedSlices(grad):
+    return isinstance(grad, tf.IndexedSlices)
+
+
 def is_tf_version_2x():
     return TF_VERSION >= version.parse("2.0.0")
 
