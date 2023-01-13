@@ -1252,7 +1252,7 @@ class KerasHook(TensorflowBaseHook, tf.keras.callbacks.Callback):
                 return grads
 
             if self._get_collections_to_save_for_step():
-                for idx, (g, v) in enumerate(zip(grads, vars)):
+                for (g, v) in zip(grads, vars):
                     layer = v.name.split(":")[0]
                     # Adding a check to make sure gradients are not None.
                     # gradients may be None if user tries to compute gradients for

@@ -413,10 +413,7 @@ def get_keras_mode(mode):
 
 
 def is_valid_tf_tensor(grad):
-    if isinstance(grad, tf.Tensor) and hasattr(grad, "numpy"):
-        return True
-    else:
-        return False
+    return isinstance(grad, tf.Tensor) and hasattr(grad, "numpy")
 
 
 def is_IndexedSlices(grad):
