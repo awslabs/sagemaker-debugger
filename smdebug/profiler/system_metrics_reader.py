@@ -75,7 +75,7 @@ class SystemMetricsReader(MetricsReaderBase):
         available timestamp
         """
 
-        if self._startAfter_prefix is not "":
+        if self._startAfter_prefix != "":
             if end_time_microseconds >= get_utctimestamp_us_since_epoch_from_system_profiler_file(
                 self._startAfter_prefix
             ):
@@ -371,7 +371,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                     network_used.append(int(event['Value']))
                     continue
                 if event['Name'] == "MemoryUsedPercent":
-                    cpu_memory_used.append( float(event['Value']))
+                    cpu_memory_used.append( int(event['Value']))
                     continue
                 if event['Name'].startswith("cpu") == False and\
                    event['Name'].startswith("gpu") == False:
@@ -460,6 +460,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             if max_entries_in_chunk > 0:
                 
                 shp = (np_chunk_size+n_extra, num_cols)
+
                 S3NumpySystemMetricsReader.store_vals_times(
                          node_ind, min_time_in_chunk, np_store, tprefix,
                          shp, np_val_chunks[chunk_ind], np_time_chunks[chunk_ind])
@@ -471,8 +472,9 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         
         network_used = np.array(network_used)
         cpu_memory_used = np.array(cpu_memory_used)
-        S3NumpySystemMetricsReader.store_vals(node_ind, min_time, np_store, (len(network_used),), network_used, val_type="Network")
-        S3NumpySystemMetricsReader.store_vals(node_ind, min_time, np_store, (len(cpu_memory_used),), cpu_memory_used, val_type="CPUmemory", dtype=np.float)
+        #Network used stored as numpy array of np.int32 type - largest value is around 2GB/s
+        S3NumpySystemMetricsReader.store_vals(node_ind, np_store, (len(network_used),), network_used, val_type="Network")
+        S3NumpySystemMetricsReader.store_vals(node_ind, np_store, (len(cpu_memory_used),), cpu_memory_used, val_type="CPUmemory")
 
         logger.info("S3NumpyReader _json_to_numpy FINISHED for node {}".format(node_ind))
         queue.put((node_ind, min_row, max_row, min_time, max_time, jagged_metadata))
@@ -542,6 +544,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
         num_rows = (end_time-start_time)//(self.frequency*1000)
         num_cols = len(self.col_names)
+        
         np_chunk_size = self.np_chunk_size
         self.logger.info("NumpyS3Reader: untrimmed DF shape ({},{})".format(num_rows,len(self.col_names))) 
         np_arr = np.full((num_rows, num_cols), np.nan)
@@ -807,10 +810,10 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
             S3NumpySystemMetricsReader.dump_to_disk(np_store, node_name, time_filename, np_time, shp, dtype=np.int64)
 
     @staticmethod
-    def store_vals(node_ind, min_time, np_store, shp, np_data, val_type="", dtype=np.int64):
+    def store_vals(node_ind, np_store, shp, np_data, val_type="", dtype=np.int32):
         node_name = S3NumpySystemMetricsReader.node_name_from_index(node_ind)
         separator = S3NumpySystemMetricsReader.separator
-        filename =  val_type + separator + str(min_time) + separator + str(node_ind+1) + \
+        filename =  val_type + separator + str(node_ind+1) + \
                        ".npy"
         if np_store.startswith("s3://"):
             S3NumpySystemMetricsReader.dump_to_s3(np_store, node_name, filename, np_data)
@@ -829,9 +832,11 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
         s3_client.upload_fileobj(data_stream, bucket, filepath)
 
     @staticmethod
-    def dump_to_disk(disk_storage_loc, node_name, filename, np_data, shp, dtype=np.int64):
+    def dump_to_disk(disk_storage_loc, node_name, filename, np_data, shp, dtype=np.int32):
+            directory = os.path.join(disk_storage_loc, node_name)
             filepath = os.path.join(disk_storage_loc, node_name, filename)
-        
+            if not os.path.exists(directory):
+                os.makedirs(directory)
             fp_numpy = np.memmap(filepath,
                                dtype=dtype, offset=0, mode='w+', shape = shp)
 
