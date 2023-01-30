@@ -210,7 +210,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
                  n_process=None, logger = None):
         super().__init__(s3_trial_path, use_in_memory_cache)
         self.col_names = col_names # list of names of indicators
-        self.extra_col_names = extra_col_names # list of extra indicators, not stored in memory
+        self.extra_col_names = extra_col_names # list of extra indicators, not stored in memory, as opposed to col_names
         self.col_dict = col_dict # mapping from name to position. Possibly will decide not needed
         self.np_store = np_store
         self.np_chunk_size = store_chunk_size
@@ -275,6 +275,8 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
         num_rows = self.accu_mins * 60 * 10 # Max, at highest frequency
         num_rows = num_rows + num_rows//10 # Buffer
+        # extra_col_names treated separately because, unlike col_names indices,
+        # the indices corresponding to col_names, they are stored on disk only
         num_cols = len(self.col_names) + len(self.extra_col_names)
         self.accu_n_rows = num_rows
 
@@ -542,7 +544,8 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
         num_rows = (end_time-start_time)//(self.frequency*1000)
         num_cols = len(self.col_names)
-        num_extra_cols = len(self.extra_col_names) # Not stored in memory
+        # Not stored in memory, as opposed to col_names based indicators:
+        num_extra_cols = len(self.extra_col_names)
         np_chunk_size = self.np_chunk_size
         self.logger.info("NumpyS3Reader: untrimmed DF shape ({},{})".format(num_rows,len(self.col_names))) 
         np_arr = np.full((num_rows, num_cols), np.nan)
@@ -713,6 +716,7 @@ class S3NumpySystemMetricsReader(S3SystemMetricsReader):
 
         self.logger.info ("S3NumpyReader: writting accumulated data")
 
+        # both col_names based and extra_col_names based indicators go on disk:
         num_cols = len(self.col_names) + len(self.extra_col_names)
         num_rows = self.accu_n_rows
         np_store = self.np_store
