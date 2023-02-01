@@ -1,11 +1,11 @@
 # Standard Library
 import os
-import pkg_resources
 import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Third Party
 import numpy as np
+import pkg_resources
 import xgboost as xgb
 from xgboost import DMatrix
 
@@ -15,9 +15,9 @@ from smdebug.core.hook import CallbackHook
 from smdebug.core.json_config import create_hook_from_json_config
 from smdebug.core.save_config import SaveConfig
 from smdebug.core.utils import FRAMEWORK, error_handling_agent, make_numpy_array
+from smdebug.exceptions import SMDebugError
 from smdebug.profiler.profiler_config_parser import get_profiler_config_parser
 from smdebug.xgboost.singleton_utils import set_hook
-from smdebug.exceptions import SMDebugError
 
 # Local
 from .collection import CollectionManager
@@ -33,8 +33,9 @@ DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 
 profiler_config_parser = get_profiler_config_parser(FRAMEWORK.XGBOOST)
 
-if (pkg_resources.parse_version(pkg_resources.get_distribution('xgboost').version)
-     < pkg_resources.parse_version('1.3')):
+if pkg_resources.parse_version(
+    pkg_resources.get_distribution("xgboost").version
+) < pkg_resources.parse_version("1.3"):
     from xgboost.core import CallbackEnv
 
     class Hook(CallbackHook):
@@ -263,7 +264,9 @@ if (pkg_resources.parse_version(pkg_resources.get_distribution('xgboost').versio
         def write_predictions(self, env: CallbackEnv):
             # Write predictions y_hat from validation data
             if not self.validation_data:
-                self.logger.warning("To log predictions, 'validation_data' parameter must be provided.")
+                self.logger.warning(
+                    "To log predictions, 'validation_data' parameter must be provided."
+                )
                 return
             self._save_for_tensor("predictions", env.model.predict(self.validation_data))
 
@@ -365,6 +368,7 @@ if (pkg_resources.parse_version(pkg_resources.get_distribution('xgboost').versio
                 raise SMDebugError(error_msg)
 
 else:
+
     class Hook(CallbackHook, xgb.callback.TrainingCallback):
         """Hook that represents a callback function in XGBoost."""
 
@@ -498,7 +502,7 @@ else:
 
         @error_handling_agent.catch_smdebug_errors()
         def after_iteration(self, model, epoch, evals_log) -> bool:
-            '''Run after each iteration.  Return True when training should stop.'''
+            """Run after each iteration.  Return True when training should stop."""
             if not self.prepared_collections:
                 # at this point we need all collections to be ready
                 # this may not be the case at creation of hook
@@ -553,7 +557,7 @@ else:
             self._close_writers()
 
             return False
-        
+
         def write_hyperparameters(self):
             if not self.hyperparameters:
                 self.logger.warning(
@@ -588,7 +592,9 @@ else:
         def write_predictions(self, model):
             # Write predictions y_hat from validation data
             if not self.validation_data:
-                self.logger.warning("To log predictions, 'validation_data' parameter must be provided.")
+                self.logger.warning(
+                    "To log predictions, 'validation_data' parameter must be provided."
+                )
                 return
             self._save_for_tensor("predictions", model.predict(self.validation_data))
 
@@ -701,8 +707,7 @@ else:
         def _get_feature_names(model) -> List[str]:
             # Reimplement XGBoost automatic feature naming that removed in 1.4.
             if model.feature_names is None:
-                feature_names = ['f{0}'.format(i)
-                             for i in range(model.num_features())]
+                feature_names = ["f{0}".format(i) for i in range(model.num_features())]
             else:
                 feature_names = model.feature_names
 
