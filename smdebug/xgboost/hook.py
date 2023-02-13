@@ -183,39 +183,6 @@ class XGBoostBaseHook(CallbackHook):
         self.step = self.mode_steps[self.mode] = iteration
         self._collections_to_save_for_step = None
 
-    def _clear_shap_values(self):
-        self._full_shap_values = None
-
-    @staticmethod
-    def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
-        raise SMDebugError("Reductions are not supported by XGBoost hook")
-
-    @staticmethod
-    def _make_numpy_array(tensor_value):
-        return make_numpy_array(tensor_value)
-
-    @staticmethod
-    def _validate_data(data: Union[None, Tuple[str, str], DMatrix] = None) -> None:
-        if data is None or isinstance(data, DMatrix):
-            return data
-        error_msg = (
-            "'data' must be a tuple of strings representing "
-            "(file path, content type) or an xgboost.DMatrix instance."
-        )
-        is_tuple = isinstance(data, tuple)
-        is_first_item_str = isinstance(data[0], str)
-        if not (is_tuple and is_first_item_str):
-            raise SMDebugError(error_msg)
-        file_path = os.path.expanduser(data[0])
-        if not os.path.isfile(file_path):
-            raise SMDebugError("Only local files are currently supported for SHAP.")
-        try:
-            content_type = get_content_type(data[1])
-            validate_data_file_path(file_path, content_type)
-            return get_dmatrix(file_path, content_type)
-        except Exception:
-            raise SMDebugError(error_msg)
-
     def write_hyperparameters(self):
         if not self.hyperparameters:
             self.logger.warning(
@@ -224,6 +191,27 @@ class XGBoostBaseHook(CallbackHook):
             return
         for param_name, param_value in self.hyperparameters.items():
             self._save_for_tensor("hyperparameters/{}".format(param_name), param_value)
+
+    def write_losses(self, evals_log):
+        # Get loss metric at the current boosting round
+        # loss metrics will have already been saved by write_metrics if the metrics collection is included.
+        if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
+            return
+        else:
+            evaluation_metrics = self._get_evaluation_metrics(evals_log)
+            p = re.compile(
+                INCREASING_METRICS_REGEX
+            )  # regex for matching metrics that increase in value
+            for metric_name, metric_data in evaluation_metrics:
+                if p.match(metric_name):
+                    continue
+                self._save_for_tensor(metric_name, metric_data)
+
+    def write_metrics(self, evals_log):
+        # Get metrics measured at current boosting round
+        evaluation_metrics = self._get_evaluation_metrics(evals_log)
+        for metric_name, metric_data in evaluation_metrics:
+            self._save_for_tensor(metric_name, metric_data)
 
     def write_predictions(self, model):
         # Write predictions y_hat from validation data
@@ -263,31 +251,6 @@ class XGBoostBaseHook(CallbackHook):
         for importance_type in importance_types:
             _write_normalized_feature_importance(importance_type)
 
-    def _maybe_compute_shap_values(self, model):
-        if self.train_data is not None and self._full_shap_values is None:
-            self._full_shap_values = model.predict(self.train_data, pred_contribs=True)
-
-    def write_losses(self, evals_log):
-        # Get loss metric at the current boosting round
-        # loss metrics will have already been saved by write_metrics if the metrics collection is included.
-        if self._is_collection_being_saved_for_step(CollectionKeys.METRICS):
-            return
-        else:
-            evaluation_metrics = self._get_evaluation_metrics(evals_log)
-            p = re.compile(
-                INCREASING_METRICS_REGEX
-            )  # regex for matching metrics that increase in value
-            for metric_name, metric_data in evaluation_metrics:
-                if p.match(metric_name):
-                    continue
-                self._save_for_tensor(metric_name, metric_data)
-
-    def write_metrics(self, evals_log):
-        # Get metrics measured at current boosting round
-        evaluation_metrics = self._get_evaluation_metrics(evals_log)
-        for metric_name, metric_data in evaluation_metrics:
-            self._save_for_tensor(metric_name, metric_data)
-
     def write_full_shap(self, model):
         if not self.train_data:
             self.logger.warning("To log SHAP values, 'train_data' parameter must be provided.")
@@ -308,6 +271,13 @@ class XGBoostBaseHook(CallbackHook):
         for feature_id, feature_name in enumerate(feature_names):
             self._save_for_tensor(f"average_shap/{feature_name}", average_shap[feature_id])
 
+    def _maybe_compute_shap_values(self, model):
+        if self.train_data is not None and self._full_shap_values is None:
+            self._full_shap_values = model.predict(self.train_data, pred_contribs=True)
+
+    def _clear_shap_values(self):
+        self._full_shap_values = None
+
     def write_tree_model(self, model, epoch):
         if hasattr(model, "booster") and model.booster not in {"gbtree", "dart"}:
             self.logger.warning(
@@ -318,6 +288,36 @@ class XGBoostBaseHook(CallbackHook):
         for column_name, column_values in tree.items():
             tensor_name = "trees/{}".format(column_name)
             self._save_for_tensor(tensor_name, np.array(column_values))
+
+    @staticmethod
+    def _get_reduction_of_data(reduction_name, tensor_value, tensor_name, abs):
+        raise SMDebugError("Reductions are not supported by XGBoost hook")
+
+    @staticmethod
+    def _make_numpy_array(tensor_value):
+        return make_numpy_array(tensor_value)
+
+    @staticmethod
+    def _validate_data(data: Union[None, Tuple[str, str], DMatrix] = None) -> None:
+        if data is None or isinstance(data, DMatrix):
+            return data
+        error_msg = (
+            "'data' must be a tuple of strings representing "
+            "(file path, content type) or an xgboost.DMatrix instance."
+        )
+        is_tuple = isinstance(data, tuple)
+        is_first_item_str = isinstance(data[0], str)
+        if not (is_tuple and is_first_item_str):
+            raise SMDebugError(error_msg)
+        file_path = os.path.expanduser(data[0])
+        if not os.path.isfile(file_path):
+            raise SMDebugError("Only local files are currently supported for SHAP.")
+        try:
+            content_type = get_content_type(data[1])
+            validate_data_file_path(file_path, content_type)
+            return get_dmatrix(file_path, content_type)
+        except Exception:
+            raise SMDebugError(error_msg)
 
     @staticmethod
     def _get_evaluation_metrics(evals_log) -> List[Tuple[str, str]]:
