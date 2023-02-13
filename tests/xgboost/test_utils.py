@@ -4,8 +4,7 @@ import pytest
 import xgboost as xgb
 
 # First Party
-from smdebug.xgboost.utils import parse_tree_model
-
+from smdebug.xgboost.utils import parse_tree_model, is_xgb_1_5_and_later
 
 @pytest.mark.slow
 def test_parse_tree_model():
@@ -22,10 +21,11 @@ def test_parse_tree_model():
     bst = xgb.train(params, dtrain, evals=[(dtrain, "train")], num_boost_round=num_boost_round)
 
     columns = ["Tree", "Node", "ID", "Feature", "Split", "Yes", "No", "Missing", "Gain", "Cover"]
+    if is_xgb_1_5_and_later():
+        columns.append("Category")
 
     try:
         from pandas import DataFrame  # noqa
-
         pandas_installed = True
     except ImportError:
         pandas_installed = False

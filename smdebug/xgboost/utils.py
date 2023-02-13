@@ -6,6 +6,7 @@ import csv
 import logging
 import os
 import re
+import pkg_resources
 
 # Third Party
 import numpy as np
@@ -26,6 +27,33 @@ INVALID_CONTENT_FORMAT_ERROR = (
     "First line '{line_snippet}...' of file '{file_name}' is not "
     "'{content_type}' format. Please ensure the file is in '{content_type}' format."
 )
+
+
+def is_xgb_1_3_and_later():
+    if pkg_resources.parse_version(
+            pkg_resources.get_distribution("xgboost").version
+    ) >= pkg_resources.parse_version("1.3"):
+        return True
+    else:
+        return False
+
+
+def is_xgb_1_5_and_later():
+    if pkg_resources.parse_version(
+            pkg_resources.get_distribution("xgboost").version
+    ) >= pkg_resources.parse_version("1.5"):
+        return True
+    else:
+        return False
+
+
+def is_xgb_1_7_and_later():
+    if pkg_resources.parse_version(
+            pkg_resources.get_distribution("xgboost").version
+    ) >= pkg_resources.parse_version("1.7"):
+        return True
+    else:
+        return False
 
 
 def _get_invalid_content_type_error_msg(invalid_content_type):
@@ -348,6 +376,7 @@ def parse_tree_model(booster, iteration, fmap=""):
     missings = []
     gains = []
     covers = []
+    categories = []
 
     trees = booster.get_dump(with_stats=True)
     for i, tree in enumerate(trees):
@@ -376,22 +405,38 @@ def parse_tree_model(booster, iteration, fmap=""):
                 missings.append(float("NAN"))
                 gains.append(float(stats[1]))
                 covers.append(float(stats[3]))
+                categories.append(float("NAN"))
             # Not a Leaf Node
             else:
                 # parse string
-                fid = arr[1].split("]")
-                parse = fid[0].split("<")
-                stats = re.split("=|,", fid[1])
+                fid = arr[1].split(']')
+                # these conditions brings backward compatible
+                if fid[0].find("<") != -1:
+                    # numerical
+                    parse = fid[0].split('<')
+                    splits.append(float(parse[1]))
+                    categories.append(float("NAN"))
+                elif fid[0].find(":{") != -1:
+                    # categorical
+                    parse = fid[0].split(":")
+                    cats = parse[1][1:-1]  # strip the {}
+                    cats_split = cats.split(",")
+                    splits.append(float("NAN"))
+                    print(f"debug {cats_split}")
+                    # categories.append(cats_split if cats_split else None)
+                    categories.append(cats_split if cats_split else float("NAN"))
+                else:
+                    raise SMDebugError("Failed to parse tree model text dump.")
+                stats = re.split('=|,', fid[1])
 
                 # append to lists
                 tree_ids.append(i)
-                node_ids.append(int(re.findall(r"\b\d+\b", arr[0])[0]))
+                node_ids.append(int(re.findall(r'\b\d+\b', arr[0])[0]))
                 fids.append(parse[0])
-                splits.append(float(parse[1]))
                 str_i = str(i)
-                y_directs.append(str_i + "-" + stats[1])
-                n_directs.append(str_i + "-" + stats[3])
-                missings.append(str_i + "-" + stats[5])
+                y_directs.append(str_i + '-' + stats[1])
+                n_directs.append(str_i + '-' + stats[3])
+                missings.append(str_i + '-' + stats[5])
                 gains.append(float(stats[7]))
                 covers.append(float(stats[9]))
 
@@ -409,6 +454,9 @@ def parse_tree_model(booster, iteration, fmap=""):
         "Gain": np.array(gains, dtype=np.dtype("float")),
         "Cover": np.array(covers, dtype=np.dtype("float")),
     }
+    if is_xgb_1_5_and_later():
+        key_to_array["Category"] = np.array(categories, dtype=np.dtype("U"))
+
     # XGBoost's trees_to_dataframe() method uses
     # df.sort_values(['Tree', 'Node']).reset_index(drop=True) to sort the
     # node ids. The following achieves the same result without using pandas.

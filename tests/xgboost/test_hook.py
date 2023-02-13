@@ -18,7 +18,8 @@ from smdebug.xgboost import Hook
 # Local
 from .json_config import get_json_config, get_json_config_for_losses, get_json_config_full
 from .run_xgboost_model import run_xgboost_model
-
+#from json_config import get_json_config, get_json_config_for_losses, get_json_config_full
+#from run_xgboost_model import run_xgboost_model
 
 def test_hook(tmpdir):
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
@@ -258,3 +259,5 @@ def test_setting_mode(tmpdir):
     hook.set_mode(modes.GLOBAL)
     with pytest.raises(ValueError):
         hook.set_mode("a")
+
+test_hook_save_all("./")
