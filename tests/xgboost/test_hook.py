@@ -19,6 +19,7 @@ from smdebug.xgboost import Hook
 from .json_config import get_json_config, get_json_config_for_losses, get_json_config_full
 from .run_xgboost_model import run_xgboost_model
 
+
 def test_hook(tmpdir):
     save_config = SaveConfig(save_steps=[0, 1, 2, 3])
     out_dir = os.path.join(tmpdir, str(uuid.uuid4()))
