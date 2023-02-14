@@ -422,7 +422,6 @@ def parse_tree_model(booster, iteration, fmap=""):
                     cats = parse[1][1:-1]  # strip the {}
                     cats_split = cats.split(",")
                     splits.append(float("NAN"))
-                    # categories.append(cats_split if cats_split else None)
                     categories.append(cats_split if cats_split else float("NAN"))
                 else:
                     raise SMDebugError("Failed to parse tree model text dump.")
