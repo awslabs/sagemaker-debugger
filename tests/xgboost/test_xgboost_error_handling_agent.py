@@ -38,6 +38,13 @@ def hook_class_with_xgboost_callback_error(xgboost_callback_error_message):
             """
             raise RuntimeError(self.xgboost_callback_error_message)
 
+        @error_handling_agent.catch_smdebug_errors()
+        def after_iteration(self, *args, **kwargs):
+            """
+            Override the XGBoost Hook's after_iteration callback to fail immediately.
+            """
+            raise RuntimeError(self.xgboost_callback_error_message)
+
     return HookWithXGBoostCallbackError
 
 
