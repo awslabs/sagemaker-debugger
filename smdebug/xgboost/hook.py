@@ -42,14 +42,8 @@ DEFAULT_SAVE_CONFIG_SAVE_STEPS = []
 
 profiler_config_parser = get_profiler_config_parser(FRAMEWORK.XGBOOST)
 
-class DummyHook:
-    """class inheritance place holder for xgboost version under 1.3"""
-    def __init__(self):
-        pass
-
 class XGBoostBaseHook(CallbackHook):
     """base Hook that represents a callback function in XGBoost."""
-    """Hook that represents a callback function in XGBoost."""
 
     @error_handling_agent.catch_smdebug_errors()
     def __init__(

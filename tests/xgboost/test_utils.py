@@ -26,6 +26,7 @@ def test_parse_tree_model():
 
     try:
         from pandas import DataFrame  # noqa
+
         pandas_installed = True
     except ImportError:
         pandas_installed = False
