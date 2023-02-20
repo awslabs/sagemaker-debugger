@@ -90,11 +90,7 @@ if scan_git_secrets() != 0:
 
 
 def detect_smdebug_version():
-    if "--release" in sys.argv:
-        sys.argv.remove("--release")
-        return CURRENT_VERSION
-
-    return CURRENT_VERSION + "b" + str(date.today()).replace("-", "")
+    return CURRENT_VERSION
 
 
 version = detect_smdebug_version()
