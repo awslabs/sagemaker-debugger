@@ -49,18 +49,21 @@ _is_invoked_via_smddp = None
 _smddp_tf_imported = None
 _smddp_pt_imported = None
 _is_using_smmodelparallel = None
+_smp_imported = None
 
-try:
-    import smdistributed.modelparallel.tensorflow as smp
 
-    _smp_imported = smp
-except (ImportError, ModuleNotFoundError):
+if check_smmodelparallel_training():
     try:
-        import smdistributed.modelparallel.torch as smp
+        import smdistributed.modelparallel.tensorflow as smp
 
         _smp_imported = smp
     except (ImportError, ModuleNotFoundError):
-        _smp_imported = None
+        try:
+            import smdistributed.modelparallel.torch as smp
+
+            _smp_imported = smp
+        except (ImportError, ModuleNotFoundError):
+            _smp_imported = None
 
 
 try:
@@ -639,11 +642,11 @@ def check_smmodelparallel_training():
     global _is_using_smmodelparallel
     if _is_using_smmodelparallel is not None:
         return _is_using_smmodelparallel
-    if os.getenv("SM_HPS") is None:
+    if os.getenv("SM_HP_MP_PARAMETERS") is None:
         _is_using_smmodelparallel = False
     else:
         try:
-            smp_flag = json.loads(os.getenv("SM_HPS"))
+            smp_flag = json.loads(os.getenv("SM_HP_MP_PARAMETERS"))
             if "mp_parameters" in smp_flag and "partitions" in smp_flag["mp_parameters"]:
                 _is_using_smmodelparallel = True
             else:
