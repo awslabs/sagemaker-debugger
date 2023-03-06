@@ -642,13 +642,18 @@ def check_smmodelparallel_training():
     global _is_using_smmodelparallel
     if _is_using_smmodelparallel is not None:
         return _is_using_smmodelparallel
-    if os.getenv("SM_HP_MP_PARAMETERS") is None:
+    if os.getenv("SM_HPS") is None:
         _is_using_smmodelparallel = False
     else:
         try:
-            smp_flag = json.loads(os.getenv("SM_HP_MP_PARAMETERS"))
-            if "mp_parameters" in smp_flag and "partitions" in smp_flag["mp_parameters"]:
-                _is_using_smmodelparallel = True
+            smp_flag = json.loads(os.getenv("SM_HPS"))
+            if "mp_parameters" in smp_flag:
+                if "pipeline_parallel_degree" in smp_flag["mp_parameters"]:
+                    _is_using_smmodelparallel = True
+                elif "partitions" in smp_flag["mp_parameters"]:
+                    _is_using_smmodelparallel = True
+                else:
+                    _is_using_smmodelparallel = False
             else:
                 _is_using_smmodelparallel = False
         except:
