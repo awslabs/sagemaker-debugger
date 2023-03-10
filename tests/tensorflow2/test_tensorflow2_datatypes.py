@@ -16,7 +16,7 @@ def test_tensorflow2_datatypes():
     # _NP_TO_TF contains all the mappings
     # of numpy to tf types
     try:
-        from tensorflow.python import _pywrap_bfloat16
+        from tensorflow.python.lib.core import _pywrap_bfloat16
 
         # TF 2.x.x Implements a Custom Numpy Datatype for Brain Floating Type
         # Which is currently only supported on TPUs
@@ -28,6 +28,7 @@ def test_tensorflow2_datatypes():
     for _type in _NP_TO_TF:
         try:
             _get_proto_dtype(np.dtype(_type))
+
         except Exception:
             if _NP_TO_TF[_type] != tf.bfloat16:
                 # bfloat16 is only supported on TPUs.

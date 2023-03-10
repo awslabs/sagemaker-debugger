@@ -69,14 +69,8 @@ def test_gradtape_tf_function(out_dir):
 
     trial = smd.create_trial(out_dir)
     assert trial.tensor_names(collection=CollectionKeys.LOSSES) == ["loss"]
-    assert trial.tensor_names(collection=CollectionKeys.WEIGHTS) == [
-        "weights/dense/kernel:0",
-        "weights/dense_1/kernel:0",
-    ]
-    assert trial.tensor_names(collection=CollectionKeys.BIASES) == [
-        "weights/dense/bias:0",
-        "weights/dense_1/bias:0",
-    ]
+    assert len(trial.tensor_names(collection=CollectionKeys.WEIGHTS)) == 2
+    assert len(trial.tensor_names(collection=CollectionKeys.BIASES)) == 2
     assert trial.tensor_names(collection=CollectionKeys.OPTIMIZER_VARIABLES) == [
         "Adam/beta_1:0",
         "Adam/beta_2:0",

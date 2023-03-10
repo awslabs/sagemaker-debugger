@@ -1,5 +1,6 @@
 # Third Party
 import numpy as np
+from tensorflow.python.lib.core import _pywrap_float8
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -8,6 +9,7 @@ from smdebug.exceptions import SMDebugTypeError
 # Local
 from .proto.tensor_pb2 import TensorProto
 from .proto.tensor_shape_pb2 import TensorShapeProto
+
 
 logger = get_logger()
 
@@ -33,6 +35,8 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
     np.dtype([("qint16", "<i2")]): "DT_QINT16",
     np.dtype([("quint16", "<u2")]): "DT_UINT16",
     np.dtype([("qint32", "<i4")]): "DT_INT32",
+    np.dtype(_pywrap_float8.TF_float8_e5m2_type()): "DT_FLOAT8_E5M2",
+    np.dtype(_pywrap_float8.TF_float8_e4m3fn_type()): "DT_FLOAT8_E4M3FN",
 }
 
 
@@ -40,6 +44,7 @@ def _get_proto_dtype(npdtype):
     if hasattr(npdtype, "kind"):
         if npdtype.kind == "U" or npdtype.kind == "O" or npdtype.kind == "S":
             return False, "DT_STRING"
+
     try:
         return True, _NP_DATATYPE_TO_PROTO_DATATYPE[npdtype]
     except KeyError:

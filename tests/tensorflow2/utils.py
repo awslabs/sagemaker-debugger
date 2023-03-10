@@ -21,6 +21,13 @@ def is_greater_than_tf_2_2():
         return True
     return False
 
+def is_greater_than_tf_2_11():
+    """
+    Session hook is deprecated since 2.12, so we do skipping all session hook related tests
+    """
+    if TF_VERSION >= version.parse("2.12.0") or 'rc' in tf.__version__:
+        return True
+    return False
 
 def is_tf_2_6():
     if TF_VERSION >= version.parse("2.6.0"):

@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
-from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_3, is_tf_2_6
+from tests.tensorflow2.utils import is_greater_than_tf_2_2, is_tf_2_3, is_tf_2_6, is_greater_than_tf_2_11
 from tests.tensorflow.utils import create_trial_fast_refresh
 from tests.utils import verify_shapes
 from packaging import version
@@ -890,6 +890,9 @@ def test_save_tensors(out_dir, tf_eager_mode):
         assert trial.tensor(tname).value(0) is not None
 
 
+@pytest.mark.skipif(
+    is_greater_than_tf_2_11(), reason="Unsupported with TF 2.12 due to breaking changes"
+)
 def test_keras_to_estimator(out_dir, tf_eager_mode):
     if not tf_eager_mode:
         tf.compat.v1.disable_eager_execution()
