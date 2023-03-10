@@ -28,7 +28,6 @@ def test_tensorflow2_datatypes():
     for _type in _NP_TO_TF:
         try:
             _get_proto_dtype(np.dtype(_type))
-
         except Exception:
             if _NP_TO_TF[_type] != tf.bfloat16:
                 # bfloat16 is only supported on TPUs.

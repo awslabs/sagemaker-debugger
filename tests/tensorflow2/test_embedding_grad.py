@@ -81,7 +81,6 @@ def train(out_dir):
                                run_eagerly=True)
 
     sub_classing_model.fit(x_train, encoded_Y, batch_size=128, epochs=1, callbacks=[hook])
-    print(sub_classing_model.summary())
 
 
 def test_embedding_grad(out_dir):
