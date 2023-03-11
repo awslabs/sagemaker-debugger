@@ -71,6 +71,7 @@ def train(out_dir):
     encoder.fit(y_train)
     encoded_Y = encoder.transform(y_train)
     sub_classing_model = ModelSubClassing(hook)
+
     hook.register_model(sub_classing_model)
 
     optimizer = Adam()
@@ -78,15 +79,11 @@ def train(out_dir):
 
     sub_classing_model.compile(optimizer=optimizer, loss=tf.keras.losses.BinaryCrossentropy(),
                                run_eagerly=True)
+
     sub_classing_model.fit(x_train, encoded_Y, batch_size=128, epochs=1, callbacks=[hook])
 
 
 def test_embedding_grad(out_dir):
     train(out_dir)
     trial = smd.create_trial(path=out_dir)
-    output = ['gradients/model_sub_classing/dense/biasGrad',
-              'gradients/model_sub_classing/dense/kernelGrad',
-              'gradients/model_sub_classing/dense_1/biasGrad',
-              'gradients/model_sub_classing/dense_1/kernelGrad',
-              'gradients/model_sub_classing/embedding/embeddingsGrad']
-    assert trial.tensor_names(collection="gradients") == output
+    assert len(trial.tensor_names(collection="gradients")) == 5

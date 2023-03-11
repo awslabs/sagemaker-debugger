@@ -2,7 +2,7 @@
 # Third Party
 import pytest
 import tensorflow.compat.v2 as tf
-from tests.tensorflow2.utils import is_tf_version_greater_than_2_4_x
+from tests.tensorflow2.utils import is_tf_version_greater_than_2_4_x, is_greater_than_tf_2_11
 from tests.zero_code_change.tf_utils import get_estimator, get_input_fns
 
 # First Party
@@ -10,6 +10,9 @@ import smdebug.tensorflow as smd
 from smdebug.core.collection import CollectionKeys
 
 
+@pytest.mark.skipif(
+    is_greater_than_tf_2_11(), reason="Unsupported with TF 2.12 due to breaking changes"
+)
 @pytest.mark.parametrize("saveall", [True, False])
 def test_estimator(out_dir, tf_eager_mode, saveall):
     """ Works as intended. """
@@ -19,7 +22,6 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
     tf.keras.backend.clear_session()
     mnist_classifier = get_estimator()
     train_input_fn, eval_input_fn = get_input_fns()
-
     # Train and evaluate
     train_steps, eval_steps = 8, 2
     hook = smd.EstimatorHook(out_dir=out_dir, save_all=saveall)
@@ -27,7 +29,6 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
     mnist_classifier.train(input_fn=train_input_fn, steps=train_steps, hooks=[hook])
     hook.set_mode(mode=smd.modes.EVAL)
     mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps, hooks=[hook])
-
     # Check that hook created and tensors saved
     trial = smd.create_trial(path=out_dir)
     tnames = trial.tensor_names()
@@ -48,6 +49,9 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
         assert len(trial.tensor_names(collection=CollectionKeys.LOSSES)) == 1
 
 
+@pytest.mark.skipif(
+    is_greater_than_tf_2_11(), reason="Unsupported with TF 2.12 due to breaking changes"
+)
 @pytest.mark.parametrize("saveall", [True, False])
 def test_linear_classifier(out_dir, tf_eager_mode, saveall):
     """ Works as intended. """
