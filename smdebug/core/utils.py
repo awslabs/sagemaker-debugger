@@ -35,6 +35,7 @@ from smdebug.exceptions import (
     SMDebugRuntimeError,
     SMDebugTypeError,
     SMDebugValueError,
+    SMDebugError
 )
 
 
@@ -54,16 +55,13 @@ _smp_imported = None
 
 if check_smmodelparallel_training():
     try:
-        import smdistributed.modelparallel.tensorflow as smp
+        import smdistributed.modelparallel.torch as smp
 
         _smp_imported = smp
     except (ImportError, ModuleNotFoundError):
-        try:
-            import smdistributed.modelparallel.torch as smp
-
-            _smp_imported = smp
-        except (ImportError, ModuleNotFoundError):
-            _smp_imported = None
+        _smp_imported = None
+    except Exception as e:
+        raise SMDebugError(e)
 
 
 try:

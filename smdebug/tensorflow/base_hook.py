@@ -40,13 +40,6 @@ from .utils import (
     load_tf_config_json,
 )
 
-try:
-    import smdistributed.modelparallel.tensorflow as smp  # noqa isort:skip
-
-    _smp_imported = smp
-except ImportError:
-    _smp_imported = None
-
 
 DEFAULT_INCLUDE_COLLECTIONS = [
     CollectionKeys.METRICS,
@@ -195,11 +188,6 @@ class TensorflowBaseHook(BaseHook):
         """
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
-            if _smp_imported and _smp_imported.core.initialized:
-                # when model parallel is being used, there will be multiple processes
-                # with same hvd rank, hence use smp.rank
-                return f"worker_{smp.rank()}"
-
             import horovod.tensorflow as hvd
 
             return f"worker_{hvd.rank()}"
@@ -277,11 +265,6 @@ class TensorflowBaseHook(BaseHook):
     def _get_num_workers(self):
         self._assert_distribution_strategy()
         if self.distribution_strategy == TFDistributionStrategy.HOROVOD:
-            if _smp_imported and smp.core.initialized:
-                # when model parallel is being used, there will be multiple hvd process groups,
-                # hence use smp.size
-                return smp.size()
-
             import horovod.tensorflow as hvd
 
             return hvd.size()
