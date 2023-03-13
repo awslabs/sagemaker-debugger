@@ -16,12 +16,18 @@ def test_tensorflow2_datatypes():
     # _NP_TO_TF contains all the mappings
     # of numpy to tf types
     try:
-        from tensorflow.python.lib.core import _pywrap_bfloat16
+        from tensorflow.python.lib.core import _pywrap_bfloat16, _pywrap_float8
 
         # TF 2.x.x Implements a Custom Numpy Datatype for Brain Floating Type
         # Which is currently only supported on TPUs
         _np_bfloat16 = _pywrap_bfloat16.TF_bfloat16_type()
         _NP_TO_TF.pop(_np_bfloat16)
+
+        # TF 2.12 is adding float8, but currently not available in numpy
+        _np_float8_e5m2 = _pywrap_float8.TF_float8_e5m2_type()
+        _np_float8_e4m3 = _pywrap_float8.TF_float8_e4m3fn_type()
+        _NP_TO_TF.pop(_np_float8_e5m2)
+        _NP_TO_TF.pop(_np_float8_e4m3)
     except (ModuleNotFoundError, ValueError, ImportError):
         pass
 
