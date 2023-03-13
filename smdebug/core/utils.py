@@ -53,17 +53,6 @@ _is_using_smmodelparallel = None
 _smp_imported = None
 
 
-if check_smmodelparallel_training():
-    try:
-        import smdistributed.modelparallel.torch as smp
-
-        _smp_imported = smp
-    except (ImportError, ModuleNotFoundError):
-        _smp_imported = None
-    except Exception as e:
-        raise SMDebugError(e)
-
-
 try:
     import torch.distributed as torch_dist
 
@@ -92,6 +81,56 @@ logger = get_logger()
 error_handling_agent = (
     ErrorHandlingAgent.get_error_handling_agent()
 )  # set up error handler to wrap smdebug functions
+
+def check_smmodelparallel_training():
+    """
+    The function checks whether the current job is using model parallel strategy.
+    For the training job that uses smmodelparallel, SageMaker sets following environment variables.
+    SM_HPS=
+    {
+        "mp_parameters": {
+            "ddp": true,
+            "microbatches": 4,
+            "optimize": "speed",
+            "partitions": 2,
+            "pipeline": "interleaved",
+            "placement_strategy": "spread"
+        }
+    }
+    The 'partitions' variable is a required parameter for scheduling a model parallel training job.
+
+    :return: True or False
+    """
+    global _is_using_smmodelparallel
+    if _is_using_smmodelparallel is not None:
+        return _is_using_smmodelparallel
+    if os.getenv("SM_HPS") is None:
+        _is_using_smmodelparallel = False
+    else:
+        try:
+            smp_flag = json.loads(os.getenv("SM_HPS"))
+            if "mp_parameters" in smp_flag:
+                if "pipeline_parallel_degree" in smp_flag["mp_parameters"]:
+                    _is_using_smmodelparallel = True
+                elif "partitions" in smp_flag["mp_parameters"]:
+                    _is_using_smmodelparallel = True
+                else:
+                    _is_using_smmodelparallel = False
+            else:
+                _is_using_smmodelparallel = False
+        except:
+            _is_using_smmodelparallel = False
+    return _is_using_smmodelparallel
+
+if check_smmodelparallel_training():
+    try:
+        import smdistributed.modelparallel.torch as smp
+
+        _smp_imported = smp
+    except (ImportError, ModuleNotFoundError):
+        _smp_imported = None
+    except Exception as e:
+        raise SMDebugError(e)
 
 
 def make_numpy_array(x):
@@ -616,47 +655,6 @@ def check_smdataparallel_env():
             _smdataparallel_imported = None
 
     return _is_invoked_via_smddp
-
-
-def check_smmodelparallel_training():
-    """
-    The function checks whether the current job is using model parallel strategy.
-    For the training job that uses smmodelparallel, SageMaker sets following environment variables.
-    SM_HPS=
-    {
-        "mp_parameters": {
-            "ddp": true,
-            "microbatches": 4,
-            "optimize": "speed",
-            "partitions": 2,
-            "pipeline": "interleaved",
-            "placement_strategy": "spread"
-        }
-    }
-    The 'partitions' variable is a required parameter for scheduling a model parallel training job.
-
-    :return: True or False
-    """
-    global _is_using_smmodelparallel
-    if _is_using_smmodelparallel is not None:
-        return _is_using_smmodelparallel
-    if os.getenv("SM_HPS") is None:
-        _is_using_smmodelparallel = False
-    else:
-        try:
-            smp_flag = json.loads(os.getenv("SM_HPS"))
-            if "mp_parameters" in smp_flag:
-                if "pipeline_parallel_degree" in smp_flag["mp_parameters"]:
-                    _is_using_smmodelparallel = True
-                elif "partitions" in smp_flag["mp_parameters"]:
-                    _is_using_smmodelparallel = True
-                else:
-                    _is_using_smmodelparallel = False
-            else:
-                _is_using_smmodelparallel = False
-        except:
-            _is_using_smmodelparallel = False
-    return _is_using_smmodelparallel
 
 
 # we need to compute the output of this fn only once since the framework type will remain constant during execution
