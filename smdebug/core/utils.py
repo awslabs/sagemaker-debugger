@@ -35,6 +35,7 @@ from smdebug.exceptions import (
     SMDebugRuntimeError,
     SMDebugTypeError,
     SMDebugValueError,
+    SMDebugError
 )
 
 
@@ -49,18 +50,18 @@ _is_invoked_via_smddp = None
 _smddp_tf_imported = None
 _smddp_pt_imported = None
 _is_using_smmodelparallel = None
+_smp_imported = None
 
-try:
-    import smdistributed.modelparallel.tensorflow as smp
 
-    _smp_imported = smp
-except (ImportError, ModuleNotFoundError):
+if check_smmodelparallel_training():
     try:
         import smdistributed.modelparallel.torch as smp
 
         _smp_imported = smp
     except (ImportError, ModuleNotFoundError):
         _smp_imported = None
+    except Exception as e:
+        raise SMDebugError(e)
 
 
 try:
@@ -644,8 +645,13 @@ def check_smmodelparallel_training():
     else:
         try:
             smp_flag = json.loads(os.getenv("SM_HPS"))
-            if "mp_parameters" in smp_flag and "partitions" in smp_flag["mp_parameters"]:
-                _is_using_smmodelparallel = True
+            if "mp_parameters" in smp_flag:
+                if "pipeline_parallel_degree" in smp_flag["mp_parameters"]:
+                    _is_using_smmodelparallel = True
+                elif "partitions" in smp_flag["mp_parameters"]:
+                    _is_using_smmodelparallel = True
+                else:
+                    _is_using_smmodelparallel = False
             else:
                 _is_using_smmodelparallel = False
         except:
