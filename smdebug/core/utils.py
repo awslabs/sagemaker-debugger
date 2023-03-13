@@ -50,7 +50,6 @@ _is_invoked_via_smddp = None
 _smddp_tf_imported = None
 _smddp_pt_imported = None
 _is_using_smmodelparallel = None
-_smp_imported = None
 
 
 try:
@@ -81,6 +80,7 @@ logger = get_logger()
 error_handling_agent = (
     ErrorHandlingAgent.get_error_handling_agent()
 )  # set up error handler to wrap smdebug functions
+
 
 def check_smmodelparallel_training():
     """
@@ -122,6 +122,7 @@ def check_smmodelparallel_training():
             _is_using_smmodelparallel = False
     return _is_using_smmodelparallel
 
+_smp_imported = None
 if check_smmodelparallel_training():
     try:
         import smdistributed.modelparallel.torch as smp
