@@ -1,6 +1,5 @@
 # Third Party
 import numpy as np
-from tensorflow.python.lib.core import _pywrap_float8
 
 # First Party
 from smdebug.core.logger import get_logger
@@ -35,8 +34,6 @@ _NP_DATATYPE_TO_PROTO_DATATYPE = {
     np.dtype([("qint16", "<i2")]): "DT_QINT16",
     np.dtype([("quint16", "<u2")]): "DT_UINT16",
     np.dtype([("qint32", "<i4")]): "DT_INT32",
-    np.dtype(_pywrap_float8.TF_float8_e5m2_type()): "DT_FLOAT8_E5M2",
-    np.dtype(_pywrap_float8.TF_float8_e4m3fn_type()): "DT_FLOAT8_E4M3FN",
 }
 
 
