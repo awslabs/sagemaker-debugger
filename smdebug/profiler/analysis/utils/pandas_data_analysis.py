@@ -221,7 +221,7 @@ class PandasFrameAnalysis:
 
         def helper(start, end, phase):
             self.sys_metrics_df.loc[
-                (self.sys_metrics_df["timestamp_us"].between(start, end, inclusive=True)), "phase"
+                (self.sys_metrics_df["timestamp_us"].between(start, end)), "phase"
             ] = phase
 
         interval_df.apply(
@@ -357,7 +357,7 @@ class PandasFrameAnalysis:
             return device_sys_df
 
         usage_stats = device_sys_df[
-            device_sys_df["type"].str.contains("|".join(resources)).any(level=0)
+            device_sys_df["type"].str.contains("|".join(resources)).groupby(level=0).any()
         ]
 
         df_grouped = (
