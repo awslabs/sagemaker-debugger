@@ -413,7 +413,7 @@ class PandasFrame:
         )
 
         fw_metrics_df = fw_metrics_df[
-            (fw_metrics_df["step"].between(start_step, end_step, inclusive=True))
+            (fw_metrics_df["step"].between(start_step, end_step))
         ]
         start_time, end_time = (
             fw_metrics_df["start_time_us"].min(),
@@ -421,7 +421,7 @@ class PandasFrame:
         )
 
         sys_metrics_df = sys_metrics_df[
-            (sys_metrics_df["timestamp_us"].between(start_time, end_time, inclusive=True))
+            (sys_metrics_df["timestamp_us"].between(start_time, end_time))
         ]
 
         return sys_metrics_df, fw_metrics_df
