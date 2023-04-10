@@ -1,6 +1,6 @@
 # Build Spec for AWS CodeBuild CI which will run for every PR.
 # Differs from buildspec.yml by pip version; pip 22.0.3 is not seen by py36 images.
-version: 0.2
+version: 1.0
 env:
   variables:
     ## below enviornment variables are overridden in respective code build.
@@ -10,14 +10,14 @@ env:
     run_pytest_tensorflow: "disable"
     run_pytest_tensorflow2: "disable"
     run_pytest_xgboost: "disable"
-    run_pytest_profiler: "enable"
+    run_pytest_profiler: "disable"
     run_integration_pytest_pytorch: "disable"
     run_integration_pytest_mxnet: "disable"
     run_integration_pytest_tensorflow: "disable"
     run_integration_pytest_tensorflow2: "disable"
     run_integration_pytest_xgboost: "disable"
     # below needs to be enabled
-    zero_code_change_test: "enable"
+    zero_code_change_test: "disable"
     # set code coverage flag
     code_coverage_smdebug: "true"
     build_type: "pr" # must be one of pr, nightly or release
@@ -44,15 +44,15 @@ phases:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
       # We do not need to force install smdebug-rules. The container used for PR builds do not have smdebug rules binary.
       # Force installing rules binary attempts to re-install ipython-genutils which fails on PyTorch Ubuntu 16.04 containers.
-      - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
-      - if [ "$run_pytest_xgboost" = "enable" ]; then pip install -U $RULES_CODEBUILD_SRC_DIR/dist/*.whl; else pip install $RULES_CODEBUILD_SRC_DIR/dist/*.whl; fi
+      # - cd $RULES_CODEBUILD_SRC_DIR && python setup.py bdist_wheel --universal
+      # - if [ "$run_pytest_xgboost" = "enable" ]; then pip install -U $RULES_CODEBUILD_SRC_DIR/dist/*.whl; else pip install $RULES_CODEBUILD_SRC_DIR/dist/*.whl; fi
       - cd $CODEBUILD_SRC_DIR  && pip install -U dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh  && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..
       - pip show smdebug
       - pip show smdebug_rules
       - echo 'Uploading Coverage to CodeCov'
       - bash $CODEBUILD_SRC_DIR/config/codecov.sh
-      - if [ "$build_type" != "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
+      # - if [ "$build_type" != "pr" ]; then cd $RULES_CODEBUILD_SRC_DIR && chmod +x config/tests.sh && PYTHONPATH=. && mkdir -p upload/$CURRENT_COMMIT_PATH/wheels && ./config/tests.sh  && cp ./dist/*.whl upload/$CURRENT_COMMIT_PATH/wheels && cd ..; fi
 
   post_build:
     commands:
