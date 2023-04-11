@@ -45,6 +45,8 @@ run_for_framework() {
       if [ "$1" = "tensorflow2" ] ; then
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_$1/eager_mode.html -v -s --self-contained-html tests/$1
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --non-eager --html=$REPORT_DIR/report_$1/non_eager_mode.html -v -s --self-contained-html tests/$1
+      elif [ "$1" = "pytorch" ] ; then
+        python -m pytest tests/pytorch
       else
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html tests/$1
       fi
@@ -65,7 +67,7 @@ export SMDEBUG_LOG_LEVEL=info
 #export BLOCK_STDERR=FALSE
 
 export OUT_DIR=upload/$CURRENT_COMMIT_PATH
-# export REPORT_DIR=$OUT_DIR/pytest_reports
+ export REPORT_DIR=$OUT_DIR/pytest_reports
 # python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
 
 # run_for_framework core
