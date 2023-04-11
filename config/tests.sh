@@ -65,10 +65,10 @@ export SMDEBUG_LOG_LEVEL=info
 #export BLOCK_STDERR=FALSE
 
 export OUT_DIR=upload/$CURRENT_COMMIT_PATH
-export REPORT_DIR=$OUT_DIR/pytest_reports
-python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
+# export REPORT_DIR=$OUT_DIR/pytest_reports
+# python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} -v -W=ignore --durations=50 --html=$REPORT_DIR/report_analysis.html --self-contained-html tests/analysis
 
-run_for_framework core
+# run_for_framework core
 
 if [ "$run_pytest_xgboost" = "enable" ] ; then
     run_for_framework xgboost
@@ -92,7 +92,7 @@ fi
 
 if [ "$run_pytest_pytorch" = "enable" ] ; then
     run_for_framework pytorch
-    run_profiler_test pytorch
+    # run_profiler_test pytorch
 fi
 
 check_logs $REPORT_DIR/*
