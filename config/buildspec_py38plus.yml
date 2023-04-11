@@ -1,6 +1,6 @@
 # Build Spec for AWS CodeBuild CI which will run for every PR.
 # Differs from buildspec.yml by pip version; pip 22.0.3 is not seen by py36 images.
-version: 1.0
+version: 0.2
 env:
   variables:
     ## below enviornment variables are overridden in respective code build.
