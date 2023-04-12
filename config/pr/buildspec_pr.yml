@@ -40,7 +40,6 @@ phases:
       - cd $CODEBUILD_SRC_DIR  && python setup.py bdist_wheel --universal
       - cd $CODEBUILD_SRC_DIR  && pip install -U dist/*.whl && cd ..
       - cd $CODEBUILD_SRC_DIR  && chmod +x config/tests.sh && PYTHONPATH=. && ./config/tests.sh
-      - pip show smdebug
 
   post_build:
     commands:
