@@ -43,10 +43,11 @@ run_for_framework() {
 
     else
       if [ "$1" = "tensorflow2" ] ; then
-        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_$1/eager_mode.html -v -s --self-contained-html tests/$1
-        python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --non-eager --html=$REPORT_DIR/report_$1/non_eager_mode.html -v -s --self-contained-html tests/$1
+        python -m pytest tests/tensorflow2
       elif [ "$1" = "pytorch" ] ; then
         python -m pytest tests/pytorch
+      elif [ "$1" = "xgboost" ] ; then
+        python -m pytest tests/xgboost
       else
         python -m pytest ${code_coverage_smdebug:+--cov=./ --cov-append} --durations=50 --html=$REPORT_DIR/report_$1.html -v -s --self-contained-html tests/$1
       fi

@@ -5,7 +5,7 @@ env:
   variables:
     ## below enviornment variables are overridden in respective code build.
     # for example for pytorch build run_pytest_pytorch and run_integration_pytest_pytorch will be enabled
-    run_pytest_pytorch: "enable"
+    run_pytest_pytorch: "disable"
     run_pytest_mxnet: "disable"
     run_pytest_tensorflow: "disable"
     run_pytest_tensorflow2: "disable"
