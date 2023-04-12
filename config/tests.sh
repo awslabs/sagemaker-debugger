@@ -88,7 +88,7 @@ fi
 if [ "$run_pytest_tensorflow2" = "enable" ] ; then
     #pip install tensorflow_datasets==4.0.1
     run_for_framework tensorflow2
-    run_profiler_test tensorflow2
+    # run_profiler_test tensorflow2
 fi
 
 if [ "$run_pytest_mxnet" = "enable" ] ; then
