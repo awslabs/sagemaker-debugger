@@ -54,6 +54,7 @@ run_for_framework() {
     fi
 }
 
+
 # Functionto invoke the profiler tests. The core tests in profiler are run for all the frameworks
 run_profiler_test() {
     # Running the core tests in profiler.
