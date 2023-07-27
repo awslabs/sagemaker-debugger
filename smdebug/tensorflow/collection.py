@@ -73,8 +73,10 @@ class Collection(BaseCollection):
          Adds tensors to the collection from a given Operation, Tensor, Variable or MirroredVariable
          :param arg: the argument to add to collection
          """
+        get_logger().debug(f"type:{type(arg)} arg:{arg} self:{id(self)}")
         if isinstance(arg, list) or isinstance(arg, set):
             for a in arg:
+                get_logger().debug(f"Adding for list type:{type(a)} self:{id(self)}")
                 self.add_for_mode(a, mode)
         elif isinstance(arg, tf.Operation):
             return self.add_operation(arg, mode=mode)
@@ -108,7 +110,10 @@ class Collection(BaseCollection):
         return self.tensor_names
 
     def get_tensor(self, name):
-        return self._tensors[name]
+        if name in self._tensors:
+            return self._tensors[name]
+        else:
+            return None
 
     def set_tensor_ref(self, tensor, tensor_name: tf.Tensor = None):
         """
@@ -124,11 +129,18 @@ class Collection(BaseCollection):
         else:
             name = tensor.name
             export_name = tensor.export_name
+        get_logger().debug(f"In set_tensor_ref: tensor_name:{name} export_name:{export_name}")
         self._tensors[name] = tensor
         self.add_tensor_name(export_name)
 
-    def has_tensor(self, name):
-        # tf object name
+        if name != export_name:
+            get_logger().debug(
+                f"Export_name:{export_name} != name:{name} . Adding export_name:{export_name} to include in "
+                f"collection collection_name:{self.name} selfId:{id(self)} "
+            )
+        self.include("^" + export_name + "$")
+
+    def has_tensor(self, name, graph=None):
         return name in self._tensors
 
     def add_keras_layer(self, layer, inputs=False, outputs=True):

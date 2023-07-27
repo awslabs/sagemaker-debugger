@@ -233,6 +233,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
 
     def _add_losses(self):
         losses = tf.losses.get_losses()
+        self.logger.debug(f"Adding losses, instance:{type(losses)}")
         self.collection_manager.get(CollectionKeys.LOSSES).add(losses)
 
     def _is_not_supported(self):
@@ -272,7 +273,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
     def begin(self):
         if self._is_not_supported():
             return
-
+        self.logger.debug("In begin, clearing cached state")
         # clear all caches so we don't interfere with other modes
         self._clear_cached_state()
 
@@ -280,7 +281,7 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
         # todo: handle multiple graphs in the model
         self.worker = self._get_worker_name()
         self.graph = tf.get_default_graph()
-
+        self.logger.debug(f"Graph is {self.graph}")
         self._add_tensors()
         self._set_chief_worker()
 
@@ -356,6 +357,15 @@ class SessionHook(tf.train.SessionRunHook, TensorflowBaseHook):
     def before_run(self, run_context):
         if self._is_not_supported():
             return
+        graph = tf.get_default_graph()
+        if graph != self.graph:
+            self.logger.debug("In before_run, clearing cached state as graph has changed")
+            self._clear_cached_state()
+            self.graph = graph
+            self.logger.debug(f"Set graph to {self.graph}")
+
+        # todo: use global step from TF instead of internal steps
+        # todo: handle multiple graphs in the model
         tensors_to_save = self._get_tensors_to_save_this_step()
         if tensors_to_save:
             if run_context:

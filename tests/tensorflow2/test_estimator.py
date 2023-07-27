@@ -31,7 +31,10 @@ def test_estimator(out_dir, tf_eager_mode, saveall):
     mnist_classifier.evaluate(input_fn=eval_input_fn, steps=eval_steps, hooks=[hook])
     # Check that hook created and tensors saved
     trial = smd.create_trial(path=out_dir)
+    print(f"test_estimator MyTestDebug:{trial.tensor_names()}")
+
     tnames = trial.tensor_names()
+
     assert len(trial.steps()) > 0
     if saveall:
         # Number of tensors in each collection
@@ -69,6 +72,8 @@ def test_linear_classifier(out_dir, tf_eager_mode, saveall):
 
     # Check that hook created and tensors saved
     trial = smd.create_trial(path=out_dir)
+    print(f"test_linear_classifier MyTestDebug:{trial.tensor_names()}")
+
     tnames = trial.tensor_names()
     assert len(trial.steps()) > 0
     if saveall:
