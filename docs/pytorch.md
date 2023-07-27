@@ -2,39 +2,39 @@
 
 ## Contents
 - [Support](#support)
-- [How to Use](#how-to-use)
-- [Module Loss Example](#module-loss-example)
-- [Functional Loss Example](#functional-loss-example)
+- [How to use](#how-to-use)
+- [Module loss example](#module-loss-example)
+- [Functional loss example](#functional-loss-example)
 - [Full API](#full-api)
 
 ## Support
 ### Versions
-- Zero Script Change experience where you need no modifications to your training script is supported in the official [AWS Deep Learning Container for PyTorch](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#general-framework-containers).
+- The official [AWS Deep Learning Container for PyTorch](https://github.com/aws/deep-learning-containers/blob/master/available_images.md#general-framework-containers) supports a zero script change experience, in which you need no modifications to your trainings script.
 
-- The library itself supports the following versions when using changes to the training script: PyTorch 1.2, 1.3, 1.4, 1.5, and 1.6.
+- The library supports the following versions when using changes to the training script: PyTorch 1.2, 1.3, 1.4, 1.5, and 1.6.
 
 ---
 
-## How to Use
-### Using Zero Script Change containers
-In this case, you don't need to do anything to get the hook running. You are encouraged to configure the hook from the SageMaker python SDK so you can run different jobs with different configurations without having to modify your script. If you want access to the hook to configure certain things which can not be configured through the SageMaker SDK, you can retrieve the hook as follows.
+## How to use
+### Using zero script change containers
+In this case, you don't need to do anything to get the hook running. We encourage you to configure the hook from the SageMaker Python SDK so you can run different jobs with different configurations without having to modify your script. If you want access to the hook to configure certain things which can't be configured through the SageMaker SDK, you can retrieve the hook as follows.
 ```
 import smdebug.pytorch as smd
 hook = smd.Hook.create_from_json_file()
 ```
-Note that you can create the hook from smdebug's python API as is being done in the next section even in such containers.
+You can create the hook from `smdebug`'s python API as in the following section even in such containers.
 
 ### Bring your own container experience
 #### 1. Create a hook
-If using SageMaker, you will configure the hook in SageMaker's python SDK using the Estimator class. Instantiate it with
-`smd.Hook.create_from_json_file()`. Otherwise, call the hook class constructor, `smd.Hook()`.
+If you're using SageMaker, configure the hook in SageMaker's Python SDK using the Estimator class. Instantiate it with
+`smd.Hook.create_from_json_file()`. Otherwise, call the hook class constructor: `smd.Hook()`.
 
 #### 2. Register the model to the hook
 Call `hook.register_module(net)`.
 
 #### 3. Register your loss function to the hook
-If using a loss which is a subclass of `nn.Module`, call `hook.register_loss(loss_criterion)` once before starting training.\
-If using a loss which is a subclass of `nn.functional`, call `hook.record_tensor_value(loss)` after each training step.
+If you're using a loss which is a subclass of `nn.Module`, call `hook.register_loss(loss_criterion)` once before starting training.\
+If you're using a loss which is a subclass of `nn.functional`, call `hook.record_tensor_value(loss)` after each training step.
 
 #### 4. Take actions using the hook APIs
 
@@ -42,10 +42,10 @@ For a full list of actions that the hook APIs offer to construct hooks and save 
 
 ---
 
-## Module Loss Example
+## Module loss example
 ```python
 #######################################
-# Creating a hook. Refer `API for Saving Tensors` page for more on this
+# Creating a hook. See the `API for Saving Tensors` page for more information.
 import smdebug.pytorch as smd
 hook = smd.Hook(out_dir=args.out_dir)
 #######################################
@@ -121,5 +121,5 @@ for (inputs, labels) in trainloader:
 ---
 
 ## Full API
-See the [API for Saving Tensors](api.md) page for details about Hook, Collection, SaveConfig, and ReductionConfig.
+See the [API for Saving Tensors](api.md) page for details about hooks, collections, SaveConfig, and ReductionConfig.
 See the [Analysis](analysis.md) page for details about analyzing a training job.
