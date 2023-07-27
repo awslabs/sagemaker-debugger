@@ -68,6 +68,8 @@ class MergedTimeline:
             "Forward": 10000,
             "Backward": 20000,
             "DataIterator": 30000,
+            "DataLoaderIter": 30000,
+            "DataLoaderWorker": 30000,
             "Dataset": 40000,
             "/device": 50000,
             "/host": 60000,
