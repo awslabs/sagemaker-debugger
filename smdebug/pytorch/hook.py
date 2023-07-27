@@ -483,6 +483,11 @@ class Hook(CallbackHook):
                     self._save_for_tensor(self.GRADIENT_PREFIX + tname, grad)
             self._save_custom_tensors_post_step()
 
+            # update step time
+            now = time.time()
+            if self.step_event:
+                self.step_event.update_end_time(now)
+
         return back
 
     def _backward_apply(self, module):
