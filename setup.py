@@ -36,6 +36,9 @@ INSTALL_REQUIRES = [
     "packaging",
     "boto3>=1.10.32",
     "pyinstrument==3.4.2",
+    "requests",
+    "pandas",
+    "psutil",
 ]
 
 
