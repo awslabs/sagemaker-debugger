@@ -204,7 +204,7 @@ model = tf.keras.models.Sequential([ ... ])
 ```
 
 To see a full script of this, refer to the [tf_keras_gradienttape.py](https://github.com/awslabs/sagemaker-debugger/blob/master/examples/tensorflow2/scripts/tf_keras_gradienttape.py) example script.
-For a notebook example of using BYOC in PyTorch, see [Using Amazon SageMaker Debugger with Your Own PyTorch Container](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-debugger/pytorch_custom_container/pytorch_byoc_smdebug.ipynb)
+For a notebook example of using BYOC in PyTorch, see [Using Amazon SageMaker Debugger with Your Own PyTorch Container](https://github.com/aws/amazon-sagemaker-examples/blob/main/sagemaker-debugger/pytorch_model_debugging/pytorch_script_change_smdebug.ipynb)
 
 #### Run Debugger locally
 This example shows how to use Debugger for the Keras `model.fit()` API.
