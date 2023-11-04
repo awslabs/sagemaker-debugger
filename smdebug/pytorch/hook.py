@@ -61,7 +61,9 @@ class Hook(CallbackHook):
             self.op_name = op_name
             self.kwargs = kwargs
 
-        def update_end_time(self, end_time=time.time()):
+        def update_end_time(self, end_time=None):
+            if end_time is None:
+                end_time = time.time()
             self.end_time = end_time
 
     @error_handling_agent.catch_smdebug_errors()
